@@ -12,8 +12,9 @@
  * this file actually mounts them, not just defines them.
  */
 
-import { Suspense, useMemo } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
@@ -24,11 +25,10 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { countNoun, formatNumber, formatLocaleDate } from "@/lib/format";
-import { nowFrom } from "@/lib/render-now";
+import { countNoun, formatNumber } from "@/lib/format";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
-import type { BriefRow } from "@/lib/dashboard/brief-rows";
+import { briefCardState, type BriefRow } from "@/lib/dashboard/brief-rows";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
@@ -42,6 +42,19 @@ export interface DashboardBriefProps {
    *  `toListRowFields` derivation the list ledgers use — see that module for defect D3, and
    *  src/lib/render-now.ts for why no row derivation may run against this component's own clock. */
   dueNextRows: BriefRow[];
+  /**
+   * The Due-next card's aside, BUILT ON THE SERVER (src/lib/dashboard/brief-rows.ts's
+   * `dueNextWindowLabel`, called from src/app/page.tsx).
+   *
+   * It was computed here, from `nowIso`, until lane BRIEFDATA (2026-09-08) — and before
+   * HYDRATION-59 it was computed from this client component's OWN host clock with no timezone pin,
+   * which is the [CONFIRMED] root cause of this route's React #418 (SSR in the UTC container said
+   * "week of Sep 7", the browser in its own zone said "week of Sep 8"). Both reasons point the
+   * same way: the label states which window the SELECTED ROWS actually span, so it belongs where
+   * the rows are selected, and passing it as a prop keeps this component's render free of both the
+   * clock and the selection.
+   */
+  dueNextWindow: string;
   changedRows: BriefRow[];
   /** Total changes in the last detection pass (the card foot's figure) — the rows themselves are
    *  capped at CHANGED_CAP. */
@@ -77,6 +90,7 @@ export interface DashboardBriefProps {
 
 export function DashboardBrief({
   dueNextRows,
+  dueNextWindow,
   changedRows,
   totalChanges,
   aggregates,
@@ -89,16 +103,22 @@ export function DashboardBrief({
   fetchError,
   fetchErrorReason,
 }: DashboardBriefProps) {
-  // HYDRATION-59 [CONFIRMED root cause of this route's React #418]: this label was
-  // `formatLocaleDate(new Date(), { month: "short", day: "numeric" })` — a client component
-  // reading its OWN host clock in render, with no timezone pin. The SSR pass (UTC container) and
-  // the hydration pass (the viewer's zone) resolve a different calendar date for part of every
-  // day, so the SSR HTML said "week of Sep 7" and the browser said "week of Sep 8" — reproduced
-  // this lane in a Pacific/Kiritimati Playwright context, verbatim React text-mismatch diff. Now
-  // derived from the SERVER's instant (`nowIso`) and UTC-pinned: identical string, both passes.
-  const weekOfLabel = useMemo(
-    () => formatLocaleDate(nowFrom(nowIso), { month: "short", day: "numeric", timeZone: "UTC" }),
-    [nowIso],
+  const router = useRouter();
+  // Lane BRIEFDATA (2026-09-08): each card's state is ONE decision, made in
+  // src/lib/dashboard/brief-rows.ts, because "no rows" and "the read failed" are opposite facts
+  // that rendered as the same pixels — see briefCardState's own header.
+  const dueState = briefCardState(dueNextRows.length, fetchError);
+  const changedState = briefCardState(changedRows.length, fetchError);
+  const failureNote = (
+    <StateNote
+      band={bandFromPriority("CRITICAL")}
+      action={{ label: "Retry", onClick: () => router.refresh() }}
+    >
+      {fetchError}
+      {fetchErrorReason && (
+        <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>{fetchErrorReason}</span>
+      )}
+    </StateNote>
   );
   const immediateTotal = bandCounts.byPriority.CRITICAL ?? 0;
   const actionTotal = bandCounts.byPriority.HIGH ?? 0;
@@ -162,14 +182,18 @@ export function DashboardBrief({
         {/* Due next */}
         <section>
           <SectionCard dataAudit="due-next-card">
-            <SectionHeading
-              title={`Due next · ${dueNextRows.length} items`}
-              aside={`By next binding date · week of ${weekOfLabel}`}
-            />
-            {dueNextRows.length === 0 ? (
+            <SectionHeading title={`Due next · ${dueNextRows.length} items`} aside={dueNextWindow} />
+            {dueState === "failed" ? (
+              <div style={{ padding: 16 }}>{failureNote}</div>
+            ) : dueState === "empty" ? (
               <div style={{ padding: 16 }}>
-                <StateNote>
-                  Nothing with a dated deadline right now. Items appear here as they enter scope and are verified.
+                {/* The ONE honest empty state (brief-rows.ts, cause 2): the selection window is no
+                    longer capped at a week, so reaching this line means the workspace corpus holds
+                    no future-dated item at all. It says which corpus it looked at — it is not the
+                    failure copy, which now has its own state above. */}
+                <StateNote action={{ label: "Open the ledger →", href: "/regulations" }}>
+                  No item in this workspace&apos;s corpus carries a future binding date. Items appear
+                  here as they enter scope and are verified.
                 </StateNote>
               </div>
             ) : (
@@ -222,18 +246,6 @@ export function DashboardBrief({
                 />
               </>
             )}
-            {fetchError && (
-              <div style={{ padding: 12 }}>
-                <StateNote>
-                  {fetchError}
-                  {fetchErrorReason && (
-                    <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>
-                      {fetchErrorReason}
-                    </span>
-                  )}
-                </StateNote>
-              </div>
-            )}
           </SectionCard>
         </section>
 
@@ -244,7 +256,13 @@ export function DashboardBrief({
               title="What changed"
               aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
             />
-            {changedRows.length === 0 ? (
+            {changedState === "failed" ? (
+              // Lane BRIEFDATA (2026-09-08): this card used to render its honest-empty line on a
+              // FAILED read, with no error anywhere on it — the failure note lived only on the
+              // sibling card above. A reader could not tell "nothing changed" from "we could not
+              // look".
+              <div style={{ padding: 16 }}>{failureNote}</div>
+            ) : changedState === "empty" ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
                   Nothing added or updated in the last detection pass.
@@ -258,9 +276,13 @@ export function DashboardBrief({
                     "UNSCORED · PENDING · not in primary source" while the SAME item on
                     /regulations showed its score and tier. They are now the SHARED row shape
                     (src/lib/dashboard/brief-rows.ts -> toListRowFields), resolved against the
-                    corpus payload this route already loads — no second query shape. A change
-                    whose item is outside the loaded slice still degrades to the Absence
-                    convention rather than an invented value. */}
+                    corpus payload this route already loads — no second query shape.
+                    Lane BRIEFDATA (2026-09-08): that payload is the LIMIT-50 priority slice, and
+                    measured against the live workspace ALL SIX rendered change rows fell outside
+                    it, so the degrade branch was not the exception, it was the whole card. The
+                    route now merges a bounded by-id backfill into the corpus before selecting
+                    (see page.tsx); the degrade branch remains as the last resort for an id the
+                    corpus genuinely cannot resolve, and still invents nothing. */}
                 {changedRows.map((row) => (
                   <ListRow
                     key={row.id}
