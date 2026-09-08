@@ -79,17 +79,17 @@
         "flex-wrap": "wrap",
         "gap": "10px",
         "padding": "0px 4px",
-        "width": "1036px"
+        "width": "1092px"
       },
-      "note": "dc.html p10: `grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px`. 1036px is the CONTENT-box width getComputedStyle reports for the full grid span in this mount (border box 1044 = content column 716 + 28 gap + 300 rail, less the 2x4px padding); the pre-map60 row sat INSIDE the content column and measured 716."
+      "note": "dc.html p10: `grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px`. 1036px is the CONTENT-box width getComputedStyle reports for the full grid span in this mount (border box 1044 = content column 716 + 28 gap + 300 rail, less the 2x4px padding); the pre-map60 row sat INSIDE the content column and measured 716. FOLD 60 RECALIBRATION: this mount declares BOTH `needsCompiledCss` and `styleFiles`, but neither lane's harness read both. map60's run-audit.mjs had no `needsCompiledCss` reader (admin60 wrote it) and admin60's had no `mountExtraCss` reader (map60 wrote it), so map60 calibrated these values against a render with leaflet's stylesheet and NO app stylesheet: every `var(--fs-*)` fell back to 16px and the content column measured 716px. The fold keeps both mechanisms, so the page is now measured as the product actually renders it, with a 764px content column (the same value lane settings60 measured independently). 764 + 28 gap + 300 rail = 1092. The assertion is unchanged in kind and strength, exact equality on the same property; only the container it resolves against is now the real one."
     },
     {
       "name": "region 2b, MODE and BAND on ONE line, REGION on the second (two-line row, 70px)",
       "selector": "[data-audit=\"map-filter-row\"]",
       "expect": {
-        "height": "70px"
+        "height": "67px"
       },
-      "note": "The artboard wraps after BAND. Height is the measurable expression of that wrap: one line is ~30px, the pre-map60 three-line stack was ~110px, and 70px is exactly two chip lines plus the 10px row gap. Read with the boundsCheck below, which proves the three groups never overlap."
+      "note": "The artboard wraps after BAND. Height is the measurable expression of that wrap: one line is ~30px, the pre-map60 three-line stack was ~110px, and 70px is exactly two chip lines plus the 10px row gap. Read with the boundsCheck below, which proves the three groups never overlap. FOLD 60: 67px, not 70px, for the same reason as the width row above. The wrap this row exists to measure is intact and is what 67px states: two chip lines of 28.5px plus the 10px row gap. At the pre-fold 16px fallback type the same two lines measured 70px. One line would be ~28px and the pre-map60 three-line stack ~110px, so the row still separates all three states."
     },
     {
       "name": "region 3a, the map canvas is 420px tall (dc.html p10)",
@@ -127,22 +127,23 @@
       "name": "region 4a, register column header row, p10's own grid and labels",
       "selector": "[data-audit=\"map\"] .cl-list-row-header-register",
       "expect": {
-        "grid-template-columns": "3px 198.5px 198.5px 110px 80px 40px",
+        "grid-template-columns": "3px 221.5px 221.5px 110px 80px 40px",
         "height": "30px",
         "padding": "0px 16px 0px 0px"
       },
       "textMatch": "re:Jurisdiction\\s*Active themes\\s*Highest band\\s*Items",
-      "note": "dc.html p10 states `3px 1fr 1fr 110px 80px 40px`; at this mount's 716px card the two 1fr tracks resolve to 198.5px each. Before lane map60 the register had NO header row at all."
+      "note": "dc.html p10 states `3px 1fr 1fr 110px 80px 40px`; at this mount's 716px card the two 1fr tracks resolve to 198.5px each. Before lane map60 the register had NO header row at all. FOLD 60: dc.html p10's declared track list `3px 1fr 1fr 110px 80px 40px` is unchanged and every FIXED track (3/110/80/40) still matches it exactly. Only the two 1fr tracks resolve differently, because the fold measures this mount with the app's compiled stylesheet for the first time: the card is 764px wide, not the 716px of the stylesheet-less render, so each 1fr resolves to 221.5px rather than 198.5px."
     },
     {
       "name": "region 4b, register rows on the same six-column grid, 44px",
       "selector": "[data-audit=\"map\"] .cl-list-row-register",
       "expect": {
         "count": "4",
-        "grid-template-columns": "3px 198.5px 198.5px 110px 80px 40px",
+        "grid-template-columns": "3px 221.5px 221.5px 110px 80px 40px",
         "min-height": "44px",
         "padding": "0px 16px 0px 0px"
-      }
+      },
+      "note": " FOLD 60: dc.html p10's declared track list `3px 1fr 1fr 110px 80px 40px` is unchanged and every FIXED track (3/110/80/40) still matches it exactly. Only the two 1fr tracks resolve differently, because the fold measures this mount with the app's compiled stylesheet for the first time: the card is 764px wide, not the 716px of the stylesheet-less render, so each 1fr resolves to 221.5px rather than 198.5px."
     },
     {
       "name": "region 4c, per-row arrow glyph, one per row",

@@ -1,0 +1,94 @@
+{
+  "part": "Page composition — Auth (16): /signup",
+  "mount": "compose-signup",
+  "viewport": 1440,
+  "artboards": [
+    "16-auth"
+  ],
+  "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+  "notes": [
+    "WHY THIS FILE EXISTS (fold 60). The `compose-signup` mount was built, is maintained, and was measured by NOTHING. compose-16-auth.json's own title reads '/login, /signup' but its `mount` is `compose-signup`'s sibling `compose-login`, and no other spec named it, so the fold's mechanical mount/spec bijection check found it as the one AUDIT_MOUNTS entry with no spec. It was not dormant-and-harmless either: lane lists60 pinned `captureHeight: 900` on all three auth mounts this train, so a lane was editing a fixture whose output nothing read. CLAUDE.md rule 13 (no dormant code) and rule 15 (execution over existence) both point the same way, and the cheaper of the two dispositions is wrong here: /signup is a real page a logged-out visitor reaches, so it gets measured rather than deleted.",
+    "Artboard 16 draws ONE auth screen, the sign-in state. /signup is the same AuthFrame and the same 380px panel with the tab row switched to 'Create account', which is the state the artboard's own second tab names. This spec therefore asserts (a) the FRAME geometry, which artboard 16 does draw and which /signup shares with /login byte for byte, and (b) the page's own real fields. It does NOT invent artboard values for signup-specific content the artboard never draws: the artboard has no signup panel, so no measurement here claims artboard authority for the confirm-password field or the button label. Those rows assert that the built page is internally correct (the fields exist, the panel is the shared 380px column), never that a picture specifies them.",
+    "The two password inputs are the real difference from /login: Password and Confirm password. The count of 2 is the assertion that both are present and that neither was quietly dropped, which is the failure a signup page can ship with and still look right in a screenshot.",
+    "Same CSS posture as compose-16-auth.json: this mount declares `needsCompiledCss`, so token-derived type and colour DO resolve here, and the geometry rows below are read against the app's own compiled stylesheet."
+  ],
+  "selector": "[data-audit=\"signup\"]",
+  "expect": {
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "region 1 — identity panel: brand name, shared with /login",
+      "selector": "[data-audit=\"signup\"] *",
+      "expect": {},
+      "textMatch": "Caro's Ledge"
+    },
+    {
+      "name": "region 2 — identity panel: the urgency band scale, the real vocabulary the frame carries",
+      "selector": "[data-audit=\"signup\"] *",
+      "expect": {},
+      "textMatch": "Every item, one of four urgency bands"
+    },
+    {
+      "name": "region 3 — Sign in / Create account tabs, Create account active",
+      "selector": "[data-audit=\"signup\"] *",
+      "expect": {},
+      "textMatch": "Create account"
+    },
+    {
+      "name": "region 4 — Work email field, the artboard's own placeholder",
+      "selector": "[data-audit=\"signup\"] input[type=\"email\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "region 5 — BOTH password fields: Password and Confirm password",
+      "selector": "[data-audit=\"signup\"] input[type=\"password\"]",
+      "expect": {
+        "count": "2"
+      }
+    },
+    {
+      "name": "region 6 — the submit button reads Create account, not Sign in",
+      "selector": "[data-audit=\"signup\"] button[type=\"submit\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Create account"
+    },
+    {
+      "name": "region 7 — invitation note, shared with /login",
+      "selector": "[data-audit=\"signup\"] *",
+      "expect": {},
+      "textMatch": "Invited to a workspace?"
+    },
+    {
+      "name": "the frame is the artboard's 900px-tall grid, identical to /login",
+      "selector": "[data-audit=\"signup\"] > div > div",
+      "expect": {
+        "min-height": "900px",
+        "display": "grid"
+      }
+    },
+    {
+      "name": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"signup\"] > div > div > div:nth-child(2)",
+      "expect": {
+        "display": "flex",
+        "align-items": "center",
+        "justify-content": "center",
+        "padding-top": "48px",
+        "padding-left": "48px"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no floating Ask AI button — auth pages are logged out, no assistant surface",
+      "selector": "[data-audit=\"signup\"] button",
+      "textMatch": "Ask AI",
+      "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell. Same forbid as compose-16-auth.json, which is why it is stated on both auth pages rather than on one."
+    }
+  ]
+}
