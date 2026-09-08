@@ -426,6 +426,18 @@ async function main() {
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
         await page.waitForTimeout(80);
         const targets = targetsOf(spec);
+        // SETTLE ON THE SPEC'S OWN TARGETS, not on a fixed 80ms (lane lists60, 2026-09-08).
+        // A mount whose region arrives from a CLIENT FETCH resolved through the harness's routes
+        // (DetailTagRow's /api/workspace/tags is the one that showed it) sometimes had not painted
+        // yet when probe() ran, and the run reported NOT BUILT against a component that was
+        // perfectly correct: this audit read 1030/1030 and 1026/1030 on two consecutive runs of the
+        // SAME commit, with `detailtagrow` the only difference. A flaky gate is worse than a slow
+        // one, because it teaches its readers to re-run rather than to believe it. Each target is
+        // given a bounded wait to appear; a target that is genuinely absent still costs only that
+        // bound and still reports NOT BUILT, so a real regression is never waited into a pass.
+        for (const t of targets) {
+          await page.waitForSelector(t.selector, { timeout: 1500, state: 'attached' }).catch(() => {});
+        }
         const forbids = spec.forbid || [];
         const measured = await probe(
           page,
