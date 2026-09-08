@@ -1,0 +1,60 @@
+{
+  "part": "Page composition — Regulation detail (03)",
+  "mount": "page-frame-1440",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail"],
+  "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
+  "notes": [
+    "Region-composition check inside [data-audit=\"regulation-detail\"] — RegulationDetailSurface mounted with fixture data matching the artboard's own EU ETS example (mounts.mjs PAGE_FRAME_FIXTURES.regulation).",
+    "Artboard order top to bottom: header (band pill, tier, header stat, action row) -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (In this list, Impact assessment, Affected lanes, Owner & team, Connections)."
+  ],
+  "selector": "[data-audit=\"regulation-detail\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row button",
+      "expect": { "count": "4" }
+    },
+    {
+      "name": "region 1a — header stat 'N source(s) · T# primary' present, before action row",
+      "selector": "[data-audit=\"regulation-detail\"] header span",
+      "expect": { "count": "1" },
+      "textMatch": "source"
+    },
+    {
+      "name": "region 2 — sticky section index second entry is 'S2 Obligations — issues requiring action'",
+      "selector": "[data-audit=\"regulation-detail\"] nav[aria-label=\"Section index\"] a:nth-of-type(2)",
+      "expect": { "text": "S2 Obligations — issues requiring action" }
+    },
+    {
+      "name": "region 3 — Summary section aside 'Generated · 30-second read'",
+      "selector": "[data-audit=\"regulation-detail\"] section#summary span",
+      "expect": { "count": "1" },
+      "textMatch": "Generated"
+    },
+    {
+      "name": "region 4 — Sources section is the last section before the rail",
+      "selector": "[data-audit=\"regulation-detail\"] section#sources h2",
+      "expect": { "text": "Sources" }
+    },
+    {
+      "name": "region 5 — rail, 'In this list' card first",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
+      "expect": { "text": "In this list" }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no per-item ask bar between workspace tags and the action row (ruling 2.3)",
+      "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) input[placeholder]",
+      "reason": "The masthead command bar (header.cl-masthead) is the only ask surface; a second scoped ask input inside DetailHeader (the OTHER <header>, excluded by :not(.cl-masthead)) is the item 2.3 defect."
+    },
+    {
+      "name": "no 'Immediate ▾' band dropdown in the action row (ruling 3.1)",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row",
+      "textMatch": "▾",
+      "reason": "The band pill states the band; changing it is not a reader action from the action row."
+    }
+  ]
+}

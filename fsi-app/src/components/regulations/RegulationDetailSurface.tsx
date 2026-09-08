@@ -192,6 +192,13 @@ export function RegulationDetailSurface({
           title={r.title}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
           extraChips={<HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />}
+          headerStat={
+            sourceRows.length > 0
+              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+                  typeof r.sourceTier === "number" ? ` · T${clampTier(r.sourceTier)} primary` : ""
+                }`
+              : null
+          }
           actions={
             <ActionRow
               onExport={() =>
@@ -242,7 +249,10 @@ export function RegulationDetailSurface({
             </>
           }
         >
-          <DetailSection id="summary" title="Summary">
+          {/* Artboard 03 (dc.html #p3, S1 "Summary"): aside reads "Generated · 30-second read" for a
+              synthesized brief. A record-grade item is captured verbatim, not generated, so it keeps
+              no aside here (RecordGradeSections already states that distinction as its own StateNote). */}
+          <DetailSection id="summary" title="Summary" aside={isRecord ? undefined : "Generated · 30-second read"}>
             {isRecord ? (
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (

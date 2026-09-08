@@ -81,9 +81,19 @@ export interface DetailHeaderProps {
    * caller.
    */
   tagRow?: React.ReactNode;
+  /**
+   * Extension point (lane compose-dashboard-details, 2026-09-08, artboards
+   * 03/05/07/09: "7 sources · T1 primary" / "12 sources · 4 corroborating" /
+   * "1 source · 24 connections" / "1 source · 23 connections" — a stat line
+   * every detail artboard renders above the action row, right-aligned).
+   * Additive prop, never a page-local fork of this header. Undefined
+   * renders nothing extra, so this stays additive for any other
+   * DetailHeader caller.
+   */
+  headerStat?: React.ReactNode;
 }
 
-export function DetailHeader({ band, tier, title, actions, extraChips, tagRow }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, headerStat }: DetailHeaderProps) {
   return (
     <header
       aria-label={title}
@@ -116,9 +126,14 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow }:
           </div>
           {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
         </div>
-        {actions && (
+        {(actions || headerStat) && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, maxWidth: "100%" }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
+            {headerStat && (
+              <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{headerStat}</span>
+            )}
+            {actions && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
+            )}
           </div>
         )}
       </div>
