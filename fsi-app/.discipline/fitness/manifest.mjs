@@ -176,6 +176,11 @@ import { fitnessFunction as F38 } from './functions/F38-unbounded-supabase-read.
 // db.mjs's readAllByIds/guardedUpdateByIds/guardedDelete or paginate.mjs's fetchAllRows core, or carry a
 // `// fitness-allow: F39 (reason)` marker proving the list is bounded. No allowlist, no expiry.
 import { fitnessFunction as F39 } from './functions/F39-unbounded-in-filter.mjs';
+// Authed API fetch (2026-09-08, lane TAGS-401, train 61): F40 makes "a guarded route is called
+// through the ONE authenticated fetcher" an invariant, and bans the hand-rolled `Bearer ${...}`
+// header outright. The whole workspace-tags feature 401'd for every signed-in user from the day it
+// landed and every gate stayed green, because a dead API fails soft and every test mounted fixtures.
+import { fitnessFunction as F40 } from './functions/F40-authed-api-fetch.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -211,6 +216,7 @@ export const fitnessFunctions = [
   F37,
   F38,
   F39,
+  F40,
 ];
 
 export function getFunctionById(id) {
