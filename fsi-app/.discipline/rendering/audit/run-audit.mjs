@@ -99,13 +99,54 @@ async function probe(page, targets, forbids) {
       // reported NOT IN SPEC. A false finding is worse than no audit (CLAUDE.md rule 14), and the
       // fix belongs in the harness rather than in a weaker spec: the invariant being guarded (an
       // unscored row never renders a fabricated zero) is exactly right, only its expression was.
+      //
+      // MOBFIX-61 (2026-09-08) [CONFIRMED, by attack]: the text a spec matches against is what the
+      // element RENDERS, not its source text. Nineteen spec files carry a `textMatch: "UNSCORED"`
+      // or `"NOT SCORED"` forbid; the product writes those words in lower case and uppercases them
+      // with `text-transform: uppercase` (Absence.tsx's ABSENCE_TEXT_STYLE), so `textContent`
+      // returned "unscored" and every one of those forbids matched nothing, at every viewport, for
+      // as long as they have existed. They reported MATCH while the operator was photographing the
+      // literal token on his phone (mobile report 2026-09-08, D-M4). That is CLAUDE.md rule 15's
+      // exact failure mode — a guard trusted for its presence rather than proven by attack — and
+      // the fix belongs in the harness, not in nineteen individually weakened specs: `renderedText`
+      // applies the element's own computed `text-transform` before matching, so a forbid asserts
+      // what a person actually sees. Proven by attack: with this in place the specs whose mounts
+      // render an unscored row went RED against the pre-fix product and green only once the row
+      // stopped rendering the literal.
+      // Per-TEXT-NODE, not per-element: `text-transform` is inherited, so an element's own
+      // computed value describes only the text it holds directly. A `selector: "body"` forbid
+      // reading body's computed transform ("none") would uppercase nothing and miss a token a
+      // descendant span renders uppercase — the same vacuity in a different place. The walk
+      // applies each text node's nearest element ancestor's own computed transform.
+      const renderedText = (root) => {
+        if (root.nodeType !== 1) return root.textContent || '';
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let out = '';
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const owner = n.parentElement;
+          if (!owner) { out += n.nodeValue || ''; continue; }
+          const tag = owner.tagName;
+          if (tag === 'STYLE' || tag === 'SCRIPT') continue;
+          const tt = getComputedStyle(owner).textTransform;
+          const s = n.nodeValue || '';
+          out += tt === 'uppercase' ? s.toUpperCase() : tt === 'lowercase' ? s.toLowerCase() : s;
+        }
+        return out;
+      };
+      // A node matches if the pattern is in EITHER its source text or its rendered text. The two
+      // forms answer two different questions and both are legitimate: an ordinary target uses
+      // `textMatch` to NARROW a selector to the element the spec means, and is authored against
+      // the source ("Filters", "Watch"); a forbid uses it to ASSERT what a reader sees, and is
+      // authored against the rendering ("UNSCORED"). Matching source-only made every forbid of
+      // the second kind vacuous; matching rendered-only would break every target of the first
+      // kind (measured: 35 targets went NOT BUILT). The union serves both without either spec
+      // author having to know which transform the product happens to apply.
       const textFilter = (nodes, textMatch) => {
         if (!textMatch) return nodes;
-        if (String(textMatch).startsWith('re:')) {
-          const re = new RegExp(String(textMatch).slice('re:'.length));
-          return nodes.filter((n) => re.test(n.textContent || ''));
-        }
-        return nodes.filter((n) => (n.textContent || '').includes(textMatch));
+        const hit = String(textMatch).startsWith('re:')
+          ? (s) => new RegExp(String(textMatch).slice('re:'.length)).test(s)
+          : (s) => s.includes(textMatch);
+        return nodes.filter((n) => hit(n.textContent || '') || hit(renderedText(n)));
       };
       const readTarget = (t) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
