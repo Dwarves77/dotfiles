@@ -23,13 +23,14 @@ const {
   bandFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
   EMPTY_FILTER_STATE,
   BAND_FACET_PARAM,
   bandFromSearchParam,
 } = await jiti.import("./list-surface-helpers.ts");
 
 function res(over = {}) {
-  return { id: "r1", title: "A regulation", priority: "HIGH", jurisdiction: "EU", modes: ["ocean"], tags: [], ...over };
+  return { id: "r1", title: "A regulation", priority: "HIGH", jurisdiction: "EU", modes: ["ocean"], tags: [], added: "2026-01-01", ...over };
 }
 
 test("modeFacetOptions counts distinct modes across rows, sorted by count desc then alpha", () => {
@@ -160,4 +161,37 @@ test("bandFromSearchParam rejects anything outside the vocabulary (absent, missp
   assert.equal(bandFromSearchParam("IMMEDIATE"), null, "case-sensitive: only the real lower-case band keys are valid");
   assert.equal(bandFromSearchParam("critical"), null, "platform priority values are not band keys");
   assert.equal(bandFromSearchParam("not-a-band"), null);
+});
+
+// ListSurfaceSortRow's sort keys (artboards 02/04, id="p2"/"p4": "Sort Next date | Newest | A-Z").
+test("sortResourceRows 'my-order' is the identity (no drag-reorder in this rebuild — never fabricated)", () => {
+  const rows = [res({ id: "b", title: "B" }), res({ id: "a", title: "A" })];
+  assert.deepEqual(sortResourceRows(rows, "my-order"), rows);
+});
+
+test("sortResourceRows 'az' sorts by title alphabetically", () => {
+  const rows = [res({ id: "b", title: "Zebra" }), res({ id: "a", title: "Alpha" })];
+  const sorted = sortResourceRows(rows, "az");
+  assert.deepEqual(sorted.map((r) => r.id), ["a", "b"]);
+});
+
+test("sortResourceRows 'newest' sorts by 'added' descending", () => {
+  const rows = [res({ id: "old", added: "2025-01-01" }), res({ id: "new", added: "2026-06-01" })];
+  const sorted = sortResourceRows(rows, "newest");
+  assert.deepEqual(sorted.map((r) => r.id), ["new", "old"]);
+});
+
+test("sortResourceRows 'next-date' sorts by soonest upcoming deadline, undated rows last", () => {
+  const soon = res({ id: "soon", complianceDeadline: "2099-01-05" });
+  const later = res({ id: "later", complianceDeadline: "2099-06-01" });
+  const undated = res({ id: "undated" });
+  const sorted = sortResourceRows([later, undated, soon], "next-date");
+  assert.deepEqual(sorted.map((r) => r.id), ["soon", "later", "undated"]);
+});
+
+test("sortResourceRows does not mutate the input array", () => {
+  const rows = [res({ id: "b", title: "B" }), res({ id: "a", title: "A" })];
+  const original = rows.slice();
+  sortResourceRows(rows, "az");
+  assert.deepEqual(rows, original);
 });

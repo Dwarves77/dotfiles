@@ -32,7 +32,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
@@ -42,6 +42,7 @@ import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
@@ -50,11 +51,20 @@ import {
   regionFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "market";
+
+// Sort row (artboard 04/id="p4": "Sort Next date | Newest | A-Z", active option filled — three
+// options here, unlike Regulations' four; the artboard carries no "My order" on this surface).
+const SORT_OPTIONS: ListSurfaceSortOption[] = [
+  { key: "next-date", label: "Next date" },
+  { key: "newest", label: "Newest" },
+  { key: "az", label: "A-Z" },
+];
 
 /** The market signal KIND — a neutral tag (README artboard 04), not a band.
  *  Reads the classified `severity` column when present (migration 102);
@@ -106,14 +116,16 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
+  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az">("next-date");
+  const [flat, setFlat] = useState(false);
 
   const tagsFacet = useWorkspaceTagsFacet();
 
   const filtered = useMemo(() => {
     const base = filterRows(initialResources, filter);
     const kinded = kindFilter ? base.filter((r) => signalKindLabel(r) === kindFilter) : base;
-    return kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id));
-  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag]);
+    return sortResourceRows(kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey);
+  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag, sortKey]);
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(initialResources, aggregates.byPriority as unknown as Record<string, number>);
@@ -218,6 +230,23 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
+      sortRow={
+        <ListSurfaceSortRow
+          countLabel={
+            <>
+              <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> signals · {flat ? "flat" : "grouped by band"}
+            </>
+          }
+          flatToggleLabel={flat ? "Group by band" : "Show as one list"}
+          flat={flat}
+          onToggleFlat={() => setFlat((f) => !f)}
+          controlLabel="Sort"
+          options={SORT_OPTIONS}
+          active={sortKey}
+          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az")}
+        />
+      }
+      flat={flat}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}

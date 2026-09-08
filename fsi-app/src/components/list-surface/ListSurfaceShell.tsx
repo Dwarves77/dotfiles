@@ -16,28 +16,25 @@
  * src/components/ui/ shared part (only these five surfaces use it), so it
  * lives under its own directory rather than in ui/.
  *
- * DEVIATION (logged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md):
- * the artboards' Filters rail card uses checkboxes; this renders the same
- * groups as FilterChipGroup/FilterChip pills, the actual shared component
- * README §0.4 defines for "filter chips grouped in labelled sets", per this
- * lane's dispatch. Rail cards specific to one surface (Obligations
- * calendar, Carbon cost per FEU, Source coverage, Next data drops) are not
- * reproduced here — logged as deferred, out of this lane's list-mechanics
- * budget.
+ * Desktop Filters (lane compose-lists, 2026-09-07/08, operator audit "the filters were not above
+ * the regulations, they were on the right — same on every page"; artboard 02/id="p2"): the rail's
+ * `FiltersRailCard` (ListSurfaceRailCards.tsx) renders the SAME facetGroups/secondaryFacetGroups
+ * data as real checkbox rows with live counts, matching the artboards' own checkbox rendering —
+ * this superseded an earlier pill-based rail card (see DEVIATION-LOG's prior "checkboxes vs pills"
+ * entry, now closed). Rail cards specific to one surface (Obligations calendar, Carbon cost per
+ * FEU, Source coverage, Next data drops) are not reproduced here — logged as deferred, out of this
+ * lane's list-mechanics budget.
  *
- * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px
- * the facet card becomes ONE horizontally-scrolling strip of
- * `FilterChipGroup` shells (no live counts in the strip itself — compact,
- * label + chips only) plus a "Filters" control. That control opens a SHEET
- * — built from the SAME bottom-anchored/scrim mechanism the nav drawer
- * uses (`Sidebar.tsx`'s `rgba(0,0,0,.3)` scrim, confirmed the app's own
- * value by README line 133 "30%-black scrim"), never a page-local overlay
- * — containing exactly the facet groups the rail shows on desktop (the
- * SAME `facetGroups`/`secondaryFacetGroups` this shell already receives,
- * rendered with their live counts, unchanged chip chrome), plus a close
- * target. The spec names the sheet but the operator's own overlays list
- * says overlay styling is not designed — logged in DEVIATION-LOG.md as
- * "sheet built from the drawer mechanism, styling pending an artboard".
+ * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px the facet UI stays
+ * pill-based — ONE horizontally-scrolling strip of `FilterChipGroup` shells (no live counts in the
+ * strip itself — compact, label + chips only) plus a "Filters" control opening a SHEET — built
+ * from the SAME bottom-anchored/scrim mechanism the nav drawer uses (`Sidebar.tsx`'s
+ * `rgba(0,0,0,.3)` scrim, confirmed the app's own value by README line 133 "30%-black scrim"),
+ * never a page-local overlay — containing exactly the facet groups the rail shows on desktop (the
+ * SAME `facetGroups`/`secondaryFacetGroups` this shell already receives, rendered with their live
+ * counts, unchanged chip chrome), plus a close target. The spec names the sheet but the operator's
+ * own overlays list says overlay styling is not designed — logged in DEVIATION-LOG.md as "sheet
+ * built from the drawer mechanism, styling pending an artboard".
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -99,6 +96,19 @@ export interface ListSurfaceShellProps {
    *  08: "six dimension tiles collapse into the matrix header"), which is
    *  not one of the shared row/tile parts and is reused unchanged. */
   aboveRows?: ReactNode;
+
+  /** Count + sort/window control row (ListSurfaceSortRow), artboards 02/04:
+   *  rendered directly above the rows, below aboveRows. Omitted by surfaces
+   *  whose artboard does not carry this row (Research/Operations/Watchlist). */
+  sortRow?: ReactNode;
+
+  /** When true, rowsByBand's rows are concatenated (in the order each
+   *  band's own `rows` array already carries — the caller sorts them) into
+   *  ONE unheaded list instead of per-band Card sections — artboard 02's
+   *  "Show as one list" state. Each row still carries its own true band
+   *  colouring (ListRow's own left-edge bar), only the band SectionHeader
+   *  and per-band grouping disappear. */
+  flat?: boolean;
 
   /** Rows already grouped by band, in BAND_ORDER, each with its true
    *  (post-filter) total so the section can say "showing N of M". */
@@ -319,6 +329,8 @@ export function ListSurfaceShell({
   facetGroups,
   secondaryFacetGroups,
   aboveRows,
+  sortRow,
+  flat,
   rowsByBand,
   perBandCap,
   onExpandBand,
@@ -408,13 +420,41 @@ export function ListSurfaceShell({
 
           {aboveRows}
 
-          {/* Rows, grouped by band */}
+          {sortRow}
+
+          {/* Rows — flat (artboard 02 "Show as one list"): every matching row, in the order
+              rowsByBand's own per-band arrays already carry, concatenated into one unheaded list;
+              still virtualized past the threshold, still each row's own true band colouring. */}
           {loadingFirstPage ? (
             <Card>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</Card>
           ) : !anyRows ? (
             <Card>
               <div style={{ padding: 16 }}>{emptyState ?? <StateNote>Nothing matches these filters right now.</StateNote>}</div>
             </Card>
+          ) : flat ? (
+            (() => {
+              const flatRows = rowsByBand.flatMap((section) => section.rows);
+              return (
+                <Card noRule>
+                  {flatRows.length > VIRTUALIZE_THRESHOLD ? (
+                    <VirtualizedRowList
+                      rows={flatRows}
+                      rowHeight={56}
+                      getRowId={(row) => row.key}
+                      renderRow={(row) => {
+                        const { key, ...rowProps } = row;
+                        return <ListRow {...rowProps} />;
+                      }}
+                    />
+                  ) : (
+                    flatRows.map((row) => {
+                      const { key, ...rowProps } = row;
+                      return <ListRow key={key} {...rowProps} />;
+                    })
+                  )}
+                </Card>
+              );
+            })()
           ) : (
             rowsByBand
               .filter((section) => section.total > 0)

@@ -54,7 +54,7 @@ import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
@@ -71,6 +71,7 @@ import {
   type ListSurfaceFacetGroup,
 } from "@/components/list-surface/ListSurfaceShell";
 import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
@@ -79,11 +80,23 @@ import {
   regionFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "regulations";
+
+// Sort row (artboard 02/id="p2": "Sort Next date | Newest | A-Z | My order", active option
+// filled). "My order" is the corpus's own incoming order — this rebuild has no drag-reorder (see
+// this file's header comment), so "My order" is honestly the identity/no-op sort, not a
+// fabricated manual-order feature.
+const SORT_OPTIONS: ListSurfaceSortOption[] = [
+  { key: "next-date", label: "Next date" },
+  { key: "newest", label: "Newest" },
+  { key: "az", label: "A-Z" },
+  { key: "my-order", label: "My order" },
+];
 
 async function fetchRemainder(): Promise<Resource[]> {
   const res = await fetch(`/api/listings/rest?surface=regulations&offset=60`, { cache: "no-store" });
@@ -114,6 +127,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
+  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az" | "my-order">("next-date");
+  const [flat, setFlat] = useState(false);
 
   // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
   // (UILISTS2, 2026-09-07). Overrides arrive via useWorkspaceOverridesHydration, mounted globally
@@ -131,8 +146,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   const tagsFacet = useWorkspaceTagsFacet();
 
   const filtered = useMemo(
-    () => filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)),
-    [allRows, filter, tagsFacet.matchesSelectedTag]
+    () => sortResourceRows(filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey),
+    [allRows, filter, tagsFacet.matchesSelectedTag, sortKey]
   );
 
   const bandCounts = useMemo(() => {
@@ -217,7 +232,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     return soonest;
   }, [allRows]);
   const scopeLineParts = [
-    `${total.toLocaleString()} active`,
+    `${formatNumber(total)} active`,
     `${jurisdictionCount} jurisdictions`,
     aggregates.lastUpdatedAt
       ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
@@ -239,6 +254,23 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={[workspaceTagFacetGroup]}
+      sortRow={
+        <ListSurfaceSortRow
+          countLabel={
+            <>
+              <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> regulations · {flat ? "flat" : "grouped by band"}
+            </>
+          }
+          flatToggleLabel={flat ? "Group by band" : "Show as one list"}
+          flat={flat}
+          onToggleFlat={() => setFlat((f) => !f)}
+          controlLabel="Sort"
+          options={SORT_OPTIONS}
+          active={sortKey}
+          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az" | "my-order")}
+        />
+      }
+      flat={flat}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}

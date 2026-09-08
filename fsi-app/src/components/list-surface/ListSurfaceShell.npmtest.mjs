@@ -46,3 +46,16 @@ test("mobile strip + sheet mechanism (cl-facets-mobile / cl-filters-btn) is unch
   assert.match(SHELL_SOURCE, /cl-facets-mobile/);
   assert.match(SHELL_SOURCE, /cl-filters-btn/);
 });
+
+// sortRow / flat (artboards 02/04, id="p2"/"p4": count + "grouped by band · Show as one list" left,
+// "Sort ..." segmented control right, directly above the rows). Opt-in slot + rendering mode, not
+// every surface's own copy — Research/Operations/Watchlist artboards do not carry this row.
+test("sortRow renders directly above the rows, and flat concatenates rowsByBand into one unheaded list", () => {
+  assert.match(SHELL_SOURCE, /\{sortRow\}/, "sortRow must be an explicit render slot");
+  assert.match(SHELL_SOURCE, /flat \? \(/, "flat must switch to the unheaded single-list rendering branch");
+  assert.match(
+    SHELL_SOURCE,
+    /rowsByBand\.flatMap\(\(section\) => section\.rows\)/,
+    "flat mode must concatenate every band's own (already-sorted) rows, not re-derive a new order",
+  );
+});
