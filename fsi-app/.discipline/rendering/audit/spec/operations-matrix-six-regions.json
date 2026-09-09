@@ -1,0 +1,78 @@
+{
+  "part": "Operations matrix with a SIXTH region column: \"regions beyond five scroll inside the card\"",
+  "mount": "ops-matrix-six-regions",
+  "viewport": 1440,
+  "artboards": [
+    "08-operations-redesign-2026-09-08 (which draws five columns and a `SCROLL →` hint)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's replacement artboard), plus his /operations STOP SHIP message of 2026-09-09 quoted verbatim in the notes.",
+  "notes": [
+    "OPERATOR, 2026-09-09, item 4, verbatim: \"First column sticky; regions beyond five scroll inside the card.\"",
+    "WHY THIS NEEDED ITS OWN MOUNT. Every other matrix mount carries the artboard's five columns, so none of them can tell a table that scrolls at six from one that never scrolls at all. [CONFIRMED 2026-09-09, by measurement] the base this lane started from did NOT scroll at six: with a 96px column floor, six columns summed to 180 + 576 = 756px inside a 1024px scroller on the composed page, so they simply stretched. The floor is now 142px, chosen as the only value where five columns still FIT (180 + 710 = 890px, inside both the 1024px composed scroller and the 892px component-mount scroller) and six do NOT (180 + 852 = 1032px, outside both). Both halves are measured in .discipline/rendering/smoke/ops-matrix-acceptance-smoke.mjs leg E; this spec pins the shape.",
+    "The scroll hint in the card head is drawn only when there is somewhere to scroll to, which is why it appears here and not on the five-column mounts: telling a reader to scroll a table that does not move is a false affordance."
+  ],
+  "selector": "[data-audit=\"ops-matrix\"] .cl-ops-matrix-table[data-guard-strip]",
+  "expect": {
+    "overflow-x": "auto"
+  },
+  "children": [
+    {
+      "name": "six region columns are rendered",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th",
+      "expect": {
+        "count": "7"
+      }
+    },
+    {
+      "name": "the header hint gains `scroll →` once there IS somewhere to scroll (operator's delete list: the old `click a dimension to open its facts` becomes `N regions · scroll →`)",
+      "selector": "[data-audit=\"ops-matrix-hint\"]",
+      "textMatch": "scroll",
+      "expect": {
+        "count": "1",
+        "text": "8 of 36 cells sourced · 22% · 18 regions · scroll →"
+      }
+    },
+    {
+      "name": "FIRST COLUMN STICKY still, which is what makes the panning readable rather than merely possible: the row label stays on screen at every scroll offset",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "expect": {
+        "position": "sticky",
+        "left": "0px",
+        "border-right-width": "1px"
+      }
+    },
+    {
+      "name": "the region column floor is the measured 142px, so the sixth column is the one that pushes the table past its scroller",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "expect": {
+        "min-width": "142px"
+      }
+    },
+    {
+      "name": "the card still clips, so the scrolled table never paints over its rounded corners",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "expect": {
+        "overflow-x": "hidden",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "and the card's height is unchanged by the sixth column: the panel slot is still the fixed-height box that holds it",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "height": "300px",
+        "overflow-y": "auto"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "the sixth column does not make a cell wrap into a second line",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "matchStyle": {
+        "height": "80px"
+      },
+      "reason": "The 40px row is the operator's first clause and the column floor is what protects it. Before the floors existed, a table with no minimum width CRUSHED rather than scrolled: the rendering guard measured the dimension column at 21px, wrapping `Regional resource availability` over twelve one-character lines. A doubled row height is that failure returning."
+    }
+  ]
+}

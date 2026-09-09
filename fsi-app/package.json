@@ -29,7 +29,8 @@
     "verify:meterfix-surfaces": "node .discipline/rendering/verify-meterfix-surfaces.mjs",
     "audit:design": "node .discipline/rendering/audit/run-audit.mjs",
     "audit:overflow": "node .discipline/rendering/audit/overflow-sweep.mjs",
-    "audit:layout": "node .discipline/rendering/layout-guard/run-layout-guard.mjs"
+    "audit:layout": "node .discipline/rendering/layout-guard/run-layout-guard.mjs",
+    "capture:opsmatrix5-screenshots": "node .discipline/rendering/capture-opsmatrix5-screenshots.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
