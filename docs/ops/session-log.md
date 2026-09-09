@@ -16346,3 +16346,27 @@ tests, including 5 new bounded/scoped route tests and 8 new CommandBar structura
 after the two spec updates above.
 
 See `DEVIATION-LOG.md` for the design-spec updates as formal rows.
+
+### UX compliance
+
+**Screen: the command bar, mounted on every route.** Primary goal: find an item by name or field
+without leaving the page the reader is on. Path: type two or more characters in Search mode, the
+bounded query runs after a short debounce, results render as the shared list row beneath the bar,
+click a result to open the item. One primary action: submitting the query; the mode toggle and the
+Ask submit are secondary and sit after it. Feedback per async action: while the search request is
+in flight the bar keeps the typed text and the result area holds its last state rather than
+flashing empty; on no results the shared absence line renders once; on a request error the same
+absence line carries the reason word and nothing else, no raw error body reaches the reader.
+
+**Screen: the same bar in Ask mode.** Primary goal: ask the Assistant a question when it is
+enabled, and know before typing when it is not. Path: press the Ask tab, read the placeholder,
+type, submit. One primary action: submitting the question. Feedback per async action: with the
+Assistant disabled the input, the submit and the dispatch are all off and the placeholder states
+it, so there is no async action to give feedback on and no request can leave the page; with it
+enabled the existing Assistant panel opens and carries its own pending and error states, unchanged
+by this lane.
+
+Law 2 (Fitts): both toggle tabs measure at least 44px on one axis and 28px on the other, proven by
+the rendering guard rather than exempted. Law 5 (Miller): the toggle adds one decision, mode, and
+nothing else to the bar. Law 16 (Similarity): results reuse the list row every other surface
+renders, so a search result reads as the item it is and not as a new kind of thing.
