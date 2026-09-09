@@ -27,7 +27,7 @@ import { collectLayout } from './collect.mjs';
 import { checkAll, RULE_IDS, RULE_PROVENANCE } from './rules.mjs';
 import { ROUTES, LAYOUT_WIDTHS, ROUTING } from './routes.mjs';
 import { manifestFor, loadManifests, deviationsForRoute } from './manifests.mjs';
-import { applyBaseline, findingKey, BASELINE_EXPIRY_WAVE } from './baseline.mjs';
+import { applyBaseline, findingKey, BASELINE_EXPIRY_DATE } from './baseline.mjs';
 
 const AUDIT_DATE = '2026-09-08';
 
@@ -111,14 +111,14 @@ export async function measureAllRoutes(browser, { widths = LAYOUT_WIDTHS, only =
  */
 export async function runLayoutGuard(browser, options = {}) {
   const { findings, errors, checks } = await measureAllRoutes(browser, options);
-  const { baselined, blocking, expired, latestWave } = applyBaseline(findings);
+  const { baselined, blocking, expired, date } = applyBaseline(findings);
   const failures = [
     ...blocking.map(formatFinding),
     ...errors.map((e) => `layout-guard ${e.route}@${e.width ?? '-'}: harness error - ${e.message}`),
   ];
   if (baselined.length) {
     console.log(
-      `layout guard: ${baselined.length} finding(s) covered by the dated baseline (expires at wave ${BASELINE_EXPIRY_WAVE}, latest landed wave: ${latestWave ?? 'unknown'}${expired ? ', EXPIRED' : ''}) - see docs/audits/layout-guard-2026-09-08.md for the owning part of each`,
+      `layout guard: ${baselined.length} finding(s) covered by the dated baseline (expires ${BASELINE_EXPIRY_DATE}, today ${date}${expired ? ', EXPIRED' : ''}) - see docs/audits/layout-guard-2026-09-08.md for the owning part of each`,
     );
   }
   return { checks, failures };
@@ -233,13 +233,13 @@ async function main() {
       `${JSON.stringify({
         note: 'GENERATED. See baseline.mjs for what this is and when it dies. Regenerate with --write-baseline; a lane that fixes its findings commits the SHRUNKEN file.',
         writtenAt: new Date().toISOString().slice(0, 10),
-        expiryWave: BASELINE_EXPIRY_WAVE,
+        expiryDate: BASELINE_EXPIRY_DATE,
         widths,
         count: findings.length,
         keys: findings.map(findingKey).sort(),
       }, null, 2)}\n`,
     );
-    console.log(`wrote baseline.json (${findings.length} keys, expires at wave ${BASELINE_EXPIRY_WAVE})`);
+    console.log(`wrote baseline.json (${findings.length} keys, expires ${BASELINE_EXPIRY_DATE})`);
   }
 
   console.log('\n===== SITE-WIDE LAYOUT GUARD =====');

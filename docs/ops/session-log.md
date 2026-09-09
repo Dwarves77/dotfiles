@@ -15987,3 +15987,246 @@ lane's change made stale was rewritten by that lane, in its own commit, with its
 
 **Next steps.** The coordinator lands `train/wave64-2026-09-09`. The three lane branches can be
 retired once it is on master.
+
+## 2026-09-09, lane opsmatrix5: the /operations STOP SHIP, item by item, and the reversal of a site-wide rule for one element
+
+**Accomplished.** The operator stopped the ship on /operations on 2026-09-09. The screen he was
+looking at is PRODUCTION, which still renders the retired expand-a-dimension pattern because lane
+opsmatrix3's rebuild has not landed (measured live by the coordinator the same morning: five elements
+arrive with `aria-expanded="true"`, all five the "Regional resource availability" dimension). This
+lane therefore did not rebuild. It took his message item by item against
+`lane/noexpand-2026-09-08`, which carries the rebuild plus the site-wide no-default-expansion sweep,
+fixed what was not yet true there, and measured his three acceptance criteria.
+
+Nine items were ALREADY TRUE on that base and are now measured rather than asserted (the ▸/▾ toggle
+and the five-column band, absent from the rendered DOM; CURRENT nowhere in rendered text; the
+selection tint and inset; the panel ground; the header string shape; the three-card cap; the
+remainder link; compare mode's stacked cards; the sticky first column). Eight were NOT true and are
+fixed: the default selection, arrows moving the selection, Esc, the panel's top-rule alpha, the
+no-figure fact card (which rendered the literal word PENDING), the source line's element order, the
+region column floor (six columns did not scroll), and the foot legend's missing dash.
+
+**Decisions.**
+
+1. **The reversal.** Operator 2026-09-08 ("no items expanded when first navigtaing to a page") and
+   operator 2026-09-09 item 5 ("Default state on load: first sourced cell of the first sourced row
+   open") disagree about this one element. Coordinator note C1 is binding: the earlier ruling forbade
+   the RETIRED row expansion, which the newer message orders deleted; the newer message asks for this
+   default in writing. The matrix arrives selected; nothing else on the site does. F42 keeps every
+   line of its behaviour and gains a documented R6 category naming this one component; the rendering
+   guard's `no-default-open` leg keeps all four legs and its site-wide sweep. The matrix DECLARES
+   itself with `data-open-on-mount` naming both dates, and drops the attribute the instant the reader
+   acts. Proven by attack in both directions.
+2. **THE TABLE NEVER GROWS is enforced by a fixed-height panel slot.** A panel that appears with a
+   selection cannot satisfy "card height constant regardless of selection", and neither can one whose
+   height follows its content. The slot is always in the DOM, always 300px, and scrolls internally.
+   Measured at 1440 on the composed page: 682.5 / 682.5 / 682.5px across nothing selected, a cell
+   selected and compare mode.
+3. **Criterion B beats the 72-character cap where they conflict.** Measured: 560px sets ~92
+   characters in this face at 12.5px; 72 characters need ~439px. Criterion B is the later statement,
+   the one the lane is judged on, and the artboard corroborates it at ~88 characters. Cap applied:
+   `max(560px, 72ch)` = 573px.
+4. **The scroll hint stays conditional**, which is the one place the artboard was not followed, and
+   it is recorded in DEVIATION-LOG.md rather than absorbed silently.
+
+**Gates.** `npx tsc --noEmit` exit 0. Fitness 36 functions, 0 violations, exit 0. Rendering guard
+PASS (560 fixture checks, 176 smoke checks across 10 specs including the new `ops-matrix-acceptance`
+leg, 216 UX checks), exit 0. `npm run audit:design` every spec MATCH, no MISMATCH, no NOT BUILT, no
+NOT IN SPEC. `npm run audit:overflow` 0px on every mount, exit 0. The CI npmtest glob: 1065 tests,
+0 fail, exit 0. `bash .discipline/run-test-suite.sh` 0 fail, exit 0. `npx next build` (Turbopack)
+exit 0; `npx next build --webpack` exit 0.
+
+**Blocker, stated rather than worked around.** `npm run audit:layout` DOES NOT EXIST on this base:
+`package.json` carries `audit:design` and `audit:overflow` only, and there is no layout sweep under
+`.discipline/rendering/audit/`. The layout guard lives on `lane/layoutguard-2026-09-08`, which is not
+an ancestor of this branch. The nearest peer that IS here, `open-state-sweep.mjs`, was run and
+reports 0 unallowed open elements.
+
+**Next steps.** The coordinator lands this; the container cannot push. When the layout guard folds in,
+re-run it against this branch. When `crossRefCountsByRegion` and `totalRegionCount` reach the composed
+page, the header aside will show the artboard's "18 REGIONS" and the column sub-lines their "· N regs"
+half; both are data-driven today and neither is stubbed.
+
+**UX compliance.** DP-1: the matrix card is one part with one anatomy at every width; the mobile
+duplicate stays deleted and the 390 specs are unchanged and green. DP-2: nothing on this surface is
+reachable only by pointer. Every selectable cell including column 0 is on the roving tabindex, arrows
+now both move and select, Home and End jump the row, Enter and Space commit, and Esc closes; the
+panel's links are real links and buttons with a 24px minimum hit height. The 40px row height is
+asserted at 1440 and at 390. Absence is the app's closed vocabulary everywhere, and the foot legend
+now shows the em dash it explains.
+
+## 2026-09-09: FOLD 65, train/wave65-2026-09-09
+
+**Scope.** Replay lane opsmatrix5's answer to the operator's /operations STOP SHIP list onto
+`origin/master` at `8ab9fc9a`. The lane branched from `lane/noexpand-2026-09-08` (`d51de113`); wave
+64 has since landed on master as one squash carrying that same lane's work plus fold 64's own
+changes, so the component already differs on master. Four commits cherry-picked with `-x` in order:
+`478b8fc0`, `eb3a0349`, `55050383`, `16d74e02`. No lane worktree was touched.
+
+**The conflicts, four files.**
+
+1. `fsi-app/src/components/operations/RegionDimensionMatrix.tsx` (from `478b8fc0`), one hunk, the
+   card element and its closing tag. Resolved to master's shell and the lane's behaviour, hunk by
+   hunk in DEVIATION-LOG.md's FOLD 65 section: all eight of fold 64's hunks survive (the
+   `SectionCard` import, the `SectionCard as="section"` element, its closing tag, two
+   `data-guard-sticky-col` attributes, two `data-guard-display` attributes, the `stickyCell`
+   layout-guard declaration), and every behavioural hunk in `478b8fc0` survives (the arrival
+   selection, the three-value state, arrows select while Home and End move focus, Esc, the
+   fixed-height panel slot, the `--line-1` panel rule, the 12.5px/1.5 detail sentence, the source
+   line's order, the six-word no-figure headline, the head aside, the 142px region floor, the
+   `data-open-on-mount` declaration).
+2. `fsi-app/.discipline/fitness/functions/F43-default-open-disclosure.mjs` (from `eb3a0349`, the
+   file renamed by wave 64), the failure text. Resolved to F43's number carrying the lane's R6
+   clause.
+3. `fsi-app/.discipline/rendering/run-rendering-guard.mjs`, the smoke spec list. Resolved by union:
+   fold 64's `impact-meter-partial` leg and the lane's `ops-matrix-acceptance` leg both registered.
+4. `fsi-app/package.json` (a script each side added), and
+   `fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json` (three hunks: master's
+   A1 rule row, A3 shell row, rail-facet row and calculator-link row all kept, the lane's four
+   arrival-state rows all added, and the lane's two deletions of the now-false "opens nothing" and
+   "no cell is tinted" forbids honoured). Both resolved by union of intent.
+   `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md`,
+   `fsi-app/.discipline/rendering/audit/results.json` and
+   `fsi-app/.discipline/rendering/layout-guard/results.json` are generated files and were taken from
+   HEAD and then REGENERATED from the folded tree rather than merged by hand.
+   `DEVIATION-LOG.md` and this file were union merges of two appended sections.
+
+**The guard renumbering.** Read from the tree: F42 is `card-shell-outside-SectionCard`, F43 is
+`default-open-disclosure`. Lane opsmatrix5 cited F42 for the default-open exception because it was
+written before wave 64 renumbered. The R6 category is now added to F43, and the citation in
+`RegionDimensionMatrix.tsx`, in the npmtest that reads it, in F43's header block, in F43's
+`description` string and in its failure message all name F43. F43's `description` previously listed
+only R3 and R4 while its failure text listed R3, R4 and R6, which is the guard contradicting itself;
+that is fixed at the guard with a dated entry, not by weakening a rule. The fitness runner went red
+first, on the fold's own doc-comment ordering pushing the `<details open>` literal out of the allow
+marker's five-line window, and green after the paragraphs were reordered, which is the marker
+proven by attack rather than by presence.
+
+**Three hunks this fold wrote.** `SectionCard` gains one optional `onKeyDown` prop so the matrix's
+Esc reaches the card element without a wrapper (a `display: contents` wrapper was tried first and
+measured 2 NOT BUILT rows against the audit's direct-child selectors on the foot legend, so it was
+rejected). `panelLink`'s `minHeight` and the fact card's source-link `minHeight` rise from 24 to 28,
+because the panel is now in the composed page's arrival state and the site-wide layout guard
+measures both for the first time. Nine L9 findings in total, all closed by raising values to the
+floor, none by an allowlist entry.
+
+**Acceptance, measured at 1440 in chromium on the folded tree, not inherited.** (A) card height
+682.5 / 682.5 / 682.5px for nothing selected, cell selected and compare mode on the composed
+`/operations` page. (B) narrowest text column in the card 967px, floor 560px. (C) 30 body cells,
+every one a score numeral or an em dash, no word anywhere. Arrival state: exactly one element
+carries `aria-selected`, it is the first sourced cell of the first sourced row, the panel is
+present, and the grid has exactly one tab stop and it is that cell.
+
+**Gates.** `npx tsc --noEmit` exit 0. Fitness runner 37 functions, 0 violations. Rendering guard
+PASS, layout leg 0 findings. `npm run audit:design` 76 specs, 2557 checks, 2557 MATCH at 1440 and
+390, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC. `npm run audit:overflow` 0px on every mount. `npm run
+audit:layout` 622 findings, equal to master. Discipline CI runner over `origin/master..HEAD`, the CI
+npmtest glob, the test suite and both `next build` modes all recorded in the fold report.
+
+**UX compliance.** DP-1: no row component changed geometry in this fold, and the matrix keeps one
+anatomy at every width. DP-2 and law 2: the fold's only geometric change is in the same direction as
+the law, three interactive targets in the panel and three source links raised from a 24px box to
+28px so they clear L9's site-wide hit-target floor at 1440 and 1024; nothing was shrunk and no
+target-size exemption was added. The 390px column is unchanged and re-measured green by the design
+audit's mobile specs.
+
+## Addendum, lane OPS72CH (2026-09-09): the prose measure is not the column floor, and the layout-guard baseline expires on a date
+
+Small lane, riding the wave 65 train. Three items from the operator, two of them work.
+
+**His ruling, 2026-09-09, verbatim:**
+
+> 1. 560px vs 72ch: not a conflict, a misread. 72ch is the MAX line length of the prose
+>    (max-width:72ch on the text block); 560px is the MIN width of the column that holds it. A 967px
+>    column with a 72ch text block inside is exactly the spec. Set max-width:72ch on the detail
+>    sentence and claim; the column stays wide. Both numbers hold. Stop printing the character count
+>    as a conflict.
+> 2. Guard expiry: extend the layout-guard baseline to 2026-10-15. Land as wave65. Clearing the 622
+>    findings is scheduled after the UI round, as before; do not start it now.
+> 3. Header string: agreed, '18 of 30 cells sourced · 60% · 18 regions · scroll →' as drawn.
+
+### Item 1: the measure goes on the prose, the floor stays on the column
+
+[CONFIRMED, measured in chromium at 1440] The previous lane read `72ch` as a width for the COLUMN and
+capped the detail sentence at `max(560px, 72ch)`. That construction is what manufactured the
+"conflict": one box carrying both a floor meant for the column and a measure meant for the prose. The
+`max()` is gone. `max-width: 72ch` is now on the detail sentence (`ops-fact-detail`) and on the claim
+(`ops-fact-quote`), and criterion B is measured where it belongs, on the cell and the panel column.
+
+Three measurements after the change:
+
+| What | Measured | Against |
+|---|---|---|
+| Column width (narrowest text-bearing box in the panel) | **967px** composed `/operations`, **835px** component mount, **866px** Esc state | criterion B floor 560px: holds, 407px clear at the composed width |
+| Prose block width | **572.59px**, declared `max-width: 72ch`, computed `572.607px` | it lands on its own cap, inside an 866px fact card |
+| Longest line of the detail sentence | **94 characters** (line lengths `[94, 54]` over a 148-character sentence) | reported as a measurement, not as a conflict |
+
+On the 94: `ch` is the advance width of the digit zero, and Plus Jakarta Sans at 12.5px sets a
+narrower average glyph than a zero, so a 72`ch` box holds roughly 94 average characters. The rule the
+operator set is `max-width: 72ch` and it is applied exactly as written. Wanting 72 GLYPHS is a
+different number, about 439px in this face, and it is his call rather than a defect here.
+
+The character count is no longer printed anywhere as evidence of a conflict: leg D of
+`ops-matrix-acceptance-smoke.mjs`, the two operations-matrix spec notes, the `DEVIATION-LOG.md`
+section that called it "the one place his own two numbers conflict", and the component's own comment
+block are all rewritten. Leg D now measures what the ruling constrains: the declared max-width is
+`72ch`, the box lands on it within 1px, and it is narrower than the card that holds it.
+
+### Item 2: the baseline expires on 2026-10-15, and the wave threshold is gone
+
+[CONFIRMED, proven by attack] `fsi-app/.discipline/rendering/layout-guard/baseline.mjs` expired the
+baseline by WAVE NUMBER: `export const BASELINE_EXPIRY_WAVE = 65` with
+`expired = wave !== null && wave >= BASELINE_EXPIRY_WAVE`, where `wave` came from `latestTrainWave()`
+scanning master's commit subjects. This train lands as wave 65, so the baseline would have expired on
+the same commit that carried the extension and turned 622 reported findings into blocking failures.
+
+After: `export const BASELINE_EXPIRY_DATE = '2026-10-15'`, evaluated against the current date, with
+his sentence quoted in a dated comment at the constant. The wave threshold and the `latestTrainWave`
+import are REMOVED, not raised to a bigger number, because a bigger number is the same trap one train
+later. `applyBaseline(findings, { date })` takes an injectable date so the expiry is attackable.
+
+Attack, both directions, in `layout-guard.test.mjs`:
+
+- `2026-10-14`: `expired === false`, the baseline covers its own entries, only new findings block.
+- `2026-10-15` and `2026-12-01`: `expired === true`, `baselined.length === 0`, every entry blocks.
+- A second test reads `baseline.mjs` and fails if it still names a wave threshold or the wave oracle.
+
+Nothing else about the baseline moved. It may still only SHRINK, its 792 entries keep the owning
+parts named in `docs/audits/layout-guard-2026-09-08.md`, and the 622 findings themselves are
+UNTOUCHED, because he said clearing them is scheduled after the UI round and is not to start now.
+`npm run audit:layout` reports 622 findings, unchanged, and non-blocking. Files carrying the expiry
+in the same commit: `baseline.mjs`, `run-layout-guard.mjs` (import, log line, the `expiryDate` field
+written into `baseline.json`), `baseline.json` (`expiryWave: 65` becomes `expiryDate: "2026-10-15"`,
+792 keys untouched) and `layout-guard.test.mjs`. Nothing else in the repo hardcoded wave 65 as this
+expiry; the other wave-dated mechanisms (F25 allowlists, F38, the 375 exemptions at wave58, the law-2
+desktop exemptions at wave70) are separate registers and were not touched.
+
+### Item 3: the header string, confirmed by rendering, no work
+
+Rendered this session: `compose-08-operations` draws **"18 of 30 cells sourced · 60% · 5 regions"**,
+matching the artboard's first two figures exactly, and `ops-matrix-six-regions` draws **"8 of 36
+cells sourced · 22% · 18 regions · scroll →"**, which proves the region count and the `· scroll →`
+tail. The hint is drawn only when the table can actually scroll, which is why the five-region compose
+mount omits it. The aside already reads the artboard's string; nothing to change.
+
+### UX compliance
+
+**Screen: /operations, the region x dimension matrix card.** Primary goal: read which regions have
+sourced facts on a dimension, and read the facts for one cell. Path: land on the page, the first
+sourced cell is already selected and its panel open, arrow keys or a click move the selection, Esc
+closes. One primary action: selecting a cell; every other control in the card is secondary and sits
+after it. Feedback per async action: none is introduced by this lane, the matrix is fed by props and
+computes its grid synchronously.
+
+Law 5 (Miller) and law 12 (Prägnanz) are the reason this lane exists: a bounded line length is what
+makes the fact card's prose scannable, and this change puts that bound on the prose rather than on
+the column, so the reader gets a short measure inside a wide, uncrowded card. Law 2 (Fitts) is
+untouched: no interactive target changed size, and no target-size exemption was added or widened.
+Law 16 (Similarity): the claim now carries the same measure as the detail sentence, so the two prose
+runs in one fact card set the same line length instead of two different ones. The 390px column is
+unchanged and re-measured green by the design audit's mobile specs.
+
+### Gates
+
+Every gate run from the worktree root, exit codes read explicitly. See the lane report for the
+numbers.

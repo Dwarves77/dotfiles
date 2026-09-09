@@ -56,6 +56,25 @@
 //   (UserProfilePage's `?tab=` read, via lib/account/initial-tab.ts) initialises from
 //   `window.location.search` and matches nothing here.
 //
+//   R6, THE /operations MATRIX'S DEFAULT SELECTION, added 2026-09-09 (lane opsmatrix5). Operator,
+//   2026-09-09, /operations STOP SHIP message, item 5, verbatim: "Default state on load: first
+//   sourced cell of the first sourced row open." That reverses, for THAT ONE ELEMENT, the ruling
+//   this whole gate is built on. Coordinator note C1, 2026-09-09, binding: what the 2026-09-08
+//   ruling forbade is the RETIRED row-expansion pattern, the thing he was looking at when he wrote
+//   it and the thing the newer message orders deleted; the new panel's default selection is
+//   explicitly wanted, in writing, in the newer message. The rule is NOT weakened to a warning here
+//   and nothing else is exempted: R6 names exactly one component.
+//   As with R4, the exempted construct is not a constant `true` and so does not match this gate at
+//   all: the default is a `useMemo` scan over the data and the selection state initialises to
+//   `undefined`. The marker `// fitness-allow: F43 (R6 2026-09-09 ...)` is nonetheless written at
+//   the site in RegionDimensionMatrix.tsx, beside the dated block that quotes both operator
+//   messages, so that a later build which does express this as a boolean already has its ruling next
+//   to it and the next reader finds the exception where the exception lives. Where R6 IS enforced is
+//   the rendering guard, which is where a default selection is visible at all: the matrix declares
+//   its arrival state with `data-open-on-mount` naming both dates, no-default-open-smoke.mjs
+//   requires that declaration to be present, correct and UNIQUE on the page, and requires it to
+//   disappear the instant the reader acts.
+//
 // NO EXPIRY, NO PATH ALLOWLIST. An allow is per-site and written next to the state it exempts, so
 // the ruling that permits it is read at the same moment as the code it permits.
 
@@ -162,7 +181,8 @@ export const fitnessFunction = {
     'defaulting truthy, or a `<details open>`. A page that arrives with something already opened is ' +
     'a defect wherever it happens. A legitimate case carries ' +
     '`// fitness-allow: F43 (ruling)` naming the ruling that permits it, R3 (the FILTERS rail\'s ' +
-    'stated default) or R4 (the reader deep-linked it). No expiry, no path allowlist.',
+    'stated default), R4 (the reader deep-linked it) or R6 (the /operations matrix\'s default ' +
+    'selection, operator 2026-09-09 item 5). No expiry, no path allowlist.',
   source:
     'Operator ruling 2026-09-08, verbatim: "the ops page opend to a sub category not just the main ' +
     'page, infastructure capacity and other items should be closed, no items expanded when first ' +
@@ -184,7 +204,9 @@ export const fitnessFunction = {
             `when first navigtaing to a page", every content section, group, row and panel renders ` +
             `CLOSED on first navigation, site-wide. Start it closed, or mark this site ` +
             `\`// fitness-allow: F43 (ruling)\` naming the ruling: R3 for the FILTERS rail's stated ` +
-            `"first two groups open" default, R4 for something the reader deep-linked. ` +
+            `"first two groups open" default, R4 for something the reader deep-linked, R6 for the ` +
+            `/operations matrix's default selection (operator 2026-09-09 item 5, the one element ` +
+            `whose default is ordered in writing). ` +
             `A default SELECTION that renders a panel is the same defect with no boolean to match; ` +
             `that half is caught in .discipline/rendering/smoke/no-default-open-smoke.mjs.`
         )

@@ -1,7 +1,7 @@
 {
   "note": "GENERATED. See baseline.mjs for what this is and when it dies. Regenerate with --write-baseline; a lane that fixes its findings commits the SHRUNKEN file.",
   "writtenAt": "2026-09-08",
-  "expiryWave": 65,
+  "expiryDate": "2026-10-15",
   "widths": [
     1440,
     1024

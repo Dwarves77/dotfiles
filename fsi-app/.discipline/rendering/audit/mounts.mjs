@@ -457,7 +457,7 @@ window.__mount = () => {
 // a page"); `ops-matrix-selected` mounts the SAME fixture and then CLICKS one cell, so the
 // selected-state values the design states are still measured on a real selected cell, selected by
 // the real code path. Two copies of this fixture would have let the two drift; one factory cannot.
-const opsMatrixEntry = (afterMount = '') => `
+const opsMatrixEntry = (afterMount = '', { extraFacts = '[]', extraRegions = '[]' } = {}) => `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -474,6 +474,7 @@ const regions = [
   { key: 'ASIA', label: 'Asia · SG + HK' },
   { key: 'UK', label: 'United Kingdom' },
   { key: 'UAE', label: 'UAE · Dubai' },
+  ...${extraRegions},
 ];
 
 // Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) -- the audit reproduces
@@ -530,7 +531,9 @@ const F = (region, dimension, factLabel, value, opts = {}) => ({
 
 const facts = [
   // D3 -- the FIRST sourced row (D1 and D2 hold nothing). ASIA is its first sourced column, so
-  // ASIA x D3 is the default selection, and its four facts exercise the three-card cap.
+  // ASIA x D3 is the DEFAULT SELECTION again (operator, 2026-09-09, item 5: "Default state on load:
+  // first sourced cell of the first sourced row open"), and its four facts exercise the three-card
+  // cap and the "N more facts on the profile" remainder in the arrival state, with nothing clicked.
   F('ASIA', 'labor_markets', 'Warehouse worker monthly wage', 'HKD 14,747 / mo', { sourceName: 'Indeed HK · 2025-09' }),
   F('ASIA', 'labor_markets', 'Median gross wage, logistics operatives', 'SGD 3,200 / mo', { originClass: 'official' }),
   F('ASIA', 'labor_markets', 'Logistics-sector vacancy rate', '4.8%', { originClass: 'official' }),
@@ -543,6 +546,7 @@ const facts = [
   F('UAE', 'materials_sourcing', 'Bonded warehouse capacity', '96,200 sqm'),
   F('ASIA', 'operational_cost', 'Handling cost per TEU', 'USD 128'),
   F('UAE', 'operational_cost', 'Handling cost per TEU', 'USD 96'),
+  ...${extraFacts},
 ];
 
 let root = null;
@@ -579,6 +583,32 @@ const OPSMATRIX_CLICK_ASIA_D3 = `
     target.click();
   }));
 `;
+
+// ── The no-figure branch's fixture, and why it is a fixture and not a comment ────────────────────
+// Operator, 2026-09-09, verbatim: "Every fact card must lead with its FIGURE. If the pipeline has no
+// figure for a fact, the card leads with a 6-word headline in 13px/600, then the claim." That is a
+// REAL BRANCH of MatrixFactCard and it needs a row that reaches it. `factHeadline` returns
+// `figure: null` for a value that is a sentence rather than a quantity, which is the live shape of a
+// free-text row, so the fact below carries one. It is added to ASIA x D5 (Infrastructure capacity),
+// a cell EVERY OTHER MOUNT LEAVES EMPTY, and it is passed as an EXTRA fact to a SEPARATE mount, so
+// the shared fixture's cell counts, coverage percentage and absence-cell count are untouched and no
+// other spec has to be re-baselined to buy this proof.
+const OPSMATRIX_NOFIGURE_FACT = `[F('ASIA', 'infrastructure', 'Berth allocation is discretionary', 'Berth allocation at the container terminal is settled by the port authority case by case, and no published tariff or allocation table exists for it.')]`;
+
+const OPSMATRIX_CLICK_ASIA_D5 = `
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const target = Array.from(document.querySelectorAll('td[role="gridcell"]'))
+      .find((c) => (c.getAttribute('aria-label') || '').startsWith('Asia · SG + HK, D5 Infrastructure capacity'));
+    if (!target) throw new Error('ops-matrix-nofigure: no ASIA x D5 cell to click');
+    target.click();
+  }));
+`;
+
+// A SIXTH region column, and nothing else. Operator, 2026-09-09, item 4: "regions beyond five scroll
+// inside the card". Five columns fitting is measured on the five-column mounts above; this mount is
+// the other half of the same claim, and the two together are what make REGION_COL_MIN a measured
+// number rather than a guess (see its comment in RegionDimensionMatrix.tsx).
+const OPSMATRIX_SIXTH_REGION = `[{ key: 'CA', label: 'Canada · Vancouver' }]`;
 
 // ── Community peer-org directory table ─────────────────────────────────────────────────────────
 // Not one of the 17 UI-system artboards (the component's own header comment: "spec 05 §5 component
@@ -3080,6 +3110,25 @@ export const AUDIT_MOUNTS = {
       'make for the reader.',
     viewport: 1440,
     entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D3),
+  },
+  'ops-matrix-nofigure': {
+    id: 'ops-matrix-nofigure',
+    description:
+      'The SAME RegionDimensionMatrix, plus ONE extra fact whose value is a sentence and not a ' +
+      'quantity, on the otherwise-empty ASIA x D5 cell, then a click on that cell. This is the ' +
+      'no-figure fact card: a six-word headline at 13px/600 and then the claim (operator ' +
+      '2026-09-09). The extra fact is passed to this mount only, so no other spec is re-baselined.',
+    viewport: 1440,
+    entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D5, { extraFacts: OPSMATRIX_NOFIGURE_FACT }),
+  },
+  'ops-matrix-six-regions': {
+    id: 'ops-matrix-six-regions',
+    description:
+      'The SAME RegionDimensionMatrix with a SIXTH region column. "Regions beyond five scroll ' +
+      'inside the card" (operator 2026-09-09 item 4): with six columns the inner scroller must ' +
+      'engage, and with five (every other matrix mount) it must not.',
+    viewport: 1440,
+    entry: opsMatrixEntry('', { extraRegions: OPSMATRIX_SIXTH_REGION }),
   },
   'list-surface-virtualized': {
     id: 'list-surface-virtualized',

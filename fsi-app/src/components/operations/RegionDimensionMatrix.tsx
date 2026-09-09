@@ -5,7 +5,9 @@
  *
  * WHAT IT IS. Six dimension rows (D1-D6) against the region columns, one compact score per cell,
  * and ONE panel under the table that holds the facts for whichever cell the reader selected.
- * Nothing expands inside the table, and NOTHING IS SELECTED until the reader acts.
+ * Nothing expands inside the table. On arrival the first sourced cell of the first sourced row is
+ * SELECTED and its panel is showing, which is the operator's item 5 of 2026-09-09; see the dated
+ * block below, which names both of his messages, because that reverses a site-wide rule on purpose.
  *
  * WHY IT LOOKS NOTHING LIKE THE VERSION BEFORE IT. The operator redesigned this artboard on
  * 2026-09-08, in his words: "the expand-a-dimension matrix does not survive real data". The prior
@@ -57,22 +59,60 @@
  * attribute plus the `stickyCell` / `bodyCell` / `headCell` style objects and the two column floors
  * at the foot of this file, and not one of those reads this component's state.
  *
- * NOTHING IS OPEN ON FIRST RENDER, AND FOCUS IS NOT SELECTION (operator ruling 2026-09-08, verbatim:
- * "no items expanded when first navigtaing to a page"; coordinator readings R2 and R5). This
- * component used to compute a DEFAULT SELECTION on mount -- "the first sourced cell in the first
- * sourced row" -- and render the fact panel for it. Under R2 that is the page opening itself: the
- * reader arrived at /operations and a dimension's facts were already on screen. It is gone. On first
- * render there is no selection, no panel, and no tinted cell: the table alone.
+ * THE DEFAULT SELECTION, AND THE TWO OPERATOR MESSAGES THAT MADE IT WHAT IT IS. Read both dates
+ * before changing this, because this one element reverses a site-wide rule ON PURPOSE.
  *
- * The grid stays fully keyboard reachable (R5: "keyboard reachability is not an excuse to
- * preselect"), which needs TWO pieces of state where the old build had one:
- *   `focusPos`   the roving-tabindex position. Starts at the first cell (row 0, column 0), so the
- *                grid is ONE tab stop from the first render and Tab lands there. Arrow keys, Home
- *                and End move it. Moving it moves DOM focus and nothing else -- no tint, no panel.
- *   `selection`  what the reader COMMITTED to, with a click, Enter or Space. Starts null. The panel
- *                renders from this and only from this.
- * The `useEffect` that pulls DOM focus to the roving cell is gated on `moveRef`, set only inside
- * `moveFocus`, so the initial render never steals focus from the top of the page.
+ *   2026-09-08, operator, verbatim: "the ops page opend to a sub category not just the main page,
+ *   infastructure capacity and other items should be closed, no items expanded when first
+ *   navigtaing to a page". Lane noexpand implemented that here by DELETING the matrix's default
+ *   selection outright, and by splitting focus from selection so arrows painted nothing.
+ *
+ *   2026-09-09, operator, verbatim, item 5 of the /operations STOP SHIP message: "Default state on
+ *   load: first sourced cell of the first sourced row open." Item 3 of the same message: "Arrow keys
+ *   move the selection; panel follows; Esc closes."
+ *
+ * THE RECONCILIATION (coordinator note C1, 2026-09-09, binding, and not this file's to revisit).
+ * What the 2026-09-08 ruling forbade is the RETIRED row-expansion pattern, the thing he was looking
+ * at when he wrote it and the thing the 2026-09-09 message orders deleted. The panel's default
+ * selection is explicitly WANTED, in writing, in the newer message. So: this matrix arrives with the
+ * first sourced cell of the first sourced row SELECTED and its panel showing, and NOTHING ELSE
+ * anywhere on the site opens itself. The site-wide rule stands for every other route and component,
+ * including F43 and the rendering guard's `no-default-open` leg; this component is their ONE allowed
+ * exception, and it declares itself to the guard rather than hiding from it: while the reader has
+ * not acted, the panel and the selected cell carry `data-open-on-mount` naming both dates, which is
+ * the escape hatch open-state-sweep.mjs already provides for a ruled-open default.
+ *
+ * fitness-allow: F43 (R6 2026-09-09 default matrix selection; both messages quoted above)
+ *   -- inert today and stated anyway: F43 matches a LEXICAL default-open tell (a useState whose name
+ *   carries open/expand starting true, a defaultOpen prop, a <details open>), and the default
+ *   selection below is none of those, so F43 finds nothing here to allow. The marker is written at
+ *   the site so that a later build which does express this as a boolean has its ruling already
+ *   beside it, and so the next reader sees the exception where the exception lives.
+ *   -- FOLD 65 (2026-09-09) renumbered this citation. Lane opsmatrix5 was written against the tree
+ *   where default-open-disclosure was F42; wave 64 renumbered that function to F43 and gave F42 to
+ *   card-shell-outside-section-card, so the lane's original `F42` citation named the wrong function
+ *   on this tree. The number here is the one the default-open gate actually carries on THIS tree,
+ *   read from .discipline/fitness/functions/, not from either lane's prose.
+ *
+ * THE THREE PIECES OF STATE, and why the split lane noexpand introduced survives in a changed form:
+ *   `selection`  `undefined` means THE READER HAS NOT ACTED and the computed default is in force;
+ *                a `Selection` is what the reader chose with a click, an arrow, Enter or Space;
+ *                `null` means the reader pressed Esc, which closes the panel and is the only way to
+ *                reach an empty panel slot. Three states, not two, because "never touched" and
+ *                "deliberately closed" are different facts and only one of them may re-open itself.
+ *   `focusPos`   the roving-tabindex position. It STARTS ON THE DEFAULT SELECTION, so Tab lands on
+ *                the cell whose facts are on screen. Under the 2026-09-09 message arrows MOVE THE
+ *                SELECTION and the panel follows, so `moveFocus` and `selectAt` now travel together;
+ *                the split is kept because Home/End and the mount still need to move focus alone.
+ *   `moveRef`    gates the `useEffect` that pulls DOM focus to the roving cell, so the initial
+ *                render never steals focus from the top of the page even though a cell is selected.
+ *
+ * THE CARD HEIGHT IS CONSTANT, and that is an acceptance test, not a slogan (operator 2026-09-09:
+ * "at 1440 the matrix card height is constant regardless of selection"; coordinator note C3). The
+ * panel is therefore a FIXED-HEIGHT SLOT (`PANEL_SLOT_HEIGHT`) that is always in the DOM and scrolls
+ * its own content: empty after Esc, one cell's fact cards when a cell is selected, one card per
+ * region when a row header is. Nothing the reader selects can change the card's height, because the
+ * only box whose content varies has a height that does not.
  *
  * Column 0 (the dimension row header) is part of the same grid, so ArrowLeft off the first region
  * column lands on the row header, and committing there opens compare mode. Every selectable cell is
@@ -113,6 +153,40 @@ const COLUMNS_BEFORE_SCROLL = 5;
 /** "facts as fact cards ... max 3, then 'N more facts on the profile'" (operator spec). */
 const PANEL_FACT_CAP = 3;
 
+/**
+ * THE PANEL SLOT'S HEIGHT, and it is the whole of acceptance criterion A.
+ *
+ * Operator, 2026-09-09: "at 1440 the matrix card height is constant regardless of selection". A
+ * panel that renders only when something is selected, or whose height follows its content, fails
+ * that by construction: three fact cards and five stacked compare cards are not the same height, and
+ * neither is nothing. So the slot is ALWAYS present and ALWAYS this tall, and its content scrolls
+ * inside it. Nothing the reader does can move the card's bottom edge.
+ *
+ * The number is read off the replacement artboard (docs/design/handoff-2026-09-06/screens/
+ * 08-operations-list-redesign-2026-09-08.png): the panel's top rule sits at y=572 and the foot strip
+ * begins at y=860 in a 1353px-wide capture of a 1440px design, so 288 x (1440/1353) = 306px. 300 is
+ * that measurement rounded to the 4px step the system sheet's spacing scale uses. At 1440 it holds
+ * the artboard's own three fact cards without scrolling, which is what the artboard shows.
+ */
+const PANEL_SLOT_HEIGHT = 300;
+
+/** The first N words of a string, collapsed. The no-figure card's headline is SIX (operator,
+ *  2026-09-09: "the card leads with a 6-word headline in 13px/600"). Fewer than six words in means
+ *  fewer than six out: nothing is padded and nothing is invented. */
+export function sixWordHeadline(text: string, n = 6): string {
+  const words = String(text).trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, n).join(" ");
+}
+
+/** What follows the six-word headline on the no-figure card: "then the claim" (operator). The claim
+ *  is the row's prose when it has any; otherwise it is whatever of the label the headline did not
+ *  already say, so the card never prints the same six words twice. */
+export function claimAfterHeadline(description: string, prose: string | null): string {
+  if (prose) return prose;
+  const words = String(description ?? "").trim().split(/\s+/).filter(Boolean);
+  return words.length > 6 ? words.slice(6).join(" ") : "";
+}
+
 interface Props {
   /** Column roster, ALREADY SCOPED by the rail's Region facet ("Rail filters scope columns"). */
   regions: MatrixRegion[];
@@ -151,12 +225,12 @@ export function RegionDimensionMatrix({
   profileHrefByRegion = {},
 }: Props) {
   const panelId = useId();
-  /** What the reader COMMITTED to. Null on first render, and null is the whole point (ruling R2). */
-  const [selection, setSelection] = useState<Selection | null>(null);
-  /** The roving-tabindex position. NOT the selection: it decides which single cell is the grid's tab
-   *  stop and where an arrow key goes next, and it paints nothing. It starts on the first cell so a
-   *  reader who tabs into the table lands somewhere real (ruling R5). */
-  const [focusPos, setFocusPos] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
+  /** `undefined` = untouched (the computed default is in force), `null` = the reader pressed Esc,
+   *  a Selection = what the reader chose. See the dated block at the head of this file. */
+  const [selection, setSelection] = useState<Selection | null | undefined>(undefined);
+  /** The roving-tabindex position. Set below to the default selection on mount, so Tab lands on the
+   *  cell whose panel is showing rather than on a cell nothing is said about. */
+  const [focusPos, setFocusPos] = useState<{ r: number; c: number } | null>(null);
   // DOM focus follows the roving position only when the reader MOVED it, never on mount: pulling
   // focus into the table on load would yank a reader who arrived by keyboard past the masthead.
   const moveRef = useRef(false);
@@ -209,17 +283,35 @@ export function RegionDimensionMatrix({
     [grid]
   );
 
-  // A selection the props no longer contain (the rail scoped its column away, or its dimension
-  // away) is DROPPED, and the panel closes with it. The build before this one re-pointed such a
-  // selection at a computed default; under ruling R2 that is the page choosing what to open, so the
-  // honest answer to "the cell you were reading is no longer on screen" is to show nothing until the
-  // reader picks again.
+  /** THE DEFAULT SELECTION: "first sourced cell of the first sourced row" (operator, 2026-09-09,
+   *  item 5, verbatim). Rows outer, regions inner, in the order the props give them, so two empty
+   *  dimension rows and two empty region columns are both skipped and the scan lands on the first
+   *  cell that actually carries a fact. A grid with no sourced cell anywhere yields null, and the
+   *  panel slot renders empty rather than selecting a cell with nothing to say. */
+  const defaultSelection: Selection | null = useMemo(() => {
+    for (const d of dimensions) {
+      for (const r of regions) {
+        if ((grid.byCell[`${r.key}|${d.db}`]?.factCount ?? 0) > 0) return { regionKey: r.key, dimDb: d.db };
+      }
+    }
+    return null;
+  }, [dimensions, regions, grid]);
+
+  /** True while the reader has not touched the grid: the default is what is on screen. It is what
+   *  the `data-open-on-mount` declaration below is gated on, so the guard's exception covers the
+   *  ARRIVAL state only and never a state the reader produced. */
+  const untouched = selection === undefined;
+
+  // A selection the props no longer contain (the rail scoped its column away, or its dimension away)
+  // is DROPPED and re-points at the default, which is the state the operator asked this component to
+  // arrive in; a reader whose Esc closed the panel keeps it closed.
   const resolved: Selection | null = useMemo(() => {
-    if (!selection) return null;
+    if (selection === undefined) return defaultSelection;
+    if (selection === null) return null;
     const dimOk = dimensions.some((d) => d.db === selection.dimDb);
     const regionOk = selection.regionKey === null || regions.some((r) => r.key === selection.regionKey);
-    return dimOk && regionOk ? selection : null;
-  }, [selection, dimensions, regions]);
+    return dimOk && regionOk ? selection : defaultSelection;
+  }, [selection, dimensions, regions, defaultSelection]);
 
   const rowIndex = resolved ? dimensions.findIndex((d) => d.db === resolved.dimDb) : -1;
   const colIndex = resolved
@@ -235,11 +327,13 @@ export function RegionDimensionMatrix({
   const clampC = useCallback((c: number) => Math.max(0, Math.min(regions.length, c)), [regions.length]);
 
   /** The roving cell, clamped every render so a rail that scopes columns away cannot leave the tab
-   *  stop pointing past the end of the grid. */
-  const focusR = clampR(focusPos.r);
-  const focusC = clampC(focusPos.c);
+   *  stop pointing past the end of the grid. Untouched, it IS the default selection's cell, so Tab
+   *  lands on the cell whose facts are on screen; with no sourced cell anywhere it is the first. */
+  const focusR = clampR(focusPos ? focusPos.r : Math.max(0, rowIndex));
+  const focusC = clampC(focusPos ? focusPos.c : Math.max(0, colIndex));
 
-  /** MOVE, not select: this is the arrow-key path and it paints nothing. */
+  /** MOVE the tab stop and DOM focus. Home and End use it alone; the arrows pair it with `selectAt`,
+   *  because the 2026-09-09 message says "arrow keys move the selection; panel follows". */
   const moveFocus = useCallback(
     (r: number, c: number) => {
       moveRef.current = true;
@@ -260,23 +354,34 @@ export function RegionDimensionMatrix({
     [dimensions, regions, clampR, clampC, moveFocus]
   );
 
-  // Roving tabindex + arrow movement. Arrows, Home and End move the tab stop and DOM focus and do
-  // NOT select: a reader arrowing across the scoreboard to read the scores never makes a panel
-  // appear under them (ruling R5). Enter and Space on the focused cell commit it, which is the same
-  // act as a click on it.
+  // ARROW KEYS MOVE THE SELECTION AND THE PANEL FOLLOWS (operator, 2026-09-09, item 3, verbatim).
+  // This reverses the focus-is-not-selection split lane noexpand built on 2026-09-08: the arrows
+  // now commit the cell they land on, so a reader crossing the scoreboard by keyboard reads each
+  // cell's facts as they arrive at it, which is the same thing a click does. Home and End still MOVE
+  // ONLY, because they jump the length of a row and selecting the far end of a row is not what a
+  // reader asking for the row's end meant. Enter and Space commit the focused cell (a no-op when the
+  // arrows already did). Esc CLOSES the panel and leaves the slot empty until the reader picks again.
   const onCellKeyDown = useCallback(
     (e: React.KeyboardEvent, r: number, c: number) => {
-      const moves: Record<string, [number, number]> = {
+      const selects: Record<string, [number, number]> = {
         ArrowRight: [r, c + 1],
         ArrowLeft: [r, c - 1],
         ArrowDown: [r + 1, c],
         ArrowUp: [r - 1, c],
-        Home: [r, 0],
-        End: [r, regions.length],
       };
-      if (moves[e.key]) {
+      if (selects[e.key]) {
         e.preventDefault();
-        moveFocus(moves[e.key][0], moves[e.key][1]);
+        selectAt(selects[e.key][0], selects[e.key][1]);
+        return;
+      }
+      if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        moveFocus(r, e.key === "Home" ? 0 : regions.length);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSelection(null);
         return;
       }
       if (e.key === "Enter" || e.key === " ") {
@@ -293,6 +398,18 @@ export function RegionDimensionMatrix({
     cellRefs.current.get(`${focusR}:${focusC}`)?.focus();
   }, [focusR, focusC]);
 
+  /** The declaration the site-wide no-default-open sweep reads, naming BOTH operator messages. It is
+   *  spread onto every element that reports itself open on ARRIVAL -- the panel and the selected
+   *  cell -- because the sweep allows an element only if it, or an ancestor, carries the attribute,
+   *  and the tinted cell is not inside the panel. It is `null` the moment the reader acts, so the
+   *  exception covers arrival and no state the reader produced. */
+  const arrivalDeclaration = untouched
+    ? {
+        "data-open-on-mount":
+          'operator 2026-09-09 item 5 "Default state on load: first sourced cell of the first sourced row open". The one allowed exception to the 2026-09-08 ruling "no items expanded when first navigtaing to a page" (coordinator note C1, 2026-09-09)',
+      }
+    : null;
+
   if (regions.length === 0 || dimensions.length === 0) return null;
 
   const selectedDimension = rowIndex >= 0 ? dimensions[rowIndex] : null;
@@ -305,7 +422,24 @@ export function RegionDimensionMatrix({
     // cards, and E4 rules its 3px rule the dark grey gradation like every other card, never red.
     // Both are now structural rather than a caller's choice: `SectionCard` mounts the one rule
     // (SectionRule, ruling 5.2's dark grey), and this file can no longer choose a colour for it.
-    <SectionCard as="section" dataAudit="ops-matrix-card">
+    // Esc closes the panel from ANYWHERE in the card (operator, 2026-09-09, item 3), not only from
+    // a grid cell: a reader who tabbed into the panel to follow its links is exactly the reader
+    // most likely to want it shut. FOLD 65: the handler reaches the card element through
+    // SectionCard's own `onKeyDown` prop, added for this caller. A wrapper element inside the card
+    // was tried first and rejected on measurement: `display: contents` draws no box, but it is
+    // still a DOM ancestor, so it makes the head, the table, the panel slot and the foot legend
+    // GRANDCHILDREN of the card and turns the design audit's two direct-child rows on
+    // `[data-audit="ops-matrix-card"] > [data-audit="ops-matrix-foot"]` NOT BUILT.
+    <SectionCard
+      as="section"
+      dataAudit="ops-matrix-card"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setSelection(null);
+        }
+      }}
+    >
       {/* Artboard 08/id="p8" head strip: Anton section title left, the coverage/affordance meta
           right, one hairline below. The prose paragraph that used to sit under the title carried
           the same three facts in sentence form; it is gone, not duplicated. */}
@@ -347,8 +481,8 @@ export function RegionDimensionMatrix({
             textAlign: "right",
           }}
         >
-          {grid.fillRate.filled} of {grid.fillRate.total} cells sourced · {grid.fillRate.pct}%
-          {scrolls ? ` · ${regions.length} regions · scroll` : ""}
+          {grid.fillRate.filled} of {grid.fillRate.total} cells sourced · {grid.fillRate.pct}% ·{" "}
+          {totalRegions} regions{scrolls ? " · scroll →" : ""}
         </span>
       </header>
 
@@ -430,6 +564,7 @@ export function RegionDimensionMatrix({
                     ref={(el) => { cellRefs.current.set(`${ri}:0`, el as unknown as HTMLTableCellElement); }}
                     tabIndex={headerFocused ? 0 : -1}
                     aria-selected={headerSelected}
+                    {...(headerSelected ? arrivalDeclaration : null)}
                     aria-controls={panelId}
                     aria-label={`${dimensionLabel(d)}, compare across every region`}
                     onClick={() => selectAt(ri, 0)}
@@ -485,6 +620,7 @@ export function RegionDimensionMatrix({
                         ref={(el) => { cellRefs.current.set(`${ri}:${ci}`, el); }}
                         tabIndex={isFocusCell ? 0 : -1}
                         aria-selected={isSelected}
+                        {...(isSelected ? arrivalDeclaration : null)}
                         aria-controls={panelId}
                         aria-label={`${r.label}, ${dimensionLabel(d)}, ${n === 0 ? "no sourced fact" : `${n} sourced ${n === 1 ? "fact" : "facts"}`}`}
                         onClick={() => selectAt(ri, ci)}
@@ -533,15 +669,40 @@ export function RegionDimensionMatrix({
           the selected cell's announced CONTENT: committing on a cell (whose own label names the
           region, the dimension and the count) opens the panel and it announces what it holds,
           rather than the reader having to go looking for it. */}
-      {selectedDimension && (
-        <div
-          id={panelId}
-          data-audit="ops-matrix-panel"
-          role="region"
-          aria-live="polite"
-          aria-label={panelHeading(selectedRegion, selectedDimension, grid, regions)}
-          style={{ background: "var(--page)", borderTop: "1px solid var(--line-2)", padding: "12px 16px 8px" }}
-        >
+      <div
+        id={panelId}
+        data-audit="ops-matrix-panel"
+        role="region"
+        aria-live="polite"
+        aria-label={
+          selectedDimension ? panelHeading(selectedRegion, selectedDimension, grid, regions) : "No cell selected"
+        }
+        // THE DECLARED EXCEPTION. While the reader has not acted, this panel is showing the default
+        // selection, which the 2026-09-09 message asks for and the 2026-09-08 message would
+        // otherwise forbid. It declares itself to open-state-sweep.mjs / the rendering guard's
+        // no-default-open leg with the ruling, rather than being exempted by path: the attribute is
+        // gone the moment the reader touches the grid, so the exception covers arrival and nothing
+        // else. Nowhere else in the app carries it.
+        {...(selectedDimension ? arrivalDeclaration : null)}
+        // FIXED HEIGHT, and it is acceptance criterion A (operator 2026-09-09: "the matrix card
+        // height is constant regardless of selection"). The slot is always in the DOM and always
+        // this tall; its CONTENT scrolls. Nothing selected, one cell selected and a row header in
+        // compare mode therefore produce three identical card heights, measured, not asserted.
+        style={{
+          background: "var(--page)",
+          // "1px rgba(0,0,0,.12) top rule" (operator, 2026-09-09). That value is `--line-1`, the
+          // card-border token, NOT `--line-2` (rgba(0,0,0,.08)) which the build before this one
+          // used: measured 2026-09-09 and corrected, because .08 is not .12 and the panel's rule is
+          // the one edge separating the scoreboard from the reading surface.
+          borderTop: "1px solid var(--line-1)",
+          padding: "12px 16px 8px",
+          height: PANEL_SLOT_HEIGHT,
+          boxSizing: "border-box",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
+        {selectedDimension ? (
           <MatrixPanel
             dimension={selectedDimension}
             region={selectedRegion}
@@ -550,8 +711,14 @@ export function RegionDimensionMatrix({
             profileHref={selectedRegion ? profileHrefByRegion[selectedRegion.key] ?? null : null}
             onCompare={() => selectAt(rowIndex, 0)}
           />
-        </div>
-      )}
+        ) : (
+          // The Esc state. The slot keeps its height so the card does not move under the reader,
+          // and says what will fill it rather than sitting blank.
+          <p data-audit="ops-panel-empty" style={{ fontSize: "var(--fs-125)", color: "var(--ink-3)", margin: 0 }}>
+            Panel closed. Click a cell, or arrow to one, to read its facts.
+          </p>
+        )}
+      </div>
 
       {/* Foot strip, verbatim from the artboard: the dash convention and the two affordances left,
           the column scoping right. It lives on the CARD, not inside the panel, because with no
@@ -577,8 +744,16 @@ export function RegionDimensionMatrix({
         }}
       >
         <span>
-          <Absence reason="not in primary source" /> · click a cell, or press Enter on it, to open its facts ·
-          arrow keys move between cells
+          {/* THE LEGEND SHOWS THE GLYPH IT EXPLAINS. [CONFIRMED 2026-09-09, from the side-by-side]
+              the artboard's foot reads "— not in primary source ..."; the build read only the WORD,
+              because the non-narrow Absence renders its reason and no dash. A legend that explains
+              what the dash in the table means, without showing the dash, explains nothing. The
+              narrow variant IS the dash (its `::after` carries \2014), so the two together render
+              the artboard's own pairing, and the uppercase is the app-wide absence treatment rather
+              than this surface's choice. */}
+          <Absence reason="not in primary source" variant="narrow" />{" "}
+          <Absence reason="not in primary source" /> · click a cell to open its facts · arrow keys move the
+          selection
         </span>
         <span>
           {totalRegions > regions.length ? `${regions.length} of ${totalRegions} regions` : `${regions.length} regions`} ·
@@ -715,6 +890,7 @@ function MatrixPanel({
           {compareRows.map(({ region: r, fact }) => (
             <div key={r.key}>
               <div
+                data-audit="ops-compare-label"
                 style={{
                   fontSize: "var(--fs-10)",
                   fontWeight: 700,
@@ -796,6 +972,17 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
   // is what the artboard's other card shows.
   const provenance = [originClassLabel(f.originClass), derivationLabel(f.derivation)].filter(Boolean).join(" · ");
   const written = f.lastUpdated ? String(f.lastUpdated).slice(0, 10) : null;
+  /** The period the figure is FOR, which is the source line's second element. Taken from the row's
+   *  own envelope fields and never derived from the written date: "when the row was typed" and "what
+   *  the figure measures" are different facts and the artboard shows the second one. Null on every
+   *  live row today (the envelope columns are unpopulated), which is why the fixture's own source
+   *  names carry their period the way the artboard's do. */
+  const period = (f.referencePeriod as string) || (f.asAtDate ? String(f.asAtDate).slice(0, 7) : null);
+  /** What sits on the lead line beside the figure or the headline. With a figure it is the row's
+   *  label, which is the operator's "12.5px claim ... on one line". With no figure the label has
+   *  already been spent on the six-word headline, so it is whatever of the label the headline did
+   *  not say, and usually nothing: the claim is then the detail sentence below. */
+  const inlineClaim = figure ? description : claimAfterHeadline(description, null);
 
   return (
     <div
@@ -810,8 +997,22 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
         minWidth: 0,
       }}
     >
-      {/* Headline figure and description on ONE line. `baseline` alignment is what makes an 18px
-          display figure and 12.5px body sit on the same line rather than the figure floating. */}
+      {/* LINE 1. EVERY FACT CARD LEADS WITH ITS FIGURE (operator, 2026-09-09, verbatim): the Anton
+          18 headline figure INLINE with the 12.5px claim, on one line. `baseline` alignment is what
+          makes an 18px display figure and 12.5px body sit on the same line rather than the figure
+          floating above it.
+
+          THE NO-FIGURE BRANCH, which is a real branch and not a sentence in a comment. Operator,
+          same message: "If the pipeline has no figure for a fact, the card leads with a 6-word
+          headline in 13px/600, then the claim." A fact reaches it two ways, both real in the live
+          corpus: a row whose `value` is a sentence rather than a quantity, and a row with no value
+          at all. `factHeadline` (region-grid.mjs) is the single place that decides, and it returns
+          `figure: null` for exactly those two. The headline is the first six words of the row's own
+          label (or of its prose when it has no label): the row's words, truncated, never a sentence
+          the component wrote. What was here before was `<Absence reason="pending" />`, which put the
+          literal word "pending" in a fact card, and the same message's delete list forbids CURRENT
+          and PENDING inside cards. It is gone. `ops-matrix-nofigure` mounts the branch and
+          spec/operations-matrix-nofigure.json measures it. */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
         {figure ? (
           <span
@@ -822,23 +1023,76 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
             {figure}
           </span>
         ) : (
-          // The figure slot, empty and saying so. "pending" is the vocabulary word that fits: the
-          // figure is in the source and in this row's prose; what has not happened is the envelope
-          // extraction that would make it a comparable number.
-          <Absence reason="pending" />
+          <span
+            data-audit="ops-fact-headline"
+            style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2, color: "var(--ink)", flexShrink: 0 }}
+          >
+            {sixWordHeadline(description || prose || "")}
+          </span>
         )}
-        <span
-          data-audit="ops-fact-quote"
-          style={{ fontSize: "var(--fs-125)", color: "var(--ink)", lineHeight: 1.45, overflowWrap: "anywhere", minWidth: 0 }}
-        >
-          {description}
-          {prose ? (description ? `: ${prose}` : prose) : ""}
-        </span>
+        {inlineClaim && (
+          <span
+            data-audit="ops-fact-quote"
+            style={{
+              fontSize: "var(--fs-125)",
+              color: "var(--ink)",
+              lineHeight: 1.45,
+              overflowWrap: "anywhere",
+              minWidth: 0,
+              // 72ch is the PROSE's measure, not the column's (operator, 2026-09-09). The claim is
+              // prose, so it carries the same cap as the detail sentence below it. The cell around
+              // it keeps its full width; only the line length is bounded.
+              maxWidth: "72ch",
+            }}
+          >
+            {inlineClaim}
+          </span>
+        )}
         {idx !== null && (
           <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", flexShrink: 0 }}>index {Math.round(idx)} vs base</span>
         )}
       </div>
-      {/* Source line: underlined link, then date, then provenance word. */}
+      {/* LINE 2, THE DETAIL SENTENCE: "12.5px, line-height 1.5" (operator, 2026-09-09). It is the
+          row's prose, below the lead line rather than run into it, and it is drawn only when the row
+          HAS prose: a row whose whole content is a figure and a label has no detail sentence and
+          gets no empty box where one would be. In practice it is the NO-FIGURE card's claim, because
+          `factHeadline` yields prose exactly when the row's value is a sentence rather than a
+          quantity, which is the same condition that empties the figure slot. That is not an
+          accident of the fixture, it is the data model: a row cannot have both a short numeric value
+          and a sentence in the same field. Its LINE LENGTH is capped at 72ch; the cell and the panel
+          column around it keep their full measured width, which is what acceptance criterion B
+          ("no text column inside the card is narrower than 560px") is about. */}
+      {prose && (
+        <p
+          data-audit="ops-fact-detail"
+          style={{
+            fontSize: "var(--fs-125)",
+            lineHeight: 1.5,
+            color: "var(--ink)",
+            margin: "6px 0 0",
+            overflowWrap: "anywhere",
+            // THE PROSE'S MEASURE, and it is not the column's. Operator ruling 2026-09-09, verbatim:
+            // "72ch is the MAX line length of the prose (max-width:72ch on the text block); 560px is
+            // the MIN width of the column that holds it. A 967px column with a 72ch text block
+            // inside is exactly the spec." The earlier build read 72ch as a width for the column and
+            // wrote `max(560px, 72ch)`, which put the floor and the measure on ONE box and made them
+            // look like rivals. They are two constraints on two different boxes: this cap bounds the
+            // line length here, and criterion B is measured on the cell and the panel column, which
+            // keep their full width. Before any cap the detail sentence set 134 characters on a line
+            // at the mount's width.
+            maxWidth: "72ch",
+          }}
+        >
+          {prose}
+        </p>
+      )}
+      {/* SOURCE LINE, 10.5px muted, in the shape the operator states and the artboard draws:
+          "Vervo Logistics · 2024-08 · row written 2026-05-28" / "Indeed HK · 2025-09 · row written
+          2026-05-28" / "MOM Occupational Wage Survey · 2025 · official". Three elements: the source
+          name, the period the figure is FOR, and then the row's provenance word when it carries one
+          or the date the row was written when it does not. The build before this one put the written
+          date second and the provenance word third, which is neither the operator's shape nor the
+          artboard's. */}
       <div data-audit="ops-fact-source" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
         {name ? (
           url ? (
@@ -847,9 +1101,15 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
               target="_blank"
               rel="noopener noreferrer"
               style={{
+                // FOLD 65 (2026-09-09): 28, not the lane's 24, for the same reason `panelLink` is
+                // 28. With the panel in the composed page's arrival state the site-wide layout
+                // guard measures this source link too, and reported it at 24px against L9's floor
+                // on /operations at both 1440 and 1024 (three source links x two widths, the six
+                // findings that took the guard total from master's 622 to 628). The value rises to
+                // the floor; the floor is not lowered.
                 display: "inline-flex",
                 alignItems: "center",
-                minHeight: 24,
+                minHeight: 28,
                 color: "var(--ink-2)",
                 textDecoration: "underline",
                 textDecorationColor: "var(--link-line)",
@@ -863,8 +1123,8 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
         ) : (
           "source not linked"
         )}
-        {written ? ` · row written ${written}` : " · no date on row"}
-        {provenance ? ` · ${provenance}` : ""}
+        {period ? ` · ${period}` : ""}
+        {provenance ? ` · ${provenance}` : written ? ` · row written ${written}` : " · no date on row"}
       </div>
     </div>
   );
@@ -896,7 +1156,25 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
  * there and scrolls only where it must.
  */
 const DIMENSION_COL_MIN = 180;
-const REGION_COL_MIN = 96;
+/**
+ * "REGIONS BEYOND FIVE SCROLL INSIDE THE CARD" (operator, 2026-09-09, item 4), and this constant is
+ * what makes that TRUE rather than merely possible.
+ *
+ * [CONFIRMED, this lane, 2026-09-09, measured in chromium] With the previous 96px floor a SIXTH
+ * region column did not scroll at 1440. Measured scroller widths: 1024px on the real /operations
+ * page at 1440 (`compose-08-operations`, card 1032px), 892px in the component mount. Six columns at
+ * the old floor summed to 180 + 6 x 96 = 756px, inside both, so they simply stretched and the
+ * scroller never engaged.
+ *
+ * The floor has to sit in the window where FIVE columns still fit and SIX do not, at both widths:
+ *   six scroll at 1440    180 + 6F > 1024  ->  F > 140.7
+ *   five fit in the mount 180 + 5F <= 892  ->  F <= 142.4
+ * 142 is inside it with both ends checked: five columns are 890px against a 1024px and an 892px
+ * scroller (fits, no scroll), six are 1032px against both (scrolls). Measured both ways in
+ * `.discipline/rendering/smoke/ops-matrix-acceptance-smoke.mjs`, which mounts six regions and fails
+ * if the scroller does not engage, and five and fails if it does.
+ */
+const REGION_COL_MIN = 142;
 
 /** Row height 40px (operator spec). Vertical padding is 0 so the height is the height. */
 const bodyCell: React.CSSProperties = {
@@ -941,10 +1219,17 @@ const stickyCell: React.CSSProperties = {
  *  than a border so the 40px row height does not change when a cell is selected. */
 const SELECTED_INSET = "inset 0 0 0 2px var(--monitor)";
 
+/** FOLD 65 (2026-09-09): the floor is 28, not the 24 lane opsmatrix5 wrote. The lane measured this
+ *  panel on a mount, where the site-wide layout guard does not run. On the folded tree the panel is
+ *  in the arrival state of the composed /operations page, so the guard now MEASURES these three
+ *  controls ("Compare across regions", "Open profile", "N more facts on the profile") and reported
+ *  all three at 24px against L9's floor of ">= 44px in one dimension and >= 28px in the other", six
+ *  findings across 1440 and 1024. The value RISES to the floor the guard enforces rather than the
+ *  guard being relaxed, which is the same resolution fold 63 applied to the calculator foot link. */
 const panelLink: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  minHeight: 24,
+  minHeight: 28,
   padding: 0,
   border: "none",
   background: "none",

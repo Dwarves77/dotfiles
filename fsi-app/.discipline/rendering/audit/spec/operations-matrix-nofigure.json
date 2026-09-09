@@ -1,0 +1,91 @@
+{
+  "part": "Operations matrix fact card, THE NO-FIGURE BRANCH: a fact whose pipeline value is a sentence and not a quantity",
+  "mount": "ops-matrix-nofigure",
+  "viewport": 1440,
+  "artboards": [
+    "08-operations-redesign-2026-09-08 (the replacement artboard; it draws only the WITH-figure card, so this branch is measured against the operator's written spec)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's replacement artboard), plus his /operations STOP SHIP message of 2026-09-09 quoted verbatim in the notes.",
+  "notes": [
+    "THE OPERATOR'S WORDS, verbatim, 2026-09-09: \"Every fact card must lead with its FIGURE. If the pipeline has no figure for a fact, the card leads with a 6-word headline in 13px/600, then the claim.\" His coordinator's instruction to this lane was explicit that this is \"a real branch you must build and prove with a fixture that has no figure, not a sentence in a comment\", so it has its own mount, its own fixture row, and this spec.",
+    "HOW A FACT REACHES THIS BRANCH, and it is the data model rather than a contrivance. `factHeadline` (src/lib/operations/region-grid.mjs) is the ONE place that decides which slot a fact's data goes into: an enveloped row yields a formatted figure, a free-text row whose value is short and contains a digit yields that value as the figure, and a row whose value is a SENTENCE yields no figure at all and is set as prose. The mount adds exactly one such row, on ASIA x D5 (Infrastructure capacity), a cell every other matrix mount leaves empty, and clicks it. Because the row is passed to THIS mount only, no other spec's cell counts, coverage percentage or absence-cell count moves to buy this proof.",
+    "WHAT REPLACED WHAT. The build before this one rendered `<Absence reason=\"pending\" />` in the empty figure slot, which put the literal word PENDING inside a fact card. The same operator message's delete list forbids exactly that: \"the words CURRENT and PENDING inside cells and inside fact cards\". The Absence is gone and the six-word headline is what leads the card.",
+    "THE PROSE'S MEASURE, corrected 2026-09-09. Operator ruling, verbatim: \"72ch is the MAX line length of the prose (max-width:72ch on the text block); 560px is the MIN width of the column that holds it. A 967px column with a 72ch text block inside is exactly the spec.\" The build this row was written against read 72ch as a width for the COLUMN and capped the text block at max(560px, 72ch), which put a floor and a measure on one box and made two constraints on two different boxes look like rivals. They are not: the cap is `max-width: 72ch` on the detail sentence and on the claim, and acceptance criterion B (\"no text column in the card is narrower than 560px\") is measured on the cell and the panel column, which keep their full width. The expected width is unchanged at 572.609px because `max(560px, 72ch)` and `72ch` resolve to the same value in this face; only the reason the number is that number changed."
+  ],
+  "selector": "[data-audit=\"ops-fact-card\"]",
+  "expect": {
+    "count": "1",
+    "display": "block"
+  },
+  "children": [
+    {
+      "name": "THE CARD LEADS WITH A SIX-WORD HEADLINE AT 13px / WEIGHT 600 (operator 2026-09-09, verbatim)",
+      "selector": "[data-audit=\"ops-fact-headline\"]",
+      "expect": {
+        "count": "1",
+        "font-size": "13px",
+        "font-weight": "600",
+        "text": "Berth allocation is discretionary"
+      }
+    },
+    {
+      "name": "THEN THE CLAIM: the detail sentence below it, 12.5px at line-height 1.5 (operator 2026-09-09)",
+      "selector": "[data-audit=\"ops-fact-detail\"]",
+      "expect": {
+        "count": "1",
+        "font-size": "12.5px",
+        "line-height": "18.75px"
+      }
+    },
+    {
+      "name": "and the detail sentence's LINE LENGTH is capped at 72ch, which is 572.6px in this face; the column around it keeps its full width (operator ruling 2026-09-09, see the notes)",
+      "selector": "[data-audit=\"ops-fact-detail\"]",
+      "expect": {
+        "width": "572.609px"
+      }
+    },
+    {
+      "name": "the source line is unchanged by the branch: 10.5px muted, source name then period then the row's written date",
+      "selector": "[data-audit=\"ops-fact-source\"]",
+      "expect": {
+        "count": "1",
+        "font-size": "10.5px",
+        "text": "MOM Occupational Wage Survey · 2025 · row written 2026-05-28"
+      }
+    },
+    {
+      "name": "the panel header names the cell the click opened, in the operator's string shape",
+      "selector": "[data-audit=\"ops-panel-heading\"]",
+      "expect": {
+        "text": "Asia · SG + HK · D5 Infrastructure capacity · 1 sourced fact"
+      }
+    },
+    {
+      "name": "the panel is still the same fixed-height slot: a no-figure card does not change the card's height either",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "height": "300px",
+        "overflow-y": "auto"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "NO FIGURE ELEMENT ON A NO-FIGURE CARD",
+      "selector": "[data-audit=\"ops-fact-figure\"]",
+      "reason": "The branch is defined by its absence. A figure element here means `factHeadline` promoted a sentence into the display face, which is the one thing the fact-card contract forbids: nothing is derived out of the prose and no sentence is ever set as a figure."
+    },
+    {
+      "name": "the word PENDING nowhere in the card",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "textMatch": "PENDING",
+      "reason": "Operator's delete list, 2026-09-09: \"the words CURRENT and PENDING inside cells and inside fact cards\". This is the exact site where PENDING lived until this lane: the empty figure slot rendered `<Absence reason=\"pending\" />`. Measured against RENDERED text, which is why it can be asserted at all: Absence writes the word lower case and uppercases it in CSS, and a source-text match is how eight forbids on this project matched nothing for weeks."
+    },
+    {
+      "name": "the word CURRENT nowhere in the card",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "textMatch": "CURRENT",
+      "reason": "The other half of the same delete-list line. Freshness is the source line's business, never a state word in the card."
+    }
+  ]
+}

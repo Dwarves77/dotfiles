@@ -6,6 +6,19 @@
 // cards` mobile reflow: every one of which is now DELETED from the product. Keeping them would
 // have been a suite passing against markup that no longer exists.
 //
+// AMENDED 2026-09-09 (lane opsmatrix5) for the operator's /operations STOP SHIP message, whose item
+// 5 reads, verbatim: "Default state on load: first sourced cell of the first sourced row open", and
+// whose item 3 reads "Arrow keys move the selection; panel follows; Esc closes." Both reverse the
+// 2026-09-08 amendment below FOR THIS COMPONENT ONLY (coordinator note C1, 2026-09-09: the
+// 2026-09-08 ruling forbade the RETIRED row-expansion pattern, and the newer message asks for this
+// default selection in writing). The six tests that asserted the closed arrival state and the
+// focus/selection split are RE-POINTED, not deleted, and each replacement is a narrower claim than
+// the one it replaces: "no default selection is computed, in any spelling" becomes "the default
+// selection is computed by a rows-outer/regions-inner scan AND the state carries three values so a
+// reader's Esc is distinguishable from an untouched arrival"; "an arrow must not select" becomes
+// "every arrow selects and Home/End still only move"; "no panel without a selection" becomes "the
+// panel SLOT is unconditional and fixed-height, which is what makes the card's height constant".
+//
 // AMENDED 2026-09-08 (lane noexpand) for the operator's "no items expanded when first navigtaing to
 // a page" ruling. Two tests here asserted the DEFAULT SELECTION -- its scan order, and the fallback
 // that re-pointed a stale selection at it. That whole mechanism is deleted from the product, so both
@@ -40,11 +53,13 @@ const GLOBALS = readFileSync(resolve(HERE, "../../app/globals.css"), "utf8");
 const LEDGER = readFileSync(resolve(HERE, "OperationsLedger.tsx"), "utf8");
 
 // ── The keyboard model ──────────────────────────────────────────────────────────────────────────
-// The operator's matrix spec said "Arrow keys move the selection; panel follows". His LATER ruling
-// (2026-09-08, "no items expanded when first navigtaing to a page") splits that in two, because a
-// reader arrowing across the scoreboard must not have panels opening under him: arrows move FOCUS,
-// and a click, Enter or Space commits. So the grid has one tab stop, the four arrows move it, and
-// the panel renders FROM the committed selection, which starts empty.
+// RESTORED 2026-09-09 to the operator's own words, which his 2026-09-09 message states twice: "Arrow
+// keys move the selection; panel follows; Esc closes." The 2026-09-08 split (arrows move FOCUS and
+// only a click, Enter or Space commits) was this project's reading of "no items expanded when first
+// navigtaing to a page"; the newer message settles it directly for this component. Home and End
+// still MOVE ONLY, because they jump the length of a row and selecting the far end of a row is not
+// what a reader asking for the row's end meant. The panel still renders FROM the selection, and the
+// selection now has three values: untouched, chosen, and closed-by-Esc.
 
 test("the table is a grid with explicit row/cell roles, so aria-selected is valid on its cells", () => {
   assert.match(SOURCE, /role="grid"/);
@@ -55,29 +70,46 @@ test("the table is a grid with explicit row/cell roles, so aria-selected is vali
 });
 
 test("all four arrows move the FOCUS, plus Home and End along the row", () => {
-  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"]) {
-    assert.match(SOURCE, new RegExp(`${key}: \\[`), `${key} is a movement`);
+  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"]) {
+    assert.match(SOURCE, new RegExp(`${key}: \\[`), `${key} moves the selection`);
   }
+  assert.match(SOURCE, /if \(e\.key === "Home" \|\| e\.key === "End"\)/, "Home and End move without selecting");
   // Movement is clamped, not wrapped: `Math.max(0, Math.min(...))` on both axes. An arrow at the
   // edge must be a no-op, never a jump to the opposite corner.
   assert.match(SOURCE, /Math\.max\(0, Math\.min\(dimensions\.length - 1, r\)\)/);
   assert.match(SOURCE, /Math\.max\(0, Math\.min\(regions\.length, c\)\)/);
-  // An arrow calls moveFocus, NOT selectAt. This is ruling R5's whole content: a reader who arrows
-  // across the scoreboard reading scores never makes a panel appear under him.
-  assert.match(SOURCE, /moveFocus\(moves\[e\.key\]\[0\], moves\[e\.key\]\[1\]\)/);
-  assert.doesNotMatch(SOURCE, /selectAt\(moves\[e\.key\]/, "an arrow must not select");
+  // AN ARROW SELECTS (operator, 2026-09-09, item 3). This REPLACES `an arrow must not select`, and
+  // it is the narrower assertion of the two: the old one said only that one call was absent, this
+  // one names the call that must be there and pins the map it reads.
+  assert.match(SOURCE, /selectAt\(selects\[e\.key\]\[0\], selects\[e\.key\]\[1\]\)/, "an arrow selects");
+  // Home and End are the exception and they still MOVE ONLY.
+  assert.match(SOURCE, /moveFocus\(r, e\.key === "Home" \? 0 : regions\.length\)/);
+});
+
+test("Esc closes the panel, from a cell and from anywhere else in the card", () => {
+  // Operator, 2026-09-09, item 3: "Esc closes." Two handlers, because a reader who tabbed into the
+  // panel to follow its links is exactly the reader most likely to want it shut, and that reader's
+  // focus is not on a grid cell.
+  assert.match(SOURCE, /if \(e\.key === "Escape"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*setSelection\(null\);/);
+  const handlers = SOURCE.match(/e\.key === "Escape"/g) ?? [];
+  assert.equal(handlers.length, 2, "one on the grid cell, one on the card");
 });
 
 test("Enter and Space are the only KEYS that select, and they select the focused cell", () => {
   assert.match(SOURCE, /if \(e\.key === "Enter" \|\| e\.key === " "\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*selectAt\(r, c\);/);
 });
 
-test("FOCUS AND SELECTION ARE TWO STATES, and only one of them paints (ruling R5)", () => {
-  // The whole defect the operator found was one state doing both jobs: the component computed a
-  // selection so the grid would have a tab stop, and the selection painted a panel. Two states, so
-  // the grid can be reachable with nothing chosen.
-  assert.match(SOURCE, /const \[selection, setSelection\] = useState<Selection \| null>\(null\)/);
-  assert.match(SOURCE, /const \[focusPos, setFocusPos\] = useState<\{ r: number; c: number \}>\(\{ r: 0, c: 0 \}\)/);
+test("SELECTION HAS THREE VALUES, so 'never touched' and 'deliberately closed' are different facts", () => {
+  // RE-POINTED 2026-09-09 from "FOCUS AND SELECTION ARE TWO STATES, and only one of them paints".
+  // The arrival state is now SELECTED (item 5) and Esc can close it (item 3), so two values are not
+  // enough: `undefined` means the reader has not acted and the computed default is in force, a
+  // Selection is the reader's choice, and `null` means Esc. Only `undefined` may re-open itself,
+  // which is what stops Esc from being undone by the next render.
+  assert.match(SOURCE, /const \[selection, setSelection\] = useState<Selection \| null \| undefined>\(undefined\)/);
+  assert.match(SOURCE, /const untouched = selection === undefined/);
+  assert.match(SOURCE, /if \(selection === undefined\) return defaultSelection;/);
+  assert.match(SOURCE, /if \(selection === null\) return null;/);
+  assert.match(SOURCE, /const \[focusPos, setFocusPos\] = useState<\{ r: number; c: number \} \| null>\(null\)/);
   // tabIndex reads the FOCUS position; aria-selected reads the SELECTION. Crossing those two wires
   // is exactly how a preselected cell comes back.
   assert.match(SOURCE, /tabIndex=\{headerFocused \? 0 : -1\}/);
@@ -97,8 +129,11 @@ test("roving tabindex: the FOCUSED cell is the only tab stop, and every other ce
   const stops = SOURCE.match(/tabIndex=\{(headerFocused|isFocusCell) \? 0 : -1\}/g) ?? [];
   assert.equal(stops.length, 2, "the row header and the region cell, each a conditional tab stop");
   assert.doesNotMatch(SOURCE, /tabIndex=\{0\}/, "no unconditional tab stop inside the grid");
-  // The roving position starts at the FIRST cell, so Tab always lands somewhere real.
-  assert.match(SOURCE, /useState<\{ r: number; c: number \}>\(\{ r: 0, c: 0 \}\)/);
+  // RE-POINTED 2026-09-09: the roving position starts on the DEFAULT SELECTION rather than on a
+  // constant first cell, so Tab lands on the cell whose facts are already showing. Pinned to the
+  // data-derived position, which is a narrower claim than `{ r: 0, c: 0 }`.
+  assert.match(SOURCE, /const focusR = clampR\(focusPos \? focusPos\.r : Math\.max\(0, rowIndex\)\)/);
+  assert.match(SOURCE, /const focusC = clampC\(focusPos \? focusPos\.c : Math\.max\(0, colIndex\)\)/);
 });
 
 test("column 0 is IN the grid, so the row header is reachable by arrow and not only by pointer", () => {
@@ -138,53 +173,89 @@ test("the panel is announced as the selected cell's content", () => {
   assert.match(SOURCE, /id=\{panelId\}/);
   assert.match(SOURCE, /role="region"/);
   assert.match(SOURCE, /aria-live="polite"/);
-  assert.match(SOURCE, /aria-label=\{panelHeading\(/, "the live region names what it now holds");
+  // RE-POINTED 2026-09-09: the slot is unconditional now, so its label has a second branch for the
+  // Esc state. It still names what the slot holds whenever it holds something.
+  assert.match(SOURCE, /selectedDimension \? panelHeading\(selectedRegion, selectedDimension, grid, regions\) : "No cell selected"/, "the live region names what it now holds");
 });
 
-// ── NO default selection (operator ruling 2026-09-08) ───────────────────────────────────────────
-// These two tests REPLACE the two that stood here. The first asserted the default selection's scan
-// order ("rows outer, regions inner"); the second asserted that a stale selection fell back TO that
-// default. Both described a mechanism the operator ruled out: he navigated to /operations and found
-// Infrastructure capacity already open, and wrote "no items expanded when first navigtaing to a
-// page". A test of how a defect chooses its victim is not worth keeping once the defect is deleted;
-// what replaces it forbids the construct outright, which is a strictly stronger statement about the
-// same lines, and pins the fallback to `null` so the panel CLOSES instead of jumping.
+// ── THE DEFAULT SELECTION (operator, 2026-09-09, item 5) ────────────────────────────────────────
+// RE-POINTED 2026-09-09 (lane opsmatrix5). The two tests that stood here forbade a default selection
+// outright, on the 2026-09-08 ruling. Item 5 of the 2026-09-09 message asks for one in writing:
+// "Default state on load: first sourced cell of the first sourced row open." Coordinator note C1 is
+// binding on the reconciliation. So these tests assert the scan ORDER and the state machine, which
+// is a narrower claim about the same lines than "this construct is absent": a default that lands on
+// row 0, or scans columns first, or re-opens after Esc, fails here.
 
-test("there is NO default selection: the component never computes one, in any spelling", () => {
-  assert.doesNotMatch(CODE, /defaultSelection/, "the defaultSelection memo is deleted, not dormant");
-  // The scan that produced it: a rows-outer/regions-inner walk returning the first sourced cell.
-  // Forbidden by shape as well as by name, so reintroducing it under another identifier still fails.
-  assert.doesNotMatch(CODE, /factCount > 0\) return \{ regionKey/, "no first-sourced-cell scan");
-  assert.doesNotMatch(CODE, /openDimension|resolvedOpen|defaultOpenDimension|defaultOpen/, "and none of the older spellings either");
-  // The selection state starts null and nothing else initialises it.
-  assert.match(SOURCE, /useState<Selection \| null>\(null\)/);
+test("the default selection is the FIRST SOURCED CELL OF THE FIRST SOURCED ROW: rows outer, regions inner", () => {
+  assert.match(SOURCE, /const defaultSelection: Selection \| null = useMemo\(/);
+  // The scan's shape, so a rewrite under another identifier still has to be the same scan: the
+  // dimension loop is OUTSIDE the region loop, and the first cell with a fact wins.
+  assert.match(
+    SOURCE,
+    /for \(const d of dimensions\) \{\s*\n\s*for \(const r of regions\) \{\s*\n\s*if \(\(grid\.byCell\[`\$\{r\.key\}\|\$\{d\.db\}`\]\?\.factCount \?\? 0\) > 0\) return \{ regionKey: r\.key, dimDb: d\.db \};/,
+    "rows outer, regions inner, first sourced cell wins",
+  );
+  // A grid with nothing sourced anywhere selects NOTHING rather than a cell with nothing to say.
+  assert.match(SOURCE, /\}\s*\n\s*return null;\s*\n\s*\}, \[dimensions, regions, grid\]\)/);
+  // And none of the RETIRED spellings comes back with it: this is the row-expansion pattern the
+  // 2026-09-09 message orders deleted, which is a different thing from the default selection.
+  assert.doesNotMatch(CODE, /openDimension|resolvedOpen|defaultOpenDimension|defaultOpen/);
 });
 
-test("a selection the props no longer carry CLOSES the panel rather than pointing somewhere else", () => {
-  // The rail scopes columns, so a selected region can vanish under the reader. The validity check
-  // is unchanged, verbatim; only its else-branch moved from `defaultSelection` to `null`. Falling
-  // back to a computed default would be the page choosing what to open, one step removed.
+test("Esc is not undone by the next render: a closed panel stays closed, a default re-points", () => {
+  // The three-value state's whole purpose. A selection the rail scoped away re-points at the
+  // default, because that is the state the operator asked this component to arrive in; `null` from
+  // Esc does not, because the reader closed it on purpose.
   assert.match(SOURCE, /const dimOk = dimensions\.some\(\(d\) => d\.db === selection\.dimDb\)/);
   assert.match(SOURCE, /const regionOk = selection\.regionKey === null \|\| regions\.some/);
-  assert.match(SOURCE, /return dimOk && regionOk \? selection : null/);
-  assert.match(SOURCE, /if \(!selection\) return null;/);
+  assert.match(SOURCE, /return dimOk && regionOk \? selection : defaultSelection;/);
+  assert.match(SOURCE, /if \(selection === null\) return null;/);
 });
 
-test("the panel renders ONLY from a committed selection, so no selection means no panel", () => {
-  assert.match(SOURCE, /\{selectedDimension && \(/, "the panel is gated on there being a selected dimension");
-  assert.match(SOURCE, /selectedDimension = rowIndex >= 0 \? dimensions\[rowIndex\] : null/);
+test("the arrival state is DECLARED to the site-wide no-default-open gate, not hidden from it", () => {
+  // The matrix is that gate's ONE allowed exception (coordinator note C2, 2026-09-09), and it uses
+  // the escape hatch open-state-sweep.mjs already provides rather than a path allowlist. The
+  // declaration names BOTH operator messages, and it is gated on `untouched`, so it covers ARRIVAL
+  // and no state the reader produced.
+  assert.match(SOURCE, /const arrivalDeclaration = untouched/);
+  assert.match(SOURCE, /"data-open-on-mount":/);
+  // Spread onto EVERY element that reports itself open on arrival. Two of them: the panel, and the
+  // cell whose tint sets `aria-selected`, which is not inside the panel and so is not covered by
+  // the panel's own declaration. A missed one is an UNALLOWED open element in the site-wide sweep.
+  const spreads = SOURCE.match(/\{\.\.\.\((?:isSelected|headerSelected|selectedDimension) \? arrivalDeclaration : null\)\}/g) ?? [];
+  assert.equal(spreads.length, 3, "the panel, the region cell and the row header each declare it");
+  assert.match(SOURCE, /2026-09-09 item 5/, "the message that asks for the default");
+  assert.match(SOURCE, /no items expanded when first navigtaing to a page/, "the message it excepts");
+  // And the citation sits at the site too, so the next reader finds the ruling beside the code.
+  // FOLD 65 (2026-09-09): the number is F43, not the lane's F42. Wave 64 renumbered
+  // default-open-disclosure to F43 and gave F42 to card-shell-outside-section-card, so this test
+  // reads the number the default-open gate actually carries on this tree.
+  assert.match(SOURCE, /fitness-allow: F43 \(R6 2026-09-09/);
 });
 
-test("the foot legend lives on the CARD, not inside the panel, so it survives the closed state", () => {
-  // It used to sit inside the panel, which was safe only while a default selection guaranteed the
-  // panel existed. With nothing open on arrival, the strip explaining the dashes and how to open a
-  // cell is exactly what the reader needs, so it moved out with the default.
-  // Read off CODE, not SOURCE: this file's own header explains at length that the strip MOVED and
-  // quotes the wording it replaced, so a raw-text assertion would fail on the explanation.
+test("THE PANEL SLOT IS UNCONDITIONAL AND FIXED-HEIGHT, which is what makes the card's height constant", () => {
+  // REPLACES "the panel renders ONLY from a committed selection, so no selection means no panel".
+  // Acceptance criterion A: "at 1440 the matrix card height is constant regardless of selection".
+  // A panel that comes and goes cannot satisfy that, and neither can one whose height follows its
+  // content, so the slot is always in the DOM, always PANEL_SLOT_HEIGHT tall, and scrolls inside.
+  assert.doesNotMatch(SOURCE, /\{selectedDimension && \(\s*\n\s*<div\s*\n\s*id=\{panelId\}/, "the slot is not gated on a selection");
+  assert.match(SOURCE, /const PANEL_SLOT_HEIGHT = 300;/);
+  assert.match(SOURCE, /height: PANEL_SLOT_HEIGHT,/);
+  assert.match(SOURCE, /overflowY: "auto",/);
+  // The Esc state renders inside the slot, so the slot is never an empty box with no explanation.
+  assert.match(SOURCE, /data-audit="ops-panel-empty"/);
+  // The card height can only change if content is rendered outside the slot.
+  const card = SOURCE.slice(SOURCE.indexOf('dataAudit="ops-matrix-card"'));
+  assert.equal((card.match(/data-audit="ops-matrix-panel"/g) ?? []).length, 1, "one slot, one place");
+});
+
+test("the foot legend lives on the CARD, outside the panel's scroller, and says what arrows do", () => {
   const panelBlock = CODE.slice(CODE.indexOf('data-audit="ops-matrix-panel"'), CODE.indexOf('data-audit="ops-matrix-foot"'));
   assert.doesNotMatch(panelBlock, /ops-matrix-foot/, "the foot is not inside the panel block");
-  assert.match(CODE, /arrow keys move between cells/, "and its wording states what arrows now do");
-  assert.doesNotMatch(CODE, /arrow keys move the\s+selection/, "not what they used to do");
+  // RE-POINTED 2026-09-09 to the artboard's own foot text, which is also what item 3 restores.
+  assert.match(CODE, /arrow keys move the\s+selection/, "the artboard's wording");
+  assert.doesNotMatch(CODE, /arrow keys move between cells/, "not the 2026-09-08 wording");
+  assert.match(CODE, /click a cell to open its facts/, "the artboard's click affordance");
 });
 
 // ── The absence convention ──────────────────────────────────────────────────────────────────────
@@ -205,15 +276,54 @@ test("an unsourced cell is SELECTABLE and its panel states the absence plainly",
   assert.match(SOURCE, /Nothing is estimated in its place/);
 });
 
-test("the fact card's empty figure slot says 'pending', never a sentence promoted into the display face", () => {
+test("a fact with NO figure leads with a six-word headline at 13px/600, then the claim", () => {
+  // RE-POINTED 2026-09-09, replacing "the fact card's empty figure slot says 'pending'". The
+  // operator's delete list forbids exactly that: "the words CURRENT and PENDING inside cells and
+  // inside fact cards". His build list states the replacement: "If the pipeline has no figure for a
+  // fact, the card leads with a 6-word headline in 13px/600, then the claim." The branch is proven
+  // to RUN by the `ops-matrix-nofigure` mount and spec/operations-matrix-nofigure.json; this test
+  // pins its shape in the source.
   assert.match(SOURCE, /const \{ figure, description, prose \} = factHeadline\(f\)/);
-  assert.match(SOURCE, /<Absence reason="pending" \/>/);
+  assert.doesNotMatch(CODE, /<Absence reason="pending" \/>/, "the literal PENDING is deleted, not hidden");
+  assert.doesNotMatch(CODE, /reason="pending"/, "in any spelling");
+  assert.match(SOURCE, /data-audit="ops-fact-headline"/);
+  assert.match(SOURCE, /fontSize: 13, fontWeight: 600/);
+  assert.match(SOURCE, /\{sixWordHeadline\(description \|\| prose \|\| ""\)\}/);
+  // Six words, never padded and never invented: fewer words in, fewer words out.
+  assert.match(SOURCE, /export function sixWordHeadline\(text: string, n = 6\)/);
+  assert.match(SOURCE, /words\.slice\(0, n\)\.join\(" "\)/);
   const card = SOURCE.slice(SOURCE.indexOf("function MatrixFactCard"), SOURCE.indexOf("// ── Shared cell geometry"));
   assert.equal(
     (card.match(/var\(--font-display\)/g) ?? []).length,
     1,
     "the display face appears exactly once in the card: on the figure",
   );
+});
+
+test("the detail sentence is 12.5px / 1.5, and its LINE LENGTH is capped at 72ch", () => {
+  assert.match(SOURCE, /data-audit="ops-fact-detail"/);
+  assert.match(SOURCE, /lineHeight: 1\.5,/);
+  // Operator ruling 2026-09-09: "72ch is the MAX line length of the prose (max-width:72ch on the
+  // text block); 560px is the MIN width of the column that holds it." Two constraints on two
+  // different boxes, so the cap is a plain 72ch and the `max(560px, ...)` construction is gone; the
+  // 560px floor is measured on the column by acceptance leg B, not on the text block.
+  assert.match(SOURCE, /maxWidth: "72ch",/);
+  assert.doesNotMatch(SOURCE, /maxWidth: "max\(/, "the max(560px, 72ch) construction is gone, not merely commented");
+});
+
+test("the claim carries the same 72ch measure as the detail sentence", () => {
+  const card = SOURCE.slice(SOURCE.indexOf("function MatrixFactCard"), SOURCE.indexOf("// ── Shared cell geometry"));
+  const quote = card.slice(card.indexOf('data-audit="ops-fact-quote"'));
+  assert.match(quote.slice(0, 700), /maxWidth: "72ch",/, "the claim is prose and carries the prose measure");
+});
+
+test("the source line is source name, then period, then provenance or the row's written date", () => {
+  // The operator's shape, 2026-09-09: "Vervo Logistics · 2024-08 · row written 2026-05-28", and the
+  // artboard's: "MOM Occupational Wage Survey · 2025 · official". The build before this one put the
+  // written date second and the provenance word third, which is neither.
+  assert.match(SOURCE, /const period = \(f\.referencePeriod as string\) \|\| \(f\.asAtDate \? String\(f\.asAtDate\)\.slice\(0, 7\) : null\)/);
+  assert.match(SOURCE, /\{period \? ` · \$\{period\}` : ""\}/);
+  assert.match(SOURCE, /\{provenance \? ` · \$\{provenance\}` : written \? ` · row written \$\{written\}` : " · no date on row"\}/);
 });
 
 // ── What was DELETED, not left dormant (CLAUDE.md rule 13) ──────────────────────────────────────
@@ -243,6 +353,11 @@ test("the base-region control is gone and indexAgainstBase moved into compare mo
 });
 
 test("compare mode renders one headline card per region, stacked, each labelled with its region", () => {
+  // "STACKED VERTICALLY, never side by side" (operator, 2026-09-09). Asserted here as the flex
+  // direction and proven by GEOMETRY in ops-matrix-acceptance-smoke.mjs leg A, which reads the
+  // cards' client rects and fails if any card's top is above its predecessor's bottom.
+  assert.match(SOURCE, /flexDirection: "column"/);
+  assert.match(SOURCE, /data-audit="ops-compare-label"/);
   assert.match(SOURCE, /const compare = region === null/);
   assert.match(SOURCE, /compareRows\.map\(\(\{ region: r, fact \}\)/);
   assert.match(SOURCE, /<MatrixFactCard fact=\{fact\} baseFact=\{fact === baseFact \? null : baseFact\} \/>/);
@@ -277,7 +392,12 @@ test("the scroll hint is drawn only when there is somewhere to scroll to", () =>
   // region figure is counted from the column roster, never stated.
   assert.match(SOURCE, /const COLUMNS_BEFORE_SCROLL = 5/);
   assert.match(SOURCE, /const scrolls = regions\.length > COLUMNS_BEFORE_SCROLL/);
-  assert.match(SOURCE, /scrolls \? ` · \$\{regions\.length\} regions · scroll` : ""/);
+  // RE-POINTED 2026-09-09 to the artboard's own head aside, "18 OF 30 CELLS SOURCED · 60% · 18
+  // REGIONS · SCROLL →": the region count is always drawn (and it is the UNSCOPED roster, which is
+  // what the artboard shows beside a five-column table), and only the `scroll →` half is
+  // conditional. The operator's delete list gives the string as "N regions · scroll →"; the artboard
+  // keeps the two computed figures in front of it, and the artboard wins.
+  assert.match(SOURCE, /\{totalRegions\} regions\{scrolls \? " · scroll →" : ""\}/);
 });
 
 test("the column floors sum to less than the card's width at 1440, so they scroll a phone without overflowing a desktop", () => {
@@ -291,7 +411,13 @@ test("the column floors sum to less than the card's width at 1440, so they scrol
   const dim = Number(SOURCE.match(/const DIMENSION_COL_MIN = (\d+)/)[1]);
   const region = Number(SOURCE.match(/const REGION_COL_MIN = (\d+)/)[1]);
   assert.ok(dim >= 160, "the dimension column must hold its longest name without wrapping to a column of letters");
-  assert.ok(dim + 5 * region <= 700, `five region columns plus the dimension column fit the card at 1440 (got ${dim + 5 * region})`);
+  // RE-POINTED 2026-09-09. The 700px ceiling was arithmetic with no measurement behind it, and it
+  // let SIX columns fit too, which is why "regions beyond five scroll inside the card" was false on
+  // this base. MEASURED scroller widths in chromium: 1024px on the composed /operations page at
+  // 1440, 892px in the component mount. The invariant is a WINDOW, not a ceiling: five columns fit
+  // the narrower of the two, and six exceed the wider.
+  assert.ok(dim + 5 * region <= 892, `five region columns plus the dimension column FIT the narrowest measured scroller, 892px (got ${dim + 5 * region})`);
+  assert.ok(dim + 6 * region > 1024, `a sixth region column EXCEEDS the widest measured scroller, 1024px, so it scrolls (got ${dim + 6 * region})`);
 });
 
 // ── D4: the linked-regulations count, unchanged in rule by this lane ────────────────────────────

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { SectionRule } from "@/components/ui/SectionRule";
 
 /**
@@ -92,6 +92,17 @@ export interface SectionCardProps {
    *  `data-masthead-size`, which its own responsive CSS selects on). Keys are not validated as
    *  `data-*` by the type system; every caller writes the full attribute name. */
   dataAttributes?: Record<string, string>;
+  /** A keydown handler on the CARD element itself, for a card whose whole interior shares one
+   *  keyboard behaviour. FOLD 65 (2026-09-09), and it exists for exactly one caller: the
+   *  /operations matrix, whose Esc must close its fact panel from a grid cell OR from anywhere else
+   *  in the card (operator, 2026-09-09, item 3), because a reader who tabbed into the panel to
+   *  follow its links is the reader most likely to want it shut. It is a prop rather than a wrapper
+   *  element inside the card because the card's DIRECT CHILDREN are addressed by name in the design
+   *  audit (`[data-audit="ops-matrix-card"] > [data-audit="ops-matrix-foot"]` asserts the foot
+   *  legend sits on the card and not inside the panel's scroller), and any wrapper, `display:
+   *  contents` included, makes those children grandchildren and turns a true assertion NOT BUILT.
+   *  It cannot weaken the shell: the card's own five properties are still applied last. */
+  onKeyDown?: (e: ReactKeyboardEvent) => void;
   /** Ruling 5.2's ONE exemption: the per-band grouping card, whose top edge is the band-coloured
    *  3px border the band scale owns, not this card's dark-grey gradation. Stacking both would put
    *  two 3px rules on one edge. No other caller may pass it (F42 names this file as its home). */
@@ -110,6 +121,7 @@ export function SectionCard({
   "aria-labelledby": ariaLabelledBy,
   suppressRuleForBandGrouping = false,
   dataAttributes,
+  onKeyDown,
 }: SectionCardProps) {
   const Tag = as;
   const padded = padding !== undefined;
@@ -136,6 +148,7 @@ export function SectionCard({
       data-guard-card=""
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
+      onKeyDown={onKeyDown}
       style={cardStyle}
     >
       {suppressRuleForBandGrouping ? null : padded ? (

@@ -7,6 +7,7 @@
   ],
   "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items \u00b7 M jurisdictions \u00b7 six dimensions per region \u00b7 every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) \u2192 COVERAGE GAPS \u2192 LEGEND.",
   "notes": [
+    "MATRIX ROWS RE-POINTED 2026-09-09 (lane opsmatrix5). The operator's /operations STOP SHIP message of 2026-09-09, item 5, verbatim: \"Default state on load: first sourced cell of the first sourced row open.\" That reverses, for this ONE element, the 2026-09-08 ruling this spec's matrix rows were re-pointed to on 2026-09-08 (\"no items expanded when first navigtaing to a page\"). Coordinator note C1, 2026-09-09, binding: the 2026-09-08 ruling forbade the RETIRED row-expansion pattern, which the 2026-09-09 message orders deleted; the new panel's default selection is explicitly wanted in the newer message. Every OTHER compose spec's closed-arrival rows are untouched, and so is the site-wide sweep that measures them. Each row below is replaced by a NARROWER claim, never a weaker one: \"no panel here\" becomes \"the panel is here, open on ASIA x D3, and DECLARED with data-open-on-mount naming both dates\", and \"no cell is tinted\" becomes \"exactly one cell is tinted and it is that cell\". The three acceptance criteria are measured on this very page at 1440 by .discipline/rendering/smoke/ops-matrix-acceptance-smoke.mjs legs A2 and B2: card height 680.25px with nothing selected, 680.25px with a cell selected and 680.25px in compare mode, card 1032px wide, narrowest text column 967px.",
     "UPDATED 2026-09-08 (lane noexpand); the rows it replaces were written 2026-09-08 (lane opsmatrix3). Three children of this spec asserted that the matrix's selection PANEL is present on the composed /operations page at rest, and that the foot strip sits inside it. Both were true of the build lane opsmatrix3 shipped and both are now forbidden, because the operator ruled that page against them: he navigated to /operations and found Infrastructure capacity already open. Nothing was weakened to make this spec pass. The panel's background, its top rule, its DOM position below the scroller, its heading, its links, its fact cards and its cap are all still asserted, verbatim, in `operations-matrix-selected.json`, whose mount clicks a cell before anything is measured. What is asserted HERE instead is the closed state and its two forbids, which is the regression guard for the defect the operator found.",
     "MATRIX REDESIGN, 2026-09-08 (lane opsmatrix3). The operator replaced artboard 08's expand-a-dimension matrix with a compact scoreboard whose selected cell opens a panel BELOW the table — his words, 'the expand-a-dimension matrix does not survive real data'. The `source` line above still describes p8 for everything OUTSIDE the matrix card, which p8 still governs and which this lane did not touch; for the matrix card itself p8 is STALE and the specification is docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png. Three rows here changed and the reason is that they measured markup the product deleted: the foot strip is no longer a sibling of the scroller (it moved inside the panel) and its 'no sourced fact yet' copy and its 'Compare against:' control are both gone, the latter superseded by the panel's compare mode. Per-value coverage of the redesign lives in operations-matrix.json, which was rewritten wholesale for the same reason; this file keeps only the page-level placement checks.",
     "This spec measures the COMPOSED page, region by region, in document order \u2014 the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
@@ -40,16 +41,16 @@
       }
     },
     {
-      "name": "UPDATED 2026-09-08 (lane noexpand), from 'the matrix foot strip sits INSIDE that panel': the strip now sits on the CARD, because with no default selection there is no panel on arrival to hold it. Same element, same three clauses, same `display: flex`; only its parent and the arrow-key wording changed, and the wording changed because arrows now move focus rather than the selection (ruling R5).",
+      "name": "RE-POINTED 2026-09-09 (lane opsmatrix5) from `arrow keys move between cells`: arrows move the SELECTION again (operator 2026-09-09 item 3, \"Arrow keys move the selection; panel follows\"), which is also the artboard's own foot text. The strip still sits on the CARD and not inside the panel, because the panel is now a fixed-height slot that scrolls its own content.",
       "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
-      "textMatch": "arrow keys move between cells",
+      "textMatch": "arrow keys move the selection",
       "expect": {
         "display": "flex",
         "count": "1"
       }
     },
     {
-      "name": "UPDATED 2026-09-08 (lane noexpand), replacing 'the panel opens under the table' as an AT-REST assertion: on the composed /operations page the grid is still ONE tab stop, so the scoreboard is keyboard reachable with nothing selected (ruling R5).",
+      "name": "RE-POINTED 2026-09-09: the grid is still exactly ONE tab stop on the composed page, and that tab stop is now the SELECTED cell, so Tab lands on the cell whose facts are showing. Same count, pinned to a data-derived position instead of a constant.",
       "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"], [data-audit=\"ops-matrix-card\"] table [tabindex=\"0\"]",
       "expect": {
         "count": "1"
@@ -149,6 +150,22 @@
       }
     },
     {
+      "name": "THE COMPOSED /operations PAGE ARRIVES WITH ITS FIRST SOURCED CELL OPEN (operator 2026-09-09 item 5). REPLACES the forbid `THE COMPOSED /operations PAGE OPENS NOTHING`, which asserted the closed state the newer message reverses for this element",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "count": "1",
+        "height": "300px",
+        "overflow-y": "auto"
+      }
+    },
+    {
+      "name": "and the panel DECLARES that arrival state with data-open-on-mount naming both operator messages, so the site-wide sweep sees a declared exception rather than an undeclared one. REPLACES nothing; this assertion did not exist before",
+      "selector": "[data-audit=\"ops-matrix-panel\"][data-open-on-mount*=\"2026-09-09\"][data-open-on-mount*=\"2026-09-08\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
       "name": "A3 shell of the Regions side by side card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
       "selector": "[data-audit=\"ops-matrix-card\"]",
       "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
@@ -177,6 +194,22 @@
         "font-size": "12px",
         "font-weight": "600",
         "min-height": "28px"
+      }
+    },
+    {
+      "name": "EXACTLY TWO declared open elements, and both belong to this matrix: the panel and the cell whose tint reports aria-selected. Two rather than one because the sweep allows an element only if it or an ancestor carries the declaration, and the tinted cell is not inside the panel. One exception, one component, not a category, and this count is what keeps the site-wide rule from leaking.",
+      "selector": "[data-open-on-mount]",
+      "expect": {
+        "count": "2"
+      }
+    },
+    {
+      "name": "EXACTLY ONE cell is tinted as selected on the composed page. REPLACES the forbid `and no cell is tinted as selected on the composed page`: same property, measured by computed value, and now with a count, so a build that tints two cells or none fails where the forbid could only catch one direction",
+      "selector": "[data-audit=\"ops-matrix-card\"] table [aria-selected=\"true\"]",
+      "expect": {
+        "count": "1",
+        "background-color": "rgb(220, 231, 251)",
+        "box-shadow": "rgb(37, 99, 235) 0px 0px 0px 2px inset"
       }
     }
   ],
@@ -239,16 +272,6 @@
       "name": "CLASS CLOSURE (operations list): a card element that renders no 3px rule",
       "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
       "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
-    },
-    {
-      "name": "THE COMPOSED /operations PAGE OPENS NOTHING: no selection panel before the reader clicks",
-      "selector": "[data-audit=\"ops-matrix-panel\"]",
-      "reason": "This is the exact screen the operator was looking at on 2026-09-08 when he wrote \"the ops page opend to a sub category not just the main page, infastructure capacity and other items should be closed, no items expanded when first navigtaing to a page\". Three rows in this spec used to REQUIRE the panel here, because the component computed a default selection on mount; they asserted the defect. The panel's own values, its placement below the table, and its contents are all still measured, on `operations-matrix-selected.json`, where the mount clicks a cell first."
-    },
-    {
-      "name": "and no cell is tinted as selected on the composed page",
-      "selector": "[data-audit=\"ops-matrix-card\"] table [aria-selected=\"true\"]",
-      "reason": "The same defect in its other visible form. Ruling R2: a default selection whose visible effect is an opened panel is covered by \"no items expanded\"."
     }
   ]
 }
