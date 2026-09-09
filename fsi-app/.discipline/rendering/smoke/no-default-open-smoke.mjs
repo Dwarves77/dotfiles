@@ -18,13 +18,33 @@
 // the INITIAL DOM, which is what this file measures. The two gates are complementary and neither is
 // sufficient alone; F43's own header says so, and so does this one.
 //
-// FOUR LEGS:
-//   1. AT REST. The real RegionDimensionMatrix, mounted with the audit registry's attack fixture:
-//      no cell `aria-selected`, no panel in the DOM, and EXACTLY ONE `tabindex="0"`, the first cell
-//     , so the grid is one tab stop away without anything being chosen (R5).
-//   2. KEYBOARD. Focus the grid's tab stop (which is what Tab does), then arrow around it. Focus
-//      moves; nothing selects and no panel appears. Then press Enter: NOW the panel opens on the
-//      focused cell. This is the exact distinction R5 draws.
+// THE ONE ALLOWED EXCEPTION, ADDED 2026-09-09 (lane opsmatrix5), and it is a REVERSAL, on purpose.
+// The operator's /operations STOP SHIP message of 2026-09-09, item 5, verbatim: "Default state on
+// load: first sourced cell of the first sourced row open." Item 3: "Arrow keys move the selection;
+// panel follows; Esc closes." Coordinator note C1, binding: what the 2026-09-08 ruling forbade is
+// the RETIRED row-expansion pattern, the thing he was looking at when he wrote it and the thing the
+// newer message orders deleted; the new panel's default selection is explicitly wanted, in writing,
+// in the newer message. So the matrix arrives with one cell selected and its panel open, and NOTHING
+// ELSE anywhere on the site opens itself.
+//
+// The rule is NOT weakened to a warning and NOTHING ELSE is exempted. The matrix declares its
+// default with `data-open-on-mount` naming both dates, which is the escape hatch open-state-sweep
+// already provided for a ruled-open default, and the declaration is dropped the instant the reader
+// touches the grid, so it covers ARRIVAL and no other state. Legs 1 and 2 below are re-pointed to
+// assert that exact shape rather than deleted: leg 1 now requires the default to be present, to be
+// the right cell, to be DECLARED, and to be the ONLY declared thing on the page; leg 2 now requires
+// the arrows to move it and Esc to close it. Every other leg is untouched.
+//
+// SIX LEGS:
+//   1. AT ARRIVAL. The real RegionDimensionMatrix, mounted with the audit registry's attack fixture:
+//      EXACTLY ONE cell `aria-selected`, and it is the first sourced cell of the first sourced row
+//      (which the sparse fixture makes ASIA x D3, two empty rows and two empty columns in); the
+//      panel open on it; the arrival state DECLARED with `data-open-on-mount`; exactly one declared
+//      element on the whole page; and EXACTLY ONE `tabindex="0"`, on the selected cell, so Tab lands
+//      on the cell whose facts are showing.
+//   2. KEYBOARD. Focus the grid's tab stop, arrow around it: the SELECTION moves with focus and the
+//      panel follows (2026-09-09 item 3). Esc closes the panel and leaves nothing selected. Enter
+//      re-opens on the focused cell.
 //   3. SWEEP. Every compose-* page mount in the audit registry, measured with the SAME probe the
 //      standalone sweep uses (audit/open-state-sweep.mjs `OPEN_STATE_MEASURE`, imported rather than
 //      reimplemented). Zero unallowed open elements on any of them.
@@ -98,38 +118,60 @@ export async function runSmoke(browser) {
     if (actual !== expected) failures.push(`no-default-open: ${label}, expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
   };
 
-  // ── Leg 1: the matrix at rest ────────────────────────────────────────────────────────────────
+  // ── Leg 1: the matrix at arrival, and the exception is DECLARED ──────────────────────────────
   {
     const page = await mountRegistered(browser, 'ops-matrix');
     try {
-      eq('at rest, no cell is aria-selected', await page.locator(`${GRID} [aria-selected="true"]`).count(), 0);
-      eq('at rest, the fact panel is not in the DOM', await page.locator(PANEL).count(), 0);
-      eq('at rest, no fact card is rendered', await page.locator('[data-audit="ops-fact-card"]').count(), 0);
-      // R5: reachable, not chosen.
-      eq('at rest, the grid has exactly one tab stop', await page.locator(`${GRID} [tabindex="0"]`).count(), 1);
+      eq('at arrival, exactly one cell is selected (2026-09-09 item 5)', await page.locator(`${GRID} [aria-selected="true"]`).count(), 1);
       eq(
-        'the tab stop is the FIRST cell (row 1, column 0, the D1 row header)',
+        'and it is the FIRST SOURCED CELL OF THE FIRST SOURCED ROW: the sparse fixture makes that ASIA x D3, two empty rows and two empty columns in',
+        await page.evaluate((g) => document.querySelector(`${g} [aria-selected="true"]`)?.getAttribute('aria-label') ?? null, GRID),
+        'Asia · SG + HK, D3 Labor markets, 4 sourced facts'
+      );
+      eq('at arrival, the fact panel is open on it', await page.locator(PANEL).count(), 1);
+      eq('at arrival, the arrival state is DECLARED to this sweep, not hidden from it', await page.locator(`${PANEL}[data-open-on-mount]`).count(), 1);
+      eq(
+        'the declaration names BOTH operator messages, so the next reader sees the history',
+        await page.evaluate((p) => {
+          const d = document.querySelector(p)?.getAttribute('data-open-on-mount') ?? '';
+          return d.includes('2026-09-09') && d.includes('2026-09-08');
+        }, PANEL),
+        true
+      );
+      // EXACTLY TWO declared elements, and both are this matrix's: the panel and the cell whose
+      // tint reports `aria-selected`. Two rather than one because the sweep allows an element only
+      // if it or an ancestor carries the declaration, and the tinted cell is not inside the panel.
+      eq('exactly two declared open elements on the page: the panel and its selected cell', await page.locator('[data-open-on-mount]').count(), 2);
+      eq(
+        'and both are inside the matrix card: one exception, one component, not a category',
+        await page.evaluate((g) => Array.from(document.querySelectorAll('[data-open-on-mount]')).every((el) => el.closest(g)), GRID),
+        true
+      );
+      eq('at arrival, the grid has exactly one tab stop', await page.locator(`${GRID} [tabindex="0"]`).count(), 1);
+      eq(
+        'the tab stop is the SELECTED cell, so Tab lands on the cell whose facts are showing',
         await page.evaluate((g) => {
           const stop = document.querySelector(`${g} [tabindex="0"]`);
-          const first = document.querySelector(`${g} table > tbody > tr:first-child > th`);
-          return stop === first;
+          const sel = document.querySelector(`${g} [aria-selected="true"]`);
+          return stop === sel;
         }, GRID),
         true
       );
       eq(
-        'at rest, focus has NOT been pulled into the table',
+        'at arrival, focus has NOT been pulled into the table (a selected cell is not a focused one)',
         await page.evaluate((g) => !!document.activeElement && document.activeElement.closest(g) !== null, GRID),
         false
       );
-      // The card keeps its legend when there is no panel: the strip that explains the dashes and
-      // says how to open a cell is exactly what a reader needs on arrival.
-      eq('at rest, the card still carries its foot legend', await page.locator('[data-audit="ops-matrix-foot"]').count(), 1);
+      eq('at arrival, the card still carries its foot legend', await page.locator('[data-audit="ops-matrix-foot"]').count(), 1);
+      // The rest of the site is unchanged by the exception: nothing else declares one, and every
+      // other mount is swept in leg 3 below.
+      eq('no <details> is open anywhere in the matrix card', await page.locator(`${GRID} details[open]`).count(), 0);
     } finally {
       await page.close();
     }
   }
 
-  // ── Leg 2: focus moves, selection does not follow ────────────────────────────────────────────
+  // ── Leg 2: arrows move the SELECTION, Esc closes ─────────────────────────────────────────────
   {
     const page = await mountRegistered(browser, 'ops-matrix');
     try {
@@ -139,15 +181,29 @@ export async function runSmoke(browser) {
       const start = await labelOf();
       await page.keyboard.press('ArrowRight');
       await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(60);
+      await page.waitForTimeout(80);
       const moved = await labelOf();
       checks += 1;
       if (!moved || moved === start) failures.push(`no-default-open: arrow keys did not move focus (still ${JSON.stringify(start)})`);
-      eq('after arrowing, still nothing is selected', await page.locator(`${GRID} [aria-selected="true"]`).count(), 0);
-      eq('after arrowing, still no panel', await page.locator(PANEL).count(), 0);
-      eq('the tab stop moved with focus (still exactly one)', await page.locator(`${GRID} [tabindex="0"]`).count(), 1);
+      // 2026-09-09 item 3: "Arrow keys move the selection; panel follows."
+      eq('after arrowing, exactly one cell is selected', await page.locator(`${GRID} [aria-selected="true"]`).count(), 1);
+      eq('after arrowing, the panel is still open and has followed', await page.locator(PANEL).count(), 1);
+      eq(
+        'the selection is the cell the arrows landed on',
+        await page.evaluate((g) => document.querySelector(`${g} [aria-selected="true"]`)?.getAttribute('aria-label') ?? null, GRID),
+        moved
+      );
+      eq('the tab stop moved with it (still exactly one)', await page.locator(`${GRID} [tabindex="0"]`).count(), 1);
+      eq('the arrival declaration is gone the moment the reader acts', await page.locator('[data-open-on-mount]').count(), 0);
 
-      // Commit. THIS is what opens the panel.
+      // "Esc closes."
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(120);
+      eq('Esc leaves nothing selected', await page.locator(`${GRID} [aria-selected="true"]`).count(), 0);
+      eq('Esc renders no fact card', await page.locator('[data-audit="ops-fact-card"]').count(), 0);
+      eq('Esc does NOT re-open the default (a closed panel stays closed)', await page.locator(`${PANEL}[data-open-on-mount]`).count(), 0);
+
+      // Enter re-opens on the focused cell.
       await page.keyboard.press('Enter');
       await page.waitForTimeout(120);
       eq('Enter selects the focused cell', await page.locator(`${GRID} [aria-selected="true"]`).count(), 1);

@@ -77,15 +77,20 @@
  * selection is explicitly WANTED, in writing, in the newer message. So: this matrix arrives with the
  * first sourced cell of the first sourced row SELECTED and its panel showing, and NOTHING ELSE
  * anywhere on the site opens itself. The site-wide rule stands for every other route and component,
- * including F42 and the rendering guard's `no-default-open` leg; this component is their ONE allowed
+ * including F43 and the rendering guard's `no-default-open` leg; this component is their ONE allowed
  * exception, and it declares itself to the guard rather than hiding from it: while the reader has
  * not acted, the panel and the selected cell carry `data-open-on-mount` naming both dates, which is
  * the escape hatch open-state-sweep.mjs already provides for a ruled-open default.
  *
- * fitness-allow: F42 (R6 2026-09-09 default matrix selection; both messages quoted above)
- *   -- inert today and stated anyway: F42 matches a LEXICAL default-open tell (a useState whose name
+ * fitness-allow: F43 (R6 2026-09-09 default matrix selection; both messages quoted above)
+ *   -- FOLD 65 (2026-09-09) renumbered this citation. Lane opsmatrix5 was written against the tree
+ *   where default-open-disclosure was F42; wave 64 renumbered that function to F43 and gave F42 to
+ *   card-shell-outside-section-card, so the lane's original `F42` citation named the wrong function
+ *   on this tree. The number here is the one the default-open gate actually carries on THIS tree,
+ *   read from .discipline/fitness/functions/, not from either lane's prose.
+ *   -- inert today and stated anyway: F43 matches a LEXICAL default-open tell (a useState whose name
  *   carries open/expand starting true, a defaultOpen prop, a <details open>), and the default
- *   selection below is none of those, so F42 finds nothing here to allow. The marker is written at
+ *   selection below is none of those, so F43 finds nothing here to allow. The marker is written at
  *   the site so that a later build which does express this as a boolean has its ruling already
  *   beside it, and so the next reader sees the exception where the exception lives.
  *

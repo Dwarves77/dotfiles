@@ -30,6 +30,16 @@
 //     an anchor or an item may open exactly what it names. No mount in this registry carries a
 //     deep-link URL, so nothing is allowed under R4 here; the deep-link path is proven in
 //     `.discipline/rendering/smoke/no-default-open-smoke.mjs`.
+//   - THE /operations MATRIX'S DEFAULT SELECTION, and it is the only DECLARED allowance in the app.
+//     Operator, 2026-09-09, /operations STOP SHIP message, item 5, verbatim: "Default state on load:
+//     first sourced cell of the first sourced row open." Coordinator note C1, 2026-09-09, binding:
+//     what the 2026-09-08 ruling forbade is the RETIRED row-expansion pattern, the thing he was
+//     looking at when he wrote it and the thing the newer message orders deleted; the new panel's
+//     default selection is explicitly wanted, in writing, in the newer message. The matrix therefore
+//     carries `data-open-on-mount` on its panel, naming BOTH dates, and drops the attribute the
+//     instant the reader touches the grid, so the allowance covers ARRIVAL and no other state. The
+//     rule is not weakened anywhere else: every other mount is swept exactly as before, and one
+//     unallowed open element on any of them is still a non-zero exit.
 //   - A `role="tab"` reporting `aria-selected="true"`. See the ruling written into the probe below:
 //     a tab strip is sibling navigation, not a disclosure. It is PRINTED as `allow tab active`, so
 //     it stays in the reader's view instead of being filtered out of the question.
@@ -110,7 +120,10 @@ async function main() {
   //   ops-matrix-selected  clicks the ASIA x D3 cell after mounting, so
   //                        spec/operations-matrix-selected.json can measure the selected state and
   //                        the panel on a cell selected through the real click handler.
-  const INTERACTED = new Set(['ops-matrix-selected']);
+  //   ops-matrix-nofigure  clicks the ASIA x D5 cell after mounting, so
+  //                        spec/operations-matrix-nofigure.json can measure the no-figure fact card
+  //                        (operator 2026-09-09: "the card leads with a 6-word headline").
+  const INTERACTED = new Set(['ops-matrix-selected', 'ops-matrix-nofigure']);
   const ids = Object.keys(AUDIT_MOUNTS).filter((id) => (ONLY ? id === ONLY : !INTERACTED.has(id)));
   let violations = 0;
   console.log(`===== INITIAL OPEN-STATE SWEEP @ ${WIDTH}px =====`);

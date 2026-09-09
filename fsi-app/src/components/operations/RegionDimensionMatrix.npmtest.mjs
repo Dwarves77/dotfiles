@@ -226,8 +226,11 @@ test("the arrival state is DECLARED to the site-wide no-default-open gate, not h
   assert.equal(spreads.length, 3, "the panel, the region cell and the row header each declare it");
   assert.match(SOURCE, /2026-09-09 item 5/, "the message that asks for the default");
   assert.match(SOURCE, /no items expanded when first navigtaing to a page/, "the message it excepts");
-  // And the F42 citation sits at the site too, so the next reader finds the ruling beside the code.
-  assert.match(SOURCE, /fitness-allow: F42 \(R6 2026-09-09/);
+  // And the citation sits at the site too, so the next reader finds the ruling beside the code.
+  // FOLD 65 (2026-09-09): the number is F43, not the lane's F42. Wave 64 renumbered
+  // default-open-disclosure to F43 and gave F42 to card-shell-outside-section-card, so this test
+  // reads the number the default-open gate actually carries on this tree.
+  assert.match(SOURCE, /fitness-allow: F43 \(R6 2026-09-09/);
 });
 
 test("THE PANEL SLOT IS UNCONDITIONAL AND FIXED-HEIGHT, which is what makes the card's height constant", () => {

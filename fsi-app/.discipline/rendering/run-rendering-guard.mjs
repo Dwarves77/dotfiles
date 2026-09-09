@@ -71,6 +71,7 @@ import { runSmoke as runWatchlistWriteSmoke } from "./smoke/watchlist-write-smok
 // that opens itself by computing a default SELECTION, which is how /operations opened Infrastructure
 // capacity - is invisible to F43 and to every other gate, and visible only here.
 import { runSmoke as runNoDefaultOpenSmoke } from "./smoke/no-default-open-smoke.mjs";
+import { runSmoke as runOpsMatrixAcceptanceSmoke } from "./smoke/ops-matrix-acceptance-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -206,6 +207,7 @@ async function main() {
     { name: "watchlist-write", run: runWatchlistWriteSmoke },
     { name: "no-default-open", run: runNoDefaultOpenSmoke },
     { name: "impact-meter-partial", run: runImpactMeterPartialSmoke },
+    { name: "ops-matrix-acceptance", run: runOpsMatrixAcceptanceSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];
