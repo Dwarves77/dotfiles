@@ -89,6 +89,13 @@ export interface WorkspaceBootstrapData {
   // UI system handoff 2026-09-06 (README §0.3 nav rail counts). Same
   // optional-until-populated contract as `overrides` above.
   navCounts?: NavCounts;
+  // CMDSEARCH lane (2026-09-09): server-only ASSISTANT_ENABLED, surfaced through this ONE
+  // server-to-client path (see bootstrap/route.ts's own header) rather than a second flag
+  // mechanism. Optional for the same reason as `overrides`/`navCounts` above — absent on responses
+  // from before this field existed. CommandBar.tsx treats absent/undefined as "not yet known" and
+  // renders Ask as unavailable until the bootstrap fetch resolves, never as "enabled" by default
+  // (fail-closed on the client mirrors the server's own fail-closed default).
+  assistantEnabled?: boolean;
 }
 
 interface SingletonState {

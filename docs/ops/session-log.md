@@ -16230,3 +16230,143 @@ unchanged and re-measured green by the design audit's mobile specs.
 
 Every gate run from the worktree root, exit codes read explicitly. See the lane report for the
 numbers.
+
+## Addendum, lane CHANGEDATA (2026-09-09): What-changed's missing dates, checked against the live corpus, not assumed
+
+Operator, verbatim: "data missing from dashboard in 'whats changed' make sure its not missing in
+other areas." Diagnosed as three separate questions per the dispatch brief before any fix.
+
+**A — do the six screenshotted items have a date?** Measured against the live corpus (project
+`kwrsbpiseruzbfwjpvsp`), replicating `get_workspace_recent_changes(org, 7)`'s exact ordering: the
+top 6 What-changed rows, and in fact all 500 rows the RPC returns, carry neither a future
+`compliance_deadline` nor a future `item_timelines` milestone. `item_timelines` is not globally
+empty (1,169 rows / 131 items; 6 items workspace-wide carry a future `compliance_deadline`) — none
+of those 6 fell inside this 7-day added_date window. **The em dash is correct on every one of
+these rows.** No fix applied for A; inventing one would have violated CLAUDE.md rule 2.
+
+**B — does What-changed project the fields the way Due-next does?** Read both paths: `data.resources`
+(dashboard RPC), `data.dueNext` (`get_workspace_due_next`, migration 315) and `data.briefResources`
+(the What-changed by-id backfill, `fetchBriefResourcesByIds`) all resolve through the ONE shared
+`mapWorkspaceItemRows`, which fetches `compliance_deadline` (`BRIEF_ITEM_COLUMNS`) and
+`item_timelines` identically for all three. This is the exact defect class that bit train 62 twice
+(mapper dropped `compliance_deadline` app-wide; brief cards read a slice they didn't render) — this
+time it does not recur. No fix needed; verified, not assumed.
+
+**C — the header date, a real defect regardless of A/B.** `auditDate` ("Detection pass <date>") was
+computed from `item_changelog`'s newest row FIRST, falling back to the What-changed feed's own
+`added_date` only when `item_changelog` was empty. Live-measured: `item_changelog` holds 9 rows, all
+frozen at **2026-03-01** — a static, unrelated table — while the card's rows and its "last 7 days"
+foot are built from `get_workspace_recent_changes`, a real moving 7-day window. That precedence
+meant the header could never read anything but 2026-03-01, contradicting both the rows ("first seen
+this pass") and the foot beneath it. **Fixed**: extracted `computeAuditDate(recentChanges,
+changelogDates)` to `src/lib/dashboard/brief-rows.ts` (rows are now the PRIMARY evidence,
+changelog only the fallback for a workspace with zero recent changes), and wired
+`fetchDashboardData` (`src/lib/supabase-server.ts`) to call it — one computation, not two. Proof:
+`brief-rows.npmtest.mjs` (CHANGEDATA/C1-C4) asserts the precedence behaviourally AND asserts
+`supabase-server.ts` calls the shared function rather than re-deriving it; `honest-empty.npmtest.mjs`
+updated to match (its old assertion pinned the exact pre-fix line, which is now gone by design).
+
+**The sweep** (rendered/queried against the live corpus a surface's own read would return; watchlist
+via `user_watchlist`, due-next/what-changed via the reads above):
+
+| Surface | rows | due date present | real timeline | tier | absence (no due) |
+|---|---|---|---|---|---|
+| /regulations (list) | 1,316 | 5 (future compliance_deadline) | 39 (future milestone, incl. overlap) | 1,316/1,316 | 1,272 |
+| /market (list) | 53 | 0 | 1 | 53/53 | 52 |
+| /operations (list) | 25 | 0 | 0 | 25/25 | 25 |
+| /research (list) | 39 | 0 | 0 | 39/39 | 39 |
+| Watchlist (rail) | 1 | 0 | 1 (real future milestone) | 1/1 | 0 |
+| Map register | rows are PER-JURISDICTION (`endStat`, not due/timeline/tier cells) — architecturally out of scope for this data path |
+| Dashboard · Due next | 5 (capped) | 5/5 (by construction — undated items are filtered) | 5/5 (all 5 resolve via item_timelines, none via compliance_deadline) | 5/5 | 0 |
+| Dashboard · What changed | 6 (capped, of 500 in the 7-day feed) | 0 | 0 | (sampled; not the defect) | 6 |
+
+Read: the em-dash rate on What-changed is not a dashboard-only artifact — the same "no bound date"
+fact is true of the great majority of `/regulations`, all of `/market`/`/operations`/`/research` in
+the current corpus, and would show the same way anywhere the shared row is mounted. Tier is never
+missing anywhere it was checked (source enrichment is bounded but complete for every row rendered).
+
+**Gates**: `npx tsc --noEmit` exit 0; `.discipline/fitness/runner.mjs` — 37 functions, 0 violations;
+CI's `*.npmtest.mjs` + named npm-dep glob — 1,142/1,142 pass; `npx next build` exit 0. Rendering
+guard / design audit not run (nothing rendering changed).
+
+Not fixed, deliberately: A (nothing to fix — the data genuinely has no dates); the map register's
+lack of due/timeline/tier cells (out of scope — it is a jurisdiction-level row by design, not an
+absence defect).
+## CMDSEARCH lane, 2026-09-09: Standard Search + Ask mode toggle
+
+Operator instruction, verbatim: "we need a simple search function for the site as well as an AI
+agent" then "a toggel between standard search and AI question in that bar is what is needed. leave
+API off for now."
+
+**Found first, reused.** The command bar (`CommandBar.tsx`, mounted on every route via `Masthead`)
+already dispatched Ask through the pre-existing `open-ask-assistant` CustomEvent contract
+(`AskAssistant.tsx`), unconditionally on the model — `ASSISTANT_ENABLED` (fail-closed, default OFF
+since PR #478) gated only the server side, so an operator-off Assistant still let a reader type a
+question and see a raw 503. FTS retrieval already existed too: `search_intelligence_items`
+(migration 159, websearch-syntax RPC + `ts_rank_cd`), consumed only by `/api/ask`'s own retrieval
+step. No standalone search API existed.
+
+**Built:**
+- `GET /api/search` (`src/app/api/search/route.ts` + sibling `logic.ts`, F34's route.ts-exports-only
+  convention): reuses `search_intelligence_items` verbatim rather than a second FTS mechanism.
+  Bounded to `MAX_RESULTS = 20` (the RPC's own `max_rows`, itself capped at 30), the `.in(id,
+  hitIds)` re-fetch reads exactly that RPC's own top-K hit set (`fitness-allow: F39`), and re-applies
+  the SAME customer read predicate (`is_archived=false`, `provenance_status='verified'`) every other
+  read in the app uses — no org filter, matching `/api/ask`'s own posture (the corpus is one shared
+  platform corpus, not per-org). Empty/short query (< 2 chars) returns no rows without querying.
+- `CommandBar.tsx`: a Search/Ask mode toggle (two `role="group"` buttons, Search default) inside the
+  bar's existing 40px box. Search mode debounces a bounded call to the new route through
+  `authedFetch` (F40) and renders results in the shared `ListRow` (via widened, backward-compatible
+  `jurisdictionCode`/`metaLine` signatures in `row-fields.ts`, plus the existing `itemDetailHref`),
+  with the app's `StateNote` absence line on no results. Ask mode is disabled end-to-end
+  (input, button, `ask()` itself) whenever `assistantEnabled` is false, with the placeholder itself
+  stating "The Assistant is currently unavailable" before any typing — no request to `/api/ask` is
+  ever dispatched while off, so no 503 body can reach the UI.
+- `ASSISTANT_ENABLED` reaches the client through the ONE existing per-user server-to-client path,
+  `/api/workspace/bootstrap` (`assistantEnabled` field) → `useWorkspaceBootstrap()`, not a new flag
+  mechanism. Flipping the env var needs no further code change; both states are proven by the same
+  `askDisabled = mode === "ask" && !assistantEnabled` read on every render.
+
+**Design-spec fallout, fixed not weakened.** The toggle added two more `<button>`s inside
+`.cl-command-bar`, so `masthead.json`'s bare `.cl-command-bar button` selector started reading the
+first (a toggle tab) instead of the Ask submit button — narrowed to a new `.cl-command-bar-ask-submit`
+class on the real button. The default placeholder assertion was updated from "Search or ask across N
+items…" to "Search across N items…" (the toggle itself now carries the "or ask" meaning). The
+toggle's own `role="tablist"`/`role="tab"` first attempt collided with `compose-13-admin.json`'s
+"exactly one tablist on the admin page" assertion (this bar mounts globally) — changed to
+`role="group"`/`aria-pressed`, which claims no ARIA pattern to collide with. `run-rendering-guard.mjs`
+caught two hit-target defects on the toggle buttons (L9: "≥44px in one dimension and ≥28px in the
+other") — fixed with an explicit `height: 30` and `minWidth: 44` on both tabs, not exempted.
+
+**Gates:** `tsc --noEmit` exit 0; fitness runner 37 functions, 0 violations (F39 marker required and
+added on the search route's own `.in()` call); `node --test` across every `*.npmtest.mjs` (1095
+tests, including 5 new bounded/scoped route tests and 8 new CommandBar structural tests) — 0 failures;
+`next build` exit 0 with `/api/search` registered; `run-rendering-guard.mjs` PASS (17 routes clean at
+1024/1440, only pre-existing dated facet-checkbox exemptions remain); `audit:design` 2557/2557 MATCH
+after the two spec updates above.
+
+See `DEVIATION-LOG.md` for the design-spec updates as formal rows.
+
+### UX compliance
+
+**Screen: the command bar, mounted on every route.** Primary goal: find an item by name or field
+without leaving the page the reader is on. Path: type two or more characters in Search mode, the
+bounded query runs after a short debounce, results render as the shared list row beneath the bar,
+click a result to open the item. One primary action: submitting the query; the mode toggle and the
+Ask submit are secondary and sit after it. Feedback per async action: while the search request is
+in flight the bar keeps the typed text and the result area holds its last state rather than
+flashing empty; on no results the shared absence line renders once; on a request error the same
+absence line carries the reason word and nothing else, no raw error body reaches the reader.
+
+**Screen: the same bar in Ask mode.** Primary goal: ask the Assistant a question when it is
+enabled, and know before typing when it is not. Path: press the Ask tab, read the placeholder,
+type, submit. One primary action: submitting the question. Feedback per async action: with the
+Assistant disabled the input, the submit and the dispatch are all off and the placeholder states
+it, so there is no async action to give feedback on and no request can leave the page; with it
+enabled the existing Assistant panel opens and carries its own pending and error states, unchanged
+by this lane.
+
+Law 2 (Fitts): both toggle tabs measure at least 44px on one axis and 28px on the other, proven by
+the rendering guard rather than exempted. Law 5 (Miller): the toggle adds one decision, mode, and
+nothing else to the bar. Law 16 (Similarity): results reuse the list row every other surface
+renders, so a search result reads as the item it is and not as a new kind of thing.

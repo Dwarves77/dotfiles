@@ -82,24 +82,35 @@ test("a successful empty read returns the real payload, with no _error and no tr
 test("no code path invents an audit date", () => {
   // Both halves of the same fabrication. fetchDashboardData used to seed auditDate with TODAY and
   // then raise it by any changelog entry later than today, which no entry can be, so the card
-  // asserted "Detection pass <today>" every day regardless of what ran. Measured live 2026-09-08:
-  // item_changelog holds 9 rows, newest change_date 2026-03-01, and the scrape cadence is held OFF
-  // per CLAUDE.md rule 16. data.ts's failure factory did the same with a constant baked into the
-  // bundle.
+  // asserted "Detection pass <today>" every day regardless of what ran. data.ts's failure factory
+  // did the same with a constant baked into the bundle.
   assert.ok(
     !/let auditDate = new Date\(\)\.toISOString\(\)/.test(DASHBOARD),
     "auditDate must not be seeded with today",
-  );
-  assert.match(DASHBOARD, /let auditDate = "";/, "it starts unknown");
-  assert.match(DASHBOARD, /if \(e\.date && e\.date > auditDate\) auditDate = e\.date;/, "raised by real changelog evidence");
-  assert.match(
-    DASHBOARD,
-    /if \(c\.added && c\.added > auditDate\) auditDate = c\.added;/,
-    "then by the newest added_date in the What-changed feed, which is a real pass that delivered items",
   );
   assert.ok(
     !/import \{ AUDIT_DATE \}/.test(DATA),
     "and the failure factory no longer imports a baked-in date",
   );
   assert.match(DATA, /auditDate: "",/, 'a hard failure renders "No detection pass on record", which is true');
+});
+
+// Lane CHANGEDATA (2026-09-09), defect C: the ORDER those two evidence sources are consulted in
+// matters as much as their presence. `item_changelog` is a stale, unrelated table (9 rows, all
+// frozen at one date, live-measured 2026-09-09) and consulting it BEFORE the rows the card
+// actually renders (`recentChanges`) means the header can never reflect what is on screen. See
+// computeAuditDate's own tests (brief-rows.npmtest.mjs) for the full behavioural proof; this test
+// only proves fetchDashboardData delegates to that one function rather than re-deriving its own
+// (possibly differently-ordered) copy.
+test("the header's audit date is computed by the SAME function the rows go through", () => {
+  assert.match(
+    SERVER,
+    /import \{ computeAuditDate \} from "@\/lib\/dashboard\/brief-rows"/,
+    "fetchDashboardData must not carry a private re-derivation of this precedence",
+  );
+  assert.match(
+    DASHBOARD,
+    /const auditDate = computeAuditDate\(recentChanges, changelogDates\)/,
+    "recentChanges (the rows this card renders) must be the argument order's PRIMARY evidence",
+  );
 });

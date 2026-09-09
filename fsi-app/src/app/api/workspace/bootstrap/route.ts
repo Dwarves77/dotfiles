@@ -74,7 +74,15 @@ async function handleGET(request: NextRequest) {
     timePhase("nav_counts", () => loadNavCounts()),
   ]);
 
-  const payload = { personalState, listOrders, members, adminAttention, overrides, navCounts };
+  // CMDSEARCH lane (2026-09-09): surfaces ASSISTANT_ENABLED (server-only env var, api/ask/route.ts's
+  // own fail-closed gate) to the client through this route — the ONE existing per-user
+  // server-to-client path every other page-level flag already rides. Read fresh on every request
+  // (not cached at module scope) so a flag flip takes effect on the caller's next bootstrap fetch
+  // with no redeploy of THIS route required, matching the ask route's own live env read. Same exact-
+  // string comparison as the ask route's own gate — never widened, never a second flag.
+  const assistantEnabled = process.env.ASSISTANT_ENABLED === "true";
+
+  const payload = { personalState, listOrders, members, adminAttention, overrides, navCounts, assistantEnabled };
   recordSerializedBytes(payload, PERF_PHASES.SERIALIZE_BYTES);
 
   return withServerTiming(

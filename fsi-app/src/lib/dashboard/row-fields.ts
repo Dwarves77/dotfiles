@@ -11,7 +11,14 @@
 
 import type { Resource } from "@/types/resource";
 
-export function jurisdictionCode(r: Resource): string {
+// Widened from `Resource` to the two optional fields each function actually reads (CMDSEARCH lane,
+// 2026-09-09): the command bar's Standard Search result rows come from a trimmed API payload (id,
+// title, item_type, domain, priority, jurisdictions, transport_modes, topic — never the full
+// Resource shape a list surface's own fetch returns), so a signature requiring every Resource field
+// could not be reused there without either a second copy of this same three-line logic or an unsafe
+// cast. Every existing caller already passes a full `Resource`, which satisfies the narrower `Pick`
+// type structurally, so this is additive: no existing call site's behavior changes.
+export function jurisdictionCode(r: Pick<Resource, "jurisdictionIso" | "jurisdiction">): string {
   const iso = r.jurisdictionIso?.[0];
   if (iso) return iso.toUpperCase();
   if (r.jurisdiction) return r.jurisdiction.toUpperCase();
@@ -47,8 +54,9 @@ export function dueInfo(r: Resource, now: Date = new Date()): DueInfo | null {
 }
 
 /** Meta line for a ListRow: "<type> · <modes> · <topic>" from whatever the
- *  item actually carries — never a fabricated category. */
-export function metaLine(r: Resource): string {
+ *  item actually carries — never a fabricated category. Widened parameter, see jurisdictionCode's
+ *  header above (same lane, same reason). */
+export function metaLine(r: { type?: Resource["type"] | null; modes?: Resource["modes"]; topic?: Resource["topic"] }): string {
   const parts: string[] = [];
   if (r.type) parts.push(String(r.type));
   if (r.modes && r.modes.length) parts.push(r.modes.join(", "));

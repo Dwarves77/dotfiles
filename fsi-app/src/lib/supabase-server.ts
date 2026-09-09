@@ -16,6 +16,7 @@ import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
 import { normalizeJurisdictionIsoColumn } from "@/lib/jurisdictions/iso";
+import { computeAuditDate } from "@/lib/dashboard/brief-rows";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2728,17 +2729,21 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // (CLAUDE.md rule 16), so "Detection pass 2026-09-08" was a fabricated claim about the
     // system's own work, which rule 2 forbids.
     //
-    // The date is now taken from evidence, newest first:
-    //   1. the newest `item_changelog` entry, if the changelog has any; else
-    //   2. the newest `added_date` in the window-scoped What-changed feed, the last pass that
-    //      actually put items in front of this workspace; else
-    //   3. the empty string, which is What-changed's honest "No detection pass on record".
-    // Nothing is invented, and (3) is now reachable only when there really is no record, instead
-    // of only ever being reachable through the fallback payload.
-    let auditDate = "";
+    // Lane CHANGEDATA (2026-09-09), defect C [CONFIRMED]: this used to take the newest
+    // `item_changelog` entry FIRST and only fall back to the What-changed feed's own dates when
+    // the changelog was empty. On the live workspace `item_changelog` holds 9 rows, every one
+    // dated 2026-03-01 (a frozen, unrelated table), so that ordering meant the header could NEVER
+    // read anything but "2026-03-01" no matter how recent the rows it sits above actually are —
+    // the card's own rows and its own foot ("last 7 days") are built from
+    // `get_workspace_recent_changes`, a real moving 7-day window, so header and rows were two
+    // different facts. The date is now taken from EVIDENCE THE ROWS THEMSELVES CARRY first
+    // (`computeAuditDate`, src/lib/dashboard/brief-rows.ts — the one function both this read and
+    // the card's rendering agree on), with `item_changelog` only as the fallback for a workspace
+    // with no recent changes at all. See that function's header for the full account.
+    const changelogDates: string[] = [];
     for (const entries of Object.values(changelog)) {
       for (const e of entries) {
-        if (e.date && e.date > auditDate) auditDate = e.date;
+        if (e.date) changelogDates.push(e.date);
       }
     }
 
@@ -2807,13 +2812,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       briefResources.push(r);
     }
 
-    // Step 2 of the audit-date rule above: no changelog, so fall back to the newest added_date in
-    // the What-changed feed (the last pass that actually delivered items to this workspace).
-    if (!auditDate) {
-      for (const c of recentChanges) {
-        if (c.added && c.added > auditDate) auditDate = c.added;
-      }
-    }
+    // The one computation the header and the rows both go through — see computeAuditDate's
+    // header for why `recentChanges` (the rows this card actually renders) is the primary
+    // evidence and `changelogDates` only the fallback.
+    const auditDate = computeAuditDate(recentChanges, changelogDates);
 
     return {
       resources,
