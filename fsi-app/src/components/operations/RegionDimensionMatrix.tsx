@@ -385,7 +385,7 @@ export function RegionDimensionMatrix({
         >
           <thead style={{ background: "var(--tag)" }}>
             <tr role="row">
-              <th role="columnheader" scope="col" style={{ ...headCell, ...stickyCell, zIndex: 3, background: "var(--tag)" }}>
+              <th role="columnheader" scope="col" data-guard-sticky-col="true" style={{ ...headCell, ...stickyCell, zIndex: 3, background: "var(--tag)" }}>
                 Dimension
               </th>
               {regions.map((r) => {
@@ -434,6 +434,7 @@ export function RegionDimensionMatrix({
                     aria-label={`${dimensionLabel(d)}, compare across every region`}
                     onClick={() => selectAt(ri, 0)}
                     onKeyDown={(e) => onCellKeyDown(e, ri, 0)}
+                    data-guard-sticky-col="true"
                     style={{
                       ...bodyCell,
                       ...stickyCell,
@@ -509,6 +510,7 @@ export function RegionDimensionMatrix({
                         ) : (
                           <span
                             data-audit="ops-cell-score"
+                            data-guard-display="matrix-cell-score"
                             style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, color: "var(--ink)" }}
                           >
                             {n}
@@ -814,6 +816,7 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
         {figure ? (
           <span
             data-audit="ops-fact-figure"
+            data-guard-display="matrix-fact-figure"
             style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", flexShrink: 0 }}
           >
             {figure}
@@ -917,7 +920,14 @@ const headCell: React.CSSProperties = {
   overflowWrap: "anywhere",
 };
 
-/** The sticky first column, its floor, and its 1px right divider. */
+/** The sticky first column, its floor, and its 1px right divider.
+ *
+ *  DECLARED TO THE LAYOUT GUARD (FOLD 64). Every cell carrying this style also carries
+ *  `data-guard-sticky-col`, which is the attribute L5's `table-card-sticky-first-column` allowlist
+ *  row matches. The declaration is deliberate rather than a selector the guard guesses at: L5's
+ *  allowlist file states that an exception "is a list of components, not a list of selectors a page
+ *  can quietly satisfy", so the sticky column announces itself and any OTHER sticky element in this
+ *  file is still an L5 finding. */
 const stickyCell: React.CSSProperties = {
   position: "sticky",
   left: 0,

@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T22:33:00.953Z",
+  "runAt": "2026-09-09T02:02:25.799Z",
   "specs": [
     {
       "part": "Absence",
@@ -2156,6 +2156,8 @@
       ],
       "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
       "notes": [
+        "UPDATED 2026-09-08 (lane noexpand); the rows it replaces were written 2026-09-08 (lane opsmatrix3). Three children of this spec asserted that the matrix's selection PANEL is present on the composed /operations page at rest, and that the foot strip sits inside it. Both were true of the build lane opsmatrix3 shipped and both are now forbidden, because the operator ruled that page against them: he navigated to /operations and found Infrastructure capacity already open. Nothing was weakened to make this spec pass. The panel's background, its top rule, its DOM position below the scroller, its heading, its links, its fact cards and its cap are all still asserted, verbatim, in `operations-matrix-selected.json`, whose mount clicks a cell before anything is measured. What is asserted HERE instead is the closed state and its two forbids, which is the regression guard for the defect the operator found.",
+        "MATRIX REDESIGN, 2026-09-08 (lane opsmatrix3). The operator replaced artboard 08's expand-a-dimension matrix with a compact scoreboard whose selected cell opens a panel BELOW the table — his words, 'the expand-a-dimension matrix does not survive real data'. The `source` line above still describes p8 for everything OUTSIDE the matrix card, which p8 still governs and which this lane did not touch; for the matrix card itself p8 is STALE and the specification is docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png. Three rows here changed and the reason is that they measured markup the product deleted: the foot strip is no longer a sibling of the scroller (it moved inside the panel) and its 'no sourced fact yet' copy and its 'Compare against:' control are both gone, the latter superseded by the panel's compare mode. Per-value coverage of the redesign lives in operations-matrix.json, which was rewritten wholesale for the same reason; this file keeps only the page-level placement checks.",
         "This spec measures the COMPOSED page, region by region, in document order — the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
         "Fixture (mounts.mjs 'compose-08-operations') is invented sample data with the real prop shapes: 25 rows split 0/4/2/19 across the bands, 5 regions, populated region_dimension_coverage + regional_data_facts rows. The audit asserts geometry, placement and the components' own literals, never fixture values.",
         "The runner reads computed STYLE and textContent only: an `expect` key naming an HTML attribute (e.g. an input's placeholder) measures as null and reports a false MATCH, so no such key appears here. The page-scoped command-bar prompt artboard 08 states is verified in the side-by-side evidence PNG (docs/design/handoff-2026-09-06/built/compose-08-operations-list.png), not by this spec.",
@@ -2187,18 +2189,19 @@
           }
         },
         {
-          "name": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
-          "selector": "[data-audit=\"ops-matrix-foot\"]",
-          "textMatch": "no sourced fact yet",
+          "name": "UPDATED 2026-09-08 (lane noexpand), from 'the matrix foot strip sits INSIDE that panel': the strip now sits on the CARD, because with no default selection there is no panel on arrival to hold it. Same element, same three clauses, same `display: flex`; only its parent and the arrow-key wording changed, and the wording changed because arrows now move focus rather than the selection (ruling R5).",
+          "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
+          "textMatch": "arrow keys move between cells",
           "expect": {
-            "display": "flex"
+            "display": "flex",
+            "count": "1"
           }
         },
         {
-          "name": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
-          "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
+          "name": "UPDATED 2026-09-08 (lane noexpand), replacing 'the panel opens under the table' as an AT-REST assertion: on the composed /operations page the grid is still ONE tab stop, so the scoreboard is keyboard reachable with nothing selected (ruling R5).",
+          "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"], [data-audit=\"ops-matrix-card\"] table [tabindex=\"0\"]",
           "expect": {
-            "display": "flex"
+            "count": "1"
           }
         },
         {
@@ -2344,10 +2347,9 @@
           "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
         },
         {
-          "name": "no 'Facts' label in the expanded dimension row's leading cell",
-          "selector": "[data-audit=\"ops-matrix-card\"] td",
-          "textMatch": "Facts",
-          "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+          "name": "REDESIGN 2026-09-08: nothing expands inside the matrix table — no cell spans it",
+          "selector": "[data-audit=\"ops-matrix-card\"] td[colspan], [data-audit=\"ops-matrix-card\"] th[colspan]",
+          "reason": "REPLACES the 'no Facts label in the expanded dimension row's leading cell' forbid, which measured the expand-a-dimension design the operator retired on 2026-09-08 ('the expand-a-dimension matrix does not survive real data'). There is no expanded row to label any more: the facts open in a panel BELOW the table, and a colspan cell reappearing inside the card is the old design coming back. Full per-value coverage of the redesign is in operations-matrix.json; this row is the page-level guard that the retired shape stays retired."
         },
         {
           "name": "no trailing 'N regional operations profiles across N regions' line below the band cards",
@@ -2386,6 +2388,16 @@
           "name": "CLASS CLOSURE (operations list): a card element that renders no 3px rule",
           "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
           "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
+        },
+        {
+          "name": "THE COMPOSED /operations PAGE OPENS NOTHING: no selection panel before the reader clicks",
+          "selector": "[data-audit=\"ops-matrix-panel\"]",
+          "reason": "This is the exact screen the operator was looking at on 2026-09-08 when he wrote \"the ops page opend to a sub category not just the main page, infastructure capacity and other items should be closed, no items expanded when first navigtaing to a page\". Three rows in this spec used to REQUIRE the panel here, because the component computed a default selection on mount; they asserted the defect. The panel's own values, its placement below the table, and its contents are all still measured, on `operations-matrix-selected.json`, where the mount clicks a cell first."
+        },
+        {
+          "name": "and no cell is tinted as selected on the composed page",
+          "selector": "[data-audit=\"ops-matrix-card\"] table [aria-selected=\"true\"]",
+          "reason": "The same defect in its other visible form. Ruling R2: a default selection whose visible effect is an opened panel is covered by \"no items expanded\"."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json",
@@ -5367,7 +5379,8 @@
         "Row variant, scored: the #sys list-row example's first row (impact 7/12, dims sorted [1,1,2,3]) uses 9px-wide bars, heights 6/6/12/18, radius '1px 1px 0 0', sitting on an 18px-tall container with a 1px solid rgba(0,0,0,.25) baseline under the bars; the sum sits at margin-left:7px. The fixture reproduces the same scores (cost:1, compliance:1, client:2, operational:3, sum 7/12) so the artboard's own numbers are the comparison.",
         "Row variant, unscored: the #sys example's second row uses a 30px-wide dashed baseline (border-bottom:1px dashed rgba(0,0,0,.3)) at height 18px, plus a plain em-dash — not the Absence small-caps convention. README §0.4 and operator ruling 2.1 both require the Absence convention instead ('the small-caps absence reason from the fixed vocabulary'), which is what the built component renders; the artboard predates that ruling. The width/height/border values below are still the artboard's stated geometry for the dashed line itself.",
         "Full variant track: #sys 'Impact meter — full' block states height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px. The fixture's four scores (cost:1, compliance:3, client:1, operational:2) reproduce the artboard's own four example rows exactly (1/3 Low, 3/3 High, 1/3 Low, 2/3 Med).",
-        "Full variant, unscored: the artboard does not show a full-variant unscored state; the built component's em-dash fallback is checked only for basic geometry (dashed baseline width 96px per the component's own row-vs-full branch), not against an artboard value — logged as a gap, not asserted as a mismatch."
+        "Full variant, unscored: the artboard does not show a full-variant unscored state; the built component's em-dash fallback is checked only for basic geometry (dashed baseline width 96px per the component's own row-vs-full branch), not against an artboard value — logged as a gap, not asserted as a mismatch.",
+        "Row variant, PARTIALLY scored (lane METERFIX, 2026-09-08): the artboard contains NO partially scored meter. All 34 meter clusters in dc.html (sections p1, p2, p4, p6, p8, p11) draw four bars at 6/12/18px and the lowest sum drawn anywhere is 4/12 (four dimensions at 1), so there is no zero bar to compare against. The `row-partial` rows below are therefore the DERIVED treatment for the operator's ruling ('if only some dimensions are scored the unscored ones render as 0-height on the baseline; the sum shows ... never one lonely bar'), justified against the artboard's own geometry rather than copied from it: 2px is one third of the 6px score unit the artboard uses, so it cannot be read as a score of 1, and rgba(0,0,0,.25) is the baseline stroke's own ink, the only non-ramp colour the artboard's meter contains. Recorded as derived, not as an artboard value."
       ],
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
       "expect": {
@@ -5442,6 +5455,59 @@
           }
         },
         {
+          "name": "row partial [0,0,0,2], zero dimension, bar 1 (DERIVED, no artboard value)",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1)",
+          "note": "METERFIX: a dimension scored 0 keeps its 9px slot and draws a 2px stub in the baseline ink. Before this lane it was height 0px, invisible, which is the 'one lonely bar' defect.",
+          "expect": {
+            "width": "9px",
+            "height": "2px",
+            "background-color": "rgba(0, 0, 0, 0.25)"
+          }
+        },
+        {
+          "name": "row partial [0,0,0,2], zero dimension, bar 3 (DERIVED)",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(3)",
+          "note": "METERFIX: the third of the three zero dimensions, asserted separately so a fix that reaches only the first slot fails here.",
+          "expect": {
+            "width": "9px",
+            "height": "2px",
+            "background-color": "rgba(0, 0, 0, 0.25)"
+          }
+        },
+        {
+          "name": "row partial [0,0,0,2], the one scored dimension keeps the artboard height",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(4)",
+          "note": "dc.html #sys: score 2 is 12px, colour #F97316. METERFIX changes nothing for a scored dimension; this row is the control.",
+          "expect": {
+            "width": "9px",
+            "height": "12px",
+            "background-color": "#F97316"
+          }
+        },
+        {
+          "name": "row partial [0,0,0,2], the sum still shows",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+          "note": "Operator ruling: '... the sum shows'. Tabular numerals at margin-left 7px, same as the fully scored row.",
+          "expect": {
+            "font-size": "11px",
+            "margin-left": "7px",
+            "text": "2/12"
+          }
+        },
+        {
+          "name": "row partial [0,0,0,2], the baseline still spans all four slots",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+          "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail.",
+          "expect": {
+            "width": "42px",
+            "height": "18px",
+            "gap": "2px",
+            "border-bottom-width": "1px",
+            "border-bottom-style": "solid",
+            "border-bottom-color": "rgba(0,0,0,.25)"
+          }
+        },
+        {
           "name": "full scored — track height/radius/gradient",
           "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
           "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact.",
@@ -5472,6 +5538,11 @@
           "name": "the meter never renders an absence token of its own accord",
           "selector": "[data-audit=\"row-unscored\"] .cl-absence",
           "reason": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
+        },
+        {
+          "name": "a partially scored meter never paints an invisible dimension",
+          "selector": "[data-audit=\"row-partial\"] .cl-impact-bar[data-score=\"0\"][style*=\"height: 0px\"]",
+          "reason": "Operator ruling 2026-09-08: 'never one lonely bar'. The 0px inline height is the exact shape of the defect this lane removed; if it comes back, this selector matches and the row is recorded NOT IN SPEC."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/impactmeter.json",
@@ -9457,41 +9528,408 @@
       "__id": "onboarding-stepper"
     },
     {
-      "part": "Operations region x dimension matrix (D1-D6)",
-      "mount": "ops-matrix",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "mount": "ops-matrix-selected",
       "viewport": 1440,
       "artboards": [
-        "08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
       ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
       "notes": [
-        "FIXED, fix lane fix58-detail (2026-09-07): OperationsLedger.tsx's `MATRIX_DIMENSIONS` (feeding RegionDimensionMatrix's `dimensions` prop, ~line 356) was `= DIMENSIONS` already at the time this lane read the file — the retired `SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` derivation this note used to describe is gone from the product; the file's own DEFECT-FIX comment above `MATRIX_DIMENSIONS` (2026-09-07) records the same change. The MISMATCH this spec measured was the audit mount (`mounts.mjs`'s `ops-matrix` entry) still hardcoding the retired 5-item `SOURCED_DIMENSIONS` shape — a stale harness fixture, not a live product defect. The mount now reproduces the real `MATRIX_DIMENSIONS = DIMENSIONS` (all 6, unfiltered).",
-        "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) shows only 5 rows in its example markup, no Regulatory feasibility row — a self-contradiction against its own 'six dimensions' dek text. Operator ruling 3.3 is the binding, later statement over the artboard's own example: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — built against, per this dispatch's framing of the closed rulings.",
-        "`buildRegionGrid` (region-grid.mjs) computes `state: 'absent'` for every regulatory_feasibility cell (0 rows in regional_data_facts, always) and RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any `state === 'absent'` cell — the D1 row therefore renders with the Absence convention in every cell, never a fabricated count, never blank."
+        "WHY THIS SPEC EXISTS AS A SECOND FILE. The design states values that only exist once a cell is selected: the selection tint, the inset, the panel and everything in it. Until 2026-09-08 those were measured on the component's own DEFAULT SELECTION, because the audit runner reads one rendered state and cannot click. The operator then ruled that a page may not open anything before the reader acts (\"no items expanded when first navigtaing to a page\"), so there is no default selection left to measure them on. Rather than delete assertions the design still states, the MOUNT performs the click: `ops-matrix-selected` (mounts.mjs) renders the same component with the same fixture and then clicks the ASIA x D3 cell by its accessible name, two animation frames after mount. Every row below is therefore measured on a cell selected through the real click handler.",
+        "THIS IS STRICTLY STRONGER THAN WHAT IT REPLACES. The rows are verbatim the ones that stood in `operations-matrix.json`. What changed is the state they are measured in: a default selection is produced by the component regardless of whether its click path works, so these values passed even if clicking a cell did nothing. Here they pass only if a click selects, tints and opens the panel. The at-rest half of the contract, and the regression guard against the default selection returning, is in `operations-matrix.json`.",
+        "THE CELL IS ASIA x D3 Labor markets, chosen because the fixture gives it FOUR facts, which is what exercises the panel's \"max 3, then N more facts on the profile\" cap in a single render, and because ASIA is the only fixture region carrying a profile href, which is what makes the 'Open profile' link real rather than a dead one.",
+        "ALL THREE OF THE OPERATOR'S HEX VALUES ARE ALREADY CANONICAL TOKENS in src/app/theme.css, so the component names tokens and this spec measures the resolved colours: #DCE7FB is `--selection` (interaction states), #2563EB is `--monitor` (the band scale), #FAFAF8 is `--page`. No new token was introduced and no raw hex was written into the component.",
+        "THE FIXTURE IS AN ATTACK, not a sample (mounts.mjs `OPSMATRIX_ENTRY`). D1 and D2 hold no facts on any region and EU and US hold no facts on any dimension: the shape of the live corpus, where regulatory_feasibility is structurally empty and 75 of 75 rows are ASIA/UK/UAE. The default selection must therefore skip two empty rows AND two empty columns to land on ASIA x D3, which is what the panel-heading row below asserts by naming the exact string that cell produces. A default of row 0 / column 0, or of row 0's first sourced cell, or of a column-first scan, fails that row. ASIA x D3 carries FOUR facts, so the same at-rest render also proves the three-card cap and the 'N more facts on the profile' remainder line, with no interaction to script.",
+        "WHAT THIS SPEC CANNOT MEASURE, stated rather than faked: the audit runner reads computed style and textContent of a single rendered state and cannot click or send keys, so the SELECTION MOVING (arrow keys, click-to-select, compare mode on a row header) is proven in RegionDimensionMatrix.npmtest.mjs against the component's own source, and the selected-state STYLING is measured here on the default selection, which is a real selected cell rendered by the real code path. An `expect` key naming an HTML attribute measures as null and reports a false MATCH, so no row below reads one: `aria-selected` and `tabindex` appear only inside SELECTORS, where they are real CSS attribute matches."
       ],
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
       "expect": {
+        "background-color": "#FAFAF8",
+        "border-top-width": "1px",
         "count": "1"
       },
       "children": [
         {
-          "name": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
-          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
-          "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row.",
+          "name": "exactly ONE cell is selected after the click, never two",
+          "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "the click selected the cell it named: ASIA x D3",
+          "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+          "expect": {
+            "text": "4"
+          }
+        },
+        {
+          "name": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
+          "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+          "expect": {
+            "background-color": "#DCE7FB",
+            "count": "1"
+          }
+        },
+        {
+          "name": "2px #2563EB INSET on the selected cell (`--monitor`), as a box-shadow so selecting a cell cannot change the 40px row height",
+          "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+          "matchStyle": {
+            "box-shadow": "contains:rgb(37, 99, 235)"
+          },
+          "expect": {
+            "box-shadow": "contains:inset"
+          }
+        },
+        {
+          "name": "the panel is BELOW the table in DOM order, never inside it (nothing expands in the table)",
+          "selector": ".cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
+          "selector": "[data-audit=\"ops-panel-heading\"]",
+          "expect": {
+            "text": "Asia · SG + HK · D3 Labor markets · 4 sourced facts"
+          }
+        },
+        {
+          "name": "PANEL LINK 'Compare across regions' (operator spec)",
+          "selector": "[data-audit=\"ops-matrix-panel\"] button",
+          "textMatch": "Compare across regions",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "PANEL LINK 'Open profile' (operator spec), drawn only for a region that has a profile row",
+          "selector": "[data-audit=\"ops-matrix-panel\"] a",
+          "textMatch": "Open profile",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
+          "selector": "[data-audit=\"ops-fact-card\"]",
+          "expect": {
+            "count": "3"
+          }
+        },
+        {
+          "name": "'N more facts on the profile' closes the capped list (operator spec): one fact remains of the four",
+          "selector": "[data-audit=\"ops-matrix-panel\"] a",
+          "textMatch": "more fact",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
+          "selector": "[data-audit=\"ops-fact-figure\"]",
+          "expect": {
+            "font-size": "18px",
+            "font-family": "contains:Anton"
+          }
+        },
+        {
+          "name": "the headline figure sits INLINE with its 12.5px quote (operator spec): one baseline row, not a figure stacked over prose",
+          "selector": "[data-audit=\"ops-fact-quote\"]",
+          "expect": {
+            "font-size": "12.5px"
+          }
+        },
+        {
+          "name": "FACT CARD SOURCE LINE is 10.5px (operator spec)",
+          "selector": "[data-audit=\"ops-fact-source\"]",
+          "expect": {
+            "font-size": "10.5px"
+          }
+        },
+        {
+          "name": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
+          "selector": "[data-audit=\"ops-fact-source\"] a",
+          "expect": {
+            "text-decoration-line": "underline",
+            "count": "3"
+          }
+        },
+        {
+          "name": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+          "selector": "[data-audit=\"ops-fact-card\"]",
+          "expect": {
+            "border-left-width": "2px",
+            "border-top-width": "1px",
+            "border-radius": "0px 8px 8px 0px",
+            "background-color": "#FFFFFF"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+          "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+          "reason": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+        },
+        {
+          "name": "no fact card is rendered inside the table",
+          "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+          "reason": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+        },
+        {
+          "name": "no disclosure glyph on a dimension row",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+          "textMatch": "▸",
+          "reason": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+        },
+        {
+          "name": "no freshness state word beside a cell score",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+          "textMatch": "CURRENT",
+          "reason": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+        },
+        {
+          "name": "no 'Compare against:' base-region control",
+          "selector": "[data-audit=\"ops-matrix-card\"]",
+          "textMatch": "Compare against",
+          "reason": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+        },
+        {
+          "name": "the literal word UNSCORED as component text",
+          "selector": "[data-audit=\"ops-matrix\"]",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/operations-matrix-selected.json",
+      "__id": "operations-matrix-selected"
+    },
+    {
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "mount": "ops-matrix",
+      "viewport": 1440,
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "notes": [
+        "SPEC UPDATED 2026-09-08 (lane noexpand), superseding the 2026-09-08 (lane opsmatrix3) revision that stood here. REASON, and it is a product ruling, not a spec weakening: the operator navigated to /operations and the page had already opened a dimension, Infrastructure capacity, without him clicking anything. Verbatim: \"the ops page opend to a sub category not just the main page, infastructure capacity and other items should be closed, no items expanded when first navigtaing to a page\". The DEFAULT SELECTION this spec used to measure (\"first sourced cell in the first sourced row\", which painted a tinted cell and an open fact panel on mount) is the defect he found, and it is deleted from the product.",
+        "WHAT MOVED, AND WHY EVERY MOVED ASSERTION IS AT LEAST AS STRONG WHERE IT LANDED. Fourteen rows measured the SELECTED state and the PANEL: the #DCE7FB tint, the 2px #2563EB inset, the panel's background and top rule, its DOM position below the table, its heading string, its two links, the three-card cap, the remainder line, and the five fact-card values. None is deleted and none is weakened. All fourteen moved verbatim to `operations-matrix-selected.json`, whose mount is the SAME component and the SAME fixture with ONE CLICK on the ASIA x D3 cell performed by the mount itself. They are measured on a cell selected through the real click handler, which is a stricter proof than the one they replace: before, they were measured on a state the component produced for itself, so a broken click path could not have failed them. Now it does.",
+        "ONE ROW WAS REPHRASED RATHER THAN MOVED. 'the selected cell is the grid's single TAB STOP' asserted `[tabindex=\"0\"]` count 1. That count still holds and is still asserted here, at rest, where there is no selection at all: it is now the proof of ruling R5 (\"the first cell is FOCUSABLE without being SELECTED\"), and a second row pins the tab stop to the first row's header. Same count, harder state.",
+        "THREE FORBIDS AND THREE TARGETS ARE NEW, and they are the regression guard for the defect itself: no `aria-selected` cell, no panel, no fact card, no cell painted with the selection tint, exactly one tab stop, the tab stop is the first cell, and the foot legend survives with no panel to sit in. A default selection reintroduced in any of those forms fails this spec. Proven by attack on 2026-09-08: the default-selection block was pasted back into RegionDimensionMatrix.tsx and the rendering guard's `no-default-open` leg went red on six assertions; restoring the file returned it to green.",
+        "THE FOOT STRIP MOVED IN THE PRODUCT, and this spec follows it. It used to render INSIDE the panel, which was safe only while a default selection guaranteed a panel existed. With no default selection the panel is absent on arrival, so the strip that carries the absence legend, the click affordance and the column-scoping count now sits on the CARD, below the panel slot. Its three assertions are unchanged except for the arrow-key clause, which is `arrow keys move between cells` because that is what arrows now do: they move focus and select nothing (R5). The old wording, `arrow keys move the selection`, described behaviour this lane removed, so keeping it would have been the audit staying green against markup the product deleted.",
+        "THE OPERATOR'S SPEC, verbatim, which every row below traces to: 'Matrix rows 40px. Cell = Anton 16 score or em dash. Nothing expands in the table. / Click a cell, it gets selection tint #DCE7FB + 2px #2563EB inset; a panel opens under the table (bg #FAFAF8, 1px top rule): header \"Region · Dn Dimension · N sourced facts\", links \"Compare across regions\" and \"Open profile\", facts as fact cards (headline figure Anton 18 inline with 12.5px quote, source line 10.5px), max 3, then \"N more facts on the profile\". / Click a row header, same panel in compare mode: one headline card per region, stacked, region label on each. / Arrow keys move the selection; panel follows. Default selection: first sourced cell in the first sourced row. / First column sticky; regions beyond five scroll horizontally inside the card; header hint \"18 regions · scroll\". Footer legend: \"not in primary source\". / Rail filters scope columns.'",
+        "ALL THREE OF THE OPERATOR'S HEX VALUES ARE ALREADY CANONICAL TOKENS in src/app/theme.css, so the component names tokens and this spec measures the resolved colours: #DCE7FB is `--selection` (interaction states), #2563EB is `--monitor` (the band scale), #FAFAF8 is `--page`. No new token was introduced and no raw hex was written into the component.",
+        "THE FIXTURE IS AN ATTACK, not a sample (mounts.mjs `OPSMATRIX_ENTRY`). D1 and D2 hold no facts on any region and EU and US hold no facts on any dimension: the shape of the live corpus, where regulatory_feasibility is structurally empty and 75 of 75 rows are ASIA/UK/UAE. The default selection must therefore skip two empty rows AND two empty columns to land on ASIA x D3, which is what the panel-heading row below asserts by naming the exact string that cell produces. A default of row 0 / column 0, or of row 0's first sourced cell, or of a column-first scan, fails that row. ASIA x D3 carries FOUR facts, so the same at-rest render also proves the three-card cap and the 'N more facts on the profile' remainder line, with no interaction to script.",
+        "WHAT THIS SPEC CANNOT MEASURE, stated rather than faked: the audit runner reads computed style and textContent of a single rendered state and cannot click or send keys, so the SELECTION MOVING (arrow keys, click-to-select, compare mode on a row header) is proven in RegionDimensionMatrix.npmtest.mjs against the component's own source, and the selected-state STYLING is measured here on the default selection, which is a real selected cell rendered by the real code path. An `expect` key naming an HTML attribute measures as null and reports a false MATCH, so no row below reads one: `aria-selected` and `tabindex` appear only inside SELECTORS, where they are real CSS attribute matches."
+      ],
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "expect": {
+        "border-radius": "10px",
+        "overflow-x": "hidden"
+      },
+      "children": [
+        {
+          "name": "six dimension rows, D1-D6 (operator ruling 3.3, carried forward from the spec this replaces: nothing expands, so a tbody row IS a dimension row and the old 'do not conflate with the Facts tr' caveat is gone)",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
           "expect": {
             "count": "6"
           }
         },
         {
-          "name": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
-          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
-          "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered.",
+          "name": "row 1 is D1 Regulatory feasibility (order check, ruling 3.3: same order everywhere)",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child th [data-guard-title]",
           "expect": {
             "text": "Regulatory feasibility"
           }
+        },
+        {
+          "name": "every dimension row carries its D-number prefix: the redesigned artboard draws 'D1 Regulatory feasibility' through 'D6 Operational cost' in the table, not just in the rail",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+          "textMatch": "D6",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "MATRIX ROWS 40px (operator spec, first clause)",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+          "expect": {
+            "height": "40px"
+          }
+        },
+        {
+          "name": "CELL = ANTON 16 SCORE (operator spec): the display face at 16px, line-height 1",
+          "selector": "[data-audit=\"ops-cell-score\"]",
+          "expect": {
+            "font-size": "16px",
+            "font-family": "contains:Anton",
+            "line-height": "16px"
+          }
+        },
+        {
+          "name": "CELL = ... OR EM DASH: an unsourced cell renders the narrow Absence, which IS the artboard's bare dash carrying its closed-vocabulary reason (22 of this fixture's 30 cells)",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence",
+          "expect": {
+            "count": "22"
+          }
+        },
+        {
+          "name": "the selected cell is the grid's single TAB STOP (roving tabindex): every other cell is reachable from it by arrow, which is what makes the reachability rule hold without a mouse",
+          "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "AT REST, THE GRID IS ONE TAB STOP AND IT IS THE FIRST CELL (ruling R5: reachable without being chosen). This REPLACES the row that read 'the selected cell is the grid's single TAB STOP': the count assertion is identical, and it is now measured with NOTHING selected, which is strictly the harder state to satisfy.",
+          "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "AT REST, that tab stop is the FIRST dimension row's header cell, so Tab lands at the top-left of the grid rather than wherever a previous reader left it",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child > th[tabindex=\"0\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "AT REST, the card still carries its foot legend: with no panel to hold it, the strip that explains the dashes and says how to open a cell moved onto the CARD, which is where a reader who has just arrived needs it",
+          "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "FIRST COLUMN STICKY with a 1px right divider (operator spec)",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+          "expect": {
+            "position": "sticky",
+            "left": "0px",
+            "border-right-width": "1px"
+          }
+        },
+        {
+          "name": "the header's Dimension cell is sticky too, so the pinned column has a pinned head",
+          "selector": "[data-audit=\"ops-matrix\"] table > thead th:first-child",
+          "expect": {
+            "position": "sticky",
+            "left": "0px"
+          }
+        },
+        {
+          "name": "the table scrolls horizontally INSIDE the card (the card clips; the scroller is the inner box), and the box is declared to the guard's overflow detector",
+          "selector": "[data-audit=\"ops-matrix\"] .cl-ops-matrix-table[data-guard-strip]",
+          "expect": {
+            "overflow-x": "auto"
+          }
+        },
+        {
+          "name": "HEADER HINT states the cells sourced and the percentage [system sheet: 10.5px uppercase muted, the meta treatment every card head aside in the app uses]",
+          "selector": "[data-audit=\"ops-matrix-hint\"]",
+          "textMatch": "cells sourced",
+          "expect": {
+            "text-transform": "uppercase",
+            "font-size": "10.5px"
+          }
+        },
+        {
+          "name": "region column sub-line is the artboard's one-line 'N/6 sourced' form, one per region column [system sheet: 10px, the smallest step on the type scale]",
+          "selector": "[data-audit=\"ops-matrix\"] table > thead th",
+          "textMatch": "sourced",
+          "expect": {
+            "count": "5"
+          }
+        },
+        {
+          "name": "FOOTER LEGEND carries the dash convention, the click affordance and the arrow-key affordance, all three (redesigned artboard, panel foot, left half)",
+          "selector": "[data-audit=\"ops-matrix-foot\"]",
+          "textMatch": "arrow keys move between cells",
+          "expect": {
+            "display": "flex",
+            "count": "1"
+          }
+        },
+        {
+          "name": "the legend states its reason in the closed absence vocabulary, not as loose prose",
+          "selector": "[data-audit=\"ops-matrix-foot\"] .cl-absence",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "the panel foot's right half names the column scoping (redesigned artboard: 'N of M regions · filters scope columns')",
+          "selector": "[data-audit=\"ops-matrix-foot\"]",
+          "textMatch": "filters scope columns",
+          "expect": {
+            "count": "1"
+          }
         }
       ],
-      "forbid": [],
+      "forbid": [
+        {
+          "name": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+          "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+          "reason": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+        },
+        {
+          "name": "no fact card is rendered inside the table",
+          "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+          "reason": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+        },
+        {
+          "name": "no disclosure glyph on a dimension row",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+          "textMatch": "▸",
+          "reason": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+        },
+        {
+          "name": "no freshness state word beside a cell score",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+          "textMatch": "CURRENT",
+          "reason": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+        },
+        {
+          "name": "no 'Compare against:' base-region control",
+          "selector": "[data-audit=\"ops-matrix-card\"]",
+          "textMatch": "Compare against",
+          "reason": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+        },
+        {
+          "name": "the literal word UNSCORED as component text",
+          "selector": "[data-audit=\"ops-matrix\"]",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+        },
+        {
+          "name": "NOTHING IS SELECTED ON FIRST RENDER (operator ruling 2026-09-08; coordinator reading R2)",
+          "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+          "reason": "The operator navigated to /operations and found a dimension already open: \"no items expanded when first navigtaing to a page\". The component used to compute a default selection on mount and tint that cell. A tinted cell here means the default selection came back."
+        },
+        {
+          "name": "NO PANEL ON FIRST RENDER",
+          "selector": "[data-audit=\"ops-matrix-panel\"]",
+          "reason": "R2 covers 'any default selection whose visible effect is an opened panel'. The panel is the visible effect. On arrival the card is the table plus its foot legend, nothing else."
+        },
+        {
+          "name": "NO FACT CARD ANYWHERE ON FIRST RENDER",
+          "selector": "[data-audit=\"ops-fact-card\"]",
+          "reason": "The second-order tell: even if the panel wrapper were renamed or restyled, a fact card on screen before the reader clicked means the page opened itself. Measured on the whole mount, not just inside the table."
+        },
+        {
+          "name": "no cell carries the selection tint at rest",
+          "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+          "matchStyle": {
+            "background-color": "rgb(220, 231, 251)"
+          },
+          "reason": "The tint (#DCE7FB, `--selection`) by its computed value rather than by the aria attribute, so a build that paints a preselected cell without setting aria-selected is caught too."
+        }
+      ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/operations-matrix.json",
       "__id": "operations-matrix"
     },
@@ -18413,8 +18851,8 @@
       ],
       "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
       "viewport": 1440,
-      "target": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
-      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "target": "UPDATED 2026-09-08 (lane noexpand), from 'the matrix foot strip sits INSIDE that panel': the strip now sits on the CARD, because with no default selection there is no panel on arrival to hold it. Same element, same three clauses, same `display: flex`; only its parent and the arrow-key wording changed, and the wording changed because arrows now move focus rather than the selection (ruling R5).",
+      "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
       "property": "display",
       "expected": "flex",
       "actual": "flex",
@@ -18429,11 +18867,27 @@
       ],
       "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
       "viewport": 1440,
-      "target": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
-      "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
+      "target": "UPDATED 2026-09-08 (lane noexpand), from 'the matrix foot strip sits INSIDE that panel': the strip now sits on the CARD, because with no default selection there is no panel on arrival to hold it. Same element, same three clauses, same `display: flex`; only its parent and the arrow-key wording changed, and the wording changed because arrows now move focus rather than the selection (ruling R5).",
+      "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "UPDATED 2026-09-08 (lane noexpand), replacing 'the panel opens under the table' as an AT-REST assertion: on the composed /operations page the grid is still ONE tab stop, so the scoreboard is keyboard reachable with nothing selected (ruling R5).",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"], [data-audit=\"ops-matrix-card\"] table [tabindex=\"0\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
       "status": "MATCH",
       "note": null
     },
@@ -18877,13 +19331,13 @@
       ],
       "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
       "viewport": 1440,
-      "target": "no 'Facts' label in the expanded dimension row's leading cell",
-      "selector": "[data-audit=\"ops-matrix-card\"] td [text contains \"Facts\"]",
+      "target": "REDESIGN 2026-09-08: nothing expands inside the matrix table — no cell spans it",
+      "selector": "[data-audit=\"ops-matrix-card\"] td[colspan], [data-audit=\"ops-matrix-card\"] th[colspan]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+      "note": "REPLACES the 'no Facts label in the expanded dimension row's leading cell' forbid, which measured the expand-a-dimension design the operator retired on 2026-09-08 ('the expand-a-dimension matrix does not survive real data'). There is no expanded row to label any more: the facts open in a panel BELOW the table, and a colspan cell reappearing inside the card is the old design coming back. Full per-value coverage of the redesign is in operations-matrix.json; this row is the page-level guard that the retired shape stays retired."
     },
     {
       "spec": "compose-08-operations-list",
@@ -18996,6 +19450,38 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "THE COMPOSED /operations PAGE OPENS NOTHING: no selection panel before the reader clicks",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "This is the exact screen the operator was looking at on 2026-09-08 when he wrote \"the ops page opend to a sub category not just the main page, infastructure capacity and other items should be closed, no items expanded when first navigtaing to a page\". Three rows in this spec used to REQUIRE the panel here, because the component computed a default selection on mount; they asserted the defect. The panel's own values, its placement below the table, and its contents are all still measured, on `operations-matrix-selected.json`, where the mount clicks a cell first."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "and no cell is tinted as selected on the composed page",
+      "selector": "[data-audit=\"ops-matrix-card\"] table [aria-selected=\"true\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The same defect in its other visible form. Ruling R2: a default selection whose visible effect is an opened panel is covered by \"no items expanded\"."
     },
     {
       "spec": "compose-09-operations-profile",
@@ -28010,6 +28496,330 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
       "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 1 (DERIVED, no artboard value)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": "METERFIX: a dimension scored 0 keeps its 9px slot and draws a 2px stub in the baseline ink. Before this lane it was height 0px, invisible, which is the 'one lonely bar' defect."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 1 (DERIVED, no artboard value)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "height",
+      "expected": "2px",
+      "actual": "2px",
+      "status": "MATCH",
+      "note": "METERFIX: a dimension scored 0 keeps its 9px slot and draws a 2px stub in the baseline ink. Before this lane it was height 0px, invisible, which is the 'one lonely bar' defect."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 1 (DERIVED, no artboard value)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "background-color",
+      "expected": "rgba(0, 0, 0, 0.25)",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
+      "note": "METERFIX: a dimension scored 0 keeps its 9px slot and draws a 2px stub in the baseline ink. Before this lane it was height 0px, invisible, which is the 'one lonely bar' defect."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 3 (DERIVED)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": "METERFIX: the third of the three zero dimensions, asserted separately so a fix that reaches only the first slot fails here."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 3 (DERIVED)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "height",
+      "expected": "2px",
+      "actual": "2px",
+      "status": "MATCH",
+      "note": "METERFIX: the third of the three zero dimensions, asserted separately so a fix that reaches only the first slot fails here."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], zero dimension, bar 3 (DERIVED)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "background-color",
+      "expected": "rgba(0, 0, 0, 0.25)",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
+      "note": "METERFIX: the third of the three zero dimensions, asserted separately so a fix that reaches only the first slot fails here."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the one scored dimension keeps the artboard height",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": "dc.html #sys: score 2 is 12px, colour #F97316. METERFIX changes nothing for a scored dimension; this row is the control."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the one scored dimension keeps the artboard height",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "height",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "dc.html #sys: score 2 is 12px, colour #F97316. METERFIX changes nothing for a scored dimension; this row is the control."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the one scored dimension keeps the artboard height",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "background-color",
+      "expected": "#F97316",
+      "actual": "rgb(249, 115, 22)",
+      "status": "MATCH",
+      "note": "dc.html #sys: score 2 is 12px, colour #F97316. METERFIX changes nothing for a scored dimension; this row is the control."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the sum still shows",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Operator ruling: '... the sum shows'. Tabular numerals at margin-left 7px, same as the fully scored row."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the sum still shows",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+      "property": "margin-left",
+      "expected": "7px",
+      "actual": "7px",
+      "status": "MATCH",
+      "note": "Operator ruling: '... the sum shows'. Tabular numerals at margin-left 7px, same as the fully scored row."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the sum still shows",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+      "property": "text",
+      "expected": "2/12",
+      "actual": "2/12",
+      "status": "MATCH",
+      "note": "Operator ruling: '... the sum shows'. Tabular numerals at margin-left 7px, same as the fully scored row."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "width",
+      "expected": "42px",
+      "actual": "42px",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "height",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "gap",
+      "expected": "2px",
+      "actual": "2px",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "border-bottom-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
       "target": "full scored — track height/radius/gradient",
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
       "property": "height",
@@ -28125,6 +28935,24 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "a partially scored meter never paints an invisible dimension",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar[data-score=\"0\"][style*=\"height: 0px\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling 2026-09-08: 'never one lonely bar'. The 0px inline height is the exact shape of the defect this lane removed; if it comes back, this selector matches and the row is recorded NOT IN SPEC."
     },
     {
       "spec": "inthisliststat",
@@ -46739,15 +47567,559 @@
       "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
     },
     {
-      "spec": "operations-matrix",
-      "part": "Operations region x dimension matrix (D1-D6)",
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
       "artboards": [
-        "08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
       ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
       "viewport": 1440,
-      "target": "Operations region x dimension matrix (D1-D6)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+      "target": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "property": "background-color",
+      "expected": "#FAFAF8",
+      "actual": "rgb(250, 250, 248)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "exactly ONE cell is selected after the click, never two",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the click selected the cell it named: ASIA x D3",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "text",
+      "expected": "4",
+      "actual": "4",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "background-color",
+      "expected": "#DCE7FB",
+      "actual": "rgb(220, 231, 251)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "2px #2563EB INSET on the selected cell (`--monitor`), as a box-shadow so selecting a cell cannot change the 40px row height",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "box-shadow",
+      "expected": "contains:inset",
+      "actual": "rgb(37, 99, 235) 0px 0px 0px 2px inset",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the panel is BELOW the table in DOM order, never inside it (nothing expands in the table)",
+      "selector": ".cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
+      "selector": "[data-audit=\"ops-panel-heading\"]",
+      "property": "text",
+      "expected": "Asia · SG + HK · D3 Labor markets · 4 sourced facts",
+      "actual": "Asia · SG + HK · D3 Labor markets · 4 sourced facts",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "PANEL LINK 'Compare across regions' (operator spec)",
+      "selector": "[data-audit=\"ops-matrix-panel\"] button",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "PANEL LINK 'Open profile' (operator spec), drawn only for a region that has a profile row",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "count",
+      "expected": "3",
+      "actual": "3",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "'N more facts on the profile' closes the capped list (operator spec): one fact remains of the four",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
+      "selector": "[data-audit=\"ops-fact-figure\"]",
+      "property": "font-size",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
+      "selector": "[data-audit=\"ops-fact-figure\"]",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the headline figure sits INLINE with its 12.5px quote (operator spec): one baseline row, not a figure stacked over prose",
+      "selector": "[data-audit=\"ops-fact-quote\"]",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FACT CARD SOURCE LINE is 10.5px (operator spec)",
+      "selector": "[data-audit=\"ops-fact-source\"]",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
+      "selector": "[data-audit=\"ops-fact-source\"] a",
+      "property": "text-decoration-line",
+      "expected": "underline",
+      "actual": "underline",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
+      "selector": "[data-audit=\"ops-fact-source\"] a",
+      "property": "count",
+      "expected": "3",
+      "actual": "3",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "border-left-width",
+      "expected": "2px",
+      "actual": "2px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "border-radius",
+      "expected": "0px 8px 8px 0px",
+      "actual": "0px 8px 8px 0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+      "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no fact card is rendered inside the table",
+      "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no disclosure glyph on a dimension row",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th [text contains \"▸\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no freshness state word beside a cell score",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td [text contains \"CURRENT\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no 'Compare against:' base-region control",
+      "selector": "[data-audit=\"ops-matrix-card\"] [text contains \"Compare against\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+    },
+    {
+      "spec": "operations-matrix-selected",
+      "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED as component text",
+      "selector": "[data-audit=\"ops-matrix\"] [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "property": "border-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "property": "overflow-x",
+      "expected": "hidden",
+      "actual": "hidden",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "six dimension rows, D1-D6 (operator ruling 3.3, carried forward from the spec this replaces: nothing expands, so a tbody row IS a dimension row and the old 'do not conflate with the Facts tr' caveat is gone)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
+      "property": "count",
+      "expected": "6",
+      "actual": "6",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "row 1 is D1 Regulatory feasibility (order check, ruling 3.3: same order everywhere)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child th [data-guard-title]",
+      "property": "text",
+      "expected": "Regulatory feasibility",
+      "actual": "Regulatory feasibility",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "every dimension row carries its D-number prefix: the redesigned artboard draws 'D1 Regulatory feasibility' through 'D6 Operational cost' in the table, not just in the rail",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
       "property": "count",
       "expected": "1",
       "actual": "1",
@@ -46756,35 +48128,515 @@
     },
     {
       "spec": "operations-matrix",
-      "part": "Operations region x dimension matrix (D1-D6)",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
       "artboards": [
-        "08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
       ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
       "viewport": 1440,
-      "target": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
-      "property": "count",
-      "expected": "6",
-      "actual": "6",
+      "target": "MATRIX ROWS 40px (operator spec, first clause)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "property": "height",
+      "expected": "40px",
+      "actual": "40px",
       "status": "MATCH",
-      "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row."
+      "note": null
     },
     {
       "spec": "operations-matrix",
-      "part": "Operations region x dimension matrix (D1-D6)",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
       "artboards": [
-        "08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
       ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
       "viewport": 1440,
-      "target": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
-      "property": "text",
-      "expected": "Regulatory feasibility",
-      "actual": "Regulatory feasibility",
+      "target": "CELL = ANTON 16 SCORE (operator spec): the display face at 16px, line-height 1",
+      "selector": "[data-audit=\"ops-cell-score\"]",
+      "property": "font-size",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered."
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "CELL = ANTON 16 SCORE (operator spec): the display face at 16px, line-height 1",
+      "selector": "[data-audit=\"ops-cell-score\"]",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "CELL = ANTON 16 SCORE (operator spec): the display face at 16px, line-height 1",
+      "selector": "[data-audit=\"ops-cell-score\"]",
+      "property": "line-height",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "CELL = ... OR EM DASH: an unsourced cell renders the narrow Absence, which IS the artboard's bare dash carrying its closed-vocabulary reason (22 of this fixture's 30 cells)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence",
+      "property": "count",
+      "expected": "22",
+      "actual": "22",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the selected cell is the grid's single TAB STOP (roving tabindex): every other cell is reachable from it by arrow, which is what makes the reachability rule hold without a mouse",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "AT REST, THE GRID IS ONE TAB STOP AND IT IS THE FIRST CELL (ruling R5: reachable without being chosen). This REPLACES the row that read 'the selected cell is the grid's single TAB STOP': the count assertion is identical, and it is now measured with NOTHING selected, which is strictly the harder state to satisfy.",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "AT REST, that tab stop is the FIRST dimension row's header cell, so Tab lands at the top-left of the grid rather than wherever a previous reader left it",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child > th[tabindex=\"0\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "AT REST, the card still carries its foot legend: with no panel to hold it, the strip that explains the dashes and says how to open a cell moved onto the CARD, which is where a reader who has just arrived needs it",
+      "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FIRST COLUMN STICKY with a 1px right divider (operator spec)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "property": "position",
+      "expected": "sticky",
+      "actual": "sticky",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FIRST COLUMN STICKY with a 1px right divider (operator spec)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "property": "left",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FIRST COLUMN STICKY with a 1px right divider (operator spec)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "property": "border-right-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the header's Dimension cell is sticky too, so the pinned column has a pinned head",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th:first-child",
+      "property": "position",
+      "expected": "sticky",
+      "actual": "sticky",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the header's Dimension cell is sticky too, so the pinned column has a pinned head",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th:first-child",
+      "property": "left",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the table scrolls horizontally INSIDE the card (the card clips; the scroller is the inner box), and the box is declared to the guard's overflow detector",
+      "selector": "[data-audit=\"ops-matrix\"] .cl-ops-matrix-table[data-guard-strip]",
+      "property": "overflow-x",
+      "expected": "auto",
+      "actual": "auto",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "HEADER HINT states the cells sourced and the percentage [system sheet: 10.5px uppercase muted, the meta treatment every card head aside in the app uses]",
+      "selector": "[data-audit=\"ops-matrix-hint\"]",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "HEADER HINT states the cells sourced and the percentage [system sheet: 10.5px uppercase muted, the meta treatment every card head aside in the app uses]",
+      "selector": "[data-audit=\"ops-matrix-hint\"]",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "region column sub-line is the artboard's one-line 'N/6 sourced' form, one per region column [system sheet: 10px, the smallest step on the type scale]",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th",
+      "property": "count",
+      "expected": "5",
+      "actual": "5",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FOOTER LEGEND carries the dash convention, the click affordance and the arrow-key affordance, all three (redesigned artboard, panel foot, left half)",
+      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "FOOTER LEGEND carries the dash convention, the click affordance and the arrow-key affordance, all three (redesigned artboard, panel foot, left half)",
+      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the legend states its reason in the closed absence vocabulary, not as loose prose",
+      "selector": "[data-audit=\"ops-matrix-foot\"] .cl-absence",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the panel foot's right half names the column scoping (redesigned artboard: 'N of M regions · filters scope columns')",
+      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+      "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no fact card is rendered inside the table",
+      "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no disclosure glyph on a dimension row",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th [text contains \"▸\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no freshness state word beside a cell score",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td [text contains \"CURRENT\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no 'Compare against:' base-region control",
+      "selector": "[data-audit=\"ops-matrix-card\"] [text contains \"Compare against\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED as component text",
+      "selector": "[data-audit=\"ops-matrix\"] [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "NOTHING IS SELECTED ON FIRST RENDER (operator ruling 2026-09-08; coordinator reading R2)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The operator navigated to /operations and found a dimension already open: \"no items expanded when first navigtaing to a page\". The component used to compute a default selection on mount and tint that cell. A tinted cell here means the default selection came back."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "NO PANEL ON FIRST RENDER",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "R2 covers 'any default selection whose visible effect is an opened panel'. The panel is the visible effect. On arrival the card is the table plus its foot legend, nothing else."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "NO FACT CARD ANYWHERE ON FIRST RENDER",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The second-order tell: even if the panel wrapper were renamed or restyled, a fact card on screen before the reader clicked means the page opened itself. Measured on the whole mount, not just inside the table."
+    },
+    {
+      "spec": "operations-matrix",
+      "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
+      "artboards": [
+        "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+      "viewport": 1440,
+      "target": "no cell carries the selection tint at rest",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The tint (#DCE7FB, `--selection`) by its computed value rather than by the aria attribute, so a build that paints a preselected cell without setting aria-selected is caught too."
     },
     {
       "spec": "page-frame",

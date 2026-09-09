@@ -6,7 +6,7 @@ GENERATED FILE. Regenerated in full by `node fsi-app/.discipline/rendering/layou
 - Routes: 18 (17 artboards; /login and /signup share artboard 16)
 - Widths: 1440, 1024
 - Measurements taken: 36
-- Findings: 728
+- Findings: 622
 
 `[CONFIRMED]`: every row below is a measurement taken this run in a real chromium against the
 real `src/components/**` modules, not a source read. The rules are the operator's L1-L12
@@ -23,9 +23,9 @@ stated in `rules.mjs` where his text needed one.
 | L4 | new | 1 | /admin@1024 |
 | L5 | new | 0 | - |
 | L6 | new | 34 | /regulations/[slug]@1440, /regulations/[slug]@1024, /market/[slug]@1440, /market/[slug]@1024, /research/[slug]@1440, /research/[slug]@1024, /operations/[slug]@1440, /operations/[slug]@1024, +4 more |
-| L7 | new | 190 | /market@1440, /market@1024, /research@1440, /research@1024, /operations@1440, /operations@1024, /map@1440, /map@1024, +14 more |
+| L7 | new | 124 | /market@1440, /market@1024, /research@1440, /research@1024, /operations@1440, /operations@1024, /map@1440, /map@1024, +14 more |
 | L8 | new (rendered text, not source text) | 0 | - |
-| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 234 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
+| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 194 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
 | L10 | new | 93 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +21 more |
 | L11 | already covered (ux-assert detectClippedText, lane opsclip) - called, not restated | 0 | - |
 | L12 | new | 0 | - |
@@ -48,8 +48,8 @@ stated in `rules.mjs` where his text needed one.
 | `/research` | 1024 | · | · | · | · | · | · | 8 | · | 4 | 4 | · | · | 16 |
 | `/research/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 9 |
 | `/research/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 7 |
-| `/operations` | 1440 | · | · | · | · | · | · | 34 | · | 22 | 3 | · | · | 59 |
-| `/operations` | 1024 | · | · | · | · | · | · | 34 | · | 22 | 3 | · | · | 59 |
+| `/operations` | 1440 | · | · | · | · | · | · | 1 | · | 2 | 3 | · | · | 6 |
+| `/operations` | 1024 | · | · | · | · | · | · | 1 | · | 2 | 3 | · | · | 6 |
 | `/operations/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 14 |
 | `/operations/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 12 |
 | `/map` | 1440 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
@@ -223,7 +223,7 @@ coordinator route it instead of two lanes editing one file.
 | `/community` | 1024 | button[LATAM1Emissionsno discussions ] "LATAM" | 3px top rule (measured none) |
 | `/community` | 1024 | button[MEAF0—no discussions yet] "MEAF" | 3px top rule (measured none) |
 
-### L7 - 190 finding(s)
+### L7 - 124 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -256,40 +256,40 @@ coordinator route it instead of two lanes editing one file.
 | `/research` | 1024 | span[11] | font-family resolves to Anton on "11" |
 | `/research` | 1024 | span[3] | font-family resolves to Anton on "3" |
 | `/operations` | 1440 | h2[Regions side by side] | font-family resolves to Anton on "REGIONS SIDE BY SIDE" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
-| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
-| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
-| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
-| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
-| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
-| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
-| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
-| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
-| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
-| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
-| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
-| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
-| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
-| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[6] | font-family resolves to Anton on "6" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| … | | 130 further findings, in results.json | |
+| `/operations` | 1024 | h2[Regions side by side] | font-family resolves to Anton on "REGIONS SIDE BY SIDE" |
+| `/map` | 1440 | div[2] | font-family resolves to Anton on "2" |
+| `/map` | 1440 | div[2] | font-family resolves to Anton on "2" |
+| `/map` | 1440 | div[1] | font-family resolves to Anton on "1" |
+| `/map` | 1440 | div[1] | font-family resolves to Anton on "1" |
+| `/map` | 1440 | span.cl-row-register-count[2] | font-family resolves to Anton on "2" |
+| `/map` | 1440 | span.cl-row-register-count[2] | font-family resolves to Anton on "2" |
+| `/map` | 1440 | span.cl-row-register-count[1] | font-family resolves to Anton on "1" |
+| `/map` | 1440 | span.cl-row-register-count[1] | font-family resolves to Anton on "1" |
+| `/map` | 1024 | div[2] | font-family resolves to Anton on "2" |
+| `/map` | 1024 | div[2] | font-family resolves to Anton on "2" |
+| `/map` | 1024 | div[1] | font-family resolves to Anton on "1" |
+| `/map` | 1024 | div[1] | font-family resolves to Anton on "1" |
+| `/map` | 1024 | span.cl-row-register-count[2] | font-family resolves to Anton on "2" |
+| `/map` | 1024 | span.cl-row-register-count[2] | font-family resolves to Anton on "2" |
+| `/map` | 1024 | span.cl-row-register-count[1] | font-family resolves to Anton on "1" |
+| `/map` | 1024 | span.cl-row-register-count[1] | font-family resolves to Anton on "1" |
+| `/community` | 1440 | span[9] | font-family resolves to Anton on "9" |
+| `/community` | 1440 | span[753] | font-family resolves to Anton on "753" |
+| `/community` | 1440 | span[24] | font-family resolves to Anton on "24" |
+| `/community` | 1440 | span[210] | font-family resolves to Anton on "210" |
+| `/community` | 1440 | span[2] | font-family resolves to Anton on "2" |
+| `/community` | 1440 | span[1] | font-family resolves to Anton on "1" |
+| `/community` | 1440 | span[0] | font-family resolves to Anton on "0" |
+| `/community` | 1440 | span[1] | font-family resolves to Anton on "1" |
+| `/community` | 1024 | span[9] | font-family resolves to Anton on "9" |
+| `/community` | 1024 | span[753] | font-family resolves to Anton on "753" |
+| `/community` | 1024 | span[24] | font-family resolves to Anton on "24" |
+| `/community` | 1024 | span[210] | font-family resolves to Anton on "210" |
+| `/community` | 1024 | span[2] | font-family resolves to Anton on "2" |
+| `/community` | 1024 | span[1] | font-family resolves to Anton on "1" |
+| … | | 64 further findings, in results.json | |
 
-### L9 - 234 finding(s)
+### L9 - 194 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -331,29 +331,29 @@ coordinator route it instead of two lanes editing one file.
 | `/research` | 1024 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
 | `/research/[slug]` | 1440 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
 | `/research/[slug]` | 1024 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Talent.com / Glassdoor UK] | 144×24px (long 144 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[BLS OEWS 53-1047] | 107.1×24px (long 107.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Eurostat lc_lci_lev] | 98.1×24px (long 98.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Hays GCC Salary Guide] | 128.5×24px (long 128.5 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Indeed HK] | 56.7×24px (long 56.7 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Talent.com / Glassdoor UK] | 144×24px (long 144 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[BLS OEWS 53-1047] | 107.1×24px (long 107.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Eurostat lc_lci_lev] | 98.1×24px (long 98.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Hays GCC Salary Guide] | 128.5×24px (long 128.5 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Indeed HK] | 56.7×24px (long 56.7 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Talent.com / Glassdoor UK] | 144×24px (long 144 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[BLS OEWS 53-1047] | 107.1×24px (long 107.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Eurostat lc_lci_lev] | 98.1×24px (long 98.1 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Hays GCC Salary Guide] | 128.5×24px (long 128.5 < 44 or short 24 < 28) |
-| `/operations` | 1440 | a[Indeed HK] | 56.7×24px (long 56.7 < 44 or short 24 < 28) |
-| `/operations` | 1440 | button[EU] | 34.4×24px (long 34.4 < 44 or short 24 < 28) |
-| `/operations` | 1440 | button[US] | 34.4×24px (long 34.4 < 44 or short 24 < 28) |
-| `/operations` | 1440 | button[ASIA] | 45.6×24px (long 45.6 < 44 or short 24 < 28) |
-| `/operations` | 1440 | button[UK] | 34.7×24px (long 34.7 < 44 or short 24 < 28) |
-| `/operations` | 1440 | button[UAE] | 42.6×24px (long 42.6 < 44 or short 24 < 28) |
 | `/operations` | 1440 | button[All 19 awareness →] | 129.1×26px (long 129.1 < 44 or short 26 < 28) |
 | `/operations` | 1440 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
-| … | | 174 further findings, in results.json | |
+| `/operations` | 1024 | button[All 19 awareness →] | 129.1×26px (long 129.1 < 44 or short 26 < 28) |
+| `/operations` | 1024 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1440 | a[Australia Regional Operations ] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1440 | a[Japan Regional Operations Prof] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1440 | a[India Regional Operations Prof] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1440 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1024 | a[Australia Regional Operations ] | 650×24px (long 650 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1024 | a[Japan Regional Operations Prof] | 650×24px (long 650 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1024 | a[India Regional Operations Prof] | 650×24px (long 650 < 44 or short 24 < 28) |
+| `/operations/[slug]` | 1024 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[All] | 40.1×28.5px (long 40.1 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[Air] | 41.7×28.5px (long 41.7 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[All] | 40.1×28.5px (long 40.1 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[All] | 40.1×28.5px (long 40.1 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[EU] | 40.5×28.5px (long 40.5 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[US] | 40.9×28.5px (long 40.9 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | button.cl-filter-chip[UK] | 41.5×28.5px (long 41.5 < 44 or short 28.5 < 28) |
+| `/map` | 1440 | div.leaflet-marker-icon.cl-map-marker[2] × div.leaflet-marker-icon.cl-map-marker[1] | adjacent targets overlap by 10×26px |
+| `/map` | 1440 | a[Filter map to US sub-national (54 gaps of 54)] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/map` | 1440 | a[Filter map to Canada (13 gaps of 13)] | 266×24px (long 266 < 44 or short 24 < 28) |
+| … | | 134 further findings, in results.json | |
 
 ### L10 - 93 finding(s)
 

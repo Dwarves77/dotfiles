@@ -94,6 +94,14 @@ export const POSITION_ALLOWLIST = [
     source: 'lane mapclip 2026-09-08 (data-guard-clip), extended from L2/L3 to L5 by lane layoutguard 2026-09-08',
   },
   {
+    id: 'table-card-sticky-first-column',
+    match: '[data-guard-sticky-col]',
+    viaAncestor: false,
+    positions: ['sticky'],
+    reason: 'the table card\'s STICKY FIRST COLUMN, which L3/L4 already ratify as part of the one permitted horizontal scroller ("the table-card pattern: card overflow:hidden, inner overflow-x:auto, sticky first column, scroll hint", SCROLLER_ALLOWLIST above). L5 is the same pattern read through the other rule: a first column that did not stick would leave the reader scrolling a grid of numbers with no row labels, which is the harm L3/L4 name. The exception is bounded to cells that DECLARE themselves with data-guard-sticky-col, so any other sticky element in the same component is still a finding.',
+    source: 'FOLD 64 2026-09-09, closing a fold defect: the operator\'s artboard-8 matrix (lane opsmatrix3, "sticky first column") is the first table card with one to land on a tree whose layout guard is green, and L5 had no row for the pattern L3/L4 already permitted. Not a widening of the operator\'s L5 list by taste: it is the L3/L4 ruling stated on the rule that also sees it.',
+  },
+  {
     id: 'mobile-top-bar',
     match: '[data-guard-topbar], .cl-topbar',
     viaAncestor: true,
@@ -142,6 +150,18 @@ export const ANTON_ALLOWLIST = [
   { id: 'stat-block-numeral', match: '[data-guard-display="stat-block-numeral"]', reason: 'stat-block numeral (README §0.4: label / Anton numeral / note) - drawn by StatBlock.tsx', source: 'operator L7' },
   { id: 'headline-figure', match: '[data-guard-display="headline-figure"]', reason: 'headline figure (the market surface\'s "Carbon cost per FEU" figure)', source: 'operator L7' },
   { id: 'timeline-callout', match: '[data-guard-display="timeline-callout"]', reason: 'timeline callout (README §0.4: the callout is always the next obligation)', source: 'operator L7' },
+  {
+    id: 'matrix-cell-score',
+    match: '[data-guard-display="matrix-cell-score"]',
+    reason: 'the region x dimension matrix\'s per-cell score, Anton 16. The operator specified the cell himself in the artboard-8 redesign brief (lane opsmatrix3): a cell is "Anton 16 or the em dash", and the em dash is the absence convention, so the numeral is the only ink the cell has. It is a stat-block numeral in everything but the component that draws it - a bare figure standing for a value, at display size, in a counter - which is why it is declared here rather than borrowed from the stat-block entry it is not.',
+    source: 'FOLD 64 2026-09-09, closing a fold defect: the artboard-8 matrix is new on a tree whose L7 list predates it (34 findings at 1024 and 1440, every one a cell numeral). The operator\'s ruling is the authority for the type; this row is where it is written down.',
+  },
+  {
+    id: 'matrix-fact-figure',
+    match: '[data-guard-display="matrix-fact-figure"]',
+    reason: 'the selection panel\'s headline figure, Anton 18 - the same role as the market surface\'s headline-figure entry above (a single extracted number read at display size), on the panel the artboard-8 redesign put below the table. Not in the initial DOM (the matrix opens with no cell selected, ruling R2), so it is invisible to a guard run that never selects; declared anyway rather than left to be found by the first leg that clicks.',
+    source: 'FOLD 64 2026-09-09, lane opsmatrix3\'s panel; stated with the cell-score row rather than after a later red.',
+  },
   {
     id: 'nav-wordmark',
     match: '[data-guard-display="wordmark"]',

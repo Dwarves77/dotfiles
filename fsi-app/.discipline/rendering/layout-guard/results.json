@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T22:35:20.337Z",
+  "runAt": "2026-09-09T02:04:22.664Z",
   "widths": [
     1440,
     1024
@@ -348,7 +348,7 @@
       "width": 1440,
       "element": "h2[Headline series]",
       "measured": "font-family resolves to Anton on \"HEADLINE SERIES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -356,7 +356,7 @@
       "width": 1440,
       "element": "span[€1,217/1000L]",
       "measured": "font-family resolves to Anton on \"€1,217/1000L\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -364,7 +364,7 @@
       "width": 1440,
       "element": "span[€1,014/1000L]",
       "measured": "font-family resolves to Anton on \"€1,014/1000L\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -372,7 +372,7 @@
       "width": 1440,
       "element": "span[€535/t]",
       "measured": "font-family resolves to Anton on \"€535/t\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -380,7 +380,7 @@
       "width": 1440,
       "element": "span[€646/t]",
       "measured": "font-family resolves to Anton on \"€646/t\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -388,7 +388,7 @@
       "width": 1440,
       "element": "span[$1.16]",
       "measured": "font-family resolves to Anton on \"$1.16\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -484,7 +484,7 @@
       "width": 1024,
       "element": "h2[Headline series]",
       "measured": "font-family resolves to Anton on \"HEADLINE SERIES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -492,7 +492,7 @@
       "width": 1024,
       "element": "span[€1,217/1000L]",
       "measured": "font-family resolves to Anton on \"€1,217/1000L\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -500,7 +500,7 @@
       "width": 1024,
       "element": "span[€1,014/1000L]",
       "measured": "font-family resolves to Anton on \"€1,014/1000L\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -508,7 +508,7 @@
       "width": 1024,
       "element": "span[€535/t]",
       "measured": "font-family resolves to Anton on \"€535/t\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -516,7 +516,7 @@
       "width": 1024,
       "element": "span[€646/t]",
       "measured": "font-family resolves to Anton on \"€646/t\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -524,7 +524,7 @@
       "width": 1024,
       "element": "span[$1.16]",
       "measured": "font-family resolves to Anton on \"$1.16\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -780,7 +780,7 @@
       "width": 1440,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -788,7 +788,7 @@
       "width": 1440,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -796,7 +796,7 @@
       "width": 1440,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -804,7 +804,7 @@
       "width": 1440,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -812,7 +812,7 @@
       "width": 1440,
       "element": "span[18]",
       "measured": "font-family resolves to Anton on \"18\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -820,7 +820,7 @@
       "width": 1440,
       "element": "span[14]",
       "measured": "font-family resolves to Anton on \"14\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -828,7 +828,7 @@
       "width": 1440,
       "element": "span[11]",
       "measured": "font-family resolves to Anton on \"11\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -836,7 +836,7 @@
       "width": 1440,
       "element": "span[3]",
       "measured": "font-family resolves to Anton on \"3\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -908,7 +908,7 @@
       "width": 1024,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -916,7 +916,7 @@
       "width": 1024,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -924,7 +924,7 @@
       "width": 1024,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -932,7 +932,7 @@
       "width": 1024,
       "element": "span[5]",
       "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -940,7 +940,7 @@
       "width": 1024,
       "element": "span[18]",
       "measured": "font-family resolves to Anton on \"18\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -948,7 +948,7 @@
       "width": 1024,
       "element": "span[14]",
       "measured": "font-family resolves to Anton on \"14\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -956,7 +956,7 @@
       "width": 1024,
       "element": "span[11]",
       "measured": "font-family resolves to Anton on \"11\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -964,7 +964,7 @@
       "width": 1024,
       "element": "span[3]",
       "measured": "font-family resolves to Anton on \"3\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -1164,431 +1164,7 @@
       "width": 1440,
       "element": "h2[Regions side by side]",
       "measured": "font-family resolves to Anton on \"REGIONS SIDE BY SIDE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[6]",
-      "measured": "font-family resolves to Anton on \"6\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "button[EU]",
-      "measured": "34.4×24px (long 34.4 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "button[US]",
-      "measured": "34.4×24px (long 34.4 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "button[ASIA]",
-      "measured": "45.6×24px (long 45.6 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "button[UK]",
-      "measured": "34.7×24px (long 34.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1440,
-      "element": "button[UAE]",
-      "measured": "42.6×24px (long 42.6 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -1636,431 +1212,7 @@
       "width": 1024,
       "element": "h2[Regions side by side]",
       "measured": "font-family resolves to Anton on \"REGIONS SIDE BY SIDE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[£40–42k / yr]",
-      "measured": "font-family resolves to Anton on \"£40–42k / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[$60,000 / yr]",
-      "measured": "font-family resolves to Anton on \"$60,000 / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[€40.4 / hr]",
-      "measured": "font-family resolves to Anton on \"€40.4 / hr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[3–6% / yr]",
-      "measured": "font-family resolves to Anton on \"3–6% / yr\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[HKD 14,747 / mo]",
-      "measured": "font-family resolves to Anton on \"HKD 14,747 / mo\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[6]",
-      "measured": "font-family resolves to Anton on \"6\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[5]",
-      "measured": "font-family resolves to Anton on \"5\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Talent.com / Glassdoor UK]",
-      "measured": "144×24px (long 144 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[BLS OEWS 53-1047]",
-      "measured": "107.1×24px (long 107.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Eurostat lc_lci_lev]",
-      "measured": "98.1×24px (long 98.1 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Hays GCC Salary Guide]",
-      "measured": "128.5×24px (long 128.5 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "a[Indeed HK]",
-      "measured": "56.7×24px (long 56.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "button[EU]",
-      "measured": "34.4×24px (long 34.4 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "button[US]",
-      "measured": "34.4×24px (long 34.4 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "button[ASIA]",
-      "measured": "45.6×24px (long 45.6 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "button[UK]",
-      "measured": "34.7×24px (long 34.7 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/operations",
-      "width": 1024,
-      "element": "button[UAE]",
-      "measured": "42.6×24px (long 42.6 < 44 or short 24 < 28)",
-      "message": "interactive target below the hit-target floor"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -2316,7 +1468,7 @@
       "width": 1440,
       "element": "div[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2324,7 +1476,7 @@
       "width": 1440,
       "element": "div[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2332,7 +1484,7 @@
       "width": 1440,
       "element": "div[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2340,7 +1492,7 @@
       "width": 1440,
       "element": "div[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2348,7 +1500,7 @@
       "width": 1440,
       "element": "span.cl-row-register-count[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2356,7 +1508,7 @@
       "width": 1440,
       "element": "span.cl-row-register-count[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2364,7 +1516,7 @@
       "width": 1440,
       "element": "span.cl-row-register-count[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2372,7 +1524,7 @@
       "width": 1440,
       "element": "span.cl-row-register-count[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -2476,7 +1628,7 @@
       "width": 1024,
       "element": "div[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2484,7 +1636,7 @@
       "width": 1024,
       "element": "div[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2492,7 +1644,7 @@
       "width": 1024,
       "element": "div[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2500,7 +1652,7 @@
       "width": 1024,
       "element": "div[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2508,7 +1660,7 @@
       "width": 1024,
       "element": "span.cl-row-register-count[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2516,7 +1668,7 @@
       "width": 1024,
       "element": "span.cl-row-register-count[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2524,7 +1676,7 @@
       "width": 1024,
       "element": "span.cl-row-register-count[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2532,7 +1684,7 @@
       "width": 1024,
       "element": "span.cl-row-register-count[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -2820,7 +1972,7 @@
       "width": 1440,
       "element": "span[9]",
       "measured": "font-family resolves to Anton on \"9\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2828,7 +1980,7 @@
       "width": 1440,
       "element": "span[753]",
       "measured": "font-family resolves to Anton on \"753\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2836,7 +1988,7 @@
       "width": 1440,
       "element": "span[24]",
       "measured": "font-family resolves to Anton on \"24\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2844,7 +1996,7 @@
       "width": 1440,
       "element": "span[210]",
       "measured": "font-family resolves to Anton on \"210\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2852,7 +2004,7 @@
       "width": 1440,
       "element": "span[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2860,7 +2012,7 @@
       "width": 1440,
       "element": "span[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2868,7 +2020,7 @@
       "width": 1440,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -2876,7 +2028,7 @@
       "width": 1440,
       "element": "span[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -2996,7 +2148,7 @@
       "width": 1024,
       "element": "span[9]",
       "measured": "font-family resolves to Anton on \"9\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3004,7 +2156,7 @@
       "width": 1024,
       "element": "span[753]",
       "measured": "font-family resolves to Anton on \"753\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3012,7 +2164,7 @@
       "width": 1024,
       "element": "span[24]",
       "measured": "font-family resolves to Anton on \"24\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3020,7 +2172,7 @@
       "width": 1024,
       "element": "span[210]",
       "measured": "font-family resolves to Anton on \"210\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3028,7 +2180,7 @@
       "width": 1024,
       "element": "span[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3036,7 +2188,7 @@
       "width": 1024,
       "element": "span[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3044,7 +2196,7 @@
       "width": 1024,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3052,7 +2204,7 @@
       "width": 1024,
       "element": "span[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -3108,7 +2260,7 @@
       "width": 1440,
       "element": "span[Sources · provisional review]",
       "measured": "font-family resolves to Anton on \"SOURCES · PROVISIONAL REVIEW\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3116,7 +2268,7 @@
       "width": 1440,
       "element": "span.cl-admin-platecard-title[Organizations]",
       "measured": "font-family resolves to Anton on \"ORGANIZATIONS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3124,7 +2276,7 @@
       "width": 1440,
       "element": "span[5,074 items need attention]",
       "measured": "font-family resolves to Anton on \"5,074\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3132,7 +2284,7 @@
       "width": 1440,
       "element": "span[489]",
       "measured": "font-family resolves to Anton on \"489\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3140,7 +2292,7 @@
       "width": 1440,
       "element": "span[4,576]",
       "measured": "font-family resolves to Anton on \"4,576\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3148,7 +2300,7 @@
       "width": 1440,
       "element": "span[6]",
       "measured": "font-family resolves to Anton on \"6\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3156,7 +2308,7 @@
       "width": 1440,
       "element": "span[3]",
       "measured": "font-family resolves to Anton on \"3\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3164,7 +2316,7 @@
       "width": 1440,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3172,7 +2324,7 @@
       "width": 1440,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3180,7 +2332,7 @@
       "width": 1440,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3188,7 +2340,7 @@
       "width": 1440,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3196,7 +2348,7 @@
       "width": 1440,
       "element": "p[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3204,7 +2356,7 @@
       "width": 1440,
       "element": "p[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3212,7 +2364,7 @@
       "width": 1440,
       "element": "p[May 28]",
       "measured": "font-family resolves to Anton on \"May 28\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3220,7 +2372,7 @@
       "width": 1440,
       "element": "p[—]",
       "measured": "font-family resolves to Anton on \"—\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -3252,7 +2404,7 @@
       "width": 1024,
       "element": "span[Sources · provisional review]",
       "measured": "font-family resolves to Anton on \"SOURCES · PROVISIONAL REVIEW\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3260,7 +2412,7 @@
       "width": 1024,
       "element": "span.cl-admin-platecard-title[Organizations]",
       "measured": "font-family resolves to Anton on \"ORGANIZATIONS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3268,7 +2420,7 @@
       "width": 1024,
       "element": "span[5,074 items need attention]",
       "measured": "font-family resolves to Anton on \"5,074\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3276,7 +2428,7 @@
       "width": 1024,
       "element": "span[489]",
       "measured": "font-family resolves to Anton on \"489\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3284,7 +2436,7 @@
       "width": 1024,
       "element": "span[4,576]",
       "measured": "font-family resolves to Anton on \"4,576\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3292,7 +2444,7 @@
       "width": 1024,
       "element": "span[6]",
       "measured": "font-family resolves to Anton on \"6\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3300,7 +2452,7 @@
       "width": 1024,
       "element": "span[3]",
       "measured": "font-family resolves to Anton on \"3\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3308,7 +2460,7 @@
       "width": 1024,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3316,7 +2468,7 @@
       "width": 1024,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3324,7 +2476,7 @@
       "width": 1024,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3332,7 +2484,7 @@
       "width": 1024,
       "element": "span[0]",
       "measured": "font-family resolves to Anton on \"0\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3340,7 +2492,7 @@
       "width": 1024,
       "element": "p[1]",
       "measured": "font-family resolves to Anton on \"1\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3348,7 +2500,7 @@
       "width": 1024,
       "element": "p[2]",
       "measured": "font-family resolves to Anton on \"2\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3356,7 +2508,7 @@
       "width": 1024,
       "element": "p[May 28]",
       "measured": "font-family resolves to Anton on \"May 28\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3364,7 +2516,7 @@
       "width": 1024,
       "element": "p[—]",
       "measured": "font-family resolves to Anton on \"—\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -3388,7 +2540,7 @@
       "width": 1440,
       "element": "span[Members & roles]",
       "measured": "font-family resolves to Anton on \"MEMBERS & ROLES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3396,7 +2548,7 @@
       "width": 1440,
       "element": "span[Organization]",
       "measured": "font-family resolves to Anton on \"ORGANIZATION\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3404,7 +2556,7 @@
       "width": 1440,
       "element": "span[Admin]",
       "measured": "font-family resolves to Anton on \"ADMIN\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3412,7 +2564,7 @@
       "width": 1440,
       "element": "span[Quick links]",
       "measured": "font-family resolves to Anton on \"QUICK LINKS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -3460,7 +2612,7 @@
       "width": 1024,
       "element": "span[Members & roles]",
       "measured": "font-family resolves to Anton on \"MEMBERS & ROLES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3468,7 +2620,7 @@
       "width": 1024,
       "element": "span[Organization]",
       "measured": "font-family resolves to Anton on \"ORGANIZATION\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3476,7 +2628,7 @@
       "width": 1024,
       "element": "span[Admin]",
       "measured": "font-family resolves to Anton on \"ADMIN\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -3484,7 +2636,7 @@
       "width": 1024,
       "element": "span[Quick links]",
       "measured": "font-family resolves to Anton on \"QUICK LINKS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -4020,7 +3172,7 @@
       "width": 1440,
       "element": "span[Dashboard defaults]",
       "measured": "font-family resolves to Anton on \"DASHBOARD DEFAULTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4028,7 +3180,7 @@
       "width": 1440,
       "element": "span[Freight sectors]",
       "measured": "font-family resolves to Anton on \"FREIGHT SECTORS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4036,7 +3188,7 @@
       "width": 1440,
       "element": "span[Notifications]",
       "measured": "font-family resolves to Anton on \"NOTIFICATIONS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4044,7 +3196,7 @@
       "width": 1440,
       "element": "span[Saved searches]",
       "measured": "font-family resolves to Anton on \"SAVED SEARCHES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4052,7 +3204,7 @@
       "width": 1440,
       "element": "span[Data summary]",
       "measured": "font-family resolves to Anton on \"DATA SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4060,7 +3212,7 @@
       "width": 1440,
       "element": "span[Upload operational data (CSV)]",
       "measured": "font-family resolves to Anton on \"UPLOAD OPERATIONAL DATA (CSV)\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4068,7 +3220,7 @@
       "width": 1440,
       "element": "span[Supersession history]",
       "measured": "font-family resolves to Anton on \"SUPERSESSION HISTORY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -4076,7 +3228,7 @@
       "width": 1440,
       "element": "span[Archive]",
       "measured": "font-family resolves to Anton on \"ARCHIVE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5212,7 +4364,7 @@
       "width": 1024,
       "element": "span[Dashboard defaults]",
       "measured": "font-family resolves to Anton on \"DASHBOARD DEFAULTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5220,7 +4372,7 @@
       "width": 1024,
       "element": "span[Freight sectors]",
       "measured": "font-family resolves to Anton on \"FREIGHT SECTORS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5228,7 +4380,7 @@
       "width": 1024,
       "element": "span[Notifications]",
       "measured": "font-family resolves to Anton on \"NOTIFICATIONS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5236,7 +4388,7 @@
       "width": 1024,
       "element": "span[Saved searches]",
       "measured": "font-family resolves to Anton on \"SAVED SEARCHES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5244,7 +4396,7 @@
       "width": 1024,
       "element": "span[Data summary]",
       "measured": "font-family resolves to Anton on \"DATA SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5252,7 +4404,7 @@
       "width": 1024,
       "element": "span[Upload operational data (CSV)]",
       "measured": "font-family resolves to Anton on \"UPLOAD OPERATIONAL DATA (CSV)\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5260,7 +4412,7 @@
       "width": 1024,
       "element": "span[Supersession history]",
       "measured": "font-family resolves to Anton on \"SUPERSESSION HISTORY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5268,7 +4420,7 @@
       "width": 1024,
       "element": "span[Archive]",
       "measured": "font-family resolves to Anton on \"ARCHIVE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5692,7 +4844,7 @@
       "width": 1440,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5716,7 +4868,7 @@
       "width": 1024,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5740,7 +4892,7 @@
       "width": 1440,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5756,7 +4908,7 @@
       "width": 1024,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5772,7 +4924,7 @@
       "width": 1440,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5780,7 +4932,7 @@
       "width": 1440,
       "element": "h1[Where do you move freight?]",
       "measured": "font-family resolves to Anton on \"WHERE DO YOU MOVE FREIGHT?\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -5804,7 +4956,7 @@
       "width": 1024,
       "element": "div[Caro's Ledge]",
       "measured": "font-family resolves to Anton on \"CARO'S LEDGE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L7",
@@ -5812,7 +4964,7 @@
       "width": 1024,
       "element": "h1[Where do you move freight?]",
       "measured": "font-family resolves to Anton on \"WHERE DO YOU MOVE FREIGHT?\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
+      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, matrix-cell-score, matrix-fact-figure, nav-wordmark"
     },
     {
       "rule": "L9",
