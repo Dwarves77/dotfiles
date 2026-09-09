@@ -15987,3 +15987,70 @@ lane's change made stale was rewritten by that lane, in its own commit, with its
 
 **Next steps.** The coordinator lands `train/wave64-2026-09-09`. The three lane branches can be
 retired once it is on master.
+
+## 2026-09-09, lane opsmatrix5: the /operations STOP SHIP, item by item, and the reversal of a site-wide rule for one element
+
+**Accomplished.** The operator stopped the ship on /operations on 2026-09-09. The screen he was
+looking at is PRODUCTION, which still renders the retired expand-a-dimension pattern because lane
+opsmatrix3's rebuild has not landed (measured live by the coordinator the same morning: five elements
+arrive with `aria-expanded="true"`, all five the "Regional resource availability" dimension). This
+lane therefore did not rebuild. It took his message item by item against
+`lane/noexpand-2026-09-08`, which carries the rebuild plus the site-wide no-default-expansion sweep,
+fixed what was not yet true there, and measured his three acceptance criteria.
+
+Nine items were ALREADY TRUE on that base and are now measured rather than asserted (the ▸/▾ toggle
+and the five-column band, absent from the rendered DOM; CURRENT nowhere in rendered text; the
+selection tint and inset; the panel ground; the header string shape; the three-card cap; the
+remainder link; compare mode's stacked cards; the sticky first column). Eight were NOT true and are
+fixed: the default selection, arrows moving the selection, Esc, the panel's top-rule alpha, the
+no-figure fact card (which rendered the literal word PENDING), the source line's element order, the
+region column floor (six columns did not scroll), and the foot legend's missing dash.
+
+**Decisions.**
+
+1. **The reversal.** Operator 2026-09-08 ("no items expanded when first navigtaing to a page") and
+   operator 2026-09-09 item 5 ("Default state on load: first sourced cell of the first sourced row
+   open") disagree about this one element. Coordinator note C1 is binding: the earlier ruling forbade
+   the RETIRED row expansion, which the newer message orders deleted; the newer message asks for this
+   default in writing. The matrix arrives selected; nothing else on the site does. F42 keeps every
+   line of its behaviour and gains a documented R6 category naming this one component; the rendering
+   guard's `no-default-open` leg keeps all four legs and its site-wide sweep. The matrix DECLARES
+   itself with `data-open-on-mount` naming both dates, and drops the attribute the instant the reader
+   acts. Proven by attack in both directions.
+2. **THE TABLE NEVER GROWS is enforced by a fixed-height panel slot.** A panel that appears with a
+   selection cannot satisfy "card height constant regardless of selection", and neither can one whose
+   height follows its content. The slot is always in the DOM, always 300px, and scrolls internally.
+   Measured at 1440 on the composed page: 682.5 / 682.5 / 682.5px across nothing selected, a cell
+   selected and compare mode.
+3. **Criterion B beats the 72-character cap where they conflict.** Measured: 560px sets ~92
+   characters in this face at 12.5px; 72 characters need ~439px. Criterion B is the later statement,
+   the one the lane is judged on, and the artboard corroborates it at ~88 characters. Cap applied:
+   `max(560px, 72ch)` = 573px.
+4. **The scroll hint stays conditional**, which is the one place the artboard was not followed, and
+   it is recorded in DEVIATION-LOG.md rather than absorbed silently.
+
+**Gates.** `npx tsc --noEmit` exit 0. Fitness 36 functions, 0 violations, exit 0. Rendering guard
+PASS (560 fixture checks, 176 smoke checks across 10 specs including the new `ops-matrix-acceptance`
+leg, 216 UX checks), exit 0. `npm run audit:design` every spec MATCH, no MISMATCH, no NOT BUILT, no
+NOT IN SPEC. `npm run audit:overflow` 0px on every mount, exit 0. The CI npmtest glob: 1065 tests,
+0 fail, exit 0. `bash .discipline/run-test-suite.sh` 0 fail, exit 0. `npx next build` (Turbopack)
+exit 0; `npx next build --webpack` exit 0.
+
+**Blocker, stated rather than worked around.** `npm run audit:layout` DOES NOT EXIST on this base:
+`package.json` carries `audit:design` and `audit:overflow` only, and there is no layout sweep under
+`.discipline/rendering/audit/`. The layout guard lives on `lane/layoutguard-2026-09-08`, which is not
+an ancestor of this branch. The nearest peer that IS here, `open-state-sweep.mjs`, was run and
+reports 0 unallowed open elements.
+
+**Next steps.** The coordinator lands this; the container cannot push. When the layout guard folds in,
+re-run it against this branch. When `crossRefCountsByRegion` and `totalRegionCount` reach the composed
+page, the header aside will show the artboard's "18 REGIONS" and the column sub-lines their "· N regs"
+half; both are data-driven today and neither is stubbed.
+
+**UX compliance.** DP-1: the matrix card is one part with one anatomy at every width; the mobile
+duplicate stays deleted and the 390 specs are unchanged and green. DP-2: nothing on this surface is
+reachable only by pointer. Every selectable cell including column 0 is on the roving tabindex, arrows
+now both move and select, Home and End jump the row, Enter and Space commit, and Esc closes; the
+panel's links are real links and buttons with a 24px minimum hit height. The 40px row height is
+asserted at 1440 and at 390. Absence is the app's closed vocabulary everywhere, and the foot legend
+now shows the em dash it explains.

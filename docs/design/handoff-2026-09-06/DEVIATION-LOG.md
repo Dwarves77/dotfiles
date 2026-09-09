@@ -1265,3 +1265,154 @@ and 0 `aria-expanded="true"`. All three of the operator's conditions hold on the
 622 findings against master's 728, by rule: L1 11 (=), L2 165 (=), L3 0 (=), L4 1 (=), L5 0 (=),
 L6 34 (=), **L7 190 to 124**, L8 0 (=), **L9 234 to 194**, L10 93 (=), L11 0 (=), L12 0 (=). Only two
 rules moved and both shrank, by 66 and 40. The count may only shrink and it shrank by 106.
+
+## LANE OPSMATRIX5 (2026-09-09): the /operations STOP SHIP, item by item, and the one reversal
+
+The operator stopped the ship on /operations on 2026-09-09. What he was looking at was PRODUCTION,
+which still renders the retired expand-a-dimension pattern because lane opsmatrix3's rebuild has not
+landed: measured on the live site by the coordinator the same morning, five elements arrive with
+`aria-expanded="true"` and all five are the "Regional resource availability" dimension. This lane did
+not rebuild. It went through his list against the branch that carries the rebuild plus lane
+noexpand's sweep, fixed what was not yet true there, and MEASURED his three acceptance criteria.
+
+### THE REVERSAL, and it is the only place this lane's base was wrong on purpose
+
+Two operator messages disagree about this one element:
+
+- 2026-09-08, verbatim: "the ops page opend to a sub category not just the main page, infastructure
+  capacity and other items should be closed, no items expanded when first navigtaing to a page".
+  Lane noexpand implemented that here by deleting the matrix's default selection outright.
+- 2026-09-09, item 5, verbatim: "Default state on load: first sourced cell of the first sourced row
+  open." Item 3: "Arrow keys move the selection; panel follows; Esc closes."
+
+Coordinator note C1, binding: what the 2026-09-08 ruling forbade is the RETIRED row expansion, the
+thing he was looking at when he wrote it and the thing the 2026-09-09 message orders deleted. The
+newer message asks for this default in writing. So the matrix arrives with the first sourced cell of
+the first sourced row selected and its panel showing, and nothing else anywhere on the site opens
+itself.
+
+Everything lane noexpand built is kept. F42 is unchanged in behaviour and gains a documented R6
+category naming this one component; the rendering guard's `no-default-open` leg keeps all four of its
+legs and its site-wide sweep; every other route still arrives closed. The matrix declares itself with
+`data-open-on-mount`, the escape hatch `open-state-sweep.mjs` already provided for a ruled-open
+default, naming BOTH dates, on the panel and on the tinted cell, and the attribute is gone the moment
+the reader acts. PROVEN BY ATTACK 2026-09-09, both directions: stripping the declaration made the
+sweep report `1 unallowed open element` on `ops-matrix`; adding `const [tocOpen] = useState(true)` to
+OperationsLedger made F42 fail on that exact line. Both green on restore.
+
+### Spec rows re-pointed, and why each is at least as strong
+
+`spec/operations-matrix.json` (renamed in its `part` from AT REST to AT ARRIVAL):
+
+| Removed | Replaced by | Why narrower |
+|---|---|---|
+| forbid `NOTHING IS SELECTED ON FIRST RENDER` | target: exactly ONE `aria-selected` cell, AND it is `tbody tr:nth-child(3) td:nth-child(4)` (ASIA x D3) | the forbid failed on any of 30 cells; the target fails on 29 of 30 plus a count |
+| forbid `NO PANEL ON FIRST RENDER` | targets: the panel is present, is 300px tall, scrolls, its heading reads the exact string, and it carries `data-open-on-mount` naming both dates | one assertion becomes six |
+| forbid `NO FACT CARD ANYWHERE ON FIRST RENDER` | targets: exactly three fact cards (the cap, on a four-fact cell), the `1 more fact on the profile →` remainder, three Anton-18 figures | absence becomes the measured anatomy |
+| forbid `no cell carries the selection tint at rest` | target: the selected cell's computed `background-color` is `rgb(220, 231, 251)`, `box-shadow` is the 2px inset, `height` is still 40px | still catches a cell painted without the aria attribute, and now also one that sets the attribute without painting |
+| target `AT REST, THE GRID IS ONE TAB STOP` and `that tab stop is the FIRST cell` | target: one tab stop, and it is the SELECTED cell | pinned to a data-derived position instead of a constant |
+| foot legend `textMatch: arrow keys move between cells` | `arrow keys move the selection` | the artboard's own foot text, and what item 3 restores |
+
+`spec/compose-08-operations-list.json`: the two forbids `THE COMPOSED /operations PAGE OPENS NOTHING`
+and `and no cell is tinted as selected on the composed page` become four targets: the panel is present
+and is the fixed-height slot, it declares itself naming both dates, exactly TWO declared elements
+exist on the whole page (the panel and its cell) and both are inside the matrix card, and exactly one
+cell carries the tint measured by computed value. The tab-stop row is re-pointed to the selected cell.
+
+`spec/operations-matrix-selected.json`: no row changed. A note records that its clicked cell is now
+also the arrival cell, so the click-path proof moved to `ops-matrix-acceptance-smoke.mjs` leg F, which
+clicks UAE x D6 and then arrows to UK x D6.
+
+Two forbids that now forbid what he asked for are GONE, not weakened, and both are replaced above.
+No forbid was downgraded to a warning and no path allowlist was introduced.
+
+### The three acceptance criteria, measured
+
+`.discipline/rendering/smoke/ops-matrix-acceptance-smoke.mjs`, wired into the rendering guard, prints
+these on every run:
+
+- **A. Card height constant at 1440.** Composed /operations page, card 1032px wide: nothing selected
+  **682.5px**, cell selected **682.5px**, compare mode **682.5px**. Component mount (900px card):
+  **757.25 / 757.25 / 757.25px**. The mechanism is a fixed-height panel slot (`PANEL_SLOT_HEIGHT`,
+  300px, read off the artboard: 288px in a 1353px capture of a 1440px design) that is always in the
+  DOM and scrolls its own content. ATTACK: removing the height gave **497 / 805.25 / 921.88px** and
+  the leg went red on the exact numbers.
+- **B. No text column narrower than 560px.** Narrowest text-bearing box in the panel: **967px**
+  composed, **835px** in the component mount, **866px** in the Esc state. ATTACK: rebuilding the
+  retired five-column band inside the panel gave **142.19px** and both the leg and the spec's forbid
+  went red. (142px is the operator's own "~110px wide" complaint, one level down.)
+- **C. No cell contains a word.** All thirty body cells enumerated from RENDERED text, with
+  `text-transform` applied and `::after` content read, because the em dash is CSS content and the
+  absence word beside it is `display:none` above 767px:
+  `["—","—","—","—","—","—","—","—","—","—","—","—","4","1","1","—","—","1","1","1","—","—","—","—","—","—","—","1","—","1"]`.
+  ATTACK: rendering `{n} sourced` in the score span made the spec's forbid report NOT IN SPEC.
+
+### Values corrected against his stated numbers
+
+- **Panel top rule.** He states `1px rgba(0,0,0,.12)`. The build used `--line-2`, which is
+  rgba(0,0,0,.08). Corrected to `--line-1`, which IS rgba(0,0,0,.12). Measured before and after.
+- **Region column floor.** "Regions beyond five scroll inside the card" was FALSE on this base: with
+  a 96px floor, six columns summed to 756px inside a 1024px scroller and simply stretched. Measured
+  scrollers: 1024px composed at 1440, 892px in the component mount. The floor is now 142px, the only
+  value where five columns fit the narrower (890px) and six exceed the wider (1032px). Both halves
+  are asserted in leg E and in `spec/operations-matrix-six-regions.json`.
+- **Source line order.** He states "Vervo Logistics · 2024-08 · row written 2026-05-28" and the
+  artboard draws "Indeed HK · 2025-09 · row written 2026-05-28" and "MOM Occupational Wage Survey ·
+  2025 · official". The build put the written date SECOND and the provenance word third. Now: source
+  name, then the period the figure is for, then the provenance word if the row carries one, else the
+  date the row was written.
+- **Foot legend.** The artboard's legend reads "— not in primary source ..."; the build rendered only
+  the WORD, so a legend explaining the table's dash never showed the dash. The narrow Absence (which
+  IS the dash) now sits beside the worded one. Found in the side-by-side, not in the code.
+
+### The no-figure branch, built and proven
+
+He wrote: "Every fact card must lead with its FIGURE. If the pipeline has no figure for a fact, the
+card leads with a 6-word headline in 13px/600, then the claim." The build had `<Absence
+reason="pending" />` in the empty figure slot, which is the literal word PENDING inside a fact card
+and is on his delete list. Deleted. The branch is now a six-word headline at 13px / weight 600 taken
+from the row's own label (or its prose when it has no label), then the claim as the detail sentence.
+
+It is proven by a fixture that runs it: mount `ops-matrix-nofigure` adds ONE fact whose value is a
+sentence, on ASIA x D5, a cell every other matrix mount leaves empty, and clicks it. The extra fact is
+passed to that mount only, so no other spec's cell counts or coverage percentage moved to buy the
+proof. Measured: headline `"Berth allocation is discretionary"` at `13px` / `600`, no figure element
+in the card, detail sentence `12.5px` / `18.75px`.
+
+### The one place his own two numbers conflict
+
+He asks for a detail sentence of "at most 72 characters per line" AND, as acceptance criterion B, "no
+text column in the card is narrower than 560px". MEASURED 2026-09-09 in chromium, this face at
+12.5px: a 560px box sets about 92 characters and 72 characters need about 439px. They cannot both
+hold. Criterion B wins: it is the later statement, it is what the lane is judged on, and it is aimed
+at the defect he stopped the ship over. The replacement artboard corroborates the wider measure,
+setting roughly 88 characters on its own first fact card's detail line, and where the words and the
+image disagree the image wins. The cap applied is `max(560px, 72ch)` = **573px**, the narrowest
+measure criterion B allows; the measured line lengths (94, 54) are printed on every guard run so the
+trade stays visible.
+
+### Where the words and the image disagree, and the image won
+
+- **Header string.** His delete list replaces "click a dimension to open its facts" with
+  "N regions · scroll →". The artboard's head aside reads "18 OF 30 CELLS SOURCED · 60% · 18 REGIONS ·
+  SCROLL →", keeping two computed figures in front of it. The artboard wins: the header now reads
+  `{filled} of {total} cells sourced · {pct}% · {N} regions` plus `· scroll →` when there is somewhere
+  to scroll. The retired string is forbidden and measured absent in the guard leg.
+- **The scroll hint with five columns.** The artboard draws `SCROLL →` beside a five-column table that
+  fits. The build draws it only when the table actually scrolls, which is the rule this component
+  already carried: telling a reader to scroll a table that does not move is a false affordance. This
+  is the one place the image was NOT followed, and it is recorded here rather than absorbed.
+- **The selected cell in the artboard** is D3 x Asia, not D2 x Asia. The artboard's own first sourced
+  row is D2 (Regional resource availability). Item 5's words are unambiguous and were followed; the
+  artboard's tinted cell is read as illustrative. On the real page at 1440 the arrival cell is
+  ASIA x D2, which is the same dimension the operator's five production `aria-expanded` elements were.
+
+### Item 3's other half
+
+Arrows now SELECT and the panel follows, reversing lane noexpand's focus-is-not-selection split for
+this component, because item 3 says so in the operator's own words and the artboard's foot strip says
+"arrow keys move the selection". Home and End still move focus alone: they jump the length of a row,
+and selecting the far end of a row is not what a reader asking for the row's end meant. Esc closes the
+panel, from a grid cell or from anywhere else in the card, and a closed panel STAYS closed: the
+selection state carries three values so that "never touched" and "deliberately closed" are different
+facts and only the first may re-open itself.
