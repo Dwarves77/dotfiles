@@ -15868,17 +15868,20 @@ Research, Operations, Watchlist. 12 legs, all PASS on this branch; all 12 FAIL o
 - `ImpactMeter.npmtest.mjs`: two new source-level guards on the constants, and B33-B39 updated to the
   new height expression.
 
-**GATES.** `tsc --noEmit`: **1 error, PRE-EXISTING, not this lane**.
-`src/lib/supabase-server.ts:1012` TS1117, reproduced identically with this lane's changes stashed.
-Lanes duenext and briefdata each added the same `complianceDeadline: row.compliance_deadline ||
-undefined` line to the same object literal in `mapWorkspaceItemRows`, at lines 970 and 1012. Same
-value, so it is semantically harmless and a hard compile error. `next build --webpack` fails on that
-same line and on nothing else. Remedy, PROVEN this session by applying it and reverting it: delete
-lines 1003-1012 (the second comment block and its duplicate key), keeping the line at 970. With that
-one hunk, `tsc --noEmit` is clean and `next build --webpack` exits 0. Left for the coordinator rather
-than fixed here: it is another lane's file, mid-fold, and this lane's scope is one defect.
-Fitness runner: 3 violations, identical to the base tree (F9 tsconfig, F42 x2 in
-src/components/sources), so 0 added; the two hand-run scripts this lane adds are wired into
+**GATES.** The three reds this section reported are all STALE AS OF FOLD 64 and none of them is a
+real red on master; they are recorded here as the lane measured them, with the correction stated
+inline, because a lane report is a record and is corrected in place rather than rewritten
+(CLAUDE.md rule 13's corollary). The lane branched from `605413d9`, wave 62's PRE-RECONCILIATION
+tip, so its base carried three defects that wave 62 itself then fixed. Measured at FOLD 64 on the
+folded tree: `tsc --noEmit` exits 0, and `src/lib/supabase-server.ts` carries exactly ONE
+`complianceDeadline: row.compliance_deadline || undefined` line, so the TS1117 duplicate key is
+gone and the lane's proposed remedy hunk is NOT applied here (it would delete a line that no
+longer exists). The two `F42` violations in `src/components/sources` were the card-shell
+chokepoint, closed by wave 62's `SectionCard` adoption; the fitness runner reports 0 violations on
+the folded tree. AS THE LANE MEASURED IT, on its own stale base: `tsc --noEmit` 1 error, TS1117 at
+`src/lib/supabase-server.ts:1012`, reproduced with this lane's changes stashed;
+fitness runner 3 violations, identical to that base tree (F9 tsconfig, F42 x2 in
+src/components/sources), so 0 added by the lane; the two hand-run scripts this lane adds are wired into
 `package.json` so F25 stays clean, the same resolution train 57 used for
 `capture-defect-fix-screenshots.mjs`. Rendering guard: FAIL, 111 unique failure lines, byte-identical
 to the base tree's 111 (all layout-guard L2/L9/L10 legs on /settings, /community, the five lists), so 0
@@ -15898,3 +15901,89 @@ reporting.
 DP-1/DP-2 and the 375px row measurements are unaffected, because the meter's container height, bar width,
 gap and baseline are untouched at both viewports, which the rendering guard's UX smoke slot re-ran
 green (232 ux checks, same as base).
+
+## FOLD 64 (2026-09-09): waves 62 and 63 landed, three stale-based lanes folded onto master
+
+**Branch.** `train/wave64-2026-09-09`, from `origin/master` at `7bad7693`. The container cannot
+push; the coordinator lands.
+
+**What was folded.** Three lanes, eleven commits, cherry-picked with `-x` in dependency order:
+`lane/opsmatrix3-2026-09-08` (83aa8890, 605793ce, 64646ddc), `lane/noexpand-2026-09-08` (59f5dd85,
+f834bc09, 3f0c260b, d51de113) which branches from opsmatrix3 and had to follow it, and
+`lane/meterfix-2026-09-08` (a747ba9b, 7139d02c, 31c9b9f2, 39eac4e6). All three branched from stale
+bases, each stale differently, so every "pre-existing" claim in a lane report was checked against
+master rather than believed.
+
+**Cherry-pick log.** Ten commits landed, one was skipped as fully generated.
+
+| Commit | Result | Conflicts and resolution |
+|---|---|---|
+| 83aa8890 | landed as af3a07d0 | 6 files. `results.json` and `AUDIT-2026-09-07.md`: master's taken, regenerated at the end. `DEVIATION-LOG.md` and `session-log.md`: union, both sides kept in order. `compose-08-operations-list.json`: union of the notes (the lane's MATRIX REDESIGN note plus master's), and the lane's "nothing expands, no cell spans it" forbid replacing the "no Facts label" forbid it was written to retire. `RegionDimensionMatrix.tsx`: master's `SectionCard` shell taken over the lane's hand-built one (F42), and the lane's foot-strip deletion kept with master's closing tag. |
+| 605793ce | landed as 4e818bd6 | clean |
+| 64646ddc | SKIPPED | both files were generated artefacts taken from master, leaving the commit empty |
+| 59f5dd85 | landed as d8a65366 | `compose-08-operations-list.json` `forbid` array: union, master's four forbids plus the lane's two new ones (no panel before a click, no tinted cell) |
+| f834bc09 | landed as 74f45b7d | clean |
+| 3f0c260b | landed as 8547fe68 | 4 files, all union: `SKILL.md`, `invariants.mjs` (both the changelog note and the registry array, whose seam was repaired by hand), `run-rendering-guard.mjs` (both smoke imports and both `SMOKE_SPECS` entries), `skill-contract-map.mjs` (lane's re-pin kept, hash recomputed). Plus the F42 renumber, below. |
+| d51de113 | landed as 3c815ad9 | generated artefacts to master; the two doc sections landed |
+| a747ba9b | landed as 49e84fa0 | clean |
+| 7139d02c | landed as 6753b82e | `run-rendering-guard.mjs` `SMOKE_SPECS`: union, `no-default-open` and `impact-meter-partial` both registered |
+| 31c9b9f2 | landed as 2379ed61 | THE EXPECTED COLLISION: opsmatrix3 and meterfix both regenerate `audit/results.json` and `layout-guard/results.json` in full. Neither side authoritative; master taken on all four generated files, regenerated at the end. The before/after PNGs landed. |
+| 39eac4e6 | landed as 1e30b643 | both doc files union-resolved |
+
+**Hunks dropped in favour of master**, in full, with the reasoning: see the "FOLD 64 (2026-09-09)"
+section of `docs/design/handoff-2026-09-06/DEVIATION-LOG.md`. In brief: the matrix card's hand-built
+shell (F42 now rejects it; it renders `SectionCard`, no exemption added), the `</section>` closing
+tag that went with it, every generated artefact on both sides of every collision, and lane meterfix's
+proposed TS1117 remedy hunk, which would delete a line master no longer has.
+
+**Lane meterfix's three stale reds, resolved.** It branched from `605413d9`, wave 62's
+PRE-reconciliation tip, and reported a TS1117 at `src/lib/supabase-server.ts:1012` plus two F42
+violations in `src/components/sources` as pre-existing. Master fixed all three. No meterfix commit
+touches the source for any of them, so nothing was reintroduced and nothing re-fixed. Its session-log
+section is corrected IN PLACE (CLAUDE.md rule 13's corollary) rather than rewritten: the lane's own
+measurement is kept as the record and the correction is stated beside it.
+
+**The F42 collision.** Lane noexpand's new fitness function arrived numbered F42, colliding with the
+card-shell F42 that landed in wave 62. Both kept; the noexpand one renumbered to F43, and its skill
+section to Section 4 category 43, by the same first-landed-keeps-its-number test FOLD-61 used on
+F40/F41. Marker baseline 51 to 52, `contentHash` re-pinned. Fitness is 37 functions, 0 violations.
+
+**The red gate this fold introduced.** The rendering guard was PASS on master and FAIL here, 50
+failures, all on `/operations`: 14 layout-guard L5 (the matrix's sticky first column) and 36 L7 (Anton
+on the cell scores), at 1024 and 1440. Both are the operator's own artboard-8 rulings meeting
+allowlists that predate the artboard. Closed by two declared allowlist rows with `reason` and
+`source` (L5 `table-card-sticky-first-column`, which L3/L4 already ratified as part of the table-card
+pattern; L7 `matrix-cell-score` and `matrix-fact-figure`), plus the `data-guard-sticky-col` and
+`data-guard-display` declarations on the component. No rule weakened, no route exempted.
+
+**UX compliance.** No row component changed geometry in this fold. The matrix's cells are the
+operator's 40px rows, the facet rows stay at master's 24px, and `ListRow` is untouched. The two
+component edits are data attributes only, which carry no style. Law-2: the layout guard's L9 count
+FELL from 234 to 194, and the rendering guard's four dated law-2 desktop exemptions are master's, none
+added. `/operations` verified from the initial DOM at 1440: 0 cells `aria-selected="true"`, 0 fact
+panels, exactly 1 element with `tabindex="0"` inside the grid (the sticky first column's D1 header),
+`activeElement` is `body`, 0 `details[open]`, 0 `aria-expanded="true"` page-wide.
+
+**Gates, from the fold worktree, each read by exit code.**
+
+| Gate | Result | Exit |
+|---|---|---|
+| `npx tsc --noEmit` | clean | 0 |
+| `node fsi-app/.discipline/fitness/runner.mjs` | 37 functions, 0 violations | 0 |
+| `node fsi-app/.discipline/rendering/run-rendering-guard.mjs` | PASS, 0 failures | 0 |
+| `npm run audit:design` | 74 specs, 2493 checks, 2493 MATCH | 0 |
+| `npm run audit:overflow` | 0px horizontal page overflow on every mount | 0 |
+| `npm run audit:layout` | 622 findings against master's 728 | 0 |
+| `node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD` | 0 FAIL | 0 |
+| CI npmtest glob | 1132 tests, 0 fail | 0 |
+| `bash fsi-app/.discipline/run-test-suite.sh` | 6025 tests, 0 fail, 5 skipped | 0 |
+| `npx next build` (Turbopack) | built | 0 |
+| `npx next build --webpack` | built | 0 |
+
+Design audit went 2407/2407 on master to 2493/2493 here: 86 new checks, all from the lanes' own new
+and rewritten specs (`operations-matrix.json` rewritten wholesale, `operations-matrix-selected.json`
+new, `impactmeter.json` extended). No spec was weakened and none needed an UPDATED note: every spec a
+lane's change made stale was rewritten by that lane, in its own commit, with its reason.
+
+**Next steps.** The coordinator lands `train/wave64-2026-09-09`. The three lane branches can be
+retired once it is on master.

@@ -1158,3 +1158,110 @@ was invented to make a better-looking test.
 | 2026-09-08 | A dimension scored 0 draws a 2px stub in the baseline's ink `rgba(0,0,0,.25)`; the artboard has no value for this | [CONFIRMED, by enumeration] The artboard contains NO partially scored meter. All 34 meter clusters in `Caros Ledge UI System.dc.html` (sections p1, p2, p4, p6, p8, p11) draw four bars at 6, 12 or 18px, and the lowest sum drawn anywhere is 4/12, four dimensions at 1. There is no zero bar in the drawing to copy, so the treatment is DERIVED, and it is derived from the artboard's own geometry rather than from taste: the score unit is 6px, so 2px is one third of the smallest scored bar and cannot be read as a score of 1; `rgba(0,0,0,.25)` is the baseline stroke's own ink, the only non-ramp colour the artboard's meter contains, so the stub reads as part of the baseline vocabulary and never as a value on the green/orange/red ramp. Operator ruling 2026-09-08, verbatim: "If only some dimensions are scored the unscored ones render as 0-height on the baseline; the sum shows ... Never one lonely bar." Taken literally, "0-height" is what the code already did and is exactly the defect; the sentence's other half ("never one lonely bar") is what settles it, so the zero dimension gets the smallest visible mark instead of no mark. | The stub is 2px of ink the artboard does not draw. The alternative that stays literally at 0-height leaves a row scored [0,0,0,2] rendering three invisible boxes and one 12px bar beside "2/12", measured in chromium at 1440 and 390 before the fix, `built/meterfix-partial-before-1440.png` and `-390.png`. | lane METERFIX, 2026-09-08 |
 | 2026-09-08 | The zero bar's colour fallback moved from `var(--line-1)` (rgba(0,0,0,.12)) to `rgba(0,0,0,.25)` | [CONFIRMED, measured] `VALUE_COLOR[v] ?? "var(--line-1)"` already handled a value outside 1-3, but --line-1 is fainter than the 1px baseline the bar stands on, so a 2px stub in it would satisfy the letter of the ruling and stay invisible in practice. The `VALUE_COLOR` ramp itself is untouched, a zero dimension is not a value on the ramp and does not join it. | One token swapped on the unscored slot only. Nothing else in the meter moved: the 9px width, the 2px gap, the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS are unchanged, and because MOBILE_CSS overrides heights only for `data-score` 1/2/3 the stub is 2px at both viewports without a media-query rule of its own. | lane METERFIX, 2026-09-08 |
 | 2026-09-08 | The baseline was already spanning all four slots; only the ink was missing | [CONFIRMED, by geometry and by measurement] The 1px baseline is a `border-bottom` on the bars container, whose width is set by its four 9px children plus three 2px gaps = 42px. A zero-height bar is still a 9px-wide flex item, so it has always held its slot and the baseline has always spanned four slots. The defect was never the baseline; it was that three of the four slots painted nothing. `impactmeter.json` now asserts the 42px container on the partial fixture so a future "skip the zero bars" shortcut fails. | None. | lane METERFIX, 2026-09-08 |
+
+## FOLD 64 (2026-09-09)
+
+Wave 64 folds three lanes onto `origin/master` at `7bad7693` (waves 62 and 63 both landed and
+squashed). All three branched from stale bases, each stale differently: opsmatrix3 from
+`train/wave61`, noexpand from opsmatrix3, meterfix from `605413d9`, wave 62's PRE-reconciliation
+tip. Eleven commits were cherry-picked with `-x` in dependency order. The three lanes' own design
+decisions are recorded in their own sections above and are not reopened here; this section records
+only what the fold changed and why.
+
+### Hunks dropped in favour of master
+
+1. **The matrix card's shell** (`RegionDimensionMatrix.tsx`, commit `83aa8890`). Lane opsmatrix3
+   hand-built the card: a `<section>` carrying `background: var(--card)`, a 1px `--line-1` border,
+   `--radius-card`, `--shadow-card` and `overflow: hidden`, with `<SectionRule />` mounted by hand as
+   its first child. Wave 62 made that shape a fitness violation: `SectionCard`
+   (`src/components/ui/SectionCard.tsx`) owns all five declarations and mounts the 3px rule
+   unconditionally, and F42 (`card-shell-outside-SectionCard`) fails CI on a hand-typed copy. The
+   lane's shell is dropped and the card renders `SectionCard as="section"`, which is master's own
+   resolution of the same file. No exemption was added: `overflow: hidden`, the one property the
+   lane's shell justified in a comment (the inner scroller would otherwise paint over the rounded
+   corners), is a `SectionCard` property already, so nothing was lost by taking the component.
+2. **The matrix foot strip's closing tag only.** The lane deleted the whole foot strip, moving
+   "Compare against:" into the panel's compare mode. That deletion is the lane's own decision and
+   stands. Master's `</SectionCard>` closing tag replaces the lane's `</section>`, which is the
+   other half of item 1.
+3. **Every generated artefact, on both sides of every collision.** `audit/results.json`,
+   `layout-guard/results.json`, `AUDIT-2026-09-07.md` and `docs/audits/layout-guard-2026-09-08.md`
+   were taken from master at each conflict and REGENERATED at the final tree, never merged. The
+   expected collision landed exactly where the coordinator said it would: opsmatrix3 and meterfix
+   both regenerate `audit/results.json` and `layout-guard/results.json` in full, and neither side is
+   authoritative once a third tree exists. Commit `64646ddc` (opsmatrix3's "regenerate audit
+   artifacts after the matrix comment fix") was entirely generated artefacts and became empty under
+   this rule; it is skipped, and its content is present because the artefacts were regenerated.
+4. **Lane meterfix's three "pre-existing" reds.** Its report calls a TS1117 and two F42 violations
+   pre-existing on its base. Master fixed all three long ago and no meterfix commit touches the
+   source for any of them, so nothing was reintroduced and nothing was re-fixed: the only action was
+   to correct the claim where it was written. `src/lib/supabase-server.ts` carries exactly one
+   `complianceDeadline: row.compliance_deadline || undefined` line on the folded tree, so the lane's
+   proposed remedy hunk (delete lines 1003-1012) is NOT applied; it would delete a line that no
+   longer exists. Measured at the fold: `tsc --noEmit` exit 0, fitness 0 violations.
+
+### The F42 number collision, and the renumber
+
+Lane noexpand's `3f0c260b` introduces a fitness function numbered **F42**,
+`default-open-disclosure`. Master already has an F42, `card-shell-outside-SectionCard`, landed in
+wave 62. Both functions are kept and the NOEXPAND one is renumbered to **F43**, by the same test
+FOLD-61 applied to the F40/F41 collision: the card-shell F42 landed first and its number is already
+cited by `SectionCard.tsx`, its own invariant, the `compose-*` audit specs and a dozen
+`// fitness-allow: F42` markers in product source, so renumbering it would have touched strictly
+more citations. What moved with the number: the function and test files (`F43-default-open-disclosure.mjs`
+and its `.test.mjs`), the manifest import and export, the `no-default-open` smoke module, the one
+`// fitness-allow:` marker lane noexpand added in `CommunitySidebar.tsx`, and the skill section, which
+becomes **Section 4 - category 43** so the two categories do not share a number either. The two RD-67
+invariant ids were already distinct (`RD-67-card-shell-one-component` and
+`RD-67-default-open-disclosure`), so no invariant id moved. `SKILL_MARKER_BASELINE.remediation-discipline`
+goes 51 to 52 (master's 51 already counted the card-shell category; the default-open category is the
+second) and the `remediation-discipline` `contentHash` in `skill-contract-map.mjs` is re-pinned to
+the merged file.
+
+### The red gate this fold introduced, and how it was closed
+
+The rendering guard was PASS on master and FAIL on the folded tree, with **50 failures, every one on
+`/operations`, every one a layout-guard leg**: 14 L5 (`position: sticky`, the matrix's sticky first
+column) and 36 L7 (Anton on the per-cell score), at 1024 and 1440 alike. Neither is a defect in the
+lane's work. Both are the operator's own artboard-8 rulings ("sticky first column", a cell is "Anton
+16 or the em dash") meeting a guard whose allowlists predate the artboard, and the matrix is the
+first table card with a sticky first column to land on a tree where that guard is green, which is why
+no earlier fold saw it.
+
+Closed by the mechanism the guard was built with, and not by weakening a rule. `allowlists.mjs`
+states that an exception is "a list of components, not a list of selectors a page can quietly
+satisfy", so the matrix DECLARES itself and the allowlist matches the declaration:
+
+- L5 gains `table-card-sticky-first-column`, matching `[data-guard-sticky-col]`. This is not a new
+  permission: `SCROLLER_ALLOWLIST`'s `table-card-inner-scroller` row already ratifies "the table-card
+  pattern (card `overflow:hidden`, inner `overflow-x:auto`, **sticky first column**, scroll hint)"
+  under the operator's own L3/L4. L5 simply had no row for a pattern L3/L4 already permitted. Bounded
+  to declaring cells, so any other sticky element in the same component is still a finding.
+- L7 gains `matrix-cell-score` (`[data-guard-display="matrix-cell-score"]`, Anton 16) and
+  `matrix-fact-figure` (`[data-guard-display="matrix-fact-figure"]`, Anton 18, the panel's headline
+  number, which no run reported because the panel is not in the initial DOM; declared with the other
+  rather than left for the first leg that clicks).
+
+Both rows carry `reason` and `source`, which the guard's own test requires. After the two rows the
+rendering guard is PASS with 0 failures.
+
+### The operator's own complaint, verified rather than trusted
+
+`/operations` mounted at 1440 through the audit machinery (`compose-08-operations`, the audit's own
+bundle, CSS and settle sequence), read from the INITIAL DOM with no click, no key and no focus call:
+
+| Measured | Value |
+|---|---|
+| cells carrying `aria-selected="true"` inside the grid | **0** |
+| elements matching `[data-audit="ops-matrix-panel"]` | **0** |
+| elements inside the grid with `tabindex="0"` | **1** (the D1 row header, the sticky first column's first cell) |
+
+The other 35 cells carry `tabindex="-1"`, no element inside the grid is natively focusable without a
+tabindex, and `document.activeElement` is `body`. Page-wide the same DOM carries 0 `details[open]`
+and 0 `aria-expanded="true"`. All three of the operator's conditions hold on the folded tree.
+
+### Layout guard
+
+622 findings against master's 728, by rule: L1 11 (=), L2 165 (=), L3 0 (=), L4 1 (=), L5 0 (=),
+L6 34 (=), **L7 190 to 124**, L8 0 (=), **L9 234 to 194**, L10 93 (=), L11 0 (=), L12 0 (=). Only two
+rules moved and both shrank, by 66 and 40. The count may only shrink and it shrank by 106.
