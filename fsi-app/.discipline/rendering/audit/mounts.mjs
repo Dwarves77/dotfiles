@@ -195,6 +195,12 @@ window.__mount = () => {
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 1, compliance: 1, client: 2, operational: 3 } })),
       React.createElement('div', { 'data-audit': 'row-unscored' },
         React.createElement(ImpactMeter, { variant: 'row', scores: null })),
+      // Lane METERFIX (2026-09-08): the PARTIALLY scored case, [0,0,0,2], the operator's own
+      // example row ("meter with one bar and 2/12"). The artboard draws no partially scored meter
+      // anywhere (all 34 clusters in dc.html p1/p2/p4/p6/p8/p11 are fully scored, lowest sum 4/12),
+      // so impactmeter.json's rows for this mount are the derived treatment, labelled as such.
+      React.createElement('div', { 'data-audit': 'row-partial' },
+        React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },
         React.createElement(ImpactMeter, { variant: 'full', scores: { cost: 1, compliance: 3, client: 1, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-unscored', style: { width: 380 } },
@@ -445,15 +451,29 @@ window.__mount = () => {
 // removed from the product when ruling 3.3 landed. This mount was left pointed at that retired
 // 5-item shape, which made the audit measure a prop the product no longer passes; corrected to
 // mirror the real `MATRIX_DIMENSIONS = DIMENSIONS` (all six, in order).
-const OPSMATRIX_ENTRY = `
+// The entry is a FACTORY, because this component now needs TWO mounts and they must differ in
+// exactly one way: what the reader did. `ops-matrix` mounts it and touches nothing, which is the
+// state a reader arrives at (operator ruling 2026-09-08, "no items expanded when first navigtaing to
+// a page"); `ops-matrix-selected` mounts the SAME fixture and then CLICKS one cell, so the
+// selected-state values the design states are still measured on a real selected cell, selected by
+// the real code path. Two copies of this fixture would have let the two drift; one factory cannot.
+const opsMatrixEntry = (afterMount = '') => `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegionDimensionMatrix } from '@/components/operations/RegionDimensionMatrix';
 
+// The artboard's own five columns (redesign 2026-09-08), matching the region roster the live page
+// carries, rather than the two-region stub this mount used while it fed the component NO facts at
+// all. A matrix mounted with an empty \`facts\` array cannot exercise the panel, the selection, the
+// fact card or the default-selection rule -- every one of which is now the point of this component
+// -- so the fixture carries real rows in the real prop shape.
 const regions = [
   { key: 'EU', label: 'European Union' },
   { key: 'US', label: 'United States' },
+  { key: 'ASIA', label: 'Asia · SG + HK' },
+  { key: 'UK', label: 'United Kingdom' },
+  { key: 'UAE', label: 'UAE · Dubai' },
 ];
 
 // Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) -- the audit reproduces
@@ -467,6 +487,64 @@ const DIMENSIONS = [
   { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
 ];
 
+// THE FIXTURE IS THE SHAPE OF THE LIVE CORPUS, not a convenience sample:
+//   - D1 regulatory_feasibility has ZERO rows, structurally, on every region (it always has);
+//   - EU and US hold zero facts on every dimension (measured live 2026-08-18: 75 rows, all
+//     ASIA/UAE/UK).
+// D2 is left empty here as well, so two rows and two columns are empty and the grid is sparse the
+// way the real one is.
+//
+// WHAT THIS FIXTURE USED TO PROVE, AND WHY IT NO LONGER DOES. Until 2026-09-08 the component picked
+// a DEFAULT SELECTION on mount -- "the first sourced cell in the first sourced row" -- and this
+// fixture was built to attack that rule: only a correct rows-outer/regions-inner scan skips the two
+// empty rows and two empty columns and lands on ASIA x D3. The operator then ruled that a page may
+// not open ANYTHING before the reader acts ("no items expanded when first navigtaing to a page"), so
+// the default selection is gone and there is no scan order left to attack. The fixture is kept
+// unchanged, and both mounts still use it, because the sparse shape is what the live table looks
+// like and because ASIA x D3's FOUR facts still exercise the panel's "max 3, then N more facts on
+// the profile" cap -- now on the cell \`ops-matrix-selected\` CLICKS, rather than on one the product
+// chose for the reader.
+const F = (region, dimension, factLabel, value, opts = {}) => ({
+  region_code: region,
+  dimension,
+  fact_label: factLabel,
+  value,
+  status: 'published',
+  source_note: null,
+  source_name: opts.sourceName ?? 'MOM Occupational Wage Survey · 2025',
+  source_url: opts.sourceUrl ?? 'https://example.org/source',
+  last_updated: opts.lastUpdated ?? '2026-05-28',
+  freshness: 'current',
+  value_numeric: null,
+  unit: null,
+  currency: null,
+  derivation: null,
+  origin_class: opts.originClass ?? null,
+  source_key: null,
+  source_ref: null,
+  n_observations: null,
+  method_version: null,
+  as_at_date: null,
+  reference_period: null,
+});
+
+const facts = [
+  // D3 -- the FIRST sourced row (D1 and D2 hold nothing). ASIA is its first sourced column, so
+  // ASIA x D3 is the default selection, and its four facts exercise the three-card cap.
+  F('ASIA', 'labor_markets', 'Warehouse worker monthly wage', 'HKD 14,747 / mo', { sourceName: 'Indeed HK · 2025-09' }),
+  F('ASIA', 'labor_markets', 'Median gross wage, logistics operatives', 'SGD 3,200 / mo', { originClass: 'official' }),
+  F('ASIA', 'labor_markets', 'Logistics-sector vacancy rate', '4.8%', { originClass: 'official' }),
+  F('ASIA', 'labor_markets', 'Agency staffing premium', '18%'),
+  F('UK', 'labor_markets', 'Warehouse operative median pay', 'GBP 12.40 / hr'),
+  F('UAE', 'labor_markets', 'Warehouse operative median pay', 'AED 3,100 / mo'),
+  // D4 and D6 -- more sourced rows below the default, so the grid is not one populated row.
+  F('ASIA', 'materials_sourcing', 'Bonded warehouse capacity', '412,000 sqm'),
+  F('UK', 'materials_sourcing', 'Bonded warehouse capacity', '188,400 sqm'),
+  F('UAE', 'materials_sourcing', 'Bonded warehouse capacity', '96,200 sqm'),
+  F('ASIA', 'operational_cost', 'Handling cost per TEU', 'USD 128'),
+  F('UAE', 'operational_cost', 'Handling cost per TEU', 'USD 96'),
+];
+
 let root = null;
 window.__mount = () => {
   const el = document.getElementById('smoke-root');
@@ -475,13 +553,31 @@ window.__mount = () => {
     React.createElement('div', { style: { width: 900 }, 'data-audit': 'ops-matrix' },
       React.createElement(RegionDimensionMatrix, {
         regions,
-        dimensions: DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name })),
-        facts: [],
+        dimensions: DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name, num: d.num })),
+        facts,
         coverageRows: [],
+        totalRegionCount: 18,
+        profileHrefByRegion: { ASIA: '/operations/asia-profile' },
       }),
     ),
   );
+  ${afterMount}
 };
+`;
+
+// The click `ops-matrix-selected` performs. It runs after two animation frames, so React has
+// committed the first render and the cell exists; run-audit.mjs then waits two more frames plus 80ms
+// plus a per-target settle before it probes, so the post-click render is painted by the time
+// anything is measured. It addresses the cell by its own accessible name, which is the same string
+// a screen-reader user hears, rather than by a positional selector that a column reorder would
+// silently repoint.
+const OPSMATRIX_CLICK_ASIA_D3 = `
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const target = Array.from(document.querySelectorAll('td[role="gridcell"]'))
+      .find((c) => (c.getAttribute('aria-label') || '').startsWith('Asia · SG + HK, D3 Labor markets'));
+    if (!target) throw new Error('ops-matrix-selected: no ASIA x D3 cell to click');
+    target.click();
+  }));
 `;
 
 // ── Community peer-org directory table ─────────────────────────────────────────────────────────
@@ -2968,9 +3064,22 @@ export const AUDIT_MOUNTS = {
   },
   'ops-matrix': {
     id: 'ops-matrix',
-    description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own MATRIX_DIMENSIONS (all 6 DIMENSIONS, ruling 3.3).',
+    description:
+      'RegionDimensionMatrix AT REST, fed OperationsLedger.tsx\'s own MATRIX_DIMENSIONS (all 6 ' +
+      'DIMENSIONS, ruling 3.3). Mounted and left alone: this is the state a reader arrives at, with ' +
+      'no cell selected and no panel (operator ruling 2026-09-08).',
     viewport: 1440,
-    entry: OPSMATRIX_ENTRY,
+    entry: opsMatrixEntry(),
+  },
+  'ops-matrix-selected': {
+    id: 'ops-matrix-selected',
+    description:
+      'The SAME RegionDimensionMatrix and the SAME fixture, after ONE CLICK on the ASIA x D3 cell. ' +
+      'Every selected-state and panel value the design states is measured here, on a cell the test ' +
+      'selected through the real click path, rather than on a default selection the product used to ' +
+      'make for the reader.',
+    viewport: 1440,
+    entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D3),
   },
   'list-surface-virtualized': {
     id: 'list-surface-virtualized',

@@ -11,7 +11,10 @@
  * coloured by value (1 green · 2 orange · 3 red) so green is always left
  * and red always right; the sum N/12 sits margin-left:7px beside it in
  * tabular numerals (audit item B29-B46, 2026-09-07, artboard #sys list-row
- * example). Unscored = a 30px dashed baseline (operator audit item
+ * example). A dimension scored 0 keeps its slot and draws a 2px stub in the
+ * baseline's own ink (lane METERFIX, 2026-09-08; see ZERO_BAR_HEIGHT_PX below
+ * for the ruling and the geometry), so a partially scored row never reads as
+ * one lonely bar. Unscored = a 30px dashed baseline (operator audit item
  * 2.1, 2026-09-07 ruling — one width, desktop and mobile), never a second
  * "NOT SCORED" row and never the literal "UNSCORED". Beside the baseline sits
  * an EM DASH in the score slot (item B3, operator 2026-09-08; dc.html p1's own
@@ -42,6 +45,44 @@ const VALUE_COLOR: Record<number, string> = {
   2: "var(--action)",
   3: "var(--immediate)",
 };
+
+/**
+ * ZERO-DIMENSION SLOT (lane METERFIX, 2026-09-08, operator ruling: "Artboard: four bars sorted
+ * ascending, coloured by value, on a 1px baseline. If only some dimensions are scored the unscored
+ * ones render as 0-height on the baseline; the sum shows ... Never one lonely bar.").
+ *
+ * Before this lane the scored branch drew every bar at `v * 6`px, so a dimension scored 0 painted a
+ * 9px-wide, 0px-tall box: it held its slot in the flex row (the baseline has always spanned all
+ * four slots) but put no ink in it. A row scored [0,0,0,2] therefore rendered three invisible boxes
+ * and one 12px bar, which is the "one lonely bar" the ruling forbids, measured in chromium at 1440
+ * and 390 before the fix (docs/design/handoff-2026-09-06/built/meterfix-partial-before-*.png).
+ *
+ * The artboard does not settle the treatment: every meter it draws is FULLY scored. All 34 meter
+ * clusters in `docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html'` (sections p1, p2, p4,
+ * p6, p8, p11) carry four bars at 6, 12 or 18px, and the lowest sum drawn anywhere is 4/12, i.e. four
+ * dimensions at 1. There is no zero bar to copy, so the treatment is chosen against the artboard's
+ * own geometry rather than against taste:
+ *
+ *   - HEIGHT 2px. The artboard's score unit is 6px (1 -> 6, 2 -> 12, 3 -> 18). 2px is one third of
+ *     the smallest scored bar, so it can never be misread as a score of 1, and it is the smallest
+ *     mark the drawing's own vocabulary already contains: the baseline is a 1px stroke and the bar
+ *     corner radius is 1px. It is the minimum change to the drawn values that puts ink in the slot.
+ *   - COLOUR rgba(0,0,0,.25), the baseline's own ink. The VALUE_COLOR ramp is untouched and no zero
+ *     bar joins it: a zero dimension is not a value on the green/orange/red scale, so it is drawn in
+ *     the only non-ramp ink the artboard's meter contains. The former fallback here was
+ *     `var(--line-1)` (rgba(0,0,0,.12)), fainter than the baseline it sits on, which at 2px would
+ *     have been a stub nobody can see, which would satisfy the letter of "0-height on the baseline"
+ *     and fail its purpose.
+ *
+ * Both halves of the ruling: the unscored dimension is visibly a dimension at zero (a filled slot on
+ * the baseline, distinct in height and colour from every scored bar), and the row can no longer read
+ * as one lonely bar (four slots always carry ink). Nothing else moves: the 9px width, the 2px gap,
+ * the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS are all
+ * untouched, and because MOBILE_CSS overrides heights only for data-score 1/2/3 the 2px stub is the
+ * same at 1440 and at 390 without a media-query rule of its own.
+ */
+const ZERO_BAR_HEIGHT_PX = 2;
+const ZERO_BAR_COLOR = "rgba(0,0,0,.25)";
 
 /** The one "is this item scored?" predicate. Exported (lane comp-06, 2026-09-08) so a surface that
  *  must COUNT its unscored rows, /research's band transition strip, artboard 06/id="p6"
@@ -198,9 +239,9 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
             data-score={v}
             style={{
               width: 9,
-              height: `${v * 6}px`,
+              height: `${v >= 1 ? v * 6 : ZERO_BAR_HEIGHT_PX}px`,
               alignSelf: "flex-end",
-              background: VALUE_COLOR[v] ?? "var(--line-1)",
+              background: VALUE_COLOR[v] ?? ZERO_BAR_COLOR,
               borderRadius: "1px 1px 0 0",
             }}
           />

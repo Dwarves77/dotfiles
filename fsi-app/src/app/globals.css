@@ -565,11 +565,13 @@ body {
 .cl-scroll-shadow::-webkit-scrollbar-thumb { background: var(--line-1, rgba(0,0,0,.25)); border-radius: 5px; }
 .cl-scroll-shadow::-webkit-scrollbar-track { background: var(--tag, rgba(0,0,0,.05)); border-radius: 5px; }
 
-.cl-ops-matrix-cards { display: none; }
-@media (max-width: 640px) {
-  .cl-ops-matrix-table { display: none !important; }
-  .cl-ops-matrix-cards { display: block !important; }
-}
+/* The `.cl-ops-matrix-cards` <=640px reflow (one card per region, replacing the table) was DELETED
+   with the matrix redesign of 2026-09-08 (lane opsmatrix3), together with the rules that hid the
+   table below 640. It was a SECOND rendering of the same data, and it existed because panning the
+   old table lost the row label the moment the dimension column scrolled off. The redesigned matrix
+   pins that column (`position: sticky` on the first cell, RegionDimensionMatrix.tsx), so the one
+   table is legible at every width and the duplicate is gone rather than dormant.
+   `.cl-ops-matrix-table` survives as the scroller's own hook and carries no display rule. */
 
 
 /* Responsive data table → stacked cards (coordinator, 2026-09-03, round 2). ROOT CAUSE (regulations

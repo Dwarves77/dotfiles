@@ -69,8 +69,29 @@ test("B29-B31: row-scored bars container is 18px tall with a 1px solid rgba(0,0,
 });
 
 test("B33-B39: row-scored bars are 9px wide, height = score * 6px, top-only radius", () => {
-  assert.match(SOURCE, /width: 9,\s*\n\s*height: `\$\{v \* 6\}px`/);
+  assert.match(SOURCE, /width: 9,\s*\n\s*height: `\$\{v >= 1 \? v \* 6 : ZERO_BAR_HEIGHT_PX\}px`/);
   assert.match(SOURCE, /borderRadius: "1px 1px 0 0"/);
+});
+
+// Lane METERFIX (2026-09-08, operator ruling "never one lonely bar"). The RENDERED-height proof for
+// the zero dimension is .discipline/rendering/smoke/impact-meter-partial-smoke.mjs, which measures a
+// real chromium at 1440 and 390 and is red on the base tree. These two are the source-level guards
+// that keep the constants from drifting back: 2px is one third of the 6px score unit (so it can
+// never be read as a score of 1), and the stub is the baseline's own rgba(0,0,0,.25), not the
+// fainter --line-1 the bar background used to fall back to.
+test("METERFIX: a zero dimension draws a 2px stub, not a 0px box", () => {
+  assert.match(SOURCE, /const ZERO_BAR_HEIGHT_PX = 2;/);
+  assert.doesNotMatch(SOURCE, /height: `\$\{v \* 6\}px`/, "the unguarded v*6 height is what painted the invisible box");
+});
+
+test("METERFIX: the zero stub uses the baseline ink, and the VALUE_COLOR ramp is untouched", () => {
+  assert.match(SOURCE, /const ZERO_BAR_COLOR = "rgba\(0,0,0,\.25\)";/);
+  assert.match(SOURCE, /background: VALUE_COLOR\[v\] \?\? ZERO_BAR_COLOR/);
+  assert.match(
+    SOURCE,
+    /const VALUE_COLOR: Record<number, string> = \{\s*\n\s*1: "var\(--awareness\)",\s*\n\s*2: "var\(--action\)",\s*\n\s*3: "var\(--immediate\)",\s*\n\};/,
+    "the ramp keeps exactly its three entries, and a zero bar is not a value on it"
+  );
 });
 
 test("B40: row-scored sum label sits margin-left:7px from the bars", () => {

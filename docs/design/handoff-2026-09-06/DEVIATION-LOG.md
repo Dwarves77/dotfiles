@@ -921,3 +921,240 @@ gone with join and leave at the composer foot.
 | `audit:layout` findings | 792 | 728 (L1 11, L2 165, L4 1, L6 34, L7 190, L9 234, L10 93) |
 | `audit:design` | all MATCH | 73 specs, 2407 checks, 2407 MATCH, 0 MISMATCH |
 | `run-test-suite.sh` | 5992 pass, 0 fail | 6006 pass, 0 fail |
+## LANE OPSMATRIX3 (train 61, 2026-09-08): artboard 08's matrix, redesigned
+
+The operator replaced artboard 08's region x dimension matrix. In his words: "the expand-a-dimension
+matrix does not survive real data". The replacement is a compact scoreboard whose selected cell
+opens its facts in a panel below the table, at the card's own reading width. This section records
+what the build could not take from the repo, what it decided instead, and every value it had to
+source from the system sheet.
+
+### The specification is an image, because the markup it names does not exist
+
+The brief names `docs/design/handoff-2026-09-07/screens/08-operations-list.png` and a refreshed
+`id="p8"` section. NEITHER IS IN THE REPO. The only handoff present is 2026-09-06, and both its `08`
+screen and its `p8` markup draw the OLD expand-a-dimension design, so dc.html p8 is STALE for this
+page and NO geometry was taken from it. The artboard image was copied into the repo at
+`screens/08-operations-list-redesign-2026-09-08.png` and is cited as the source by both audit specs.
+The 2026-09-06 `08-operations-list.png` was left in place, unchanged: it is the record of the design
+this replaces, and overwriting it would destroy the only evidence of what changed.
+
+### Values taken from the system sheet, listed so the operator can confirm them
+
+The image and the operator's written spec govern wherever they speak. These are the values NEITHER
+stated, taken from the system sheet (`screens/00-system-sheet.png`, README section 0.4) rather than
+invented. Every one is a value the app already uses somewhere else.
+
+| Value | Taken as | Where it came from |
+|---|---|---|
+| Panel's 1px top rule colour | `--line-2` | README 0.4: the header-divider weight every card-internal strip in the app already uses |
+| Sticky column's 1px right divider | `--line-2` | Same rule; a column divider separating pinned from scrolling reads at divider weight, not row weight |
+| Row divider under each matrix row | `--line-3` | README 0.4 list row: "row divider 1px solid rgba(0,0,0,.06)" |
+| Card header aside type | 10.5px / .12em / uppercase / 600 / `--ink-3` | The meta treatment every card head aside in the app carries; unchanged from the previous build of this same strip |
+| Region column sub-line type | 10px (`--fs-10`) | The smallest step on the type scale; unchanged from the previous build of this same sub-line |
+| Panel heading type | 12.5px (`--fs-125`), dimension at 700 ink, rest `--ink-3` | The body step the matrix table itself is set at, so the panel reads as the table's continuation |
+| Panel link type | 11.5px (`--fs-115`) / 600 / underlined on `--link-line` | The link treatment README 0.4 gives an inline source link |
+| Fact card box | white, 2px solid `--ink` left edge, 1px `--line-1` on the other three sides, radius `0 8px 8px 0`, padding `12px 14px`, `0 0 10px` gap | README 0.4 "sourced fact card", and `ui/FactCard.tsx`'s own `SOURCED_SHAPE`, read rather than re-derived |
+| Panel padding | `12px 16px 4px` | The card's own 16px gutter, so the panel's left edge lines up with the head and the table |
+| Panel foot legend type | 10.5px `--ink-3` | Same meta step as the card header aside, which is the other end of the same card |
+| Column floors | dimension 180px, region 96px | NOT in any source: derived from the rendering guard's own measurement (see below) and asserted arithmetically rather than eyeballed |
+
+### The operator's three hexes were already tokens
+
+`#DCE7FB` is `--selection`, `#2563EB` is `--monitor`, `#FAFAF8` is `--page`, all three already
+canonical in `src/app/theme.css`. The component names the tokens; no raw hex was written into it and
+no token was added. Worth stating because it means the redesign asked for nothing the system did not
+already have.
+
+### Decisions the image left open
+
+**An unsourced cell is SELECTABLE, and its panel says so plainly.** The brief allowed either. Chosen
+because the alternative puts holes in the arrow-key grid: a reader arrowing along D1, which is
+structurally empty on every region, would find the selection skipping cells for no visible reason 
+and because a reader who wants to know why a cell is empty then has nowhere to click. The panel
+renders the closed-vocabulary absence token followed by "no producer has written D1 Regulatory
+feasibility for European Union. Nothing is estimated in its place." That is the app's absence
+doctrine (ruling 2.1) at panel scale, not an exception to it.
+
+**The scroll hint appears only when the table can scroll.** The artboard's head aside reads
+"18 OF 30 CELLS SOURCED · 60% · 18 REGIONS · SCROLL". The build draws the counted half always and
+appends "N regions · scroll" only when the column roster exceeds the operator's own five-column
+threshold. Telling a reader to scroll a table that does not move is a false affordance, and the
+region figure is COUNTED from the column roster rather than stated, so it can never disagree with
+the columns on screen. With today's five-region roster the clause does not appear; it will the day a
+sixth region lands.
+
+**The foot legend shows the absence phrase, not a bare leading em dash.** The artboard draws
+"— not in primary source". A bare `—` is a placeholder literal by the app's own source-entry-filter
+SoT and the rendering guard fails on it; the dash is permitted only inside the declared `Absence`
+part, which is exactly what the cells use (`variant="narrow"`, `data-absence`). The legend therefore
+carries the same token in its phrase form. Adding a second, undeclared dash beside it to match the
+drawing would reintroduce the literal this convention exists to keep out. Same reasoning lane
+opsclip recorded for DEFECT 3; unchanged here.
+
+### One defect this lane found in its own work, and fixed
+
+[CONFIRMED, measured by `run-rendering-guard.mjs` on this lane's first run] Deleting the `<=640px`
+card reflow exposed the table's real behaviour at phone widths: with `width: 100%` and no column
+floor, a six-column table inside a 343px card does not scroll, it CRUSHES. The guard measured the
+dimension column at 21px against a 67px cell, wrapping "Regional resource availability" over TWELVE
+lines one character wide, on all three operations fixtures. Column floors (180 / 96) turn crush into
+scroll. They do NOT re-create the 198px overflow lane opsclip fixed at 1440: that came from FACTS
+being rendered into the region columns, and the facts are in the panel now. The floors sum to
+180 + 5 x 96 = 660px, inside the card at 1440, and the sum is asserted arithmetically in
+`RegionDimensionMatrix.npmtest.mjs` rather than left to a screenshot.
+
+### The scroller is a declared STRIP, not a declared container
+
+The box carried `data-guard-container="ops-matrix-scroll"`, which tells `detectOverflows` "this
+box's content must FIT it". That was only ever true by accident: the old table never overflowed
+because it crushed. A box whose purpose is to scroll cannot satisfy a must-fit check, so it now
+carries `data-guard-strip="true"`, which is the mechanism `ux-assert.mjs` provides for exactly this
+case. The precedent is `ui/RowTable.tsx` (lane admin60, this same train), which reached the identical
+conclusion for the admin tables. This table has one thing RowTable does not, and it is what makes
+the panning readable rather than merely possible: the dimension column stays pinned.
+
+### No shared table-card part existed to reuse
+
+Checked before building: `ui/` holds `RowTable` (a CSS-grid admin row anatomy, no sticky column, no
+card chrome) and globals.css holds `.cl-table-cards` (the stack-into-cards reflow this design
+replaces). Neither is the round-2 table card. The scroller here is therefore built so a shared part
+can absorb it later without touching any data code: the whole pattern is `MatrixScroller`'s three
+elements plus the `stickyCell` / `bodyCell` / `headCell` style objects, none of which read component
+state.
+
+### Deleted, not left dormant (CLAUDE.md rule 13)
+
+The expanded-row path (`openDimension` state, the `<td colSpan>` cell, its `repeat(N,1fr)` per-region
+fact grid, the disclosure glyph, the row click handler); `LegacyFactRow` and `EnvelopedFactRow` as
+two components; the "Compare against:" base-region control with `baseRegion`, `orderRegions` ordering,
+`baseFactFor` and `anyEnveloped`; and the `.cl-ops-matrix-cards` reflow with its globals.css rules.
+`indexAgainstBase` is NOT dead: it moved into the panel's compare mode, where the base region is
+implied by column order rather than picked by the reader, which is a better answer to the question
+the control was asking. Cross-region comparison is superseded, not dropped.
+
+---
+
+## Lane noexpand (2026-09-08): nothing is open when you arrive
+
+Base: `lane/opsmatrix3-2026-09-08` (`64646ddc`). The two lanes land together, because the default
+SELECTION this lane removes is a thing that lane built.
+
+### The ruling
+
+The operator navigated to `/operations` and the page had already opened a dimension, Infrastructure
+capacity, with nobody having clicked anything. Verbatim: "the ops page opend to a sub category not
+just the main page, infastructure capacity and other items should be closed, no items expanded when
+first navigtaing to a page". The coordinator's readings, which this lane treated as binding: R1 the
+rule is site-wide, not one page's; R2 it covers content disclosure including a default selection
+whose visible effect is an opened panel; R3 the FILTERS rail's stated default is out of scope; R4 a
+deep link may still open exactly what it names; R5 keyboard reachability is not an excuse to
+preselect.
+
+### What changed in the matrix
+
+`RegionDimensionMatrix` computed `defaultSelection` on mount, "the first sourced cell in the first
+sourced row", tinted that cell and rendered its fact panel. That is gone. On first render there is no
+selection, no panel and no tinted cell: the table and its foot legend.
+
+Keyboard reachability needed two pieces of state where there was one. `focusPos` is the roving
+tabindex position, starting at the first cell, moved by the four arrows plus Home and End, and it
+paints nothing. `selection` is what the reader committed to with a click, Enter or Space, starts
+null, and is the only thing the panel renders from. Arrow keys used to move the selection, so a
+reader arrowing across the scoreboard to read scores had panels opening under him; they now move
+focus alone, which is what R5 asks for. A selection whose column or dimension the rail scopes away
+now closes the panel rather than falling back to a computed default, because falling back to a
+default is the same defect one step removed.
+
+The foot strip (`not in primary source` legend, the click affordance, the region count) moved from
+inside the panel onto the CARD. It sat inside the panel only because a default selection guaranteed
+a panel existed; with nothing open on arrival, the strip that explains the dashes and says how to
+open a cell is exactly what the reader needs then. Its arrow-key clause reads "arrow keys move
+between cells", because that is what arrows now do.
+
+### What changed elsewhere, and what deliberately did not
+
+`resource/IntelligenceBrief.tsx` opened its "Contents (N sections)" panel on mount (`useState(true)`).
+Closed. No route renders that component today (its only importer, `resource/SectorSynopsis.tsx`, has
+no importer of its own), which is stated rather than used as a reason to skip it.
+
+`community/CommunitySidebar.tsx`'s `SidebarSection` opens its groups on mount, and is LEFT ALONE and
+reported. These are the /community left-rail navigation groups, the same kind of standing control
+surface R3 exempts, but no written ruling states their default the way UI FIX ROUND 2 item 4 states
+the filters rail's. R3's own last sentence says to report such a case rather than decide it. The
+change if the operator rules the other way is one line, and the marker at the site says so.
+
+The `/admin` sub-tab row reports `aria-selected="true"` on "Provisional review" at rest. Measured,
+excluded, reasoned: it is a `role="tab"` in a `role="tablist"`, sibling navigation where exactly one
+tab is always active and whose "panel" is the page body. A tablist with nothing active renders no
+content at all. The exclusion is written into the sweep's probe and the sweep still PRINTS it, so it
+stays in view rather than being filtered out of the question.
+
+### R3 has no site on this base
+
+Stated because the absence matters. There is no `FiltersCard` in the tree, and the rail's facet
+groups (`list-surface/ListSurfaceRailCards.tsx`) are not collapsible per group: every group renders
+its options, and the file's only disclosure is the per-group "more options" expander, already
+`useState(false)`. Nothing was closed, nothing was touched, and the R3 allowance is carried in F42
+and in the sweep for the lane that later builds those groups.
+
+### The audit spec split, and why nothing was weakened
+
+`operations-matrix.json` measured the selected state and the panel ON THE DEFAULT SELECTION, because
+the audit runner renders one state and cannot click. Fourteen rows (the `#DCE7FB` tint, the 2px
+`#2563EB` inset, the panel's background and top rule, its position below the table, its heading, its
+two links, the three-card cap, the remainder line, five fact-card values) moved VERBATIM to a new
+`operations-matrix-selected.json`, whose mount `ops-matrix-selected` renders the same component and
+the same fixture and then CLICKS the ASIA x D3 cell by its accessible name. They are now measured on
+a cell selected through the real click handler, which is strictly stronger: before, a broken click
+path could not have failed them.
+
+One row was rephrased rather than moved. "the selected cell is the grid's single TAB STOP" asserted
+`[tabindex="0"]` count 1; that count now holds AT REST, with nothing selected, which is the harder
+state, and a second row pins the stop to the first cell. Three new forbids and three new targets are
+the regression guard: no `aria-selected`, no panel, no fact card, no cell painted `#DCE7FB`, one tab
+stop, the stop is the first cell, the foot legend survives.
+
+`compose-08-operations-list.json` REQUIRED the panel on the composed `/operations` page in three
+rows. That is the exact screen the operator was looking at, so those rows asserted the defect. They
+are replaced by the closed state plus two forbids, and everything they measured is still measured on
+the selected-state spec.
+
+### Closing the class
+
+F42 `default-open-disclosure` fails CI on the lexical shape in `src/components/**`: an open/expand
+state starting `true`, a collapsed/closed state starting `false`, a
+`defaultOpen`/`defaultExpanded`/`initialOpen`/`expandedByDefault`/`openByDefault`/`defaultIndex` prop
+defaulting truthy, a `<details open>`. Polarity is read off the state name after a camelCase split
+and matched on whole words, so `openingHours` is not a violation. Allows are per-site
+`// fitness-allow: F42 (ruling)` markers naming their ruling, never a path allowlist.
+
+F42 cannot see the shape that caused this ruling. A default SELECTION has no boolean and no prop:
+the tell is only in the rendered DOM. So the other half is in the rendering guard,
+`smoke/no-default-open-smoke.mjs`, which mounts the real matrix and every `compose-*` page mount and
+measures `details[open]`, `aria-expanded="true"`, a non-tab `aria-selected="true"` and a visible
+`role="tabpanel"` in the initial DOM, using the probe `audit/open-state-sweep.mjs` exports rather
+than a second copy of it. Both are cited in invariant RD-67 and skill Section 4 category 42.
+
+Proven by attack, both halves. The `defaultSelection` block was pasted back into the matrix and the
+guard leg went red on six assertions; the file was restored and it went green. `tocOpen` was set back
+to `true` and F42 went red on the exact line; it was restored and passed.
+
+### The deep-link proof (R4), and an honest limit
+
+The only place in this app where a URL opens something the bare route does not is
+`/profile?tab=<key>` (`lib/account/initial-tab.ts`, read by `UserProfilePage` on its first render).
+The smoke spec mounts the real page twice against the same fixture: at `/profile` the organization
+panel is absent, at `/profile?tab=organization` it is present, and in BOTH cases every `<details>` on
+the page is still closed. A deep link opens exactly what it names and nothing else.
+
+The limit, stated rather than papered over: there is no `<details>`, accordion or section that a URL
+opens in this app, so the proof is on a tab-scoped panel rather than on a disclosure. No such path
+was invented to make a better-looking test.
+## LANE METERFIX (2026-09-08): the partially scored impact meter
+
+| Date | Deviation | Why | Trade-off | Owner |
+|---|---|---|---|---|
+| 2026-09-08 | A dimension scored 0 draws a 2px stub in the baseline's ink `rgba(0,0,0,.25)`; the artboard has no value for this | [CONFIRMED, by enumeration] The artboard contains NO partially scored meter. All 34 meter clusters in `Caros Ledge UI System.dc.html` (sections p1, p2, p4, p6, p8, p11) draw four bars at 6, 12 or 18px, and the lowest sum drawn anywhere is 4/12, four dimensions at 1. There is no zero bar in the drawing to copy, so the treatment is DERIVED, and it is derived from the artboard's own geometry rather than from taste: the score unit is 6px, so 2px is one third of the smallest scored bar and cannot be read as a score of 1; `rgba(0,0,0,.25)` is the baseline stroke's own ink, the only non-ramp colour the artboard's meter contains, so the stub reads as part of the baseline vocabulary and never as a value on the green/orange/red ramp. Operator ruling 2026-09-08, verbatim: "If only some dimensions are scored the unscored ones render as 0-height on the baseline; the sum shows ... Never one lonely bar." Taken literally, "0-height" is what the code already did and is exactly the defect; the sentence's other half ("never one lonely bar") is what settles it, so the zero dimension gets the smallest visible mark instead of no mark. | The stub is 2px of ink the artboard does not draw. The alternative that stays literally at 0-height leaves a row scored [0,0,0,2] rendering three invisible boxes and one 12px bar beside "2/12", measured in chromium at 1440 and 390 before the fix, `built/meterfix-partial-before-1440.png` and `-390.png`. | lane METERFIX, 2026-09-08 |
+| 2026-09-08 | The zero bar's colour fallback moved from `var(--line-1)` (rgba(0,0,0,.12)) to `rgba(0,0,0,.25)` | [CONFIRMED, measured] `VALUE_COLOR[v] ?? "var(--line-1)"` already handled a value outside 1-3, but --line-1 is fainter than the 1px baseline the bar stands on, so a 2px stub in it would satisfy the letter of the ruling and stay invisible in practice. The `VALUE_COLOR` ramp itself is untouched, a zero dimension is not a value on the ramp and does not join it. | One token swapped on the unscored slot only. Nothing else in the meter moved: the 9px width, the 2px gap, the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS are unchanged, and because MOBILE_CSS overrides heights only for `data-score` 1/2/3 the stub is 2px at both viewports without a media-query rule of its own. | lane METERFIX, 2026-09-08 |
+| 2026-09-08 | The baseline was already spanning all four slots; only the ink was missing | [CONFIRMED, by geometry and by measurement] The 1px baseline is a `border-bottom` on the bars container, whose width is set by its four 9px children plus three 2px gaps = 42px. A zero-height bar is still a 9px-wide flex item, so it has always held its slot and the baseline has always spanned four slots. The defect was never the baseline; it was that three of the four slots painted nothing. `impactmeter.json` now asserts the 42px container on the partial fixture so a future "skip the zero bars" shortcut fails. | None. | lane METERFIX, 2026-09-08 |

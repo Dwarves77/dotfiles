@@ -15646,3 +15646,255 @@ fail, exit 0. `npx next build` (Turbopack) exit 0 and `npx next build --webpack`
 carry their own UX compliance blocks (see the lane regopscope and communitynav2 entries above), plus
 regenerated evidence. The two guards that measure the shared parts, the rendering guard and the
 site-wide layout guard, both ran at 1440 and 390 on this tree and are recorded above.
+## Addendum, lane opsmatrix3 (2026-09-08): artboard 08's matrix redesigned, and the mobile duplicate it let us delete
+
+**Scope.** `RegionDimensionMatrix.tsx` and its panel, plus the audit specs and the fixture that
+measure it. Four page-file lines in `OperationsLedger.tsx`, named below. The sibling lane regopscope2
+owns the /operations page-level moves (calculator, by-state strip, footnotes) and nothing here
+touches them.
+
+**What changed and why.** The operator redesigned artboard 08: "the expand-a-dimension matrix does
+not survive real data". The table is now a scoreboard of 40px rows, one bare score or one em dash per
+cell, nothing expanding inside it; the selected cell's facts open in a panel below the table at the
+card's reading width. Selection is a real focus model: the table is a `role="grid"` with roving
+tabindex, arrow keys move the selection and the panel follows, and column 0 (the dimension row
+header) is part of the same grid so ArrowLeft off the first region column opens compare mode. Every
+selectable target is reachable from the first by arrow alone.
+
+**The specification is an image, and that is a caveat, not a detail.** The brief names a
+`handoff-2026-09-07` screen and a refreshed `id="p8"`; neither is in the repo, and the 2026-09-06 `08`
+and `p8` both draw the design being replaced. So dc.html p8 is stale for this page and no geometry
+came from it. The artboard is copied to
+`docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png` (the old 08 left
+in place as the record) and cited by both specs. Eleven values the image and the spec did not state
+were taken from the system sheet and are TABULATED in DEVIATION-LOG.md so the operator can confirm
+each one when the refreshed markup arrives. All three of the operator's hex values turned out to be
+canonical tokens already (`--selection`, `--monitor`, `--page`), so nothing was added to the theme.
+
+**The audit spec was replaced, with the reason stated.** `operations-matrix.json` measured the
+expanded-row design: the colspan facts row, the disclosure glyph, the "do not conflate the Facts tr
+with a dimension row" caveat. Keeping it would have left the audit green against markup the product
+had deleted, which is the failure mode rule 15 exists to stop. It is rewritten with one row per
+clause of the operator's spec (row height, cell type, selection tint and inset, panel background and
+top rule, header and link strings, fact card type sizes, the sticky column, the hint, the legend) and
+its notes quote his spec verbatim. Three rows in `compose-08-operations-list.json` changed for the
+same reason and are marked "REDESIGN 2026-09-08"; the rest of that file is regopscope2's territory
+and was not touched.
+
+**Every new row proven by attack.** Fourteen scripted breakages, each reverted: row height 40 to 56,
+Anton 16 to 14, selection tint removed, inset removed, sticky to static, panel background to card,
+panel top rule removed, fact cap 3 to 99, figure 18 to 16, source line 10.5 to 11, the arrow-key
+legend removed, roving tabindex made unconditional, a colspan cell plus a "CURRENT" state word
+reintroduced, and the default selection replaced twice (once with row-0/column-0, once with a
+column-first scan). Every one turned the audit red; the two wrong defaults turned TWO rows red each.
+The fixture is built as the attack: D1 and D2 hold no facts and EU and US hold none on any dimension,
+which is the shape of the live corpus, so only "the first sourced cell in the first sourced row"
+produces the panel heading the spec asserts.
+
+**A defect this lane created and fixed inside the same run.** [CONFIRMED by the rendering guard]
+Deleting the `<=640px` card reflow: a second rendering of the same data, and the thing rule 13
+forbids: exposed that the table CRUSHES rather than scrolls at 375 with no column floors: the
+dimension column measured 21px and wrapped a dimension name over twelve one-character lines. Column
+floors (180 / 96) fix it, they cannot re-create lane opsclip's 1440 overflow (that came from facts
+living in the region columns, which they no longer do), and their sum is asserted arithmetically
+rather than trusted to a screenshot. The scroller also stopped claiming to be a must-fit
+`data-guard-container` and now declares `data-guard-strip`, which is what `ux-assert.mjs` provides
+for a table that keeps its column widths: the same conclusion `ui/RowTable.tsx` reached this train,
+with the sticky dimension column as the thing that makes the panning readable.
+
+**Page-file lines (four, all in OperationsLedger.tsx).** `matrixRegions` (the REGION facet scopes the
+matrix's columns, mirroring the existing `matrixDimensions` line for rows); `profileHrefByRegion`
+(built from rows the page already holds; a region with no profile row gets no link rather than a dead
+href); `num: d.num` added to the dimensions map (the D-number prefix, from the same DIMENSIONS
+constant the rail's own D1-D6 labels read); and `totalRegionCount`.
+
+**Gates.** tsc clean · fitness 35 checked / 0 violations · rendering guard PASS · audit:design
+2069/2069 MATCH · audit:overflow 0px on every mount · npmtest glob 1057 pass / 0 fail · test suite
+5970 pass / 0 fail · `next build --webpack` clean.
+
+**Evidence.** `docs/design/handoff-2026-09-06/built/08-operations-redesign-2026-09-08-sidebyside-1440.png`
+(50/50 artboard against build), plus `-built-1440.png`, `-built-1024.png` and the component-alone
+`08-operations-matrix-redesign-2026-09-08-part.png`. All read back before reporting.
+
+**Open, for the operator.** The eleven system-sheet values in DEVIATION-LOG.md's table want
+confirming against the refreshed markup when it lands. Two readings of the artboard are recorded
+there rather than guessed at: the scroll hint appears only when the roster exceeds five columns, and
+the foot legend carries the absence phrase rather than a second bare em dash beside it.
+
+---
+
+## 2026-09-08, lane noexpand: no items expanded when first navigating to a page
+
+**Base.** `lane/opsmatrix3-2026-09-08` (`64646ddc`), branched from the lane rather than a train,
+because the default SELECTION this lane removes is a thing that lane built and the two land together.
+
+**The ruling.** The operator navigated to `/operations` and the page had already opened a dimension,
+Infrastructure capacity, without him clicking anything: "the ops page opend to a sub category not
+just the main page, infastructure capacity and other items should be closed, no items expanded when
+first navigtaing to a page". Site-wide (R1), covering any default selection whose visible effect is
+an opened panel (R2), with the FILTERS rail's stated default out of scope (R3), deep links still
+opening what they name (R4), and keyboard reachability not licensing a preselection (R5).
+
+**Method: measurement first, grep second.** Every one of the 49 registered mounts (the 17 artboard
+routes among them) was rendered at 1440 and at 390 through the audit machinery and its initial DOM
+was read for `details[open]`, `aria-expanded="true"`, `aria-selected="true"` and a visible
+`role="tabpanel"`. That sweep is now a repo file, `.discipline/rendering/audit/open-state-sweep.mjs`,
+beside `overflow-sweep.mjs`, and its probe is the same string the rendering guard's new leg
+evaluates, so the two cannot drift. It found FOUR open elements before any interaction, on two
+distinct causes; grep over the initialiser family then found two more that no mount renders.
+
+**Findings, all [CONFIRMED] by rendering unless marked.**
+- `ops-matrix` / `compose-08-operations`: a `<td>` with `aria-selected="true"` and its fact panel,
+  from `RegionDimensionMatrix`'s `defaultSelection`. FIXED: no selection, no panel, no tint on first
+  render; the first cell carries `tabindex="0"` and takes focus on Tab, and only a click, Enter or
+  Space selects. Arrow keys now move focus and select nothing (R5).
+- `admin-stat-tiles` / `compose-admin`: `aria-selected="true"` on the "Provisional review" sub-tab.
+  NOT A DEFECT and not touched: a `role="tab"` in a `role="tablist"`, sibling navigation where one
+  tab is always active and whose panel is the page body. The exclusion is a ruling written into the
+  probe, and the sweep still prints the row rather than filtering it away.
+- `resource/IntelligenceBrief.tsx:455`: `tocOpen = useState(true)`, the "Contents" panel open on
+  mount. FIXED to `false`. No route renders that component today (its only importer,
+  `resource/SectorSynopsis.tsx`, has no importer of its own): stated, not used as an excuse.
+- `community/CommunitySidebar.tsx:408`: `open = useState(true)` on the /community left-rail
+  navigation groups. LEFT ALONE AND REPORTED, per R3's "reports the case rather than deciding". It is
+  a standing control surface like the filters rail, but no written ruling states its default. One
+  line changes it if the operator rules the other way, and the marker at the site says so.
+- R3's protected case does not exist on this base [CONFIRMED, by measurement and by source]: there is
+  no `FiltersCard`, and the rail's facet groups are not collapsible per group. Nothing was touched.
+
+**Proofs moved, not deleted.** Fourteen rows of `operations-matrix.json` measured the tint, the
+inset, the panel and the fact cards ON the default selection, because the audit runner renders one
+state and cannot click. They moved verbatim to a new `operations-matrix-selected.json` whose mount
+clicks the ASIA x D3 cell; the at-rest spec gained three targets and four forbids for the closed
+state. `compose-08-operations-list.json` had three rows REQUIRING the panel on the composed page,
+which is the screen the operator was complaining about; they are replaced by the closed state and
+two forbids. The matrix npmtests' two default-selection tests became a test that no default is
+computed in any spelling and a test that a stale selection closes the panel, plus two new ones for
+the focus/selection split. Every moved assertion is measured in a strictly harder state than before.
+
+**Class closed, both halves, both attacked.** F42 `default-open-disclosure` (invariant RD-67, skill
+Section 4 category 42) fails CI on the lexical shape; the rendering guard's `no-default-open` leg
+fails on the rendered shape, which F42 by construction cannot see. Attack A: the `defaultSelection`
+block was pasted back into the matrix and the guard leg went red on six assertions, then green on
+restore. Attack B: `tocOpen` was set back to `true` and F42 went red on the exact line, then green on
+restore.
+
+**R4 proved, with its limit named.** `/profile?tab=organization` opens the organization panel;
+`/profile` does not; in both cases every `<details>` on the page stays closed. That is the only
+URL-opens-a-thing path in the app: no `<details>`, accordion or section is opened by a URL anywhere,
+so the proof rides a tab-scoped panel rather than a disclosure. Nothing was invented to improve it.
+
+**A registry limit worth knowing.** RD-67 cites `fitness:F42` and its selftest, but NOT the guard leg
+as an `enforcedBy` token: `isExecutionWired` recognises the guard ENTRYPOINT and not the smoke
+modules it imports, so the token resolves UNRESOLVED even though the guard runs the leg every time.
+The leg is named in the invariant's `residual` with its runner and its registration point, which is
+the posture RD-58/F35 and the rendering-guard invariant already carry. A future lane that teaches
+`execution-wiring.mjs` to follow the guard's imports would let three invariants cite their browser
+legs directly.
+
+**Gates.** tsc exit 0 (exit code read, not the tail); fitness runner exit 0, 36 functions, 0
+violations; rendering guard PASS, 515 fixture checks + 131 smoke checks (9 specs, `no-default-open`
+among them) + 216 UX checks; design audit 71 specs / 2085 checks, 2085 MATCH, 0 NOT BUILT, at 1440
+and 390; overflow sweep exit 0 at both widths, 0px horizontal page overflow on every mount;
+discipline suite 5989 tests, 0 fail; CI npmtest glob 1006 tests, 0 fail; `next build` (Turbopack) and
+`next build --webpack` both exit 0.
+
+**Open, for the operator.** One ruling is wanted: the /community sidebar navigation groups, R2
+content or R3 control surface. Everything else in the sweep is either fixed or reasoned in place.
+## LANE METERFIX (2026-09-08, train 62): one defect, the partially scored impact meter
+
+**Scope.** One defect, named by the operator and left unowned by the lane that found it. His ruling,
+verbatim: "ROW: meter with one bar and 2/12. Artboard: four bars sorted ascending, coloured by value,
+on a 1px baseline. If only some dimensions are scored the unscored ones render as 0-height on the
+baseline; the sum shows. If none are scored, absence variant. Never one lonely bar." The fully
+unscored case (the 30px dashed baseline plus the em dash) was already correct and was not touched.
+
+**The defect, re-measured this session [CONFIRMED].** `fsi-app/src/components/ui/ImpactMeter.tsx`'s
+scored branch drew every bar at `${v * 6}px`. A dimension scored 0 therefore painted a 9px-wide,
+0px-tall box: it held its slot but put no ink in it. Measured in chromium through the real `ListRow`,
+a row scored [0,0,0,2] rendered `0px,0px,0px,12px` at 1440 and `0px,0px,0px,10px` at 390: three
+invisible boxes and one bar beside "2/12", which is the "one lonely bar" the ruling forbids.
+
+**What the artboard actually draws for a zero dimension: nothing, because it never draws one.**
+Enumerated mechanically over `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html`: 34 meter
+clusters across sections p1 (8), p2 (11), p4 (8), p6 (3), p8 (3) and p11 (1). Every one of them has
+four bars at 6, 12 or 18px; the lowest sum drawn anywhere is 4/12 (four dimensions at 1). Every meter
+container is `display:flex;align-items:flex-end;gap:2px;height:18px;border-bottom:1px solid
+rgba(0,0,0,.25);padding-bottom:0`, and the unscored row (p2, the two MONITOR catalogue records) is
+`width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)` plus an em dash. There is no zero
+bar, no stub, no tick and no lighter track anywhere in the drawing, so the treatment is DERIVED and
+is recorded as derived in DEVIATION-LOG.md and in `impactmeter.json`'s notes.
+
+**The treatment.** A dimension scored 0 keeps its 9px slot and draws a **2px stub** in the baseline's
+own ink, `rgba(0,0,0,.25)`. Against the ruling's two halves: the unscored dimension is visibly a
+dimension at zero (ink in the slot, at a height no score can produce and in a colour no score uses),
+and the row can no longer read as one lonely bar (all four slots carry ink). Against the artboard's
+geometry rather than taste: the score unit is 6px, so 2px is one third of the smallest scored bar and
+cannot be confused with a 1; 1-2px is the scale the drawing already works at for non-bar ink (the 1px
+baseline stroke, the `1px 1px 0 0` bar radius); and `rgba(0,0,0,.25)` is the only non-ramp colour the
+artboard's meter contains, so the stub belongs to the baseline's vocabulary and not to the value ramp.
+One constant changed beyond the height: the bar-colour fallback for a value outside 1-3 moved from
+`var(--line-1)` (rgba(0,0,0,.12)) to `rgba(0,0,0,.25)`, because a stub fainter than the baseline it
+stands on is invisible in practice. `VALUE_COLOR` itself is untouched, as are the 9px width, the 2px
+gap, the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS. The stub
+needs no media-query rule because MOBILE_CSS overrides heights only for `data-score` 1/2/3.
+
+**Rendered heights, before -> after.**
+
+| scores | 1440 before | 1440 after | 390 before | 390 after |
+|---|---|---|---|---|
+| [0,0,0,2] | 0,0,0,12 | **2,2,2,12** | 0,0,0,10 | **2,2,2,10** |
+| [1,0,2,0] | 0,0,6,12 | **2,2,6,12** | 0,0,5,10 | **2,2,5,10** |
+| [3,3,3,3] | 18,18,18,18 | 18,18,18,18 | 16,16,16,16 | 16,16,16,16 |
+
+Sums unchanged throughout (2/12, 3/12, 12/12).
+
+**Where it was verified: every surface the meter mounts on, not one.** There is exactly ONE
+row-variant mount site in the app, `ListRow.tsx:571`, with no page-local meter and no second copy (rule
+13). `verify-meterfix-surfaces.mjs` (new, `npm run verify:meterfix-surfaces`) reuses the design
+audit's own compose mounts, scores each surface's fixture rows [0,0,0,2] and reads computed bar
+heights out of chromium at 1440 and 390: Dashboard (Due next + What changed), Regulations, Market,
+Research, Operations, Watchlist. 12 legs, all PASS on this branch; all 12 FAIL on the base tree with
+193 invisible bars between them.
+
+**Proofs, red then green by attack.**
+- `.discipline/rendering/smoke/impact-meter-partial-smoke.mjs` (new, registered in
+  run-rendering-guard.mjs's SMOKE_SPECS): mounts the real ListRow -> real ImpactMeter, asserts
+  rendered heights, the four-bar count, no bar below 1px, the zero bar's ink and the sum label, at
+  1440 and 390. 38 checks. Attacked by reverting ImpactMeter.tsx alone: 12 failures, every one naming
+  the measured `0px`; restored: 0 failures. The fully scored control row stayed green throughout.
+- `impactmeter.json`: five new spec rows plus one `forbid` for the partial case, on a new
+  `row-partial` mount ([0,0,0,2]). 52/52 MATCH.
+- `ImpactMeter.npmtest.mjs`: two new source-level guards on the constants, and B33-B39 updated to the
+  new height expression.
+
+**GATES.** `tsc --noEmit`: **1 error, PRE-EXISTING, not this lane**.
+`src/lib/supabase-server.ts:1012` TS1117, reproduced identically with this lane's changes stashed.
+Lanes duenext and briefdata each added the same `complianceDeadline: row.compliance_deadline ||
+undefined` line to the same object literal in `mapWorkspaceItemRows`, at lines 970 and 1012. Same
+value, so it is semantically harmless and a hard compile error. `next build --webpack` fails on that
+same line and on nothing else. Remedy, PROVEN this session by applying it and reverting it: delete
+lines 1003-1012 (the second comment block and its duplicate key), keeping the line at 970. With that
+one hunk, `tsc --noEmit` is clean and `next build --webpack` exits 0. Left for the coordinator rather
+than fixed here: it is another lane's file, mid-fold, and this lane's scope is one defect.
+Fitness runner: 3 violations, identical to the base tree (F9 tsconfig, F42 x2 in
+src/components/sources), so 0 added; the two hand-run scripts this lane adds are wired into
+`package.json` so F25 stays clean, the same resolution train 57 used for
+`capture-defect-fix-screenshots.mjs`. Rendering guard: FAIL, 111 unique failure lines, byte-identical
+to the base tree's 111 (all layout-guard L2/L9/L10 legs on /settings, /community, the five lists), so 0
+added, and the new smoke spec is registered and green inside it. `npm run audit:design`: 71 specs,
+2362 checks, 2361 MATCH, 1 MISMATCH, on `compose-01-dashboard`, Due-next row count 2 vs 3, reproduced on
+the base tree with this lane stashed, same duenext/briefdata interaction, not this lane.
+`npm run audit:layout`: 990 findings, identical rule-by-rule to the base tree, no rise.
+`run-test-suite.sh`: 5997 tests, 0 fail, 5 skipped. CI npmtest glob: the failing set is
+byte-identical to the base tree's (0 added, 0 fixed); the tests beside what this lane touched
+(ImpactMeter, ListRow, DetailShell npmtests) are 54/54 pass.
+
+**Evidence.** `docs/design/handoff-2026-09-06/built/meterfix-partial-{before,after}-{1440,390}.png`,
+captured through the real ListRow by `npm run capture:meterfix-screenshots` and read back before
+reporting.
+
+**UX compliance.** No new row component and no new page surface: one shared part changed, in place.
+DP-1/DP-2 and the 375px row measurements are unaffected, because the meter's container height, bar width,
+gap and baseline are untouched at both viewports, which the rendering guard's UX smoke slot re-ran
+green (232 ux checks, same as base).

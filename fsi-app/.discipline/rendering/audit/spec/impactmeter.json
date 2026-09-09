@@ -3,16 +3,17 @@
   "mount": "impactmeter",
   "viewport": 1440,
   "artboards": [
-    "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+    "00-system-sheet (row anatomy inside the list-row example; 'Impact meter \u2014 full' block)",
     "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
     "01-dashboard, 03-regulation-detail (full, rail)"
   ],
-  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter \u2014 full' block; README.md \u00a70.4 'Meters and timeline on every row'",
   "notes": [
     "Row variant, scored: the #sys list-row example's first row (impact 7/12, dims sorted [1,1,2,3]) uses 9px-wide bars, heights 6/6/12/18, radius '1px 1px 0 0', sitting on an 18px-tall container with a 1px solid rgba(0,0,0,.25) baseline under the bars; the sum sits at margin-left:7px. The fixture reproduces the same scores (cost:1, compliance:1, client:2, operational:3, sum 7/12) so the artboard's own numbers are the comparison.",
-    "Row variant, unscored: the #sys example's second row uses a 30px-wide dashed baseline (border-bottom:1px dashed rgba(0,0,0,.3)) at height 18px, plus a plain em-dash — not the Absence small-caps convention. README §0.4 and operator ruling 2.1 both require the Absence convention instead ('the small-caps absence reason from the fixed vocabulary'), which is what the built component renders; the artboard predates that ruling. The width/height/border values below are still the artboard's stated geometry for the dashed line itself.",
-    "Full variant track: #sys 'Impact meter — full' block states height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px. The fixture's four scores (cost:1, compliance:3, client:1, operational:2) reproduce the artboard's own four example rows exactly (1/3 Low, 3/3 High, 1/3 Low, 2/3 Med).",
-    "Full variant, unscored: the artboard does not show a full-variant unscored state; the built component's em-dash fallback is checked only for basic geometry (dashed baseline width 96px per the component's own row-vs-full branch), not against an artboard value — logged as a gap, not asserted as a mismatch."
+    "Row variant, unscored: the #sys example's second row uses a 30px-wide dashed baseline (border-bottom:1px dashed rgba(0,0,0,.3)) at height 18px, plus a plain em-dash \u2014 not the Absence small-caps convention. README \u00a70.4 and operator ruling 2.1 both require the Absence convention instead ('the small-caps absence reason from the fixed vocabulary'), which is what the built component renders; the artboard predates that ruling. The width/height/border values below are still the artboard's stated geometry for the dashed line itself.",
+    "Full variant track: #sys 'Impact meter \u2014 full' block states height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px. The fixture's four scores (cost:1, compliance:3, client:1, operational:2) reproduce the artboard's own four example rows exactly (1/3 Low, 3/3 High, 1/3 Low, 2/3 Med).",
+    "Full variant, unscored: the artboard does not show a full-variant unscored state; the built component's em-dash fallback is checked only for basic geometry (dashed baseline width 96px per the component's own row-vs-full branch), not against an artboard value \u2014 logged as a gap, not asserted as a mismatch.",
+    "Row variant, PARTIALLY scored (lane METERFIX, 2026-09-08): the artboard contains NO partially scored meter. All 34 meter clusters in dc.html (sections p1, p2, p4, p6, p8, p11) draw four bars at 6/12/18px and the lowest sum drawn anywhere is 4/12 (four dimensions at 1), so there is no zero bar to compare against. The `row-partial` rows below are therefore the DERIVED treatment for the operator's ruling ('if only some dimensions are scored the unscored ones render as 0-height on the baseline; the sum shows ... never one lonely bar'), justified against the artboard's own geometry rather than copied from it: 2px is one third of the 6px score unit the artboard uses, so it cannot be read as a score of 1, and rgba(0,0,0,.25) is the baseline stroke's own ink, the only non-ramp colour the artboard's meter contains. Recorded as derived, not as an artboard value."
   ],
   "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
   "expect": {
@@ -24,7 +25,7 @@
   },
   "children": [
     {
-      "name": "row scored — bar 1 (score 1, first ascending)",
+      "name": "row scored \u2014 bar 1 (score 1, first ascending)",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
       "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1).",
       "expect": {
@@ -37,7 +38,7 @@
       }
     },
     {
-      "name": "row scored — bar 3 (score 2)",
+      "name": "row scored \u2014 bar 3 (score 2)",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
       "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2).",
       "expect": {
@@ -47,7 +48,7 @@
       }
     },
     {
-      "name": "row scored — bar 4 (score 3, last/highest)",
+      "name": "row scored \u2014 bar 4 (score 3, last/highest)",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
       "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3).",
       "expect": {
@@ -57,7 +58,7 @@
       }
     },
     {
-      "name": "row scored — sum label",
+      "name": "row scored \u2014 sum label",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
       "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C.",
       "expect": {
@@ -68,7 +69,7 @@
       }
     },
     {
-      "name": "row unscored — dashed baseline",
+      "name": "row unscored \u2014 dashed baseline",
       "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
       "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3).",
       "expect": {
@@ -79,17 +80,70 @@
       }
     },
     {
-      "name": "row unscored — the meter renders the dashed baseline and NO reason of its own (D-M4)",
+      "name": "row unscored \u2014 the meter renders the dashed baseline and NO reason of its own (D-M4)",
       "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored",
-      "note": "UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4). This asserted the meter's own text was \"unscored\". It was: the meter named the state itself while the row's due and tier cells named their own absences beside it, so one unscored row rendered three tokens — a dashed baseline, then UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own, which is what the operator photographed on 2026-09-08. Ruling 2.1 forbids the literal outright and allows exactly ONE reason per row. The meter no longer names a reason; the composite hands it one through `reason`, chosen by Absence.tsx's ABSENCE_PRECEDENCE. A spec pinning the old literal would be preserving the defect, so it asserts the unscored container instead, and the one-token invariant is asserted where it belongs, on the ROW (listrow.json / the mobile-* specs' `.cl-list-row .cl-absence` count).",
+      "note": "UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4). This asserted the meter's own text was \"unscored\". It was: the meter named the state itself while the row's due and tier cells named their own absences beside it, so one unscored row rendered three tokens \u2014 a dashed baseline, then UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own, which is what the operator photographed on 2026-09-08. Ruling 2.1 forbids the literal outright and allows exactly ONE reason per row. The meter no longer names a reason; the composite hands it one through `reason`, chosen by Absence.tsx's ABSENCE_PRECEDENCE. A spec pinning the old literal would be preserving the defect, so it asserts the unscored container instead, and the one-token invariant is asserted where it belongs, on the ROW (listrow.json / the mobile-* specs' `.cl-list-row .cl-absence` count).",
       "expect": {
         "display": "flex"
       }
     },
     {
-      "name": "full scored — track height/radius/gradient",
+      "name": "row partial [0,0,0,2], zero dimension, bar 1 (DERIVED, no artboard value)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1)",
+      "note": "METERFIX: a dimension scored 0 keeps its 9px slot and draws a 2px stub in the baseline ink. Before this lane it was height 0px, invisible, which is the 'one lonely bar' defect.",
+      "expect": {
+        "width": "9px",
+        "height": "2px",
+        "background-color": "rgba(0, 0, 0, 0.25)"
+      }
+    },
+    {
+      "name": "row partial [0,0,0,2], zero dimension, bar 3 (DERIVED)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(3)",
+      "note": "METERFIX: the third of the three zero dimensions, asserted separately so a fix that reaches only the first slot fails here.",
+      "expect": {
+        "width": "9px",
+        "height": "2px",
+        "background-color": "rgba(0, 0, 0, 0.25)"
+      }
+    },
+    {
+      "name": "row partial [0,0,0,2], the one scored dimension keeps the artboard height",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(4)",
+      "note": "dc.html #sys: score 2 is 12px, colour #F97316. METERFIX changes nothing for a scored dimension; this row is the control.",
+      "expect": {
+        "width": "9px",
+        "height": "12px",
+        "background-color": "#F97316"
+      }
+    },
+    {
+      "name": "row partial [0,0,0,2], the sum still shows",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+      "note": "Operator ruling: '... the sum shows'. Tabular numerals at margin-left 7px, same as the fully scored row.",
+      "expect": {
+        "font-size": "11px",
+        "margin-left": "7px",
+        "text": "2/12"
+      }
+    },
+    {
+      "name": "row partial [0,0,0,2], the baseline still spans all four slots",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bars",
+      "note": "dc.html #sys: the 1px solid rgba(0,0,0,.25) baseline is a border-bottom on the bars container, whose width is 4x9px + 3x2px = 42px. A zero bar has always held its slot, so the baseline geometry is unchanged by this lane; asserted so a future 'skip the zero bars' shortcut would fail.",
+      "expect": {
+        "width": "42px",
+        "height": "18px",
+        "gap": "2px",
+        "border-bottom-width": "1px",
+        "border-bottom-style": "solid",
+        "border-bottom-color": "rgba(0,0,0,.25)"
+      }
+    },
+    {
+      "name": "full scored \u2014 track height/radius/gradient",
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
-      "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact.",
+      "note": "dc.html #sys 'Impact meter \u2014 full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% \u2014 a real divergence, not a harness artefact.",
       "expect": {
         "height": "8px",
         "border-radius": "8px",
@@ -97,9 +151,9 @@
       }
     },
     {
-      "name": "full scored — dimension label",
+      "name": "full scored \u2014 dimension label",
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
-      "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value.",
+      "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px \u2014 logged as the comparison value.",
       "expect": {
         "width": "116px",
         "font-size": "12.5px"
@@ -111,12 +165,17 @@
       "name": "the literal word NOT SCORED / UNSCORED in the meter",
       "selector": "[data-audit=\"row-unscored\"] span, [data-audit=\"full-unscored\"] span",
       "textMatch": "NOT SCORED",
-      "reason": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+      "reason": "README \u00a70.4 #sys note: 'Hollow when unscored \u2014 no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
     },
     {
       "name": "the meter never renders an absence token of its own accord",
       "selector": "[data-audit=\"row-unscored\"] .cl-absence",
       "reason": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
+    },
+    {
+      "name": "a partially scored meter never paints an invisible dimension",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar[data-score=\"0\"][style*=\"height: 0px\"]",
+      "reason": "Operator ruling 2026-09-08: 'never one lonely bar'. The 0px inline height is the exact shape of the defect this lane removed; if it comes back, this selector matches and the row is recorded NOT IN SPEC."
     }
   ]
 }

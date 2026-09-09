@@ -24,7 +24,9 @@
     "capture:compose-dashboard": "node .discipline/rendering/capture-compose-dashboard.mjs",
     "capture:compose-details": "node .discipline/rendering/capture-compose-details.mjs",
     "capture:compose-page": "node .discipline/rendering/capture-compose-page.mjs",
+    "capture:meterfix-screenshots": "node .discipline/rendering/capture-meterfix-screenshots.mjs",
     "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs",
+    "verify:meterfix-surfaces": "node .discipline/rendering/verify-meterfix-surfaces.mjs",
     "audit:design": "node .discipline/rendering/audit/run-audit.mjs",
     "audit:overflow": "node .discipline/rendering/audit/overflow-sweep.mjs",
     "audit:layout": "node .discipline/rendering/layout-guard/run-layout-guard.mjs"

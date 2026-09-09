@@ -397,6 +397,31 @@ export function OperationsLedger({
     [dimensionFilter],
   );
 
+  // "Rail filters scope columns" (operator, matrix redesign 2026-09-08). The REGION facet narrows
+  // the matrix's columns exactly as the DIMENSION facet above narrows its rows — the same one-line
+  // shape, so the two facets behave alike. The matrix reports both halves ("1 of 5 regions ·
+  // filters scope columns") from `regions` and `totalRegionCount` below.
+  const matrixRegions = useMemo(
+    () => (filter.region ? regions.filter((r) => r.key === filter.region) : regions),
+    [regions, filter.region],
+  );
+
+  // Each region's own operations profile row, for the matrix panel's "Open profile" link and its
+  // "N more facts on the profile" line. Built from the rows this page already holds: a region's
+  // profile is its first NON-regulation resource. A region with no profile row gets no entry, and
+  // the panel then draws no link rather than a dead href.
+  const profileHrefByRegion = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of initialResources) {
+      if (isRegulationItem(r) || !r.id) continue;
+      const region = regionForResource(r, regions);
+      // `/operations/${encodeURIComponent(id)}` is the same href OperationsItemsView and
+      // OperationsDetailSurface build for an operations row; the route is keyed by id, not a slug.
+      if (region && !map[region]) map[region] = `/operations/${encodeURIComponent(r.id)}`;
+    }
+    return map;
+  }, [initialResources, regions]);
+
   // COVERAGE GAPS rail rows, from the coverage this page already reads: every region holding no
   // sourced fact on at least one dimension, plus the US sub-national roster the By-state sub-list
   // draws from. Both figures are counted, never asserted.
@@ -447,12 +472,16 @@ export function OperationsLedger({
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={
         <RegionDimensionMatrix
-          regions={regions.map((r) => ({ key: r.key, label: r.label }))}
-          dimensions={matrixDimensions.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
+          regions={matrixRegions.map((r) => ({ key: r.key, label: r.label }))}
+          /* `num` carries the D-number the redesigned matrix prefixes onto every row, from the same
+             DIMENSIONS constant the rail's own "D1 Regulatory feasibility" labels read. */
+          dimensions={matrixDimensions.map((d) => ({ key: d.key, db: d.db, name: d.name, num: d.num }))}
           facts={operationsCoverage?.facts ?? []}
           coverageRows={operationsCoverage?.coverage ?? []}
           crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
           crossRefCountsPending={!restLoaded}
+          totalRegionCount={regions.length}
+          profileHrefByRegion={profileHrefByRegion}
         />
       }
       rowsByBand={rowsByBand}
