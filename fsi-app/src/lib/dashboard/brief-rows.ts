@@ -209,3 +209,40 @@ export function briefCardState(rowCount: number, fetchError?: string): BriefCard
   if (rowCount > 0) return "rows";
   return fetchError ? "failed" : "empty";
 }
+
+/**
+ * The What-changed card's own "Detection pass <date>" header — computed from the SAME rows the
+ * card renders, never from a second, unrelated source.
+ *
+ * WHY THIS EXISTS (lane CHANGEDATA, 2026-09-09, defect C). `supabase-server.ts` used to compute
+ * this date by taking the newest `item_changelog` row FIRST, falling back to the newest
+ * `recentChanges[].added` only when `item_changelog` was empty. On the live workspace
+ * `item_changelog` holds 9 rows and every one of them is dated 2026-03-01 [CONFIRMED, measured
+ * 2026-09-09] — a frozen, unrelated table — so that branch order meant the header could NEVER
+ * read anything but "2026-03-01", no matter how recent the actual detected changes were. The
+ * card's own rows and its own foot ("All N changes in the last 7 days") are built from
+ * `get_workspace_recent_changes(org, 7)`, which is a real, moving 7-day `added_date` window — so
+ * the header and the rows beneath it were two different facts wearing one card. A row can
+ * legitimately say "NEW · first seen this pass" while the header claims the pass was six months
+ * ago, and the foot's "last 7 days" then contradicts the header outright.
+ *
+ * The fix is precedence, not a new source: the rows actually on screen (`recentChanges`) are the
+ * primary evidence for "when did the pass that produced THESE rows run" — `item_changelog` is
+ * now only the fallback for the honest case where the workspace has no recent changes at all but
+ * does carry an older changelog entry. Nothing is invented; the empty-string "No detection pass
+ * on record" case is unchanged.
+ */
+export function computeAuditDate(
+  recentChanges: Array<{ added?: string | null }>,
+  changelogDates: Array<string | null | undefined>,
+): string {
+  let auditDate = "";
+  for (const c of recentChanges) {
+    if (c.added && c.added > auditDate) auditDate = c.added;
+  }
+  if (auditDate) return auditDate;
+  for (const d of changelogDates) {
+    if (d && d > auditDate) auditDate = d;
+  }
+  return auditDate;
+}

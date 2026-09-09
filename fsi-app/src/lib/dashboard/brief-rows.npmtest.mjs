@@ -37,6 +37,7 @@ const {
   mergeBriefCorpus,
   dueNextWindowLabel,
   briefCardState,
+  computeAuditDate,
   DUE_NEXT_CAP,
 } = await jiti.import("./brief-rows.ts");
 
@@ -243,6 +244,50 @@ test("BRIEFDATA/3b: both cards read the same decision, and the failure carries a
   );
   // The failure note must be reachable from BOTH cards, not just the primary one.
   assert.equal((brief.match(/\{failureNote\}/g) || []).length, 2);
+});
+
+// ── Lane CHANGEDATA (2026-09-09). Defect C: the header must agree with the rows it sits above. ──
+
+test("CHANGEDATA/C1: a frozen changelog does not shadow real, recent rows [fails pre-fix]", () => {
+  // The live-measured shape (2026-09-09): item_changelog holds only a stale 2026-03-01 entry, but
+  // the What-changed feed's own rows carry real, recent added_dates. The header must reflect the
+  // rows on screen, not the stale table — this is the exact case the operator's screenshot showed.
+  const recentChanges = [
+    { added: "2026-09-04" },
+    { added: "2026-09-08" },
+    { added: "2026-09-02" },
+  ];
+  const changelogDates = ["2026-03-01", "2026-03-01"];
+  assert.equal(
+    computeAuditDate(recentChanges, changelogDates),
+    "2026-09-08",
+    "the header must be the newest date among the rows the card actually renders",
+  );
+});
+
+test("CHANGEDATA/C2: an empty change feed falls back to the changelog honestly", () => {
+  assert.equal(computeAuditDate([], ["2026-03-01"]), "2026-03-01");
+});
+
+test("CHANGEDATA/C3: no evidence anywhere is the empty string, not a fabricated date", () => {
+  assert.equal(computeAuditDate([], []), "");
+  assert.equal(computeAuditDate([{ added: null }], []), "");
+});
+
+test("CHANGEDATA/C4: fetchDashboardData computes the header through the SAME function as the card", () => {
+  // The proof that the header and the rows come from ONE computation: supabase-server.ts must not
+  // carry its own second copy of this precedence — it must call the shared function.
+  const src = readFileSync(resolve(HERE, "../supabase-server.ts"), "utf8");
+  assert.match(
+    src,
+    /import \{ computeAuditDate \} from "@\/lib\/dashboard\/brief-rows"/,
+    "supabase-server.ts must import the shared audit-date computation",
+  );
+  assert.match(
+    src,
+    /const auditDate = computeAuditDate\(recentChanges, changelogDates\)/,
+    "fetchDashboardData must derive auditDate from computeAuditDate(recentChanges, ...), not a private re-derivation",
+  );
 });
 
 test("BRIEFDATA/4: the merged corpus is de-duplicated, payload first", () => {

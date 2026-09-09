@@ -16230,3 +16230,65 @@ unchanged and re-measured green by the design audit's mobile specs.
 
 Every gate run from the worktree root, exit codes read explicitly. See the lane report for the
 numbers.
+
+## Addendum, lane CHANGEDATA (2026-09-09): What-changed's missing dates, checked against the live corpus, not assumed
+
+Operator, verbatim: "data missing from dashboard in 'whats changed' make sure its not missing in
+other areas." Diagnosed as three separate questions per the dispatch brief before any fix.
+
+**A — do the six screenshotted items have a date?** Measured against the live corpus (project
+`kwrsbpiseruzbfwjpvsp`), replicating `get_workspace_recent_changes(org, 7)`'s exact ordering: the
+top 6 What-changed rows, and in fact all 500 rows the RPC returns, carry neither a future
+`compliance_deadline` nor a future `item_timelines` milestone. `item_timelines` is not globally
+empty (1,169 rows / 131 items; 6 items workspace-wide carry a future `compliance_deadline`) — none
+of those 6 fell inside this 7-day added_date window. **The em dash is correct on every one of
+these rows.** No fix applied for A; inventing one would have violated CLAUDE.md rule 2.
+
+**B — does What-changed project the fields the way Due-next does?** Read both paths: `data.resources`
+(dashboard RPC), `data.dueNext` (`get_workspace_due_next`, migration 315) and `data.briefResources`
+(the What-changed by-id backfill, `fetchBriefResourcesByIds`) all resolve through the ONE shared
+`mapWorkspaceItemRows`, which fetches `compliance_deadline` (`BRIEF_ITEM_COLUMNS`) and
+`item_timelines` identically for all three. This is the exact defect class that bit train 62 twice
+(mapper dropped `compliance_deadline` app-wide; brief cards read a slice they didn't render) — this
+time it does not recur. No fix needed; verified, not assumed.
+
+**C — the header date, a real defect regardless of A/B.** `auditDate` ("Detection pass <date>") was
+computed from `item_changelog`'s newest row FIRST, falling back to the What-changed feed's own
+`added_date` only when `item_changelog` was empty. Live-measured: `item_changelog` holds 9 rows, all
+frozen at **2026-03-01** — a static, unrelated table — while the card's rows and its "last 7 days"
+foot are built from `get_workspace_recent_changes`, a real moving 7-day window. That precedence
+meant the header could never read anything but 2026-03-01, contradicting both the rows ("first seen
+this pass") and the foot beneath it. **Fixed**: extracted `computeAuditDate(recentChanges,
+changelogDates)` to `src/lib/dashboard/brief-rows.ts` (rows are now the PRIMARY evidence,
+changelog only the fallback for a workspace with zero recent changes), and wired
+`fetchDashboardData` (`src/lib/supabase-server.ts`) to call it — one computation, not two. Proof:
+`brief-rows.npmtest.mjs` (CHANGEDATA/C1-C4) asserts the precedence behaviourally AND asserts
+`supabase-server.ts` calls the shared function rather than re-deriving it; `honest-empty.npmtest.mjs`
+updated to match (its old assertion pinned the exact pre-fix line, which is now gone by design).
+
+**The sweep** (rendered/queried against the live corpus a surface's own read would return; watchlist
+via `user_watchlist`, due-next/what-changed via the reads above):
+
+| Surface | rows | due date present | real timeline | tier | absence (no due) |
+|---|---|---|---|---|---|
+| /regulations (list) | 1,316 | 5 (future compliance_deadline) | 39 (future milestone, incl. overlap) | 1,316/1,316 | 1,272 |
+| /market (list) | 53 | 0 | 1 | 53/53 | 52 |
+| /operations (list) | 25 | 0 | 0 | 25/25 | 25 |
+| /research (list) | 39 | 0 | 0 | 39/39 | 39 |
+| Watchlist (rail) | 1 | 0 | 1 (real future milestone) | 1/1 | 0 |
+| Map register | rows are PER-JURISDICTION (`endStat`, not due/timeline/tier cells) — architecturally out of scope for this data path |
+| Dashboard · Due next | 5 (capped) | 5/5 (by construction — undated items are filtered) | 5/5 (all 5 resolve via item_timelines, none via compliance_deadline) | 5/5 | 0 |
+| Dashboard · What changed | 6 (capped, of 500 in the 7-day feed) | 0 | 0 | (sampled; not the defect) | 6 |
+
+Read: the em-dash rate on What-changed is not a dashboard-only artifact — the same "no bound date"
+fact is true of the great majority of `/regulations`, all of `/market`/`/operations`/`/research` in
+the current corpus, and would show the same way anywhere the shared row is mounted. Tier is never
+missing anywhere it was checked (source enrichment is bounded but complete for every row rendered).
+
+**Gates**: `npx tsc --noEmit` exit 0; `.discipline/fitness/runner.mjs` — 37 functions, 0 violations;
+CI's `*.npmtest.mjs` + named npm-dep glob — 1,142/1,142 pass; `npx next build` exit 0. Rendering
+guard / design audit not run (nothing rendering changed).
+
+Not fixed, deliberately: A (nothing to fix — the data genuinely has no dates); the map register's
+lack of due/timeline/tier cells (out of scope — it is a jurisdiction-level row by design, not an
+absence defect).
