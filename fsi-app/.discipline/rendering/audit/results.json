@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-09T15:01:49.256Z",
+  "runAt": "2026-09-09T16:54:37.414Z",
   "specs": [
     {
       "part": "Absence",
@@ -6342,9 +6342,9 @@
         {
           "name": "command bar — placeholder text (default, item-count form)",
           "selector": ".cl-command-bar input",
-          "note": "README §0.3: placeholder 'Search or ask across 1,434 items…'. CommandBar formats the count with the app's own thousands separator. Read via the `placeholder` DOM property (an input's textContent is always empty).",
+          "note": "UPDATED, CMDSEARCH lane, 2026-09-09, reason not weakness: the operator's own instruction (\"a toggel between standard search and AI question in that bar\") split the bar into an explicit Search/Ask mode toggle, so the DEFAULT (Search-mode) placeholder no longer needs the words \"or ask\" to carry that meaning — the toggle itself now shows it at a glance. Prior text 'Search or ask across 1,434 items…'; CommandBar still formats the count with the app's own thousands separator, unchanged. Read via the `placeholder` DOM property (an input's textContent is always empty).",
           "expect": {
-            "placeholder": "Search or ask across 1,434 items…"
+            "placeholder": "Search across 1,434 items…"
           }
         },
         {
@@ -6359,8 +6359,8 @@
         },
         {
           "name": "command bar — Ask button",
-          "selector": ".cl-command-bar button",
-          "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
+          "selector": ".cl-command-bar-ask-submit",
+          "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
           "expect": {
             "height": "40px",
             "padding-left": "14px",
@@ -6373,8 +6373,8 @@
         },
         {
           "name": "command bar — Ask button label",
-          "selector": ".cl-command-bar button",
-          "note": "dc.html p1: the button's own text.",
+          "selector": ".cl-command-bar-ask-submit",
+          "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09 — see the row above for why. dc.html p1: the button's own text.",
           "expect": {
             "text": "Ask"
           }
@@ -33730,10 +33730,10 @@
       "target": "command bar — placeholder text (default, item-count form)",
       "selector": ".cl-command-bar input",
       "property": "placeholder",
-      "expected": "Search or ask across 1,434 items…",
-      "actual": "Search or ask across 1,434 items…",
+      "expected": "Search across 1,434 items…",
+      "actual": "Search across 1,434 items…",
       "status": "MATCH",
-      "note": "README §0.3: placeholder 'Search or ask across 1,434 items…'. CommandBar formats the count with the app's own thousands separator. Read via the `placeholder` DOM property (an input's textContent is always empty)."
+      "note": "UPDATED, CMDSEARCH lane, 2026-09-09, reason not weakness: the operator's own instruction (\"a toggel between standard search and AI question in that bar\") split the bar into an explicit Search/Ask mode toggle, so the DEFAULT (Search-mode) placeholder no longer needs the words \"or ask\" to carry that meaning — the toggle itself now shows it at a glance. Prior text 'Search or ask across 1,434 items…'; CommandBar still formats the count with the app's own thousands separator, unchanged. Read via the `placeholder` DOM property (an input's textContent is always empty)."
     },
     {
       "spec": "masthead",
@@ -33804,12 +33804,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "height",
       "expected": "40px",
       "actual": "40px",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33823,12 +33823,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "padding-left",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33842,12 +33842,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "padding-right",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33861,12 +33861,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "background-color",
       "expected": "#5A5552",
       "actual": "rgb(90, 85, 82)",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33880,12 +33880,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "color",
       "expected": "#FFFFFF",
       "actual": "rgb(255, 255, 255)",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33899,12 +33899,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "font-size",
       "expected": "12.5px",
       "actual": "12.5px",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33918,12 +33918,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "font-weight",
       "expected": "700",
       "actual": "700",
       "status": "MATCH",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
       "spec": "masthead",
@@ -33937,12 +33937,12 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
       "viewport": 1440,
       "target": "command bar — Ask button label",
-      "selector": ".cl-command-bar button",
+      "selector": ".cl-command-bar-ask-submit",
       "property": "text",
       "expected": "Ask",
       "actual": "Ask",
       "status": "MATCH",
-      "note": "dc.html p1: the button's own text."
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09 — see the row above for why. dc.html p1: the button's own text."
     },
     {
       "spec": "masthead",

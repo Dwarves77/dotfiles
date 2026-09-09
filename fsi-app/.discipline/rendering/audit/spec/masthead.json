@@ -68,9 +68,9 @@
     {
       "name": "command bar \u2014 placeholder text (default, item-count form)",
       "selector": ".cl-command-bar input",
-      "note": "README \u00a70.3: placeholder 'Search or ask across 1,434 items\u2026'. CommandBar formats the count with the app's own thousands separator. Read via the `placeholder` DOM property (an input's textContent is always empty).",
+      "note": "UPDATED, CMDSEARCH lane, 2026-09-09, reason not weakness: the operator's own instruction (\"a toggel between standard search and AI question in that bar\") split the bar into an explicit Search/Ask mode toggle, so the DEFAULT (Search-mode) placeholder no longer needs the words \"or ask\" to carry that meaning \u2014 the toggle itself now shows it at a glance. Prior text 'Search or ask across 1,434 items\u2026'; CommandBar still formats the count with the app's own thousands separator, unchanged. Read via the `placeholder` DOM property (an input's textContent is always empty).",
       "expect": {
-        "placeholder": "Search or ask across 1,434 items\u2026"
+        "placeholder": "Search across 1,434 items\u2026"
       }
     },
     {
@@ -85,8 +85,8 @@
     },
     {
       "name": "command bar \u2014 Ask button",
-      "selector": ".cl-command-bar button",
-      "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
+      "selector": ".cl-command-bar-ask-submit",
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
       "expect": {
         "height": "40px",
         "padding-left": "14px",
@@ -99,8 +99,8 @@
     },
     {
       "name": "command bar \u2014 Ask button label",
-      "selector": ".cl-command-bar button",
-      "note": "dc.html p1: the button's own text.",
+      "selector": ".cl-command-bar-ask-submit",
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09 \u2014 see the row above for why. dc.html p1: the button's own text.",
       "expect": {
         "text": "Ask"
       }

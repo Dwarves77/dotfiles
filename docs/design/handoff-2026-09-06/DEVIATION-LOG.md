@@ -1606,3 +1606,11 @@ artboard's first two figures exactly; `ops-matrix-six-regions` shows **"8 of 36 
 is drawn only when the table can actually scroll, which is why the five-region compose mount omits
 it and the six-region mount carries it.
 
+
+### CMDSEARCH lane, 2026-09-09: command bar Search/Ask mode toggle
+
+| Date | Deviation | Why | Trade-off | Owner |
+|---|---|---|---|---|
+| 2026-09-09 | `masthead.json`'s default command-bar placeholder expectation changed from "Search or ask across N items…" to "Search across N items…" | [CONFIRMED] Operator instruction: "a toggel between standard search and AI question in that bar". With an explicit Search/Ask toggle now in the bar, the default (Search-mode) placeholder no longer needs "or ask" to carry that meaning — the toggle itself shows it at a glance. | The literal string an earlier lane pinned from README §0.3 no longer matches the product; the README's own §0.3 text is now stale in the same direction and should be reconciled by a later docs pass. | LANE CMDSEARCH, 2026-09-09 |
+| 2026-09-09 | `masthead.json`'s two "Ask button" rows narrowed from selector `.cl-command-bar button` to `.cl-command-bar-ask-submit` | [CONFIRMED, proven by the audit] The toggle adds two more `<button>`s inside `.cl-command-bar` (Search/Ask tabs). The bare tag selector then matches the FIRST button in DOM order (a toggle tab), not the Ask submit button, so the row silently measured the wrong element. `.cl-command-bar-ask-submit` is a new class added to the submit button itself; no expected value in either row changed. | None — this narrows the selector to the same element the artboard has always meant, it does not relax any asserted value. | LANE CMDSEARCH, 2026-09-09 |
+| 2026-09-09 | The toggle's ARIA pattern is `role="group"` / `aria-pressed`, not `role="tablist"` / `role="tab"` (never shipped past a local run) | [CONFIRMED, proven by attack] A `role="tablist"` first attempt made `compose-13-admin.json`'s "[data-audit=admin] [role=tablist]" — asserted `count: 1` — read 2, since this bar mounts on every route including admin, which already has its own unrelated sub-tab row. The toggle is a two-state control, not a tabbed panel set, so `role="group"` is the more accurate pattern regardless of the collision. | None — no spec row needed to change; the component's own markup changed instead. | LANE CMDSEARCH, 2026-09-09 |

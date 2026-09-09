@@ -16292,3 +16292,57 @@ guard / design audit not run (nothing rendering changed).
 Not fixed, deliberately: A (nothing to fix — the data genuinely has no dates); the map register's
 lack of due/timeline/tier cells (out of scope — it is a jurisdiction-level row by design, not an
 absence defect).
+## CMDSEARCH lane, 2026-09-09: Standard Search + Ask mode toggle
+
+Operator instruction, verbatim: "we need a simple search function for the site as well as an AI
+agent" then "a toggel between standard search and AI question in that bar is what is needed. leave
+API off for now."
+
+**Found first, reused.** The command bar (`CommandBar.tsx`, mounted on every route via `Masthead`)
+already dispatched Ask through the pre-existing `open-ask-assistant` CustomEvent contract
+(`AskAssistant.tsx`), unconditionally on the model — `ASSISTANT_ENABLED` (fail-closed, default OFF
+since PR #478) gated only the server side, so an operator-off Assistant still let a reader type a
+question and see a raw 503. FTS retrieval already existed too: `search_intelligence_items`
+(migration 159, websearch-syntax RPC + `ts_rank_cd`), consumed only by `/api/ask`'s own retrieval
+step. No standalone search API existed.
+
+**Built:**
+- `GET /api/search` (`src/app/api/search/route.ts` + sibling `logic.ts`, F34's route.ts-exports-only
+  convention): reuses `search_intelligence_items` verbatim rather than a second FTS mechanism.
+  Bounded to `MAX_RESULTS = 20` (the RPC's own `max_rows`, itself capped at 30), the `.in(id,
+  hitIds)` re-fetch reads exactly that RPC's own top-K hit set (`fitness-allow: F39`), and re-applies
+  the SAME customer read predicate (`is_archived=false`, `provenance_status='verified'`) every other
+  read in the app uses — no org filter, matching `/api/ask`'s own posture (the corpus is one shared
+  platform corpus, not per-org). Empty/short query (< 2 chars) returns no rows without querying.
+- `CommandBar.tsx`: a Search/Ask mode toggle (two `role="group"` buttons, Search default) inside the
+  bar's existing 40px box. Search mode debounces a bounded call to the new route through
+  `authedFetch` (F40) and renders results in the shared `ListRow` (via widened, backward-compatible
+  `jurisdictionCode`/`metaLine` signatures in `row-fields.ts`, plus the existing `itemDetailHref`),
+  with the app's `StateNote` absence line on no results. Ask mode is disabled end-to-end
+  (input, button, `ask()` itself) whenever `assistantEnabled` is false, with the placeholder itself
+  stating "The Assistant is currently unavailable" before any typing — no request to `/api/ask` is
+  ever dispatched while off, so no 503 body can reach the UI.
+- `ASSISTANT_ENABLED` reaches the client through the ONE existing per-user server-to-client path,
+  `/api/workspace/bootstrap` (`assistantEnabled` field) → `useWorkspaceBootstrap()`, not a new flag
+  mechanism. Flipping the env var needs no further code change; both states are proven by the same
+  `askDisabled = mode === "ask" && !assistantEnabled` read on every render.
+
+**Design-spec fallout, fixed not weakened.** The toggle added two more `<button>`s inside
+`.cl-command-bar`, so `masthead.json`'s bare `.cl-command-bar button` selector started reading the
+first (a toggle tab) instead of the Ask submit button — narrowed to a new `.cl-command-bar-ask-submit`
+class on the real button. The default placeholder assertion was updated from "Search or ask across N
+items…" to "Search across N items…" (the toggle itself now carries the "or ask" meaning). The
+toggle's own `role="tablist"`/`role="tab"` first attempt collided with `compose-13-admin.json`'s
+"exactly one tablist on the admin page" assertion (this bar mounts globally) — changed to
+`role="group"`/`aria-pressed`, which claims no ARIA pattern to collide with. `run-rendering-guard.mjs`
+caught two hit-target defects on the toggle buttons (L9: "≥44px in one dimension and ≥28px in the
+other") — fixed with an explicit `height: 30` and `minWidth: 44` on both tabs, not exempted.
+
+**Gates:** `tsc --noEmit` exit 0; fitness runner 37 functions, 0 violations (F39 marker required and
+added on the search route's own `.in()` call); `node --test` across every `*.npmtest.mjs` (1095
+tests, including 5 new bounded/scoped route tests and 8 new CommandBar structural tests) — 0 failures;
+`next build` exit 0 with `/api/search` registered; `run-rendering-guard.mjs` PASS (17 routes clean at
+1024/1440, only pre-existing dated facet-checkbox exemptions remain); `audit:design` 2557/2557 MATCH
+after the two spec updates above.
+
+See `DEVIATION-LOG.md` for the design-spec updates as formal rows.
