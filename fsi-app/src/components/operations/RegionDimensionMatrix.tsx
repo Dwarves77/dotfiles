@@ -83,16 +83,16 @@
  * the escape hatch open-state-sweep.mjs already provides for a ruled-open default.
  *
  * fitness-allow: F43 (R6 2026-09-09 default matrix selection; both messages quoted above)
- *   -- FOLD 65 (2026-09-09) renumbered this citation. Lane opsmatrix5 was written against the tree
- *   where default-open-disclosure was F42; wave 64 renumbered that function to F43 and gave F42 to
- *   card-shell-outside-section-card, so the lane's original `F42` citation named the wrong function
- *   on this tree. The number here is the one the default-open gate actually carries on THIS tree,
- *   read from .discipline/fitness/functions/, not from either lane's prose.
  *   -- inert today and stated anyway: F43 matches a LEXICAL default-open tell (a useState whose name
  *   carries open/expand starting true, a defaultOpen prop, a <details open>), and the default
  *   selection below is none of those, so F43 finds nothing here to allow. The marker is written at
  *   the site so that a later build which does express this as a boolean has its ruling already
  *   beside it, and so the next reader sees the exception where the exception lives.
+ *   -- FOLD 65 (2026-09-09) renumbered this citation. Lane opsmatrix5 was written against the tree
+ *   where default-open-disclosure was F42; wave 64 renumbered that function to F43 and gave F42 to
+ *   card-shell-outside-section-card, so the lane's original `F42` citation named the wrong function
+ *   on this tree. The number here is the one the default-open gate actually carries on THIS tree,
+ *   read from .discipline/fitness/functions/, not from either lane's prose.
  *
  * THE THREE PIECES OF STATE, and why the split lane noexpand introduced survives in a changed form:
  *   `selection`  `undefined` means THE READER HAS NOT ACTED and the computed default is in force;
@@ -422,20 +422,24 @@ export function RegionDimensionMatrix({
     // cards, and E4 rules its 3px rule the dark grey gradation like every other card, never red.
     // Both are now structural rather than a caller's choice: `SectionCard` mounts the one rule
     // (SectionRule, ruling 5.2's dark grey), and this file can no longer choose a colour for it.
-    <SectionCard as="section" dataAudit="ops-matrix-card">
-      {/* Esc closes the panel from ANYWHERE in the card (operator, 2026-09-09, item 3), not only
-          from a grid cell: a reader who tabbed into the panel to follow its links is exactly the
-          reader most likely to want it shut. FOLD 65: the handler sits on a `display: contents`
-          wrapper rather than on the card element, because the card element is now `SectionCard`
-          (fold 64) and the shared shell owns its own props. `display: contents` generates no box,
-          so the card's layout is byte-identical to the shell's, while the wrapper is still a DOM
-          ancestor of every cell and of the panel, which is all a bubbling keydown needs. */}
-      <div style={{ display: "contents" }} onKeyDown={(e) => {
+    // Esc closes the panel from ANYWHERE in the card (operator, 2026-09-09, item 3), not only from
+    // a grid cell: a reader who tabbed into the panel to follow its links is exactly the reader
+    // most likely to want it shut. FOLD 65: the handler reaches the card element through
+    // SectionCard's own `onKeyDown` prop, added for this caller. A wrapper element inside the card
+    // was tried first and rejected on measurement: `display: contents` draws no box, but it is
+    // still a DOM ancestor, so it makes the head, the table, the panel slot and the foot legend
+    // GRANDCHILDREN of the card and turns the design audit's two direct-child rows on
+    // `[data-audit="ops-matrix-card"] > [data-audit="ops-matrix-foot"]` NOT BUILT.
+    <SectionCard
+      as="section"
+      dataAudit="ops-matrix-card"
+      onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.preventDefault();
           setSelection(null);
         }
-      }}>
+      }}
+    >
       {/* Artboard 08/id="p8" head strip: Anton section title left, the coverage/affordance meta
           right, one hairline below. The prose paragraph that used to sit under the title carried
           the same three facts in sentence form; it is gone, not duplicated. */}
@@ -780,7 +784,6 @@ export function RegionDimensionMatrix({
           )}
         </div>
       )}
-      </div>
     </SectionCard>
   );
 }
@@ -1087,9 +1090,15 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
               target="_blank"
               rel="noopener noreferrer"
               style={{
+                // FOLD 65 (2026-09-09): 28, not the lane's 24, for the same reason `panelLink` is
+                // 28. With the panel in the composed page's arrival state the site-wide layout
+                // guard measures this source link too, and reported it at 24px against L9's floor
+                // on /operations at both 1440 and 1024 (three source links x two widths, the six
+                // findings that took the guard total from master's 622 to 628). The value rises to
+                // the floor; the floor is not lowered.
                 display: "inline-flex",
                 alignItems: "center",
-                minHeight: 24,
+                minHeight: 28,
                 color: "var(--ink-2)",
                 textDecoration: "underline",
                 textDecorationColor: "var(--link-line)",
@@ -1199,10 +1208,17 @@ const stickyCell: React.CSSProperties = {
  *  than a border so the 40px row height does not change when a cell is selected. */
 const SELECTED_INSET = "inset 0 0 0 2px var(--monitor)";
 
+/** FOLD 65 (2026-09-09): the floor is 28, not the 24 lane opsmatrix5 wrote. The lane measured this
+ *  panel on a mount, where the site-wide layout guard does not run. On the folded tree the panel is
+ *  in the arrival state of the composed /operations page, so the guard now MEASURES these three
+ *  controls ("Compare across regions", "Open profile", "N more facts on the profile") and reported
+ *  all three at 24px against L9's floor of ">= 44px in one dimension and >= 28px in the other", six
+ *  findings across 1440 and 1024. The value RISES to the floor the guard enforces rather than the
+ *  guard being relaxed, which is the same resolution fold 63 applied to the calculator foot link. */
 const panelLink: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  minHeight: 24,
+  minHeight: 28,
   padding: 0,
   border: "none",
   background: "none",

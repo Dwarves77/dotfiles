@@ -16054,3 +16054,78 @@ now both move and select, Home and End jump the row, Enter and Space commit, and
 panel's links are real links and buttons with a 24px minimum hit height. The 40px row height is
 asserted at 1440 and at 390. Absence is the app's closed vocabulary everywhere, and the foot legend
 now shows the em dash it explains.
+
+## 2026-09-09: FOLD 65, train/wave65-2026-09-09
+
+**Scope.** Replay lane opsmatrix5's answer to the operator's /operations STOP SHIP list onto
+`origin/master` at `8ab9fc9a`. The lane branched from `lane/noexpand-2026-09-08` (`d51de113`); wave
+64 has since landed on master as one squash carrying that same lane's work plus fold 64's own
+changes, so the component already differs on master. Four commits cherry-picked with `-x` in order:
+`478b8fc0`, `eb3a0349`, `55050383`, `16d74e02`. No lane worktree was touched.
+
+**The conflicts, four files.**
+
+1. `fsi-app/src/components/operations/RegionDimensionMatrix.tsx` (from `478b8fc0`), one hunk, the
+   card element and its closing tag. Resolved to master's shell and the lane's behaviour, hunk by
+   hunk in DEVIATION-LOG.md's FOLD 65 section: all eight of fold 64's hunks survive (the
+   `SectionCard` import, the `SectionCard as="section"` element, its closing tag, two
+   `data-guard-sticky-col` attributes, two `data-guard-display` attributes, the `stickyCell`
+   layout-guard declaration), and every behavioural hunk in `478b8fc0` survives (the arrival
+   selection, the three-value state, arrows select while Home and End move focus, Esc, the
+   fixed-height panel slot, the `--line-1` panel rule, the 12.5px/1.5 detail sentence, the source
+   line's order, the six-word no-figure headline, the head aside, the 142px region floor, the
+   `data-open-on-mount` declaration).
+2. `fsi-app/.discipline/fitness/functions/F43-default-open-disclosure.mjs` (from `eb3a0349`, the
+   file renamed by wave 64), the failure text. Resolved to F43's number carrying the lane's R6
+   clause.
+3. `fsi-app/.discipline/rendering/run-rendering-guard.mjs`, the smoke spec list. Resolved by union:
+   fold 64's `impact-meter-partial` leg and the lane's `ops-matrix-acceptance` leg both registered.
+4. `fsi-app/package.json` (a script each side added), and
+   `fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json` (three hunks: master's
+   A1 rule row, A3 shell row, rail-facet row and calculator-link row all kept, the lane's four
+   arrival-state rows all added, and the lane's two deletions of the now-false "opens nothing" and
+   "no cell is tinted" forbids honoured). Both resolved by union of intent.
+   `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md`,
+   `fsi-app/.discipline/rendering/audit/results.json` and
+   `fsi-app/.discipline/rendering/layout-guard/results.json` are generated files and were taken from
+   HEAD and then REGENERATED from the folded tree rather than merged by hand.
+   `DEVIATION-LOG.md` and this file were union merges of two appended sections.
+
+**The guard renumbering.** Read from the tree: F42 is `card-shell-outside-SectionCard`, F43 is
+`default-open-disclosure`. Lane opsmatrix5 cited F42 for the default-open exception because it was
+written before wave 64 renumbered. The R6 category is now added to F43, and the citation in
+`RegionDimensionMatrix.tsx`, in the npmtest that reads it, in F43's header block, in F43's
+`description` string and in its failure message all name F43. F43's `description` previously listed
+only R3 and R4 while its failure text listed R3, R4 and R6, which is the guard contradicting itself;
+that is fixed at the guard with a dated entry, not by weakening a rule. The fitness runner went red
+first, on the fold's own doc-comment ordering pushing the `<details open>` literal out of the allow
+marker's five-line window, and green after the paragraphs were reordered, which is the marker
+proven by attack rather than by presence.
+
+**Three hunks this fold wrote.** `SectionCard` gains one optional `onKeyDown` prop so the matrix's
+Esc reaches the card element without a wrapper (a `display: contents` wrapper was tried first and
+measured 2 NOT BUILT rows against the audit's direct-child selectors on the foot legend, so it was
+rejected). `panelLink`'s `minHeight` and the fact card's source-link `minHeight` rise from 24 to 28,
+because the panel is now in the composed page's arrival state and the site-wide layout guard
+measures both for the first time. Nine L9 findings in total, all closed by raising values to the
+floor, none by an allowlist entry.
+
+**Acceptance, measured at 1440 in chromium on the folded tree, not inherited.** (A) card height
+682.5 / 682.5 / 682.5px for nothing selected, cell selected and compare mode on the composed
+`/operations` page. (B) narrowest text column in the card 967px, floor 560px. (C) 30 body cells,
+every one a score numeral or an em dash, no word anywhere. Arrival state: exactly one element
+carries `aria-selected`, it is the first sourced cell of the first sourced row, the panel is
+present, and the grid has exactly one tab stop and it is that cell.
+
+**Gates.** `npx tsc --noEmit` exit 0. Fitness runner 37 functions, 0 violations. Rendering guard
+PASS, layout leg 0 findings. `npm run audit:design` 76 specs, 2557 checks, 2557 MATCH at 1440 and
+390, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC. `npm run audit:overflow` 0px on every mount. `npm run
+audit:layout` 622 findings, equal to master. Discipline CI runner over `origin/master..HEAD`, the CI
+npmtest glob, the test suite and both `next build` modes all recorded in the fold report.
+
+**UX compliance.** DP-1: no row component changed geometry in this fold, and the matrix keeps one
+anatomy at every width. DP-2 and law 2: the fold's only geometric change is in the same direction as
+the law, three interactive targets in the panel and three source links raised from a 24px box to
+28px so they clear L9's site-wide hit-target floor at 1440 and 1024; nothing was shrunk and no
+target-size exemption was added. The 390px column is unchanged and re-measured green by the design
+audit's mobile specs.

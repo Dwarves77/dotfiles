@@ -1416,3 +1416,132 @@ and selecting the far end of a row is not what a reader asking for the row's end
 panel, from a grid cell or from anywhere else in the card, and a closed panel STAYS closed: the
 selection state carries three values so that "never touched" and "deliberately closed" are different
 facts and only the first may re-open itself.
+
+## FOLD 65 (2026-09-09)
+
+Wave 65 replays lane opsmatrix5 onto `origin/master` at `8ab9fc9a`. The lane branched from
+`lane/noexpand-2026-09-08` (`d51de113`); since then wave 64 landed on master as ONE squash carrying
+that same lane's work plus fold 64's own changes, so the four lane commits (`478b8fc0`, `eb3a0349`,
+`55050383`, `16d74e02`) were cherry-picked with `-x` onto a tree where the component already
+differs. The lane's own design decisions are recorded in its own section above and are not reopened
+here; this section records only what the fold changed and why. Every number below was measured on
+the FOLDED tree this session, not inherited from the lane's report.
+
+### RegionDimensionMatrix.tsx: master's shell, the lane's behaviour, hunk by hunk
+
+The resolution rule was master's shell and structure, the lane's behaviour. Git auto-merged six of
+the eight fold-64 hunks and raised one conflict; the conflict and the two hunks the resolution
+touched are listed first.
+
+**Taken from MASTER (fold 64's version of the file), all eight hunks, all present on the folded
+tree and each verified by grep after the pick:**
+
+1. The import line: `SectionRule` becomes `SectionCard`. Auto-merged.
+2. The card element itself: the hand-built `<section>` with its five card declarations and its
+   hand-mounted `<SectionRule />` becomes `<SectionCard as="section" dataAudit="ops-matrix-card">`,
+   together with fold 64's A1 + E4 comment and its artboard-08 head-strip comment. THIS WAS THE
+   CONFLICT. The lane's side of it was the older shell PLUS the lane's own new card-level `onKeyDown`
+   for Esc; master's shell won and the Esc handler was carried across separately (below).
+3. `data-guard-sticky-col="true"` on the `Dimension` column header. Auto-merged.
+4. `data-guard-sticky-col="true"` on each body row's sticky first-column header cell. Auto-merged.
+5. `data-guard-display="matrix-cell-score"` on the cell numeral span (L7's Anton declaration against
+   artboard 8). Auto-merged.
+6. The closing tag: `</section>` becomes `</SectionCard>`. Second half of the conflict.
+7. `data-guard-display="matrix-fact-figure"` on the fact card's figure span. Auto-merged.
+8. The `stickyCell` doc comment, fold 64's "DECLARED TO THE LAYOUT GUARD" block explaining that L5's
+   `table-card-sticky-first-column` allowlist row matches the attribute and not a guessed selector.
+   Auto-merged.
+
+**Taken from the LANE (every behavioural hunk in `478b8fc0`), and each is what the operator's
+2026-09-09 list asks for:**
+
+1. The arrival state: a `useMemo` scan, rows-outer and regions-inner so empty rows and empty columns
+   are skipped, selecting the first sourced cell of the first sourced row, with its panel showing.
+2. The three-value selection state: `undefined` is untouched, a `Selection` is the reader's choice,
+   `null` is Esc, so "never touched" and "closed with Esc" are different facts and only the first
+   re-opens itself.
+3. The arrow keys move the SELECTION and the panel follows; `Home` and `End` still move focus alone.
+4. Esc closes the panel from a grid cell and from anywhere else in the card.
+5. The fixed-height 300px panel slot, always in the DOM, scrolling its own content, which is the
+   mechanism behind acceptance criterion A.
+6. The panel's top rule at `--line-1` (`rgba(0,0,0,.12)`), not `--line-2`'s `.08`.
+7. The fact card's detail sentence at 12.5px / line-height 1.5, capped at `max(560px, 72ch)`.
+8. The source line as name, then the period the figure is for, then the provenance word or the row's
+   written date.
+9. The no-figure fact card's six-word headline at 13px / 600, replacing the `<Absence
+   reason="pending">` that put the literal word PENDING inside a fact card.
+10. The head aside carrying "N of M cells sourced · P% · N regions", with "· scroll →" appended only
+    when the table scrolls.
+11. The 142px region-column floor, the only value where five columns fit the narrowest measured
+    scroller and six exceed the widest.
+12. The `arrivalDeclaration` spread (`data-open-on-mount` naming both operator messages) on the
+    panel, the region cell and the row header.
+13. The re-pointed `RegionDimensionMatrix.npmtest.mjs`, 34 tests.
+
+### The three hunks this fold wrote, which belong to neither lane
+
+| Date | Deviation | Why | Trade-off | Owner |
+|---|---|---|---|---|
+| 2026-09-09 | `SectionCard` gains one optional prop, `onKeyDown`, and the matrix passes its Esc handler through it | [CONFIRMED, measured] The lane put Esc on the card element, which on this tree is the shared shell. A wrapper element inside the card was tried FIRST and rejected on measurement, not on taste: `display: contents` draws no box, but it is still a DOM ancestor, so it makes the head, the table, the panel slot and the foot legend GRANDCHILDREN of the card, and the design audit's two direct-child rows on `[data-audit="ops-matrix-card"] > [data-audit="ops-matrix-foot"]` (`operations-matrix.json` and `compose-08-operations-list.json`) went NOT BUILT against a correct product. Measured: 2554 MATCH + 2 NOT BUILT with the wrapper, 2557 MATCH + 0 with the prop. | One optional prop on a component with 30 callers. It cannot weaken the shell: the card's own five properties are still applied after the caller's `style`, the rule is still mounted unconditionally, and F42 still fails a hand-built card. No other caller passes it. | FOLD 65, 2026-09-09 |
+| 2026-09-09 | `panelLink`'s `minHeight` rises from the lane's 24 to 28 | [CONFIRMED, measured] The lane measured the panel on a component mount, where the site-wide layout guard does not run. On the folded tree the panel is in the ARRIVAL state of the composed `/operations` page, so the guard measures its three controls for the first time and reported "Compare across regions" 156.2x24, "Open profile →" 93.7x24 and "2 more facts on the profile →" 186.6x24 against L9's floor of ">= 44px in one dimension and >= 28px in the other", six findings across 1440 and 1024, which took the rendering guard red. | The value RISES to the floor the guard enforces; the guard is not relaxed and no allowlist entry was added. This is the same resolution fold 63 applied to the calculator foot link. | FOLD 65, 2026-09-09 |
+| 2026-09-09 | The fact card's source-name link `minHeight` rises from the lane's 24 to 28 | [CONFIRMED, measured] Same cause, one layer down and found by the layout guard's own total rather than by the rendering guard: three source links on `/operations` at two widths, `a[Talent.com / Glassdoor UK]` 137.4x24, `a[BLS OEWS 53-1047]` 102.2x24, `a[Eurostat lc_lci_lev]` 93.7x24. They took `npm run audit:layout` from master's 622 findings to 628, which the fold's own bar forbids. | Same trade-off, same direction: the value rises, L9 does not move. After the fix the layout guard reports 622, identical to master, and `layout-guard/results.json` differs from master only in its `runAt` timestamp. | FOLD 65, 2026-09-09 |
+
+### The guard renumbering, reconciled at the guard
+
+Lane opsmatrix5 was written when the default-open-disclosure fitness function was F42. Wave 64
+renumbered it to F43 (`.discipline/fitness/functions/F43-default-open-disclosure.mjs`) and gave F42
+to `card-shell-outside-SectionCard`. Read from the tree, not from either lane's prose: on this tree
+F42 is the card-shell function and F43 is the default-open gate. So the lane's R6 category was added
+to F43, and every R6 citation was renumbered to F43:
+
+- `F43-default-open-disclosure.mjs`: the R6 paragraph in the header block, the `description` string
+  (which now names R3, R4 and R6, where before the fold it named only R3 and R4 and so contradicted
+  its own failure text), and the failure message itself.
+- `RegionDimensionMatrix.tsx`: the `fitness-allow: F43 (R6 ...)` marker and the sentence naming the
+  site-wide rule it excepts.
+- `RegionDimensionMatrix.npmtest.mjs`: the assertion that reads the marker.
+
+The marker's ORDER inside the doc block changed too, and that is a real fix rather than tidying. F43
+reads an allow marker on the initialiser's line or within the five lines after it, and it matches
+the literal text `<details open>` wherever it appears. The fold's own renumbering paragraph, written
+directly under the marker, pushed the paragraph that contains that literal to seven lines below the
+marker, and the fitness runner went red on line 92 of the component. The renumbering paragraph now
+sits after that one, the literal is back inside the five-line window, and the runner is green. That
+sequence is also the attack that proves the allow window is enforced rather than decorative
+(CLAUDE.md rule 15): the gate went red without the marker in range and green with it.
+
+Nothing was weakened anywhere: F43 still fails a default-open disclosure sitewide, R6 still names
+exactly one component, and the no-default-open rendering leg still requires the declaration to be
+present, correct, unique and gone the instant the reader acts.
+
+### The one declared exception, restated because the fold re-measured it
+
+The operator's list asks for at most 72 characters per line AND, as acceptance criterion B, no text
+column narrower than 560px. Measured this session on the folded tree, the two cannot both hold: the
+detail sentence's box is 573px and sets 94 characters on its first line. The lane's cap of
+`max(560px, 72ch)` is the narrowest measure criterion B allows, and it is what ships. The number is
+printed on every rendering-guard run (`[D] detail sentence line lengths: [94,54] characters, box
+573px`), so the exception is visible rather than buried.
+
+### Numbers on the folded tree
+
+Acceptance criteria, measured in chromium at 1440 on the composed `/operations` page:
+
+- **A**, card height constant: nothing selected **682.5px**, cell selected **682.5px**, compare mode
+  **682.5px**. On the component mount, 759.5 / 759.5 / 759.5px.
+- **B**, narrowest text column in the card: **967px**, on `ops-fact-figure`, across 27 text boxes.
+  On the mount, 835px selected, 835px in compare mode, 866px after Esc. Floor is 560px.
+- **C**, no cell contains a word: 30 body cells, every one a score numeral or an em dash.
+
+Arrival state, measured on the composed page and on the component mount:
+
+- exactly **1** element carries `aria-selected`, and it is a `td`;
+- it is the first sourced cell of the first sourced row (composed page: body row index 1, column
+  index 2, D2 Regional resource availability x Asia; mount: row index 2, column index 2, D3 Labor
+  markets x Asia), matching the first cell that renders a score numeral in each tree;
+- the panel is present, **1** `ops-matrix-panel`, with 3 fact cards;
+- the grid has exactly **1** tab stop and it is that same cell.
+
+Gates: `tsc --noEmit` exit 0; fitness runner 37 functions, 0 violations; rendering guard PASS with
+its layout leg at 0 findings; `audit:design` 76 specs, 2557 checks, 2557 MATCH at 1440 and 390;
+`audit:overflow` 0px on every mount; `audit:layout` 622 findings, equal to master.
