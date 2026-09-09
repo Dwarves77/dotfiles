@@ -11,7 +11,7 @@
 // write sets while their worktrees are live, which CLAUDE.md rule 7 forbids.
 //
 // The two instructions therefore meet in the mechanism this repo already uses for exactly this
-// shape: a DATED, PER-ENTRY baseline with an expiry wave (`exemptions-375.mjs`, operator ruling
+// shape: a DATED, PER-ENTRY baseline with a mechanical expiry (`exemptions-375.mjs`, operator ruling
 // 2026-09-07: "the exemption is per-page and dated, not a global guard relaxation, so it fails again
 // the moment the artboards land and aren't implemented"). Concretely:
 //
@@ -19,9 +19,8 @@
 //   - ANY OTHER finding fails the build. A new card without its top rule, a new absolute-positioned
 //     rail, a new card outside the artboard, a regression on a route this lane fixed - all red, from
 //     the moment this lands. That is the operator's "no train lands with a failure", enforced today;
-//   - the baseline EXPIRES at BASELINE_EXPIRY_WAVE, read through the same `latestTrainWave()` oracle
-//     F25 and the 375 exemptions read. When the landed history reaches that wave the baseline stops
-//     applying and all 783 go red, exactly as if this file had been deleted.
+//   - the baseline EXPIRES on BASELINE_EXPIRY_DATE, evaluated against the current date. On that day
+//     the baseline stops applying and all of them go red, exactly as if this file had been deleted.
 //
 // It is not a way to keep them. It is a dated debt with a mechanical due date, and the routing table
 // in docs/audits/layout-guard-2026-09-08.md names the owning part for every one of them.
@@ -32,16 +31,36 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { latestTrainWave } from '../../fitness/functions/F25-module-liveness.mjs';
-import { getRepoRoot } from '../../lib/context.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
 /**
- * The wave the baseline dies at. Train 61 is landing as this is written, so this is four waves of
- * room for six lanes to clear their own rules - not an open-ended hold.
+ * THE DATE THE BASELINE DIES AT. Operator ruling, 2026-09-09, verbatim:
+ *
+ *   "Guard expiry: extend the layout-guard baseline to 2026-10-15. Land as wave65. Clearing the 622
+ *    findings is scheduled after the UI round, as before; do not start it now."
+ *
+ * A DATE, and the wave threshold is GONE rather than raised. The old mechanism expired the baseline
+ * when the landed history reached wave 65, and this train lands as wave 65: that rule would have turned the
+ * 622 reported findings into blocking failures on the very commit that carries his extension. Raising
+ * the number to 70 would only move that trap five trains along, so the oracle is dropped and the
+ * expiry is the day he named, read from the clock.
+ *
+ * Everything else about the baseline is unchanged: it may only SHRINK, every entry keeps the owning
+ * part named in docs/audits/layout-guard-2026-09-08.md, and the findings themselves are untouched
+ * because clearing them is scheduled after the UI round.
  */
-export const BASELINE_EXPIRY_WAVE = 65;
+export const BASELINE_EXPIRY_DATE = '2026-10-15';
+
+/** Today as YYYY-MM-DD, the form BASELINE_EXPIRY_DATE is written in, so the two compare as strings. */
+export function today(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}
+
+/** The baseline is inert from BASELINE_EXPIRY_DATE onward. */
+export function isExpired(date = today()) {
+  return date >= BASELINE_EXPIRY_DATE;
+}
 
 /** One finding's identity, stable across runs: rule + route + width + the element it named. */
 export function findingKey(f) {
@@ -56,15 +75,12 @@ export function loadBaseline() {
 }
 
 /**
- * Split findings into `baselined` (known, dated, reported) and `blocking` (everything else). Once
- * the landed history reaches BASELINE_EXPIRY_WAVE the baseline is inert and everything blocks.
+ * Split findings into `baselined` (known, dated, reported) and `blocking` (everything else). From
+ * BASELINE_EXPIRY_DATE onward the baseline is inert and everything blocks. `date` is injectable so
+ * the expiry can be proven by attack in both directions rather than waited for.
  */
-export function applyBaseline(findings, { latestWave = undefined, repoRoot = getRepoRoot() } = {}) {
-  let wave = latestWave;
-  if (wave === undefined) {
-    try { wave = latestTrainWave(repoRoot); } catch { wave = null; }
-  }
-  const expired = wave !== null && wave >= BASELINE_EXPIRY_WAVE;
+export function applyBaseline(findings, { date = today() } = {}) {
+  const expired = isExpired(date);
   const { keys, meta } = loadBaseline();
   const baselined = [];
   const blocking = [];
@@ -72,5 +88,5 @@ export function applyBaseline(findings, { latestWave = undefined, repoRoot = get
     if (!expired && keys.has(findingKey(f))) baselined.push(f);
     else blocking.push(f);
   }
-  return { baselined, blocking, expired, latestWave: wave, meta };
+  return { baselined, blocking, expired, date, expiryDate: BASELINE_EXPIRY_DATE, meta };
 }

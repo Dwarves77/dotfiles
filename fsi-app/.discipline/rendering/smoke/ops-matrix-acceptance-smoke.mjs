@@ -27,10 +27,10 @@
 //      Measuring `textContent` instead is the mistake that let eight forbids on this project match
 //      nothing for weeks: it reads the injected <style> element and the hidden word, and misses
 //      anything drawn by `content:`.
-//   D. THE NO-FIGURE FACT CARD, and the detail sentence's measure. See the block at the assertion
-//      itself for the one place his own two numbers ("at most 72 characters per line" and "no text
-//      column narrower than 560px") cannot both hold, what was measured, and which one won.
-//      D. THE NO-FIGURE FACT CARD. `ops-matrix-nofigure` selects a cell whose one fact has no figure:
+//   D. THE NO-FIGURE FACT CARD, and the detail sentence's measure. 72ch is the PROSE's cap and 560px
+//      is the COLUMN's floor (operator ruling 2026-09-09), so the two live on different boxes: this
+//      leg proves the cap is applied to the text block, and leg B measures the floor on the column.
+//      `ops-matrix-nofigure` selects a cell whose one fact has no figure:
 //      the card must lead with a headline of at most six words at 13px / weight 600, must carry the
 //      claim after it, and must contain no figure element. Proof that the fallback is a branch that
 //      runs, not a sentence in a comment.
@@ -346,39 +346,35 @@ export async function runSmoke(browser) {
         console.log(`    [D] detail sentence: ${detail.size} / ${detail.lh}, ${detail.width}px wide, ${detail.text.length} chars`);
         eq('the detail sentence is 12.5px', detail.size, '12.5px');
         eq('the detail sentence is line-height 1.5', detail.lh, '18.75px');
-        // "at most 72 characters per line", measured by where the characters actually LAND rather
-        // than by trusting the `ch` unit: each character's client rect is grouped by its line's top.
-        const lines = await page.evaluate(() => {
+        // THE PROSE IS CAPPED AT 72ch AND THE COLUMN AROUND IT IS NOT. Operator ruling 2026-09-09,
+        // verbatim: "72ch is the MAX line length of the prose (max-width:72ch on the text block);
+        // 560px is the MIN width of the column that holds it. A 967px column with a 72ch text block
+        // inside is exactly the spec." So this leg measures the CAP on the text block, and the 560px
+        // floor is leg B's business, on the cell and the panel column. What is asserted: the declared
+        // max-width is exactly `72ch`, the box actually lands on it rather than merely inheriting a
+        // wider parent, and the box is narrower than the card that holds it, which is the whole point
+        // of a measure. No character count is printed here: the earlier build's count was reported as
+        // evidence of a conflict between his two numbers, and there is no conflict to report.
+        const cap = await page.evaluate(() => {
           const el = document.querySelector('[data-audit="ops-fact-detail"]');
-          const node = el.firstChild;
-          const text = node.textContent;
-          const rows = {};
-          for (let i = 0; i < text.length; i += 1) {
-            const r = document.createRange();
-            r.setStart(node, i);
-            r.setEnd(node, i + 1);
-            const k = Math.round(r.getBoundingClientRect().top);
-            rows[k] = (rows[k] || 0) + 1;
-          }
-          return Object.values(rows);
+          const card = el.closest('[data-audit="ops-fact-card"]');
+          return {
+            declared: el.style.maxWidth,
+            resolved: Math.round(parseFloat(getComputedStyle(el).maxWidth) * 100) / 100,
+            card: card ? Math.round(card.getBoundingClientRect().width) : null,
+          };
         });
-        const longest = Math.max(...lines);
-        console.log(`    [D] detail sentence line lengths: ${JSON.stringify(lines)} characters, box ${detail.width}px`);
-        // THE ONE PLACE THE OPERATOR'S OWN TWO NUMBERS CONFLICT, stated rather than quietly picked.
-        // He asks for "at most 72 characters per line" AND, as acceptance criterion B, "no text
-        // column in the card is narrower than 560px". MEASURED here, this face at 12.5px: a 560px
-        // box sets about 92 characters, and 72 characters need about 439px. The two cannot both
-        // hold. Criterion B is the one the lane is judged on, it is the later statement, and it is
-        // the one aimed at the defect he stopped the ship over (five ~110px columns of prose); the
-        // replacement artboard corroborates it, setting roughly 88 characters on its own first fact
-        // card's detail line. So the cap is `max(560px, 72ch)`: the NARROWEST measure criterion B
-        // allows, which is as close to 72 characters as B permits. That is what is asserted, with
-        // the character count printed above so the trade is visible in every run rather than argued
-        // from memory.
+        console.log(`    [D] detail sentence measure: max-width ${cap.declared} = ${cap.resolved}px, box ${detail.width}px, inside a ${cap.card}px card`);
         checks += 1;
-        if (detail.width < MIN_TEXT_COLUMN) failures.push(`ops-matrix-acceptance: D. the detail sentence must not fall under the ${MIN_TEXT_COLUMN}px floor, it is ${detail.width}px`);
+        eq('the detail sentence declares a 72ch measure', cap.declared, '72ch');
         checks += 1;
-        if (detail.width > 600) failures.push(`ops-matrix-acceptance: D. the detail sentence must be CAPPED near the floor, not run the card's full width: ${detail.width}px (longest line ${longest} characters)`);
+        if (Math.abs(detail.width - cap.resolved) > 1) {
+          failures.push(`ops-matrix-acceptance: D. the detail sentence must LAND on its 72ch measure, not merely declare it: box ${detail.width}px against a ${cap.resolved}px cap`);
+        }
+        checks += 1;
+        if (cap.card !== null && detail.width >= cap.card) {
+          failures.push(`ops-matrix-acceptance: D. the detail sentence must be CAPPED, not run the card's full width: ${detail.width}px inside a ${cap.card}px card`);
+        }
       }
     } finally {
       await page.close();

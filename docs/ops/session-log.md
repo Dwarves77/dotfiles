@@ -16129,3 +16129,104 @@ the law, three interactive targets in the panel and three source links raised fr
 28px so they clear L9's site-wide hit-target floor at 1440 and 1024; nothing was shrunk and no
 target-size exemption was added. The 390px column is unchanged and re-measured green by the design
 audit's mobile specs.
+
+## Addendum, lane OPS72CH (2026-09-09): the prose measure is not the column floor, and the layout-guard baseline expires on a date
+
+Small lane, riding the wave 65 train. Three items from the operator, two of them work.
+
+**His ruling, 2026-09-09, verbatim:**
+
+> 1. 560px vs 72ch: not a conflict, a misread. 72ch is the MAX line length of the prose
+>    (max-width:72ch on the text block); 560px is the MIN width of the column that holds it. A 967px
+>    column with a 72ch text block inside is exactly the spec. Set max-width:72ch on the detail
+>    sentence and claim; the column stays wide. Both numbers hold. Stop printing the character count
+>    as a conflict.
+> 2. Guard expiry: extend the layout-guard baseline to 2026-10-15. Land as wave65. Clearing the 622
+>    findings is scheduled after the UI round, as before; do not start it now.
+> 3. Header string: agreed, '18 of 30 cells sourced · 60% · 18 regions · scroll →' as drawn.
+
+### Item 1: the measure goes on the prose, the floor stays on the column
+
+[CONFIRMED, measured in chromium at 1440] The previous lane read `72ch` as a width for the COLUMN and
+capped the detail sentence at `max(560px, 72ch)`. That construction is what manufactured the
+"conflict": one box carrying both a floor meant for the column and a measure meant for the prose. The
+`max()` is gone. `max-width: 72ch` is now on the detail sentence (`ops-fact-detail`) and on the claim
+(`ops-fact-quote`), and criterion B is measured where it belongs, on the cell and the panel column.
+
+Three measurements after the change:
+
+| What | Measured | Against |
+|---|---|---|
+| Column width (narrowest text-bearing box in the panel) | **967px** composed `/operations`, **835px** component mount, **866px** Esc state | criterion B floor 560px: holds, 407px clear at the composed width |
+| Prose block width | **572.59px**, declared `max-width: 72ch`, computed `572.607px` | it lands on its own cap, inside an 866px fact card |
+| Longest line of the detail sentence | **94 characters** (line lengths `[94, 54]` over a 148-character sentence) | reported as a measurement, not as a conflict |
+
+On the 94: `ch` is the advance width of the digit zero, and Plus Jakarta Sans at 12.5px sets a
+narrower average glyph than a zero, so a 72`ch` box holds roughly 94 average characters. The rule the
+operator set is `max-width: 72ch` and it is applied exactly as written. Wanting 72 GLYPHS is a
+different number, about 439px in this face, and it is his call rather than a defect here.
+
+The character count is no longer printed anywhere as evidence of a conflict: leg D of
+`ops-matrix-acceptance-smoke.mjs`, the two operations-matrix spec notes, the `DEVIATION-LOG.md`
+section that called it "the one place his own two numbers conflict", and the component's own comment
+block are all rewritten. Leg D now measures what the ruling constrains: the declared max-width is
+`72ch`, the box lands on it within 1px, and it is narrower than the card that holds it.
+
+### Item 2: the baseline expires on 2026-10-15, and the wave threshold is gone
+
+[CONFIRMED, proven by attack] `fsi-app/.discipline/rendering/layout-guard/baseline.mjs` expired the
+baseline by WAVE NUMBER: `export const BASELINE_EXPIRY_WAVE = 65` with
+`expired = wave !== null && wave >= BASELINE_EXPIRY_WAVE`, where `wave` came from `latestTrainWave()`
+scanning master's commit subjects. This train lands as wave 65, so the baseline would have expired on
+the same commit that carried the extension and turned 622 reported findings into blocking failures.
+
+After: `export const BASELINE_EXPIRY_DATE = '2026-10-15'`, evaluated against the current date, with
+his sentence quoted in a dated comment at the constant. The wave threshold and the `latestTrainWave`
+import are REMOVED, not raised to a bigger number, because a bigger number is the same trap one train
+later. `applyBaseline(findings, { date })` takes an injectable date so the expiry is attackable.
+
+Attack, both directions, in `layout-guard.test.mjs`:
+
+- `2026-10-14`: `expired === false`, the baseline covers its own entries, only new findings block.
+- `2026-10-15` and `2026-12-01`: `expired === true`, `baselined.length === 0`, every entry blocks.
+- A second test reads `baseline.mjs` and fails if it still names a wave threshold or the wave oracle.
+
+Nothing else about the baseline moved. It may still only SHRINK, its 792 entries keep the owning
+parts named in `docs/audits/layout-guard-2026-09-08.md`, and the 622 findings themselves are
+UNTOUCHED, because he said clearing them is scheduled after the UI round and is not to start now.
+`npm run audit:layout` reports 622 findings, unchanged, and non-blocking. Files carrying the expiry
+in the same commit: `baseline.mjs`, `run-layout-guard.mjs` (import, log line, the `expiryDate` field
+written into `baseline.json`), `baseline.json` (`expiryWave: 65` becomes `expiryDate: "2026-10-15"`,
+792 keys untouched) and `layout-guard.test.mjs`. Nothing else in the repo hardcoded wave 65 as this
+expiry; the other wave-dated mechanisms (F25 allowlists, F38, the 375 exemptions at wave58, the law-2
+desktop exemptions at wave70) are separate registers and were not touched.
+
+### Item 3: the header string, confirmed by rendering, no work
+
+Rendered this session: `compose-08-operations` draws **"18 of 30 cells sourced · 60% · 5 regions"**,
+matching the artboard's first two figures exactly, and `ops-matrix-six-regions` draws **"8 of 36
+cells sourced · 22% · 18 regions · scroll →"**, which proves the region count and the `· scroll →`
+tail. The hint is drawn only when the table can actually scroll, which is why the five-region compose
+mount omits it. The aside already reads the artboard's string; nothing to change.
+
+### UX compliance
+
+**Screen: /operations, the region x dimension matrix card.** Primary goal: read which regions have
+sourced facts on a dimension, and read the facts for one cell. Path: land on the page, the first
+sourced cell is already selected and its panel open, arrow keys or a click move the selection, Esc
+closes. One primary action: selecting a cell; every other control in the card is secondary and sits
+after it. Feedback per async action: none is introduced by this lane, the matrix is fed by props and
+computes its grid synchronously.
+
+Law 5 (Miller) and law 12 (Prägnanz) are the reason this lane exists: a bounded line length is what
+makes the fact card's prose scannable, and this change puts that bound on the prose rather than on
+the column, so the reader gets a short measure inside a wide, uncrowded card. Law 2 (Fitts) is
+untouched: no interactive target changed size, and no target-size exemption was added or widened.
+Law 16 (Similarity): the claim now carries the same measure as the detail sentence, so the two prose
+runs in one fact card set the same line length instead of two different ones. The 390px column is
+unchanged and re-measured green by the design audit's mobile specs.
+
+### Gates
+
+Every gate run from the worktree root, exit codes read explicitly. See the lane report for the
+numbers.

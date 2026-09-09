@@ -1033,7 +1033,17 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
         {inlineClaim && (
           <span
             data-audit="ops-fact-quote"
-            style={{ fontSize: "var(--fs-125)", color: "var(--ink)", lineHeight: 1.45, overflowWrap: "anywhere", minWidth: 0 }}
+            style={{
+              fontSize: "var(--fs-125)",
+              color: "var(--ink)",
+              lineHeight: 1.45,
+              overflowWrap: "anywhere",
+              minWidth: 0,
+              // 72ch is the PROSE's measure, not the column's (operator, 2026-09-09). The claim is
+              // prose, so it carries the same cap as the detail sentence below it. The cell around
+              // it keeps its full width; only the line length is bounded.
+              maxWidth: "72ch",
+            }}
           >
             {inlineClaim}
           </span>
@@ -1049,9 +1059,9 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
           `factHeadline` yields prose exactly when the row's value is a sentence rather than a
           quantity, which is the same condition that empties the figure slot. That is not an
           accident of the fixture, it is the data model: a row cannot have both a short numeric value
-          and a sentence in the same field. It is full card width, which is what acceptance
-          criterion B ("no text column inside the card is narrower than 560px") requires; see the
-          measured note in DEVIATION-LOG.md on why a `72ch` max-width is NOT applied here. */}
+          and a sentence in the same field. Its LINE LENGTH is capped at 72ch; the cell and the panel
+          column around it keep their full measured width, which is what acceptance criterion B
+          ("no text column inside the card is narrower than 560px") is about. */}
       {prose && (
         <p
           data-audit="ops-fact-detail"
@@ -1061,15 +1071,16 @@ function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; 
             color: "var(--ink)",
             margin: "6px 0 0",
             overflowWrap: "anywhere",
-            // "at most 72 characters per line" (operator, 2026-09-09) AND "no text column in the
-            // card is narrower than 560px" (his acceptance criterion B) are two constraints on the
-            // same box, and they can conflict: 72ch is only above 560px if the body face is wide
-            // enough. MEASURED 2026-09-09 in chromium, this face at 12.5px: 72ch = 572.6px, which
-            // clears the floor by 12.6px, so both hold and neither is traded away. `max()` states
-            // that rather than relying on it: the acceptance floor wins if a future face makes 72ch
-            // narrower than 560px, because that is the criterion the lane is judged on. Before this
-            // cap the detail sentence set 134 characters on a line at the mount's width.
-            maxWidth: "max(560px, 72ch)",
+            // THE PROSE'S MEASURE, and it is not the column's. Operator ruling 2026-09-09, verbatim:
+            // "72ch is the MAX line length of the prose (max-width:72ch on the text block); 560px is
+            // the MIN width of the column that holds it. A 967px column with a 72ch text block
+            // inside is exactly the spec." The earlier build read 72ch as a width for the column and
+            // wrote `max(560px, 72ch)`, which put the floor and the measure on ONE box and made them
+            // look like rivals. They are two constraints on two different boxes: this cap bounds the
+            // line length here, and criterion B is measured on the cell and the panel column, which
+            // keep their full width. Before any cap the detail sentence set 134 characters on a line
+            // at the mount's width.
+            maxWidth: "72ch",
           }}
         >
           {prose}

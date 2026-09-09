@@ -27,7 +27,7 @@ import {
 } from './allowlists.mjs';
 import { activeDeviations } from './manifests.mjs';
 import { generateManifests } from './generate-manifests.mjs';
-import { applyBaseline, findingKey, BASELINE_EXPIRY_WAVE } from './baseline.mjs';
+import { applyBaseline, findingKey, BASELINE_EXPIRY_DATE, isExpired } from './baseline.mjs';
 import { ROUTES, LAYOUT_WIDTHS } from './routes.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -424,25 +424,37 @@ test('the checked-in manifests still match the artboards they were generated fro
   }
 });
 
-test('the baseline gates NEW findings and expires the way F25 dates its own entries', () => {
+test('the baseline gates NEW findings and expires on the DATE the operator named, not on a wave', () => {
   const known = { rule: 'L6', route: '/admin', width: 1440, element: 'section[x]', measured: '…', message: '…' };
   const fresh = { rule: 'L6', route: '/admin', width: 1440, element: 'section[a card added today]', measured: '…', message: '…' };
   // A hand-made baseline set, so this proves the SPLIT rather than today's baseline.json contents.
-  const split = (latestWave) => applyBaseline([known, fresh], { latestWave, repoRoot: join(HERE, '../../../..') });
-  const before = split(BASELINE_EXPIRY_WAVE - 1);
+  const split = (date) => applyBaseline([known, fresh], { date });
+  const before = split('2026-10-14');
   assert.ok(before.blocking.some((f) => f.element === 'section[a card added today]'),
     'a finding that is not in the baseline must fail the build, which is what "no train lands with a failure" means');
-  const after = split(BASELINE_EXPIRY_WAVE);
-  assert.equal(after.baselined.length, 0, 'once the wave lands the baseline excuses nothing');
+  assert.equal(before.expired, false, 'the day before the expiry the baseline still covers its own entries');
+  // ATTACK, the other direction: fake the clock past the date and every baselined finding blocks.
+  const after = split(BASELINE_EXPIRY_DATE);
+  assert.equal(after.baselined.length, 0, 'on the expiry date the baseline excuses nothing');
   assert.equal(after.blocking.length, 2);
   assert.equal(after.expired, true);
+  assert.equal(split('2026-12-01').expired, true, 'and it stays dead after the date');
+});
+
+test('the expiry is a DATE and the wave oracle is gone, so landing as wave 65 does not expire it', () => {
+  assert.equal(BASELINE_EXPIRY_DATE, '2026-10-15', 'operator ruling 2026-09-09');
+  const src = readFileSync(join(HERE, 'baseline.mjs'), 'utf8');
+  assert.ok(!/EXPIRY_WAVE|latestTrainWave/.test(src),
+    'the wave threshold must be REMOVED, not raised: this train lands as wave 65 and any wave rule would expire the baseline the moment it lands');
+  assert.equal(isExpired('2026-10-14'), false);
+  assert.equal(isExpired('2026-10-15'), true);
 });
 
 test('the baseline file is a snapshot of real findings, keyed the way the runner keys them', () => {
   const path = join(HERE, 'baseline.json');
   assert.ok(existsSync(path), 'baseline.json is missing - run run-layout-guard.mjs --write-baseline');
   const b = JSON.parse(readFileSync(path, 'utf8'));
-  assert.equal(b.expiryWave, BASELINE_EXPIRY_WAVE, 'the file and the module must name the same wave');
+  assert.equal(b.expiryDate, BASELINE_EXPIRY_DATE, 'the file and the module must name the same expiry date');
   assert.equal(b.keys.length, b.count);
   for (const k of b.keys.slice(0, 20)) {
     const [rule, route, width] = k.split('|');

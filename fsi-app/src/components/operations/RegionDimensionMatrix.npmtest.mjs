@@ -300,13 +300,21 @@ test("a fact with NO figure leads with a six-word headline at 13px/600, then the
   );
 });
 
-test("the detail sentence is 12.5px / 1.5, capped at the widest measure criterion B allows", () => {
+test("the detail sentence is 12.5px / 1.5, and its LINE LENGTH is capped at 72ch", () => {
   assert.match(SOURCE, /data-audit="ops-fact-detail"/);
   assert.match(SOURCE, /lineHeight: 1\.5,/);
-  // max(), not min(): "at most 72 characters per line" and "no text column narrower than 560px" are
-  // two constraints on one box and they conflict in this face (measured: 560px sets ~92 characters,
-  // 72 characters need ~439px). The acceptance criterion is the floor and it wins.
-  assert.match(SOURCE, /maxWidth: "max\(560px, 72ch\)"/);
+  // Operator ruling 2026-09-09: "72ch is the MAX line length of the prose (max-width:72ch on the
+  // text block); 560px is the MIN width of the column that holds it." Two constraints on two
+  // different boxes, so the cap is a plain 72ch and the `max(560px, ...)` construction is gone; the
+  // 560px floor is measured on the column by acceptance leg B, not on the text block.
+  assert.match(SOURCE, /maxWidth: "72ch",/);
+  assert.doesNotMatch(SOURCE, /maxWidth: "max\(/, "the max(560px, 72ch) construction is gone, not merely commented");
+});
+
+test("the claim carries the same 72ch measure as the detail sentence", () => {
+  const card = SOURCE.slice(SOURCE.indexOf("function MatrixFactCard"), SOURCE.indexOf("// ── Shared cell geometry"));
+  const quote = card.slice(card.indexOf('data-audit="ops-fact-quote"'));
+  assert.match(quote.slice(0, 700), /maxWidth: "72ch",/, "the claim is prose and carries the prose measure");
 });
 
 test("the source line is source name, then period, then provenance or the row's written date", () => {

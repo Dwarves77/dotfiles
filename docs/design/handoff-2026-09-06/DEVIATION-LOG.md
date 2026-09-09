@@ -1379,17 +1379,15 @@ passed to that mount only, so no other spec's cell counts or coverage percentage
 proof. Measured: headline `"Berth allocation is discretionary"` at `13px` / `600`, no figure element
 in the card, detail sentence `12.5px` / `18.75px`.
 
-### The one place his own two numbers conflict
+### The two numbers, and why there was never a conflict
 
-He asks for a detail sentence of "at most 72 characters per line" AND, as acceptance criterion B, "no
-text column in the card is narrower than 560px". MEASURED 2026-09-09 in chromium, this face at
-12.5px: a 560px box sets about 92 characters and 72 characters need about 439px. They cannot both
-hold. Criterion B wins: it is the later statement, it is what the lane is judged on, and it is aimed
-at the defect he stopped the ship over. The replacement artboard corroborates the wider measure,
-setting roughly 88 characters on its own first fact card's detail line, and where the words and the
-image disagree the image wins. The cap applied is `max(560px, 72ch)` = **573px**, the narrowest
-measure criterion B allows; the measured line lengths (94, 54) are printed on every guard run so the
-trade stays visible.
+They are constraints on two DIFFERENT boxes, and reading them as one box is what produced a
+"conflict" that does not exist. Operator ruling 2026-09-09, verbatim: *"72ch is the MAX line length
+of the prose (max-width:72ch on the text block); 560px is the MIN width of the column that holds it.
+A 967px column with a 72ch text block inside is exactly the spec."* So `max-width: 72ch` goes on the
+detail sentence and on the claim, the cell and the panel column keep their full measured width, and
+acceptance criterion B is measured where it belongs. See the corrected section at the end of this
+log for the three measurements.
 
 ### Where the words and the image disagree, and the image won
 
@@ -1465,7 +1463,8 @@ tree and each verified by grep after the pick:**
 5. The fixed-height 300px panel slot, always in the DOM, scrolling its own content, which is the
    mechanism behind acceptance criterion A.
 6. The panel's top rule at `--line-1` (`rgba(0,0,0,.12)`), not `--line-2`'s `.08`.
-7. The fact card's detail sentence at 12.5px / line-height 1.5, capped at `max(560px, 72ch)`.
+7. The fact card's detail sentence at 12.5px / line-height 1.5, its line length capped at `72ch`
+   (corrected from `max(560px, 72ch)` by lane OPS72CH, 2026-09-09).
 8. The source line as name, then the period the figure is for, then the provenance word or the row's
    written date.
 9. The no-figure fact card's six-word headline at 13px / 600, replacing the `<Absence
@@ -1514,14 +1513,12 @@ Nothing was weakened anywhere: F43 still fails a default-open disclosure sitewid
 exactly one component, and the no-default-open rendering leg still requires the declaration to be
 present, correct, unique and gone the instant the reader acts.
 
-### The one declared exception, restated because the fold re-measured it
+### The declared exception is withdrawn: there is no exception
 
-The operator's list asks for at most 72 characters per line AND, as acceptance criterion B, no text
-column narrower than 560px. Measured this session on the folded tree, the two cannot both hold: the
-detail sentence's box is 573px and sets 94 characters on its first line. The lane's cap of
-`max(560px, 72ch)` is the narrowest measure criterion B allows, and it is what ships. The number is
-printed on every rendering-guard run (`[D] detail sentence line lengths: [94,54] characters, box
-573px`), so the exception is visible rather than buried.
+The fold recorded a standing exception here on the reading that 72ch and 560px were rival caps on
+one box. Lane OPS72CH withdrew it on the operator's ruling of 2026-09-09 (quoted in full in the
+section below). The two numbers govern two boxes, the cap is a plain `max-width: 72ch`, and nothing
+about criterion B is traded away.
 
 ### Numbers on the folded tree
 
@@ -1545,3 +1542,67 @@ Arrival state, measured on the composed page and on the component mount:
 Gates: `tsc --noEmit` exit 0; fitness runner 37 functions, 0 violations; rendering guard PASS with
 its layout leg at 0 findings; `audit:design` 76 specs, 2557 checks, 2557 MATCH at 1440 and 390;
 `audit:overflow` 0px on every mount; `audit:layout` 622 findings, equal to master.
+
+## 2026-09-09 · Lane OPS72CH: the prose measure, and the layout-guard baseline's expiry
+
+**The operator's ruling, 2026-09-09, verbatim:**
+
+> 1. 560px vs 72ch: not a conflict, a misread. 72ch is the MAX line length of the prose
+>    (max-width:72ch on the text block); 560px is the MIN width of the column that holds it. A 967px
+>    column with a 72ch text block inside is exactly the spec. Set max-width:72ch on the detail
+>    sentence and claim; the column stays wide. Both numbers hold. Stop printing the character count
+>    as a conflict.
+> 2. Guard expiry: extend the layout-guard baseline to 2026-10-15. Land as wave65. Clearing the 622
+>    findings is scheduled after the UI round, as before; do not start it now.
+> 3. Header string: agreed, '18 of 30 cells sourced · 60% · 18 regions · scroll →' as drawn.
+
+### Item 1, the prose measure
+
+| Date | Deviation | Why | Trade-off | Owner |
+|---|---|---|---|---|
+| 2026-09-09 | The fact card's detail sentence drops `max-width: max(560px, 72ch)` for a plain `max-width: 72ch`, and the claim (`ops-fact-quote`) gains the same cap | [CONFIRMED, measured] The `max()` construction encoded the misread the operator names: it put a COLUMN floor and a PROSE measure on one box, so the two looked like rivals and the lane reported an unresolvable conflict. They are constraints on different boxes. | None. `max(560px, 72ch)` and `72ch` resolve to the same 572.6px in this face, so no rendered value moved; what changed is which box each number is measured on, and the claim gained a measure it did not have. | LANE OPS72CH, 2026-09-09 |
+
+**The three measurements, chromium at 1440, taken after the change:**
+
+- **The column stays wide.** Narrowest text-bearing box in the panel: **967px** on the composed
+  `/operations` page (27 boxes), **835px** on the component mount, **866px** in the Esc state. The
+  matrix card itself is **900px** on the mount and the panel **898px**. Acceptance criterion B, "no
+  text column in the card is narrower than 560px", holds on both trees with the narrowest box 407px
+  clear of the floor.
+- **The prose block lands on its measure.** The detail sentence's box is **572.59px** against a
+  declared `max-width: 72ch` that computes to **572.607px**. The claim declares the same `72ch` cap;
+  its own box is 157.58px because the claim in the fixture is short, which is the cap doing nothing
+  until the text needs it.
+- **The longest line of the detail sentence sets 94 characters** (line lengths `[94, 54]` over a
+  148-character sentence). This is a MEASUREMENT, not a conflict and not an exception: `ch` is the
+  advance width of the digit zero, and in Plus Jakarta Sans at 12.5px the average glyph is narrower
+  than a zero, so a 72ch box holds about 94 average characters. `max-width: 72ch` is the rule the
+  operator set and it is applied exactly as he wrote it. If he ever wants 72 GLYPHS rather than 72
+  `ch`, that is a different number (about 439px in this face) and his call to make, not a defect in
+  this build.
+
+The character count is no longer printed by the guard as evidence of a conflict. Leg D of
+`ops-matrix-acceptance-smoke.mjs` now measures what the ruling actually constrains: the declared
+max-width is `72ch`, the box lands on it within 1px, and it is narrower than the 866px card that
+holds it. The 560px floor stays where it belongs, in leg B, measured on the column.
+
+### Item 2, the layout-guard baseline's expiry
+
+| Date | Deviation | Why | Trade-off | Owner |
+|---|---|---|---|---|
+| 2026-09-09 | `layout-guard/baseline.mjs` expires on a DATE, `BASELINE_EXPIRY_DATE = '2026-10-15'`, and the `BASELINE_EXPIRY_WAVE` threshold plus its `latestTrainWave()` oracle are removed | [CONFIRMED, proven by attack] The old rule was `expired = wave !== null && wave >= 65` reading master's commit subjects. This train lands as wave 65, so the baseline would have expired on the very commit carrying the operator's extension and turned 622 reported findings into blocking failures. | The oracle is gone rather than raised: a bigger wave number is the same trap one train later. Nothing else about the baseline moved. It may still only SHRINK, its 792 entries keep the owning parts named in `docs/audits/layout-guard-2026-09-08.md`, and the 622 findings are UNTOUCHED because clearing them is scheduled after the UI round. | LANE OPS72CH, 2026-09-09 |
+
+Proven by attack in both directions, `layout-guard.test.mjs`: at `2026-10-14` the baseline still
+covers its own entries and only new findings block; at `2026-10-15` and at `2026-12-01` it covers
+nothing and every entry blocks. A second test asserts the source carries no wave threshold and no
+`latestTrainWave` import, so raising the number instead of removing it fails the gate.
+
+### Item 3, the header string, confirmed by rendering
+
+No work. The head aside (`ops-matrix-hint`) already computes the operator's string. Rendered this
+session: `compose-08-operations` shows **"18 of 30 cells sourced · 60% · 5 regions"**, matching the
+artboard's first two figures exactly; `ops-matrix-six-regions` shows **"8 of 36 cells sourced · 22% ·
+18 regions · scroll →"**, which proves the `· scroll →` tail and the 18-region count. The scroll hint
+is drawn only when the table can actually scroll, which is why the five-region compose mount omits
+it and the six-region mount carries it.
+
