@@ -1,15 +1,28 @@
 #!/usr/bin/env node
 // backfill-format-type.mjs -- MAINT step for task 2.4 of the brief-chain build plan (2026-09-11):
-// format_type catch-up for live briefs that carry none (measured live corpus count, 2026-09-11
-// [CONFIRMED, SQL against kwrsbpiseruzbfwjpvsp]: 128 rows where item_grade='brief', is_archived=false,
-// format_type IS NULL).
+// format_type catch-up for every live (non-archived) intelligence_items row that carries none --
+// measured live corpus count, 2026-09-11 [CONFIRMED, execute_sql against kwrsbpiseruzbfwjpvsp,
+// coordinator-run]: 1,229 rows where is_archived=false AND format_type IS NULL, broken down by
+// item_type: regulation 660, initiative 377, directive 87, framework 67, research_finding 13,
+// guidance 10, market_signal 10, regional_data 5. (An EARLIER measurement in this same task, scoped
+// to item_grade='brief' only, found 128 -- that number undercounted by excluding the 1,101
+// record-grade stubs, which also carry NULL format_type and also need the stamp; superseded by the
+// coordinator's ruling below.)
 //
-// WHY format_type CAN BE NULL ON A LIVE BRIEF. canonical-pipeline.ts's synthesiseAndWriteBrief stamps
+// RULING (coordinator, 2026-09-11): format_type is f(item_type) and deterministic -- it never
+// depends on item_grade, provenance_status, or whether a real full_brief has been generated yet.
+// The backfill therefore covers EVERY non-archived item with format_type IS NULL regardless of
+// item_grade (scope: is_archived=false AND format_type IS NULL; the item_grade='brief' filter this
+// file originally carried is DROPPED). Task 1.4's population-report entry "live items with NULL
+// format_type" only goes green once the record-grade stubs are covered too.
+//
+// WHY format_type CAN BE NULL ON A LIVE ITEM. canonical-pipeline.ts's synthesiseAndWriteBrief stamps
 // format_type on every WRITE (`:844`, per task 1.2's own citation), but that stamp only fires on a
-// generation pass. A row minted at item_grade='brief' before that stamp existed, or one whose most
-// recent write predates it, carries a real full_brief with no format_type -- this script is the one-time
-// sweep that catches those rows up, mirroring origin-class-backfill.mjs's shape for a NULL-column
-// catch-up (same file for the pure-decision-vs-orchestration split, same idempotent IS NULL scope).
+// generation pass. A record-grade stub minted before task 1.2's mint-time stamp existed (or a
+// brief-grade row whose most recent write predates it) carries item_type with no format_type -- this
+// script is the one-time sweep that catches those rows up, mirroring origin-class-backfill.mjs's
+// shape for a NULL-column catch-up (same file for the pure-decision-vs-orchestration split, same
+// idempotent IS NULL scope).
 //
 // NO SECOND MAPPING TABLE. The item_type -> format_type resolution is `specForItemType`
 // (src/lib/agent/extract-registry.ts) -- the SAME function task 1.2's mint-time stamp and
@@ -45,11 +58,14 @@ import { runCli, fsiRoot } from "./lib/cli.mjs";
 export const CITE = Object.freeze({
   skill: "brief-chain-build-plan-2026-09-11 task 2.4",
   reason:
-    "format_type catch-up for live intelligence_items (item_grade='brief', is_archived=false) whose " +
-    "format_type is NULL, derived from specForItemType(item_type) -- the same resolver task 1.2's " +
-    "mint-time stamp and canonical-pipeline.ts's synthesiseAndWriteBrief write site use. No second " +
-    "mapping table. Idempotent (WHERE format_type IS NULL, re-checked per chunk via applyMatch); an " +
-    "item_type specForItemType does not resolve is skipped and reported by id, never guessed.",
+    "format_type catch-up for every live intelligence_items row (is_archived=false, any item_grade) " +
+    "whose format_type is NULL, derived from specForItemType(item_type) -- the same resolver task " +
+    "1.2's mint-time stamp and canonical-pipeline.ts's synthesiseAndWriteBrief write site use. No " +
+    "second mapping table. format_type is f(item_type) and deterministic, so this covers " +
+    "record-grade stubs too (coordinator ruling, 2026-09-11 -- the item_grade='brief' scope this " +
+    "file originally carried undercounted 128 of the true 1,229). Idempotent (WHERE format_type IS " +
+    "NULL, re-checked per chunk via applyMatch); an item_type specForItemType does not resolve is " +
+    "skipped and reported by id, never guessed.",
 });
 
 /**
@@ -112,7 +128,7 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
 
   const rows = await deps.readAll("intelligence_items", "id, item_type, format_type", {
     match: (q) => {
-      let qq = q.eq("item_grade", "brief").eq("is_archived", false).is("format_type", null);
+      let qq = q.eq("is_archived", false).is("format_type", null);
       if (afterId) qq = qq.gt("id", afterId);
       return qq;
     },
@@ -150,7 +166,7 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
   summary.counts.writes = writes;
 
   const after = await deps.readAll("intelligence_items", "id, format_type", {
-    match: (q) => q.eq("item_grade", "brief").eq("is_archived", false).not("format_type", "is", null),
+    match: (q) => q.eq("is_archived", false).not("format_type", "is", null),
   });
   const byFormatAfter = {};
   for (const r of after) byFormatAfter[r.format_type] = (byFormatAfter[r.format_type] ?? 0) + 1;

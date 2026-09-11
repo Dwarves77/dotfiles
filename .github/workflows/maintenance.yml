@@ -183,16 +183,21 @@ jobs:
           node scripts/maintenance/source-type-backfill.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/source-type-backfill"
 
       - name: backfill-format-type
-        # Brief-chain build plan task 2.4 (2026-09-11): format_type catch-up for live briefs
-        # (item_grade='brief', is_archived=false) carrying none -- measured 128 rows, 2026-09-11
-        # [CONFIRMED, SQL against kwrsbpiseruzbfwjpvsp]. Not ruling-gated: derives format_type from
-        # specForItemType(item_type) (src/lib/agent/extract-registry.ts), the SAME resolver task 1.2's
-        # mint-time stamp and canonical-pipeline.ts's synthesiseAndWriteBrief write site use -- no second
-        # mapping table -- and writes only where format_type IS NULL (idempotent, re-checked per chunk).
-        # An item_type the resolver does not recognize is skipped and reported by id, never guessed. `arg`,
-        # if given, resumes past a prior run via --after-id (this step's own resumability flag; a full
-        # ~128-row pass needs no arg -- see the script's own header for why --limit/--after-id are parsed
-        # here rather than in the shared scripts/maintenance/lib/cli.mjs parser).
+        # Brief-chain build plan task 2.4 (2026-09-11): format_type catch-up for every live
+        # (is_archived=false) intelligence_items row carrying none, regardless of item_grade --
+        # measured 1,229 rows, 2026-09-11 [CONFIRMED, execute_sql against kwrsbpiseruzbfwjpvsp,
+        # coordinator-run]: regulation 660, initiative 377, directive 87, framework 67,
+        # research_finding 13, guidance 10, market_signal 10, regional_data 5. (Superseded an
+        # earlier 128-row figure that wrongly scoped to item_grade='brief' only -- format_type is
+        # f(item_type) and deterministic, so record-grade stubs are in scope too; coordinator ruling,
+        # 2026-09-11.) Not ruling-gated: derives format_type from specForItemType(item_type)
+        # (src/lib/agent/extract-registry.ts), the SAME resolver task 1.2's mint-time stamp and
+        # canonical-pipeline.ts's synthesiseAndWriteBrief write site use -- no second mapping table --
+        # and writes only where format_type IS NULL (idempotent, re-checked per chunk). An item_type
+        # the resolver does not recognize is skipped and reported by id, never guessed. `arg`, if
+        # given, resumes past a prior run via --after-id (this step's own resumability flag; a full
+        # ~1,229-row pass needs no arg -- see the script's own header for why --limit/--after-id are
+        # parsed here rather than in the shared scripts/maintenance/lib/cli.mjs parser).
         if: env.RUN_STEP == 'backfill-format-type' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/backfill-format-type"

@@ -16,10 +16,13 @@ MAINT-wrapper shape), `.github/workflows/maintenance.yml`'s command switch and `
 pattern, and `src/lib/agent/extract-registry.ts` (`specForItemType`) before writing any code.
 
 **What this task did.** New `fsi-app/scripts/maintenance/backfill-format-type.mjs`: stamps
-`intelligence_items.format_type` for live briefs (`item_grade='brief'`, `is_archived=false`) that
-carry none, deriving the value from `specForItemType(item_type)` -- the SAME resolver task 1.2's
-mint-time stamp and `canonical-pipeline.ts`'s `synthesiseAndWriteBrief` write site use. No second
-mapping table anywhere in this file. A pure `planFormatTypeBackfill(rows, specForItemTypeFn)`
+`intelligence_items.format_type` for every live (`is_archived=false`) row that carries none,
+regardless of `item_grade`, deriving the value from `specForItemType(item_type)` -- the SAME
+resolver task 1.2's mint-time stamp and `canonical-pipeline.ts`'s `synthesiseAndWriteBrief` write
+site use. No second mapping table anywhere in this file. (Scope corrected same day -- see
+"Coordinator follow-up" below: the first pass scoped this to `item_grade='brief'` only, which
+undercounted the true blast radius by excluding 1,101 record-grade stubs.) A pure
+`planFormatTypeBackfill(rows, specForItemTypeFn)`
 groups candidate ids by the resolved `format_type`; an `item_type` the resolver does not recognize
 is skipped and reported by id (`{id, item_type}`), never guessed. Dry mode (default) only plans and
 reports counts; apply mode writes each format_type group through `guardedUpdateByIds` (cite +
@@ -45,12 +48,17 @@ level; this file cannot).
 
 **Blast radius.** Could not query the live count in this sandbox (no `.env.local`, no
 `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` present) -- flagged, not fabricated. The
-plan's own pre-flight measurement (2026-09-11 [CONFIRMED], SQL against `kwrsbpiseruzbfwjpvsp`):
-128 rows where `format_type` is NULL on live briefs. The equivalent read-only count via this
-script's own path is `node scripts/maintenance/backfill-format-type.mjs --mode dry` (reads
-`intelligence_items` scoped to `item_grade='brief' AND is_archived=false AND format_type IS NULL`,
-prints `counts.null_candidates_scanned` and the by-item_type-implied `by_format_type` breakdown once
-a session with real creds runs it).
+CURRENT, coordinator-measured figure (2026-09-11 [CONFIRMED, execute_sql against
+`kwrsbpiseruzbfwjpvsp`], superseding the 128 figure below): **1,229** rows where
+`is_archived=false AND format_type IS NULL`, broken down by `item_type`: regulation 660,
+initiative 377, directive 87, framework 67, research_finding 13, guidance 10, market_signal 10,
+regional_data 5. (An earlier read of the plan's own pre-flight table, scoped to `item_grade='brief'`
+only, found 128 -- that scope excluded the 1,101 record-grade stubs, which also carry NULL
+`format_type`; see "Coordinator follow-up" below.) The equivalent read-only count via this script's
+own path is `node scripts/maintenance/backfill-format-type.mjs --mode dry` (reads
+`intelligence_items` scoped to `is_archived=false AND format_type IS NULL`, prints
+`counts.null_candidates_scanned` and `counts.by_format_type` once a session with real creds runs
+it).
 
 **Tests (RED then GREEN).** `backfill-format-type.test.mjs` (new, 6 cases: the pure mapper against
 every item_type in the real vocabulary -- mirrored from `src/lib/agent/formats/*.ts`'s
@@ -81,8 +89,50 @@ Not applicable -- this task is a backend maintenance script (`scripts/maintenanc
 
 **Five surfaces affected.** None directly. The five customer surfaces (Regulations, Market Intel,
 Research, Operations, Community) read `format_type` to select which detail-surface renderer applies
-to a brief; this task fixes the underlying data (128 live briefs missing that stamp) once dispatched
-through `maintenance.yml`'s new `backfill-format-type` step, but ships no surface code itself.
+to a brief; this task fixes the underlying data (1,229 live items missing that stamp) once
+dispatched through `maintenance.yml`'s new `backfill-format-type` step, but ships no surface code
+itself.
+
+### Coordinator follow-up (same day): scope correction, 128 -> 1,229
+
+The coordinator measured the live blast radius directly (`execute_sql` against
+`kwrsbpiseruzbfwjpvsp`, 2026-09-11 [CONFIRMED]): non-archived items with `format_type IS NULL` =
+**1,229** (regulation 660, initiative 377, directive 87, framework 67, research_finding 13,
+guidance 10, market_signal 10, regional_data 5) -- not 128. The gap is exactly the 1,101
+record-grade stubs this task's first pass excluded via an `item_grade='brief'` filter that was
+never asked for by the plan text (the plan's own pre-flight table row just says "`format_type` NULL
+on live briefs: 128", which this session over-read as `item_grade='brief'`-scoped rather than
+re-deriving the predicate from first principles).
+
+Ruling: `format_type` is `f(item_type)` and deterministic -- it never depends on `item_grade`,
+`provenance_status`, or whether a real `full_brief` has been generated yet. The backfill therefore
+covers EVERY non-archived item with `format_type` NULL regardless of `item_grade`. Task 1.4's
+population-report entry "live items with NULL format_type" only goes green once the record-grade
+stubs are covered too.
+
+**Fix.** `backfill-format-type.mjs`: dropped the `item_grade='brief'` filter from both the plan-read
+and the post-apply read-back query (now `is_archived=false AND format_type IS NULL` only); header
+comment and `CITE.reason` rewritten to state the corrected scope and the ruling. Header now quotes
+the 1,229 figure and its per-item_type breakdown (superseding the 128 figure, which is kept in the
+text with an explicit "superseded" label rather than deleted, per the flag-correction convention --
+CLAUDE.md rule 13's corollary: a number that turns out wrong is corrected in place, not
+silently dropped). `backfill-format-type.test.mjs`: `ROWS` fixture now carries `item_grade` on every
+row (mixed `'brief'`/`'record'`) and a NEW record-grade row (`i5`); the query-probe assertion now
+expects `is_archived=false` alone (previously `[item_grade='brief', is_archived=false]`); the dry,
+apply, and limit/after-id tests all updated to assert `i5` is selected, written, and read back
+(`counts.null_candidates_scanned` 4->5, `would_write`/`applied` 3->4,
+`by_format_type.regulatory_fact_document` 1->2).
+
+**RED then GREEN (the fix, proven against the regression it fixes).** Restored the PRE-fix
+implementation from commit `5f8231b5` (the `item_grade='brief'`-filtered version) and ran the
+UPDATED test file against it: RED confirmed -- 2 failures, both asserting `probe.eqs` equals
+`[['is_archived', false]]` and getting `[['item_grade','brief'], ['is_archived', false]]` instead
+(the exact regression this fix removes). Restored the corrected implementation: GREEN, 6/6 pass.
+
+**Gates (re-run after the fix).** `node --test scripts/maintenance/backfill-format-type.test.mjs`:
+6/6 pass. `npx tsc --noEmit`: clean. `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`:
+see the task report for the post-commit output. No em dash / en dash / section-sign glyph introduced
+by this follow-up (checked by direct grep on both changed files).
 
 ---
 
