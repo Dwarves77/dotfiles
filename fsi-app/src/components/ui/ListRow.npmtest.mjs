@@ -218,3 +218,28 @@ test("the IMPACT column header wraps at a word boundary instead of truncating", 
   const impact = SOURCE.slice(SOURCE.indexOf("const impactCellStyle"), SOURCE.indexOf("const wrappingCellStyle"));
   assert.doesNotMatch(impact, /overflowWrap/);
 });
+
+// ── SEARCHKEYS (2026-09-11): the narrow-box type override must actually render, not just un-hide ──
+//
+// [CONFIRMED against a live headless-Chromium render, not assumed]: setting only `display:
+// inline-block !important` on `.cl-row-meta-tags > .cl-row-meta-text` measured a REAL rendered width
+// of 0px inside the command bar's narrow (`@container max-width: 489px`) listbox, even with 224px of
+// free space in the parent — this element's own pre-existing inline style (asserted two tests above:
+// `flexShrink: 1` + `minWidth: 0`, added for the WIDE desktop layout's shrink-and-ellipsize behavior)
+// collapses it to zero width inside this narrower, doubly-nested flex context when it is the sole
+// child. `flex-shrink: 0` stops the collapse (isolated by toggling it alone: 0px -> 194.6px);
+// `max-width: 100%` puts the ceiling back so a longer type/topic/modes combination still ellipsizes
+// against its own `overflow: hidden; text-overflow: ellipsis` instead of being clipped raw by the
+// PARENT's `overflow: hidden`. Both declarations must ship together with the display override, or
+// the "type is visible in the narrow search dropdown" fix silently regresses to invisible-but-present.
+test("SEARCHKEYS: the narrow-box type override forces flex-shrink:0 and max-width:100% on .cl-row-meta-text, not display alone", () => {
+  const override = SOURCE.slice(
+    SOURCE.indexOf("const LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS"),
+    SOURCE.indexOf("const RESPONSIVE_CSS"),
+  );
+  assert.match(override, /\.cl-row-meta-tags\s*>\s*\.cl-row-meta-text\s*\{/);
+  const rule = override.slice(override.indexOf(".cl-row-meta-tags > .cl-row-meta-text"));
+  assert.match(rule, /display:\s*inline-block\s*!important/);
+  assert.match(rule, /flex-shrink:\s*0\s*!important/, "without this the pre-existing flexShrink:1 collapses the element to 0 width");
+  assert.match(rule, /max-width:\s*100%\s*!important/, "without this a long meta string overflows past its own overflow:hidden and gets clipped raw by the parent instead of ellipsizing");
+});

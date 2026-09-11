@@ -107,3 +107,55 @@ test("the submit button's label reads what it does in the active mode — \"Sear
 test("Search mode's submit control is never disabled — askDisabled is scoped to mode===\"ask\" by construction, so the Search-mode label/handler above are always reachable", () => {
   assert.match(SOURCE, /const askDisabled = mode === "ask" && !assistantEnabled;/);
 });
+
+// ── SEARCHKEYS (2026-09-11): Escape / click-outside / arrow-key nav for the results listbox ─────
+//
+// Closes docs/tech-debt-log.md's 2026-09-11 entry. Structural/source-level, same convention as
+// every test above — these assert the code SHAPE that produces the required behaviour.
+
+test("keyboard/dismissal helpers come from the one sibling module commandBarKeyboard.ts, never a second implementation inline", () => {
+  assert.match(SOURCE, /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/);
+});
+
+test("Escape closes the dropdown via a `dismissed` flag, not by clearing `results` — the typed query and fetched rows survive", () => {
+  assert.match(SOURCE, /const \[dismissed, setDismissed\] = useState\(false\);/);
+  assert.match(SOURCE, /if \(e\.key === "Escape"\) \{[\s\S]{0,200}if \(!showDropdown\) return;\s*\n\s*e\.preventDefault\(\);\s*\n\s*setDismissed\(true\);/);
+  // showDropdown itself gates on !dismissed, not on results being non-null.
+  assert.match(SOURCE, /mode === "search" && !dismissed && value\.trim\(\)\.length >= MIN_QUERY_LEN/);
+});
+
+test("typing and re-focusing both un-dismiss — the dropdown can reopen without a second Escape-specific escape hatch", () => {
+  assert.match(SOURCE, /onChange=\{\(e\) => \{[\s\S]{0,200}setDismissed\(false\);/);
+  assert.match(SOURCE, /onFocus=\{\(\) => \{[\s\S]{0,200}setDismissed\(false\);/);
+});
+
+test("a pointerdown outside both the bar and the portaled listbox dismisses the dropdown — pointerdown (not click) so touch is covered without a second listener", () => {
+  assert.match(SOURCE, /document\.addEventListener\("pointerdown", onPointerDown, true\)/);
+  assert.match(SOURCE, /isOutsidePointerDown\(withinBar, withinListbox\)/);
+  // Two separate refs — the listbox is portaled outside the bar's own DOM subtree (SEARCHCLIP).
+  assert.match(SOURCE, /const listboxRef = useRef<HTMLDivElement>\(null\);/);
+});
+
+test("ArrowDown/ArrowUp move a roving activeIndex through moveActiveIndex (clamped, not wraparound), Enter with no active option leaves normal submit() untouched", () => {
+  assert.match(SOURCE, /if \(e\.key === "ArrowDown"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*setActiveIndex\(\(i\) => moveActiveIndex\(i, 1, searchRows\.length\)\);/);
+  assert.match(SOURCE, /if \(e\.key === "ArrowUp"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*setActiveIndex\(\(i\) => moveActiveIndex\(i, -1, searchRows\.length\)\);/);
+  assert.match(SOURCE, /if \(e\.key === "Enter" && activeIndex >= 0\) \{/);
+});
+
+test("Enter-on-an-active-option navigates by clicking the row's own Link anchor, never a second (next/navigation router) navigation path", () => {
+  assert.match(SOURCE, /option\?\.querySelector<HTMLAnchorElement>\("a\.cl-row-link"\)\?\.click\(\);/);
+  assert.doesNotMatch(SOURCE, /from "next\/navigation"/, "must not depend on useRouter(), which throws outside an App Router tree");
+});
+
+test("the input carries the WAI-ARIA combobox attributes: role, aria-autocomplete, aria-controls, aria-expanded, aria-activedescendant", () => {
+  assert.match(SOURCE, /role="combobox"/);
+  assert.match(SOURCE, /aria-autocomplete="list"/);
+  assert.match(SOURCE, /aria-controls=\{LISTBOX_ID\}/);
+  assert.match(SOURCE, /aria-expanded=\{showDropdown\}/);
+  assert.match(SOURCE, /aria-activedescendant=\{showDropdown \? activeDescendantId\(LISTBOX_ID, activeIndex\) : undefined\}/);
+});
+
+test("each result row is wrapped as role=\"option\" with a stable id and aria-selected on the active one, highlighted with the existing --row-hover token (no raw hex)", () => {
+  assert.match(SOURCE, /id=\{optionId\(LISTBOX_ID, index\)\}\s*\n\s*role="option"\s*\n\s*aria-selected=\{active\}/);
+  assert.match(SOURCE, /background: active \? "var\(--row-hover\)" : undefined/);
+});

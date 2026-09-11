@@ -199,3 +199,37 @@ decision-ready item here rather than silent scope creep into the same commit.
 **Priority:** Low-medium — mouse/click users are unaffected (the fix itself restores click
 reachability); keyboard-only and screen-reader users get a working listbox with no way to dismiss
 it without moving focus elsewhere, or to traverse it without a mouse.
+
+**RESOLVED — lane SEARCHKEYS, 2026-09-11.** All three gaps closed in `src/components/ui/CommandBar.tsx`:
+- Escape closes the dropdown via a `dismissed` flag (query and fetched `results` are kept, not
+  cleared); re-typing or re-focusing the input un-sets it. Escape while already closed is a no-op.
+- A `pointerdown` listener (capture phase, covers mouse/pen/touch in one listener) checks
+  containment against BOTH the bar's `formRef` and the portaled listbox's new `listboxRef` and
+  dismisses the same way when the pointer lands outside both.
+- ArrowUp/ArrowDown move a roving `activeIndex`, CLAMPING at either end rather than the wraparound
+  this entry's reuse candidate (`tagPopoverKeyboard.ts`'s `moveHighlight`) has — the dispatch brief
+  for this lane is explicit ("ArrowUp/Down clamp (not wrap)"), so the reuse candidate was checked and
+  rejected on behaviour, not shape, and `commandBarKeyboard.ts` (new sibling module, pure helpers,
+  `commandBarKeyboard.npmtest.mjs`) carries its own small clamped mover instead. The input carries
+  the WAI-ARIA combobox attributes
+  (`role="combobox"`, `aria-autocomplete="list"`, `aria-activedescendant`); each result row is
+  wrapped as `role="option"` with a stable id and `aria-selected`, highlighted with the existing
+  `--row-hover` token. Enter with an active option navigates by clicking that row's own `.cl-row-link`
+  anchor (the identical DOM element/event path a mouse click uses, not a second navigation
+  mechanism); Enter with no active option still runs the form's normal `submit()`.
+
+Same lane also closed SEARCHROW's own open item (item TYPE hidden in the narrow dropdown rows): a
+container-query-only CSS override in `ListRow.tsx` (`LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS`)
+un-hides the meta-line's type text inside the `@container` trigger only — the sibling `@media
+(max-width: 767px)` real-phone reflow is untouched, so mobile behaviour does not change.
+
+**Correction (same lane, same day) — the initial `display`-only override did not actually render.**
+`[CONFIRMED]` against a live headless-Chromium render of the real listbox at 375px: setting only
+`display: inline-block !important` left the type text present in the DOM but measured at 0px rendered
+width — the span's own pre-existing `flexShrink: 1` / `minWidth: 0` (set earlier in this file for the
+wide desktop layout's shrink-and-ellipsize behavior) collapsed it to zero inside the narrow box's
+doubly-nested flex context. Fixed by adding `flex-shrink: 0 !important` and `max-width: 100%
+!important` to the same rule; re-verified live (0px -> 194.6px on the same fixture) and a longer
+fixture confirmed the max-width cap still lets the element's own `overflow: hidden; text-overflow:
+ellipsis` do its job instead of being clipped raw by the parent. Locked in by a new structural test in
+`ListRow.npmtest.mjs`, driven red against the original two-line rule, green against the fix.
