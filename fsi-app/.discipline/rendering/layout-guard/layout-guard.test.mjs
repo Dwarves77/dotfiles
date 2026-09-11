@@ -272,6 +272,16 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
   assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 70), false);
   assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 69), true);
 
+  // NOT covered when the wave is UNKNOWN (coordinator review, 2026-09-11, task 0.1 follow-up,
+  // [CONFIRMED by the reviewer]): a null latestWave used to degrade to "still active" (fail open),
+  // which is the exact mechanism that let a depth-1 pull_request checkout - unable to resolve
+  // origin/master, so latestTrainWave() returns null - keep suppressing this finding while a depth-1
+  // push checkout, resolving a real and expired wave on the SAME tree, correctly reported it.
+  // fetch-depth: 0 made null unreachable on the two CI events this task observed, but the predicate
+  // itself stayed fail-open; this asserts the predicate now fails CLOSED on its own, independent of
+  // which checkout depth happens to be in front of it.
+  assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, null), false);
+
   // The overlap half of L9 is never suppressed, for any target.
   const stacked = checkL9(base({ width: 1440, targets: [t(0, 'input.cl-facet-check[]', 0, 0, 266, 24), t(1, 'input.cl-facet-check[]', 0, 10, 266, 24)] }));
   assert.ok(stacked.some((h) => /adjacent targets overlap/.test(h.measured)));

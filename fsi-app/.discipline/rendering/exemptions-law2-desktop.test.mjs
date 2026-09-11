@@ -77,6 +77,18 @@ test("the entry expires: past its wave it covers nothing and the guard fails aga
   assert.equal(isExemptLaw2Desktop(line, expired), false);
 });
 
-test("an unknown wave degrades to active, the same best-effort posture as F25's oracle", () => {
-  assert.equal(activeLaw2Exemptions(LAW2_DESKTOP_EXEMPTIONS, null).length, 1);
+// CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up, [CONFIRMED by the reviewer]): this
+// test used to assert the OPPOSITE - "an unknown wave degrades to active, the same best-effort
+// posture as F25's oracle" - and that assertion was itself the bug. A null wave is exactly what a
+// depth-1 pull_request checkout resolves (no origin/master ref, no waveNN token on the one-commit
+// HEAD), and "degrades to active" meant that checkout kept suppressing a finding that the
+// corresponding push checkout, resolving a real and expired wave on the SAME tree, correctly failed
+// on. fetch-depth: 0 (this lane's earlier commit) made the null path unreachable on the two observed
+// CI events, but the predicate itself was still fail-open, so any OTHER path to an unknown wave (a
+// future job that stays shallow, a local run with no git history) would silently re-open the
+// suppression this exemption is supposed to close on schedule. A guard's default under uncertainty is
+// closed, not open: rule 15's "a guard is proven by attack, not by presence" is why this line now
+// reads what it reads instead of asserting the old default.
+test("an unknown wave degrades to EXPIRED, fail closed, not to active", () => {
+  assert.equal(activeLaw2Exemptions(LAW2_DESKTOP_EXEMPTIONS, null).length, 0);
 });

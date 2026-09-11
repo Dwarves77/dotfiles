@@ -17431,3 +17431,20 @@ Every gate run from the worktree root (`fsi-app/`), exit codes read explicitly.
 - Full `node .discipline/rendering/run-rendering-guard.mjs` (local, not a listed gate but named by the
   brief's own verification step): 0 `cl-facet-check`/`cl-facet-more` findings; 112 unrelated findings
   attributed to Windows/Linux chromium rendering nondeterminism, named above, not fixed.
+
+### Follow-up (coordinator review, same day): the null-wave path still failed open
+
+Coordinator review flagged `exemptions-law2-desktop.mjs:96`'s `activeLaw2Exemptions` as still treating
+an unknown `latestWave` (`null`) as "exemption still active" ([CONFIRMED by the reviewer]; `fetch-depth:
+0` only made `null` unreachable on the two CI events this task happened to observe, not on every path
+to an unknown wave). Attacked RED first: a new `isL9DesktopExempt(name, width, null)` assertion in
+`layout-guard.test.mjs` and a corrected `exemptions-law2-desktop.test.mjs` case (the old case asserted
+the bug itself, "an unknown wave degrades to active") both failed against the unmodified predicate,
+then passed once `activeLaw2Exemptions` was changed to `latestWave !== null && latestWave < e.expiryWave`
+(fail closed) with a named `console.warn` on the null path so a shallow checkout is diagnosable, never
+silent. Re-ran layout-guard tests (41/43, same 2 pre-existing unrelated), the facets npmtest (7/7),
+`tsc --noEmit` (clean), the fitness runner (37 checked, same 10 pre-existing unrelated), and the
+discipline CI-range runner (clean) after the fix; all still green. While investigating, found the
+SAME fail-open pattern in the sibling `exemptions-375.mjs:68`'s `activeExemptions` (`latestWave ===
+null || latestWave < e.expiryWave`); left unfixed as out of this task's scope (the coordinator's fix
+named only the law2-desktop file) and flagged here per rule 13 for a follow-up dispatch.
