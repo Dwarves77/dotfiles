@@ -17007,3 +17007,33 @@ prior category additions (36 through 43).
 
 Branch `lane/hashsep-2026-09-11`, worktree `.worktrees/wt-hashsep-0911`. Commit trailer
 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+## Addendum 2026-08-17 (Cowork) — the memory loader was never invocable; renamed to `ledger`, made self-locating, and the session's own errors recorded
+
+**Landed 2026-09-11 by lane LANDDOCS; written 2026-08-17 in Cowork, never committed.**
+
+Writing this in first person because the log's value is that it does not flatter.
+
+**What I did.** Diagnosed why Cowork sessions kept answering project questions with no vault citation. Two independent defects, both mine, both in the loader skill I wrote:
+
+1. **Name collision.** I had named it `resume`. `/resume` is a built-in UI command in both Claude Code and Cowork, so typing it opened the session picker and the skill never loaded. Not intermittent, never once.
+2. **Hardcoded container path.** It named `/root/work/dotfiles`, a path that existed in one container by accident of an early clone. Fresh containers found nothing and answered anyway, from the application database.
+
+A third defect surfaced only because I tested the fix: the skill said "read the repo", and the container I tested in was on branch `dead-code-sweep`, ahead 1 / behind 7, where `pull --ff-only` refuses. Reading the working tree would have served three-day-old state as current. A fourth: the skill's own standing-corrections section still named `result_content_excerpt` after migration 264 renamed it the same day, and no rule required re-verifying it.
+
+**What I got wrong in the fix itself, and this is the one worth reading.** I staged three files in the MAIN checkout over the Cowork device bridge and handed the operator a copy-paste block ending in `git commit` there. RD-19 (`docs/doctrine/worktree-isolation.md`) has been ENFORCED since June and its scope explicitly includes commit. The `pre-commit` hook blocked it. A Claude Code session then landed the identical work correctly through a worktree as **PR #466**, CI green, merged.
+
+The mechanism, named precisely: I searched `docs/decisions/` for the column question and never searched `docs/doctrine/` for the git question. The right habit, applied to the wrong directory. Advice that routes a blocked action through a human is the same violation, laundered.
+
+**Decided (operator, this session).** The loader is one word, `ledger`, in both environments, with no paste block. The operator also ruled that the handoff to the next session must state explicitly what went wrong here so the errors are not repeated.
+
+**Landed.** PR #466 — `.claude/skills/ledger/SKILL.md`, `.claude/commands/ledger.md`, and `/start` rewritten to delegate to `/ledger` and to stop loading the retired `fsi-app/STATUS.md`.
+
+**Written to the working tree, NOT yet committed** (I do not commit in the main checkout):
+- `.claude/skills/ledger/SKILL.md` advanced to v2 — adds **B9** (RD-19: never commit in the main checkout, never instruct the operator to, never `--no-verify`) and logs the main-checkout incident in the failure log.
+- `docs/ops/handoff-2026-08-17.md` — full cold-start handoff on site and flywheel status, every claim labelled `[CONFIRMED]` / `[DOC-STATED]` / `[HYPOTHESIS]`, with **Section 11** recording this session's errors and the rule now attached to each.
+
+**Findings in the handoff that were not in any single existing doc:** U0 (`backfill-edges.mjs`) has never been run, so everything U1-U3 built clusters nothing; U3's `detect_intersections` supersession did not land, leaving two scoring homes coexisting (`api/admin/intersections/route.ts:46`); spec 08 credits PRs #450/#451 as shipped and neither exists on master; the $130 monthly figure enforces nothing (`spend-client.ts:44`, "informational display only"), the `GROUNDING_ACQUIRE_ENABLED` lock is the only control and it is OFF.
+
+**Open threads left behind.** Skill v2 and the handoff need landing via a worktree PR. The operator must upload `ledger` at `claude.ai/customize/skills` and delete the old `resume` entry; account skills are not files and no agent can do this. Cloud containers cannot push to this repo (git proxy: "not in this session's authorized repository set") — adding the repo to a session's authorized sources would remove that limit.
+
+**Next step for a cold session.** Type `ledger`. Then, if the work touches the flywheel, run U0: `node fsi-app/scripts/connections/backfill-edges.mjs --dry`.

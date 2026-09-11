@@ -11,6 +11,20 @@ Operator's instruction, 2026-09-09, verbatim (also recorded in `docs/ops/session
 
 Operator's order, 2026-09-11, verbatim (also recorded in `docs/ops/session-log.md`): "get it done."
 
+## Status 2026-09-11 (added by lane LANDDOCS, landing this runbook)
+
+Command 1 (forward-events backfill) is no longer pending: it was applied in run 34612367135
+(2026-09-11 14:48Z, mode=apply, command=forward-events, `--execute`). `item_forward_events` moved 821
+to 1,209 rows (289 to 365 items); `compliance_deadline` moved 71 to 87. See `docs/ops/HANDOFF-2026-09-11.md`
+CORRECTIONS item 1.
+
+Command 2's scope needs a correction. The dry run measured against the parser, not just the row count,
+showed 21 items filled (were empty), 117 replaced, 12 HELD, 1,153 rows total. The "893 reg-family items
+with a brief and zero timelines" figure above is the count of candidates, not the count the parser can
+actually fill: a portion of that 893 are record stubs with no section-14 text to extract, so they come
+back empty rather than filled. Use the dry run's filled / replaced / HELD breakdown as the real scope
+before dispatching command 2 with `--execute`.
+
 ## Runtime
 
 Commands 1 and 2 (forward-events backfill and timeline harvest — both FREE, no-model, pure parsers) run
