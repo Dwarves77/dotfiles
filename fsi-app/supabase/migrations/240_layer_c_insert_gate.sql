@@ -1,21 +1,21 @@
--- Migration 240: LAYER C INSERT GATE — data-audit block enforced at the intelligence_items INSERT
+-- Migration 240: LAYER C INSERT GATE -- data-audit block enforced at the intelligence_items INSERT
 -- chokepoint (enforcement-gap fix, root-caused 2026-08-02; operator ruled to build).
 --
 -- DEFECT THIS CLOSES. The Layer C block-next-run gate (audit-gate.ts readOpenDataAuditBlock +
 -- hasValidWaiver, consumed by preflightStep in src/workflows/generate-brief.ts) is correct but lives
 -- ONLY in the generate-brief workflow and the funded-pass runner. The recurring fleet never invokes
--- either — 500+ fleet-authored intelligence_items rows carry ZERO agent_runs rows, so an OPEN
+-- either -- 500+ fleet-authored intelligence_items rows carry ZERO agent_runs rows, so an OPEN
 -- data-audit block (integrity_flags row, e.g. cfb1799a, waiver expired 2026-07-28) was never
 -- consulted at insert time. Same defect class and fix shape as the mig-115/118 provenance triggers
--- and the mig-201 pause-flag guard: an invariant that lives only in one code path is not enforced —
+-- and the mig-201 pause-flag guard: an invariant that lives only in one code path is not enforced --
 -- it moves into the database, where EVERY writer passes through it by construction (BYPASSRLS does
 -- not skip triggers; service_role cannot disable them).
 --
--- SEMANTICS (exact mirror of the unit-tested audit-gate-core.mjs — NO LOGIC DRIFT; keep in sync):
+-- SEMANTICS (exact mirror of the unit-tested audit-gate-core.mjs -- NO LOGIC DRIFT; keep in sync):
 --   * A block is OPEN iff an integrity_flags row exists with category='data_integrity',
 --     subject_ref='data-audit-lane', status='open' (the DATA_AUDIT_BLOCK shape the nightly lane
 --     maintains as ONE row: reflected on RED, resolved on GREEN).
---   * hasValidWaiver: the block is dispositioned ONLY by an explicit dated waiver — an element of
+--   * hasValidWaiver: the block is dispositioned ONLY by an explicit dated waiver -- an element of
 --     recommended_actions (jsonb array) with action='waiver' and an until date whose UTC midnight is
 --     >= now(). Mirrors JS `new Date("YYYY-MM-DD").getTime() >= now.getTime()` exactly, including
 --     the edge that a waiver dated today expired at 00:00 UTC today. An unparseable until is NOT a
@@ -31,19 +31,19 @@
 -- `SELECT set_config('app.data_audit_override', '<actor: why>', true)` lets a DELIBERATE
 -- operator/ops act (a data migration, a sanctioned backfill) insert during red. The marker is
 -- transaction-local (never leaks past COMMIT/ROLLBACK), its use RAISEs a WARNING into the Postgres
--- log naming the declared actor, and it is deliberately NOT mentioned in the rejection message —
+-- log naming the declared actor, and it is deliberately NOT mentioned in the rejection message --
 -- generation has no escape hatch (the preflight doctrine); the override is for non-generation
 -- deliberate acts only.
 --
 -- Defense in depth: preflightStep and funded-pass keep their app-layer checks (better error UX,
--- halts before spend); THIS trigger is the enforcement point — no insert path can skip it.
+-- halts before spend); THIS trigger is the enforcement point -- no insert path can skip it.
 --
 -- ADDITIVE + IDEMPOTENT: CREATE OR REPLACE / DROP IF EXISTS; no existing objects altered. Nothing
 -- fires at apply time. Reversible: DROP TRIGGER guard_data_audit_block_trg ON intelligence_items;
 -- DROP FUNCTION public.guard_data_audit_block(). Proof harness (red-then-green, rollback-only):
 -- scripts/verify/layer-c-insert-gate-proof.mjs.
 --
--- TWO-TRACK POLICY: schema DDL — apply via Supabase BEFORE this merges. NOT applied at authoring.
+-- TWO-TRACK POLICY: schema DDL -- apply via Supabase BEFORE this merges. NOT applied at authoring.
 --
 -- PRE-CHECK (confirm no live object of these names exists yet, Supabase MCP execute_sql, read-only,
 -- 2026-09-11 -- run this again immediately before applying; a NON-EMPTY result means something already
@@ -52,7 +52,7 @@
 --   SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 --    WHERE n.nspname='public' AND p.proname='guard_data_audit_block';
 --   SELECT tgname FROM pg_trigger WHERE tgname='guard_data_audit_block_trg';
---   -- Expected (2026-09-11, this lane): both empty (0 rows) — the function and trigger do not exist yet.
+--   -- Expected (2026-09-11, this lane): both empty (0 rows) -- the function and trigger do not exist yet.
 
 BEGIN;
 
@@ -105,7 +105,7 @@ BEGIN
 
     IF NOT v_waived THEN
       RAISE EXCEPTION
-        'layer-c-insert-gate: intelligence_items insert blocked — the data-audit lane is RED with no current dated waiver (integrity_flags %). Corpus red is cleared only by a deliberate act, never by time: fix the lane to green (the block row resolves) or record a dated waiver disposition in docs/data-audit-dispositions.md and on the flag (recommended_actions += {"action":"waiver","until":"YYYY-MM-DD"}). %',
+        'layer-c-insert-gate: intelligence_items insert blocked - the data-audit lane is RED with no current dated waiver (integrity_flags %). Corpus red is cleared only by a deliberate act, never by time: fix the lane to green (the block row resolves) or record a dated waiver disposition in docs/data-audit-dispositions.md and on the flag (recommended_actions += {"action":"waiver","until":"YYYY-MM-DD"}). %',
         v_block.id, coalesce(left(v_block.description, 160), '')
         USING ERRCODE = 'check_violation';
     END IF;
@@ -116,7 +116,7 @@ END;
 $fn$;
 
 COMMENT ON FUNCTION public.guard_data_audit_block() IS
-  'Layer C insert gate (migration 240). BEFORE INSERT on intelligence_items: rejects the insert while an open data-audit block (integrity_flags category=data_integrity, subject_ref=data-audit-lane, status=open) lacks a valid dated waiver ({action:"waiver",until>=today-UTC} in recommended_actions). Exact SQL mirror of audit-gate-core.mjs hasValidWaiver — keep in sync. Closes the fleet-bypass gap (500+ inserts that never passed preflightStep''s app-layer check). Deliberate-act exemption: transaction-local GUC app.data_audit_override (set_config(...,true)), logged via RAISE WARNING; precedent app.pause_flag_writer (mig 201). Proof: scripts/verify/layer-c-insert-gate-proof.mjs.';
+  'Layer C insert gate (migration 240). BEFORE INSERT on intelligence_items: rejects the insert while an open data-audit block (integrity_flags category=data_integrity, subject_ref=data-audit-lane, status=open) lacks a valid dated waiver ({action:"waiver",until>=today-UTC} in recommended_actions). Exact SQL mirror of audit-gate-core.mjs hasValidWaiver - keep in sync. Closes the fleet-bypass gap (500+ inserts that never passed preflightStep''s app-layer check). Deliberate-act exemption: transaction-local GUC app.data_audit_override (set_config(...,true)), logged via RAISE WARNING; precedent app.pause_flag_writer (mig 201). Proof: scripts/verify/layer-c-insert-gate-proof.mjs.';
 
 DROP TRIGGER IF EXISTS guard_data_audit_block_trg ON public.intelligence_items;
 CREATE TRIGGER guard_data_audit_block_trg
@@ -131,6 +131,6 @@ COMMIT;
 --     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 --    WHERE n.nspname='public' AND p.proname='guard_data_audit_block';
 --   -- Expect: exactly 1 row (guard_data_audit_block); record the md5 as this migration's applied-body
---   -- fingerprint for future drift detection (no prior expected value — this is the FIRST apply).
+--   -- fingerprint for future drift detection (no prior expected value -- this is the FIRST apply).
 --   SELECT tgname, tgenabled FROM pg_trigger WHERE tgname='guard_data_audit_block_trg';
---   -- Expect: exactly 1 row, tgenabled='O' (origin — trigger fires normally, not disabled).
+--   -- Expect: exactly 1 row, tgenabled='O' (origin -- trigger fires normally, not disabled).

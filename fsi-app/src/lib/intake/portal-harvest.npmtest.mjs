@@ -39,7 +39,7 @@ function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "sr
     // Server-side census-exclusion RPC (migration home: 256_migration_homes_and_vault_capture_key.sql item 5;
     // PR #370's own 223 migration was retired, not renumbered -- see docs/inventories/migrations.md row 256).
     // Default: "function missing" (PGRST202) so the
-    // consumer falls back to the client-side exclusion path — the existing exclusion tests exercise that
+    // consumer falls back to the client-side exclusion path -- the existing exclusion tests exercise that
     // fallback unchanged. Pass rpcRows to exercise the RPC-present path.
     rpc(name, args) {
       rpcCalls.push({ name, args });
@@ -300,7 +300,7 @@ test("censusExclusion: server-side RPC (migration home 256) -- candidates come f
   assert.equal(sb.rpcCalls.length, 1);
   assert.equal(sb.rpcCalls[0].name, "next_uncensused_portal_candidates");
   assert.deepEqual(sb.rpcCalls[0].args, { p_source_id: "portal-src-1", p_limit: 25, p_newest: false, p_after_first_seen: "2026-07-15T00:00:00.000Z", p_after_id: "plc-0" });
-  // NO client-side census_worklist read happened (the whole point — no NOT IN list to overflow)
+  // NO client-side census_worklist read happened (the whole point -- no NOT IN list to overflow)
   assert.equal(sb.notCalls.find((c) => c.table === "census_worklist"), undefined, "server-side RPC must not do the client census read");
   assert.equal(sb.notCalls.find((c) => c.table === "portal_link_candidates"), undefined, "server-side RPC must not build the client NOT IN list");
   // the RPC's flat row was mapped back to a LedgerCandidate and processed

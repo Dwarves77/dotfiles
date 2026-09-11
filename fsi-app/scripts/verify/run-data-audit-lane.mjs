@@ -80,7 +80,7 @@ const AUDITS = [
   // Wired here (F25 module-liveness had flagged it unwired) so it runs execution-proven in the same
   // CI-with-secrets / post-apply lane as its siblings. Two-track dependency: self-skips exit 2 (treated as
   // a hard ERROR by this runner, same as every other entry above) until migration 240 is applied to the
-  // target DB — the coordinator applies 240 before this PR merges, so by the time this wiring reaches
+  // target DB -- the coordinator applies 240 before this PR merges, so by the time this wiring reaches
   // master the function already exists live.
   ["layer-c-insert-gate-proof", "scripts/verify/layer-c-insert-gate-proof.mjs", true],
   // REGISTRY-CITED AUDITS previously ABSENT from this lane (2026-08-09 wiring-truth sweep, Decision 2):

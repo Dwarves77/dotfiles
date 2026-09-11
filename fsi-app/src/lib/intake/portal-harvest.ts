@@ -259,7 +259,7 @@ export async function selectCandidateLedgerPage(
       .limit(limit);
     if (sourceId) q = q.eq("source_id", sourceId);
     // KEYSET PAGINATION (plan-mode only; read-only). Resume strictly past opts.after in the
-    // (first_seen_at, id) total order — never an offset, which drifts if the ledger grows mid-walk.
+    // (first_seen_at, id) total order -- never an offset, which drifts if the ledger grows mid-walk.
     if (opts.after) {
       const op = ascending ? "gt" : "lt";
       q = q.or(
