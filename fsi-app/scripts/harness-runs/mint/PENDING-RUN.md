@@ -72,7 +72,7 @@ inlined) — no mint-kit VALIDATION behavior changed by this edit either, same a
 
 **harness_version at write time (superseded below, see task 0.3b):** `sha256:eb6c6027081dcd54` (recomputed
 this lane, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and
-`run-artifact.mjs`'s `hashHarnessVersion` — the same 8 files, unreordered; supersedes
+`run-artifact.mjs`'s `hashHarnessVersion`, the same 8 files, unreordered; supersedes
 `sha256:96b9cc82d6505b7d` outright).
 
 **RE-PINNED (task 0.3b, 2026-09-11, lane hashsep):** `scripts/mint/validate-mint-payload.mjs` (one of the
