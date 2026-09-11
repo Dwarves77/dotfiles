@@ -284,9 +284,10 @@ export async function selectCandidateLedgerPage(
   };
 
   // CENSUS EXCLUSION (plan-mode only). Excludes candidates already DISPOSITIONED in census_worklist so an
-  // interrupted/re-run walk is resumable and never double-classifies. SERVER-SIDE (migration 223): the RPC
-  // does the NOT EXISTS anti-join + keyset in ONE query, replacing the client-built NOT IN list that
-  // OVERFLOWED the PostgREST query at ~435 dispositioned rows per source (empty-message read error, hit
+  // interrupted/re-run walk is resumable and never double-classifies. SERVER-SIDE (migration 241, renumbered
+  // from 223 -- master claims 223 for a different migration): the RPC does the NOT EXISTS anti-join + keyset
+  // in ONE query, replacing the client-built NOT IN list that OVERFLOWED the PostgREST query at ~435
+  // dispositioned rows per source (empty-message read error, hit
   // live on Federal Register / DOT). The stock walk far exceeds 435 dispositioned rows per source, so the
   // exclusion must not be client-built. Feature-detected: if the RPC is absent (pre-migration), fall back
   // to the old client NOT IN path so this is non-breaking during the DDL window.

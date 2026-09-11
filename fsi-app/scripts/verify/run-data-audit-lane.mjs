@@ -74,6 +74,15 @@ const AUDITS = [
   // fkey -> profiles(id), migration 075; surcharge_audits FKs -> entities(entity_id), migration 296) now
   // runs here instead, against live orgs/entities, re-attacked on every lane pass. See that file's header.
   ["spec09-org-rls-adversarial", "scripts/verify/spec09-org-rls-adversarial-audit.mjs", true],
+  // Layer C insert gate adversarial proof (migration 240, task 5.3, 2026-09-11): mirrors pause-flag-
+  // guard-proof.mjs's shape (synthetic temp table, one rolled-back transaction, red-then-green legs) to
+  // attack the guard_data_audit_block BEFORE INSERT trigger rather than assert its presence (rule 15).
+  // Wired here (F25 module-liveness had flagged it unwired) so it runs execution-proven in the same
+  // CI-with-secrets / post-apply lane as its siblings. Two-track dependency: self-skips exit 2 (treated as
+  // a hard ERROR by this runner, same as every other entry above) until migration 240 is applied to the
+  // target DB — the coordinator applies 240 before this PR merges, so by the time this wiring reaches
+  // master the function already exists live.
+  ["layer-c-insert-gate-proof", "scripts/verify/layer-c-insert-gate-proof.mjs", true],
   // REGISTRY-CITED AUDITS previously ABSENT from this lane (2026-08-09 wiring-truth sweep, Decision 2):
   // each is an `audit:` enforcer of a live invariant in .discipline/governance/invariants.mjs but was
   // never in the run list — cited-as-enforcement yet never executed. Now wired. Each self-skips (exit 2)

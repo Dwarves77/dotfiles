@@ -36,7 +36,7 @@ function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "sr
   const rpcCalls = [];
   return {
     stamps, stagedInserts, upserts, orCalls, notCalls, rpcCalls,
-    // Server-side census-exclusion RPC (migration 223). Default: "function missing" (PGRST202) so the
+    // Server-side census-exclusion RPC (migration 241, renumbered from 223). Default: "function missing" (PGRST202) so the
     // consumer falls back to the client-side exclusion path — the existing exclusion tests exercise that
     // fallback unchanged. Pass rpcRows to exercise the RPC-present path.
     rpc(name, args) {
@@ -281,7 +281,7 @@ test("nextCursor: absent when the chunk is SHORT (fewer rows than limit — sour
 
 // census_worklist real shape (introspected 2026-07-19 via pg_catalog — no committed migration, no doc):
 // keys on (source_id, document_url), completion marked by non-null dryrun_disposition, NO run-id column.
-test("censusExclusion: server-side RPC (migration 223) — candidates come from the RPC, NO client census read (no ~435-row NOT IN overflow)", async () => {
+test("censusExclusion: server-side RPC (migration 241) -- candidates come from the RPC, NO client census read (no ~435-row NOT IN overflow)", async () => {
   const RPC_ROW = {
     id: "plc-rpc-1", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32099R0001",
     anchor_text: "Regulation (EU) 2099/1", source_id: "portal-src-1", first_seen_at: "2026-07-16T00:00:00.000Z",

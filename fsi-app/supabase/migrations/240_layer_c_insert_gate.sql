@@ -44,6 +44,15 @@
 -- scripts/verify/layer-c-insert-gate-proof.mjs.
 --
 -- TWO-TRACK POLICY: schema DDL — apply via Supabase BEFORE this merges. NOT applied at authoring.
+--
+-- PRE-CHECK (confirm no live object of these names exists yet, Supabase MCP execute_sql, read-only,
+-- 2026-09-11 -- run this again immediately before applying; a NON-EMPTY result means something already
+-- claims this name and this migration must STOP and reconcile before proceeding, per rule 15 "attack,
+-- don't assert presence"):
+--   SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--    WHERE n.nspname='public' AND p.proname='guard_data_audit_block';
+--   SELECT tgname FROM pg_trigger WHERE tgname='guard_data_audit_block_trg';
+--   -- Expected (2026-09-11, this lane): both empty (0 rows) — the function and trigger do not exist yet.
 
 BEGIN;
 
@@ -116,3 +125,12 @@ CREATE TRIGGER guard_data_audit_block_trg
   EXECUTE FUNCTION public.guard_data_audit_block();
 
 COMMIT;
+
+-- POST-CHECK (run immediately after applying):
+--   SELECT p.proname, md5(pg_get_functiondef(p.oid)) AS body_md5
+--     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--    WHERE n.nspname='public' AND p.proname='guard_data_audit_block';
+--   -- Expect: exactly 1 row (guard_data_audit_block); record the md5 as this migration's applied-body
+--   -- fingerprint for future drift detection (no prior expected value — this is the FIRST apply).
+--   SELECT tgname, tgenabled FROM pg_trigger WHERE tgname='guard_data_audit_block_trg';
+--   -- Expect: exactly 1 row, tgenabled='O' (origin — trigger fires normally, not disabled).
