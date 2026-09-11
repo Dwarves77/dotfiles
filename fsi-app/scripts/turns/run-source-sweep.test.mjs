@@ -3,7 +3,7 @@
 // fake Supabase client (no DB). Importing this module never invokes main() (IS_MAIN guard).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { relative, basename, dirname, join } from "node:path";
 import {
   parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir, resolvePortalSourceId, portalUrlKey,
   selectSitemapSources, hostKeyOf, groupActiveSourcesByHost, hostSitemapCoverage, orderHostGroupsForSweep,
@@ -242,10 +242,18 @@ test("SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules", (
 });
 
 test("defaultTraceDir: the raw-result trace lives BELOW the family dir, never beside the artifacts F28 validates", () => {
-  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
-  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
-  const d = defaultTraceDir("/repo/fsi-app/scripts/harness-runs/source-sweep");
-  assert.equal(d, join("/repo/fsi-app/scripts/harness-runs/source-sweep", "traces"));
+  // task 0.3b fix round 1 (reviewer-confirmed): comparing against join(sameInput, "traces") restated
+  // the implementation verbatim, a tautology that would stay green even if defaultTraceDir stopped
+  // appending "traces" at all. Assert the PROPERTY the name promises instead, platform-independent: the
+  // result is exactly one path segment ("traces") below the family dir, not a sibling of it.
+  const familyDir = "/repo/fsi-app/scripts/harness-runs/source-sweep";
+  const traceDir = defaultTraceDir(familyDir);
+  assert.equal(relative(familyDir, traceDir), "traces");
+  assert.equal(basename(traceDir), "traces");
+  // join(familyDir), not resolve(familyDir): defaultTraceDir builds traceDir via join() internally,
+  // and join() of a POSIX-style root on win32 carries no drive letter while resolve() adds the
+  // current one, so resolve(familyDir) would mismatch dirname(traceDir) by a drive prefix here.
+  assert.equal(dirname(traceDir), join(familyDir));
 });
 
 // ── resolvePortalSourceId (source-sweep-run-003 finding: host-key dedup attached OJ candidates to a 1976 opinion) ──

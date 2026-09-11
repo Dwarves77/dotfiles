@@ -24,7 +24,7 @@
 // gap, not a silent one.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -211,9 +211,18 @@ test("the shipped LEDGER_CONSUME_APPLY_ENABLED const is true (operator ruling 20
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────────
 
 test("defaultTraceDir: one level below the family dir, not inside it as a sibling *.json glob target", () => {
-  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
-  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
-  assert.equal(defaultTraceDir("/x/ledger-consume"), join("/x/ledger-consume", "traces"));
+  // task 0.3b fix round 1 (reviewer-confirmed): comparing against join(sameInput, "traces") restated
+  // the implementation verbatim, a tautology that would stay green even if defaultTraceDir stopped
+  // appending "traces" at all. Assert the PROPERTY the name promises instead, platform-independent: the
+  // result is exactly one path segment ("traces") below the family dir, not a sibling of it.
+  const familyDir = "/x/ledger-consume";
+  const traceDir = defaultTraceDir(familyDir);
+  assert.equal(relative(familyDir, traceDir), "traces");
+  assert.equal(basename(traceDir), "traces");
+  // join(familyDir), not resolve(familyDir): defaultTraceDir builds traceDir via join() internally,
+  // and join() of a POSIX-style root on win32 carries no drive letter while resolve() adds the
+  // current one, so resolve(familyDir) would mismatch dirname(traceDir) by a drive prefix here.
+  assert.equal(dirname(traceDir), join(familyDir));
 });
 
 // ── buildFetchDoc — polite gap + error handling, fully injected (no real network, no real timers) ─────

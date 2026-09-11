@@ -4,7 +4,7 @@
 // guard) and none of the tested exports touch I/O.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { relative, basename, dirname, join } from "node:path";
 import {
   parseArgs,
   dueSourcesWindowStart,
@@ -140,9 +140,18 @@ test("crossCheckMismatches: missing reported/verifiedByRead (e.g. check skipped)
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────
 
 test("defaultTraceDir: one level below the family dir", () => {
-  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
-  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
-  assert.equal(defaultTraceDir("/a/b/change-detection"), join("/a/b/change-detection", "traces"));
+  // task 0.3b fix round 1 (reviewer-confirmed): comparing against join(sameInput, "traces") restated
+  // the implementation verbatim, a tautology that would stay green even if defaultTraceDir stopped
+  // appending "traces" at all. Assert the PROPERTY the name promises instead, platform-independent: the
+  // result is exactly one path segment ("traces") below the family dir, not a sibling of it.
+  const familyDir = "/a/b/change-detection";
+  const traceDir = defaultTraceDir(familyDir);
+  assert.equal(relative(familyDir, traceDir), "traces");
+  assert.equal(basename(traceDir), "traces");
+  // join(familyDir), not resolve(familyDir): defaultTraceDir builds traceDir via join() internally,
+  // and join() of a POSIX-style root on win32 carries no drive letter while resolve() adds the
+  // current one, so resolve(familyDir) would mismatch dirname(traceDir) by a drive prefix here.
+  assert.equal(dirname(traceDir), join(familyDir));
 });
 
 // ── governing files / defaults sanity (F28 / CONVENTION.md parity surface) ──────────────────────────
