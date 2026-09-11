@@ -205,7 +205,7 @@ BEGIN
     ON  wo.item_id = ii.id
     AND wo.org_id  = p_org_id
   WHERE NOT COALESCE(wo.is_archived, ii.is_archived)
-    AND ii.provenance_status = 'verified';   -- Sprint 4 task 1.10: customer read gate
+    AND ii.provenance_status = 'verified';   -- Sprint 4 task 1.10: customer read gate (ADDED)
 END;
 $function$;
 
@@ -577,27 +577,37 @@ GRANT EXECUTE ON FUNCTION public.get_research_items_public() TO anon, authentica
 -- ── Post-check (idempotent -- safe to re-run) ─────────────────────────────────────────────────────
 DO $$
 DECLARE
-  n_present      int;
   n_slim         int;
   n_listings     int;
   v_probe_id     uuid;
-  v_ok           boolean;
+  v_fname        text;
+  v_missing      text[] := ARRAY[]::text[];
+  v_org_id       uuid;
+  v_user_id      uuid;
 BEGIN
-  -- 1. Presence: every RETURNS TABLE must now list all four new columns.
-  IF (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-       WHERE n.nspname = 'public'
-         AND p.proname IN (
-           '_workspace_active_items','get_workspace_intelligence_slim','get_workspace_intelligence_slim_public',
-           'get_workspace_intelligence_listings','get_workspace_intelligence_listings_public',
-           'get_market_intel_items','get_market_intel_items_public',
-           'get_operations_items','get_operations_items_public',
-           'get_research_items','get_research_items_public'
-         )
+  -- 1. Presence: every RETURNS TABLE must now list all four new columns. Fix round 1 / Minor 1
+  -- (coordinator review): names the exact function(s) that fail, not just a bare count mismatch.
+  FOREACH v_fname IN ARRAY ARRAY[
+    '_workspace_active_items','get_workspace_intelligence_slim','get_workspace_intelligence_slim_public',
+    'get_workspace_intelligence_listings','get_workspace_intelligence_listings_public',
+    'get_market_intel_items','get_market_intel_items_public',
+    'get_operations_items','get_operations_items_public',
+    'get_research_items','get_research_items_public'
+  ]
+  LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public' AND p.proname = v_fname
          AND pg_get_functiondef(p.oid) ILIKE '%cost_mechanism%'
          AND pg_get_functiondef(p.oid) ILIKE '%penalty_range%'
          AND pg_get_functiondef(p.oid) ILIKE '%enforcement_body%'
-         AND pg_get_functiondef(p.oid) ILIKE '%requirement_trajectory%') <> 11 THEN
-    RAISE EXCEPTION 'ABORT: not all 11 functions project all four new columns after CREATE OR REPLACE';
+         AND pg_get_functiondef(p.oid) ILIKE '%requirement_trajectory%'
+    ) THEN
+      v_missing := array_append(v_missing, v_fname);
+    END IF;
+  END LOOP;
+  IF array_length(v_missing, 1) > 0 THEN
+    RAISE EXCEPTION 'ABORT: the following function(s) do not project all four new columns: %', array_to_string(v_missing, ', ');
   END IF;
 
   -- 2. Execution, not just presence (rule 15): call the org-independent five with zero arguments and
@@ -617,6 +627,47 @@ BEGIN
   PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
                               OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
     FROM public.get_research_items_public();
+
+  -- 2b. Fix round 1 / Important (coordinator review): the five org-scoped RPCs plus the shared
+  -- helper were never executed above -- `_assert_org_membership(p_org_id)` needs a real org id AND
+  -- a role/JWT that resolves `auth.uid()`, which the _public siblings don't require. Migration 311
+  -- established the technique this repeats verbatim: `SET LOCAL ROLE authenticated` +
+  -- `set_config('request.jwt.claims', ...)` with a REAL (org_id, user_id) pair read live from
+  -- org_memberships, so a structurally broken-but-textually-present function fails this post-check
+  -- instead of silently passing. `_workspace_active_items` itself calls no membership assert (its
+  -- callers do), so it needs no impersonation, but is included here for completeness alongside its
+  -- five siblings that do. Self-skips (RAISE NOTICE) if no live org has a member, rather than failing
+  -- the whole migration on an environment precondition unrelated to this migration's own DDL.
+  SELECT om.org_id, om.user_id INTO v_org_id, v_user_id
+    FROM public.org_memberships om
+    ORDER BY om.created_at
+    LIMIT 1;
+
+  IF v_org_id IS NULL THEN
+    RAISE NOTICE 'SKIP: no live org_memberships row to impersonate for the org-scoped execution proof (_workspace_active_items, get_workspace_intelligence_slim/listings, get_market_intel_items, get_operations_items, get_research_items)';
+  ELSE
+    SET LOCAL ROLE authenticated;
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_id)::text, true);
+
+    PERFORM count(*) FROM public._workspace_active_items(v_org_id);
+    PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
+                                OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
+      FROM public.get_workspace_intelligence_slim(v_org_id);
+    PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
+                                OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
+      FROM public.get_workspace_intelligence_listings(v_org_id);
+    PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
+                                OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
+      FROM public.get_market_intel_items(v_org_id);
+    PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
+                                OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
+      FROM public.get_operations_items(v_org_id);
+    PERFORM count(*) FILTER (WHERE cost_mechanism IS NOT NULL OR penalty_range IS NOT NULL
+                                OR enforcement_body IS NOT NULL OR requirement_trajectory IS NOT NULL)
+      FROM public.get_research_items(v_org_id);
+
+    RESET ROLE;
+  END IF;
 
   -- 3. Slim/listings must still agree in total row count with each other (same base predicate, per
   -- migration 306/310's own post-check) -- the new columns must not have changed that invariant.
