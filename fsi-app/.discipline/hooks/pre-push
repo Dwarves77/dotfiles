@@ -28,6 +28,18 @@
 
 set -u
 
+# 2026-09-11 (task 0.3b fix round 1, [CONFIRMED] by the coordinator with a throwaway repo): a hook
+# invoked from a LINKED WORKTREE inherits GIT_DIR=<repo>/.git/worktrees/<name> (and GIT_WORK_TREE /
+# GIT_INDEX_FILE alongside it) in its environment, while the SAME hook invoked from the main checkout
+# inherits none of them. Step 3 below runs run-test-suite.sh, which runs
+# scripts/lib/assemble-train.test.mjs's fixture (`git init -q work` then `git remote add origin` inside
+# a fresh temp dir); with GIT_DIR exported, those commands ignore the temp dir and act on the REAL repo
+# instead, failing with "remote origin already exists", reproduced on push from a linked worktree,
+# while the identical test passes 11/11 run directly (no inherited GIT_DIR). Unset all three before any
+# step runs: git rediscovers the correct repository from cwd via the worktree's own `.git` file, so
+# every git command this hook itself invokes (steps 1, 2, 3c) is unaffected.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
 # Capture git's pre-push ref-update lines (`<local ref> <local sha> <remote ref> <remote sha>`) from
 # stdin BEFORE anything else consumes it — the consistency step (2) uses them to scan the commits being
 # pushed for Consistency-Override trailers. Guard against a manual TTY invocation, where reading stdin
