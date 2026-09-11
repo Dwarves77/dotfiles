@@ -1,17 +1,17 @@
-// link-item-entities.mjs — linkItemEntities(sb, item), rule 16(e) (lane W9 part 1, task 1.1,
+// link-item-entities.mjs: linkItemEntities(sb, item), rule 16(e) (lane W9 part 1, task 1.1,
 // 2026-09-11): "every NEW item is connected at birth" applied to the entity spine (migration 282/283).
 // Before this, ONLY the hand-dispatched scripts/entities/backfill-entities.mjs wrote entity_refs /
-// instrument_entity_id — a permanent backlog, not a chokepoint write. This is the ONE reusable writer
+// instrument_entity_id: a permanent backlog, not a chokepoint write. This is the ONE reusable writer
 // mint-item.ts (post-insert, rule 16(e)) and apply-staged-update.ts (the substantive update_item path,
 // when jurisdiction_iso or canonical_instrument_key changed) both call, sharing entity-plan.mjs's four
 // pure planners with the corpus backfill so mint-time and backfill-time can never plan a row differently
 // for the same input.
 //
-// IDEMPOTENT, same posture as the backfill: existing entities/refs are read FIRST (fresh, every call —
+// IDEMPOTENT, same posture as the backfill: existing entities/refs are read FIRST (fresh, every call:
 // this module holds no state of its own) and the planners skip anything already present, exactly as
 // scripts/entities/backfill-entities.mjs's own runJurisdiction/runInstrument do. entity_identifiers is
 // NOT pre-read; its upsert relies on the DB's own `ON CONFLICT (entity_id,scheme,value) DO NOTHING`
-// (ignoreDuplicates: true) for idempotency instead — the same posture the Interfaces contract implies
+// (ignoreDuplicates: true) for idempotency instead, the same posture the Interfaces contract implies
 // ("existing refs/entities are read first") by naming only those two, not identifiers.
 import { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "./entity-plan.mjs";
 
@@ -28,7 +28,7 @@ export async function linkItemEntities(sb, item) {
 
   // Nothing to plan -> nothing to read or write. Short-circuits BEFORE any DB call: an item with
   // neither jurisdiction_iso nor canonical_instrument_key (most non-regulatory item types) must not
-  // pay for an entities/entity_refs round trip on every mint, and — as important — must not touch
+  // pay for an entities/entity_refs round trip on every mint, and, as important, must not touch
   // tables a caller's client doesn't expect this step to reach (rule 16(e) is one of several
   // independent post-insert participants; touching a table outside its own stated scope when it has
   // literally nothing to do would be a scope leak, the same "MOAT BOUNDARY" discipline mint-item.ts's
@@ -49,7 +49,7 @@ export async function linkItemEntities(sb, item) {
     .eq("ref_id", item.id);
   const existingRefKeys = new Set((refs ?? []).map((r) => `intelligence_items|${item.id}|${r.entity_id}|${r.role}`));
 
-  // ── plan (pure — entity-plan.mjs, shared with the backfill) ────────────────────────────────────────
+  // ── plan (pure, entity-plan.mjs, shared with the backfill) ────────────────────────────────────────
   const jur = planJurisdictionEntities(codes, existingEntityIds, new Set(), ASSERTED_BY);
   const jurRefs = planJurisdictionRefs("intelligence_items", [item], jur.byCode, existingRefKeys, ASSERTED_BY);
   const ins = planInstrumentEntities(keys, existingEntityIds, new Set(), ASSERTED_BY);

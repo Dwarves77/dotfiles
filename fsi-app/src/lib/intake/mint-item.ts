@@ -367,7 +367,7 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   // scripts/entities/backfill-entities.mjs. Same non-fatal try/catch posture as (a)/(b)/(compliance
   // sync) above: a linking failure must never fail a mint; it is RECORDED as a rule-16(d) defect.
   // MOAT BOUNDARY: writes ONLY entities / entity_identifiers / entity_refs / intelligence_items.
-  // instrument_entity_id — the exact tables migration 283 adds, nothing else in this chokepoint.
+  // instrument_entity_id: the exact tables migration 283 adds, nothing else in this chokepoint.
   try {
     const r = await linkItemEntities(sb, {
       id: itemId,

@@ -973,11 +973,11 @@ export const LEGACY_ALLOWLIST = [
     file: 'fsi-app/src/test-support/fake-supabase.mjs',
     reason:
       'A shared injected-fake Supabase client for node:test suites (select/eq/in, upsert with ' +
-      'onConflict/ignoreDuplicates, update.eq) — test infrastructure, not a production capability. Its ' +
+      'onConflict/ignoreDuplicates, update.eq): test infrastructure, not a production capability. Its ' +
       'only intended callers are test files, which isTestFile() correctly excludes from the ' +
       'production-importer count. Grows new chain shapes as new writer tests need them; deleting it ' +
       'would mean re-inlining the same fake per test file.',
-    reviewByPhase: 'n/a — permanent shared test double; re-review only if every importing test is deleted or a real production caller appears (which would itself be a design smell for a test fake)',
+    reviewByPhase: 'n/a: permanent shared test double; re-review only if every importing test is deleted or a real production caller appears (which would itself be a design smell for a test fake)',
   },
 ];
 

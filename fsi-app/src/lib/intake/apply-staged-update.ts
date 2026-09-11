@@ -224,7 +224,7 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
 
   // rule 16(e) (2026-09-11, W9.1 "entity references at the mint chokepoint"): a SUBSTANTIVE update_item
   // that touches jurisdiction_iso or canonical_instrument_key must re-link the entity spine (migration
-  // 282/283) too — those are the only two fields linkItemEntities plans from, so any OTHER substantive
+  // 282/283) too: those are the only two fields linkItemEntities plans from, so any OTHER substantive
   // change (title, full_brief, etc.) correctly skips this step. Fresh re-read of the item's CURRENT
   // values (not a merge of proposedChanges over stale in-memory state), same posture as the discovery
   // re-read above. Own try/catch: a linking failure must never mask discovery/forward-events success.

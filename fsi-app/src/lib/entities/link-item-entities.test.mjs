@@ -1,7 +1,7 @@
-// link-item-entities.test.mjs — proves linkItemEntities() (rule 16(e), lane W9 part 1, task 1.1,
+// link-item-entities.test.mjs: proves linkItemEntities() (rule 16(e), lane W9 part 1, task 1.1,
 // 2026-09-11): the one reusable writer mint-item.ts and apply-staged-update.ts both call at write time,
 // sharing entity-plan.mjs's four pure planners with the corpus backfill (scripts/entities/
-// backfill-entities.mjs). Injected fake Supabase client (src/test-support/fake-supabase.mjs) — see that
+// backfill-entities.mjs). Injected fake Supabase client (src/test-support/fake-supabase.mjs); see that
 // module's header for the chain shapes it emulates and why.
 import test from "node:test";
 import assert from "node:assert/strict";

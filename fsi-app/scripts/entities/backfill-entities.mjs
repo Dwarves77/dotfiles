@@ -89,8 +89,8 @@ export function distinctNormalized(rawValues) {
 }
 
 // planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates MOVED
-// to src/lib/entities/entity-plan.mjs (see the re-export + import at the top of this file) — this is
-// where they used to live (spec §1.1/§1.2, migration 282/283); read that module's own header for why.
+// to src/lib/entities/entity-plan.mjs (see the re-export + import at the top of this file); this is
+// where they used to live (spec section 1.1/section 1.2, migration 282/283); read that module's own header for why.
 
 /** Plan organisation entities + HOST crosswalk identifiers for a set of source URLs. Same shape as the
  *  jurisdiction/instrument planners; `byHost` maps the registrable host to its entity_id. */
