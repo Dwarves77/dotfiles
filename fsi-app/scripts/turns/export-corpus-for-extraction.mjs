@@ -376,6 +376,10 @@ async function main() {
     const itemTypes = [...new Set(targetItems.map((it) => it.item_type).filter(Boolean))];
     if (itemTypes.length) {
       const slotRows = await readAll("item_type_required_slots", "item_type, slot_key", {
+        // itemTypes is a Set-deduplicated list of item_type VALUES, not per-row ids; migration 004's
+        // CHECK (item_type IN (...)) fixes the whole vocabulary at 12 values, so this list can never
+        // exceed 12 elements no matter how large targetItems is.
+        // fitness-allow: F39 (bounded by the fixed 12-value item_type vocabulary, not by input size)
         match: (q) => q.in("item_type", itemTypes),
       });
       for (const r of slotRows) {

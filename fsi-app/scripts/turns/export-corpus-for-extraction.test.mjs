@@ -462,7 +462,7 @@ describe("source contract: required_slots is read from item_type_required_slots 
   test("reads item_type_required_slots selecting slot_key, filtered by item_type, only under withPoolText", () => {
     const idx = src.indexOf("required_slots per item (Fix round 1, --with-pool-text only)");
     assert.ok(idx >= 0, "expected the required_slots step's own comment");
-    const after = src.slice(idx, idx + 1200);
+    const after = src.slice(idx, idx + 1600);
     const readMatch = after.match(/readAll\("item_type_required_slots",\s*"([^"]+)"/);
     assert.ok(readMatch, "expected an item_type_required_slots readAll call");
     assert.match(readMatch[1], /\bslot_key\b/);
