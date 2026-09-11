@@ -17208,12 +17208,16 @@ the exact same fixture, before vs after the fix, with no other change.
   (Market page's NEXT DATA DROPS grid track sizing, the CARBON COST PER FEU corridor row height) and
   `operations-matrix-nofigure` (the no-figure fact detail column width) — none reference the search box,
   `CommandBar`, or `ListRow`'s narrow-box CSS; pre-existing and out of this lane's scope.
-- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit below,
-  against the real diff; see the outcome recorded there.
-- `npx next build`: run because `.tsx` changed; see outcome recorded below.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (`ddfa5f91`)
+  against the real diff — `2 pass, 0 fail, 7 skip (of 9 rules)`: rule 012 (hardcoded user-home path) and
+  016 (canonical Anthropic path) PASS, the other 7 skip as not applicable to this diff.
+- `npx next build`: run because `.tsx` changed — exit code 0, full production build with every route
+  (static, SSG, and dynamic) compiled, no errors or warnings in the output.
 - `bash .discipline/run-test-suite.sh`: per the coordinator's revised gate instruction (machine load —
   six lanes running the full suite concurrently), NOT run a second time by this lane; the coordinator
-  runs it once per lane at push time.
+  runs it once per lane at push time. (A full run WAS started and completed once before that
+  instruction arrived, exit code 0, but its output was inconclusive under the concurrent load and is
+  not cited as evidence here — the coordinator's own run at push time is authoritative.)
 
 ### UX compliance
 
