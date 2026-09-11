@@ -1,16 +1,16 @@
 // TARGET-MATCH: an instrument whose NUMBER is itself year-like must still be detected.
 //
 // DEFECT (found live 2026-07-30 on CELEX 32025R2083, CBAM simplification): `normPair` decides which half of an
-// "N/N" pair is the year by range-testing both halves — but returns null when BOTH fall in 1950..2099. Its
+// "N/N" pair is the year by range-testing both halves, but returns null when BOTH fall in 1950..2099. Its
 // comment claims that branch means "neither looks like a year"; the real-world case is the opposite, BOTH do.
 // EU instrument numbers now routinely exceed 2000 (2025/2083 is a real regulation), so every instrument numbered
 // in the year range is INVISIBLE to the capture-side scan.
 //
 // Why that is worse than a silent miss: `expectedInstrumentIds` derives the item's own key via parseYearNumber,
-// which takes the first group as the year unconditionally — so "2025/2083" IS expected but can never be FOUND.
+// which takes the first group as the year unconditionally, so "2025/2083" IS expected but can never be FOUND.
 // The asymmetry drives verifyTargetMatch to a hard MISMATCH ("the item's own identifier is absent") while the
 // OTHER instruments the document cites are detected normally. CBAM's 75K draft was hard-held on exactly this,
-// grounding zero claims — the false MISMATCH the module's own "precision over recall" comment calls the worst case.
+// grounding zero claims, the false MISMATCH the module's own "precision over recall" comment calls the worst case.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { scanInstrumentIds, expectedInstrumentIds, verifyTargetMatch } from "./target-match.mjs";
@@ -36,7 +36,7 @@ test("RED: the CBAM capture shape resolves to MATCH, not mismatch", () => {
   const item = { title: "Regulation (EU) 2025/2083 CBAM simplification", item_type: "regulation", instrument_identifier: "32025R2083" };
   assert.deepEqual([...expectedInstrumentIds(item)], ["2025/2083"], "expected key derives from the item's own identifier");
   const v = verifyTargetMatch(item, capture);
-  assert.equal(v.verdict, "match", `a document titling itself must MATCH; got ${v.verdict} — ${v.reason}`);
+  assert.equal(v.verdict, "match", `a document titling itself must MATCH; got ${v.verdict}: ${v.reason}`);
 });
 
 test("GREEN (unchanged): non-year-like numbers still resolve", () => {
@@ -56,7 +56,7 @@ test("GREEN (unchanged): trailing-suffix directive form still resolves", () => {
 
 test("GREEN (unchanged): a bare pair with no instrument word is still NOT counted", () => {
   assert.equal(scanInstrumentIds("published 2025/2083 on the portal").size, 0,
-    "conservative context requirement is preserved — bare pairs remain noise");
+    "conservative context requirement is preserved: bare pairs remain noise");
 });
 
 test("a genuinely different instrument still MISMATCHES (the gate keeps working)", () => {

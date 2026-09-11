@@ -31,18 +31,18 @@ function normPair(a, b) {
   return null; // neither looks like a year → not an instrument pair
 }
 
-/** PURE. All pair-keys an "N/N" occurrence can legitimately denote — INFORMATION-PRESERVING.
+/** PURE. All pair-keys an "N/N" occurrence can legitimately denote: INFORMATION-PRESERVING.
  *
  *  DEFECT THIS CLOSES (CELEX 32025R2083, CBAM, 2026-07-30): normPair range-tests both halves to decide which is
- *  the year and returns null when BOTH fall in 1950..2099 — its comment says that means "neither looks like a
+ *  the year and returns null when BOTH fall in 1950..2099; its comment says that means "neither looks like a
  *  year", but the live case is the opposite: BOTH do. EU serials now routinely exceed 2000 (2025/2083 is real),
  *  so such instruments were invisible to the capture scan while the positional expected-side (parseYearNumber)
- *  still derived them. That asymmetry produced a hard MISMATCH — the false hold the module's own
- *  "precision over recall" note calls the worst outcome — and it grounded CBAM's 75K draft to zero claims.
+ *  still derived them. That asymmetry produced a hard MISMATCH, the false hold the module's own
+ *  "precision over recall" note calls the worst outcome, and it grounded CBAM's 75K draft to zero claims.
  *
  *  Two regimes:
  *   - STRUCTURALLY DETERMINISTIC forms (CELEX `3YYYY[RLD]NNNN`, trailing suffix `YYYY/N/EU`) carry the year in a
- *     known position. `yearFirst: true` parses positionally and never infers — a year-like serial is impossible
+ *     known position. `yearFirst: true` parses positionally and never infers; a year-like serial is impossible
  *     to misread there.
  *   - GENUINELY AMBIGUOUS prose pairs ("(EU) 2025/2083" is year/number; "(EC) No 1610/2024" is number/year) keep
  *     BOTH interpretations when both halves are year-like. Dropping the occurrence loses real signal; guessing
@@ -76,7 +76,7 @@ export function scanInstrumentIds(text) {
   // Prose: an instrument word within a short window before an (EU)/(EC) year/number pair, either order.
   const re = /\b(regulation|directive|decision|reg\.?|dir\.?)\b[^\n.;]{0,40}?\(?\b(?:eu|ec)\b\)?\s*(?:no\.?\s*)?(\d{1,4})\s*\/\s*(\d{1,4})/gi;
   for (const m of s.matchAll(re)) {
-    for (const k of pairKeysFor(m[2], m[3])) found.add(k); // prose: ambiguous — keep both readings
+    for (const k of pairKeysFor(m[2], m[3])) found.add(k); // prose: ambiguous, keep both readings
   }
   // Trailing-suffix directive form: "2014/95/EU"
   for (const m of s.matchAll(/\b(\d{4})\s*\/\s*(\d{1,4})\s*\/\s*(?:eu|ec)\b/gi)) {
@@ -158,7 +158,7 @@ export function verifyTargetMatch(item = {}, captureText = "") {
 
   // REVERSAL-CLOSURE: an ambiguous prose pair contributes BOTH readings, so the reversal of the item's own key
   // ("2083/2025" for 2025/2083) can appear in the scan. It is an artefact of retaining information, never a real
-  // foreign instrument — excluding it here keeps the widened detection from manufacturing a phantom conflict.
+  // foreign instrument; excluding it here keeps the widened detection from manufacturing a phantom conflict.
   const reverseOf = (k) => { const [y, n] = String(k).split("/"); return `${n}/${y}`; };
   const expectedClosure = new Set([...expected, ...[...expected].map(reverseOf)]);
   const conflicting = [...inText].filter((k) => !expectedClosure.has(k));
