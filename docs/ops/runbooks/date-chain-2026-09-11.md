@@ -18,12 +18,13 @@ Command 1 (forward-events backfill) is no longer pending: it was applied in run 
 to 1,209 rows (289 to 365 items); `compliance_deadline` moved 71 to 87. See `docs/ops/HANDOFF-2026-09-11.md`
 CORRECTIONS item 1.
 
-Command 2's scope needs a correction. The dry run measured against the parser, not just the row count,
-showed 21 items filled (were empty), 117 replaced, 12 HELD, 1,153 rows total. The "893 reg-family items
-with a brief and zero timelines" figure above is the count of candidates, not the count the parser can
-actually fill: a portion of that 893 are record stubs with no section-14 text to extract, so they come
-back empty rather than filled. Use the dry run's filled / replaced / HELD breakdown as the real scope
-before dispatching command 2 with `--execute`.
+[CONFIRMED] Command 2 (timeline harvest) was applied on 2026-09-11 in date-chain run 34635080848
+(mode=apply, command=timeline-harvest): item_timelines went from 1,169 to 1,229 rows, items from 131
+to 152 (+21 filled, 117 replaced, 12 HELD).
+
+[CONFIRMED] Outside this workflow, the entity backfill was applied on 2026-09-11 in propagation-drain
+run 34635876636 (mode=apply, backfill_entities=true): entity_refs +1,693, entities +855,
+entity_identifiers +837, no errors.
 
 ## Runtime
 
