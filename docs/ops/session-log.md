@@ -16848,3 +16848,69 @@ response paints into.
 
 No new screen, no new flow, no new control, no new row anatomy. This is a legibility repair reusing an
 existing, already-shipped reflow under a second trigger.
+
+## HASHSEP (2026-09-11)
+
+Task 0.3 of the 2026-09-11 build plan. `hashHarnessVersion` (`fsi-app/scripts/lib/run-artifact.mjs`)
+built its `harness_version` digest over `relative(base, abs)` directly. `relative()` returns
+backslash-separated paths on Windows and forward-slash-separated paths on Linux/CI, so the same tree
+hashed to two different values depending on the clone's OS: every F28 verdict computed on a Windows
+clone was wrong, and the pre-push hook (fitness gate, step 3) failed on every push from this machine.
+This was the first task in the plan because nothing else can land until a Windows clone can push at
+all.
+
+**Reproduction [CONFIRMED]**, on this Windows machine, before the fix: `hashHarnessVersion` over the
+`propagation` family's three governing files (`scripts/turns/run-propagation-drain.mjs`,
+`src/lib/propagation/drain.ts`, `src/lib/propagation/admissible-for.ts`) returned
+`sha256:cd26625e75e6f4ba`; recomputing with `rel.split("\\").join("/")` returned
+`sha256:ebe93513ffa2a4f9`, exactly the hash `propagation-run-006` (CI, Linux) has on record. Full F28
+run before the fix (`node .discipline/fitness/runner.mjs`): 10 violations, one STALE PENDING-RUN.md or
+STALENESS COUPLING per registered family (mint, screen, fetch-drain, meta-harness, forward-events,
+source-sweep, ledger-consume, change-detection, propagation, corpus-turn). Class-wide, not one family.
+
+**Fix:** `hashHarnessVersion` now normalizes `rel` to POSIX separators
+(`relative(base, abs).split(sep).join("/")`, `sep` from `node:path`) before it enters the digest. Every
+governing-file list in `scripts/harness-runs/governing-files.mjs` is already written with forward
+slashes and CI already produced forward-slash `rel` values, so this changes nothing for Linux/CI and
+makes Windows agree with the values already on record.
+
+**TDD evidence:** added a RED-first test to `scripts/lib/run-artifact.test.mjs` (a nested file, hashed
+against a forward-slash constant). On this machine, before the fix: actual `sha256:75178ae918757826`
+(backslash `rel`) against expected `sha256:12b28ff493b24d51` (forward-slash `rel`), FAIL. After the fix:
+PASS. Full evidence, including the isolated revert-and-rerun used to capture the clean RED transcript,
+is in the task report.
+
+**meta-harness marker:** `run-artifact.mjs` is one of `meta-harness`'s own governing files
+(`scripts/harness-runs/governing-files.mjs`), so editing it moved `meta-harness`'s own
+`harness_version`. Updated `scripts/harness-runs/meta-harness/PENDING-RUN.md`: the prior
+"harness_version at write time" line was reworded (so `parsePendingRunHash` no longer matches it) and a
+new "Lane HASHSEP" section was appended with the hash computed by the FIXED function against this
+tree's current governing-file set: `sha256:29f6e50d650403cb`. No other family's marker was touched.
+
+**Second, independent OS-path bug found and fixed in the same file while extending it per the task
+brief:** `scripts/lib/run-artifact.test.mjs`'s "CLI integration" test built a directory path with
+`new URL(...).pathname`, which on Windows keeps the leading "/" before the drive letter
+(`/C:/Users/...`), a path no `fs` call resolves; `fileURLToPath` returns the real platform path. This
+test is wired into `run-test-suite.sh` (hence the pre-push hook), so it was blocking the same gate
+before any hashHarnessVersion work even ran. Confirmed pre-existing on unmodified `origin/master` (not
+caused by this lane) before fixing it. Fixed in the same motion per CLAUDE.md rule 13.
+
+**Gates, this clone:** `npx tsc --noEmit` exit 0; `node .discipline/fitness/runner.mjs` (full suite) 37
+functions checked, 0 violations; `bash .discipline/run-test-suite.sh` exit 0; `node --test
+scripts/lib/run-artifact.test.mjs .discipline/fitness/functions/F28-harness-run-integrity.test.mjs`, 91
+tests, 0 failures; `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` exit 0; `npx next
+build` exit 0. `npm run audit:design` fails with `Cannot find module 'playwright'`: `playwright` is
+absent from `package.json`/`package-lock.json` entirely, a pre-existing environment gap unrelated to
+this lane's files and not exercised by the pre-push hook (verified by reading
+`fsi-app/.discipline/hooks/pre-push`, installed at `.git/hooks/pre-push`: its 4 steps are the untracked-
+file gate, the consistency runner, `run-test-suite.sh`, and `tsc --noEmit`; `audit:design` is not among
+them). Flagged, not fixed: adding a new dependency is out of scope for this narrow separator fix.
+
+Branch `lane/hashsep-2026-09-11`, worktree `.worktrees/wt-hashsep-0911`. Commit trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. This PR merges first; every other lane in
+the 2026-09-11 plan rebases onto it before pushing.
+
+### UX compliance
+
+Not applicable. No `.tsx` or `.css` file was touched; this lane is a pure Node script fix
+(`scripts/lib/run-artifact.mjs`), its test, and a markdown marker file.

@@ -20,7 +20,7 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import crypto from "node:crypto";
-import { join, resolve, relative, dirname } from "node:path";
+import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // "meta-harness" (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family:
@@ -367,7 +367,13 @@ export function hashHarnessVersion(filePaths, baseDir = process.cwd()) {
   const entries = filePaths
     .map((p) => {
       const abs = resolve(base, p);
-      const rel = relative(base, abs);
+      // Normalize to POSIX separators before the path enters the digest. relative() returns
+      // backslash-separated paths on Windows and forward-slash-separated paths everywhere else
+      // (including CI), so the SAME tree hashed two different ways depending on platform: every
+      // governing-file list here is already written with forward slashes (see
+      // scripts/harness-runs/governing-files.mjs), so this normalization changes nothing for
+      // Linux/CI and makes Windows agree with it, not the other way around.
+      const rel = relative(base, abs).split(sep).join("/");
       const content = readFileSync(abs, "utf8");
       return { rel, content };
     })

@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   ALLOWED_FAMILIES,
   validateRunArtifact,
@@ -383,6 +384,23 @@ test("hashHarnessVersion: file list order does not matter (sorted by relative pa
   }
 });
 
+test("hashHarnessVersion: a nested file hashes to the SAME digest on every platform (path-separator independent); RED on Windows before the fix, since relative() there returns backslashes and the digest is built over the raw relative path", () => {
+  const dir = tmpDir();
+  try {
+    mkdirSync(join(dir, "sub"), { recursive: true });
+    writeFileSync(join(dir, "sub", "file.mjs"), "export const nested = true;\n");
+    const hash = hashHarnessVersion(["sub/file.mjs"], dir);
+    // Constant computed independently as sha256("sub/file.mjs\n" + "export const nested = true;\n" + "\n")
+    // over the FORWARD-SLASH relative path: the shape every governing-file list in
+    // scripts/harness-runs/governing-files.mjs already uses, and the shape CI (Linux) always produced.
+    // This is the exact repro class from the task brief: rel.split("\\").join("/") on Windows reproduces
+    // this same constant; the raw relative() output on Windows (backslash-separated) does not.
+    assert.equal(hash, "sha256:12b28ff493b24d51");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // ── metricHeadline / formatRunListing ───────────────────────────────────────────────────────────
 
 test("metricHeadline: up to 3 top-level metrics entries as key=value, in object order", () => {
@@ -605,7 +623,13 @@ test("loadRunArtifactJSON RED: unparseable JSON throws a named error naming the 
 });
 
 test("CLI integration: --list against the real retrofitted screen family reads all 3 rounds, sorted, with defect counts intact", () => {
-  const dir = new URL("../harness-runs/screen", import.meta.url).pathname;
+  // fileURLToPath, not .pathname: on Windows a file:// URL's .pathname keeps the leading "/" before the
+  // drive letter ("/X:/repo/...", which no fs call resolves), while fileURLToPath returns the real
+  // platform path ("X:\repo\..."). A second, independent instance of the same OS-path-handling class
+  // this task's hashHarnessVersion fix addresses. Caught while extending this file per the task brief,
+  // fixed in the same motion (a flag is a commitment, not a comment) since it blocks the same pre-push
+  // gate `node --test` / run-test-suite.sh run on this clone.
+  const dir = fileURLToPath(new URL("../harness-runs/screen", import.meta.url));
   const { runs, invalid } = readRunHistory(dir);
   assert.equal(invalid.length, 0, `unexpected invalid files: ${JSON.stringify(invalid)}`);
   assert.deepEqual(runs.map((r) => r.run_id), ["screen-run-001", "screen-run-002", "screen-run-003"]);
