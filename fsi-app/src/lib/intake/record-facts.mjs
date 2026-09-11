@@ -914,6 +914,14 @@ export function buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots
 }
 
 /**
+ * The exact marker `buildRecordFullBrief` opens every stub catalogue record with — the ONE string a
+ * consumer checks to tell "this item has only a stub, not a full brief" (population-report.mjs's brief
+ * coverage entry, DATECHAIN lane 2026-09-11). Exported so no second call site hand-types this literal
+ * (the "no mirrored copies" convention this codebase already follows for e.g. CLAIM_KIND_FILTER).
+ */
+export const STUB_BRIEF_MARKER = "Catalogue record: extracted facts only, full brief pending.";
+
+/**
  * Assemble `item.full_brief` for a record-grade payload: boilerplate (digit-free, so it can never
  * introduce an ungrounded Gate-A token — see this file's header) plus each claim's own `claim_text`,
  * verbatim, grouped FACT-then-GAP. Every figure/date token in the result is therefore also present in
@@ -922,7 +930,7 @@ export function buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots
 export function buildRecordFullBrief({ sourceUrl, claims }) {
   const factLines = claims.filter((c) => c.claim_kind === "FACT").map((c) => `- ${c.claim_text}`);
   const gapLines = claims.filter((c) => c.claim_kind === "GAP").map((c) => `- ${c.claim_text}`);
-  const parts = ["*Catalogue record: extracted facts only, full brief pending.*"];
+  const parts = [`*${STUB_BRIEF_MARKER}*`];
   if (factLines.length) parts.push("", "## Verbatim facts", "", ...factLines);
   if (gapLines.length) parts.push("", "## Not stated in the captured source", "", ...gapLines);
   parts.push("", `Source: ${sourceUrl}`);

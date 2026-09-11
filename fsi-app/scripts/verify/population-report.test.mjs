@@ -95,3 +95,67 @@ test("countStore surfaces a read error instead of reporting a false zero", async
   const sb = { from: () => ({ select: () => ({ count: null, error: { message: "boom" }, not: () => {} }) }) };
   await assert.rejects(() => countStore(sb, { table: "t", fill: "f" }), /t: boom/);
 });
+
+// ── DATECHAIN lane, 2026-09-11 — attack proofs for the four new entries (Part C, GATES: "prove by
+// attack that each new entry goes red on an empty store"). Each test starts from an EMPTY store (the
+// exact defect class this file exists to catch — a built-but-unpopulated store no gate questions) and
+// asserts the report actually goes red for it, not merely that the entry is declared.
+
+test("item_timelines goes red (EMPTY) when the store has zero rows", async () => {
+  const sb = fakeClient({ item_timelines: { rows: 0, filled: 0 } });
+  const entry = STORES.find((s) => s.table === "item_timelines");
+  const got = await countStore(sb, entry);
+  assert.equal(classify(got), "EMPTY");
+});
+
+test("item_forward_events goes red (EMPTY) when the store has zero rows", async () => {
+  const sb = fakeClient({ item_forward_events: { rows: 0, filled: 0 } });
+  const entry = STORES.find((s) => s.table === "item_forward_events");
+  const got = await countStore(sb, entry);
+  assert.equal(classify(got), "EMPTY");
+});
+
+test("compliance_deadline goes red (ROWS_NO_VALUES) when every item's column is null", async () => {
+  // intelligence_items itself is never EMPTY (the corpus has rows) — the attack that matters here is
+  // the ROWS_NO_VALUES case: 1,195 items, 0 with compliance_deadline set, exactly measured pre-lane.
+  const sb = fakeClient({ intelligence_items: { rows: 1195, filled: 0 } });
+  const entry = STORES.find((s) => s.table === "intelligence_items" && s.fill === "compliance_deadline");
+  const got = await countStore(sb, entry);
+  assert.equal(classify(got), "ROWS_NO_VALUES");
+});
+
+test("brief coverage goes red (ROWS_NO_VALUES) when every live item is a stub", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("full_brief"));
+  assert.ok(entry, "brief coverage entry must be declared");
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          // totalQuery resolves here (only .eq chained); filledQuery chains a further .not(...).
+          then: (res) => res({ count: 40, error: null }),
+          not: () => Promise.resolve({ count: 0, error: null }), // every live item is a stub
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 0 });
+  assert.equal(classify(got), "ROWS_NO_VALUES");
+});
+
+test("brief coverage counts a real (non-stub) brief as filled", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("full_brief"));
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          then: (res) => res({ count: 40, error: null }),
+          not: () => Promise.resolve({ count: 12, error: null }),
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 12 });
+  assert.equal(classify(got), "FILLED");
+});

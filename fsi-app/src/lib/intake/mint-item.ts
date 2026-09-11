@@ -25,6 +25,7 @@ import { domainForItemType, type Domain } from "@/lib/domains";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { runConnectionDiscovery } from "@/lib/connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
+import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
@@ -340,6 +341,24 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   } catch (e: unknown) {
     await recordFlywheelDefect(sb, itemId, "forward-events", e instanceof Error ? e.message : String(e));
     flags.push("forward-events-failed");
+  }
+
+  // rule 16(b)/17 continued: the forward-events rows the block above just wrote are the ONLY source
+  // compliance_deadline is allowed to sync from (compliance-deadline-sync.mjs's own header states the
+  // rule) — writing the events without also syncing the summary field they feed would leave the flywheel
+  // half-turned, exactly rule 17's "a runtime that ends without triggering its downstream is a defect in
+  // the runtime." OWN try/catch (not folded into the block above): a sync failure must never read back
+  // as a forward-events failure, or mask a forward-events success — same independent-step posture rule
+  // 16(d) already established for discovery vs forward-events (see mint-forward-participation.npmtest.mjs's
+  // "discovery success and forward-events success can BOTH be recorded" test for the precedent this
+  // mirrors). Runs even when events.length was 0 above — an item can gain a compliance_deadline candidate
+  // from a PRIOR mint/update's forward-events rows without this mint's own extraction finding anything new.
+  try {
+    const cd = await syncComplianceDeadlineForItem(sb, itemId);
+    if (cd.changed) flags.push(`compliance-deadline:${cd.value}`);
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "compliance-deadline", e instanceof Error ? e.message : String(e));
+    flags.push("compliance-deadline-failed");
   }
 
   if (seekStudy) {

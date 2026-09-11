@@ -63,7 +63,9 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/turns/run-population-flywheel.mjs",
       "scripts/review/apply-canonical-candidates.mjs",
       "scripts/maintenance/origin-class-backfill.mjs",
-      "scripts/maintenance/canonical-autoverify.mjs"
+      "scripts/maintenance/canonical-autoverify.mjs",
+      "scripts/forward-events/dispatch-extraction.mjs",
+      "src/lib/forward-events/compliance-deadline-sync.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -123,7 +125,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/turns/apply-extraction-output.mjs",
       "src/lib/intake/mint-item.ts",
       "src/lib/intake/apply-staged-update.ts",
-      "scripts/maintenance/forward-events-retext.mjs"
+      "scripts/maintenance/forward-events-retext.mjs",
+      "scripts/forward-events/dispatch-extraction.mjs"
     ],
     "theme_briefs": [
       "src/lib/research/theme-brief.mjs",
@@ -244,6 +247,8 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/turns/run-population-flywheel.mjs` (Lane TANDEM, 2026-09-04) | UPDATE (`intelligence_items`, `integrity_flags`) — THE FLYWHEEL, MINT-RUNBOOK.md §8/§9: `.github/workflows/population-turn.yml`'s own post-apply step, run automatically after every batch apply, never a separate hand-run pass (THE DEFECT this lane closed: population runs #15-#20 minted ~650 items with zero downstream connection/tag/obligation writes because nothing triggered §8/§9 before this driver existed). Its `buildTagProposalsDeps`/`buildTagRatificationDeps` are third and fourth call sites of the SAME `tag-proposals.mjs`/`tag-ratification.mjs` merge-only tag write and flag-resolve/flag-insert paths the two rows above already register — this driver imports and calls those scripts' own exported `main(opts, deps)` unmodified (never re-implements their write logic), passing deps shaped identically to their own `IS_MAIN` blocks so the literal `guardedInsertMany`/`guardedUpdate`/`.from(...).update(...)` call sites live in THIS file (hence a new registry entry) while the decision logic they invoke stays in `tag-proposals.mjs`/`tag-ratification.mjs` unchanged. Scoped to exactly the batch's own minted item ids (`--arg ids:<...>` for tag-proposals; `tag-ratification.mjs --arg auto` runs its normal system-wide auto-adoption sweep, honestly noted in this driver's own comments as the one step not batch-scoped). | `db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" })` in the tag-proposals deps' `insertMany`; `db.guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: TAG_RATIFICATION_CITE })` and `sb.from("integrity_flags").update(...)` / `.select(...)` in the tag-ratification deps' `updateItem`/`resolveFlag`/`readFlag` |
 | `scripts/review/apply-canonical-candidates.mjs` (Lane REVIEW-WIRE, 2026-09-04) | UPDATE (`intelligence_items`, narrow) — the "accept" arm of the `canonical_source_candidates` ratification-digest apply (see that table's own section below, and `docs/runbooks/MAINTENANCE-RUNBOOK.md` §14). A ruled `decision:"accept"` group is a two-phase write: it first resolves whether the candidate's canonical URL is ALREADY a registered `sources` row; only when it is does it repoint the single citing `intelligence_items` row's `source_id`/`source_url` onto that existing source (never mints a new `sources` row itself — an unresolvable candidate is routed to `needs_individual_review` instead, a report-only outcome with no write). This is the table's ONLY writer that touches `source_id`/`source_url` outside the intake/mint chokepoints (`mint-item.ts`, `apply-staged-update.ts`) and outside `canonical-pipeline.ts`'s own re-grounding path — narrow by construction: at most one row per ruled-and-resolvable candidate, gated behind an operator-signed ruling file (`validateRuling` refuses any group with no `decision` set) and a staleness check (`isRulingStale` refuses a ruling whose `generated_at` predates the row's own `updated_at`). Dispatched via the new MAINT step `review-apply-canonical-candidates` (`fsi-app/scripts/maintenance/review-apply-canonical-candidates.mjs`), which imports this file's exported `main({rulingPath, apply}, deps)` unmodified and never re-implements the accept/resolve logic. | `guardedUpdateByIds("intelligence_items", [itemId], { source_id, source_url }, { cite: CITE, applyMatch, select })` in `apply-canonical-candidates.mjs`'s per-group accept branch |
 | `scripts/maintenance/canonical-autoverify.mjs` (Lane CANONICAL-AUTOVERIFY, 2026-09-06) | UPDATE (`intelligence_items`, narrow) — the per-row twin of `apply-canonical-candidates.mjs`'s own accept-arm repoint (row above), for a `canonical_source_candidates` row that path could only route to `needs_individual_review`. Repoints `source_id`/`source_url` on the single citing item ONLY for a candidate this script's own reachability + page-class + content-proof + authority checks all pass (see `docs/runbooks/MAINTENANCE-RUNBOOK.md` §38); never touched for a `rejected` or `needs_individual_review` verdict. Idempotent by construction — only `decision='pending'` rows are ever read or matched. | `guardedUpdateByIds("intelligence_items", [row.intelligence_item_id], { source_id, source_url }, { cite: CITE, select: "id" })` in `main()`'s apply-mode accept branch |
+| `src/lib/forward-events/compliance-deadline-sync.mjs` (Lane DATECHAIN, 2026-09-11) | UPDATE (`intelligence_items`, one column) — the ONE writer of `compliance_deadline`, which had none before this lane (its only prior writes were incidental, through `apply-staged-update.ts`'s unrestricted `update_item` proposed-changes field). Picks the nearest future `item_forward_events` row with `event_kind='compliance_deadline'` for the item and writes only that date; never overwrites a non-null value with null. Called from `mint-item.ts` and `apply-staged-update.ts` (app-runtime `svc()` writes, same posture as `canonical-pipeline.ts`'s own direct writes to this table) right after each one's own `item_forward_events` insert, and from `scripts/forward-events/dispatch-extraction.mjs` (below) via `guardedUpdate` instead, for the scripts-side batch caller. | `sb.from("intelligence_items").update({ compliance_deadline })` in `syncComplianceDeadlineForItem` |
+| `scripts/forward-events/dispatch-extraction.mjs` (Lane DATECHAIN, 2026-09-11) | INSERT (`item_forward_events`) + UPDATE (`intelligence_items`, `compliance_deadline` only) — the corpus BACKFILL half of the forward-events flywheel: runs the same `readAndExtractForwardEvents` driver `mint-item.ts`/`apply-staged-update.ts` already use, scoped to live items with zero existing `item_forward_events` rows (items minted/last-substantively-updated before the extractor shipped 2026-09-01), then syncs `compliance_deadline` from whatever it wrote using the SAME pick rule `compliance-deadline-sync.mjs` exports (reused, not re-derived). Pure parser, $0 — see `docs/ops/runbooks/date-chain-2026-09-11.md`. | `guardedInsertMany("item_forward_events", rows, { cite })`; `guardedUpdate("intelligence_items", (q) => q.eq("id", it.id), { compliance_deadline: picked }, { cite })` |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -409,6 +414,14 @@ explicitly — never silently drop a genuinely-distinct obligation by collapsing
 DIFFERENT `obligation_text` sharing item/date/kind still coexist freely (Euro 7's phase-out schedule,
 NZIA's several 2030-01-01 targets); only a byte-identical-text duplicate is now made impossible to insert,
 regardless of which of the two source tables backs it.
+
+**5. `scripts/forward-events/dispatch-extraction.mjs` (Lane DATECHAIN, 2026-09-11)** — the corpus BACKFILL
+writer: the three writers above (1-3) only ever run for items minted, substantively updated, or explicitly
+batch-loaded through the harness; nothing re-ran the extractor for the corpus that predates it (2026-09-01)
+and hasn't been touched since. This script scopes to exactly that gap (live items with zero existing
+`item_forward_events` rows), calls `readAndExtractForwardEvents` — the SAME driver writer 1/2 use — and
+inserts via `guardedInsertMany` (idempotent against the live dedupe key, same posture as writer 3). See
+docs/ops/runbooks/date-chain-2026-09-11.md.
 
 ### `theme_briefs`
 

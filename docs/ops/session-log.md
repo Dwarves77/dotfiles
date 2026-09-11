@@ -16487,3 +16487,62 @@ depending on mode) — a direct Law 16 (Similarity/Honesty of signifiers) violat
 reads one affordance and performs another. The control's label and its handler are now driven by
 the SAME `mode` value on every render, so they cannot diverge again without also failing the new
 structural test that asserts it.
+
+## DATECHAIN lane, 2026-09-11: unlocking the date chain — timeline harvest, compliance_deadline, and the population-report guard
+
+The operator's instruction, 2026-09-09, verbatim:
+
+> the fix is making sure a full brief, analysis of the data and all information is pulled and then put
+> through the flywheel to make sure we are connecting data points across the site, right now we have a
+> completely broken and unwired set of tools. it should NOT be locked out, it's integral to the site, so
+> this needs addressed. You're giving me these three like they are options to fix but ALL of them look
+> like they need fixed, the system isn't working because all of this is a problem and briefs need to
+> exist for all items as well.
+
+Full detail and exact commands: `docs/ops/runbooks/date-chain-2026-09-11.md`. Summary of what landed on
+`lane/datechain-2026-09-11`:
+
+**A — unlocked the harvest.** `sectionBrief()`'s F2 skip-if-verified guard
+(`fsi-app/src/lib/agent/canonical-pipeline.ts`) existed to stop a section delete from cascading into
+`section_claim_provenance`, but the §14 timeline harvest lived inside `sectionBrief` after that guard's
+early return, so it was blocked for every verified item too — 1,434 of 1,518 live items [CONFIRMED,
+2026-09-11]. Split into `harvestItemTimeline(itemId, sbClient?)`, called from both the verified-skip
+branch and the normal re-section branch, touching only `item_timelines`. Proof:
+`fsi-app/src/lib/agent/timeline-harvest-unlock.npmtest.mjs` (injected fake client asserts
+`intelligence_item_sections`/`section_claim_provenance` are never touched by the verified-item path).
+
+**B — gave `compliance_deadline` a writer.** `fsi-app/src/lib/forward-events/compliance-deadline-sync.mjs`
+— the ONE canonical sync from `item_forward_events` (`event_kind='compliance_deadline'`, nearest future
+`event_date`, confidence-then-id tiebreak) into `intelligence_items.compliance_deadline`. Idempotent,
+never overwrites a value with null. Wired into `mint-item.ts` and `apply-staged-update.ts`, each in its
+own try/catch so a sync failure can never mask a forward-events success (rule 16(d)'s independent-step
+posture). Proof: `fsi-app/src/lib/forward-events/compliance-deadline-sync.test.mjs`.
+
+**C — guarded the class.** `fsi-app/scripts/verify/population-report.mjs`'s `STORES` gained
+`item_timelines`, `item_forward_events`, `intelligence_items.compliance_deadline`, and — the operator's
+own naming — **brief coverage**: live items whose `full_brief` is only the stub catalogue-record marker
+(now `STUB_BRIEF_MARKER`, exported from `record-facts.mjs`) or null. Each entry proven by attack
+(`population-report.test.mjs`) to go red (EMPTY/ROWS_NO_VALUES) on an empty store, not merely declared.
+
+**D — staged, did not execute, three corpus runs**, cheapest first, each bounded (`--limit`) and
+resumable (`--after-id`):
+1. `scripts/forward-events/dispatch-extraction.mjs` — forward-events backfill for 1,231 of 1,518 live
+   items with zero `item_forward_events` rows. **FREE** — `extractForwardEvents` is a pure, $0, no-LLM
+   parser (confirmed by reading its own header, not assumed).
+2. `scripts/backfill-item-timelines.mjs` (revived from `scripts/_archive/`) — timeline harvest for 893 of
+   993 reg-family items with a brief but no `item_timelines` rows. **FREE** — same pure-parser class as
+   (1); no model call.
+3. Full-brief generation for **1,102** live items carrying only a stub (measured 2026-09-11, 73% of the
+   corpus) — this is the ONE step that touches a model. Per the operator's instruction, runs as
+   subscription Claude Code lanes through the existing intake chokepoint (`applyStagedUpdate`'s
+   `update_item` path), never direct API calls billed to his Anthropic key. Batch size ~40-60 items/lane
+   session; RD-31's priced-line requirement is already satisfied by the existing spend-gated client
+   (`spend-client.ts`) every generation call goes through — no new mechanism needed, only the dispatch
+   decision.
+
+Gates run clean on this branch: `tsc --noEmit` exit 0; `.discipline/fitness/runner.mjs` 0 violations (two
+new LEGACY_ALLOWLIST entries for the two operator-dispatched batch scripts — rule 16 forbids wiring them
+into a standing CI schedule; one F28 harness-version marker re-pinned after `record-facts.mjs`, a mint
+governing file, gained the `STUB_BRIEF_MARKER` export); `run-test-suite.sh` 0 fail (registered the two new
+shared-table writers in `docs/inventories/shared-dataset-ownership.md`); the CI npmtest glob 0 fail (1,100
+tests); `next build` exit 0.

@@ -50,6 +50,16 @@ function fakeClient({
       order() { return this; },
       range() { return this; },
       maybeSingle: async () => ({ data: null, error: null }), // both idempotency probes: no existing row
+      // Reached by compliance-deadline-sync.mjs's own read (`.select("compliance_deadline").eq("id",
+      // itemId).single()`) after the forward-events block above — a fresh mint always starts with no
+      // stored value, so this is the honest fixture answer regardless of which query reached it.
+      single: async () => ({ data: { compliance_deadline: null }, error: null }),
+      // Reached by compliance-deadline-sync.mjs's own write when it has a date to set. Not exercised by
+      // any assertion in this file today (no test fixture here produces a compliance_deadline event —
+      // see the DATE-SYNC placeholder note below), kept minimal on purpose.
+      update() {
+        return { eq: async () => ({ error: null }) };
+      },
       insert() {
         return {
           select() { return this; },
@@ -93,6 +103,12 @@ function fakeClient({
       insert(rows) {
         forwardEventInserts.push(...rows);
         return { then(res, rej) { return Promise.resolve({ data: null, error: forwardInsertError }).then(res, rej); } };
+      },
+      // compliance-deadline-sync.mjs's own read, after the block above inserts (or finds nothing to
+      // insert). No test fixture here seeds a compliance_deadline-kind event, so this always answers
+      // empty — pickComplianceDeadline then honestly returns null and the sync is a no-op.
+      select() {
+        return { eq: () => ({ error: null, data: [] }) };
       },
     };
   }
