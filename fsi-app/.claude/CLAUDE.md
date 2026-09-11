@@ -222,7 +222,7 @@ Foundation:
 - `supabase/seed/seed-sources.sql` — Source registry seed
 
 Agent runtime — the CANONICAL generation pipeline (do not modify without reading SKILL.md):
-- `src/lib/agent/canonical-pipeline.ts` — the ONE generation path: generate → register → section → ground → grow. The 19-field write site (`synthesiseAndWriteBrief`), the span→source→tier stamp via the institution resolver, the claim-ledger grounding + `validate_item_provenance`.
+- `src/lib/agent/canonical-pipeline.ts` (the ONE generation path: generate → register → section → ground → grow). The write site for the field contract enumerated in `src/lib/agent/system-prompt.ts` (version pinned in `src/lib/agent/contract-version.mjs`) is `synthesiseAndWriteBrief`; the span→source→tier stamp via the institution resolver, the claim-ledger grounding + `validate_item_provenance`.
 - `src/workflows/generate-brief.ts` — the durable workflow orchestrating the steps (preflight → generate → register → section → ground → grow; tiered re-ground/re-research/erase). `/api/agent/run` starts this.
 - `src/lib/agent/system-prompt.ts` — the synthesis/grounding contract.
 - `src/lib/agent/parse-output.ts` — YAML parser (3-tier fallback for fence/inline drift).
@@ -326,7 +326,7 @@ The route inventory drifts per commit; query it directly with `find src/app/api 
 - `market_signal`, `initiative` → market_signal_brief (8 sections)
 - `research_finding` → research_summary (6 sections)
 
-Each generation writes the **19-field contract** (`full_brief` body + 18 metadata fields, incl. the four intersection-readiness fields), mapped to the live DB vocabularies and written at the single site `synthesiseAndWriteBrief`. See SKILL.md + `src/lib/agent/canonical-pipeline.ts` for the contract. Brief-coverage counts are STATE — read /admin, not here.
+Each generation writes the field contract enumerated in `src/lib/agent/system-prompt.ts` (version pinned in `src/lib/agent/contract-version.mjs`): the `full_brief` body plus the metadata fields, incl. the four intersection-readiness fields, mapped to the live DB vocabularies and written at the single site `synthesiseAndWriteBrief`. See SKILL.md + `src/lib/agent/canonical-pipeline.ts` for the contract. Brief-coverage counts are STATE (read /admin, not here).
 
 Runtime files (do not modify without reading SKILL.md first) — see the Key Files "Agent runtime" block (canonical-pipeline.ts is the single path) for the canonical list, including which runners are superseded:
 - API route: `POST /api/agent/run` (starts `src/workflows/generate-brief.ts`)
@@ -359,7 +359,7 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 - DO NOT make live Claude API calls outside the routes above.
 - DO NOT rebuild the agent runtime files without reading SKILL.md and this section first.
 - DO NOT create duplicate intelligence items. `/api/agent/run` UPDATES the existing row matching `source_url`. `/api/admin/scan` stages new items in `staged_updates` (TRANSIT-ONLY, machine-gated per ADR-012 / RD-20 — resolved by the machine gates, not parked for human review) — never auto-inserts into `intelligence_items` outside the mint chokepoint.
-- DO NOT leave any item without a full_brief. Every regeneration must emit the 19-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
+- DO NOT leave any item without a full_brief. Every regeneration must emit the field contract enumerated in `src/lib/agent/system-prompt.ts` (version pinned in `src/lib/agent/contract-version.mjs`) or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
 - DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set `status='active'`, `admin_only=false`), not a code change.
 
 ### agent/run error-swallow post-mortem (in force from 2026-05-08)

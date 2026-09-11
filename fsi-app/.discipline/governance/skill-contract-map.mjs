@@ -223,10 +223,12 @@ export const PINNED_MANIFEST = {
     // regeneration_skill_version's worked value advanced to "2026-09-11" alongside
     // contract-version.mjs. Rule text and count (16) are unchanged. Re-pinned a second time in the
     // same task after the "20-field enumeration" cross-reference sentence under the Rules heading and
-    // a new changelog entry were added to keep the file internally consistent, and a third time after
-    // that same cross-reference sentence's em dashes were replaced with parentheses (standing
-    // no-em-dash rule for new/edited prose).
-    contentHash: 'f441fa11a38abaa304a54a1fc5e5c5bffc1bfa1b01392fecfe865b815dbe1768',
+    // a new changelog entry were added to keep the file internally consistent, a third time after that
+    // same cross-reference sentence's em dashes were replaced with parentheses (standing no-em-dash
+    // rule for new/edited prose), and a fourth time (coordinator glyph-fix round) after the
+    // regeneration_skill_version bullet's em dash separator was replaced with the plain hyphen the
+    // other new bullets in this same edit already used.
+    contentHash: '688c91be1cd603fc54e833c177ac48cb8b0f22fc7588109ef029585aae0ff8f7',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

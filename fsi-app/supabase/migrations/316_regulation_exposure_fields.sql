@@ -678,39 +678,50 @@ BEGIN
   END IF;
 
   -- 4. Attack, don't assert presence (rule 15): the CHECK constraint must reject a non-array `steps`
-  -- and accept both NULL and a valid array, proven against a real row via SAVEPOINT/ROLLBACK (no
-  -- permanent change). Requires at least one live row; self-skips (RAISE NOTICE) if the table is
-  -- somehow empty rather than failing the whole migration on an environment precondition.
+  -- and accept both NULL and a valid array, proven against a real row with no permanent change.
+  -- Coordinator finding (2026-09-11, live probe on kwrsbpiseruzbfwjpvsp): PL/pgSQL does not support
+  -- bare SAVEPOINT / ROLLBACK TO SAVEPOINT statements (`42601 syntax error at or near "TO"`) -- the
+  -- original SAVEPOINT-based version of this step would have aborted the whole migration at apply
+  -- time. Rewritten to use PL/pgSQL's OWN subtransaction semantics instead: entering a BEGIN ...
+  -- EXCEPTION ... END block establishes an implicit savepoint, and any exception raised inside it
+  -- (caught or not) unwinds that block's changes before the exception is handled or re-raised. The
+  -- reject probe relies on this directly (its ABORT RAISE is a plain, uncaught P0001 that propagates
+  -- past the block's WHEN check_violation handler, exactly as intended); the accept/null probes
+  -- deliberately raise a dummy `probe_rollback` exception after a successful UPDATE purely to trigger
+  -- that automatic unwind, then swallow it via WHEN OTHERS (re-raising anything else unexpected).
+  -- Requires at least one live row; self-skips (RAISE NOTICE) if the table is somehow empty rather
+  -- than failing the whole migration on an environment precondition.
   SELECT id INTO v_probe_id FROM public.intelligence_items LIMIT 1;
   IF v_probe_id IS NULL THEN
     RAISE NOTICE 'SKIP: no intelligence_items row available to adversarially probe the CHECK constraint';
   ELSE
     BEGIN
-      SAVEPOINT check_probe_reject;
       UPDATE public.intelligence_items
         SET requirement_trajectory = '{"steps":"not-an-array"}'::jsonb
         WHERE id = v_probe_id;
       RAISE EXCEPTION 'ABORT: intelligence_items_requirement_trajectory_check did not reject a non-array steps value';
     EXCEPTION WHEN check_violation THEN
-      ROLLBACK TO SAVEPOINT check_probe_reject;
+      NULL;
     END;
 
     BEGIN
-      SAVEPOINT check_probe_accept;
       UPDATE public.intelligence_items
         SET requirement_trajectory = '{"steps":[{"date":"2025","value":"40%","label":"of verified emissions"}],"note":"probe"}'::jsonb
         WHERE id = v_probe_id;
-      ROLLBACK TO SAVEPOINT check_probe_accept;
+      RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
     EXCEPTION WHEN check_violation THEN
       RAISE EXCEPTION 'ABORT: intelligence_items_requirement_trajectory_check rejected a VALID array-shaped steps value';
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'probe_rollback' THEN RAISE; END IF;
     END;
 
     BEGIN
-      SAVEPOINT check_probe_null;
       UPDATE public.intelligence_items SET requirement_trajectory = NULL WHERE id = v_probe_id;
-      ROLLBACK TO SAVEPOINT check_probe_null;
+      RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
     EXCEPTION WHEN check_violation THEN
       RAISE EXCEPTION 'ABORT: intelligence_items_requirement_trajectory_check rejected NULL';
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'probe_rollback' THEN RAISE; END IF;
     END;
   END IF;
 END $$;

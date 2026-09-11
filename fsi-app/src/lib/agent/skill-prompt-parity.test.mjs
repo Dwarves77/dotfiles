@@ -169,7 +169,7 @@ test("skill-prompt-parity: the field-name set matches between system-prompt.ts a
   );
 });
 
-test("skill-prompt-parity: sanity — both files currently document exactly 16 rules and 26 fields", () => {
+test("skill-prompt-parity: sanity, both files currently document exactly 16 rules and 26 fields", () => {
   // Guards the guard: if a future edit collapsed both files' counts in lockstep (e.g. both regressed to
   // 14 rules), the set/text-equality tests above would still pass while the underlying contract shrank
   // silently. Pin the known-correct absolute counts as of the last contract change.

@@ -34,6 +34,6 @@
 // regeneration contract too, emitted on every format). No rule text changed, only the field
 // enumeration; system-prompt.ts's "Database field emission" section and
 // .claude/skills/environmental-policy-and-innovation/SKILL.md's "Database Field Emission" section
-// both advance together with this constant — contract-version.test.mjs and skill-prompt-parity.test.mjs
+// both advance together with this constant; contract-version.test.mjs and skill-prompt-parity.test.mjs
 // are the two drift guards.
 export const CURRENT_SKILL_CONTRACT_VERSION = "2026-09-11";
