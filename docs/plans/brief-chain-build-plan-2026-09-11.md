@@ -165,6 +165,26 @@ git add fsi-app/scripts/harness-runs/propagation/
 git commit -m "harness-runs: propagation runs 007 (dry) and 008 (apply) with the proposer pass"
 ```
 
+### Task 0.3: `hashHarnessVersion` hashes an OS-dependent path; every F28 verdict on Windows is wrong
+
+**Finding [CONFIRMED 2026-09-11]:** `fsi-app/scripts/lib/run-artifact.mjs:365-386` builds the harness_version digest over `"<rel>
+<content>
+"` where `rel = relative(base, abs)`; on Windows `rel` carries backslashes, on CI forward slashes, so the same tree hashes to `sha256:cd26625e75e6f4ba` here and `sha256:ebe93513ffa2a4f9` on CI (reproduced by recomputing with `rel.split("\\").join("/")`, which yields CI's value exactly). Consequences: F28 reports "STALE PENDING-RUN.md" for every family on any Windows clone; the pre-push hook (STEP 3, fitness) refuses every push from this machine; task 0.2's lane wrote a PENDING-RUN.md for drift that does not exist. Class, not instance (remediation-discipline signals 2 and 3: infrastructure variation, one shared codepath every family uses).
+
+**Files:**
+- Modify: `fsi-app/scripts/lib/run-artifact.mjs:365-386` (normalize `rel` to POSIX separators before it enters the digest; the artifact-recorded hashes on master are the POSIX ones, so this changes nothing for CI and fixes Windows).
+- Test: `fsi-app/scripts/lib/run-artifact.test.mjs` (or the file that already tests this module; find it with grep): a fixture directory with a nested file must hash identically when `hashHarnessVersion` is called with the same base on any platform; assert the digest equals a constant computed with forward slashes.
+- If `run-artifact.mjs` is a governing file of the `meta-harness` family (check `scripts/harness-runs/governing-files.mjs` and CONVENTION.md's table), update that family's `PENDING-RUN.md` per CONVENTION.md with the NEW hash computed by the FIXED function, using the exact `**harness_version at write time:** \`sha256:...\`` phrasing `parsePendingRunHash` (F28-harness-run-integrity.mjs:118) parses.
+- Do not touch any other family's markers.
+
+**Interfaces:**
+- Produces: `hashHarnessVersion(filePaths, baseDir)` returns the same digest on Windows and Linux for the same tree; local `node .discipline/fitness/runner.mjs` F28 goes green on this clone without any marker edits; the pre-push hook passes.
+
+- [ ] **Step 1: Failing test** (run on Windows it fails today; on Linux it passes; the assertion is against the forward-slash constant).
+- [ ] **Step 2: Fix** (`const rel = relative(base, abs).split(sep).join("/")` with `sep` from node:path, or `.replace(/\/g, "/")`).
+- [ ] **Step 3: Run the test, then `node .discipline/fitness/runner.mjs --only F28`: PASS with 0 violations on this clone (no marker edits except the meta-harness one the fix itself requires).**
+- [ ] **Step 4: Gates; session-log addendum "HASHSEP (2026-09-11)"; commit; push (the pre-push hook now passes); PR "fix(harness): hashHarnessVersion is path-separator independent; F28 verdicts agree across platforms".** This PR merges FIRST; every other lane rebases onto it before pushing.
+
 ---
 
 ## Part 1: every new item is connected at birth (the permanent wiring)
