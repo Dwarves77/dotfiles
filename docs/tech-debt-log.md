@@ -172,3 +172,30 @@ verify on Vercel or locally). Re-run `npm audit` and re-trace anything still cri
 
 **Priority:** Low — real but confined to the build toolchain; no customer-facing exposure
 identified.
+
+---
+
+## 2026-09-11 — CommandBar Standard Search listbox has no Escape/click-outside/arrow-key handling
+
+**Context.** SEARCHCLIP lane (`docs/ops/session-log.md`, 2026-09-11) portaled the search results
+listbox to `document.body` to fix production clipping. While tracing the fix, the coordinator's
+dispatch assumed Escape-to-close, click-outside-to-close, and arrow-key navigation already existed
+in `CommandBar.tsx` ("keep every existing behaviour"). Reading the pre-fix source: none of the
+three exist. `[REFUTED]` per rule 14 — this is a `[CONFIRMED]` absence, not a hypothesis.
+
+**Not fixed in SEARCHCLIP** because adding new keyboard/dismissal behaviour is out of scope for a
+clip fix scoped to "the one right place," and CLAUDE.md's flag discipline (rule 13) asks for a
+decision-ready item here rather than silent scope creep into the same commit.
+
+**What's missing, concretely:**
+- Escape while the listbox is open does not close it (no `keydown` handler on the input/form for it).
+- Clicking outside the command bar while the listbox is open does not close it (no document-level
+  click listener); the listbox instead only disappears once the query drops below `MIN_QUERY_LEN`
+  or the mode is switched.
+- ArrowUp/ArrowDown do not move a highlighted row through the results (no roving index, no
+  `aria-activedescendant`), unlike `TagPopover`'s own popover (`tagPopoverKeyboard.ts`), which has
+  exactly this and could be a reuse-before-construction reference if this is picked up.
+
+**Priority:** Low-medium — mouse/click users are unaffected (the fix itself restores click
+reachability); keyboard-only and screen-reader users get a working listbox with no way to dismiss
+it without moving focus elsewhere, or to traverse it without a mouse.

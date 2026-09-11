@@ -72,6 +72,13 @@ import { runSmoke as runWatchlistWriteSmoke } from "./smoke/watchlist-write-smok
 // capacity - is invisible to F43 and to every other gate, and visible only here.
 import { runSmoke as runNoDefaultOpenSmoke } from "./smoke/no-default-open-smoke.mjs";
 import { runSmoke as runOpsMatrixAcceptanceSmoke } from "./smoke/ops-matrix-acceptance-smoke.mjs";
+// lane SEARCHCLIP, 2026-09-11: CommandBar's Standard Search results listbox portaled out of
+// Masthead's SectionCard (overflow:hidden clipped it in production, wave 67 73e8c8b1 — "the toggle
+// is good but theres no way to search"). Mounts the real Masthead -> real CommandBar, types "ppwr",
+// and measures the listbox's PAINTED box (fully inside viewport, elementFromPoint at its centre
+// resolves inside it, top within 12px of the bar) — the class of proof the other legs here cannot
+// give, since none of them measure a portaled element's real screen position.
+import { runSmoke as runCommandBarSearchPortalSmoke } from "./smoke/command-bar-search-portal-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -208,6 +215,7 @@ async function main() {
     { name: "no-default-open", run: runNoDefaultOpenSmoke },
     { name: "impact-meter-partial", run: runImpactMeterPartialSmoke },
     { name: "ops-matrix-acceptance", run: runOpsMatrixAcceptanceSmoke },
+    { name: "command-bar-search-portal", run: runCommandBarSearchPortalSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];
