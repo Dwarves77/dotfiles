@@ -175,7 +175,11 @@ export const PINNED_MANIFEST = {
     // citingFile below: none cites a Section 4 category or any statement this addition touches - the
     // category is a new appended section, the same posture as the categories 36-43 re-pins above. No
     // citingFiles change.
-    contentHash: '3f1222b9c88b34f8f01a652b46ebd0ffe43e9c050403600c83e868286e831fdd',
+    // 2026-09-11 (task 0.3b fix round 1): re-pinned again after correcting category 44's blast-radius
+    // claim (reviewer-confirmed: 31 of the 36 files silently exited 0, the other 5 carried a working
+    // endsWith fallback and were fragile, not silent) - a text correction inside the same section, not
+    // a new one. No citingFiles change.
+    contentHash: 'b4c319ee3b8f6e3aaa1f9f5246952e79c27f59dea6fce96931ca5b50d2949b0b',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

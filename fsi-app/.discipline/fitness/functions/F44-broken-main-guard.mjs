@@ -3,9 +3,13 @@
 // `file://` onto process.argv[1]. On Windows import.meta.url is a real file:// URL with forward
 // slashes while process.argv[1] is Node's native backslash path, so the hand-built string never equals
 // import.meta.url and the guard is never true [CONFIRMED, grep across scripts + .discipline, task
-// 0.3b]: every one of those 36 CLI scripts silently exited 0 with no output when invoked directly on
-// Windows, a runtime defect surfaced only because the pre-push suite's spawned-CLI tests returned empty
-// stdout on the operator's Windows machine while passing on Linux CI.
+// 0.3b]. [CORRECTED, fix round 1, reviewer-confirmed]: 31 of the 36 files had no fallback and silently
+// exited 0 with no output when invoked directly on Windows, a runtime defect surfaced only because the
+// pre-push suite's spawned-CLI tests returned empty stdout on the operator's Windows machine while
+// passing on Linux CI; the other 5 (skill-map.mjs, skill-contract-map.mjs, bootstrap-test1.mjs,
+// defect-signature-scan.mjs, no-generic-source-audit.mjs) carried a working
+// `|| process.argv[1]?.endsWith(...)` fallback naming their own filename, which still called main()
+// correctly despite the broken primary comparison, fragile but not silently broken.
 //
 // THE FIX, already built and consumed by this gate: scripts/lib/is-main.mjs's isMainModule() builds the
 // comparison through Node's own pathToFileURL(resolve(argv[1])) instead of string concatenation, so it
