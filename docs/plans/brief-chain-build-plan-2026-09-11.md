@@ -519,7 +519,7 @@ Operator, 2026-09-09, verbatim: "actually turn the AI on, we just wont use it"; 
 
 ### Task 5.2: Close what is already on master or superseded
 
-- [ ] **#448** (F25 CLI-invocation): `git grep -c "CLI_PATH_RE\|buildCliInvocations\|RETIRED 2026-08-11" origin/master -- fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs` returns hits [CONFIRMED]; close with the comment naming the master commit that carries it.
+- [ ] **#448** (F25 CLI-invocation): [REFUTED 2026-09-11] the earlier "already landed" claim: only `RETIRED 2026-08-11` is on master; `CLI_PATH_RE`/`buildCliInvocations` are not. [CONFIRMED] master's F25 handles CLI invocation through `findDispatchRoots` (W7.1) instead, so the PR is SUPERSEDED; closed 2026-09-11 with that comment. Residual (the rate-limiter test tolerance in `batch-primitives.test.mjs`) is reviewed under task 5.4.
 - [ ] **`digests/33940609195`**: superseded by the flat `docs/ratifications/2026-09/*.ruling.json` on master; delete the remote branch.
 - [ ] **#622**: closed by task 0.2 (folded into #623's branch).
 
