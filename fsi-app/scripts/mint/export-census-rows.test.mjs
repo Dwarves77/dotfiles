@@ -30,6 +30,7 @@ import {
   partitionExcludeHeldByKey,
   isEurlexRobotGate,
   buildExportRow,
+  buildTitleForRow,
   buildRows,
   captureDocument,
   makePoliteFetch,
@@ -47,16 +48,24 @@ import {
 
 // ── classifyItemTypeFromCelexKey ────────────────────────────────────────────────────────────────────
 
-test("classifyItemTypeFromCelexKey: R -> regulation, L -> directive, D -> initiative, H -> guidance, A -> framework", () => {
+test("classifyItemTypeFromCelexKey: R -> regulation, L -> directive, D -> regulation, H -> guidance, A -> framework", () => {
   assert.deepEqual(classifyItemTypeFromCelexKey("32014R0788"), { itemType: "regulation", hold: null });
   assert.deepEqual(classifyItemTypeFromCelexKey("32011L0037"), { itemType: "directive", hold: null });
-  assert.deepEqual(classifyItemTypeFromCelexKey("32009D0320"), { itemType: "initiative", hold: null });
+  // Task 1.3 (2026-09-11, operator ruling): a CELEX Decision (letter D) is a binding act under Article
+  // 288 TFEU, not a not-yet-binding signal -- "initiative" was wrong from the outset.
+  assert.deepEqual(classifyItemTypeFromCelexKey("32009D0320"), { itemType: "regulation", hold: null });
   assert.deepEqual(classifyItemTypeFromCelexKey("31978H0072"), { itemType: "guidance", hold: null }); // live hold, 2026-09-02 run
   assert.deepEqual(classifyItemTypeFromCelexKey("31978A0311"), { itemType: "framework", hold: null }); // live hold, 2026-09-02 run
 });
 
 test("classifyItemTypeFromCelexKey: an OJ-sequence-suffixed key ('(NN)') still classifies by its letter", () => {
   assert.deepEqual(classifyItemTypeFromCelexKey("32008A0221(01)"), { itemType: "framework", hold: null });
+});
+
+test("CELEX D (Decision) maps to regulation in sectors 2, 3 and 4", () => {
+  for (const k of ["22003D0015", "32003D0278", "42019D0001"]) {
+    assert.deepEqual(classifyItemTypeFromCelexKey(k), { itemType: "regulation", hold: null });
+  }
 });
 
 test("classifyItemTypeFromCelexKey RED: an unmapped sector-3 letter (C, other acts) still holds, never guessed", () => {
@@ -510,7 +519,7 @@ test("partitionExcludeHeldByKey: a row with no derivable canonical_instrument_ke
 const SOURCE = { id: "src-1", url: "https://eur-lex.europa.eu", name: "EUR-Lex Official Journal", base_tier: 1, tier_override: null, status: "active", institution_id: null, category: "regulatory" };
 const EURLEX_IDENTITY = { scheme: "celex", canonicalKey: "32024R0001", itemType: "regulation", jurisdictionIso: "EU", hold: null, host: "eur-lex.europa.eu" };
 
-test("buildExportRow: an existing plain-text capture -> row, title_origin source_name_fallback (no title supplied, no HTML to read one from)", () => {
+test("buildExportRow: an existing plain-text capture with no OJ-act-shaped content still gets a text-derived title (captured_body_lead), never the bare source-name placeholder (Task 1.3, 2026-09-11)", () => {
   const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001" };
   const capture = { text: "x".repeat(500), html: null };
   const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
@@ -518,11 +527,68 @@ test("buildExportRow: an existing plain-text capture -> row, title_origin source
   assert.equal(row.item_type, "regulation");
   assert.equal(row.canonical_instrument_key, "32024R0001");
   assert.equal(row.jurisdiction_iso, "EU");
-  assert.equal(row.title_origin, "source_name_fallback");
-  assert.match(row.title, /32024R0001/);
+  // Before the fix, capture.html === null meant extractTitleFromHtml never ran and this fell straight to
+  // source_name_fallback. buildTitleForRow's text-only branch now runs first; with no OJ act-title shape
+  // present it falls to its own weakest tier, the cleaned first-300-char lead.
+  assert.equal(row.title_origin, "captured_body_lead");
+  assert.equal(row.title, "x".repeat(300));
   assert.equal(row.fetched_length, 500);
   assert.equal(row.source.id, "src-1");
   assert.equal(row.screen, null, "a censusRow carrying no .screen (e.g. this direct call, outside the screened export path) exports screen: null, never a fabricated verdict");
+});
+
+// ── buildTitleForRow ─────────────────────────────────────────────────────────────────────────────────
+
+test("an html-less DB-cached capture still gets the act title from its text", () => {
+  const row = buildTitleForRow({
+    capture: { text: "COMMISSION DECISION (EU) 2025/1055 of 19 May 2025 on the criteria for ...", html: null },
+    source: { name: "EUR-Lex" },
+    identifier: "32025D1055",
+  });
+  assert.equal(row.title, "COMMISSION DECISION (EU) 2025/1055 of 19 May 2025 on the criteria for ...");
+});
+
+test("buildTitleForRow: an html-less capture with real OJ Decision text extracts the act title via extractOjActTitle, title_origin captured_body_act_title, never the bare source-name placeholder (the exact 351-row corpus defect, Task 1.3, 2026-09-11)", () => {
+  const capturedText =
+    "COMMISSION DECISION (EU) 2025/1055 of 19 May 2025 on the recognition of the voluntary scheme " +
+    "'Roundtable on Sustainable Biomaterials EU RED' for demonstrating compliance with the sustainability " +
+    "and greenhouse gas emissions saving criteria under Directive (EU) 2018/2001 of the European Parliament " +
+    "and of the Council (2025/1055) THE EUROPEAN COMMISSION, Having regard to the Treaty on the Functioning " +
+    "of the European Union, ".padEnd(260, "x");
+  const { title, titleOrigin } = buildTitleForRow({
+    capture: { text: capturedText, html: null },
+    source: { name: "EUR-Lex" },
+    identifier: "32025D1055",
+  });
+  assert.equal(titleOrigin, "captured_body_act_title");
+  assert.equal(
+    title,
+    "COMMISSION DECISION (EU) 2025/1055 of 19 May 2025 on the recognition of the voluntary scheme " +
+      "'Roundtable on Sustainable Biomaterials EU RED' for demonstrating compliance with the sustainability " +
+      "and greenhouse gas emissions saving criteria under Directive (EU) 2018/2001 of the European Parliament " +
+      "and of the Council (2025/1055)",
+  );
+  assert.ok(capturedText.includes(title), "the extracted title is a verbatim substring of the capture");
+});
+
+test("buildTitleForRow: capture.title already resolved wins outright, no extraction attempted", () => {
+  const { title, titleOrigin } = buildTitleForRow({
+    capture: { title: "Already Resolved Title", titleOrigin: "federal_register_api", text: "irrelevant body text", html: null },
+    source: { name: "Federal Register" },
+    identifier: "2024-00001",
+  });
+  assert.equal(title, "Already Resolved Title");
+  assert.equal(titleOrigin, "federal_register_api");
+});
+
+test("buildTitleForRow: no capture text or html and no identifier falls to the bare source name/url", () => {
+  const { title, titleOrigin } = buildTitleForRow({
+    capture: { text: null, html: null },
+    source: { name: null, url: "https://example.gov/doc" },
+    identifier: null,
+  });
+  assert.equal(title, "https://example.gov/doc");
+  assert.equal(titleOrigin, "source_name_fallback");
 });
 
 test("buildExportRow: a censusRow carrying .screen (partitionByScreen's own attachment) is copied onto the exported row verbatim (Lane WSEQ)", () => {

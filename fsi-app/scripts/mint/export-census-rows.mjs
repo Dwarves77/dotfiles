@@ -250,11 +250,20 @@ const CELEX_SHAPE_RE = /^[1-9]\d{4}[A-Z]\d{4}/;
  *  acts), 6 (case-law), 7+ have NO evidence in this repo's held-row history and are deliberately NOT added
  *  here -- guessing their letter semantics without a single observed row would be exactly the false-
  *  precision mistake this file's own doctrine forbids. See held-classes.mjs's dossier for the recommendation
- *  on those sectors if evidence ever appears. */
-const CELEX_SECTOR_LETTER_MAP = {
-  2: { A: "framework", D: "initiative" },
-  3: { R: "regulation", L: "directive", D: "initiative", H: "guidance", A: "framework" },
-  4: { D: "initiative" },
+ *  on those sectors if evidence ever appears.
+ *
+ *  CORRECTION (Task 1.3, 2026-09-11, operator ruling): letter D was mapped to "initiative" above in every
+ *  sector, on the theory that a Decision is a not-yet-binding signal like a proposed rule or an agreement
+ *  awaiting force. That is wrong: a CELEX Decision is a binding act in its own right under Article 288
+ *  TFEU (it binds in its entirety on those to whom it is addressed, the same way a Regulation or Directive
+ *  does), not an announcement. Regulations is the surface that carries binding acts on this platform, so D
+ *  now maps to "regulation" in every sector it appears (2, 3, 4). This CELEX map is exported (not just the
+ *  classify function below) because it is shared, pure, text-only lookup data a later task reuses directly
+ *  rather than re-deriving. */
+export const CELEX_SECTOR_LETTER_MAP = {
+  2: { A: "framework", D: "regulation" },
+  3: { R: "regulation", L: "directive", D: "regulation", H: "guidance", A: "framework" },
+  4: { D: "regulation" },
 };
 
 /**
@@ -529,6 +538,49 @@ function bodyLeadTitle(text) {
   const cleaned = String(text).replace(/^\S+\.xml\s+/i, "");
   const lead = cleaned.slice(0, 300).trim();
   return lead ? { title: lead, origin: "captured_body_lead" } : null;
+}
+
+/** Task 1.3 / 5.5 shared title-resolution branch, extracted out of buildExportRow into a pure, text-only
+ *  function so a later task can call it directly instead of re-deriving the same fallback chain. Order:
+ *  1. `capture.title` -- already resolved by the capture step itself (e.g. federalregister.gov's own API
+ *     title), trusted as-is.
+ *  2. `capture.html` -> `extractTitleFromHtml` -- a fresh HTML capture carries markup worth reading.
+ *  3. `capture.html == null` and `capture.text` present -> `extractOjActTitle(capture.text)`, falling back
+ *     to `bodyLeadTitle(capture.text)` -- covers the existingCaptureByUrl DB-cache capture shape (buildRows'
+ *     own `{ text: s.result_content, html: null }` construction), which bypasses step 2 entirely because it
+ *     never stores HTML. Before this fix a DB-cached capture whose text opened with the act's own official
+ *     title (e.g. "COMMISSION DECISION (EU) 2025/1055 of 19 May 2025 on ...") still fell straight to the
+ *     placeholder in step 4, even though the real title was sitting in `capture.text` the whole time.
+ *  4. `${source.name ?? source.url} -- ${identifier}` (or just the source name/url with no identifier) --
+ *     the pre-existing placeholder fallback text, unchanged.
+ * @param {{capture: {text?:string|null, html?:string|null, title?:string|null, titleOrigin?:string|null},
+ *   source: {name?:string|null, url?:string|null}, identifier?:string|null}} args
+ * @returns {{title:string, titleOrigin:string}}
+ */
+export function buildTitleForRow({ capture, source, identifier }) {
+  let title = capture?.title ?? null;
+  let titleOrigin = capture?.titleOrigin ?? null;
+  if (!title && capture?.html) {
+    const t = extractTitleFromHtml(capture.html);
+    if (t) { title = t.title; titleOrigin = t.origin; }
+  }
+  if (!title && capture?.html == null && capture?.text) {
+    const actTitle = extractOjActTitle(capture.text);
+    if (actTitle) {
+      title = actTitle;
+      titleOrigin = "captured_body_act_title";
+    } else {
+      const bl = bodyLeadTitle(capture.text);
+      if (bl) { title = bl.title; titleOrigin = bl.origin; }
+    }
+  }
+  if (!title) {
+    title = identifier
+      ? `${source.name ?? source.url} — ${identifier}`
+      : (source.name ?? source.url);
+    titleOrigin = "source_name_fallback";
+  }
+  return { title, titleOrigin };
 }
 
 // ── EU Publications Office Cellar (2026-09-02, population run #4) ──────────────────────────────────────
@@ -943,18 +995,11 @@ export function buildExportRow(censusRow, source, identity, capture) {
     };
   }
 
-  let title = capture?.title ?? null;
-  let titleOrigin = capture?.titleOrigin ?? null;
-  if (!title && capture?.html) {
-    const t = extractTitleFromHtml(capture.html);
-    if (t) { title = t.title; titleOrigin = t.origin; }
-  }
-  if (!title) {
-    title = censusRow?.instrument_identifier
-      ? `${source.name ?? source.url} — ${censusRow.instrument_identifier}`
-      : (source.name ?? source.url);
-    titleOrigin = "source_name_fallback";
-  }
+  const { title, titleOrigin } = buildTitleForRow({
+    capture,
+    source,
+    identifier: censusRow?.instrument_identifier ?? null,
+  });
 
   return {
     row: {
@@ -1412,6 +1457,10 @@ export async function main() {
   const sourcesById = new Map(sources.map((s) => [s.id, s]));
   const keptUrls = [...new Set(kept.map((r) => r.document_url).filter(Boolean))];
   const searches = await fetchRowsIn(sb, "agent_run_searches", "result_url, result_content", "result_url", keptUrls);
+  // This DB-cache capture shape (`html` always null) is exactly what feeds buildTitleForRow's third
+  // extraction step above -- there is no HTML to read here, so a CELEX Decision's own official title
+  // must come out of `s.result_content` via extractOjActTitle/bodyLeadTitle, or a mintable row would fall
+  // straight to the source-name placeholder despite the act's real title sitting in the captured text.
   const existingCaptureByUrl = new Map();
   for (const s of searches) {
     if (!s.result_url || typeof s.result_content !== "string" || s.result_content.length <= 200) continue;
