@@ -17614,3 +17614,18 @@ runner. The one real defect above was already found and fixed before that instru
 ### UX compliance: not applicable
 
 No `.tsx` or `.css` files were touched by this task.
+
+**Addendum, review round 2 (same day).** Coordinator review found two Important items, both closed
+before push: (1) a mechanical sweep found 33 added lines across 8 files still carrying an em dash, en
+dash, or section-sign glyph (moved/authored by the prior implementer, not caught by my earlier
+inspection); replaced each with plain punctuation, no logic change, verified 0 remaining via a scan of
+the full `origin/master..HEAD` diff. (2) The reviewer confirmed no test exercised
+`apply-staged-update.ts`'s rule-16(e) gating branch (the `hasOwnProperty` check on
+`jurisdiction_iso`/`canonical_instrument_key`, and the fresh re-read before calling
+`linkItemEntities`). Extended `apply-staged-update-forward-participation.npmtest.mjs`'s existing
+`fakeClient()` with the same injected `fake-supabase.mjs` entity spine the mint-path test already uses,
+and added three tests, two observed RED myself before the extension (`sb.entitySpine` did not exist
+yet), the third caught a real bug in my own first assertion (wrong `entity_id` format assumption,
+fixed by importing the real `entityId()` builder) before going GREEN. All 16 tests in that file (13
+pre-existing plus 3 new) pass. Also corrected the task-1.1-report.md's earlier "RED then GREEN" header,
+which had overstated inspection-only verification as observed RED for the round-1 tests (rule 14).
