@@ -171,6 +171,22 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     );
   };
 
+  // Runs the mode's own action — the SAME thing Enter does in the form's onSubmit below, so the
+  // submit button and the keyboard both go through one path, never two. Search mode's fetch is
+  // already debounced on every keystroke (the useEffect above); this call is what makes Enter/the
+  // button ACT immediately rather than only ever firing implicitly, matching the operator's report
+  // (2026-09-10, verbatim: "i hit ask and nothing happens when trying standard search") — the
+  // submit control used to be hard-wired to `ask()` regardless of `mode`, so pressing it while in
+  // Search mode silently asked the assistant (or did nothing at all when the assistant was
+  // disabled) instead of running a search.
+  const submit = () => {
+    if (mode === "ask") ask();
+    else onSearch?.(value.trim());
+  };
+
+  // `askDisabled` is already scoped to Ask mode (`mode === "ask" && !assistantEnabled` is always
+  // false in Search mode, by construction) — Search mode's submit control is never disabled,
+  // matching this component's own header ("unconditional on ASSISTANT_ENABLED, unlike Ask").
   const askDisabled = mode === "ask" && !assistantEnabled;
   const showDropdown =
     mode === "search" && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
@@ -212,11 +228,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
-        if (mode === "ask") {
-          ask();
-        } else {
-          onSearch?.(value.trim());
-        }
+        submit();
       }}
       className="cl-command-bar"
       style={{
@@ -339,10 +351,17 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       >
         ⌘K
       </span>
+      {/* Submit control — one element, one handler, labeled for whichever mode is active (SEARCHFIX,
+          2026-09-11, operator verbatim: "i hit ask and nothing happens when trying standard
+          search"). It used to read "Ask" and call `ask()` unconditionally, so pressing it in
+          Search mode silently asked the assistant (or, with the assistant disabled, did nothing
+          visible at all) instead of running a search. `.cl-command-bar-ask-submit` — the
+          selector masthead.json's audit spec already names — is kept as-is: it is still the ONE
+          submit button in the bar, mode-toggle tabs excluded, same element the spec row means. */}
       <button
         type="button"
         className="cl-command-bar-ask-submit"
-        onClick={ask}
+        onClick={submit}
         disabled={askDisabled}
         aria-disabled={askDisabled}
         title={askDisabled ? "The Assistant is currently unavailable." : undefined}
@@ -361,7 +380,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           opacity: askDisabled ? 0.45 : 1,
         }}
       >
-        Ask
+        {mode === "ask" ? "Ask" : "Search"}
       </button>
 
       {/* Standard Search results dropdown — the shared ListRow, never a second row anatomy. Absence

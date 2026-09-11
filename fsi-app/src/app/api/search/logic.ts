@@ -76,12 +76,28 @@ export async function runSearch(
 
   const { data: rows, error: rowErr } = await supabase
     .from("intelligence_items")
-    .select("id, title, item_type, domain, priority, jurisdictions, transport_modes, topic")
+    // BUGFIX (SEARCHFIX, 2026-09-11): `topic` is NOT a column on intelligence_items — the real
+    // columns are `category`/`theme`/`topic_tags`. Every other reader in this app that populates
+    // Resource.topic does `topic: row.category || undefined` (supabase-server.ts, 3 call sites);
+    // this re-fetch instead asked PostgREST for a bare `topic` column, which does not exist, so
+    // PostgREST rejected the request wholesale with 400 ("column intelligence_items.topic does not
+    // exist" — captured verbatim in postgres_logs, 2026-09-09T19:2x, live project kwrsbpiseruzbfwjpvsp)
+    // for every hit set, every term, 100% of the time — `rowErr` below was always truthy, so
+    // runSearch always returned []. `topic:category` aliases the real column to the JSON key
+    // CommandBar.tsx's SearchResultRow/metaLine already expect, matching the app-wide convention
+    // instead of inventing a second one.
+    .select("id, title, item_type, domain, priority, jurisdictions, transport_modes, topic:category")
     .eq("is_archived", false)
     .eq("provenance_status", "verified")
     // fitness-allow: F39 (hitIds is the RPC's own top-K hit set, bounded by boundedMaxRows above)
     .in("id", hitIds);
-  if (rowErr || !rows) return [];
+  if (rowErr) {
+    // Observable failure (matches /api/ask's own `console.warn` on its identical re-fetch): a
+    // silent [] here is exactly how this defect shipped invisibly for two days.
+    console.warn(`[search] re-fetch failed: ${rowErr.message}`);
+    return [];
+  }
+  if (!rows) return [];
 
   const byId = new Map(rows.map((r) => [r.id, r]));
   return hitIds.map((id) => byId.get(id)).filter((r): r is SearchResultRow => Boolean(r));

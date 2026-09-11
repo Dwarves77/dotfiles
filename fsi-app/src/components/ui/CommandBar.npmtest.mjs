@@ -74,3 +74,36 @@ test("Standard Search calls the new bounded /api/search route through authedFetc
 test("empty/short query shows no results dropdown (client-side mirror of the route's own MIN_QUERY_LEN gate)", () => {
   assert.match(SOURCE, /value\.trim\(\)\.length < MIN_QUERY_LEN/);
 });
+
+// ── SEARCHFIX (2026-09-11): submit control matches the active mode ──────────────────────────────
+//
+// Operator report, verbatim: "i hit ask and nothing happens when trying standard search". Root
+// cause: the submit button was hard-wired to the literal text "Ask" and to `ask()` regardless of
+// `mode` — in Search mode (the default) pressing it silently asked the assistant instead of
+// running a search, or (assistant disabled) did nothing visible at all. Fixed to one `submit()`
+// dispatcher, used by both the button's onClick and the form's onSubmit (Enter), so keyboard and
+// click can never diverge.
+
+test("one submit() dispatcher drives BOTH the button and Enter — mode decides ask() vs onSearch(), never two separate branches to keep in sync", () => {
+  assert.match(
+    SOURCE,
+    /const submit = \(\) => \{\s*\n\s*if \(mode === "ask"\) ask\(\);\s*\n\s*else onSearch\?\.\(value\.trim\(\)\);\s*\n\s*\};/
+  );
+  // The form's Enter path calls submit(), not a second inline mode check.
+  assert.match(SOURCE, /onSubmit=\{\(e\) => \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*submit\(\);\s*\n\s*\}\}/);
+  // The button's onClick calls the SAME submit(), not ask() directly.
+  assert.match(SOURCE, /<button[\s\S]{0,200}onClick=\{submit\}/);
+  assert.doesNotMatch(
+    SOURCE,
+    /<button[\s\S]{0,200}onClick=\{ask\}/,
+    "the submit button must never call ask() directly again — that is the exact regression this fix closes"
+  );
+});
+
+test("the submit button's label reads what it does in the active mode — \"Search\" in Search mode, \"Ask\" in Ask mode, never a fixed \"Ask\"", () => {
+  assert.match(SOURCE, /\{mode === "ask" \? "Ask" : "Search"\}\s*\n\s*<\/button>/);
+});
+
+test("Search mode's submit control is never disabled — askDisabled is scoped to mode===\"ask\" by construction, so the Search-mode label/handler above are always reachable", () => {
+  assert.match(SOURCE, /const askDisabled = mode === "ask" && !assistantEnabled;/);
+});
