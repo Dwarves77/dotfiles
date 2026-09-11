@@ -16745,3 +16745,106 @@ mechanism (lines ~114-119, 287-311); `downstream-chain.yml` upload step (~line 3
 (lines ~140-146); `dispatch-extraction.mjs` summary block (lines ~142-144). YAML validated with
 `python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))'`. No schedule added (rule 16 still
 holds); no dispatch run, no database touch.
+
+## SEARCHROW lane, 2026-09-11: Standard Search results readable again — jurisdiction-code-then-dashes, no title, no type
+
+Operator screenshot, carosledge.com dashboard, 2026-09-11: typing "ppwr" in Search mode opened the
+results dropdown (rows present, 6+ visible — SEARCHCLIP's own fix, same date, made them visible at
+all) but each row showed ONLY the jurisdiction code (EU, EU, GLOBAL, EU, DE, GB) then dashes and an
+empty timeline line. No title, no type.
+
+**Root cause — [CONFIRMED], read from source and confirmed by grid-track arithmetic against the
+listbox's own measured box.** `ListRow.tsx`'s shared eight-column grid (`GRID =
+"3px 56px 1fr 88px 84px 76px 40px 44px"`, gap 14px × 7) needs 391px of fixed tracks + 98px of gap =
+489px before its `1fr` title column gets a single pixel — this file's own MOBILE-60 comment already
+states the number. `ListRow`'s only narrow-layout rule was a viewport `@media (max-width: 767px)`
+query, which never fires here: `CommandBar.tsx`'s results listbox (SEARCHCLIP's portal, `position:
+fixed`, `width: barRect.width`) is the command BAR's own width (~330px, matching the operator's
+screenshot), not the page's, and the page's own viewport stayed ~1175px, nowhere near 767px. So on a
+330px box inside a 1175px window, none of the existing rules fired: the desktop 8-column grid applied,
+its fixed tracks (391px) already exceed the 330px box, the `1fr` title column resolved to 0, and the
+grid's own overflow put the impact/due columns' Absence dashes and a sliver of the empty timeline track
+inside the visible 330px while jurisdiction (the first fixed 56px column) stayed visible and title
+(0px) painted nothing — exactly the operator's screenshot. The impact/due/tier dashes themselves are
+NOT a defect: `CommandBar.tsx`'s `searchRows` mapping (verified by reading it) only ever populates
+`href`/`band`/`jurisdiction`/`title`/`meta` from `/api/search`'s response — `impact`/`due`/`timeline`/
+`tier` are intentionally never passed (the Standard Search API route, read directly rather than
+called, returns `id, title, item_type, domain, priority, jurisdictions, transport_modes,
+topic:category` only — no impact/due/timeline/tier columns at all), so `ListRow`'s existing "one
+absence per row" convention (mobfix61, 2026-09-08) correctly draws dashes for dimensions the search
+result never carries. That part of the row was always going to be honest placeholders; the actual
+defect is that title, the one field the API DOES send, was invisible.
+
+**Checked first for an existing mechanism (per dispatch instruction), found none narrow enough.**
+`ListRow.tsx`'s only other layout is `variant="register"` (map60, 2026-09-08) — a different six-column
+grid with no mobile reflow at all by ruling, wrong shape for a title+jurisdiction row regardless.
+No `@container` query existed anywhere in `src/` before this lane (grepped `@container|container-type`
+site-wide, zero hits). The watchlist "rail" (300px, `WatchlistSurface.tsx`) is Filters/Share/Legend
+cards, not a `ListRow` list — its actual `ListRow` rows render in the wide main column, so there is no
+precedent anywhere in the app for `ListRow` at a genuinely narrow, non-mobile-viewport box.
+
+**Fix — reuses the existing mobile reflow verbatim, under a second trigger, not a second anatomy
+(CLAUDE.md rule 13).** `ListRow.tsx`'s narrow-reflow rule body (header hidden, 2-line row, timeline
+column dropped, title wraps instead of ellipsizing, 44px overflow gutter — the exact MOBILE-60/B3-B5
+rules) is factored out of the `@media (max-width: 767px)` block into a standalone template constant,
+`LIST_ROW_NARROW_REFLOW_CSS`, and `RESPONSIVE_CSS` now emits that SAME template twice: once under the
+original `@media (max-width: 767px)` (byte-identical behavior for real phone viewports) and once under
+a new, unnamed `@container (max-width: 489px)` — 489px chosen to match the fixed-track requirement
+measured above, not the page-level 767px breakpoint, because a box this narrow can never fit the
+desktop grid regardless of what the viewport is doing. An unnamed container query matches the nearest
+ancestor with `container-type` set; no such ancestor exists anywhere else `ListRow` is used
+(Dashboard, Regulations, Market, Research, Operations, Watchlist all render it with no containment
+context), so this change is inert for every existing caller — verified by reading, not assumed: grep
+for `containerType`/`container-type` across `src/` before this lane returns nothing, so the desktop
+grid's byte-identical claim for every other caller rests on the fact that nothing else opts a box into
+containment, not on a guess about cascade order. `CommandBar.tsx`'s listbox div (the one place that IS
+narrow independent of the viewport) gains `containerType: "inline-size"` — one property, same box,
+same `position: fixed`/`width: barRect.width` SEARCHCLIP already established.
+
+**One open item, named rather than silently accepted.** The reused mobile reflow's own B3/B4/B5 rule
+(2026-09-08) hides the row's `meta` line (which carries item TYPE, via `metaLine()`) except when it
+carries the one absence-reason word — designed for a real 390px phone row where title beats type for
+space. Reusing that rule verbatim, as rule 13 requires, means the search dropdown's rows show
+jurisdiction + title but not type in the narrow box, matching real mobile phones exactly but not fully
+resolving the operator's second symptom ("no type"). Building a THIRD narrow variant that shows meta
+but not the rest would be exactly the second-anatomy CLAUDE.md rule 13 forbids sight-unseen from an
+operator ruling, so this lane does not do it; flagged here for an operator decision on whether the
+search dropdown should diverge from the phone row on this one point, not left as a bare "flagged for
+later" — the mechanism (the shared `LIST_ROW_NARROW_REFLOW_CSS` template) already exists to carry
+that decision the moment it is made.
+
+**Gates — could not be executed in this sandbox and are NOT claimed as passing.** This lane's sandbox
+has no egress to `registry.npmjs.org` (`curl` to it returns `403 Host not in allowlist`; `npm ci`
+fails identically), so `fsi-app/node_modules` could not be installed and `npx tsc --noEmit`,
+`node .discipline/fitness/runner.mjs`, `bash .discipline/run-test-suite.sh`,
+`node .discipline/rendering/run-rendering-guard.mjs`, `npm run audit:design`, and `npx next build` all
+either run against a stray global toolchain with no project types (thousands of pre-existing,
+unrelated `Cannot find module 'react'`-class errors, none naming `ListRow.tsx`'s or `CommandBar.tsx`'s
+new lines) or cannot run at all. Per CLAUDE.md rule 15 ("a proof that does not execute is not a
+proof"), this is reported as NOT RUN, not as passing. What WAS done in place of the real gates:
+`prettier --parser typescript --check` (available standalone in this sandbox, no project deps needed)
+parses both changed files clean (formatting-only warnings, zero syntax errors) — confirms the edit is
+syntactically valid TS/JSX, nothing stronger. The coordinator must run the real gate list in an
+environment with npm registry access before landing.
+
+### UX compliance
+
+**Screen: the command bar's Standard Search results, mounted on every route.** Primary goal unchanged
+from CMDSEARCH/SEARCHFIX/SEARCHCLIP: find an item without leaving the page, see the results, click
+one. What changed here is legibility of a row that was already visible (SEARCHCLIP's fix) and already
+carrying real data (SEARCHFIX's fix) — the row's own layout was silently discarding its title.
+
+Law 12 (Prägnanz, "obvious visual hierarchy") is the operative law: a row that shows a two-letter
+jurisdiction code and four dashes with nothing identifying WHAT the result is has no hierarchy at all,
+it has noise. The fix restores the title as the row's dominant element (13.5px, wraps rather than
+ellipsizing, exactly the mobile row's own established treatment) so the reader can tell one result from
+another before clicking. Law 16 (Similarity/pattern consistency) holds by construction: the narrow
+layout is not a new pattern invented for this dropdown, it is the SAME two-line row shape a phone-width
+reader already sees on every other list surface in the product — a reader who has used Search on their
+phone recognizes this exact row, not a new one.
+
+Law 6 (Doherty Threshold) is unaffected: no timing changed, only which cells the same debounced
+response paints into.
+
+No new screen, no new flow, no new control, no new row anatomy. This is a legibility repair reusing an
+existing, already-shipped reflow under a second trigger.

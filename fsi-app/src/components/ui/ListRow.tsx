@@ -270,62 +270,12 @@ export function ListRowColumnHeader({
 // byte-identical to before this lane) switch to a flex column of two flex rows. 375px is a
 // fluid reflow of the same row (min-height 76px, wrapping title, no fixed 390px box) — the
 // mechanism the rendering guard's 375px UX smoke checks for the five list rows require.
-const RESPONSIVE_CSS = `
-  .cl-list-row:hover { background: var(--row-hover); }
-  /* The register row (variant="register", dc.html p10) carries the same hover the list row does.
-     It is deliberately OUTSIDE the max-width:767px block below: the mobile reflow rewrites the
-     eight-column list grid, and the register's own six-column grid has no mobile artboard to
-     reflow to (operator ruling 2026-09-07, second set, item 2: no mobile map spec exists and none
-     should be invented). */
-  .cl-list-row-register:hover { background: var(--row-hover); }
-
-  /* FOLD-61 [CONFIRMED, measured at 390 by the audit's own probe]: the register's six tracks
-     (3px 1fr 1fr 110px 80px 40px, five 14px gaps) need 303px of fixed width and gap alone. In the
-     356px row the map page gives them at 390, that left 37px for BOTH "1fr" tracks, so the
-     jurisdiction NAME column computed to 18.5px and rendered as roughly one character and an
-     ellipsis, with the meta column beside it the same. Neither lane could see it: map60 built this
-     variant with no 390 spec in existence, and mobfix61's mobile-10-map spec was written against
-     the shared ".cl-list-row" this variant replaced, so its four register rows reported NOT BUILT
-     rather than measuring the row that shipped.
-
-     The comment above is still right that no mobile ARTBOARD for this register exists and none is
-     invented here. What governs instead is the mobile 390 spec's own operator prose: "the frame
-     collapses; every part is the desktop part at a smaller measure". So every part stays - name,
-     meta, band, count and the arrow all still render, in the same order and with the same type -
-     and only the MEASURE changes: name over meta in one flexible column, band over count in a
-     narrow one, the 40px arrow full height. The desktop grid is untouched above 768.
-
-     The band column is 84px, not sized to content: measured max-content for this fixture's widest
-     label is 79.5px ("IMMEDIATE" plus its 6px dot and 5px gap), and AWARENESS is the same nine
-     characters in wider glyphs, so 84px clears the whole four-word band vocabulary with margin.
-     "max-content" would fit too, but it would make the resolved track list depend on WHICH bands
-     the data happens to contain, which is not a thing an exact-equality spec row should measure.
-     At 68px, the first value tried, the label clipped to "IMMEDIAT" with no ellipsis - the same
-     class lane opsclip fixed on the IMPACT column header, in a cell whose text is fixed, short and
-     known at build time and therefore has to FIT. */
-  @media (max-width: 767px) {
-    .cl-list-row-register {
-      grid-template-columns: 3px minmax(0, 1fr) 84px 40px !important;
-      /* The two rows are DECLARED, not implicit, and that is load-bearing rather than tidy: the
-         row's stretched click overlay (.cl-row-link, README 0.4) is an absolutely positioned GRID
-         ITEM, so its containing block is the grid AREA it is placed in, not the row's padding box,
-         and its "grid-row: 1 / -1" counts lines in the EXPLICIT grid. With the rows implicit,
-         "-1" resolved to line 2 and the overlay measured 24px tall inside a 51px row - four
-         targets under the law-2 44px floor, which is how the rendering guard caught it at 375
-         within minutes of this reflow being written. Declared rows make "-1" line 3 again. */
-      grid-template-rows: auto auto !important;
-      gap: 2px 10px !important;
-      padding-right: 8px !important;
-    }
-    .cl-list-row-register > .cl-row-spine { grid-column: 1; grid-row: 1 / -1; }
-    .cl-row-register-name { grid-column: 2; grid-row: 1; }
-    .cl-row-register-meta { grid-column: 2; grid-row: 2; }
-    .cl-row-register-band { grid-column: 3; grid-row: 1; }
-    .cl-row-register-count { grid-column: 3; grid-row: 2; }
-    .cl-row-register-arrow { grid-column: 4; grid-row: 1 / -1; }
-  }
-
-  @media (max-width: 767px) {
+//
+// Factored out to a standalone template (lane searchrow, 2026-09-11) so the SAME rule body can be
+// emitted under both `@media (max-width: 767px)` (viewport-narrow: phones) and
+// `@container (max-width: 489px)` (box-narrow regardless of viewport: the command bar's search
+// results dropdown) below, in `RESPONSIVE_CSS` — one reflow, two triggers, not a second anatomy.
+const LIST_ROW_NARROW_REFLOW_CSS = `
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
        .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the column header
        keeps the desktop eight-track GRID, whose fixed tracks alone (3+56+88+84+76+
@@ -384,6 +334,93 @@ const RESPONSIVE_CSS = `
       height: 44px;
       flex-shrink: 0;
     }
+`;
+
+const RESPONSIVE_CSS = `
+  .cl-list-row:hover { background: var(--row-hover); }
+  /* The register row (variant="register", dc.html p10) carries the same hover the list row does.
+     It is deliberately OUTSIDE the max-width:767px block below: the mobile reflow rewrites the
+     eight-column list grid, and the register's own six-column grid has no mobile artboard to
+     reflow to (operator ruling 2026-09-07, second set, item 2: no mobile map spec exists and none
+     should be invented). */
+  .cl-list-row-register:hover { background: var(--row-hover); }
+
+  /* FOLD-61 [CONFIRMED, measured at 390 by the audit's own probe]: the register's six tracks
+     (3px 1fr 1fr 110px 80px 40px, five 14px gaps) need 303px of fixed width and gap alone. In the
+     356px row the map page gives them at 390, that left 37px for BOTH "1fr" tracks, so the
+     jurisdiction NAME column computed to 18.5px and rendered as roughly one character and an
+     ellipsis, with the meta column beside it the same. Neither lane could see it: map60 built this
+     variant with no 390 spec in existence, and mobfix61's mobile-10-map spec was written against
+     the shared ".cl-list-row" this variant replaced, so its four register rows reported NOT BUILT
+     rather than measuring the row that shipped.
+
+     The comment above is still right that no mobile ARTBOARD for this register exists and none is
+     invented here. What governs instead is the mobile 390 spec's own operator prose: "the frame
+     collapses; every part is the desktop part at a smaller measure". So every part stays - name,
+     meta, band, count and the arrow all still render, in the same order and with the same type -
+     and only the MEASURE changes: name over meta in one flexible column, band over count in a
+     narrow one, the 40px arrow full height. The desktop grid is untouched above 768.
+
+     The band column is 84px, not sized to content: measured max-content for this fixture's widest
+     label is 79.5px ("IMMEDIATE" plus its 6px dot and 5px gap), and AWARENESS is the same nine
+     characters in wider glyphs, so 84px clears the whole four-word band vocabulary with margin.
+     "max-content" would fit too, but it would make the resolved track list depend on WHICH bands
+     the data happens to contain, which is not a thing an exact-equality spec row should measure.
+     At 68px, the first value tried, the label clipped to "IMMEDIAT" with no ellipsis - the same
+     class lane opsclip fixed on the IMPACT column header, in a cell whose text is fixed, short and
+     known at build time and therefore has to FIT. */
+  @media (max-width: 767px) {
+    .cl-list-row-register {
+      grid-template-columns: 3px minmax(0, 1fr) 84px 40px !important;
+      /* The two rows are DECLARED, not implicit, and that is load-bearing rather than tidy: the
+         row's stretched click overlay (.cl-row-link, README 0.4) is an absolutely positioned GRID
+         ITEM, so its containing block is the grid AREA it is placed in, not the row's padding box,
+         and its "grid-row: 1 / -1" counts lines in the EXPLICIT grid. With the rows implicit,
+         "-1" resolved to line 2 and the overlay measured 24px tall inside a 51px row - four
+         targets under the law-2 44px floor, which is how the rendering guard caught it at 375
+         within minutes of this reflow being written. Declared rows make "-1" line 3 again. */
+      grid-template-rows: auto auto !important;
+      gap: 2px 10px !important;
+      padding-right: 8px !important;
+    }
+    .cl-list-row-register > .cl-row-spine { grid-column: 1; grid-row: 1 / -1; }
+    .cl-row-register-name { grid-column: 2; grid-row: 1; }
+    .cl-row-register-meta { grid-column: 2; grid-row: 2; }
+    .cl-row-register-band { grid-column: 3; grid-row: 1; }
+    .cl-row-register-count { grid-column: 3; grid-row: 2; }
+    .cl-row-register-arrow { grid-column: 4; grid-row: 1 / -1; }
+  }
+
+  @media (max-width: 767px) {
+${LIST_ROW_NARROW_REFLOW_CSS}
+  }
+
+  /* CONTAINER-QUERY twin of the viewport reflow above (lane searchrow, 2026-09-11)
+     [CONFIRMED by grid-track arithmetic against this file's own documented column widths and
+     CommandBar.tsx's measured listbox box — this lane's sandbox had no npm registry access to run
+     a live render harness; see the fix's session-log entry for exactly what was and was not
+     verified]. Root cause: the eight-column desktop grid's fixed tracks need 489px (comment above)
+     before the 1fr title column gets any width at all, and that requirement is keyed to the
+     row's own BOX, not the viewport — the \`@media\` rule above only fires when the WINDOW is
+     narrow, so a row rendered inside a box narrower than 489px on a wide viewport (the command
+     bar's search results dropdown, ~330px wide inside a 1175px window: CommandBar.tsx's listbox
+     is the bar's own width, not the page's) got neither the desktop grid's room nor the mobile
+     reflow — the 1fr title column collapsed to 0 and the row painted jurisdiction-code-then-
+     dashes with no title and no type, exactly the operator's 2026-09-11 report.
+     Same body as the \`@media\` block (one template literal, \`LIST_ROW_NARROW_REFLOW_CSS\`,
+     emitted twice) so this is the existing mobile reflow reused under a second trigger, not a
+     second row anatomy (CLAUDE.md rule 13) — checked first for an existing narrow-container
+     mechanism (ListRow's only other variant, \`variant="register"\`, has no mobile reflow at all
+     by ruling, and no \`@container\` query existed anywhere in the app before this). Unnamed and
+     keyed to the row's OWN nearest \`container-type\` ancestor, so this fires only where a caller
+     opts a box into containment (CommandBar's portal listbox does, via \`containerType:
+     "inline-size"\`) — every other ListRow caller (Dashboard, Regulations, Market, Research,
+     Operations, Watchlist) has no such ancestor and is completely unaffected; the desktop grid
+     stays byte-identical there. 489px matches the fixed-track requirement measured above rather
+     than the page-level 767px breakpoint, because a container this narrow can never fit the
+     desktop grid regardless of what the viewport is doing. */
+  @container (max-width: 489px) {
+${LIST_ROW_NARROW_REFLOW_CSS}
   }
 `;
 
