@@ -16370,3 +16370,120 @@ Law 2 (Fitts): both toggle tabs measure at least 44px on one axis and 28px on th
 the rendering guard rather than exempted. Law 5 (Miller): the toggle adds one decision, mode, and
 nothing else to the bar. Law 16 (Similarity): results reuse the list row every other surface
 renders, so a search result reads as the item it is and not as a new kind of thing.
+
+## SEARCHFIX lane, 2026-09-11: Standard Search returned zero rows for real terms; submit button ignored the active mode
+
+Coordinator dispatch, live-production defect: Search mode (CMDSEARCH, PR #616, 2026-09-09) rendered,
+debounced, and called `GET /api/search?q=<term>` — the request returned HTTP 200 — and the panel
+always rendered "No results for `<term>`", for `packaging`, `emission` and `ppwr`, all three real,
+verified items in the corpus (SPC Impact 2026 Packaging, EU PPWR 2025/40, EU Emissions items on
+`/market`). Second item, operator verbatim: "i hit ask and nothing happens when trying standard
+search."
+
+**Diagnosis (dispatch's a/b/c/d), against the live corpus, project `kwrsbpiseruzbfwjpvsp`:**
+
+- **(a) RPC returns hits — [CONFIRMED] not the failure.** `search_intelligence_items('packaging',
+  12)` → 12 hits, top rank 51.6; `('ppwr', 12)` → 8 hits; `('emission', 12)` → 12 hits. Called both
+  positionally and with named args (`q =>`, `max_rows =>`, matching exactly what `supabase-js`'s
+  `.rpc()` sends) — identical results either way.
+- **(b) id-space mismatch (uuid vs legacy_id) — [CONFIRMED] not the failure.** The RPC's own return
+  type is `TABLE(id uuid, rank real)`; three spot-checked hit ids resolved directly against
+  `intelligence_items.id` to real rows ("EU PPWR 2025/40", "SPC Impact 2026… Sustainable Packaging
+  Practices", "Packaging Material Input Costs"). One id space throughout; `legacy_id` is never
+  touched by this RPC or by the re-fetch.
+- **(c) read predicate excludes the hits — [CONFIRMED] not the failure.** All three spot-checked
+  hit rows carry `is_archived=false, provenance_status='verified'` — exactly what the re-fetch's
+  `.eq()` pair requires.
+- **(d) websearch_to_tsquery vs plainto_tsquery / missing param — [CONFIRMED] not the failure.**
+  The RPC as deployed (`pg_get_functiondef`) is byte-identical to migration 159 modulo 160's
+  `search_path` pin; `q`/`max_rows` are the only params and both are supplied.
+- **Actual root cause — a 5th failure mode outside a–d, [CONFIRMED] by live evidence, not
+  inference:** Supabase `postgres_logs` for the coordinator's own test window
+  (2026-09-09T19:2x–20:1x) carry the verbatim error `column intelligence_items.topic does not
+  exist`, and `edge_logs` for the same window show the re-fetch's exact `GET
+  .../intelligence_items?...&id=in.(<the RPC's own hit ids>)` returning **400** every single time —
+  while the RPC's own `POST .../rpc/search_intelligence_items` calls alongside them return 200.
+  `logic.ts`'s re-fetch `.select(...)` named a column, `topic`, that `intelligence_items` does not
+  have (`information_schema.columns`, queried live 2026-09-11: no `topic`; the real columns are
+  `category`/`theme`/`topic_tags`). PostgREST rejects an unknown column with 400 for the WHOLE
+  request, `runSearch` folds any re-fetch error to `[]` unconditionally, and the route returns 200
+  with `results: []` — matching every one of the three observed symptoms at once, for every term,
+  100% of the time (this is a total failure, not a partial-match issue, which is why `a`–`c`, all
+  correct at the DB layer, could not explain it: the re-fetch never got a row back from PostgREST
+  to filter in the first place).
+
+**Why the existing route test did not catch it, in one line:** `route.npmtest.mjs`'s fake `.in()`
+handler echoed back a synthetic row for whatever ids it was handed WITHOUT EVER READING the
+`.select(cols)` argument, so a `.select()` naming a nonexistent column was invisible to it by
+construction — the fixture passing was not evidence the real query worked, it was evidence the
+fixture never asked the question.
+
+**Fix:** `logic.ts`'s re-fetch now selects `topic:category` (PostgREST alias syntax) instead of a
+bare `topic` — `category` is the real column, `topic:category` renames it to the JSON key
+`CommandBar.tsx`'s `SearchResultRow`/`metaLine` already expect, matching the app-wide convention
+three other call sites in `supabase-server.ts` already use (`topic: row.category || undefined`)
+rather than inventing a second one. A `console.warn` on `rowErr` was added to match `/api/ask`'s own
+re-fetch (previously silent — exactly how this shipped invisibly for two days; `/api/ask` never
+surfaced the same defect class because its own re-fetch is gated behind `hitIds.length >= 3` with a
+`.order("priority").limit(30)` fallback, so a broken re-fetch there degrades to plausible-looking
+wrong results instead of a visible empty state).
+
+**Regression tests added** (`route.npmtest.mjs`): a `liveShapedFakeClient` whose `.select(cols)`
+actually parses the column list (honoring `alias:column`) and validates it against
+`intelligence_items`' real column set (captured live, 2026-09-11) — reproducing PostgREST's own 400
+for an unknown column instead of echoing rows unconditionally. One test proves the mechanism against
+the exact broken string PR #616 shipped; one proves `runSearch` returns real rows now that the
+select is schema-valid; one statically asserts every column named in `logic.ts`'s live `.select()`
+call is real. Verified this static test fails on the pre-fix source (reverted `topic:category` →
+`topic` locally, ran the suite, 2 failures with the exact 400 message) and passes on the fixed tree.
+
+**Second item — submit button ignored the active mode, [CONFIRMED] by source-level reproduction:**
+the bar's one submit button (`.cl-command-bar-ask-submit`) was hard-wired to the literal text `"Ask"`
+and to `onClick={ask}` regardless of `mode` — pressing it in Search mode (the bar's default) either
+silently asked the Assistant (if enabled) or did nothing visible at all (if not), exactly matching
+the operator's report. Fixed to one `submit()` dispatcher (`mode === "ask" ? ask() :
+onSearch?.(value.trim())`) used by BOTH the button's `onClick` and the form's `onSubmit` (so Enter
+and the click can never diverge), and the button's label now reads `{mode === "ask" ? "Ask" :
+"Search"}`. `askDisabled` (`mode === "ask" && !assistantEnabled`) already evaluated to `false` in
+Search mode by construction, so Search's submit control needed no new disabled-state logic — only
+the label and the handler were wrong. No geometry changed: same element, same box, same
+`.cl-command-bar-ask-submit` class the design spec already selects.
+
+**Design-spec fallout, fixed not weakened.** `masthead.json`'s two "Ask button" rows named the
+control by its old fixed label; renamed to "submit button" / "submit button label" and the label
+expectation updated from the artboard's single static `"Ask"` capture (predates the CMDSEARCH mode
+toggle entirely) to `"Search"` — the correct label for the bar's REST state, Search mode, which is
+the default. The row still asserts an exact string every render must match; only the string is now
+correct for what ships. `audit:design` confirms: 2557/2557 MATCH after the update, including the
+renamed row.
+
+**Regression tests added** (`CommandBar.npmtest.mjs`, structural/source-level per this file's own
+established convention — no JSX render harness in this repo): one asserts the single `submit()`
+dispatcher exists and that both the form's `onSubmit` and the button's `onClick` call it (and
+explicitly that `onClick={ask}` no longer appears); one asserts the mode-conditional label; one
+asserts `askDisabled` stays scoped to `mode === "ask"` so Search mode's control is never
+inadvertently disabled by a future edit.
+
+**Gates:** `tsc --noEmit` exit 0; fitness runner 37 functions, 0 violations; `node --test` across
+every `*.npmtest.mjs` (1106 tests, +8 in `route.npmtest.mjs`, +3 in `CommandBar.npmtest.mjs`) — 0
+failures; `run-rendering-guard.mjs` PASS (0 new findings; the 4 pre-existing dated facet-checkbox
+exemptions from CMDSEARCH/C1 are unrelated and still covered); `audit:design` 2557/2557 MATCH;
+`next build` — `✓ Compiled successfully`, 86/86 static pages generated, `/api/search` registered.
+
+### UX compliance
+
+**Screen: the command bar in Search mode, mounted on every route.** Primary goal unchanged from
+CMDSEARCH: find an item without leaving the page. What changed here is correctness and feedback,
+not the flow — a real query now actually returns its real rows instead of the absence line lying
+about there being none. Path, one primary action, and the shared-`ListRow`/`StateNote` feedback
+contract are exactly as CMDSEARCH's own UX-compliance entry above describes; this lane does not
+touch layout, only makes the promised feedback true. Law 1 (Honest state): the absence line now
+means "the corpus has nothing for this term," not "the last database call happened to 400" — the
+prior state was a silent lie the reader had no way to detect, which this fix closes.
+
+**Screen: the submit button, both modes.** Primary goal: the control does the thing its own label
+says. Before this fix the label and the action could disagree (said "Ask", searched or did nothing,
+depending on mode) — a direct Law 16 (Similarity/Honesty of signifiers) violation: a control that
+reads one affordance and performs another. The control's label and its handler are now driven by
+the SAME `mode` value on every render, so they cannot diverge again without also failing the new
+structural test that asserts it.

@@ -84,9 +84,9 @@
       }
     },
     {
-      "name": "command bar \u2014 Ask button",
+      "name": "command bar \u2014 submit button",
       "selector": ".cl-command-bar-ask-submit",
-      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the Ask submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09, reason not weakness: the bar's new Search/Ask mode toggle (operator instruction, same lane) adds two more `<button>`s inside `.cl-command-bar`, so the bare tag selector `.cl-command-bar button` now matches the FIRST button in DOM order (a toggle tab, not the submit button) and reads its style instead. The submit button already carried no distinguishing class; `.cl-command-bar-ask-submit` is added to it so this row addresses the SAME element the artboard means, unambiguously, rather than whichever button happens to come first. dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px. Geometry is UNCHANGED by SEARCHFIX (2026-09-11) below \u2014 only the row's own name and its label expectation move, because this row's real subject is a label, not the box.",
       "expect": {
         "height": "40px",
         "padding-left": "14px",
@@ -98,11 +98,11 @@
       }
     },
     {
-      "name": "command bar \u2014 Ask button label",
+      "name": "command bar \u2014 submit button label",
       "selector": ".cl-command-bar-ask-submit",
-      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09 \u2014 see the row above for why. dc.html p1: the button's own text.",
+      "note": "SELECTOR NARROWED, CMDSEARCH lane, 2026-09-09 \u2014 see the row above for why. UPDATED, SEARCHFIX, 2026-09-11, reason not weakness: operator report (verbatim, \"i hit ask and nothing happens when trying standard search\") traced to this control being hard-wired to the literal text \"Ask\" and to `ask()` regardless of the active mode \u2014 pressing it in Search mode (the bar's DEFAULT mode, `useState(\"search\")`) silently asked the assistant, or did nothing visible when the assistant was disabled, instead of running a search. The control now reads what it does in the mode it is in: \"Search\" in Search mode, \"Ask\" in Ask mode (src/components/ui/CommandBar.tsx, `{mode === \"ask\" ? \"Ask\" : \"Search\"}`). This row asserts the label at REST \u2014 the mounted, un-toggled state \u2014 which is Search mode's \"Search\", not the dc.html artboard's single static \"Ask\" capture (the artboard predates the mode toggle entirely; CMDSEARCH's own row-89 note already documents the toggle as this lane's addition, not the artboard's). This is a label fix, not a weakening: the row still asserts an exact string every render must match, only the string is now correct for what ships.",
       "expect": {
-        "text": "Ask"
+        "text": "Search"
       }
     },
     {
