@@ -141,3 +141,27 @@ test('installHooks: installs pre-push hook alongside commit-msg', () => {
     cleanup(dir);
   }
 });
+
+// task 0.3b fix round 1, 2026-09-11 ([CONFIRMED] by the coordinator with a throwaway repo): a hook
+// invoked from a LINKED WORKTREE inherits GIT_DIR (and GIT_WORK_TREE / GIT_INDEX_FILE) in its
+// environment, while the same hook invoked from the main checkout inherits none of them; with GIT_DIR
+// exported, scripts/lib/assemble-train.test.mjs's fixture (`git init -q work` + `git remote add
+// origin` in a fresh temp dir) ignores the temp dir and mutates the REAL repo instead, failing with
+// "remote origin already exists" (reproduced on push from a linked worktree; the identical test passes
+// 11/11 run directly). This assertion guards the one-line fix (`unset GIT_DIR GIT_WORK_TREE
+// GIT_INDEX_FILE` before step 1) so it cannot be dropped silently in a future edit of the hook.
+test('pre-push hook source: unsets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE before any step runs (linked-worktree hook-environment class fix)', () => {
+  const prePushPath = join(__dirname, 'hooks', 'pre-push');
+  const content = readFileSync(prePushPath, 'utf-8');
+  assert.match(
+    content,
+    /^unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE$/m,
+    'pre-push hook must unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE before running any step, or a ' +
+      'linked-worktree invocation inherits them and corrupts any git command a step runs against a ' +
+      'fresh temp-dir repo (assemble-train.test.mjs\'s fixture is the confirmed instance)'
+  );
+  // The unset must precede every numbered step, not merely exist somewhere in the file.
+  const unsetIndex = content.indexOf('unset GIT_DIR');
+  const step1Index = content.indexOf('Step 1:');
+  assert.ok(unsetIndex >= 0 && step1Index >= 0 && unsetIndex < step1Index, 'the unset must run before step 1');
+});

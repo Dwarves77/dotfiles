@@ -35,6 +35,7 @@ import { join, dirname } from "node:path";
 import { readClient } from "../lib/db.mjs";
 import { readRunHistory, DEFAULT_HARNESS_RUNS_ROOT } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // ── §1: intelligence_items provenance matrix — grade × status × item_type ─────────────────────────
 
@@ -271,7 +272,7 @@ export function writeReportFiles(report, outPath, writeFile = writeFileSync) {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────
 // Guarded so importing this module for its pure parts never opens a database connection.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const args = process.argv.slice(2);
   const outIdx = args.indexOf("--out");
   const outPath = outIdx >= 0 ? args[outIdx + 1] : null;

@@ -16,6 +16,9 @@
 // trailer-attestation gates. It defines (a) which skill the action-time hook must surface,
 // and (b) which CONTENT-verifiable violations the rules catch. Trailers are audit-only.
 
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 export const GOVERNED = [
   {
     skill: 'environmental-policy-and-innovation',
@@ -145,7 +148,10 @@ export function skillsForClass(cls) {
 //   node skill-map.mjs --file <path>     → prints governing skill names (one per line), empty if none
 //   node skill-map.mjs --op "<text>"     → prints governing skill names for an operation
 //   node skill-map.mjs --list            → prints the full map
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('skill-map.mjs')) {
+// task 0.3b: the Windows-safe main guard, inlined (no scripts/lib import precedent under
+// .discipline/governance/, unlike .discipline/fitness/functions/ which already imports scripts/lib -
+// see scripts/lib/is-main.mjs for the shared primitive this mirrors).
+if (Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
   const get = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
   if (args.includes('--list')) {

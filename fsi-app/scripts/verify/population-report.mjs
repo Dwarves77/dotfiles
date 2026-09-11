@@ -23,6 +23,7 @@
 
 import { readClient } from "../lib/db.mjs";
 import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
@@ -133,7 +134,7 @@ export async function collect(sb, stores = STORES) {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────
 // Guarded so importing this module for its pure parts never opens a database connection.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const strict = process.argv.includes("--strict");
   const results = await collect(readClient());
   console.log(renderReport(results).join("\n"));

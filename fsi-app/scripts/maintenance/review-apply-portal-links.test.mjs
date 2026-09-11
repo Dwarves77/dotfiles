@@ -8,17 +8,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { main, resolveRulingPath } from "./review-apply-portal-links.mjs";
 
+// task 0.3b: platform-independent path assertions (resolve()/join() emit backslash-separated paths on
+// Windows, so a hardcoded POSIX literal never matches there). posix() normalizes the separator before
+// comparing; the pass-through test builds its own platform-appropriate absolute path instead of a
+// hardcoded "/tmp/..." literal.
+const posix = (p) => p.split(sep).join("/");
+
 test("resolveRulingPath: a relative arg resolves against the REPO ROOT (one level above fsi-app/)", () => {
-  const p = resolveRulingPath("docs/ratifications/2026-09/portal-links.ruling.json");
+  const p = posix(resolveRulingPath("docs/ratifications/2026-09/portal-links.ruling.json"));
   assert.ok(p.endsWith("/docs/ratifications/2026-09/portal-links.ruling.json"));
   assert.ok(!p.includes("/fsi-app/docs/"), "must not resolve under fsi-app/ — the ratifications tree is repo-root");
 });
 
 test("resolveRulingPath: an already-absolute arg passes through unchanged", () => {
-  assert.equal(resolveRulingPath("/tmp/some.ruling.json"), "/tmp/some.ruling.json");
+  const absPath = resolve(tmpdir(), "some.ruling.json");
+  assert.equal(resolveRulingPath(absPath), resolve(absPath));
 });
 
 // ── --arg gate: refuses BEFORE any DB call, in both modes ──────────────────────────────────────────────
@@ -63,7 +70,7 @@ test("dry: resolves the ruling path, calls applyMain with apply:false, plan is p
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].apply, false);
-  assert.ok(calls[0].rulingPath.endsWith("/docs/ratifications/2026-09/portal-links.ruling.json"));
+  assert.ok(posix(calls[0].rulingPath).endsWith("/docs/ratifications/2026-09/portal-links.ruling.json"));
   assert.equal(r.mode, "dry");
   assert.equal(r.counts.queue, "portal-links");
   assert.equal(r.counts.groups, 1);

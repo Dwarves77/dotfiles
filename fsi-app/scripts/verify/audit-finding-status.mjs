@@ -22,6 +22,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const STRICT = process.argv.includes("--strict");
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -64,7 +65,7 @@ const DEFECTY = /\b(bug|defect|broken|fails?|failing|missing|never|unsafe|vulner
 // own code (a test runner's other test files, a wrapping script's own exit-code handling) ever got to
 // run. Same idiom this repo's other scripts/verify/*.mjs CLIs already use (e.g. defect-signature-scan.mjs,
 // no-generic-source-audit.mjs).
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   let files = [];
   try { files = listAuditFiles(AUDITS); }
   catch { console.log("audit-finding-status: no docs/audits directory; nothing to check."); process.exit(0); }

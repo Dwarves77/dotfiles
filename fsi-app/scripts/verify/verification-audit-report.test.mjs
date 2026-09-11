@@ -101,8 +101,14 @@ test("findSectionsMissingSpan: a FACT claim WITH a real source_span is not count
 
 // ── collectHarnessMarkers ────────────────────────────────────────────────────────────────────────
 
+// The implementation joins root + family with the OS separator (path.join), so on Windows the dir it
+// asks for is backslash-separated while these fakes are keyed on POSIX literals. Normalize the incoming
+// path to POSIX before the lookup so the fakes behave identically on every platform (the same
+// path-separator class hashHarnessVersion's 2026-09-11 fix addresses; this test was RED on Windows).
+const posix = (p) => String(p).split("\\").join("/");
+
 function fakeHistoryReader(byDir) {
-  return (dir) => byDir[dir] ?? { runs: [], invalid: [] };
+  return (dir) => byDir[posix(dir)] ?? { runs: [], invalid: [] };
 }
 
 test("collectHarnessMarkers: a family with run history reports its latest run", () => {
@@ -151,7 +157,7 @@ test("collectHarnessMarkers: a zero-run family WITH a PENDING-RUN.md is marked, 
     families: ["propagation"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    fileExists: (p) => p.endsWith("propagation/PENDING-RUN.md"),
+    fileExists: (p) => posix(p).endsWith("propagation/PENDING-RUN.md"),
   });
   assert.equal(rows[0].pendingMarker, true);
 });

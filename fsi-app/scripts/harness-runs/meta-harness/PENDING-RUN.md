@@ -76,14 +76,14 @@ describing the same 8-file mint list, not a behavior change). See
 `scripts/harness-runs/mint/PENDING-RUN.md`'s own "What changed (13)" entry, same commit, for the mint-side
 half of this same edit.
 
-**harness_version at write time:** `sha256:bd09a974ebf49c17` (train 38 assembly: TURNREQ's `corpus-turn` registration and DEAD-EXEC's shim removal land in the same train, so the pinned hash is the hash of `governing-files.mjs`/`CONVENTION.md` carrying BOTH edits; DEAD-EXEC's own lane measured `sha256:0e0fb1d1753e53ee` against a tree without the corpus-turn entry)
+**harness_version at DEAD-EXEC's write time (superseded below, see "Lane HASHSEP"):** `sha256:bd09a974ebf49c17` (train 38 assembly: TURNREQ's `corpus-turn` registration and DEAD-EXEC's shim removal land in the same train, so the pinned hash is the hash of `governing-files.mjs`/`CONVENTION.md` carrying BOTH edits; DEAD-EXEC's own lane measured `sha256:0e0fb1d1753e53ee` against a tree without the corpus-turn entry)
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave. Per F28's reverse-audit, this file is deleted the moment
 an artifact carrying the hash above lands (or updated to a newer hash, per rule (c), if a `meta-harness`
 governing file changes again before that run lands).
 
-**Re-pin note (lane TURNREQ, 2026-09-04):** `sha256:bf7c0e927a84b9f0` → `sha256:6be30ff6b965d085`. This
+**Re-pin note (lane TURNREQ, 2026-09-04):** `sha256:bf7c0e927a84b9f0` -> `sha256:6be30ff6b965d085`. This
 lane registered the `corpus-turn` harness family (closing the 2026-09-04 wiring audit's B1 Gap #2 / B2 §1
 finding — see `scripts/harness-runs/corpus-turn/PENDING-RUN.md`): `scripts/harness-runs/governing-files.mjs`
 gained a `corpus-turn` entry and its own header/CONVENTION.md prose gained the family's registration note
@@ -92,3 +92,55 @@ file's own list), so editing them to register a NEW family moves `meta-harness`'
 "the loop applies to itself" mechanism `governing-files.mjs`'s header describes. `F28-harness-run-integrity.
 mjs` and `PROPOSER-RUNBOOK.md` (the other two `meta-harness` governing files) are untouched by this lane.
 The planned run is unchanged.
+
+---
+
+## Lane HASHSEP (2026-09-11): hashHarnessVersion made path-separator independent
+
+**What changed:** Task 0.3 of the 2026-09-11 build plan fixed `scripts/lib/run-artifact.mjs`'s
+`hashHarnessVersion` (one of `meta-harness`'s own governing files, per this file's list above): the
+function built its content digest over `relative(base, abs)` directly, and `relative()` returns
+backslash-separated paths on Windows and forward-slash-separated paths everywhere else (including CI). The
+same tree therefore hashed to two different `harness_version` values depending on the clone's OS: every
+F28 verdict computed on a Windows clone was wrong, and the pre-push hook (fitness gate) failed on every
+push from a Windows machine as a result. Reproduced on this machine before the fix: the `propagation`
+family's three governing files hashed to `sha256:cd26625e75e6f4ba` here, and to
+`rel.split("\\").join("/")`'s value, `sha256:ebe93513ffa2a4f9`, which is exactly the hash
+`propagation-run-006` (CI, Linux) has on record. Full F28 run before the fix on this clone: 10 violations,
+one STALE PENDING-RUN.md or STALENESS COUPLING per registered family (mint, screen, fetch-drain,
+meta-harness, forward-events, source-sweep, ledger-consume, change-detection, propagation, corpus-turn),
+the class-wide symptom the task brief named, not an isolated case.
+
+**The fix:** `hashHarnessVersion` now normalizes `rel` to POSIX separators (`.split(sep).join("/")`,
+`sep` from `node:path`) before it enters the digest. Every governing-file list in
+`scripts/harness-runs/governing-files.mjs` (and CONVENTION.md's table) is already written with forward
+slashes, and CI (Linux) already produced forward-slash `rel` values by construction; this normalization
+changes nothing for Linux/CI and makes Windows agree with the values already on record, not the other way
+around. Verified: `hashHarnessVersion(GOVERNING_FILES.propagation, ...)` on this clone now returns
+`sha256:ebe93513ffa2a4f9`, matching `propagation-run-006`'s recorded value exactly.
+
+**Because this edit touches `run-artifact.mjs` itself** (one of `meta-harness`'s own governing files),
+`meta-harness`'s own `harness_version` moves too, exactly the self-referential mechanism this file's header
+describes. The new hash, computed with the FIXED function against this tree's current `GOVERNING_FILES['meta-harness']`
+(`scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`,
+`.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`):
+
+**harness_version at write time (superseded below, see task 0.3b):** `sha256:29f6e50d650403cb`
+
+**RE-PINNED (task 0.3b, 2026-09-11, lane hashsep):** `scripts/lib/run-artifact.mjs` (one of `meta-harness`'s
+own governing files) had its CLI main guard swapped from the broken hand-built `file://` +
+`process.argv[1]` comparison idiom (never true on Windows) to `isMainModule(import.meta.url)`
+(`scripts/lib/is-main.mjs`, a new same-directory sibling), plus the one new import line that requires. A
+mechanical, behavior-preserving edit only: the guard still calls `main()` under the identical condition,
+now correctly on every platform instead of only on POSIX; `hashHarnessVersion` itself (the function this
+family's own hash computation depends on) is unchanged by this lane, only the file's CLI entry point at
+its bottom. This moves `run-artifact.mjs`'s bytes and, self-referentially, the family's own hash again.
+
+**harness_version at write time:** `sha256:96ead321c8f54a2e` (recomputed task 0.3b, `node -e` against
+`governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array and `run-artifact.mjs`'s
+`hashHarnessVersion`, the same 5 files, unreordered; supersedes `sha256:29f6e50d650403cb` outright).
+
+**The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
+next self-application review pass over this wave, unchanged in kind from the prior entries above, just a
+newer hash to discharge. No other `meta-harness` governing file was edited by task 0.3b; only
+`scripts/lib/run-artifact.mjs` (the CLI main-guard swap) moved the hash.

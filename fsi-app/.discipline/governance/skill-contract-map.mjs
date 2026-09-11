@@ -50,7 +50,7 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, relative, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { normalizeEol } from '../lib/read-migration-sql.mjs';
 
@@ -169,7 +169,17 @@ export const PINNED_MANIFEST = {
     // when first navigating to a page. Reviewed against every citingFile below: none of them cites a
     // Section 4 category, and no existing statement in the skill changed - the category is a new
     // appended section, the same posture as the categories 36-41 re-pins above. No citingFiles change.
-    contentHash: '13797439c07131dc105244c291ffdd7e578471299cf72ef700a0e3fc11bda77a',
+    // 2026-09-11 (task 0.3b, lane hashsep): re-pinned for Section 4 category 44, "a CLI main guard
+    // built from a hand-typed file:// string breaks on every Windows machine" (RD-68 / F44), the class
+    // fix for the 36-file Windows main-guard defect this task closed. Reviewed against every
+    // citingFile below: none cites a Section 4 category or any statement this addition touches - the
+    // category is a new appended section, the same posture as the categories 36-43 re-pins above. No
+    // citingFiles change.
+    // 2026-09-11 (task 0.3b fix round 1): re-pinned again after correcting category 44's blast-radius
+    // claim (reviewer-confirmed: 31 of the 36 files silently exited 0, the other 5 carried a working
+    // endsWith fallback and were fragile, not silent) - a text correction inside the same section, not
+    // a new one. No citingFiles change.
+    contentHash: 'b4c319ee3b8f6e3aaa1f9f5246952e79c27f59dea6fce96931ca5b50d2949b0b',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
@@ -451,7 +461,10 @@ export function isSkillContractClean(repoRoot = REPO) {
 
 // ---- CLI (operator utility, mirrors skill-map.mjs's --list/--check style) ----
 // Usage: node skill-contract-map.mjs --check   → prints problems (if any) and exits 1, else prints OK and exits 0
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('skill-contract-map.mjs')) {
+// task 0.3b: the Windows-safe main guard, inlined (no scripts/lib import precedent under
+// .discipline/governance/, unlike .discipline/fitness/functions/ which already imports scripts/lib -
+// see scripts/lib/is-main.mjs for the shared primitive this mirrors).
+if (Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const { ok, problems } = checkDrift(REPO);
   if (ok) {
     console.log(`skill-contract-map: OK — ${Object.keys(PINNED_MANIFEST).length} pinned skills, no drift.`);

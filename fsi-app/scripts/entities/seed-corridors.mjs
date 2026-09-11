@@ -77,6 +77,7 @@
 
 import { entityId, corridorSeed } from "../../src/lib/entities/entity-id.mjs";
 import { formatCorridorLabel } from "../../src/lib/entities/unlocode-names.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export const CITE = Object.freeze({
   skill: "corridor-identity-seed",
@@ -393,7 +394,7 @@ async function loadEnv() {
   try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   (async () => {
     await loadEnv();
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

@@ -20,8 +20,9 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import crypto from "node:crypto";
-import { join, resolve, relative, dirname } from "node:path";
+import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // "meta-harness" (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family:
 // its runs are the waves that build/extend this substrate itself (MH-1..MH-3, and every wave after). Its
@@ -367,7 +368,13 @@ export function hashHarnessVersion(filePaths, baseDir = process.cwd()) {
   const entries = filePaths
     .map((p) => {
       const abs = resolve(base, p);
-      const rel = relative(base, abs);
+      // Normalize to POSIX separators before the path enters the digest. relative() returns
+      // backslash-separated paths on Windows and forward-slash-separated paths everywhere else
+      // (including CI), so the SAME tree hashed two different ways depending on platform: every
+      // governing-file list here is already written with forward slashes (see
+      // scripts/harness-runs/governing-files.mjs), so this normalization changes nothing for
+      // Linux/CI and makes Windows agree with it, not the other way around.
+      const rel = relative(base, abs).split(sep).join("/");
       const content = readFileSync(abs, "utf8");
       return { rel, content };
     })
@@ -600,6 +607,6 @@ function main() {
 
 // Only run main() when this file is executed directly (not when imported by the test suite) — same
 // guard as screen-worklist.mjs.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

@@ -16848,3 +16848,162 @@ response paints into.
 
 No new screen, no new flow, no new control, no new row anatomy. This is a legibility repair reusing an
 existing, already-shipped reflow under a second trigger.
+
+## HASHSEP (2026-09-11)
+
+Task 0.3 of the 2026-09-11 build plan. `hashHarnessVersion` (`fsi-app/scripts/lib/run-artifact.mjs`)
+built its `harness_version` digest over `relative(base, abs)` directly. `relative()` returns
+backslash-separated paths on Windows and forward-slash-separated paths on Linux/CI, so the same tree
+hashed to two different values depending on the clone's OS: every F28 verdict computed on a Windows
+clone was wrong, and the pre-push hook (fitness gate, step 3) failed on every push from this machine.
+This was the first task in the plan because nothing else can land until a Windows clone can push at
+all.
+
+**Reproduction [CONFIRMED]**, on this Windows machine, before the fix: `hashHarnessVersion` over the
+`propagation` family's three governing files (`scripts/turns/run-propagation-drain.mjs`,
+`src/lib/propagation/drain.ts`, `src/lib/propagation/admissible-for.ts`) returned
+`sha256:cd26625e75e6f4ba`; recomputing with `rel.split("\\").join("/")` returned
+`sha256:ebe93513ffa2a4f9`, exactly the hash `propagation-run-006` (CI, Linux) has on record. Full F28
+run before the fix (`node .discipline/fitness/runner.mjs`): 10 violations, one STALE PENDING-RUN.md or
+STALENESS COUPLING per registered family (mint, screen, fetch-drain, meta-harness, forward-events,
+source-sweep, ledger-consume, change-detection, propagation, corpus-turn). Class-wide, not one family.
+
+**Fix:** `hashHarnessVersion` now normalizes `rel` to POSIX separators
+(`relative(base, abs).split(sep).join("/")`, `sep` from `node:path`) before it enters the digest. Every
+governing-file list in `scripts/harness-runs/governing-files.mjs` is already written with forward
+slashes and CI already produced forward-slash `rel` values, so this changes nothing for Linux/CI and
+makes Windows agree with the values already on record.
+
+**TDD evidence:** added a RED-first test to `scripts/lib/run-artifact.test.mjs` (a nested file, hashed
+against a forward-slash constant). On this machine, before the fix: actual `sha256:75178ae918757826`
+(backslash `rel`) against expected `sha256:12b28ff493b24d51` (forward-slash `rel`), FAIL. After the fix:
+PASS. Full evidence, including the isolated revert-and-rerun used to capture the clean RED transcript,
+is in the task report.
+
+**meta-harness marker:** `run-artifact.mjs` is one of `meta-harness`'s own governing files
+(`scripts/harness-runs/governing-files.mjs`), so editing it moved `meta-harness`'s own
+`harness_version`. Updated `scripts/harness-runs/meta-harness/PENDING-RUN.md`: the prior
+"harness_version at write time" line was reworded (so `parsePendingRunHash` no longer matches it) and a
+new "Lane HASHSEP" section was appended with the hash computed by the FIXED function against this
+tree's current governing-file set: `sha256:29f6e50d650403cb`. No other family's marker was touched.
+
+**Second, independent OS-path bug found and fixed in the same file while extending it per the task
+brief:** `scripts/lib/run-artifact.test.mjs`'s "CLI integration" test built a directory path with
+`new URL(...).pathname`, which on Windows keeps the leading "/" before the drive letter
+(`/C:/Users/...`), a path no `fs` call resolves; `fileURLToPath` returns the real platform path. This
+test is wired into `run-test-suite.sh` (hence the pre-push hook), so it was blocking the same gate
+before any hashHarnessVersion work even ran. Confirmed pre-existing on unmodified `origin/master` (not
+caused by this lane) before fixing it. Fixed in the same motion per CLAUDE.md rule 13.
+
+**Gates, this clone:** `npx tsc --noEmit` exit 0; `node .discipline/fitness/runner.mjs` (full suite) 37
+functions checked, 0 violations; `bash .discipline/run-test-suite.sh` exit 0; `node --test
+scripts/lib/run-artifact.test.mjs .discipline/fitness/functions/F28-harness-run-integrity.test.mjs`, 91
+tests, 0 failures; `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` exit 0; `npx next
+build` exit 0. `npm run audit:design` fails with `Cannot find module 'playwright'`: `playwright` is
+absent from `package.json`/`package-lock.json` entirely, a pre-existing environment gap unrelated to
+this lane's files and not exercised by the pre-push hook (verified by reading
+`fsi-app/.discipline/hooks/pre-push`, installed at `.git/hooks/pre-push`: its 4 steps are the untracked-
+file gate, the consistency runner, `run-test-suite.sh`, and `tsc --noEmit`; `audit:design` is not among
+them). Flagged, not fixed: adding a new dependency is out of scope for this narrow separator fix.
+
+Branch `lane/hashsep-2026-09-11`, worktree `.worktrees/wt-hashsep-0911`. Commit trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. This PR merges first; every other lane in
+the 2026-09-11 plan rebases onto it before pushing.
+
+### UX compliance
+
+Not applicable. No `.tsx` or `.css` file was touched; this lane is a pure Node script fix
+(`scripts/lib/run-artifact.mjs`), its test, and a markdown marker file.
+
+### 0.3b: CLI main guard
+
+Task 0.3b. Task 0.3 fixed `hashHarnessVersion`'s path-separator dependence so F28 agrees with CI on
+Windows; the pre-push hook then advanced to STEP 3 (`bash fsi-app/.discipline/run-test-suite.sh`) and
+failed: tests that spawn a CLI script via `execFileSync` got empty stdout on this Windows machine.
+
+**The class.** 36 files (34 under `scripts/**`, 2 under `.discipline/governance/`) used a guard
+comparing `import.meta.url`, with `===`, against a template literal built by prefixing the literal
+"file://" onto `process.argv[1]`, then calling `main()` when it matched. On Windows,
+`import.meta.url` is a real `file://` URL with forward slashes while `process.argv[1]` is Node's native
+backslash path, so the hand-built comparison string never equals `import.meta.url` and the guard is
+never true: every one of the 36 CLI scripts silently exited 0 with no output when invoked directly on
+Windows, a runtime defect, not only a test-only one. [CONFIRMED, grep across `scripts` and `.discipline`,
+this lane.]
+
+**The primitive.** `fsi-app/scripts/lib/is-main.mjs` exports `isMainModule(importMetaUrl)`, comparing
+`pathToFileURL(resolve(process.argv[1])).href` against the caller's `import.meta.url` instead of a
+hand-built string. `fsi-app/scripts/lib/is-main.test.mjs` proves it with a real `node <file>` spawn (a
+fixture, `is-main-fixture.mjs`) rather than a mocked in-process `process.argv[1]` override, since the
+Windows defect only reproduces under a genuine invocation; it also carries a regression sweep (grep
+every git-tracked file under `scripts/**` and `.discipline/**` for the broken idiom).
+
+**The guard added.** All 34 `scripts/**` files (including `scripts/lib/*.mjs` themselves and
+`scripts/_archive/lib/bootstrap-test1.mjs`) now import `isMainModule` from `scripts/lib/is-main.mjs` and
+call `isMainModule(import.meta.url)`, preserving each file's existing guard body. The 2
+`.discipline/governance/` files (`skill-map.mjs`, `skill-contract-map.mjs`) inline the equivalent
+`pathToFileURL(resolve(process.argv[1])).href === import.meta.url` idiom instead of importing
+`scripts/lib`: `.discipline/governance/` carries no precedent for importing `scripts/lib` as an ES
+import (`.discipline/fitness/functions/` already does, via F28), so this lane inlines the idiom there
+per the task brief's own instruction rather than establishing a first cross-directory import.
+
+**Fitness-style guard.** `.discipline/fitness/functions/F44-broken-main-guard.mjs`, registered in the
+manifest and as invariant RD-68 (`fsi-app/.claude/skills/remediation-discipline/SKILL.md` Section 4
+category 44), forbids the broken idiom from re-entering `fsi-app/scripts/**` or `fsi-app/.discipline/**`.
+Chosen over embedding the sweep only in `is-main.test.mjs` because the repo's own established convention
+for this exact shape (a lexical grep-class guard over a scope of files) is a registered F-function
+(F38-F43 are the recent precedents); both now carry the identical check (belt-and-suspenders, the same
+shape RD-11's transport-hold gate already uses), one in the fitness runner, one in the no-npm-ci
+pre-push suite.
+
+**Side effects fixed in the same motion (CLAUDE.md rule 13).** Editing `scripts/mint/validate-mint-payload.mjs`,
+`scripts/mint/screen-worklist.mjs`, and `scripts/lib/run-artifact.mjs` moved the `mint`, `screen`, and
+`meta-harness` harness families' own `harness_version` hashes (each file is one of that family's
+registered governing files per `scripts/harness-runs/governing-files.mjs`). Re-pinned all three
+`PENDING-RUN.md` markers with the new hash, naming this lane, following the file's own established
+re-pin convention. Each edit was mechanical and behavior-preserving in every case (no validation or
+classification logic changed).
+
+**Non-guard test-side fixes (brief step 4), diagnosed individually, no implementation changed.**
+Two groups of pre-existing hardcoded-POSIX-literal assertions, both correct in implementation:
+`resolveRulingPath` (four `scripts/maintenance/review-apply-*.mjs` wrappers) and `defaultTraceDir`
+(three `scripts/turns/run-*.mjs` harnesses) both route through `node:path`'s `resolve()`/`join()`,
+which emit backslash-separated paths on Windows; their tests asserted hardcoded POSIX strings, which
+only ever matched on POSIX. Fixed by normalizing the actual side before comparing (relative-path
+shape assertions) or comparing directly against `resolve()`/`join()` output (absolute-passthrough and
+directory-join assertions), so the expectation derives from Node's own path semantics on whichever
+platform runs the suite. `run-ledger-consume.test.mjs`'s `discoverVerdictsFiles` test had a second,
+distinct bug: it compared `join()`'s own output against `resolve()`'s output, which differ on Windows
+(resolve additionally qualifies with the current drive); fixed by comparing against `join()`, the
+function actually under test. The five files named in the brief as "expected to be cured by the
+main-guard fix alone" were re-run and confirmed green (93 tests, 0 failures) with no further changes.
+
+**Two follow-on fixes found only by the full suite run, both same-day, same lane.** (1)
+`scripts/lib/is-main.test.mjs`'s regression sweep scanned test files too, which flagged its own
+sibling `F44-broken-main-guard.test.mjs`: that file's `BROKEN_LITERAL` fixture constant stores the
+broken idiom as a literal string on one line (to build RED-case source snippets for
+`fitnessFunction.check()`), which is exactly the "fixture, not a live call site" case F44 itself
+already excludes test files for. Fixed by adding the same `*.test.mjs`/`*.selftest.mjs`/`*.npmtest.mjs`
+exclusion to the sweep. (2) Editing `remediation-discipline/SKILL.md` (the new category 44 section)
+moved its content hash out from under `skill-contract-map.mjs`'s `PINNED_MANIFEST`, which pins one
+hash per governing skill and reds when a skill's live hash disagrees with what is pinned. Re-pinned to
+the new hash following the file's own established re-pin convention (a comment naming the lane and
+confirming no `citingFiles` change, since the addition is a new appended section touching no statement
+any citing file relies on), the same convention already used ten-plus times in that file for the
+prior category additions (36 through 43).
+
+**Gates, this clone (final, after both follow-on fixes).**
+- `node --test scripts/lib/is-main.test.mjs`: 5 tests, 0 failures.
+- `bash fsi-app/.discipline/run-test-suite.sh`: `tests 6059 / pass 6054 / fail 0 / skipped 5`.
+- `node .discipline/fitness/runner.mjs`: 38 function(s) checked, 0 violation(s).
+- `node .discipline/governance/invariant-coverage.mjs` (not one of the required gates, run anyway since
+  it is wired into CI's "Discipline engine unit tests" job and RD-68 needed registering to stay green
+  there): `skills: 7 invariants: 124 | ENFORCED 111 EXEMPT 13`, `=== meta-gate PASS ===`.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: exit 0, all 5 commits pass.
+- `npx tsc --noEmit`: exit 0, empty output.
+- Runtime proof: `node scripts/mint/run-mint-batch.mjs --help` prints its usage text on this Windows
+  machine instead of nothing.
+
+**UX compliance:** not applicable, no `.tsx`/`.css` touched.
+
+Branch `lane/hashsep-2026-09-11`, worktree `.worktrees/wt-hashsep-0911`. Commit trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.

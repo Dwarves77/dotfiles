@@ -87,6 +87,7 @@ node --test \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \
   fsi-app/scripts/lib/institution-key.test.mjs \
+  fsi-app/scripts/lib/is-main.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
   fsi-app/scripts/lib/revalidate.test.mjs \

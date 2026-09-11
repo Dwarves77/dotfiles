@@ -70,6 +70,19 @@ opening string `buildRecordFullBrief` writes — extracted so `scripts/verify/po
 own OUTPUT is byte-for-byte unchanged (the constant's value is the identical string that was previously
 inlined) — no mint-kit VALIDATION behavior changed by this edit either, same as MINT-FLYWHEEL above.
 
-**harness_version at write time:** `sha256:eb6c6027081dcd54` (recomputed this lane, `node -e` against
-`governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion` —
-the same 8 files, unreordered; supersedes `sha256:96b9cc82d6505b7d` outright).
+**harness_version at write time (superseded below, see task 0.3b):** `sha256:eb6c6027081dcd54` (recomputed
+this lane, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and
+`run-artifact.mjs`'s `hashHarnessVersion`, the same 8 files, unreordered; supersedes
+`sha256:96b9cc82d6505b7d` outright).
+
+**RE-PINNED (task 0.3b, 2026-09-11, lane hashsep):** `scripts/mint/validate-mint-payload.mjs` (one of the
+8 files `GOVERNING_FILES.mint` names) had its CLI main guard swapped from the broken hand-built
+`file://` + `process.argv[1]` comparison idiom (never true on Windows) to `isMainModule(import.meta.url)`
+(`scripts/lib/is-main.mjs`), plus the one new import line that requires. A mechanical, behavior-preserving
+edit only: the guard still calls `main()` under the identical condition, now correctly on every platform
+instead of only on POSIX; no mint-kit VALIDATION behavior changed. This moves the file's bytes and
+therefore the family's hash again.
+
+**harness_version at write time:** `sha256:0cc65f2728f2af1a` (recomputed task 0.3b, `node -e` against
+`governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion`,
+the same 8 files, unreordered; supersedes `sha256:eb6c6027081dcd54` outright).

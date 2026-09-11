@@ -21,6 +21,7 @@ import * as ProvisionalSources from "./lib/provisional-sources.mjs";
 import * as CanonicalCandidates from "./lib/canonical-candidates.mjs";
 import * as PortalLinks from "./lib/portal-links.mjs";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
@@ -91,7 +92,7 @@ export async function main({ out, queue, now } = {}, deps) {
   return summary;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const args = process.argv.slice(2);
   const outIdx = args.indexOf("--out");
   const out = outIdx >= 0 ? args[outIdx + 1] : undefined;

@@ -68,6 +68,7 @@ import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { SERIES_ITEM_MAP } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { CAPTURED_BULLETIN_PAGE_TEXT } from "./refresh-published-price-statistics.mjs";
+import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // The relevance-screen verdict every proposed R-D payload already carries (propose-series-items.mjs's
 // own PROPOSED_ITEM_SCREEN): this human-directed lane judged the six oil-bulletin products in-vertical
@@ -145,6 +146,6 @@ function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

@@ -67,6 +67,7 @@ import { fileURLToPath } from "node:url";
 
 import { readRunHistory, metricHeadline, ALLOWED_FAMILIES } from "./run-artifact.mjs";
 import { auditProposerAttestation } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
+import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -538,6 +539,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

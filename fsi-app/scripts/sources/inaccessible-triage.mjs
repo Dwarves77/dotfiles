@@ -75,6 +75,7 @@ import { officialnessOf } from "../../src/lib/sources/officialness.mjs";
 // .mjs" precedent scripts/lib/db.mjs already relies on for classify-source-role.ts.
 import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 import { hostOf } from "../lib/institution-key.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -438,7 +439,7 @@ function defaultWriteSummaryFile(outDir, summary) {
   writeFileSync(resolve(outDir, "_summary.json"), JSON.stringify(summary, null, 2));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[inaccessible-triage] no DB creds — cannot run here (exit 2).");

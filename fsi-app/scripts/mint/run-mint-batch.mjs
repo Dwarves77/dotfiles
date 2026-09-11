@@ -56,6 +56,7 @@ import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-art
 import { buildRecordPayload } from "../../src/lib/intake/record-facts.mjs";
 import { checkTagPresence } from "./lib/tag-presence-check.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -629,6 +630,6 @@ function main() {
 
 // Only run main() when this file is executed directly (not when imported by the test suite) — same
 // guard as screen-worklist.mjs / run-artifact.mjs.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }
