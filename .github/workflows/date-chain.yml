@@ -37,9 +37,21 @@ name: Date chain backfill
 # standing cadence while the site is being built; every corpus write here is by explicit dispatch.
 #
 # BOUNDED AND RESUMABLE: `limit` and `after_id` pass straight through to whichever script(s) run this
-# dispatch, exactly as the runbook documents (`--limit N`, `--after-id <uuid>`). Each script's own summary
-# line ("last id processed this run (for --after-id resume): <uuid>") is appended to the job summary, so
-# the next dispatch's `after_id` input is read off THIS run's own output, never guessed.
+# dispatch, exactly as the runbook documents (`--limit N`, `--after-id <uuid>`). Each script's own final
+# summary block (everything from its own `=== DONE ===` / `=== DRY-RUN ===` line to the end of its
+# output, not just the last line) is appended to the job summary, so the next dispatch's `after_id`
+# input, and the totals and held-item lines an operator needs, are all read off THIS run's own output,
+# never guessed and never truncated away.
+#
+# ARTIFACT UPLOAD (DATECHAINART lane, 2026-09-11, coordinator-confirmed defect fix). backfill-item-
+# timelines.mjs runs a guarded delete-then-insert through scripts/lib/db.mjs, which snapshots the prior
+# row state to fsi-app/scripts/_snapshots/ before every mutation so a bad apply run is reversible. Every
+# other runtime workflow in this repo (downstream-chain.yml, population-turn.yml, corpus-turn.yml)
+# uploads that same directory with actions/upload-artifact so the snapshot survives past the runner;
+# this workflow did not, so on an apply run the only reversal record for up to 1,169 timeline rows died
+# with the runner. Fixed below with the same upload-artifact shape downstream-chain.yml already uses
+# (always(), if-no-files-found warn, retention-days 90), also covering this run's own /tmp/*.log files
+# so the un-truncated script output is retrievable alongside the snapshots.
 #
 # DISPATCH RECIPE: Actions tab -> Date chain backfill -> Run workflow (pick mode/command/limit/after_id),
 # or `gh workflow run date-chain.yml -f mode=apply -f command=both`.
@@ -134,7 +146,7 @@ jobs:
           node scripts/forward-events/dispatch-extraction.mjs $SCRIPT_FLAGS | tee /tmp/forward-events.log
           echo "### forward-events backfill" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 1 /tmp/forward-events.log >> "$GITHUB_STEP_SUMMARY"
+          awk '/^=== /{f=1} f' /tmp/forward-events.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # Command 2 of the runbook — runs after forward-events, same order the runbook stages them in.
@@ -144,7 +156,7 @@ jobs:
           node scripts/backfill-item-timelines.mjs $SCRIPT_FLAGS | tee /tmp/timeline-harvest.log
           echo "### timeline harvest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 1 /tmp/timeline-harvest.log >> "$GITHUB_STEP_SUMMARY"
+          awk '/^=== /{f=1} f' /tmp/timeline-harvest.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # ALWAYS last, in every mode and for every command choice — rule 17: a run that ends without
@@ -159,3 +171,20 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/population-report.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # DATECHAINART lane, 2026-09-11. backfill-item-timelines.mjs's guarded delete-then-insert snapshots
+      # prior rows to scripts/_snapshots/ before every mutation (reversibility); without this step those
+      # snapshots died with the runner on an apply run, leaving no restorable prior state. Same shape
+      # downstream-chain.yml's own "Upload this run's step artifact(s)" step already uses. Runs always()
+      # so a snapshot from a failed or partial run is still retrievable, and covers this run's /tmp/*.log
+      # files too so the un-truncated script output survives alongside the snapshots.
+      - name: Upload snapshots and run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: date-chain-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/_snapshots/
+            /tmp/*.log
+          if-no-files-found: warn
+          retention-days: 90

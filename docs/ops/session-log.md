@@ -16713,3 +16713,35 @@ scans `.github/workflows/*.yml` itself, so no manual registration was needed the
 and the runbook's own new "Runtime" section (dispatch: Actions tab > Date chain backfill > Run workflow,
 or `gh workflow run date-chain.yml -f mode=apply -f command=both`). No customer-surface change; no UX
 compliance block needed.
+
+
+## DATECHAINART lane, 2026-09-11: date-chain.yml snapshot artifact upload + full summary extraction
+
+What: fixed two defects in `.github/workflows/date-chain.yml` (the DATECHAINWF lane's own workflow, same
+day). (1) The timeline harvest step runs `scripts/backfill-item-timelines.mjs --execute`, a guarded
+delete-then-insert whose `scripts/lib/db.mjs` snapshots the prior `item_timelines` rows to
+`fsi-app/scripts/_snapshots/` before every mutation, but the workflow never uploaded that directory as a
+workflow artifact, so on an apply run the only reversal record for the replaced rows died with the
+runner. Added an `actions/upload-artifact@v4` step (`always()`, name `date-chain-${{ github.run_id }}`,
+covering `fsi-app/scripts/_snapshots/` and this run's `/tmp/*.log` files, `if-no-files-found: warn`,
+`retention-days: 90`) — the same shape `downstream-chain.yml`'s own "Upload this run's step artifact(s)"
+step already uses (population-turn.yml and corpus-turn.yml use the same directory with
+`if-no-files-found: ignore` for a snapshots-only upload; `warn` matches the named precedent workflow).
+(2) The job summary steps captured only `tail -n 1` of each script's stdout, so run #1's summary showed
+only the resume-id line for forward-events and a single held-item line for the timeline harvest — the
+totals lines (`filled`/`replaced`/`timeline rows written`, `items with new events`/`total events`/etc.)
+never reached the summary. Replaced `tail -n 1` with `awk '/^=== /{f=1} f'`, which captures everything
+from each script's own `=== DONE ===` / `=== DRY-RUN ===` line to the end of its output — verified against
+two constructed sample logs built from the scripts' own `console.log` print statements (both extractions
+correctly returned the full block: totals line, date-free/skipped line where present, the resume id, and
+the HELD block for the timeline script).
+
+Why: coordinator-confirmed defect (file read); rule 13 (a flag is a commitment) and rule 17 (nothing runs
+without measuring its own effect, extended here to "and the measurement must actually reach the summary").
+
+Evidence: `.github/workflows/date-chain.yml` diff (this lane); `fsi-app/scripts/lib/db.mjs` snapshot
+mechanism (lines ~114-119, 287-311); `downstream-chain.yml` upload step (~line 311-318);
+`population-turn.yml` / `corpus-turn.yml` upload steps; `backfill-item-timelines.mjs` summary block
+(lines ~140-146); `dispatch-extraction.mjs` summary block (lines ~142-144). YAML validated with
+`python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))'`. No schedule added (rule 16 still
+holds); no dispatch run, no database touch.
