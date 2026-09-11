@@ -9,6 +9,28 @@ Operator's instruction, 2026-09-09, verbatim (also recorded in `docs/ops/session
 > like they need fixed, the system isn't working because all of this is a problem and briefs need to
 > exist for all items as well.
 
+Operator's order, 2026-09-11, verbatim (also recorded in `docs/ops/session-log.md`): "get it done."
+
+## Runtime
+
+Commands 1 and 2 (forward-events backfill and timeline harvest — both FREE, no-model, pure parsers) run
+through `.github/workflows/date-chain.yml`, not by hand. It dispatches either or both scripts in the order
+staged above, then ALWAYS runs `scripts/verify/population-report.mjs` last regardless of which command was
+picked, so every dispatch ends with the measured state of `item_forward_events`, `item_timelines`,
+`compliance_deadline`, and brief coverage. Mode gates the `--execute` flag (`dry` plans and prints, `apply`
+writes); `limit` and `after_id` pass straight through to `--limit`/`--after-id` on the selected script(s),
+bounded and resumable exactly as commands 1 and 2 document above — the id to pass as the next run's
+`after_id` is printed in the prior run's own job summary.
+
+Dispatch: Actions tab > Date chain backfill > Run workflow, or:
+
+```
+gh workflow run date-chain.yml -f mode=apply -f command=both
+```
+
+Command 3 (full-brief generation for stub items) is model-backed and stays a subscription-lane dispatch
+decision, per that command's own section above — it is not part of this workflow.
+
 This lane built all three fixes (A/B/C below) as code, on branch `lane/datechain-2026-09-11`, and staged
 — but did not execute — the three corpus-wide runs this document commands. Numbers below are
 [CONFIRMED] by live query against project `kwrsbpiseruzbfwjpvsp` on 2026-09-11; re-run the same queries

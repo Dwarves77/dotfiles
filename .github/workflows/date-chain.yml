@@ -1,0 +1,161 @@
+name: Date chain backfill
+
+# DATECHAIN lane, 2026-09-11 (docs/ops/runbooks/date-chain-2026-09-11.md). The named runtime for the two
+# FREE, no-model backfills that runbook stages: `fsi-app/scripts/forward-events/dispatch-extraction.mjs`
+# (item_forward_events + the compliance_deadline sync it triggers) and
+# `fsi-app/scripts/backfill-item-timelines.mjs` (item_timelines from already-stored `full_brief` text).
+# Same layer ADR-023 supplied for producers.yml — "a producer is not complete until it has a named
+# runtime" — applied to these two scripts: correct code sitting in the repo with nobody remembering to
+# run it is the exact failure mode this lane exists to close.
+#
+# COST CLASS: PURE PARSERS, $0, NO MODEL, EVER. Read the scripts' own headers:
+#   - dispatch-extraction.mjs: "COST CLASS: PURE PARSER, $0" — extractForwardEvents
+#     (src/lib/forward-events/extract-forward-events.mjs) is documented "Pure, deterministic, $0, no-LLM
+#     module" in its own header; readAndExtractForwardEvents only reads already-stored
+#     section_claim_provenance / intelligence_item_sections / (conditionally) agent_run_searches rows.
+#   - backfill-item-timelines.mjs: "PURE PARSE — extractRegulationSections and buildTimelineRows are
+#     zero-I/O string parsers over content already stored in full_brief; this script calls no LLM and no
+#     external fetch. $0 at any scale."
+# Neither script ever spends on any key, so there is no priced line to write (RD-31 not applicable — see
+# the runbook's own reasoning under each command). This workflow reads only the two secrets every guarded
+# script in this repo already requires; it introduces no new secret name.
+#
+# TWO GATES, SAME SHAPE AS EVERY OTHER RUNTIME WORKFLOW IN THIS REPO (ADR-023 §4):
+#   1. `mode` (dry|apply) — is THIS run allowed to write? Manual dispatch defaults to `dry`. Only when
+#      `apply` is picked does either script get `--execute`; a `dry` run always plans and prints, never
+#      writes.
+#   2. `command` — which of the two scripts (or both, or neither — population-report alone) runs. Both
+#      run in the runbook's own stated order, cheapest and least destructive first: forward-events, then
+#      timeline harvest. `population-report.mjs` ALWAYS runs last, in every mode and for every command
+#      choice (ADR-023 §6 / CLAUDE.md rule 17, "nothing in this build runs alone" — a run that ends
+#      without measuring what it actually changed is a defect in the run, never a note for a
+#      coordinator), so every dispatch of this workflow ends with the measured state of
+#      item_forward_events, item_timelines, compliance_deadline and brief coverage, whether or not either
+#      backfill ran this time.
+#
+# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, no `schedule:` block — this repo runs no
+# standing cadence while the site is being built; every corpus write here is by explicit dispatch.
+#
+# BOUNDED AND RESUMABLE: `limit` and `after_id` pass straight through to whichever script(s) run this
+# dispatch, exactly as the runbook documents (`--limit N`, `--after-id <uuid>`). Each script's own summary
+# line ("last id processed this run (for --after-id resume): <uuid>") is appended to the job summary, so
+# the next dispatch's `after_id` input is read off THIS run's own output, never guessed.
+#
+# DISPATCH RECIPE: Actions tab -> Date chain backfill -> Run workflow (pick mode/command/limit/after_id),
+# or `gh workflow run date-chain.yml -f mode=apply -f command=both`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = plan and print, write nothing. apply = pass --execute to the selected script(s).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      command:
+        description: 'Which backfill(s) to run this dispatch. population-report.mjs always runs last regardless of this choice.'
+        required: true
+        default: 'both'
+        type: choice
+        options: [forward-events, timeline-harvest, both, population-report]
+      limit:
+        description: 'Optional --limit N (max items this run processes). Leave empty for unbounded.'
+        required: false
+        default: ''
+        type: string
+      after_id:
+        description: 'Optional --after-id <uuid> to resume past a prior run (see that run''s job summary for the id to use).'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: date-chain-backfill
+  cancel-in-progress: false
+
+env:
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_COMMAND: ${{ inputs.command }}
+  RUN_LIMIT: ${{ inputs.limit }}
+  RUN_AFTER_ID: ${{ inputs.after_id }}
+
+jobs:
+  date-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = $RUN_MODE"
+          echo "command = $RUN_COMMAND"
+          echo "limit    = ${RUN_LIMIT:-(none — unbounded)}"
+          echo "after_id = ${RUN_AFTER_ID:-(none — start from the beginning)}"
+          echo "Both scripts are pure parsers that call no model and spend nothing on any key (see this"
+          echo "workflow's own header). mode=apply passes --execute; mode=dry never writes."
+
+      - name: Build shared flags
+        run: |
+          FLAGS=""
+          if [ "$RUN_MODE" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
+          if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
+          echo "SCRIPT_FLAGS=$FLAGS" >> "$GITHUB_ENV"
+
+      # Command 1 of the runbook — cheapest, run first.
+      - name: forward-events backfill (dispatch-extraction.mjs)
+        if: env.RUN_COMMAND == 'forward-events' || env.RUN_COMMAND == 'both'
+        run: |
+          node scripts/forward-events/dispatch-extraction.mjs $SCRIPT_FLAGS | tee /tmp/forward-events.log
+          echo "### forward-events backfill" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 1 /tmp/forward-events.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # Command 2 of the runbook — runs after forward-events, same order the runbook stages them in.
+      - name: timeline harvest (backfill-item-timelines.mjs)
+        if: env.RUN_COMMAND == 'timeline-harvest' || env.RUN_COMMAND == 'both'
+        run: |
+          node scripts/backfill-item-timelines.mjs $SCRIPT_FLAGS | tee /tmp/timeline-harvest.log
+          echo "### timeline harvest" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 1 /tmp/timeline-harvest.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # ALWAYS last, in every mode and for every command choice — rule 17: a run that ends without
+      # measuring its own effect is a defect in the run, never a note for a coordinator. Runs even when a
+      # prior step failed, so the log always ends with the true state of the four stores rather than only
+      # the exception that got there first.
+      - name: Population report (always, end of run)
+        if: always()
+        run: |
+          node scripts/verify/population-report.mjs | tee /tmp/population-report.log
+          echo "### population report (end of run)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/population-report.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
