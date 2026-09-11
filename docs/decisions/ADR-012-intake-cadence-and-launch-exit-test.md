@@ -120,6 +120,29 @@ The program is **build-complete** (launch-ready) only when ALL hold simultaneous
 8. **Dead code zero.**
 9. **Manual intake run PROVEN end-to-end on a small source set** — the **intake dry-proof**:
    discovery through a verified item with **zero human touch mid-pipeline**.
+10. **Build-era archive purge** (keep-until-launch, snapshot-then-purge; RULED operator 2026-07-12).
+    The build-era archived `intelligence_items` + their `archive_reason` ledger are **retained through
+    build** as diagnostic lineage and **purged at launch**, when that lineage becomes irrelevant. Exit
+    conditions (all required): (a) a dedicated **pre-purge dump** exists off-platform in
+    `Dwarves77/caros-ledge-backups`, committed to `dumps/` (not merely a 90-day-expiring Actions
+    artifact), manifest-verified, containing the archived rows + the full `archive_reason` ledger; (b)
+    every `(null)`-reason archived row is labeled **`build_era_unclassified`** in that snapshot before
+    purge (*classify before discard*, `all-deletes-via-gate`), no purge over an undiagnosed bucket;
+    (c) after purge the live corpus has **zero `is_archived=true`** rows, reversible-by-restore from
+    the off-platform snapshot. The clause stands on the **logical dump** (confirmed, drill-proven),
+    independent of the open PITR question; the null-reason labeling rides with the purge unit at
+    launch, not now.
+
+    **[CONFIRMED]** current counts (re-measured 2026-09-11, superseding the 2026-07-12 ruling's
+    original "~370 archived / 253 reclassified_to_source / 51 null-reason" figures, which have since
+    drifted materially with the corpus's growth): `select archive_reason, count(*) from
+    intelligence_items where is_archived group by 1 order by 2 desc` against project
+    `kwrsbpiseruzbfwjpvsp` returns **1,248** total archived rows across 18 `archive_reason` values,
+    headed by `record_hollow` (551), `out_of_scope_wo26` (492), `(null)` (57), `off_vertical` (52),
+    and `reclassified_to_source` (42); the remaining 13 reasons each carry 8 rows or fewer. The
+    null-reason bucket needing `build_era_unclassified` labeling before purge is **57 rows**, not 51.
+    The purge's exit conditions (a)-(c) above are unchanged by this re-measurement; only the counts
+    they will be checked against move.
 
 At that point **launch-readiness = Jason fires intake runs at will.**
 
@@ -134,7 +157,7 @@ the exit-test evidence.
 Two durable, cross-dispatch decisions: (a) the scrape hold is **reframed** from emergency to a
 permanent-until-config manual-trigger model — this rewrites how RD-11 / F16 is described and adds a
 second authorized caller, so it must not be rediscovered as "why is fetching held"; (b) the
-launch-complete definition is now a **fixed nine-clause exit test**, not a per-dispatch judgment
+launch-complete definition is now a **fixed ten-clause exit test**, not a per-dispatch judgment
 call — every remaining dispatch closes against it. Both bind future work; both become landmines if
 left as session memory.
 
