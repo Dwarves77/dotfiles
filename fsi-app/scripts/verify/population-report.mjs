@@ -22,6 +22,7 @@
 // $0: read-only, count-only. No writes, no model calls, no metered anything.
 
 import { readClient } from "../lib/db.mjs";
+import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
@@ -29,6 +30,11 @@ import { readClient } from "../lib/db.mjs";
  * question: regional_data_facts carried 75 rows the entire time while holding ZERO enveloped
  * values, so the matrix's indexed layer showed nothing despite a non-zero count. `fill` is the
  * honest number, and the gap between the two is the whole point of this report.
+ *
+ * An entry may instead supply `totalQuery(sb)`/`filledQuery(sb)` — async functions returning
+ * `{count, error}` — for a store where "filled" isn't a plain non-null-column count (brief coverage,
+ * below, needs a text-pattern match, not a null check). `fill` stays required even then, as the
+ * human-readable label countStore's row prints next to the number.
  */
 export const STORES = Object.freeze([
   { table: "market_series", fill: "value_numeric",
@@ -49,6 +55,24 @@ export const STORES = Object.freeze([
   { table: "theme_briefs", fill: "brief_md",
     reader: "/research/[slug] — cluster synthesis card (WO-25)",
     producer: "flywheel U6 theme-brief pass" },
+  // ── DATECHAIN lane, 2026-09-11 — the three date-chain stores + brief coverage, named directly by
+  // the operator's 2026-09-09 ruling ("briefs need to exist for all items as well"). These four were
+  // the exact gap this population-report guard was invented to catch and did not: built-but-empty
+  // stores the CI/build gates never questioned. See docs/ops/runbooks/date-chain-2026-09-11.md.
+  { table: "item_timelines", fill: "milestone_date",
+    reader: "item detail page — §14 Confirmed Regulatory Timeline widget",
+    producer: "canonical-pipeline.ts harvestItemTimeline() (per-generation) + scripts/backfill-item-timelines.mjs (corpus sweep, revived from _archive/ this lane)" },
+  { table: "item_forward_events", fill: "event_date",
+    reader: "/api/admin/forward-events — upcoming-obligations queue",
+    producer: "mint-item.ts / apply-staged-update.ts (per-item, rule 16(b)) + scripts/forward-events/dispatch-extraction.mjs (corpus backfill, this lane)" },
+  { table: "intelligence_items", fill: "compliance_deadline",
+    reader: "item summary card — compliance deadline field",
+    producer: "src/lib/forward-events/compliance-deadline-sync.mjs, called from mint-item.ts / apply-staged-update.ts and scripts/forward-events/dispatch-extraction.mjs" },
+  { table: "intelligence_items", fill: `full_brief (non-stub; stub = "${STUB_BRIEF_MARKER}")`,
+    reader: "every item detail page — the full_brief body itself",
+    producer: "canonical-pipeline.ts generateBrief() — a subscription-lane intake pass, see the runbook's command 3",
+    totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false),
+    filledQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).not("full_brief", "ilike", `%${STUB_BRIEF_MARKER}%`) },
 ]);
 
 /**
@@ -90,11 +114,13 @@ export function renderReport(results) {
   return out;
 }
 
-/** Count one store. Injectable client so this is exercisable without a database. */
-export async function countStore(sb, { table, fill }) {
-  const total = await sb.from(table).select("*", { count: "exact", head: true });
+/** Count one store. Injectable client so this is exercisable without a database. `totalQuery`/
+ *  `filledQuery` (see STORES' own doc comment) override the default plain-count / not-null-count
+ *  queries for a store whose "filled" isn't a bare null check. */
+export async function countStore(sb, { table, fill, totalQuery, filledQuery }) {
+  const total = totalQuery ? await totalQuery(sb) : await sb.from(table).select("*", { count: "exact", head: true });
   if (total.error) throw new Error(`${table}: ${total.error.message}`);
-  const filled = await sb.from(table).select("*", { count: "exact", head: true }).not(fill, "is", null);
+  const filled = filledQuery ? await filledQuery(sb) : await sb.from(table).select("*", { count: "exact", head: true }).not(fill, "is", null);
   if (filled.error) throw new Error(`${table}.${fill}: ${filled.error.message}`);
   return { rows: total.count ?? 0, filled: filled.count ?? 0 };
 }

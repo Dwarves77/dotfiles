@@ -81,6 +81,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [fleet-charters/citation-harvest](./runbooks/fleet-charters/citation-harvest.md) — fleet charter: citation harvest
 - [fleet-charters/legacy-remediation](./runbooks/fleet-charters/legacy-remediation.md) — fleet charter: legacy remediation
 - [fleet-charters/summary-sweep](./runbooks/fleet-charters/summary-sweep.md) — fleet charter: short-summary convention sweep
+- [ops/runbooks/date-chain-2026-09-11](./ops/runbooks/date-chain-2026-09-11.md) — DATECHAIN lane: unlocked the §14 timeline harvest for verified items, gave `compliance_deadline` a writer, added item_timelines/item_forward_events/compliance_deadline/brief-coverage to population-report.mjs, and staged (not executed) the three corpus runs — forward-events backfill, timeline harvest, and full-brief generation for 1,102 stub items (2026-09-11)
 
 ## plans
 

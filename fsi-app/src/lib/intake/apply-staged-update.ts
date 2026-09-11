@@ -26,6 +26,7 @@ import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
 import { runConnectionDiscovery, CONNECTION_SIGNATURE_COLUMNS } from "@/lib/connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
+import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 
 export interface ApplyUpdateResult {
@@ -203,6 +204,21 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
   } catch (e: unknown) {
     await recordFlywheelDefect(supabase, itemId, "forward-events", e instanceof Error ? e.message : String(e), { context: "update" });
     flags.push("forward-events-failed");
+  }
+
+  // rule 16(b)/17 continued: re-sync compliance_deadline from whatever item_forward_events rows this
+  // item now carries (unconditionally, not just when newRows.length — a re-grounding pass can also
+  // leave events unchanged while the item's stored compliance_deadline drifted from them some other
+  // way, e.g. a status_change/archive path never touches this field, so nothing else re-checks it).
+  // OWN try/catch, same reasoning as mint-item.ts's identical split: a sync failure must never read
+  // back as a forward-events failure or mask a forward-events success (independent-step posture rule
+  // 16(d) already established between discovery and forward-events on this same file).
+  try {
+    const cd = await syncComplianceDeadlineForItem(supabase, itemId);
+    if (cd.changed) flags.push(`compliance-deadline:${cd.value}`);
+  } catch (e: unknown) {
+    await recordFlywheelDefect(supabase, itemId, "compliance-deadline", e instanceof Error ? e.message : String(e), { context: "update" });
+    flags.push("compliance-deadline-failed");
   }
 }
 

@@ -47,10 +47,11 @@ mandatory same-job step, per `.github/workflows/population-turn.yml`'s existing 
 wiring) — neither file is in `GOVERNING_FILES.mint`, so neither changes the hash on its own; only the
 MINT-RUNBOOK.md edit does.
 
-**harness_version at write time:** `sha256:96b9cc82d6505b7d` (recomputed live this lane, `node -e`
+**Prior recorded hash (superseded below, DATECHAIN 2026-09-11 — kept only as history, not re-parsed as
+the current marker):** `sha256:96b9cc82d6505b7d` (recomputed live the MINT-FLYWHEEL lane, `node -e`
 against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s
 `hashHarnessVersion` — the same 8 files DEAD-EXEC's marker names, unreordered; only MINT-RUNBOOK.md's
-content moved, so this supersedes `sha256:79d41d6130773f0a` outright, not additively).
+content moved, so this superseded `sha256:79d41d6130773f0a` outright, not additively).
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch under this landed
 code — its artifact's own recorded `harness_version` should read the hash above. No mint-kit VALIDATION
@@ -60,3 +61,15 @@ behavior changed (this lane touched documentation and outcome-metric plumbing, n
 only the marker's discharge. Per F28's reverse-audit, this marker is deleted the moment a run artifact
 lands with `harness_version` matching the hash above (or re-pinned again, per rule (c), if a governing
 file changes again before that run lands).
+
+**RE-PINNED (lane DATECHAIN, 2026-09-11):** `src/lib/intake/record-facts.mjs` (one of the 8 files
+`GOVERNING_FILES.mint` names) gained `STUB_BRIEF_MARKER`, an exported constant naming the exact stub-brief
+opening string `buildRecordFullBrief` writes — extracted so `scripts/verify/population-report.mjs`'s new
+"brief coverage" store entry (docs/ops/runbooks/date-chain-2026-09-11.md) checks the same literal
+`buildRecordFullBrief` writes, rather than a second hand-typed copy of the string. `buildRecordFullBrief`'s
+own OUTPUT is byte-for-byte unchanged (the constant's value is the identical string that was previously
+inlined) — no mint-kit VALIDATION behavior changed by this edit either, same as MINT-FLYWHEEL above.
+
+**harness_version at write time:** `sha256:eb6c6027081dcd54` (recomputed this lane, `node -e` against
+`governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion` —
+the same 8 files, unreordered; supersedes `sha256:96b9cc82d6505b7d` outright).

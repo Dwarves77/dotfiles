@@ -1154,6 +1154,52 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
  *  Dispatches by item_type through specForItemType — ONE path for every surface (regulation, research,
  *  market, technology, operations). Surfaces that render structured components re-parse content_md at
  *  render time; the rows stored here are format-generic. */
+/** §14 TIMELINE HARVEST — split out of sectionBrief (DATECHAIN lane, 2026-09-11) so it can run for a
+ *  VERIFIED item without going anywhere near intelligence_item_sections or section_claim_provenance.
+ *  Before this split, the harvest lived INSIDE sectionBrief AFTER the F2 skip-if-verified guard (see that
+ *  function's own comment for why the guard exists: a verified item's section delete would CASCADE-destroy
+ *  its claim ledger), so the guard's early `return` for a verified item skipped the harvest along with the
+ *  re-section it was actually protecting against — and since 1,123 of 1,195 live regulations are verified
+ *  (measured 2026-09-09), item_timelines had effectively no writer for the bulk of the corpus. This
+ *  function reads intelligence_items (full_brief, item_type) and writes ONLY item_timelines — it never
+ *  reads or writes intelligence_item_sections or section_claim_provenance, so calling it for a verified
+ *  item carries none of the cascade risk the guard protects against. sectionBrief calls this from BOTH its
+ *  verified-skip branch and its normal (re-section) branch, so every path ends up calling it exactly once.
+ *  `sbClient` is an optional injected client (tests only — production callers omit it and get svc()). */
+export async function harvestItemTimeline(itemId: string, sbClient?: SupabaseClient): Promise<StepResult> {
+  const sb = sbClient ?? svc();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("item_type, full_brief").eq("id", itemId).single();
+  if (itErr || !it?.full_brief) return { ok: false, detail: `no full_brief${itErr ? `: ${itErr.message}` : ""}` };
+  const spec = specForItemType(it.item_type);
+  if (!spec || spec.formatType !== "regulatory_fact_document") return { ok: true, detail: "not a regulatory_fact_document — no timeline harvest" };
+  // §14 TIMELINE HARVEST (Phase-3b, DD-01): item_timelines had NO production writer — the model
+  // assembled "Confirmed Regulatory Timeline" in the brief prose and the structured store stayed
+  // empty (85% of verified reg briefs), while the few seeded rows drifted wrong (the PPWR Aug-12→
+  // Aug-1 precision defect). Harvest §14 here so EVERY future generation persists its timeline:
+  // parse (the existing display parser) → precision-honest normalize (timeline-harvest.mjs) →
+  // replace this item's rows. Non-fatal: a harvest failure logs and never fails the caller's step.
+  try {
+    const t = extractRegulationSections(it.full_brief)["14"];
+    const entries = t && t.kind === "timeline" ? t.entries : [];
+    const { rows: tlRows, skipped } = buildTimelineRows(entries, new Date().toISOString().slice(0, 10));
+    if (tlRows.length) {
+      const { error: delErr } = await sb.from("item_timelines").delete().eq("item_id", itemId);
+      if (delErr) throw new Error(`timeline delete failed: ${delErr.message}`);
+      const { error: insErr } = await sb.from("item_timelines").insert(tlRows.map((r) => ({ ...r, item_id: itemId })));
+      if (insErr) throw new Error(`timeline insert failed: ${insErr.message}`);
+      return { ok: true, detail: `timeline ${tlRows.length} milestones${skipped.length ? ` (${skipped.length} unparseable date tokens skipped)` : ""}` };
+    } else if (skipped.length) {
+      // Dates existed but none parsed — surface, don't silently leave the timeline empty.
+      console.warn(`[canonical] §14 harvest for ${itemId}: 0 rows, ${skipped.length} unparseable tokens (${skipped.slice(0, 3).map((s) => s.date).join(" | ")})`);
+      return { ok: true, detail: `timeline 0 rows (${skipped.length} unparseable)` };
+    }
+    return { ok: true, detail: "timeline 0 rows" };
+  } catch (e) {
+    console.warn(`[canonical] §14 timeline harvest failed for ${itemId}: ${(e as Error).message}`);
+    return { ok: false, detail: "timeline harvest failed (see warn)" };
+  }
+}
+
 export async function sectionBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("item_type, full_brief, provenance_status").eq("id", itemId).single();
@@ -1164,7 +1210,13 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   // is AFTER INSERT/UPDATE (not DELETE), the item would stay labeled 'verified' with no claims
   // (stale-verified = fabricated certification). A verified item is already sectioned + grounded; never
   // re-section it. Re-sectioning is for fresh/quarantined items only (which carry no certification to lose).
-  if (it.provenance_status === "verified") return { ok: true, detail: "already verified — skip re-section (ledger-preserving)" };
+  // The guard protects ONLY the section reconcile below — it must not also gate the §14 timeline harvest,
+  // which touches neither intelligence_item_sections nor the claim ledger (see harvestItemTimeline's own
+  // header for why the two were wrongly coupled before this split, DATECHAIN lane 2026-09-11).
+  if (it.provenance_status === "verified") {
+    const tl = await harvestItemTimeline(itemId, sb);
+    return { ok: true, detail: `already verified — skip re-section (ledger-preserving); ${tl.detail}` };
+  }
   const spec = specForItemType(it.item_type);
   if (!spec) return { ok: false, detail: `no format spec for item_type ${it.item_type}` };
   const rows = spec.extract(it.full_brief);
@@ -1200,34 +1252,11 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
       else await sb.from("intelligence_item_sections").insert({ item_id: itemId, section_key: s.section_key, ...payload });
     }
   }
-  // §14 TIMELINE HARVEST (Phase-3b, DD-01): item_timelines had NO production writer — the model
-  // assembled "Confirmed Regulatory Timeline" in the brief prose and the structured store stayed
-  // empty (85% of verified reg briefs), while the few seeded rows drifted wrong (the PPWR Aug-12→
-  // Aug-1 precision defect). Harvest §14 here so EVERY future generation persists its timeline:
-  // parse (the existing display parser) → precision-honest normalize (timeline-harvest.mjs) →
-  // replace this item's rows. Non-fatal: a harvest failure logs and never fails the section step.
-  let timelineDetail = "";
-  if (spec.formatType === "regulatory_fact_document") {
-    try {
-      const t = extractRegulationSections(it.full_brief)["14"];
-      const entries = t && t.kind === "timeline" ? t.entries : [];
-      const { rows: tlRows, skipped } = buildTimelineRows(entries, new Date().toISOString().slice(0, 10));
-      if (tlRows.length) {
-        const { error: delErr } = await sb.from("item_timelines").delete().eq("item_id", itemId);
-        if (delErr) throw new Error(`timeline delete failed: ${delErr.message}`);
-        const { error: insErr } = await sb.from("item_timelines").insert(tlRows.map((r) => ({ ...r, item_id: itemId })));
-        if (insErr) throw new Error(`timeline insert failed: ${insErr.message}`);
-        timelineDetail = `; timeline ${tlRows.length} milestones${skipped.length ? ` (${skipped.length} unparseable date tokens skipped)` : ""}`;
-      } else if (skipped.length) {
-        // Dates existed but none parsed — surface, don't silently leave the timeline empty.
-        console.warn(`[canonical] §14 harvest for ${itemId}: 0 rows, ${skipped.length} unparseable tokens (${skipped.slice(0, 3).map((s) => s.date).join(" | ")})`);
-        timelineDetail = `; timeline 0 rows (${skipped.length} unparseable)`;
-      }
-    } catch (e) {
-      console.warn(`[canonical] §14 timeline harvest failed for ${itemId}: ${(e as Error).message}`);
-      timelineDetail = "; timeline harvest failed (see warn)";
-    }
-  }
+  // §14 TIMELINE HARVEST — same harvestItemTimeline this function's verified-skip branch above calls,
+  // so a fresh/quarantined item that gets fully (re-)sectioned here and a verified item that skips
+  // re-sectioning both end up running the identical harvest exactly once (DATECHAIN lane, 2026-09-11).
+  const tl = await harvestItemTimeline(itemId, sb);
+  const timelineDetail = tl.detail ? `; ${tl.detail}` : "";
   return { ok: true, detail: `${rows.length} sections${timelineDetail}` };
 }
 

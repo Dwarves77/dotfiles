@@ -937,6 +937,33 @@ export const LEGACY_ALLOWLIST = [
   // 2026-09-05): registered in ux-smoke-specs.mjs and given its F35 ROW_COMPONENTS entry in this same
   // commit, exactly the landing action the entry itself named as its own removal condition.
 
+  // ── DATECHAIN lane (2026-09-11) — two operator-dispatched CORPUS SWEEP scripts, deliberately NOT
+  // wired into a .github/workflows/*.yml dispatch root or package.json script. Standing rule 16
+  // (build mode holds the scrape/backfill cadence OFF — "no session proposes flipping it") means these
+  // run by explicit staged dispatch (docs/ops/runbooks/date-chain-2026-09-11.md), the same posture the
+  // one script already in this position (scripts/backfill-item-timelines.mjs, itself REVIVED from
+  // scripts/_archive/ this same lane — same file, same reason) has always had. A CI/package.json wiring
+  // would be a standing schedule this build phase explicitly forbids; a LEGACY_ALLOWLIST entry is the
+  // honest shape for "built, proven, operator-run on demand," not a defect to paper over.
+  {
+    file: 'fsi-app/scripts/backfill-item-timelines.mjs',
+    reason:
+      'Operator/lane-dispatched batch sweep (§14 timeline harvest over the stored corpus) — no static importer ' +
+      'by design. Revived from scripts/_archive/ this lane: it never had a CI/package.json dispatch root even ' +
+      'before archival, and standing rule 16 (build mode holds cadence off) forbids adding one now. Runbook: ' +
+      'docs/ops/runbooks/date-chain-2026-09-11.md, command 2.',
+    reviewByPhase: 'runbook dispatch (operator: run when the corpus sweep is wanted; not a recurring job)',
+  },
+  {
+    file: 'fsi-app/scripts/forward-events/dispatch-extraction.mjs',
+    reason:
+      'Operator/lane-dispatched batch sweep (item_forward_events backfill for items minted/last-updated before ' +
+      'the extractor shipped 2026-09-01, plus the compliance_deadline sync those events feed) — no static ' +
+      'importer by design, same posture and same rule-16 reasoning as backfill-item-timelines.mjs above. ' +
+      'Runbook: docs/ops/runbooks/date-chain-2026-09-11.md, command 1.',
+    reviewByPhase: 'runbook dispatch (operator: run when the corpus sweep is wanted; not a recurring job)',
+  },
+
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));
