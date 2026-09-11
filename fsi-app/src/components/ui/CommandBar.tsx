@@ -464,7 +464,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
               // (ListRow.tsx GRID) needs 489px of fixed columns before its 1fr title column gets
               // any width, and its only narrow-reflow rule was a viewport `@media (max-width:
               // 767px)` query, which never fires here because the VIEWPORT stays wide even though
-              // this BOX is ~330px — so the title column collapsed to 0 and painted nothing. This
+              // this BOX is ~330px, so the title column collapsed to 0 and painted nothing. This
               // listbox is the first ListRow caller whose box is narrow independent of the
               // viewport, so it now opts into CSS containment; ListRow.tsx's RESPONSIVE_CSS gained
               // an unnamed `@container (max-width: 489px)` query that reuses the exact same

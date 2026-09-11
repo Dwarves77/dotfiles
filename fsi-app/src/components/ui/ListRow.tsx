@@ -274,7 +274,7 @@ export function ListRowColumnHeader({
 // Factored out to a standalone template (lane searchrow, 2026-09-11) so the SAME rule body can be
 // emitted under both `@media (max-width: 767px)` (viewport-narrow: phones) and
 // `@container (max-width: 489px)` (box-narrow regardless of viewport: the command bar's search
-// results dropdown) below, in `RESPONSIVE_CSS` — one reflow, two triggers, not a second anatomy.
+// results dropdown) below, in `RESPONSIVE_CSS`, one reflow, two triggers, not a second anatomy.
 const LIST_ROW_NARROW_REFLOW_CSS = `
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
        .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the column header
@@ -397,24 +397,24 @@ ${LIST_ROW_NARROW_REFLOW_CSS}
 
   /* CONTAINER-QUERY twin of the viewport reflow above (lane searchrow, 2026-09-11)
      [CONFIRMED by grid-track arithmetic against this file's own documented column widths and
-     CommandBar.tsx's measured listbox box — this lane's sandbox had no npm registry access to run
+     CommandBar.tsx's measured listbox box, this lane's sandbox had no npm registry access to run
      a live render harness; see the fix's session-log entry for exactly what was and was not
      verified]. Root cause: the eight-column desktop grid's fixed tracks need 489px (comment above)
      before the 1fr title column gets any width at all, and that requirement is keyed to the
-     row's own BOX, not the viewport — the \`@media\` rule above only fires when the WINDOW is
+     row's own BOX, not the viewport, the \`@media\` rule above only fires when the WINDOW is
      narrow, so a row rendered inside a box narrower than 489px on a wide viewport (the command
      bar's search results dropdown, ~330px wide inside a 1175px window: CommandBar.tsx's listbox
      is the bar's own width, not the page's) got neither the desktop grid's room nor the mobile
-     reflow — the 1fr title column collapsed to 0 and the row painted jurisdiction-code-then-
+     reflow, the 1fr title column collapsed to 0 and the row painted jurisdiction-code-then-
      dashes with no title and no type, exactly the operator's 2026-09-11 report.
      Same body as the \`@media\` block (one template literal, \`LIST_ROW_NARROW_REFLOW_CSS\`,
      emitted twice) so this is the existing mobile reflow reused under a second trigger, not a
-     second row anatomy (CLAUDE.md rule 13) — checked first for an existing narrow-container
+     second row anatomy (CLAUDE.md rule 13), checked first for an existing narrow-container
      mechanism (ListRow's only other variant, \`variant="register"\`, has no mobile reflow at all
      by ruling, and no \`@container\` query existed anywhere in the app before this). Unnamed and
      keyed to the row's OWN nearest \`container-type\` ancestor, so this fires only where a caller
      opts a box into containment (CommandBar's portal listbox does, via \`containerType:
-     "inline-size"\`) — every other ListRow caller (Dashboard, Regulations, Market, Research,
+     "inline-size"\`), every other ListRow caller (Dashboard, Regulations, Market, Research,
      Operations, Watchlist) has no such ancestor and is completely unaffected; the desktop grid
      stays byte-identical there. 489px matches the fixed-track requirement measured above rather
      than the page-level 767px breakpoint, because a container this narrow can never fit the
