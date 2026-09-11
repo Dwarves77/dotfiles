@@ -17742,11 +17742,100 @@ GOVERNING_FILES. `node .discipline/runner.mjs --mode=ci --range=origin/master..H
 full range after committing, 0 fail across every commit including this task's own (4 pass, 0 fail, 5
 skip). Did not run `run-test-suite.sh` per the brief's explicit instruction. Committed as `d3b21acf`
 (amended once, same session, before any push, solely to add the required Co-Authored-By trailer that
-was missing from the first commit attempt — a correction, not a rewrite of reviewed history).
+was missing from the first commit attempt: a correction, not a rewrite of reviewed history).
 
 **Blast-radius count: SKIPPED.** No `SUPABASE_SERVICE_ROLE_KEY`/`NEXT_PUBLIC_SUPABASE_URL` in this
 worktree's environment and no `.env` file; the brief names this read as optional ("if the repo's read
 scripts make that easy; otherwise skip it"). Not run.
+
+### UX compliance: not applicable
+
+No `.tsx` or `.css` files were touched by this task.
+
+**Coordinator correction (same session, before push).** The coordinator flagged one em dash in the
+paragraph above ("was missing from the first commit attempt") left by the 1.3 reviewer's pass; replaced
+with a colon. No other text in this task's subsection changed.
+
+### W9-PART1, task 1.4 (2026-09-11): the population report guards the birth wiring
+
+Brief: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-1.4-brief.md` (read from worktree
+`wt-datechain-0911`). Plan context: Part 1 task 1.4; the referenced pre-flight row naming "1.1 vs 1.4 vs
+3.5" sharing `population-report.mjs`'s STORES array was not found verbatim in the plan doc as read in this
+worktree (grepped for "pre-flight", "STORES", "1.1 vs" -- no match beyond task 1.4's own section); treated
+as the instruction it clearly implies regardless: the three entries land immediately after the existing
+seven (right after the full_brief entry, before the closing `]);`), so task 3.5's own "briefs pending"
+entry appends cleanly after mine rather than needing to insert into the middle of an already-landed array.
+
+**Files:** `fsi-app/scripts/verify/population-report.mjs` (three new STORES entries after the full_brief
+entry), `fsi-app/scripts/verify/population-report.test.mjs` (six new attack tests: red and green for each
+entry), `docs/ops/session-log.md` (this entry plus the coordinator's em-dash correction above).
+
+**The three entries, and what RED means for each (per the brief: one sentence per entry).**
+
+1. `entity_refs` coverage: RED means no live item anywhere has an entity_refs row, so task 1.1's
+   mint-time write (`link-item-entities.mjs`) is either not wired or has never fired. `total` = live
+   `intelligence_items` count; `filled` = the distinct `entity_refs.ref_id` count for
+   `ref_table='intelligence_items'`.
+2. `format_type` coverage: RED means every live item has a null `format_type`, so task 1.2's birth stamp
+   is either not wired or has never fired. `total`/`filled` = live items count / live items with
+   `format_type` not null (both gated on `is_archived=false`, unlike the bare-column default the other
+   two DATECHAIN row-count entries use, because `intelligence_items` itself mixes live and archived rows).
+3. CELEX-Decision-as-regulation coverage: RED means every live item whose `canonical_instrument_key`
+   is CELEX-Decision-shaped (sector 2/3/4, letter D) is still typed something other than `regulation`,
+   the pre-task-1.3 backlog task 5.5 owns. `total` matches on the key shape alone (any item_type);
+   `filled` narrows to `item_type='regulation'` among that same set. Deliberately NOT `total` =
+   `item_type='initiative' AND key matches` (the brief's literal current-state description): that
+   filter would make `total` itself go to zero the moment task 5.5 retypes the 351 rows, landing on
+   `classify()`'s EMPTY state, which is never FILLED, so a truly fixed corpus would read as permanently
+   red. Matching on the key across every type keeps `total` stable (351, unaffected by the retype) while
+   `filled` climbs from 0 to 351 as task 5.5 lands, the same growing-good-count shape `compliance_deadline`
+   already uses in this file.
+
+**Read first, as the brief instructed.** `population-report.mjs`/`.test.mjs` in full (the DATECHAIN
+block; the four existing attack tests' pattern). Migration `283_entity_refs.sql` [CONFIRMED, read in
+full]: `entity_refs(ref_table text, ref_id uuid, entity_id text, role text, asserted_by text,
+asserted_at timestamptz)`, PK `(ref_table, ref_id, entity_id, role)`, `ref_table` CHECK-restricted to
+`('intelligence_items', 'regions')`; no FK from `ref_id` to `intelligence_items.id` (by design, migration
+283's own header: a generic multi-valued join, not a foreign key PostgREST can embed through).
+`src/lib/entities/link-item-entities.mjs` [CONFIRMED, read in full]: writes `entity_refs` rows with
+`role='jurisdiction'` only, keyed `ref_table='intelligence_items'`, `ref_id=item.id`; short-circuits
+(writes nothing) for an item with neither `jurisdiction_iso` nor `canonical_instrument_key` -- most
+non-regulatory item types will legitimately carry zero `entity_refs` rows forever, which is fine for this
+report's purpose (any non-zero `filled` proves the wiring fires at all, the same non-100%-required
+posture `compliance_deadline` already has; population-report's own docstring: "NOT A PASS/FAIL TEST").
+`mint-item.ts:226-238` [CONFIRMED, read directly]: task 1.2's format_type stamp already landed in this
+lane (`if (seed.format_type == null) { const spec = specForItemType(seed.item_type); ... }`, keyed on the
+FINAL item_type per task 1.2's own round-2 correction). `scripts/mint/export-census-rows.mjs:262-266`
+[CONFIRMED]: task 1.3's `CELEX_SECTOR_LETTER_MAP` already maps letter `D` to `"regulation"` in sectors
+2/3/4, exported and reused, not re-derived.
+
+**RED then GREEN, observed myself.** Implemented the three entries first, then backed them out with a
+file-level revert (kept a copy via `cp` to a scratch path, not `git stash`, per the shared-stash-stack
+warning) and reran `node --test scripts/verify/population-report.test.mjs`: 6 failed (the four
+`assert.ok(entry, ...)` declarations plus the two entries `countStore` was then called against
+`undefined` for), 14 passed (every pre-existing test, unaffected) -- confirmed RED for real, not by
+inspection. Restored the implementation, reran: 20/20 pass.
+
+**F39 caught a real defect in the first draft, fixed in the same pass.** The `entity_refs` entry's first
+implementation cross-checked distinct `entity_refs.ref_id` values against the live corpus with
+`.in("id", ids)`. `node .discipline/fitness/runner.mjs` flagged it: F39 (unbounded-in-filter), the
+IN-CHUNK defect class (an `.in()` filter with no visible cap 400s past ~2,000 ids, confirmed twice per
+the finding's own citations). Rewrote `filled` to skip the cross-check entirely: it now counts distinct
+`entity_refs.ref_id` for `ref_table='intelligence_items'` directly, read through `readAll`
+(`scripts/lib/db.mjs`, paginated, so `entity_refs` passing 1,000 rows can never silently truncate the
+count either, the CAP-1000 defect class the same file's header names). Updated the two entity_refs tests
+to mock `readAll`'s actual chain (`select().order().range().eq()`) instead of the old two-round-trip
+shape. Reran fitness: F39 now PASS, violation count 11 -> 10 (only the pre-existing F28 harness-staleness
+set remains, the identical 10 tasks 1.1-1.3's reports already named -- this task's touched files are not
+in F28's GOVERNING_FILES).
+
+**Gates.** `node --test scripts/verify/population-report.test.mjs`: 20/20 pass (14 pre-existing + 6 new).
+`npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked, 10 violations, all
+pre-existing F28 harness-staleness, unrelated to this task's files. `node .discipline/runner.mjs
+--mode=ci --range=origin/master..HEAD`: run after committing, see result below. Did not run
+`run-test-suite.sh` per the brief's explicit instruction. No database credentials in this worktree's
+environment (no `SUPABASE_SERVICE_ROLE_KEY`/`NEXT_PUBLIC_SUPABASE_URL`, no `.env`); per the brief, the
+fixture-driven tests above are sufficient and no live run of `population-report.mjs`'s CLI was attempted.
 
 ### UX compliance: not applicable
 

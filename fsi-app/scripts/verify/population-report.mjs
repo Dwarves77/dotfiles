@@ -21,7 +21,7 @@
 //
 // $0: read-only, count-only. No writes, no model calls, no metered anything.
 
-import { readClient } from "../lib/db.mjs";
+import { readClient, readAll } from "../lib/db.mjs";
 import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
@@ -74,6 +74,54 @@ export const STORES = Object.freeze([
     producer: "canonical-pipeline.ts generateBrief() — a subscription-lane intake pass, see the runbook's command 3",
     totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false),
     filledQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).not("full_brief", "ilike", `%${STUB_BRIEF_MARKER}%`) },
+  // -- W9 PART1 lane, 2026-09-11: three entries guarding the "connected at birth" wiring tasks 1.1-1.3
+  // add (rule 17: nothing mints alone). Each watches a specific wiring gap the ruling in section 0 of
+  // docs/plans/brief-chain-build-plan-2026-09-11.md named by measurement, not guess.
+  //
+  // RED means: at least one live item was minted (or still stands from before the wiring landed) without
+  // the connection this entry checks for, with zero of the corpus showing the connection made at all.
+  { table: "entity_refs", fill: "distinct live items carrying an entity_refs row",
+    reader: "the entity spine (migration 282/283): jurisdiction linkage a live item's own connections read",
+    producer: "src/lib/entities/link-item-entities.mjs, called from mint-item.ts post-insert (task 1.1) and apply-staged-update.ts, plus scripts/entities/backfill-entities.mjs for the corpus catch-up",
+    // RED means: no live item anywhere has an entity_refs row, so the mint-time write (task 1.1) is
+    // either not wired or has never fired. `filled` is the distinct entity_refs.ref_id count for
+    // ref_table='intelligence_items', not a count re-verified against the live corpus by id: PostgREST
+    // gives entity_refs.ref_id no FK to embed through (a generic (ref_table, ref_id) pair, by migration
+    // 283's own design note), and cross-checking it would mean an .in() filter carrying every id in the
+    // corpus, exactly the unbounded-URL defect class F39 exists to catch (IN-CHUNK, 2026-09-06). The read
+    // goes through readAll (scripts/lib/db.mjs), paginated, never a raw .select() that CAP-1000 would
+    // silently truncate once entity_refs passes 1,000 rows. Distinctness is the same Set-based collapse
+    // scripts/entities/backfill-entities.mjs already uses (multiple jurisdiction roles per item).
+    totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false),
+    filledQuery: async (sb) => {
+      try {
+        const rows = await readAll("entity_refs", "ref_id", { match: (q) => q.eq("ref_table", "intelligence_items"), client: sb });
+        return { count: new Set(rows.map((r) => r.ref_id)).size, error: null };
+      } catch (e) {
+        return { count: null, error: { message: e.message } };
+      }
+    } },
+  { table: "intelligence_items", fill: "format_type",
+    reader: "item detail page + surface routing: format_type selects which of the five section templates renders",
+    producer: "mint-item.ts (stamped at birth from item_type, task 1.2) + canonical-pipeline.ts synthesiseAndWriteBrief (forced post-generation) + scripts/maintenance/backfill-format-type.mjs (corpus catch-up for the 128 rows minted before task 1.2, task 2.4)",
+    // RED means: every live item has a null format_type, so task 1.2's birth stamp is either not wired
+    // or has never fired (the pre-1.2 backlog alone cannot make this ROWS_NO_VALUES, since every item
+    // minted after 1.2 lands with format_type set).
+    totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false),
+    filledQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).not("format_type", "is", null) },
+  { table: "intelligence_items", fill: "canonical_instrument_key CELEX Decisions typed as regulation",
+    reader: "/regulations surface: a CELEX Decision is a binding act (Article 288 TFEU) and belongs on the regulation format, not initiative's market-signal one (task 1.3's export-census-rows.mjs mapping)",
+    producer: "scripts/mint/export-census-rows.mjs classifyItemTypeFromCelexKey() (new mints, task 1.3) + task 5.5's corpus retype of the 351 live rows minted before task 1.3 landed",
+    // RED means: every live item whose canonical_instrument_key is CELEX-Decision-shaped (sector 2/3/4,
+    // letter D) is still typed something other than regulation, the pre-1.3 backlog task 5.5 owns.
+    // `total` matches on the KEY SHAPE alone, not item_type, deliberately: filtering total to
+    // item_type='initiative' would make this entry's row count itself go to zero the moment task 5.5
+    // retypes the backlog, landing on EMPTY (rows===0), which classify() never reports as FILLED, so a
+    // fixed corpus would read as permanently red. Matching on the key across every type keeps `total`
+    // stable (the key never changes) while `filled` (item_type='regulation' among that same set) climbs
+    // from 0 to the full 351 as task 5.5 lands, the same growing-good-count shape compliance_deadline uses.
+    totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).regexMatch("canonical_instrument_key", "^[234]\\d{4}D"),
+    filledQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).regexMatch("canonical_instrument_key", "^[234]\\d{4}D").eq("item_type", "regulation") },
 ]);
 
 /**
