@@ -5,6 +5,87 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-11, BRIEFFIELDS task 2.4: format_type catch-up for live briefs that carry none
+
+Task 2.4 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,
+branch `lane/brieffields-2026-09-11`, on top of tasks 2.1-2.3 (commit `955a1afb`). Read the task
+brief (first 9 lines of `task-2.4-brief.md`, ignoring Part 3), the plan's Part 2 task 2.4 and the
+pre-flight row "1.2 vs 2.4 specForItemType", `scripts/lib/db.mjs` (`guardedUpdate` /
+`guardedUpdateByIds`), `source-type-backfill.mjs` and `origin-class-backfill.mjs` (the injected-deps
+MAINT-wrapper shape), `.github/workflows/maintenance.yml`'s command switch and `mode dry|apply`
+pattern, and `src/lib/agent/extract-registry.ts` (`specForItemType`) before writing any code.
+
+**What this task did.** New `fsi-app/scripts/maintenance/backfill-format-type.mjs`: stamps
+`intelligence_items.format_type` for live briefs (`item_grade='brief'`, `is_archived=false`) that
+carry none, deriving the value from `specForItemType(item_type)` -- the SAME resolver task 1.2's
+mint-time stamp and `canonical-pipeline.ts`'s `synthesiseAndWriteBrief` write site use. No second
+mapping table anywhere in this file. A pure `planFormatTypeBackfill(rows, specForItemTypeFn)`
+groups candidate ids by the resolved `format_type`; an `item_type` the resolver does not recognize
+is skipped and reported by id (`{id, item_type}`), never guessed. Dry mode (default) only plans and
+reports counts; apply mode writes each format_type group through `guardedUpdateByIds` (cite +
+`applyMatch` re-checking `format_type IS NULL` per chunk, so a row someone else classified between
+the read and the write is left alone) and reads back the post-write distribution. `--limit N` /
+`--after-id <uuid>` bound and resume a batch (the same idiom `backfill-item-timelines.mjs` /
+`forward-events/dispatch-extraction.mjs` already use); neither lives in the shared
+`scripts/maintenance/lib/cli.mjs` parser (no other MAINT wrapper needs pagination flags of its own),
+so they are parsed locally and merged into the options `runCli` passes to `main()`.
+
+**Why jiti is loaded lazily.** `specForItemType`'s home (`extract-registry.ts`) imports
+`formats/*.ts` -> `prose-extractor.ts` -> `format-spec.ts`, all through the `@/lib/...` TS path
+alias that only Next.js's bundler resolves; a plain `node` import throws immediately (the same gap
+`run-ledger-consume.mjs`'s own header names). This file has a companion `.test.mjs` inside
+`run-test-suite.sh`'s no-npm-ci glob (`fsi-app/scripts/maintenance/*.test.mjs`), so a top-level
+`jiti`/`.ts` import here would pass locally and fail in CI with `ERR_MODULE_NOT_FOUND` (the exact
+recurrence `.discipline/glob-portability.test.mjs`'s own header documents against
+`audit-gate.test.mjs`). `createJiti` + `jiti.import("../../src/lib/agent/extract-registry.ts")` are
+therefore called only inside `buildDeps()`, itself only reached from the `if (IS_MAIN)` CLI branch
+-- never when the test file imports this module's exports. `scripts/verify/format-structure.mjs` is
+the sibling precedent for the jiti+alias shape (it has no companion test, so it loads jiti at top
+level; this file cannot).
+
+**Blast radius.** Could not query the live count in this sandbox (no `.env.local`, no
+`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` present) -- flagged, not fabricated. The
+plan's own pre-flight measurement (2026-09-11 [CONFIRMED], SQL against `kwrsbpiseruzbfwjpvsp`):
+128 rows where `format_type` is NULL on live briefs. The equivalent read-only count via this
+script's own path is `node scripts/maintenance/backfill-format-type.mjs --mode dry` (reads
+`intelligence_items` scoped to `item_grade='brief' AND is_archived=false AND format_type IS NULL`,
+prints `counts.null_candidates_scanned` and the by-item_type-implied `by_format_type` breakdown once
+a session with real creds runs it).
+
+**Tests (RED then GREEN).** `backfill-format-type.test.mjs` (new, 6 cases: the pure mapper against
+every item_type in the real vocabulary -- mirrored from `src/lib/agent/formats/*.ts`'s
+`itemTypes`/`formatType` exports, 12 item_types across 5 formats, verified 2026-09-11 [CONFIRMED]
+against the migration-004 CHECK constraint too -- unknown-type skip-not-guess, `parseBatchArgs`,
+dry/apply orchestration with injected deps, and `--limit`/`--after-id` paging). Written before
+`backfill-format-type.mjs` had a real implementation (a temporary throwing stub swapped in for the
+RED run, then swapped back): RED confirmed, all 6 cases failed with `Error: not implemented yet`;
+GREEN after restoring the real implementation, 6/6 pass. One-time jiti-load proof (not a standing
+test, same posture as `run-ledger-consume.test.mjs`'s own documented gap): `node -e` script loaded
+`extract-registry.ts` through `createJiti` + the `@` alias and confirmed `specForItemType`
+resolves `regulation` -> `regulatory_fact_document`, `market_signal` -> `market_signal_brief`, and
+an unrecognized type -> `null` -- exactly the shape the injected-fake tests assume.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all pre-existing `[F28] harness-run-integrity` (named in the task brief as known,
+unrelated to this task's files). `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`:
+see the task report for the post-commit run. `.discipline/glob-portability.test.mjs` run directly
+(not the full `run-test-suite.sh`, per the brief's instruction not to run it): 2/2 pass, confirming
+the new test file's imports stay portable to the no-npm-ci CI job. `run-test-suite.sh` NOT run, per
+the brief's own instruction for this task.
+
+### UX compliance
+
+Not applicable -- this task is a backend maintenance script (`scripts/maintenance/*.mjs`) plus a
+`workflow_dispatch` wiring change in `.github/workflows/maintenance.yml`. No `.tsx`/`.css` under
+`fsi-app/src` was touched, no customer-facing surface changed.
+
+**Five surfaces affected.** None directly. The five customer surfaces (Regulations, Market Intel,
+Research, Operations, Community) read `format_type` to select which detail-surface renderer applies
+to a brief; this task fixes the underlying data (128 live briefs missing that stamp) once dispatched
+through `maintenance.yml`'s new `backfill-format-type` step, but ships no surface code itself.
+
+---
+
 ## 2026-09-11, BRIEFFIELDS task 2.3: resource mapping, RPC reads, and the four detail surfaces
 
 Task 2.3 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,
