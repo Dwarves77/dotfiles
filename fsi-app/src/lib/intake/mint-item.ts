@@ -28,6 +28,7 @@ import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extra
 import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
+import { specForItemType } from "@/lib/agent/extract-registry";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -147,6 +148,16 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   // buildRecordPayload) is trusted as-is; plan.grade is the fallback for a caller that supplies grade
   // out-of-band from its seed object. Default "brief" — every pre-existing caller is unaffected.
   if (seed.item_grade == null) seed.item_grade = plan.grade ?? "brief";
+
+  // Task 1.2 (2026-09-11): stamp format_type from item_type at mint, through the SAME dispatch
+  // registry (specForItemType) that synthesiseAndWriteBrief forces post-generation
+  // (canonical-pipeline.ts), so a minted row's format_type can never disagree with what generation
+  // would later force onto it. A caller-preset seed.format_type is trusted as-is, mirroring the
+  // item_grade precedent above.
+  if (seed.format_type == null) {
+    const spec = specForItemType(itemType ?? "");
+    if (spec) seed.format_type = spec.formatType;
+  }
 
   // ── Idempotency short-circuits: return an existing row, never an INSERT ──────────────────────────
   // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR during a duplicate-probe must NEVER proceed to mint —

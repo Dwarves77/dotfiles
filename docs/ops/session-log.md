@@ -17629,3 +17629,43 @@ yet), the third caught a real bug in my own first assertion (wrong `entity_id` f
 fixed by importing the real `entityId()` builder) before going GREEN. All 16 tests in that file (13
 pre-existing plus 3 new) pass. Also corrected the task-1.1-report.md's earlier "RED then GREEN" header,
 which had overstated inspection-only verification as observed RED for the round-1 tests (rule 14).
+
+### W9-PART1, task 1.2 (2026-09-11): format_type stamped at mint
+
+Brief: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-1.2-brief.md` (read from worktree
+`wt-datechain-0911`); pre-flight ruling "1.2 vs 2.4 specForItemType" confirmed: both tasks reuse the one
+dispatch function, neither adds a second item_type-to-format mapping table.
+
+`fsi-app/src/lib/intake/mint-item.ts`: added one stamp, right after the existing item_grade stamp and
+before the idempotency short-circuits, using the same `itemType` local already read from `seed.item_type`
+a few lines above: `if (seed.format_type == null) { const spec = specForItemType(itemType ?? ""); if
+(spec) seed.format_type = spec.formatType; }`, importing `specForItemType` from
+`@/lib/agent/extract-registry`. A caller-preset `seed.format_type` is trusted as-is, unchanged, mirroring
+the item_grade precedent immediately above it.
+
+**Parity check [CONFIRMED, read of `canonical-pipeline.ts`].** `synthesiseAndWriteBrief` forces
+`format_type` from the identical function: `const fmtSpec = specForItemType(it.item_type);` (line 775)
+and `if (fmtSpec) md.format_type = fmtSpec.formatType as typeof md.format_type;` (line 844). Mint and
+generation now call the same registry function on the same item_type, so a minted row's format_type can
+never disagree with what generation would later force onto it.
+
+**RED then GREEN, observed myself.** Extended `mint-item-grade.npmtest.mjs` (same fakeClient harness the
+file already uses) with two tests: a `regulation` seed with no format_type asserting the inserted row
+carries `format_type: "regulatory_fact_document"`, and an `initiative` seed asserting
+`"market_signal_brief"`. Ran `node --test src/lib/intake/mint-item-grade.npmtest.mjs` before the
+implementation: both new tests failed (`actual: undefined`, `expected: 'regulatory_fact_document'` /
+`'market_signal_brief'`), the 4 pre-existing tests in the file stayed green. After the implementation:
+all 6/6 pass. `mint-item-entities.npmtest.mjs` (task 1.1's tests, same file under change): 3/3 pass,
+unaffected.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked, 10
+pre-existing F28 harness-run-staleness violations (mint/screen/fetch-drain/meta-harness/forward-events/
+source-sweep/ledger-consume/change-detection/propagation/corpus-turn families), the identical set to
+task 1.1's report, confirmed unrelated: neither touched file appears in F28's GOVERNING_FILES. `node
+.discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run against the committed diff, clean (0
+fail). Did not run `run-test-suite.sh` per the coordinator's standing instruction for this lane (task
+1.1's addendum) to skip it during concurrent-lane load.
+
+### UX compliance: not applicable
+
+No `.tsx` or `.css` files were touched by this task.

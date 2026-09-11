@@ -109,6 +109,23 @@ test("a caller-preset seed.item_grade wins over plan.grade (trusted as-is, never
   assert.equal(sb.insertedRows()[0].item_grade, "record");
 });
 
+test("task 1.2: no caller-supplied format_type -> INSERTed regulation row carries format_type: 'regulatory_fact_document' (derived from item_type via specForItemType, the same function generation forces)", async () => {
+  const sb = fakeClient();
+  const r = await mintIntelligenceItem(sb, { seed: { ...baseSeed }, origin: "staged_materialization" });
+  assert.equal(r.ok, true);
+  assert.equal(sb.insertedRows()[0].format_type, "regulatory_fact_document");
+});
+
+test("task 1.2: an 'initiative' seed with no format_type -> INSERTed row carries format_type: 'market_signal_brief'", async () => {
+  const sb = fakeClient();
+  const r = await mintIntelligenceItem(sb, {
+    seed: { ...baseSeed, item_type: "initiative" },
+    origin: "staged_materialization",
+  });
+  assert.equal(r.ok, true);
+  assert.equal(sb.insertedRows()[0].format_type, "market_signal_brief");
+});
+
 test("rule 16 still runs post-insert for a record-grade mint (discovery + forward-event extraction unaffected by grade)", async () => {
   const span = "This Regulation shall enter into force on 1 January 2027.";
   const sb = fakeClient();
