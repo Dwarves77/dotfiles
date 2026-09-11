@@ -16691,3 +16691,25 @@ non-clipped surface) recognizes the same pattern, not a new one.
 
 No new screen, no new flow, no new control. This is a visibility repair, not a redesign.
 
+
+## 2026-09-11 — DATECHAINWF lane: date-chain backfill workflow
+
+Operator's order, 2026-09-11, verbatim: "get it done."
+
+Built `.github/workflows/date-chain.yml` ("Date chain backfill") per
+`docs/ops/runbooks/date-chain-2026-09-11.md`: a `workflow_dispatch`-only runtime (build mode, no schedule,
+per rule 16) for the two FREE, no-model backfills the runbook staged but did not execute —
+`scripts/forward-events/dispatch-extraction.mjs` and `scripts/backfill-item-timelines.mjs`. Inputs `mode`
+(dry|apply), `command` (forward-events|timeline-harvest|both|population-report), `limit`, `after_id`. Runs
+forward-events then timeline-harvest (cheapest first, per the runbook), `--execute` only in `apply` mode,
+`population-report.mjs` always last regardless of command (rule 17 — a run that ends without measuring
+its own effect is a defect in the run, not a note for a coordinator). Each script's full stdout goes to
+the job log; its last summary line (carrying the resumable `--after-id`) is appended to
+`$GITHUB_STEP_SUMMARY`.
+
+No new secret introduced (reuses `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`, already
+registered in `.discipline/governance/secrets-registry.mjs` WORKFLOW_SECRETS) — the secrets-reference-audit
+scans `.github/workflows/*.yml` itself, so no manual registration was needed there. Added `docs/INDEX.md`
+and the runbook's own new "Runtime" section (dispatch: Actions tab > Date chain backfill > Run workflow,
+or `gh workflow run date-chain.yml -f mode=apply -f command=both`). No customer-surface change; no UX
+compliance block needed.
