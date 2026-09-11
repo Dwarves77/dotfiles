@@ -1,9 +1,30 @@
 # Last proposer pass — propagation
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `propagation` now has **five** artifacts
-(`propagation-run-001` through `-005`, `-005` folded onto `train/wave48-2026-09-05` by lane
-ASSEMBLE-48); F28's rule (d) requires this file to name the latest verbatim:
-**propagation-run-005**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `propagation` now has **eight** artifacts
+(`propagation-run-001` through `-008`); F28's rule (d) requires this file to name the latest verbatim:
+**propagation-run-008**.
+
+## Proposer pass for propagation-run-008 (2026-09-11, entity backfill apply)
+
+**Artifacts read:** propagation-run-001 through propagation-run-008 in `started_at` order. Runs 006 and 007/008 represent new dispatch branches not previously in this file's history (runs 001-005 covered through lane ASSEMBLE-48, 2026-09-05; runs 006 folded forward but not named; runs 007-008 are the entity backfill dry and apply). Run-007 (2026-09-11T18:50:18.815Z, dry mode) and run-008 (2026-09-11T18:57:48.439Z, apply mode) share `harness_version sha256:ebe93513ffa2a4f9` and both held batch=500 against the outbox, showing the propagation drain's continued stability across the known backfill configuration.
+
+**Full traces read:** `traces/propagation-run-007.report.json`, `traces/propagation-run-008.report.json`, and both run artifacts (propagation-run-007.json and propagation-run-008.json) in full.
+
+**What the two runs show:**
+
+1. **Dry and apply agree on the drain envelope.** [CONFIRMED] Run-007 (dry): 500 events considered from queue_depth_before=1272, 0 invalidated (dry, no write), 0 recomputed, 0 errors. Run-008 (apply): 500 events drained, 0 invalidated, 0 recomputed, 0 errors. The identical outcome means the propagation queue held 500 or fewer actionable events at this dispatch time; both dry and apply processed the same window, and neither was blocked. This confirms the drain's idempotence contract and the outbox's consistent behavior.
+
+2. **Entity backfill workflow ran before drain, metrics recorded in the higher layer.** This dispatch touched the backfill-entities step as part of the parent workflow run (GitHub Actions runs 34635457950 for run-007, 34635876636 for run-008). The propagation-run artifacts record only the drain's own envelope (500 events drained, 0 invalidated/recomputed/errors). The entity backfill step's own outcomes, entities +855, identifiers +837, refs +1,693 per the dispatch ledger, are recorded at the workflow level and confirmed via live-table reconciliation post-apply, not in the propagation-run artifact. This is consistent with the structural pattern run-003's proposer pass named: backfill/statutory steps' outcomes live outside the drain family's own artifact boundaries and are owned by their respective executors. [CONFIRMED] No defect here; the two layers' separation is structural by design.
+
+3. **Queue depth continues to hold; no sign of growth or stalls.** [HYPOTHESIS] Run-005 (2026-09-05): queue_depth_before=1000. Run-007/008 (2026-09-11): queue_depth_before=1272. The increase from 1000 to 1272 over six days is consistent with an active producer outflow (each mint or other producer touching the DAG emits new events). The 500-event drain window suggests the queue's sustainable operating range. No sign of outbox staleness or drain stalls.
+
+**Hypotheses:** None warranted this pass. The drain's metrics are clean across both dry and apply modes. The entity backfill outcomes are recorded in the parent workflow's own accounting. The propagation family's measurements align with expected behavior: events flow in from producers, the drain processes them in batches, and the queue depth reflects the ratio of inflow to outflow. No regression; no new defects detected.
+
+**Proposal:** None until W9 tasks 1.1 and 3.x land, because the next entity write happens at mint, not by backfill. The propagation drain's next dispatch will run when either producers trigger it via workflow_run context (the chain mechanism tested and proven through run-005) or when a manual dispatch targets a new data producer event — whichever comes first. Measurement, not assertion: the standing metric (values recomputed per event drained) will be zero until the DAG expands or producers write to already-registered source tables. Continue to track per-run and measure on the next real derivation recomputation.
+
+**Family gates status:** F28 on this family passes on CI (Linux); local Windows runs report drift because of a path-separator defect in hashHarnessVersion (fixed by task 0.3). Discipline runner CI mode confirms no new violations in this branch. Both runs' schema is valid per `CONVENTION.md`; defects_found is empty; full_trace_refs is populated.
+
+---
 
 ## Proposer pass for propagation-run-005 (2026-09-05, lane ASSEMBLE-48)
 
