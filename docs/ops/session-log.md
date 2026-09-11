@@ -17448,3 +17448,32 @@ discipline CI-range runner (clean) after the fix; all still green. While investi
 SAME fail-open pattern in the sibling `exemptions-375.mjs:68`'s `activeExemptions` (`latestWave ===
 null || latestWave < e.expiryWave`); left unfixed as out of this task's scope (the coordinator's fix
 named only the law2-desktop file) and flagged here per rule 13 for a follow-up dispatch.
+
+### Follow-up round 2 (coordinator review, same day): class-over-instance, and an orphaned-proof finding
+
+Two more items in the same lane, remediation-discipline section 2 (class over instance). **(1)**
+Fixed `exemptions-375.mjs:68`'s `activeExemptions`, the sibling flagged in the previous round: the
+identical fail-open-on-null shape as `exemptions-law2-desktop.mjs` (fixed above), same RED-first
+attack (corrected `exemptions-375.test.mjs`'s existing "best-effort... same posture as F25's own
+oracle" case, which asserted the bug itself, to expect 0 active entries on a null wave; RED with 1
+fail before the fix), same source fix (`latestWave !== null && latestWave < e.expiryWave`, named
+`console.warn` on the null path), GREEN after (6/6). **(2)** Established [CONFIRMED], by three
+independent methods, that `layout-guard.test.mjs` is a pre-existing rule-15 ORPHANED PROOF: read
+`run-test-suite.sh`'s globs (`rendering/*.test.mjs`, `rendering/audit/*.test.mjs`,
+`rendering/smoke/*.test.mjs`, none reaching `rendering/layout-guard/`), read `discipline.yml`'s
+rendering-guard job (runs `run-rendering-guard.mjs` directly, never `node --test` on this file), and
+fetched the real origin/master CI log (`gh api .../jobs/103383655386/logs`, the "Discipline engine
+unit tests" job on master run 34634686151/commit 5e891abd) which contains zero occurrences of
+"layout-guard.test.mjs". This matches a PRIOR lane's own dated finding already in the tree
+(`layout-guard-expiry.test.mjs`'s header, OPS72CH, 2026-09-09: "the suite ran 6025 tests, 0 fail,
+while `node --test .discipline/rendering/layout-guard/layout-guard.test.mjs` on the SAME tree...
+reports two failures", reported to the coordinator rather than fixed because the two red tests read
+`allowlists.mjs`, another lane's write set). Read `allowlists.mjs` directly and confirmed the three
+entries the two failing tests were missing (`matrix-cell-score`, `matrix-fact-figure` in
+`ANTON_ALLOWLIST`; `table-card-sticky-first-column` in `POSITION_ALLOWLIST`) are legitimate, dated,
+reasoned exemptions (FOLD 64, 2026-09-09, lane opsmatrix3's artboard-8 matrix), not undocumented
+drift, and updated both tests' stale expected sets to match. `layout-guard.test.mjs` now runs
+43/43. Not wired into any executing lane in this pass (that architectural decision - adding a glob
+to `run-test-suite.sh` or a shim file the way `layout-guard-expiry.test.mjs` does - stays the
+coordinator's call, consistent with the prior lane's own posture); the orphaned-proof status is
+reported here and in the task report rather than silently left as a stale citation.

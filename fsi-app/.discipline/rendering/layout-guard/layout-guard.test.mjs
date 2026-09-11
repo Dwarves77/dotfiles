@@ -372,19 +372,38 @@ test('every allowlist entry carries a reason and a source - an exception with ne
   }
 });
 
-test('the Anton allowlist is exactly the operator\'s six, plus the one addition this lane declares', () => {
+// UPDATED (coordinator review, 2026-09-11, task 0.1 follow-up round 2). This test was failing on
+// origin/master already - [CONFIRMED] via `gh api repos/Dwarves77/dotfiles/actions/jobs/103383655386
+// /logs` (the "Discipline engine unit tests" job on master run 34634686151, commit 5e891abd): zero
+// occurrences of "layout-guard.test.mjs" anywhere in that job's log, and no `.github/workflows/*.yml`
+// job or `run-test-suite.sh` glob names `.discipline/rendering/layout-guard/*.test.mjs` (the suite
+// globs `rendering/*.test.mjs`, `rendering/audit/*.test.mjs` and `rendering/smoke/*.test.mjs`, none
+// of which reach the `layout-guard/` subdirectory). This is a PRE-EXISTING rule-15 orphaned proof,
+// not created by this task: `layout-guard-expiry.test.mjs`'s own header already documented the exact
+// same gap on 2026-09-09 ("[CONFIRMED 2026-09-09: the suite ran 6025 tests, 0 fail, while `node --test
+// .discipline/rendering/layout-guard/layout-guard.test.mjs` on the SAME tree... reports two
+// failures]"), reported to the coordinator rather than fixed because the two red tests read
+// `allowlists.mjs`, another lane's write set at the time. The three entries these assertions were
+// missing are now confirmed legitimate, dated, reasoned exemptions (FOLD 64, 2026-09-09, lane
+// opsmatrix3's artboard-8 matrix; read `allowlists.mjs` directly rather than assumed) - the fix here
+// is to the test's stale expected set, not to the allowlist.
+test('the Anton allowlist is exactly the operator\'s six, plus the three declared extensions', () => {
   const ids = ANTON_ALLOWLIST.map((e) => e.id);
   for (const required of ['page-title', 'card-title', 'band-tile-numeral', 'stat-block-numeral', 'headline-figure', 'timeline-callout']) {
     assert.ok(ids.includes(required), `missing the operator's "${required}"`);
   }
   const extra = ids.filter((id) => !['page-title', 'card-title', 'band-tile-numeral', 'stat-block-numeral', 'headline-figure', 'timeline-callout'].includes(id));
-  assert.deepEqual(extra, ['nav-wordmark'], 'any addition beyond his six is declared here, so it cannot be added quietly');
+  assert.deepEqual(
+    extra.sort(),
+    ['matrix-cell-score', 'matrix-fact-figure', 'nav-wordmark'].sort(),
+    'any addition beyond his six is declared here, so it cannot be added quietly'
+  );
 });
 
-test('the L5 allowlist covers exactly the four things the operator named, plus the two declared extensions', () => {
+test('the L5 allowlist covers exactly the four things the operator named, plus the three declared extensions', () => {
   const ids = POSITION_ALLOWLIST.map((e) => e.id);
   assert.deepEqual(ids.slice(0, 4), ['nav-card-sticky', 'detail-section-index-sticky', 'command-bar-hint', 'overlays']);
-  assert.deepEqual(ids.slice(4).sort(), ['map-markers', 'mobile-top-bar']);
+  assert.deepEqual(ids.slice(4).sort(), ['map-markers', 'mobile-top-bar', 'table-card-sticky-first-column']);
 });
 
 test('the operator\'s absence vocabulary is complete, and only PENDING is narrowed', () => {

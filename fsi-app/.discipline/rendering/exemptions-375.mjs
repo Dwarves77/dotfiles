@@ -62,8 +62,30 @@ export function isExempt375(failureLine, activeExemptions) {
   return activeExemptions.some((e) => failureLine.startsWith(`${e.fixturePrefix}:`));
 }
 
-/** Entries whose expiryWave has not yet been reached (or whose wave is unknown — best-effort, same
- *  posture as F25's own shallow-checkout degradation, see latestTrainWave's header). */
+/**
+ * Entries whose expiryWave has not yet been reached. FAILS CLOSED on an unknown wave: with no live
+ * wave number to test an expiry against, no entry can be shown to still be inside its window, so
+ * none are treated as active.
+ *
+ * CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up round 2, [CONFIRMED by the
+ * reviewer], remediation-discipline section 2, class over instance). The sibling
+ * `exemptions-law2-desktop.mjs`'s `activeLaw2Exemptions` carried the identical fail-open shape and
+ * was fixed in commit 2730ad23 after it was named as the exact mechanism behind the
+ * push-vs-pull_request layout-guard divergence task 0.1 investigated: a depth-1 pull_request
+ * checkout cannot resolve `origin/master`, so `latestTrainWave()` returns null, and the previous
+ * form here ("or whose wave is unknown - best-effort, same posture as F25's own shallow-checkout
+ * degradation") would have let that checkout keep suppressing an `@375` finding a depth-1 push
+ * checkout, resolving a real and expired wave on the SAME tree, correctly reports. Never throwing on
+ * a null wave is still correct (a missing history must not crash the guard); treating null as ACTIVE
+ * is not - a guard's default under uncertainty is closed, not open.
+ */
 export function activeExemptions(list, latestWave) {
-  return list.filter((e) => latestWave === null || latestWave < e.expiryWave);
+  if (latestWave === null && list.length > 0) {
+    console.warn(
+      "exemptions-375: latestTrainWave() returned null (no origin/master ref and no waveNN token on " +
+      "HEAD reachable from this checkout) - treating every dated exemption as EXPIRED, fail closed, " +
+      "not fail open; a shallow checkout is the likely cause, see F25-module-liveness.mjs"
+    );
+  }
+  return list.filter((e) => latestWave !== null && latestWave < e.expiryWave);
 }
