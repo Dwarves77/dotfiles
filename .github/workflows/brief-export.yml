@@ -41,6 +41,17 @@ name: Brief export
 # ten-line SELECT with no write side, not worth a tracked file) rather than that maintenance script's own
 # `main()`, which ARCHIVES matches and is a completely different lane's write path, not reused here.
 #
+# GRADE, DECIDED (Fix round 1, minor (4)): `item_grade='record'` is hardcoded here, not exposed as an
+# input. `item_grade` is a two-value vocabulary, `record` or `brief` (migration 278, `CHECK (item_grade IN
+# ('record', 'brief'))`, default `brief`); a record-grade item upgrades to `brief` IN PLACE once it carries
+# a full brief. So a `brief`-grade item, by construction, already went through synthesis (or was minted
+# there directly) and is never a "stub" in this task's sense: the entire hollow-stub population this task
+# exists to export for is record-grade by definition, and a `grade` input exposing `brief` as a choice
+# would let a dispatch ask this auto-selector for stubs that structurally cannot exist. Chose "state it in
+# the comment" over "expose an input" for this reason. If a third grade value is ever added, `--ids` (the
+# other input this workflow already has) is the escape hatch: a coordinator routes around this hardcoded
+# auto-selector by naming ids explicitly rather than this workflow guessing at a new grade's semantics.
+#
 # COST CLASS: $0, NO MODEL. export-corpus-for-extraction.mjs never calls an LLM or fetches a URL; it only
 # reads already-stored rows (intelligence_items, section_claim_provenance, intelligence_item_sections,
 # agent_run_searches) via db.mjs's read-only-guarded client. The selection script above is the same shape.
@@ -143,6 +154,8 @@ jobs:
 
           let items = await readAll("intelligence_items", "id", {
             match: (q) => {
+              // item_grade is hardcoded to 'record' by design, not a parameter: see this workflow's own
+              // header, "GRADE, DECIDED", for why a brief-grade item can never be a stub in this sense.
               let qq = q.eq("item_grade", "record").eq("provenance_status", "verified").eq("is_archived", false);
               if (afterId) qq = qq.gt("id", afterId);
               return qq;

@@ -153,6 +153,15 @@ test("chunkByCharBudget: consecutive oversize items each get their own part", ()
   ]);
 });
 
+test("chunkByCharBudget: a multi-item running total landing EXACTLY on the budget must NOT flush early", () => {
+  // Fix round 1, minor (3): the boundary case current.length && currentSize + it.size > budget must use
+  // strict > , never >=, so a third item that brings the running total to exactly the budget stays in the
+  // SAME part as the first two, not a new one.
+  const items = [{ id: "a", size: 100 }, { id: "b", size: 100 }, { id: "c", size: 100 }];
+  const parts = chunkByCharBudget(items, 300);
+  assert.deepEqual(parts, [{ part: 1, items: [items[0], items[1], items[2]] }]);
+});
+
 // ── buildCorpusItems ─────────────────────────────────────────────────────────────────────────────
 
 test("buildCorpusItems: groups claims/sections by parent item id, maps column names to the extractor's shape", () => {
@@ -293,14 +302,16 @@ test("buildCorpusItems: pool is OMITTED by default (backward-compatible with run
 
 test("buildCorpusItems: withPoolText:true adds pool:[{url,text}] mapped from result_url/result_content", () => {
   const items = [{ id: "item-1" }];
+  const textA = "full captured text a, ".repeat(15); // > 200 chars: clears the usable-capture floor
+  const textB = "full captured text b, ".repeat(15);
   const poolRows = [
-    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: "full captured text a" },
-    { intelligence_item_id: "item-1", result_url: "https://b.example/doc", result_content: "full captured text b" },
+    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: textA, result_index: 0 },
+    { intelligence_item_id: "item-1", result_url: "https://b.example/doc", result_content: textB, result_index: 1 },
   ];
   const out = buildCorpusItems(items, [], [], poolRows, { withPoolText: true });
   assert.deepEqual(out[0].pool, [
-    { url: "https://a.example/doc", text: "full captured text a" },
-    { url: "https://b.example/doc", text: "full captured text b" },
+    { url: "https://a.example/doc", text: textA },
+    { url: "https://b.example/doc", text: textB },
   ]);
 });
 
@@ -309,14 +320,83 @@ test("buildCorpusItems: withPoolText:true still yields pool: [] for an item with
   assert.deepEqual(out[0].pool, []);
 });
 
-test("buildCorpusItems: withPoolText:true drops pool rows missing a url or content (unusable to a brief-authoring lane)", () => {
+test("buildCorpusItems: withPoolText:true drops pool rows missing a url, or below the usable-capture floor", () => {
+  const longEnough = "y".repeat(250);
   const poolRows = [
-    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: "" },
-    { intelligence_item_id: "item-1", result_url: null, result_content: "orphaned text" },
-    { intelligence_item_id: "item-1", result_url: "https://ok.example/doc", result_content: "usable text" },
+    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: "", result_index: 0 },
+    { intelligence_item_id: "item-1", result_url: null, result_content: longEnough, result_index: 1 },
+    { intelligence_item_id: "item-1", result_url: "https://ok.example/doc", result_content: longEnough, result_index: 2 },
   ];
   const out = buildCorpusItems([{ id: "item-1" }], [], [], poolRows, { withPoolText: true });
-  assert.deepEqual(out[0].pool, [{ url: "https://ok.example/doc", text: "usable text" }]);
+  assert.deepEqual(out[0].pool, [{ url: "https://ok.example/doc", text: longEnough }]);
+});
+
+// Fix round 1, important (2): the pool filter must reuse read-and-extract.mjs's own usable-capture floor
+// (MIN_USABLE_POOL_CHARS = 200, via the exported usableCapturesOrdered), not restate the threshold, so the
+// exported pool is exactly what canonical-pipeline.ts / the sectioner already treat as grounding-worthy.
+test("buildCorpusItems: withPoolText:true excludes a 150-char row and includes a 250-char row (the 200-char usable-capture floor)", () => {
+  const poolRows = [
+    { intelligence_item_id: "item-1", result_url: "https://short.example/doc", result_content: "s".repeat(150), result_index: 0 },
+    { intelligence_item_id: "item-1", result_url: "https://long.example/doc", result_content: "l".repeat(250), result_index: 1 },
+  ];
+  const out = buildCorpusItems([{ id: "item-1" }], [], [], poolRows, { withPoolText: true });
+  assert.deepEqual(out[0].pool, [{ url: "https://long.example/doc", text: "l".repeat(250) }]);
+});
+
+// Fix round 1, critical (1): the per-part item shape needs 8 more fields than id/claims/sections/pool.
+// Asserted key-by-key via a full deepEqual on the exported object (an unexpected extra or missing key
+// fails this the same as a wrong value).
+test("buildCorpusItems: withPoolText:true adds title/item_type/format_type/jurisdiction_iso/canonical_instrument_key/source_id/source_url/required_slots, key-by-key", () => {
+  const items = [
+    {
+      id: "item-1",
+      title: "Regulation (EU) 2024/0001",
+      item_type: "regulation",
+      format_type: "regulatory_fact_document",
+      jurisdiction_iso: "EU",
+      canonical_instrument_key: "eur-lex:32024R0001",
+      source_id: "source-abc",
+      source_url: "https://eur-lex.europa.eu/32024R0001",
+      required_slots: ["effective_date", "jurisdictional_scope"],
+    },
+  ];
+  const out = buildCorpusItems(items, [], [], [], { withPoolText: true });
+  assert.deepEqual(out, [
+    {
+      id: "item-1",
+      claims: [],
+      sections: [],
+      title: "Regulation (EU) 2024/0001",
+      item_type: "regulation",
+      format_type: "regulatory_fact_document",
+      jurisdiction_iso: "EU",
+      canonical_instrument_key: "eur-lex:32024R0001",
+      source_id: "source-abc",
+      source_url: "https://eur-lex.europa.eu/32024R0001",
+      required_slots: ["effective_date", "jurisdictional_scope"],
+      pool: [],
+    },
+  ]);
+});
+
+test("buildCorpusItems: withPoolText:true defaults the 7 metadata fields to null and required_slots to [] when absent on the input item", () => {
+  const out = buildCorpusItems([{ id: "stub-item" }], [], [], [], { withPoolText: true });
+  assert.deepEqual(out, [
+    {
+      id: "stub-item",
+      claims: [],
+      sections: [],
+      title: null,
+      item_type: null,
+      format_type: null,
+      jurisdiction_iso: null,
+      canonical_instrument_key: null,
+      source_id: null,
+      source_url: null,
+      required_slots: [],
+      pool: [],
+    },
+  ]);
 });
 
 // ── source contract: --with-pool-text reads result_url (Part 3 task 3.1) ───────────────────────────
@@ -348,5 +428,51 @@ describe("source contract: the --with-pool-text agent_run_searches read selects 
     assert.ok(selectMatch, "expected an agent_run_searches readAll call in the withPoolText branch");
     assert.match(selectMatch[1], /\bresult_url\b/);
     assert.match(selectMatch[1], /\bresult_content\b/);
+  });
+});
+
+// ── source contract: the intelligence_items read selects the 8 extra columns under --with-pool-text
+// (Fix round 1, critical (1)) ───────────────────────────────────────────────────────────────────────
+describe("source contract: --with-pool-text widens the intelligence_items column select", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("ITEM_COLUMNS includes title, item_type, format_type, jurisdiction_iso, canonical_instrument_key, source_id, source_url when withPoolText", () => {
+    const match = src.match(/const ITEM_COLUMNS = withPoolText\s*\?\s*"([^"]+)"/);
+    assert.ok(match, "expected a withPoolText-conditional ITEM_COLUMNS constant");
+    for (const col of ["title", "item_type", "format_type", "jurisdiction_iso", "canonical_instrument_key", "source_id", "source_url"]) {
+      assert.match(match[1], new RegExp(`\\b${col}\\b`), `expected ITEM_COLUMNS to select ${col}`);
+    }
+  });
+
+  test("both intelligence_items readAll calls (--ids path and the default path) use the same ITEM_COLUMNS variable, never a literal string", () => {
+    const idsPathMatch = src.match(/readAll\("intelligence_items",\s*(\w+),\s*\{[\s\S]*?q\.in\("id",/);
+    const defaultPathMatch = src.match(/readAll\("intelligence_items",\s*(\w+),\s*\{[\s\S]*?q\.eq\("provenance_status", "verified"\)\.eq\("is_archived", false\),?\s*\}\);/);
+    assert.ok(idsPathMatch, "expected the --ids path's intelligence_items readAll call");
+    assert.equal(idsPathMatch[1], "ITEM_COLUMNS");
+    assert.ok(defaultPathMatch, "expected the default path's intelligence_items readAll call");
+    assert.equal(defaultPathMatch[1], "ITEM_COLUMNS");
+  });
+});
+
+// ── source contract: required_slots reuses canonical-pipeline.ts's own item_type_required_slots query
+// shape (Fix round 1, critical (1)) ─────────────────────────────────────────────────────────────────
+describe("source contract: required_slots is read from item_type_required_slots with the pipeline's own query shape", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("reads item_type_required_slots selecting slot_key, filtered by item_type, only under withPoolText", () => {
+    const idx = src.indexOf("required_slots per item (Fix round 1, --with-pool-text only)");
+    assert.ok(idx >= 0, "expected the required_slots step's own comment");
+    const after = src.slice(idx, idx + 1200);
+    const readMatch = after.match(/readAll\("item_type_required_slots",\s*"([^"]+)"/);
+    assert.ok(readMatch, "expected an item_type_required_slots readAll call");
+    assert.match(readMatch[1], /\bslot_key\b/);
+    assert.match(after, /q\.in\("item_type",\s*itemTypes\)/);
+  });
+
+  test("attaches required_slots onto targetItems before buildCorpusItems is called", () => {
+    const attachIdx = src.indexOf("required_slots: requiredSlotsByType.get(it.item_type)");
+    const buildCallIdx = src.indexOf("buildCorpusItems(targetItems, claimRows, sectionRows, poolRows");
+    assert.ok(attachIdx >= 0 && buildCallIdx >= 0);
+    assert.ok(attachIdx < buildCallIdx, "required_slots must be attached to targetItems before the buildCorpusItems call");
   });
 });

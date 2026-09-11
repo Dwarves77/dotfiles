@@ -37,13 +37,26 @@
 //
 // WITH-POOL-TEXT + CHAR-BUDGET (Part 3 task 3.1, W9 brief-chain plan 2026-09-11): a second, opt-in
 // consumer of this same exporter, a session lane authoring a brief from stored source text (never
-// re-fetching), where the forward-events corpus (id/claims/sections only) is not enough: the lane needs
-// each item's own captured grounding pool. `--with-pool-text` reads the FULL `agent_run_searches` pool
+// re-fetching), where the forward-events corpus (id/claims/sections only) is not enough. `--with-pool-text`
+// additionally exports, per item: `title`, `item_type`, `format_type`, `jurisdiction_iso`,
+// `canonical_instrument_key`, `source_id`, `source_url` (plain pass-through of the intelligence_items
+// row's own columns, read in the same query as `id`/`created_at`; a stub item's `format_type` can be null,
+// never derived here, format-derivation is a separate concern, task 2.4's `specForItemType` backfill),
+// `required_slots` (the item_type's slot_key list, read from `item_type_required_slots` with the SAME
+// query shape `canonical-pipeline.ts`'s own `requiredSlotsFor`/grounding read uses:
+// `.select("slot_key", ...).eq("item_type", ...)`, batched via `.in("item_type", ...)` across the distinct
+// item_types in scope rather than one call per item type), and the FULL `agent_run_searches` pool
 // (`result_url`, `result_content`, column names confirmed live against migration 112's CREATE TABLE and
-// migration 264's rename, keyed to items by `intelligence_item_id`) for every target item and adds a
-// `pool: [{ url, text }]` array to each item `buildCorpusItems` returns. SELECT-only, and only reached
-// when this flag is passed; the default (unflagged) path is byte-for-byte unchanged from before this lane,
-// so `run-extraction.mjs`'s `loadCorpus()` (the other, pre-existing caller) sees no difference at all.
+// migration 264's rename, keyed to items by `intelligence_item_id`), filtered to the SAME "usable capture"
+// floor `read-and-extract.mjs`'s own `usableCapturesOrdered` already enforces (trimmed length > 200 chars,
+// the floor `canonical-pipeline.ts` uses to decide whether a captured row is real evidence at all) so the
+// exported pool is exactly what the pipeline itself would treat as grounding-worthy, never a second,
+// drifting copy of that threshold. All of this lands on each item `buildCorpusItems` returns as
+// `pool: [{ url, text }]` plus the eight metadata/slot fields above. SELECT-only, and every one of these
+// reads (and every one of these output fields) is reached ONLY when this flag is passed; the default
+// (unflagged) path is byte-for-byte unchanged from before this lane, so `run-extraction.mjs`'s
+// `loadCorpus()` (the other, pre-existing caller, confirmed by re-reading it: it only reads
+// `items[].claims`/`items[].sections`) sees no difference at all.
 // `--char-budget N` (default 3,000,000) then splits the exported items into numbered `--out` parts so a
 // single session lane never receives more than N characters in one file. The plan's own measurement of
 // this corpus is a 1,337-to-2,590,651-char spread per item once pool text is included, wide enough that a
@@ -52,7 +65,10 @@
 // unflagged path keeps writing exactly one file at `--out`, so no existing caller's file-count expectation
 // changes. An item whose own size exceeds the budget cannot be split without breaking "the pool text the
 // lane read" as one unit, so it goes alone in its own part, flagged `oversize: true` (no-silent-truncation:
-// the lane still gets that item's FULL pool, just alone).
+// the lane still gets that item's FULL pool, just alone). The per-item size is the JSON character count of
+// the WHOLE exported item (`JSON.stringify(it).length`, computed in `main()`'s write step, after all of
+// the above fields are already on the object), so the budget covers everything a part actually carries,
+// not just the pool text.
 //
 // Usage:
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]
@@ -79,6 +95,7 @@ import {
   mapSectionRow,
   attachDueDateContext,
   itemIdsNeedingContext,
+  usableCapturesOrdered,
 } from "../../src/lib/forward-events/read-and-extract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -194,12 +211,24 @@ export function chunkByCharBudget(items, budget) {
  * gain `context` via that module's own `attachDueDateContext`, over this item's own `poolRows` slice.
  * PURE — no I/O. @param {{id:string}[]} items @param {{intelligence_item_id:string}[]} claimRows
  * @param {{item_id:string}[]} sectionRows @param {{intelligence_item_id:string}[]} poolRows
- * @param {{withPoolText?:boolean}} [opts] Part 3 task 3.1: when `withPoolText` is true, each returned item
- *   also carries `pool: [{url, text}]` built from `poolRows` (`result_url`/`result_content`, filtered to
- *   rows that actually have both, see this file's header, "WITH-POOL-TEXT + CHAR-BUDGET"). Default false
- *   preserves the exact pre-existing return shape (no `pool` key at all) for `run-extraction.mjs`'s
- *   `loadCorpus()`, the other caller of this function.
- * @returns {Array<{id:string, claims:object[], sections:object[], pool?:Array<{url:string,text:string}>}>}
+ * @param {{withPoolText?:boolean}} [opts] Part 3 task 3.1 (Fix round 1): when `withPoolText` is true, each
+ *   returned item ALSO carries: `title`, `item_type`, `format_type`, `jurisdiction_iso`,
+ *   `canonical_instrument_key`, `source_id`, `source_url` (plain pass-through of the matching field on
+ *   `items[]`, defaulting to `null` when absent) and `required_slots` (plain pass-through of `it.required_slots`,
+ *   defaulting to `[]`; `main()` attaches this before calling, from the SAME `item_type_required_slots`
+ *   query shape `canonical-pipeline.ts` uses); plus `pool: [{url, text}]` built from `poolRows`, filtered to
+ *   the SAME "usable capture" floor `read-and-extract.mjs`'s own `usableCapturesOrdered` enforces (trimmed
+ *   `result_content` length > 200 chars, `MIN_USABLE_POOL_CHARS`; reused via that exported function rather
+ *   than a second copy of the threshold) and to rows that also carry a `result_url` (a capture with no URL
+ *   cannot be cited back). Default `withPoolText: false` preserves the exact pre-existing return shape (no
+ *   extra keys at all, byte-identical to before this lane) for `run-extraction.mjs`'s `loadCorpus()`, the
+ *   other, pre-existing caller of this function (confirmed by re-reading that runner: it reads only
+ *   `item.claims`/`item.sections`, so extra keys were always harmless there too, but this exporter still
+ *   NEVER adds them on that path, keeping the two callers' outputs provably distinct rather than relying on
+ *   the consumer's tolerance).
+ * @returns {Array<{id:string, claims:object[], sections:object[], title?:string|null, item_type?:string|null,
+ *   format_type?:string|null, jurisdiction_iso?:string|null, canonical_instrument_key?:string|null,
+ *   source_id?:string|null, source_url?:string|null, required_slots?:string[], pool?:Array<{url:string,text:string}>}>}
  */
 export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], opts = {}) {
   const { withPoolText = false } = opts;
@@ -228,8 +257,16 @@ export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], o
       sections: sectionsByItem.get(it.id) ?? [],
     };
     if (withPoolText) {
-      out.pool = (poolByItem.get(it.id) ?? [])
-        .filter((r) => typeof r.result_url === "string" && typeof r.result_content === "string" && r.result_content.length > 0)
+      out.title = it.title ?? null;
+      out.item_type = it.item_type ?? null;
+      out.format_type = it.format_type ?? null;
+      out.jurisdiction_iso = it.jurisdiction_iso ?? null;
+      out.canonical_instrument_key = it.canonical_instrument_key ?? null;
+      out.source_id = it.source_id ?? null;
+      out.source_url = it.source_url ?? null;
+      out.required_slots = it.required_slots ?? [];
+      out.pool = usableCapturesOrdered(poolByItem.get(it.id) ?? [])
+        .filter((r) => typeof r.result_url === "string")
         .map((r) => ({ url: r.result_url, text: r.result_content }));
     }
     return out;
@@ -255,6 +292,19 @@ async function main() {
   const { readAll } = await import("../lib/db.mjs");
   const { out, since, ids, limit, withPoolText, charBudget } = parsed;
 
+  // Fix round 1 (reviewer, 2026-09-11): the Interfaces section's per-item shape needs 8 more
+  // intelligence_items columns than the forward-events family's own id/created_at read. Selected ONLY
+  // under --with-pool-text (kept off the default path so a routine, possibly much larger, forward-events
+  // export never pays for columns loadCorpus's caller never reads, confirmed by re-reading
+  // scripts/forward-events/run-extraction.mjs: it reads only item.claims/item.sections). Column names are
+  // the same ones src/lib/supabase-server.ts's own RESOURCE_COLUMNS selects (title, item_type, source_id,
+  // source_url, jurisdiction_iso) and src/lib/agent/canonical-pipeline.ts's own item read at :958/:1063
+  // (canonical_instrument_key); format_type is passed through as stored (null on a never-generated stub,
+  // never derived here, that backfill is task 2.4's specForItemType concern, not this exporter's).
+  const ITEM_COLUMNS = withPoolText
+    ? "id, created_at, title, item_type, format_type, jurisdiction_iso, canonical_instrument_key, source_id, source_url"
+    : "id, created_at";
+
   // 1 — the item scope. --ids: EXACTLY the given items (still ANDed with verified/live — a ticket for an
   // item archived since it was queued is not re-exported), the shape corpus-turn.yml's ticket-queue
   // selection needs. Otherwise: verified/live items, optionally scoped to --since (matching
@@ -264,7 +314,7 @@ async function main() {
   if (ids) {
     items = [];
     for (const idChunk of chunk(ids, 200)) {
-      const rows = await readAll("intelligence_items", "id, created_at", {
+      const rows = await readAll("intelligence_items", ITEM_COLUMNS, {
         // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
         match: (q) => q.in("id", idChunk).eq("provenance_status", "verified").eq("is_archived", false),
       });
@@ -279,7 +329,7 @@ async function main() {
       );
     }
   } else {
-    items = await readAll("intelligence_items", "id, created_at", {
+    items = await readAll("intelligence_items", ITEM_COLUMNS, {
       match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
     });
     if (since) {
@@ -314,6 +364,31 @@ async function main() {
       ? `${targetItems.length} target(s) for pool-text export (--with-pool-text: forward-event status not filtered).`
       : `${targetItems.length} lack any item_forward_events row.`)
   );
+
+  // 2b: required_slots per item (Fix round 1, --with-pool-text only). The SAME query shape
+  // canonical-pipeline.ts's own requiredSlotsFor/grounding read uses against item_type_required_slots
+  // (.select("slot_key", ...).eq("item_type", ...)), batched here across the distinct item_types actually
+  // in scope (rarely more than a handful) via .in("item_type", ...) rather than one call per item type or
+  // per item. An item_type with no rows in the table (never happens for the 12 live types, but no read
+  // here assumes the DB matches code) gets required_slots: [], never guessed.
+  const requiredSlotsByType = new Map();
+  if (withPoolText) {
+    const itemTypes = [...new Set(targetItems.map((it) => it.item_type).filter(Boolean))];
+    if (itemTypes.length) {
+      const slotRows = await readAll("item_type_required_slots", "item_type, slot_key", {
+        match: (q) => q.in("item_type", itemTypes),
+      });
+      for (const r of slotRows) {
+        const list = requiredSlotsByType.get(r.item_type) ?? [];
+        list.push(r.slot_key);
+        requiredSlotsByType.set(r.item_type, list);
+      }
+    }
+    targetItems = targetItems.map((it) => ({
+      ...it,
+      required_slots: requiredSlotsByType.get(it.item_type) ?? [],
+    }));
+  }
 
   // 3 — batched claim/section reads for the target items only (chunked .in() — PostgREST/pg IN-list
   // limits and payload size both bounded by a modest chunk size). The pool read (lane FE-SLOT-2,
