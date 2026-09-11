@@ -27,6 +27,7 @@ import { runConnectionDiscovery } from "@/lib/connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
+import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -359,6 +360,24 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   } catch (e: unknown) {
     await recordFlywheelDefect(sb, itemId, "compliance-deadline", e instanceof Error ? e.message : String(e));
     flags.push("compliance-deadline-failed");
+  }
+
+  // rule 16(e) (2026-09-11, W9.1 "entity references at the mint chokepoint"): every NEW item is
+  // connected into the entity spine (migration 282/283) at birth, not only by the hand-dispatched
+  // scripts/entities/backfill-entities.mjs. Same non-fatal try/catch posture as (a)/(b)/(compliance
+  // sync) above: a linking failure must never fail a mint; it is RECORDED as a rule-16(d) defect.
+  // MOAT BOUNDARY: writes ONLY entities / entity_identifiers / entity_refs / intelligence_items.
+  // instrument_entity_id — the exact tables migration 283 adds, nothing else in this chokepoint.
+  try {
+    const r = await linkItemEntities(sb, {
+      id: itemId,
+      jurisdiction_iso: seed.jurisdiction_iso as string[] | undefined,
+      canonical_instrument_key: seed.canonical_instrument_key as string | undefined,
+    });
+    if (r.refs > 0 || r.instrumentEntityId) flags.push(`entities:${r.refs}${r.instrumentEntityId ? "+instrument" : ""}`);
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "entities", e instanceof Error ? e.message : String(e));
+    flags.push("entities-failed");
   }
 
   if (seekStudy) {

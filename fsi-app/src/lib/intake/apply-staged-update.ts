@@ -28,6 +28,7 @@ import { runConnectionDiscovery, CONNECTION_SIGNATURE_COLUMNS } from "@/lib/conn
 import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
+import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
 
 export interface ApplyUpdateResult {
   success: boolean;
@@ -118,7 +119,7 @@ function forwardEventDedupeKey(row: Record<string, unknown>): string {
  * gate-decision strings onto `flags` (mint-item.ts's own convention) rather than returning a second value.
  * NEVER throws — every failure is caught, recorded via recordFlywheelDefect (rule 16d), and flagged.
  */
-async function participateInFlywheel(supabase: any, itemId: string, flags: string[]): Promise<void> {
+async function participateInFlywheel(supabase: any, itemId: string, flags: string[], proposedChanges: Record<string, unknown> = {}): Promise<void> {
   // ── rule 16(a): re-run connection discovery against the item's CURRENT (post-update) signature. A
   // fresh re-read (rather than merging proposed_changes over the pre-update row in memory) is the only way
   // to get an authoritative full signature when proposed_changes may have touched only SOME of the
@@ -220,6 +221,32 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
     await recordFlywheelDefect(supabase, itemId, "compliance-deadline", e instanceof Error ? e.message : String(e), { context: "update" });
     flags.push("compliance-deadline-failed");
   }
+
+  // rule 16(e) (2026-09-11, W9.1 "entity references at the mint chokepoint"): a SUBSTANTIVE update_item
+  // that touches jurisdiction_iso or canonical_instrument_key must re-link the entity spine (migration
+  // 282/283) too — those are the only two fields linkItemEntities plans from, so any OTHER substantive
+  // change (title, full_brief, etc.) correctly skips this step. Fresh re-read of the item's CURRENT
+  // values (not a merge of proposedChanges over stale in-memory state), same posture as the discovery
+  // re-read above. Own try/catch: a linking failure must never mask discovery/forward-events success.
+  if (Object.prototype.hasOwnProperty.call(proposedChanges, "jurisdiction_iso") || Object.prototype.hasOwnProperty.call(proposedChanges, "canonical_instrument_key")) {
+    try {
+      const { data: row, error: readErr } = await supabase
+        .from("intelligence_items")
+        .select("id,jurisdiction_iso,canonical_instrument_key")
+        .eq("id", itemId)
+        .single();
+      if (readErr) throw new Error(`intelligence_items re-read for entity linking failed: ${readErr.message}`);
+      const r = await linkItemEntities(supabase, {
+        id: itemId,
+        jurisdiction_iso: row?.jurisdiction_iso,
+        canonical_instrument_key: row?.canonical_instrument_key,
+      });
+      if (r.refs > 0 || r.instrumentEntityId) flags.push(`entities:${r.refs}${r.instrumentEntityId ? "+instrument" : ""}`);
+    } catch (e: unknown) {
+      await recordFlywheelDefect(supabase, itemId, "entities", e instanceof Error ? e.message : String(e), { context: "update" });
+      flags.push("entities-failed");
+    }
+  }
 }
 
 export async function applyStagedUpdate(
@@ -308,7 +335,7 @@ export async function applyStagedUpdate(
         // from what update_item's unrestricted proposed_changes can actually mean.
         const flags: string[] = [];
         if (isSubstantiveUpdate(proposedChanges)) {
-          await participateInFlywheel(supabase, itemId, flags);
+          await participateInFlywheel(supabase, itemId, flags, proposedChanges);
         }
         return { success: true, itemId, flags };
       }
