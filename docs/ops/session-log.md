@@ -17477,3 +17477,34 @@ drift, and updated both tests' stale expected sets to match. `layout-guard.test.
 to `run-test-suite.sh` or a shim file the way `layout-guard-expiry.test.mjs` does - stays the
 coordinator's call, consistent with the prior lane's own posture); the orphaned-proof status is
 reported here and in the task report rather than silently left as a stale citation.
+
+### Follow-up round 3 (coordinator review, same day): the orphaned proof gets wired, rule 15 execution-over-existence
+
+The architectural decision left open at the end of round 2 was made: `run-test-suite.sh` now carries
+`fsi-app/.discipline/rendering/layout-guard/*.test.mjs` next to the other rendering globs. Checked
+every import in `layout-guard.test.mjs` and its transitive relative dependencies
+(`manifests.mjs`, `generate-manifests.mjs`, `baseline.mjs`, `routes.mjs`, `rules.mjs`, `collect.mjs`,
+`allowlists.mjs`, `run-layout-guard.mjs`) first: all node: builtins and relative `.mjs`, no bare
+package specifier anywhere; the one npm touch (`createRequire(...).resolve('playwright')`, twice) is
+guarded by try/catch and only reached inside a dynamic `await import('./run-layout-guard.mjs')` that
+never executes when the resolve throws. `node --test .discipline/glob-portability.test.mjs` confirms
+the new glob is portable (2/2 pass); ran the newly-covered file the same way the script would (one
+`node --test` call over the whole rendering tree, 141/141 pass, including the real-chromium L9 test
+at 6.9s). Corrected `layout-guard.test.mjs`'s own header comment on that one test, which had wrongly
+claimed the rendering-guard job "now also runs this whole file" (untrue: that job only ever runs
+`run-rendering-guard.mjs` directly) - it self-skips in the no-`npm ci` discipline-unit-tests job it
+is now actually wired into, and runs for real only where playwright is already installed. Updated
+`layout-guard-expiry.test.mjs`'s header, which documented the orphan by name, to mark it resolved
+without erasing the historical record of why that file exists.
+
+**Why F23's ORPHANED-PROOF check never flagged this.** `coverage-scan.mjs`'s `ROOTS` constant is
+`['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations']` - it never walks
+`fsi-app/.discipline` at all, so a `.discipline/**/*.test.mjs` file is never even classified as
+PROOF (the classifier that feeds `isExecutionWired()`), regardless of its actual wiring state. This
+is a real, [CONFIRMED] structural gap in F23's enumeration (the discipline engine's own test suite is
+entirely outside the surface F23 protects), not a defect in `isExecutionWired()` itself; per
+instruction it is named here, not widened in this lane.
+
+Gates: layout-guard tests 43/43 (unchanged), `npx tsc --noEmit` clean,
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all four commits.
+`run-test-suite.sh` itself was NOT run in this round (coordinator runs it at push).

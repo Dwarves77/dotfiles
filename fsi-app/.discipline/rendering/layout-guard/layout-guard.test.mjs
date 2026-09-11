@@ -292,14 +292,27 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
 // run-rendering-guard.mjs takes in CI. It is the one test in this otherwise browser-free file that
 // needs a real chromium, so it self-skips (diagnosably, not silently) when playwright is not
 // resolvable, the same posture rule 15's execution-wiring gate requires of a no-cred verifier - a
-// lane without the browser dependency gets a skip, never a crash and never a false green. Wired for
-// real by the rendering-guard job (discipline.yml), which already installs playwright + chromium for
-// run-rendering-guard.mjs and now also runs this whole file.
+// lane without the browser dependency gets a skip, never a crash and never a false green.
+//
+// CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up round 3): this file is now wired
+// into the "Discipline engine unit tests" job via run-test-suite.sh's own
+// `rendering/layout-guard/*.test.mjs` glob, not the rendering-guard job - that job never runs
+// `node --test` against any file, only `run-rendering-guard.mjs` directly (the exact gap this round
+// closes; see the header note below and docs/ops/session-log.md's FACETFIX entry). The
+// discipline-unit-tests job runs with NO `npm ci` step at all (checkout + setup-node, then straight
+// to `bash run-test-suite.sh`), so THIS test self-skips there every time - it runs for real only in
+// an environment where `npm install`/`npm ci` already put playwright in node_modules (a local run,
+// or after the "App unit tests requiring npm deps" step elsewhere installs it for other reasons).
+// That is the correct, honest state: the detector logic it exercises (checkL9, isL9DesktopExempt)
+// is unit-proven with no browser by the pure-bundle test above and by
+// exemptions-law2-desktop.test.mjs, both of which DO run in the no-npm-ci job; this one test is the
+// supplementary real-DOM confirmation, same posture as the rendering-guard job's own relationship to
+// assertions.test.mjs (see that job's header comment in discipline.yml).
 test('L9: facet checkboxes meet the hit-target floor at 1440', async (t) => {
   try {
     createRequire(import.meta.url).resolve('playwright');
   } catch {
-    t.skip('playwright is not installed in this lane - this is the one browser-dependent test here; it runs for real in the rendering-guard CI job');
+    t.skip('playwright is not installed in this lane (e.g. the no-npm-ci discipline-unit-tests job) - the pure-bundle L9 test above and exemptions-law2-desktop.test.mjs cover the detector logic without a browser; this test is the supplementary real-chromium confirmation and runs for real wherever playwright is already installed');
     return;
   }
   const { runLayoutGuardFor } = await import('./run-layout-guard.mjs');

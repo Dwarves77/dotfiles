@@ -70,6 +70,7 @@ node --test \
   fsi-app/.discipline/rendering/*.test.mjs \
   fsi-app/.discipline/rendering/audit/*.test.mjs \
   fsi-app/.discipline/rendering/smoke/*.test.mjs \
+  fsi-app/.discipline/rendering/layout-guard/*.test.mjs \
   fsi-app/.discipline/runner.test.mjs \
   fsi-app/.discipline/install-hooks.test.mjs \
   fsi-app/.discipline/dispatch/*.test.mjs \
