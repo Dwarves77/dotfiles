@@ -6,6 +6,58 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-09-11: F23's coverage-scan never enumerates fsi-app/.discipline, so its own test suite can carry orphaned proofs undetected
+
+**Defect (enumeration gap, [CONFIRMED]):** `coverage-scan.mjs`'s `ROOTS` constant is
+`['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations']`. It never walks `fsi-app/.discipline`,
+so a `.discipline/**/*.test.mjs` file is never even classified as PROOF (the classification
+`isExecutionWired()` checks): F23's ORPHANED-PROOF ratchet cannot see it, wired or not. This is why
+F23 never flagged `layout-guard.test.mjs` (fixed and wired into `run-test-suite.sh`, task 0.1,
+commit `4a0887dc`) despite it having been run by nothing since at least 2026-09-09.
+
+**Widening tried and NOT landed.** One-line change: `const ROOTS = ['fsi-app/src', 'fsi-app/scripts',
+'fsi-app/supabase/migrations', 'fsi-app/.discipline'];`. Reproduce with that edit plus
+`node .discipline/governance/coverage-scan.mjs` (uncommitted local edit only; reverted after this
+measurement). Result: **88 newly governed files** under `fsi-app/.discipline`, **80 classified
+PROOF**, **1 of those ORPHANED-PROOF** (run by nothing):
+- `fsi-app/.discipline/rendering/fixtures-dash/fixtures.test.mjs`
+
+Plus 5 more gaps outside the PROOF class that the same widening would surface (not asked for by
+name, reported here for completeness since they are the same widening's side effect):
+- UNMAPPED-WRITES (4): `fsi-app/.discipline/fitness/functions/F20-pause-flag-one-writer.mjs`,
+  `fsi-app/.discipline/governance/db-catalog-refresh.sql`,
+  `fsi-app/.discipline/governance/skill-contract-map.mjs`,
+  `fsi-app/.discipline/rules/021-cached-shape-key.mjs`
+- UNMAPPED-ROUTING (1): `fsi-app/.discipline/governance/coverage-scan.mjs` itself
+
+Since the widening reports non-zero new gaps, per the round-4 instruction it was NOT landed: `ROOTS`
+is unchanged, `ORPHANED-PROOF` and the other four gap classes stay scoped to `src`/`scripts`/
+`migrations` until an operator rules on the six items above (each needs its own disposition: wire
+`fixtures.test.mjs` into a suite, map or exempt the four writes/routing files, or re-scope the
+widening to exclude specific subtrees).
+
+**Safety net (why it is benign today):** F23's ratchet still holds at zero gaps for its actual,
+current scope (`src`/`scripts`/`migrations`); this gap means the discipline engine's OWN code is
+simply outside what F23 protects, not that F23 is wrong about what it does cover. `fixtures.test.mjs`
+is inert (a green, portable, unrun proof, not a false pass on live behavior) and its own header
+already documents it as awaiting the coordinator's wiring of `buildDashFixtures()`.
+
+**Cost of leaving:** A future `.discipline`-tree test can go unwired indefinitely with no CI signal,
+exactly the class rule 15 exists to close. This task found and fixed one instance
+(`layout-guard.test.mjs`) by hand, via a coordinator-directed investigation, not via F23. Every
+additional `.discipline` test written from here forward inherits the same blind spot.
+
+**Remediation sketch:** Widen `ROOTS` to include `fsi-app/.discipline`, but only after the six gaps
+above are individually resolved (wire, map, or exempt each with a reason). Landing the widening
+with open gaps would either fail F23's ratchet immediately or silently raise the baseline to absorb
+them, which is the same "declared but not measured" failure this file's 2026-08-11 WIRING note
+already fixed once for coverage-scan.mjs itself.
+
+**Priority:** Low-Medium (no live defect; a detection blind spot for a class already proven to
+recur; one real instance found this session).
+
+---
+
 ## 2026-07-13 — archived rows retain last-live provenance_status (no terminal 'archived' status) — the root of the count ambiguity
 
 **Defect (schema semantics):** `is_archived` (boolean) and `provenance_status` (enum) are orthogonal columns. When an item is archived, `is_archived` flips to `true` but `provenance_status` is **left at its last-live value**. So there are currently **160 rows with `is_archived=true AND provenance_status='quarantined'`** — archived items still carrying a live-status label. A count on `provenance_status` alone (status-only) therefore includes archived rows: the status-only quarantined total is `197 = 37 live + 160 archived`, while the live backlog is `37`. This is the **root cause of the count ambiguity** that produced, in one week, a ~5x understatement and a ~5x overstatement (see ADR-013, the 197→37 drift-reconciliation).

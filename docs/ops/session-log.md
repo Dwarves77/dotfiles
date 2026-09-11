@@ -17508,3 +17508,22 @@ instruction it is named here, not widened in this lane.
 Gates: layout-guard tests 43/43 (unchanged), `npx tsc --noEmit` clean,
 `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all four commits.
 `run-test-suite.sh` itself was NOT run in this round (coordinator runs it at push).
+
+### Follow-up round 4 (coordinator review, same day): the F23 gap, measured and delivered decision-ready, not landed
+
+Rule 13: the round-3 F23 finding is a commitment, not a comment. Measured the widening locally
+(uncommitted): temporarily set `ROOTS` in `coverage-scan.mjs` to
+`['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations', 'fsi-app/.discipline']`, ran
+`node .discipline/governance/coverage-scan.mjs`, and read the resulting report. Result: **88** newly
+governed files under `fsi-app/.discipline`, **80** classified PROOF, **1** ORPHANED-PROOF
+(`fsi-app/.discipline/rendering/fixtures-dash/fixtures.test.mjs`, confirmed unreferenced by
+`run-test-suite.sh` or any workflow file, independent of the layout-guard finding), plus 4
+UNMAPPED-WRITES and 1 UNMAPPED-ROUTING outside the PROOF class. Since the count is non-zero, the
+widening is NOT landed: `git checkout --` reverted both `coverage-scan.mjs` and the regenerated
+`coverage-report.json` (a tracked side-effect file the scan rewrites on every run), confirmed clean
+by `git status`. The finding is delivered decision-ready in `docs/tech-debt-log.md`'s own format (the
+exact one-line `ROOTS` change, the reproduction command, and the six-file list, dated 2026-09-11) so
+an operator can rule on each of the six items without re-running the experiment.
+
+Gates: `npx tsc --noEmit` clean (no code changed this round; only `docs/tech-debt-log.md`),
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all five commits.
