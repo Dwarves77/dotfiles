@@ -67,7 +67,25 @@ test("empty steps array: no index to bold", () => {
   assert.equal(pickCurrentStepIndex([], new Date("2026-09-11T00:00:00Z")), -1);
 });
 
-test("formatTrajectoryStep renders exactly the mock's per-step shape: value (date)", () => {
+// Fix round 1 (coordinator review, 2026-09-11): [CONFIRMED by the reviewer reading
+// system-prompt.ts:311 and the mock] formatTrajectoryStep echoed step.date verbatim, so the
+// STORED shape system-prompt.ts:311 actually specifies ("YYYY" or "YYYY-MM-DD") rendered
+// "70% (2026-09-30)" instead of the mock's "70% (Sep 30 2026)" -- every prior test only ever fed
+// already-formatted display strings ("Sep 30 2026"), never the stored ISO shape, so the defect
+// passed unnoticed. These four cases feed the STORED shape.
+test("formatTrajectoryStep: bare YYYY passes through unchanged", () => {
   assert.equal(formatTrajectoryStep({ date: "2025", value: "40%" }), "40% (2025)");
-  assert.equal(formatTrajectoryStep({ date: "Sep 30 2026", value: "70%" }), "70% (Sep 30 2026)");
+});
+
+test("formatTrajectoryStep: YYYY-MM-DD renders as the mock's 'Mon D YYYY' display shape", () => {
+  assert.equal(formatTrajectoryStep({ date: "2026-09-30", value: "70%" }), "70% (Sep 30 2026)");
+});
+
+test("formatTrajectoryStep: a second YYYY-MM-DD case, bare year on the other end of the series", () => {
+  assert.equal(formatTrajectoryStep({ date: "2027", value: "100%" }), "100% (2027)");
+});
+
+test("formatTrajectoryStep: an unparseable date string is echoed verbatim, never NaN or Invalid Date", () => {
+  assert.equal(formatTrajectoryStep({ date: "phase one", value: "40%" }), "40% (phase one)");
+  assert.equal(formatTrajectoryStep({ date: "not-a-real-date", value: "X" }), "X (not-a-real-date)");
 });

@@ -361,6 +361,14 @@ const REGULATION_STATES = [
   // above); this state adds requirementTrajectory on top, using the mock's own worked example
   // (docs/design/handoff-2026-09-06/"Caros Ledge UI System.dc.html", regulation Exposure card) so a
   // production-string regression is caught, not just a synthetic shape.
+  //
+  // Fix round 1 (coordinator review, 2026-09-11): the middle step now feeds the STORED shape
+  // ("2026-09-30", system-prompt.ts:311's "YYYY-MM-DD" case), not an already-formatted display
+  // string -- the defect this fixture failed to catch the first time (formatTrajectoryStep echoed
+  // `date` verbatim, so an already-formatted "Sep 30 2026" input rendered correctly by accident).
+  // The first/third steps ("2025"/"2027") are already valid stored shape (system-prompt.ts:311's
+  // bare "YYYY" case), so they are unchanged. renderRequirementTrajectory's own formatter is
+  // responsible for turning "2026-09-30" into the mock's "Sep 30 2026" display text.
   {
     label: 'exposure-fields-present',
     props: {
@@ -369,7 +377,7 @@ const REGULATION_STATES = [
         requirementTrajectory: {
           steps: [
             { date: '2025', value: '40%' },
-            { date: 'Sep 30 2026', value: '70%' },
+            { date: '2026-09-30', value: '70%' },
             { date: '2027', value: '100%' },
           ],
           note: 'methane and nitrous oxide in scope from 2026',

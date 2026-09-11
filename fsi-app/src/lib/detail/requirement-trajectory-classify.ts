@@ -40,7 +40,48 @@ export function pickCurrentStepIndex(steps: RequirementTrajectoryStepLike[], now
   return -1;
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const BARE_YEAR_RE = /^\d{4}$/;
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Formats one step's `date` for display, per the mock's exact convention: a bare year passes
+ * through unchanged ("2025"), a full "YYYY-MM-DD" (the stored shape, system-prompt.ts:311)
+ * becomes "Mon D YYYY" ("2026-09-30" -> "Sep 30 2026"), and anything else (an unexpected shape,
+ * or free-form prose) is echoed verbatim rather than turned into "NaN"/"Invalid Date" (fix round 1,
+ * coordinator review, 2026-09-11: the prior implementation always echoed `date` verbatim, which
+ * rendered the actual stored ISO shape wrong -- "70% (2026-09-30)" instead of the mock's
+ * "70% (Sep 30 2026)" -- because every existing test happened to feed an already-formatted
+ * display string instead of the stored shape).
+ *
+ * Deliberately parses by splitting the string rather than `new Date("YYYY-MM-DD")`: the Date
+ * constructor treats a date-only ISO string as UTC midnight, which DISPLAYS as the previous
+ * calendar day in any negative-UTC-offset timezone (the whole of the Americas). A per-year
+ * requirement milestone must show the same calendar date to every reader regardless of the
+ * viewer's timezone, so this never constructs a Date for display, only string arithmetic.
+ */
+function formatTrajectoryDate(date: string): string {
+  if (BARE_YEAR_RE.test(date)) return date;
+
+  const m = ISO_DATE_RE.exec(date);
+  if (m) {
+    const [, year, monthStr, dayStr] = m;
+    const monthIndex = Number(monthStr) - 1;
+    const day = Number(dayStr);
+    if (monthIndex >= 0 && monthIndex <= 11 && Number.isInteger(day) && day >= 1 && day <= 31) {
+      return `${MONTH_NAMES[monthIndex]} ${day} ${year}`;
+    }
+  }
+
+  // Unexpected shape (free-form prose, an already-formatted display string, a malformed date):
+  // echo verbatim. Never fabricate a parse that isn't there.
+  return date;
+}
+
 /** One step's display text, exactly the mock's per-step shape: "value (date)". */
 export function formatTrajectoryStep(step: RequirementTrajectoryStepLike): string {
-  return `${step.value} (${step.date})`;
+  return `${step.value} (${formatTrajectoryDate(step.date)})`;
 }
