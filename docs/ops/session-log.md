@@ -16963,15 +16963,43 @@ registered governing files per `scripts/harness-runs/governing-files.mjs`). Re-p
 re-pin convention. Each edit was mechanical and behavior-preserving in every case (no validation or
 classification logic changed).
 
-**Gates, this clone.**
+**Non-guard test-side fixes (brief step 4), diagnosed individually, no implementation changed.**
+Two groups of pre-existing hardcoded-POSIX-literal assertions, both correct in implementation:
+`resolveRulingPath` (four `scripts/maintenance/review-apply-*.mjs` wrappers) and `defaultTraceDir`
+(three `scripts/turns/run-*.mjs` harnesses) both route through `node:path`'s `resolve()`/`join()`,
+which emit backslash-separated paths on Windows; their tests asserted hardcoded POSIX strings, which
+only ever matched on POSIX. Fixed by normalizing the actual side before comparing (relative-path
+shape assertions) or comparing directly against `resolve()`/`join()` output (absolute-passthrough and
+directory-join assertions), so the expectation derives from Node's own path semantics on whichever
+platform runs the suite. `run-ledger-consume.test.mjs`'s `discoverVerdictsFiles` test had a second,
+distinct bug: it compared `join()`'s own output against `resolve()`'s output, which differ on Windows
+(resolve additionally qualifies with the current drive); fixed by comparing against `join()`, the
+function actually under test. The five files named in the brief as "expected to be cured by the
+main-guard fix alone" were re-run and confirmed green (93 tests, 0 failures) with no further changes.
+
+**Two follow-on fixes found only by the full suite run, both same-day, same lane.** (1)
+`scripts/lib/is-main.test.mjs`'s regression sweep scanned test files too, which flagged its own
+sibling `F44-broken-main-guard.test.mjs`: that file's `BROKEN_LITERAL` fixture constant stores the
+broken idiom as a literal string on one line (to build RED-case source snippets for
+`fitnessFunction.check()`), which is exactly the "fixture, not a live call site" case F44 itself
+already excludes test files for. Fixed by adding the same `*.test.mjs`/`*.selftest.mjs`/`*.npmtest.mjs`
+exclusion to the sweep. (2) Editing `remediation-discipline/SKILL.md` (the new category 44 section)
+moved its content hash out from under `skill-contract-map.mjs`'s `PINNED_MANIFEST`, which pins one
+hash per governing skill and reds when a skill's live hash disagrees with what is pinned. Re-pinned to
+the new hash following the file's own established re-pin convention (a comment naming the lane and
+confirming no `citingFiles` change, since the addition is a new appended section touching no statement
+any citing file relies on), the same convention already used ten-plus times in that file for the
+prior category additions (36 through 43).
+
+**Gates, this clone (final, after both follow-on fixes).**
 - `node --test scripts/lib/is-main.test.mjs`: 5 tests, 0 failures.
-- `bash fsi-app/.discipline/run-test-suite.sh`: verbatim summary in the task report.
+- `bash fsi-app/.discipline/run-test-suite.sh`: `tests 6059 / pass 6054 / fail 0 / skipped 5`.
 - `node .discipline/fitness/runner.mjs`: 38 function(s) checked, 0 violation(s).
 - `node .discipline/governance/invariant-coverage.mjs` (not one of the required gates, run anyway since
   it is wired into CI's "Discipline engine unit tests" job and RD-68 needed registering to stay green
   there): `skills: 7 invariants: 124 | ENFORCED 111 EXEMPT 13`, `=== meta-gate PASS ===`.
-- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: verbatim summary in the task report.
-- `npx tsc --noEmit`: verbatim summary in the task report.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: exit 0, all 5 commits pass.
+- `npx tsc --noEmit`: exit 0, empty output.
 - Runtime proof: `node scripts/mint/run-mint-batch.mjs --help` prints its usage text on this Windows
   machine instead of nothing.
 
