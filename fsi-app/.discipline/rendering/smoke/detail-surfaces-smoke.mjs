@@ -355,6 +355,69 @@ const REGULATION_STATES = [
     },
     expectTitles: 1,
   },
+  // Task 2.3 (brief-chain-build-plan-2026-09-11, migration 316): the Exposure card's Who pays /
+  // Trajectory cells and the Penalties section, all six fields present. baseResource() already
+  // defaults penaltyRange/costMechanism/enforcementBody (present since the fixture's own baseline,
+  // above); this state adds requirementTrajectory on top, using the mock's own worked example
+  // (docs/design/handoff-2026-09-06/"Caros Ledge UI System.dc.html", regulation Exposure card) so a
+  // production-string regression is caught, not just a synthetic shape.
+  {
+    label: 'exposure-fields-present',
+    props: {
+      resource: baseResource({
+        id: 'detail-exposure-present',
+        requirementTrajectory: {
+          steps: [
+            { date: '2025', value: '40%' },
+            { date: 'Sep 30 2026', value: '70%' },
+            { date: '2027', value: '100%' },
+          ],
+          note: 'methane and nitrous oxide in scope from 2026',
+        },
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      sections: regulationSections(),
+      groupLabel: LONG_GROUP,
+      deck: 'EUR-Lex · adopted 16 October 2024 · in force',
+      initialOwner: null,
+      upcomingObligations: null,
+    },
+    expectTitles: 1,
+  },
+  // Task 2.3: the honest-absence counterpart, all six fields undefined. Who pays and Trajectory
+  // must show the Absence convention (never a fabricated value), and the Penalties section must
+  // not render at all (hasPenaltyContent false when penaltyRange/costMechanism/enforcementBody are
+  // all absent, RegulationDetailSurface.tsx's own gate).
+  {
+    label: 'exposure-fields-absent',
+    props: {
+      resource: baseResource({
+        id: 'detail-exposure-absent',
+        penaltyRange: undefined,
+        costMechanism: undefined,
+        enforcementBody: undefined,
+        requirementTrajectory: undefined,
+        conversionTrigger: undefined,
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      sections: regulationSections(),
+      groupLabel: LONG_GROUP,
+      deck: 'EUR-Lex · adopted 16 October 2024 · in force',
+      initialOwner: null,
+      upcomingObligations: null,
+    },
+    expectTitles: 1,
+  },
 ];
 
 // ── Operations ──────────────────────────────────────────────────────────────────────────────────

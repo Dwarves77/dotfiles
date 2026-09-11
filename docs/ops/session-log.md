@@ -5,6 +5,112 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-11, BRIEFFIELDS task 2.3: resource mapping, RPC reads, and the four detail surfaces
+
+Task 2.3 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,
+branch `lane/brieffields-2026-09-11`, on top of tasks 2.1 (migration 316, not applied live) and 2.2
+(the parser/write site, commit `70a7ca00`). Read the brief, the plan's Part 2, both predecessor
+reports, `docs/design/ux-laws.md`, `docs/design/design-principles.md` (DP-1, DP-2), and the mock
+(`docs/design/handoff-2026-09-06/"Caros Ledge UI System.dc.html"`, the regulation Exposure card)
+before touching any `.tsx`.
+
+**What this task did.** Wired `cost_mechanism` / `penalty_range` / `enforcement_body` /
+`requirement_trajectory` / `why_matters` / `key_data` from the database through the resource
+mappers to the four detail surfaces. `why_matters` / `key_data` were already mapped on both
+mappers (pre-existing columns, no change needed there). The four migration-316 fields were not:
+
+- `src/types/resource.ts`: added `requirementTrajectory?: { steps: Array<{ date, value, label? }>;
+  note? }`, inlined the same way `trajectoryPoints` already inlines its own JSON shape rather than
+  importing `RequirementTrajectoryJSON` from `parse-output.ts`.
+- `src/lib/supabase-server.ts`: both mappers now read the four columns. The list mapper
+  (`rpcRowToResource`) gains them as REAL passthroughs, not dormant like `jurisdictionIso`/
+  `itemGrade`/`originClass` above them, since migration 316 already widens all 11 RPCs it feeds
+  (task 2.1's own scope table). The detail mapper's stale P1-4 comment ("penalty_range /
+  enforcement_body / legal_instrument are NOT in the schema") was deleted and replaced with the
+  four real field reads, `select("*")` already returning them once the migration applies.
+- `src/lib/list-pagination.ts`: `toLedgerRowPayload` now also blanks the four fields (Exposure-card
+  / Penalties-section content, same detail-surface-only class as `trajectoryPoints`), with
+  `list-pagination.test.mjs` updated to fixture them and assert the trim (was previously a
+  no-op assertion since the fixture never carried these fields).
+- `src/components/detail/RequirementTrajectory.tsx` (new): the one renderer, exported as a plain
+  function (`renderRequirementTrajectory`, not a JSX component) so the four callers can chain it
+  with `||` against their existing `conversionTrigger` / `Absence` fallback. Renders exactly the
+  mock's string, `40% (2025) -> 70% (Sep 30 2026) -> 100% (2027); <note>`, using the mock's real
+  U+2192 arrow glyph in its output (not the standing em-dash/en-dash/section-sign prohibition, a
+  different codepoint, called out in the file's own header). The "which step is imminent" decision
+  is factored into `src/lib/detail/requirement-trajectory-classify.ts` (no JSX, unit-tested).
+- Four call sites (`RegulationDetailSurface.tsx`, `OperationsDetailSurface.tsx`,
+  `MarketSignalDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`): Trajectory cell now reads
+  `renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <fallback>`.
+  `PenaltyFacts`/`hasPenaltyContent` in `RegulationDetailSurface.tsx` already existed and already
+  read `penaltyRange`/`costMechanism`/`enforcementBody` correctly (renders when any of the three is
+  present); no change was needed there, only the mapper making those values real.
+
+**Tests (RED then GREEN).** `requirement-trajectory-classify.test.mjs` (new, 8 cases: imminent-step
+selection when a future step exists, all-past falls back to the last reached step, all-future
+bolds the soonest, unparseable dates bold nothing, mixed parseable/unparseable, single-step,
+empty). Written before `requirement-trajectory-classify.ts` existed; RED confirmed
+(`ERR_MODULE_NOT_FOUND`, 0 pass/1 fail), then GREEN after (8/8). `list-pagination.test.mjs`: 19/19
+pass, byte reduction 67% on the 60-row fixture (was 40%+ threshold before this task's fields were
+added to the fixture and the blank list).
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all pre-existing `[F28] harness-run-integrity` (Windows path-hash defect, owned by
+lane `wt-hashsep-0911`, unrelated to this task's files); F43 and F35 both PASS. The rendering
+guard's smoke runner: `run-rendering-guard.mjs` loads, bundles, and reaches the browser-launch
+step, then fails there (`Executable doesn't exist`, chromium binary) because `npx playwright
+install chromium` cannot reach `cdn.playwright.dev` from this sandbox (network allowlist gap, not
+a defect in the fixture code, confirmed by the syntax check passing and the failure occurring only
+at `browserType.launch`). New fixture states (`exposure-fields-present`, `exposure-fields-absent`)
+were added to `detail-surfaces-smoke.mjs`'s `REGULATION_STATES` for when the guard CAN run (CI, or
+the coordinator's machine); could not be executed end to end in this session. `node
+.discipline/runner.mjs --mode=ci --range=origin/master..HEAD` and `npx next build` run after
+commit (see the task report for output). `run-test-suite.sh` NOT run, per the brief's own
+instruction for this task.
+
+### UX compliance
+
+**Reader's primary goal.** A forwarder viewing a regulation/operations/research/market-signal
+detail page needs, at a glance in the Exposure card: who bears the regulation's cost and how (Who
+pays), and the instrument's per-year requirement path (Trajectory) so it reads as a trend, not a
+single flat figure.
+
+**Laws checked.**
+- Law 4 (Proximity): the Trajectory value stays inside the existing four-cell Exposure grid
+  (Where / Who pays / Your lanes / Trajectory); no new grouping introduced.
+- Law 5 (Miller's, chunking): the trajectory string is one compact line (value + date per step,
+  typically 2-4 steps), not a table or a new expandable section, so it does not add a working-
+  memory burden beside the other three cells.
+- Law 12 (Prägnanz): the honest Absence convention is preserved end to end, both fields fall
+  through to the SAME `<Absence reason=... />` component the surface already used, never a
+  fabricated value or a blank hole.
+- Law 16 (Similarity): the new renderer's bold treatment (the imminent step) uses the same inline
+  `fontWeight: 700` pattern `PenaltyFacts`'s own labels already use on this same surface, not a new
+  visual treatment.
+- Law 2 (Fitts's, target size): not applicable. No new interactive element (button, link, control)
+  was added; the change is text content inside an existing non-interactive cell.
+
+**DP entries.** DP-2 (UX laws on every surface) applies; addressed above. DP-1 (single-pane
+operator review) does not apply: these are the four CUSTOMER-facing detail surfaces, explicitly out
+of DP-1's scope.
+
+**375 px measurement.** `detail-surfaces-smoke.mjs`'s `runDetailSpec` measures every state at
+`MOBILE_VIEWPORT` (375 x 812) and `DESKTOP_VIEWPORT`; the two new states added this task inherit
+that measurement once the guard runs. Could not execute the actual Playwright measurement in this
+sandbox (browser download blocked, see Gates above); verified by reading instead:
+`DetailShell.tsx`'s `DetailExposure` sets `overflowWrap: "anywhere"` on every cell's value
+container and collapses `.cl-exposure-grid` to a single column under 520 px, so a long trajectory
+string wraps rather than overflowing at 375 px. This is a code-read substitute for the browser
+measurement, not equivalent to it; flagged, not silently asserted.
+
+**Five surfaces affected.** Regulations (RegulationDetailSurface.tsx: Trajectory + Who pays +
+Penalties, all three now real), Market Intel (MarketSignalDetailSurface.tsx: Trajectory + Who
+pays), Research (ResearchFindingDetailSurface.tsx: Trajectory + Who pays), Operations
+(OperationsDetailSurface.tsx: Trajectory + Who pays). Community: not applicable, no
+intelligence_items-backed detail surface there.
+
+---
+
 ## 2026-09-11, BRIEFFIELDS task 2.2: contract, parser and the single write site
 
 Resumed task 2.2 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree

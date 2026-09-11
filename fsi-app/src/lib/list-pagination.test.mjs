@@ -64,6 +64,19 @@ function fixtureRow(i) {
       { name: "EUR-Lex", url: "https://eur-lex.europa.eu/x", tier: 1, type: "primary_text" },
       { name: "Federal Register", url: "https://federalregister.gov/x", tier: 1, type: "primary_text" },
     ],
+    // Task 2.3 (migration 316): Exposure-card / Penalties-section content, never read by either
+    // ledger row (same class as fullBrief/operationalImpact/etc above).
+    costMechanism: para("cost mechanism narrative", 6),
+    penaltyRange: "EUR 500,000 or 2% of annual turnover",
+    enforcementBody: "National maritime authority",
+    requirementTrajectory: {
+      steps: [
+        { date: "2025", value: "40%" },
+        { date: "Sep 30 2026", value: "70%" },
+        { date: "2027", value: "100%" },
+      ],
+      note: para("phase-in note text", 6),
+    },
   };
 }
 
@@ -82,9 +95,14 @@ test("toLedgerRowPayload: blanks exactly the fields the ledgers never read", () 
     "recommendedActions",
     "openQuestions",
     "sourceUrls",
+    // Task 2.3 (migration 316): Exposure-card / Penalties-section content, detail-surface-only.
+    "costMechanism",
+    "penaltyRange",
+    "enforcementBody",
+    "requirementTrajectory",
   ];
   for (const field of blanked) {
-    assert.equal(trimmed[field], undefined, `${field} should be dropped — not read by either ledger`);
+    assert.equal(trimmed[field], undefined, `${field} should be dropped, not read by either ledger`);
   }
   assert.deepEqual(trimmed.keyData, [], "keyData is required on Resource — blanked to [], not undefined");
   assert.equal(trimmed.reasoning, "", "reasoning is required on Resource — blanked to '', not undefined");

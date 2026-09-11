@@ -41,6 +41,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
+import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
@@ -259,7 +260,10 @@ export function ResearchFindingDetailSurface({
             { label: "Where", value: jurisLabel },
             { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
             { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            { label: "Trajectory", value: r.conversionTrigger || <Absence reason="pending" /> },
+            {
+              label: "Trajectory",
+              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
+            },
           ]}
         />
 

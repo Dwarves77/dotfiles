@@ -1784,6 +1784,14 @@ function rpcRowToResource(row: any): Resource {
     doesNotResolve: row.does_not_resolve || undefined,
     conversionTrigger: row.conversion_trigger || undefined,
     crossReferences: row.cross_references || undefined,
+    // Task 2.3 (migration 316): cost_mechanism / penalty_range / enforcement_body /
+    // requirement_trajectory now project through all 11 RPCs (task 2.1's own scope table), this
+    // one included -- real once the migration applies, not dormant like jurisdictionIso/itemGrade/
+    // originClass above (those await a FUTURE migration; this one already widens this RPC).
+    costMechanism: row.cost_mechanism || undefined,
+    penaltyRange: row.penalty_range || undefined,
+    enforcementBody: row.enforcement_body || undefined,
+    requirementTrajectory: row.requirement_trajectory || undefined,
   };
 }
 
@@ -3860,9 +3868,15 @@ async function fetchIntelligenceItemUncached(
       whatItChanges: row.what_it_changes || undefined,
       doesNotResolve: row.does_not_resolve || undefined,
       complianceDeadline: row.compliance_deadline || undefined,
-      // P1-4 (DEEP-AUDIT §2): penalty_range / enforcement_body / legal_instrument
-      // are NOT in the schema (no migration ever added them) — those reads were
-      // always undefined. Removed; re-add via migration if the fields are wanted.
+      // Task 2.3 (2026-09-11, migration 316): P1-4's old comment here claimed penalty_range /
+      // enforcement_body / legal_instrument were NOT in the schema (no migration ever added
+      // them) -- no longer true. Migration 316 adds cost_mechanism, penalty_range,
+      // enforcement_body and requirement_trajectory as real intelligence_items columns; this
+      // fetcher reads them directly off `select("*")`, same as every other column above.
+      costMechanism: row.cost_mechanism || undefined,
+      penaltyRange: row.penalty_range || undefined,
+      enforcementBody: row.enforcement_body || undefined,
+      requirementTrajectory: row.requirement_trajectory || undefined,
       // Agent integrity self-flag (migration 035). Only surfaced when the
       // flag is true AND unresolved — the banner check uses both fields.
       agentIntegrityFlag:
