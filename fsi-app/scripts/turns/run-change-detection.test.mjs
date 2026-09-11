@@ -4,6 +4,7 @@
 // guard) and none of the tested exports touch I/O.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import {
   parseArgs,
   dueSourcesWindowStart,
@@ -139,7 +140,9 @@ test("crossCheckMismatches: missing reported/verifiedByRead (e.g. check skipped)
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────
 
 test("defaultTraceDir: one level below the family dir", () => {
-  assert.equal(defaultTraceDir("/a/b/change-detection"), "/a/b/change-detection/traces");
+  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
+  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
+  assert.equal(defaultTraceDir("/a/b/change-detection"), join("/a/b/change-detection", "traces"));
 });
 
 // ── governing files / defaults sanity (F28 / CONVENTION.md parity surface) ──────────────────────────

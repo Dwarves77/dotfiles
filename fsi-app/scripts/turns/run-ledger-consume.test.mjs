@@ -211,7 +211,9 @@ test("the shipped LEDGER_CONSUME_APPLY_ENABLED const is true (operator ruling 20
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────────
 
 test("defaultTraceDir: one level below the family dir, not inside it as a sibling *.json glob target", () => {
-  assert.equal(defaultTraceDir("/x/ledger-consume"), "/x/ledger-consume/traces");
+  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
+  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
+  assert.equal(defaultTraceDir("/x/ledger-consume"), join("/x/ledger-consume", "traces"));
 });
 
 // ── buildFetchDoc — polite gap + error handling, fully injected (no real network, no real timers) ─────
@@ -946,7 +948,12 @@ test("discoverVerdictsFiles: lists every batch file ascending, as absolute paths
   const files = discoverVerdictsFiles("/fake/dir", {
     readdirSyncImpl: () => ["README.md", "ledger-verdicts-002.json", "schema.json", "ledger-verdicts-001.json"],
   });
-  assert.deepEqual(files, [resolve("/fake/dir/ledger-verdicts-001.json"), resolve("/fake/dir/ledger-verdicts-002.json")]);
+  // task 0.3b: compare against join(), the same function discoverVerdictsFiles itself calls (it does not
+  // call resolve()), so the expectation matches the real implementation on every platform. join() of a
+  // "/"-rooted input is win32-absolute (Node's path.isAbsolute agrees), just without a drive letter,
+  // which is what "as absolute paths" in this test's title means; resolve() additionally qualifies with
+  // the current drive, a stronger claim the implementation never makes.
+  assert.deepEqual(files, [join("/fake/dir", "ledger-verdicts-001.json"), join("/fake/dir", "ledger-verdicts-002.json")]);
 });
 
 test("discoverVerdictsFiles: a missing directory yields [] (no batches yet), never a throw", () => {

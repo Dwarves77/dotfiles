@@ -3,6 +3,7 @@
 // fake Supabase client (no DB). Importing this module never invokes main() (IS_MAIN guard).
 import test from "node:test";
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import {
   parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir, resolvePortalSourceId, portalUrlKey,
   selectSitemapSources, hostKeyOf, groupActiveSourcesByHost, hostSitemapCoverage, orderHostGroupsForSweep,
@@ -241,8 +242,10 @@ test("SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules", (
 });
 
 test("defaultTraceDir: the raw-result trace lives BELOW the family dir, never beside the artifacts F28 validates", () => {
+  // task 0.3b: compare against join(), the same function defaultTraceDir itself calls, so the
+  // expectation is platform-independent (join() emits backslash-separated paths on Windows).
   const d = defaultTraceDir("/repo/fsi-app/scripts/harness-runs/source-sweep");
-  assert.equal(d, "/repo/fsi-app/scripts/harness-runs/source-sweep/traces");
+  assert.equal(d, join("/repo/fsi-app/scripts/harness-runs/source-sweep", "traces"));
 });
 
 // ── resolvePortalSourceId (source-sweep-run-003 finding: host-key dedup attached OJ candidates to a 1976 opinion) ──

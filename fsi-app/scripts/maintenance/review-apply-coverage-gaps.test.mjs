@@ -5,11 +5,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { main, resolveRulingPath } from "./review-apply-coverage-gaps.mjs";
 
+// task 0.3b: normalize the separator before comparing. resolve() emits backslash-separated paths on
+// Windows, so a hardcoded POSIX literal never matches there.
+const posix = (p) => p.split(sep).join("/");
+
 test("resolveRulingPath: relative arg resolves against the REPO ROOT", () => {
-  const p = resolveRulingPath("docs/ratifications/2026-09/coverage-gaps.ruling.json");
+  const p = posix(resolveRulingPath("docs/ratifications/2026-09/coverage-gaps.ruling.json"));
   assert.ok(p.endsWith("/docs/ratifications/2026-09/coverage-gaps.ruling.json"));
   assert.ok(!p.includes("/fsi-app/docs/"));
 });
