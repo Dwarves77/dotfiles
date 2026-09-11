@@ -52,7 +52,8 @@
  *     gate reads live bootstrap data on every render.
  */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { formatNumber } from "@/lib/format";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
@@ -98,6 +99,19 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   const [results, setResults] = useState<SearchResultRow[] | null>(null);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Portal target for the results listbox (SEARCHCLIP, 2026-09-11). The bar mounts inside
+  // Masthead's SectionCard, and SectionCard's `overflow: hidden` (the shell property that keeps
+  // the 3px top rule inside the card's own radius — see SectionCard.tsx's header, ratified by F42
+  // and the design audit) clips ANY child that would render outside the card's box, the listbox
+  // included. Removing that overflow is out of scope (a shared part 84 callers depend on) and a
+  // masthead-only override would make the masthead a different kind of card than every other
+  // SectionCard. The listbox itself is the thing that needs to escape, so it is portaled to
+  // `document.body` and repositioned from the bar's own measured rect, same box as before, just
+  // mounted outside the clipping ancestor. `document.body` is only read inside effects (client-
+  // only), so this stays safe under SSR.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const [barRect, setBarRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // The ONE server-to-client path this app already uses for a per-user flag (see this file's own
   // header). `assistantEnabled` is undefined until the bootstrap fetch settles and false whenever
@@ -147,6 +161,39 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     };
   }, [mode, value]);
 
+  const showDropdown =
+    mode === "search" && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
+
+  // `document.body` is not defined during SSR; set it once mounted (matches every other
+  // client-only DOM read in this file — the ⌘K listener above does the same window-only pattern).
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  // Re-measure the bar's box whenever the dropdown is (or becomes) visible, and on every
+  // scroll/resize while it's open, so the portal tracks the SAME position:relative box the
+  // dropdown used to render against (top: calc(100% + 6px), left 0, right 0 — this just moves the
+  // measurement from CSS layout to JS because the portal target has no layout relationship to the
+  // bar). useLayoutEffect (not useEffect) so the first paint after `showDropdown` flips true
+  // already has a rect — no one-frame flash at (0,0).
+  useLayoutEffect(() => {
+    if (!showDropdown) {
+      setBarRect(null);
+      return;
+    }
+    const measure = () => {
+      const rect = formRef.current?.getBoundingClientRect();
+      if (rect) setBarRect({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    };
+    measure();
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [showDropdown]);
+
   const searchRows = useMemo(
     () =>
       (results ?? []).map((r) => ({
@@ -188,8 +235,6 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // false in Search mode, by construction) — Search mode's submit control is never disabled,
   // matching this component's own header ("unconditional on ASSISTANT_ENABLED, unlike Ask").
   const askDisabled = mode === "ask" && !assistantEnabled;
-  const showDropdown =
-    mode === "search" && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
 
   // L9 (site-wide layout guard, operator's own numbers: ">= 44px in one dimension and >= 28px in
   // the other; adjacent targets do not overlap") caught two rounds here, both fixed rather than
@@ -225,6 +270,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
 
   return (
     <form
+      ref={formRef}
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
@@ -313,6 +359,8 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
             : (placeholder ?? `Search across ${formatNumber(itemCount)} items…`)
         }
         aria-label={mode === "ask" ? "Ask the Intelligence Assistant" : "Search across the workspace"}
+        aria-controls="cl-command-bar-listbox"
+        aria-expanded={showDropdown}
         style={{
           flex: 1,
           minWidth: 0,
@@ -384,43 +432,60 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       </button>
 
       {/* Standard Search results dropdown — the shared ListRow, never a second row anatomy. Absence
-          convention (StateNote) for "no results", matching every list surface's own empty state. */}
-      {showDropdown && (
-        <div
-          role="listbox"
-          aria-label="Search results"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            left: 0,
-            right: 0,
-            background: "var(--card)",
-            border: "1px solid var(--line-1)",
-            borderRadius: 8,
-            boxShadow: "var(--shadow-card-hover, 0 8px 24px rgba(0,0,0,.12))",
-            maxHeight: 360,
-            overflowY: "auto",
-            zIndex: 50,
-          }}
-        >
-          {searching && results === null ? (
-            <>
-              <SkeletonListRow />
-              <SkeletonListRow />
-              <SkeletonListRow />
-            </>
-          ) : searchRows.length === 0 ? (
-            <div style={{ padding: 16 }}>
-              <StateNote>No results for “{value.trim()}”.</StateNote>
-            </div>
-          ) : (
-            searchRows.map((row) => {
-              const { key, ...rowProps } = row;
-              return <ListRow key={key} {...rowProps} />;
-            })
-          )}
-        </div>
-      )}
+          convention (StateNote) for "no results", matching every list surface's own empty state.
+          SEARCHCLIP (2026-09-11): portaled to document.body (see the barRect/portalTarget state
+          above) instead of rendering here in the tree, because HERE is inside Masthead's
+          SectionCard, whose `overflow: hidden` clips it — measured on production (wave 67,
+          73e8c8b1): listbox top 173px against a masthead bottom edge of 189px, 344 of the box's
+          360px clipped, elementFromPoint at the listbox centre resolving to the rail card
+          underneath. Same box as before (var(--card), 1px var(--line-1), radius 8, the card-hover
+          shadow, maxHeight 360, overflow-y auto) — only WHERE it mounts changes; `position: fixed`
+          (not `absolute`) is what makes an element portaled outside its old offset parent land in
+          the right place using a plain viewport-relative rect, and it is also the one position
+          value the rendering guard's own clipped-overflow detector explicitly skips (ux-assert.mjs:
+          `if (cs.position === 'fixed' ...) continue`), so this is not fighting that guard, it is
+          the shape the guard already exempts. */}
+      {showDropdown &&
+        portalTarget &&
+        barRect &&
+        createPortal(
+          <div
+            id="cl-command-bar-listbox"
+            role="listbox"
+            aria-label="Search results"
+            style={{
+              position: "fixed",
+              top: barRect.top,
+              left: barRect.left,
+              width: barRect.width,
+              background: "var(--card)",
+              border: "1px solid var(--line-1)",
+              borderRadius: 8,
+              boxShadow: "var(--shadow-card-hover, 0 8px 24px rgba(0,0,0,.12))",
+              maxHeight: 360,
+              overflowY: "auto",
+              zIndex: 600,
+            }}
+          >
+            {searching && results === null ? (
+              <>
+                <SkeletonListRow />
+                <SkeletonListRow />
+                <SkeletonListRow />
+              </>
+            ) : searchRows.length === 0 ? (
+              <div style={{ padding: 16 }}>
+                <StateNote>No results for “{value.trim()}”.</StateNote>
+              </div>
+            ) : (
+              searchRows.map((row) => {
+                const { key, ...rowProps } = row;
+                return <ListRow key={key} {...rowProps} />;
+              })
+            )}
+          </div>,
+          portalTarget,
+        )}
     </form>
   );
 }

@@ -16546,3 +16546,148 @@ into a standing CI schedule; one F28 harness-version marker re-pinned after `rec
 governing file, gained the `STUB_BRIEF_MARKER` export); `run-test-suite.sh` 0 fail (registered the two new
 shared-table writers in `docs/inventories/shared-dataset-ownership.md`); the CI npmtest glob 0 fail (1,100
 tests); `next build` exit 0.
+
+## SEARCHCLIP lane, 2026-09-11: Standard Search results listbox invisible — clipped by the Masthead card's overflow:hidden
+
+Coordinator dispatch, live-production measurement (wave 67, commit 73e8c8b1) [CONFIRMED]: Search
+mode worked end to end after SEARCHFIX (same date, entry above) — typing `ppwr` produced 8 rows in
+the `role=listbox` (EU PPWR 2025/40 first) and the submit button read "Search" — but the reader saw
+none of it. Operator verbatim: "the toggle is good but theres no way to search"; "looks like the box
+goes below the screen."
+
+**Root cause, [CONFIRMED] by the coordinator's own measurement, re-derived from source.** The
+listbox (`CommandBar.tsx`) was `position: absolute; top: calc(100% + 6px)`, positioned relative to
+the bar's own `<form>` (`position: relative`). That form mounts inside `Masthead` (`Masthead.tsx`
+line 91), and `Masthead` renders `SectionCard` as its root (operator item A1, 2026-09-08).
+`SectionCard`'s shell sets `overflow: hidden` (`SectionCard.tsx`) — documented there as the property
+that keeps the 3px top `SectionRule` inside the card's own `border-radius`. Because the listbox is
+absolutely positioned, it is out of normal flow and does not grow the card's own height; the card's
+bottom edge sits right after the command bar's own box, and the listbox's remaining ~344px (of its
+360px `maxHeight`) render past that edge, where `overflow: hidden` clips them. Coordinator's
+measurement: masthead bottom 189px, listbox top 173px (inside the card, 16px visible as a border
+sliver), height 360px, 344px clipped; `document.elementFromPoint` at the listbox's centre resolved
+to the rail card underneath, not the listbox.
+
+**Fix, at the one place named in the dispatch.** `CommandBar.tsx`'s results listbox is now rendered
+through `ReactDOM.createPortal` into `document.body`, positioned with `position: fixed` from the
+bar's own `formRef.current.getBoundingClientRect()` (top = rect.bottom + 6, left = rect.left, width
+= rect.width — the same box the CSS used to compute, now computed in JS because the portal target
+has no layout relationship to the bar) and re-measured on `scroll` (capture phase, so it catches an
+inner scroller too) and `resize` while the dropdown is open (`useLayoutEffect`, so the first paint
+after it opens already has a rect — no one-frame flash at (0,0)). Same visual as before: `var(--card)`
+background, 1px `var(--line-1)` border, radius 8, the card-hover shadow, `maxHeight: 360`, `overflowY:
+auto`. `zIndex: 600` — the highest in the codebase (prior max was 500, `AskAssistant`'s own `zIndex:
+50` anchored panel) — so it renders above every card sitewide, not just the masthead's.
+
+**Checked first for an existing primitive (per dispatch instruction), found none.** No `createPortal`
+call exists anywhere in `src/`; no generic popover/dropdown-positioning component exists either —
+`TagPopover.tsx` and `UserMenuDropdown.tsx` both render in-flow inside their own non-clipping
+containers, and `AskAssistant.tsx` gets its escape-the-card behaviour for free by being mounted at
+`AppShell` level (outside any card) with a `CustomEvent`-supplied anchor rect — a pattern that does
+not fit here because the listbox's state (debounced results, `searching`) is local to `CommandBar`
+per-instance, not a page-level singleton. `createPortal` directly in `CommandBar.tsx` is therefore
+the fix, not a second generic primitive built for a single caller.
+
+**SectionCard is untouched.** `overflow: hidden` was not removed (F42 and the design audit depend on
+the shell, per SectionCard.tsx's own header — 84 identical card occurrences across the codebase); no
+masthead-only override was added (Masthead still renders the one shared `SectionCard`, unchanged).
+The only files touched are `CommandBar.tsx` (the fix), `run-rendering-guard.mjs` (one new smoke-spec
+registration line + its import), and a new smoke-spec file.
+
+**A correction to the dispatch's "keep every existing behaviour" list, per rule 14 (a flag that
+dissolves under evidence gets a same-session correction).** The dispatch asked to preserve "Escape
+closes, click-outside closes, arrow keys if they exist today" and "the input's
+aria-controls/aria-expanded." Read against the pre-fix source: none of Escape-to-close,
+click-outside-to-close, or arrow-key navigation exist in `CommandBar.tsx` today — `[HYPOTHESIS]`
+in the dispatch, `[REFUTED]` by source read. This lane does not add them: doing so would be a new
+feature outside "the one right place" the dispatch scoped the fix to, and CLAUDE.md rule 13's
+"decision-ready, not fix-everything-nearby" posture argues for flagging rather than scope-creeping a
+clip fix into a keyboard-interaction feature. `aria-controls="cl-command-bar-listbox"` /
+`aria-expanded={showDropdown}` did NOT exist before this lane and are added now (cheap, directly
+named by the dispatch, and correct accessibility regardless) — the listbox itself gained the
+`id="cl-command-bar-listbox"` they point at. Logged as tech debt: `docs/tech-debt-log.md` should gain
+an entry for Escape/click-outside/arrow-keys on the search listbox; not added in this pass to avoid
+re-litigating this correction inside the debt log itself before the operator has seen it.
+
+**Measured, before and after (this lane's own Playwright smoke, real components, 1440×900 — see
+Gates below for why not a live `next dev`/`next start` run):**
+| | before | after |
+|---|---|---|
+| listbox fully inside viewport | NO (clipped by SectionCard `overflow:hidden`) | YES |
+| `elementFromPoint` at listbox centre | outside the listbox (hits the page behind it) | inside the listbox |
+| listbox top vs. command bar bottom edge | n/a (box existed but was invisible) | 6px (within the 0-12px window) |
+| first result row | EU PPWR 2025/40 (search itself was already correct — SEARCHFIX) | EU PPWR 2025/40, now visible |
+
+**Why the proof is a mounted-component Playwright smoke, not a live `next dev`/`next start` run, and
+why that is not a downgrade.** This worktree has no `.env.local` (repo convention — `.env` stays
+untracked) and no Supabase credentials, so a live server cannot authenticate a session or serve
+`/api/search`'s real Supabase-backed route; `capture-uxfix-lists-screenshots.mjs`'s own header notes
+the one prior live-dev-server approach used an env-only auth bypass that was "reverted before
+commit" and is not present in the current tree. The repo's own established alternative — used by 12
+existing `SM smoke specs` in `run-rendering-guard.mjs` — esbuild-bundles the REAL `src/components/**`
+modules (not a reproduction) into a real Playwright Chromium page at a same-origin fake URL, with
+`page.route` fixtures answering `/api/search` and `/api/workspace/bootstrap` instead of the network.
+This is the SAME class of proof the dispatch asked for (a real browser, real layout engine,
+`getBoundingClientRect`/`elementFromPoint` on real painted pixels) against the real component
+composition (`Masthead` → `SectionCard` → `CommandBar`, the exact ancestor chain that clips in
+production), just without a live HTTP server in front of it — which the credential gap makes
+infeasible here regardless of method.
+
+**New test, proven RED on the pre-fix tree.** `.discipline/rendering/smoke/command-bar-search-portal-smoke.mjs`
+mounts the real `Masthead` (which mounts the real `CommandBar`), types "ppwr", waits past the
+250ms debounce, and asserts: (1) the `[role=listbox]` element's `getBoundingClientRect()` is fully
+inside the 1440×900 viewport; (2) `document.elementFromPoint` at its centre resolves inside it; (3)
+its top is within 0-12px of `.cl-command-bar`'s own bottom edge; (4) its text includes "EU PPWR
+2025/40". Verified by hand: `git stash` on just `CommandBar.tsx` (keeping the new test), re-run —
+1 failure, `elementFromPoint` at the listbox centre hits `"HTML"` (the clipped box paints nothing
+there), exactly the production symptom's mechanism. `git stash pop` restores the fix; same run then
+passes 0 failures. Wired into `run-rendering-guard.mjs`'s `SMOKE_SPECS` (one import + one array
+entry, the file's own documented "adding a fifth spec is one import + one entry" convention), so it
+runs in the gate this lane's own report cites below, not just standalone.
+
+**Gates:**
+- `npx tsc --noEmit` — exit 0.
+- `node .discipline/fitness/runner.mjs` — 37 functions checked, 0 violations.
+- CI npmtest glob (`git ls-files 'src/**/*.npmtest.mjs'` + the named list, `node --test`) — 1161
+  tests, 0 failures (unchanged from SEARCHFIX's 1109; `CommandBar.npmtest.mjs`'s existing structural
+  tests all still pass against the portal version of the file).
+- `node .discipline/rendering/run-rendering-guard.mjs` — PASS. 14 fixtures/12 viewports, 13 SM smoke
+  specs (12 pre-existing + `command-bar-search-portal`, 242 smoke checks total), 36 layout-guard
+  route×width measurements (0 findings), 12 UX smoke specs. Only failures reported are 4 pre-existing,
+  dated law-2 facet-checkbox exemptions (operator item C1, expire wave 70) — unrelated to this fix.
+- `npm run audit:design` — 2557/2557 MATCH, all 76 specs, including `masthead.json` (unchanged — it
+  does not pin the listbox's DOM parent, only the bar/eyebrow/title geometry and the card shell, so
+  no spec row needed updating for this fix).
+- `npx next build` — `✓ Compiled successfully`, 86/86 static pages generated, `/api/search`
+  registered as a dynamic route. (The `SUPABASE_SERVICE_ROLE_KEY is not configured` lines in the
+  build log are the expected no-creds fail-closed path for this worktree, unrelated to this change —
+  the same lines appear on a clean `master` build with no `.env.local`.)
+
+### UX compliance
+
+**Screen: the command bar's Standard Search results, mounted on every route.** Primary goal
+unchanged from CMDSEARCH/SEARCHFIX: find an item without leaving the page, see the results, click
+one. What changed here is visibility, not the flow, the data, or the row anatomy — the exact same
+`ListRow`s that already rendered (SEARCHFIX proved the data was correct) are now actually painted
+somewhere the reader can see and reach.
+
+Law 1 (Hick's Law, "reduce choices per screen") and Law 12 (Prägnanz) are not the operative laws
+here — the interface was never confusing, it was invisible, which is a more basic failure than
+either law addresses. The closest fit is **Fitts's Law (Laws 2 and 8, "make targets large" /
+"place key actions nearby")**: a target that measures 44×44px but paints at zero visible pixels
+inside its clipping ancestor has an effective size of 0 for a pointing device — Fitts's Law assumes
+a target the reader can SEE to aim at, and a target clipped to a 16px sliver of its own top border
+fails that assumption before target size is even relevant. The fix restores the precondition Fitts's
+Law depends on (a real, visible, correctly-positioned target) rather than resizing anything.
+
+Law 6 (Doherty Threshold, "respond within 400ms") is unaffected and unchanged: the debounce (250ms)
+and the fetch round-trip are exactly as SEARCHFIX left them; this lane changes WHERE the response is
+painted, not when.
+
+Law 16 (Similarity, "maintain pattern consistency") holds by construction: the portaled listbox is
+pixel-identical to the one that used to render in-flow (same background, border, radius, shadow,
+max-height, scroll behaviour) — a reader who has seen this dropdown before (or sees it on a
+non-clipped surface) recognizes the same pattern, not a new one.
+
+No new screen, no new flow, no new control. This is a visibility repair, not a redesign.
+
