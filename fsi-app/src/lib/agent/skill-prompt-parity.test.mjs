@@ -169,12 +169,18 @@ test("skill-prompt-parity: the field-name set matches between system-prompt.ts a
   );
 });
 
-test("skill-prompt-parity: sanity — both files currently document exactly 16 rules and 20 fields", () => {
+test("skill-prompt-parity: sanity — both files currently document exactly 16 rules and 26 fields", () => {
   // Guards the guard: if a future edit collapsed both files' counts in lockstep (e.g. both regressed to
   // 14 rules), the set/text-equality tests above would still pass while the underlying contract shrank
-  // silently. Pin the known-correct absolute counts as of this lane's fix.
+  // silently. Pin the known-correct absolute counts as of the last contract change.
+  //
+  // 2026-09-11 (task 2.2, brief-chain-build-plan-2026-09-11 Part 2): the field count is pinned at 26
+  // (was 20) here, updated in the same change that added cost_mechanism, penalty_range,
+  // enforcement_body, requirement_trajectory, why_matters and key_data to both files' Fields:
+  // enumeration. This is a deliberate contract growth, not the drift this sanity test exists to catch
+  // (the rule count is unchanged at 16 -- only the field enumeration grew).
   const promptRules = extractRules(promptText, "system-prompt.ts");
   const promptFields = extractFieldNames(promptText, "system-prompt.ts");
   assert.equal(promptRules.length, 16, `expected system-prompt.ts to document 16 rules, got ${promptRules.length}`);
-  assert.equal(promptFields.size, 20, `expected system-prompt.ts to document 20 fields, got ${promptFields.size}`);
+  assert.equal(promptFields.size, 26, `expected system-prompt.ts to document 26 fields, got ${promptFields.size}`);
 });

@@ -10,7 +10,7 @@
 // one array). A custom parser avoids adding a new runtime dependency for
 // what is a deterministic, documented payload.
 
-import { DB_THEME_VALUE_LIST } from "./metadata-vocab";
+import { DB_THEME_VALUE_LIST } from "./metadata-vocab.ts";
 
 const SEVERITY_VALUES = [
   "ACTION REQUIRED",
@@ -94,6 +94,20 @@ export interface TrajectoryPointsJSON {
   base_label: string;
 }
 
+/**
+ * Task 2.2 (brief-chain-build-plan-2026-09-11, migration 316): the instrument's per-year requirement
+ * path, e.g. a phase-in percentage climbing year over year. Deliberately NOT TrajectoryPointsJSON above,
+ * which is a numeric price series gated to signal_band === 'price'; this is a qualitative date/value/label
+ * step series, prompt-gated to format_type === 'regulatory_fact_document' (system-prompt.ts) rather than
+ * parser-enforced, matching the what_it_changes family of format-gated-in-prompt-only fields below. Belt 1
+ * is migration 316's DB CHECK (steps must be a JSON array when present); belt 2 is this parser, which
+ * additionally validates each step's shape.
+ */
+export interface RequirementTrajectoryJSON {
+  steps: Array<{ date: string; value: string; label?: string }>;
+  note?: string;
+}
+
 export interface AgentMetadata {
   severity: typeof SEVERITY_VALUES[number];
   priority: typeof PRIORITY_VALUES[number];
@@ -147,6 +161,22 @@ export interface AgentMetadata {
   sources_used: string[];
   last_regenerated_at: string;
   regeneration_skill_version: string;
+  /**
+   * Task 2.2 (2026-09-11, migration 316): four brief-contract exposure fields the item detail page reads
+   * but no prior regeneration wrote (cost_mechanism, penalty_range, enforcement_body,
+   * requirement_trajectory), plus two fields (why_matters, key_data) that already existed as columns
+   * (written once at /api/admin/scan discovery time) but were never part of THIS regeneration contract
+   * until now. All six are optional at the parser, following the what_is_it rule above: absence is an
+   * honest answer, not a failed regeneration. cost_mechanism / penalty_range / enforcement_body /
+   * requirement_trajectory are prompt-gated to format_type === 'regulatory_fact_document'
+   * (system-prompt.ts), not parser-enforced. why_matters / key_data are emitted on every format.
+   */
+  cost_mechanism: string | null;
+  penalty_range: string | null;
+  enforcement_body: string | null;
+  requirement_trajectory: RequirementTrajectoryJSON | null;
+  why_matters: string | null;
+  key_data: string[];
 }
 
 // Sprint 4 Block 1 (task 1.8): claim-level provenance payload.
@@ -186,9 +216,17 @@ export interface AgentRunSearchLink {
 }
 
 export class AgentOutputParseError extends Error {
-  constructor(message: string, public readonly raw?: string) {
+  readonly raw?: string;
+  // Node 24 strip-only TS mode (the plain `node --test` runner every *.test.mjs sibling in this
+  // directory uses to import this file directly) does not support TS parameter-property syntax
+  // (`public readonly raw?: string` inline in the constructor signature) -- it needs a real class
+  // field plus an explicit assignment. Same public shape (`new AgentOutputParseError(msg, raw)`,
+  // `.raw`, `.name`), just spelled portably. Task 2.2 (2026-09-11): fixed while adding
+  // parse-output.test.mjs, this module's first direct-import test file.
+  constructor(message: string, raw?: string) {
     super(message);
     this.name = "AgentOutputParseError";
+    this.raw = raw;
   }
 }
 
@@ -602,6 +640,55 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     };
   }
 
+  // Task 2.2 (2026-09-11, migration 316): requirement_trajectory is OPTIONAL, the same not-in-required[]
+  // posture as trajectory_points above. When present it must be inline JSON matching migration 316's CHECK
+  // (steps is a JSON array); this parser additionally validates each step's shape. Deliberately NOT gated
+  // to a specific format_type here (unlike trajectory_points' signal_band gate above) -- the format
+  // restriction is a PROMPT rule (system-prompt.ts), matching how the what_it_changes-family fields below
+  // are format-gated in the prompt without a matching parser-level throw.
+  let requirementTrajectory: RequirementTrajectoryJSON | null = null;
+  const reqTrajRaw = fields.requirement_trajectory;
+  if (reqTrajRaw !== undefined && reqTrajRaw.trim() !== "" && reqTrajRaw.trim().toLowerCase() !== "null") {
+    let parsedTraj: unknown;
+    try {
+      parsedTraj = JSON.parse(reqTrajRaw);
+    } catch (e) {
+      throw new AgentOutputParseError(
+        `requirement_trajectory must be inline JSON when present: ${(e as Error).message}`
+      );
+    }
+    if (typeof parsedTraj !== "object" || parsedTraj === null || Array.isArray(parsedTraj)) {
+      throw new AgentOutputParseError(`requirement_trajectory must be a JSON object, got: ${typeof parsedTraj}`);
+    }
+    const trajObj = parsedTraj as Record<string, unknown>;
+    if (!Array.isArray(trajObj.steps)) {
+      throw new AgentOutputParseError(
+        `requirement_trajectory.steps must be a JSON array. Expected { steps: [{ date, value, label? }], note? }`
+      );
+    }
+    for (const step of trajObj.steps) {
+      if (typeof step !== "object" || step === null) {
+        throw new AgentOutputParseError(`requirement_trajectory.steps entries must be objects`);
+      }
+      const s = step as Record<string, unknown>;
+      if (typeof s.date !== "string" || typeof s.value !== "string") {
+        throw new AgentOutputParseError(
+          `requirement_trajectory.steps entries must have { date: string, value: string }`
+        );
+      }
+      if (s.label !== undefined && typeof s.label !== "string") {
+        throw new AgentOutputParseError(`requirement_trajectory.steps entry "label" must be a string when present`);
+      }
+    }
+    if (trajObj.note !== undefined && typeof trajObj.note !== "string") {
+      throw new AgentOutputParseError(`requirement_trajectory.note must be a string when present`);
+    }
+    requirementTrajectory = {
+      steps: trajObj.steps as RequirementTrajectoryJSON["steps"],
+      ...(typeof trajObj.note === "string" ? { note: trajObj.note } : {}),
+    };
+  }
+
   // Sprint 3 R-A + M-A callout fields (migration 110, 2026-05-27).
   // OPTIONAL — agents are not required to emit them. Each field is a
   // single-line short string (~50-200 chars) that the renderer drops
@@ -630,6 +717,33 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   const conversionTrigger = readOptionalString("conversion_trigger");
   const crossReferences = readOptionalString("cross_references");
 
+  // Task 2.2 (2026-09-11): the three remaining regulatory_fact_document-gated-in-prompt-only callouts,
+  // same readOptionalString shape as the what_it_changes family above.
+  const costMechanism = readOptionalString("cost_mechanism");
+  const penaltyRange = readOptionalString("penalty_range");
+  const enforcementBody = readOptionalString("enforcement_body");
+  // why_matters: emitted on EVERY format (not gated), same optional posture as what_is_it.
+  const whyMatters = readOptionalString("why_matters");
+
+  // key_data: an open, free-text array (effective dates, penalty amounts, phase-in percentages, tonnage
+  // thresholds, compliance deadlines) -- not a closed vocabulary, so this only enforces shape (a YAML
+  // inline array), the same leniency posture as the other optional array fields above. Absence is honest
+  // (the brief's own prose already carries the data points); empty array, not a parse failure.
+  function readOptionalStringArray(key: string): string[] {
+    const raw = fields[key];
+    if (raw === undefined) return [];
+    const trimmed = raw.trim();
+    if (trimmed === "" || trimmed.toLowerCase() === "null") return [];
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+      throw new AgentOutputParseError(`${key} must be a YAML inline array, got: ${trimmed.slice(0, 100)}`);
+    }
+    const inner = trimmed.slice(1, -1).trim();
+    return inner
+      ? inner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
+      : [];
+  }
+  const keyData = readOptionalStringArray("key_data");
+
   return {
     severity: fields.severity as AgentMetadata["severity"],
     priority: fields.priority as AgentMetadata["priority"],
@@ -644,6 +758,12 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     does_not_resolve: doesNotResolve,
     conversion_trigger: conversionTrigger,
     cross_references: crossReferences,
+    cost_mechanism: costMechanism,
+    penalty_range: penaltyRange,
+    enforcement_body: enforcementBody,
+    requirement_trajectory: requirementTrajectory,
+    why_matters: whyMatters,
+    key_data: keyData,
     operational_scenario_tags: opScenTags,
     compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
     related_items: relatedItems,

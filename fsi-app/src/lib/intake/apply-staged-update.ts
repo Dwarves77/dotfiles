@@ -266,11 +266,16 @@ export async function applyStagedUpdate(
         // Destructured out here and passed to the mint plan explicitly below. (B1 portal-harvest is
         // the first relevance-bearing caller; a dryRun cannot catch this because dry stops before
         // the write — schema-audited 2026-07-19.)
+        //
+        // penalty_range / cost_mechanism used to be discarded here too, for the same "not a column"
+        // reason as relevance: migration 316 (task 2.2, 2026-09-11) added both as real
+        // intelligence_items columns (plus enforcement_body and requirement_trajectory, which were
+        // never discarded — they simply never appeared in proposed_changes before). All four now flow
+        // through in ...insertData when present, straight to mint-item.ts's single INSERT (`seed`),
+        // which passes them through with no column whitelist of its own.
         const {
           key_deadlines: _kd,
           source_name: _sn,
-          penalty_range: _pr,
-          cost_mechanism: _cm,
           authority_level: _al,
           relevance: proposedRelevance,
           ...insertData

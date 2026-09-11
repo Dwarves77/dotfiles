@@ -68,7 +68,7 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 // may DO with it, and the related_items write-back below (~line 840 by the build-plan's own reference)
 // is the enforcement backstop.
 import { selectBriefCandidates, formatCandidateBlock } from "@/lib/connections/brief-candidates.mjs";
-import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
+import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock, type AgentMetadata } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
 import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "@/lib/sources/institution";
@@ -827,16 +827,37 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);
   if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
-  // Persist the FULL 20-field contract, not just the body. The agent emits the validated YAML metadata
-  // (COUNT DRIFT, corrected 2026-08-12: this comment said 13, system-prompt.ts said 19, and the actual
-  // update wrote 21 columns. Three numbers for one contract in one codebase is how a field goes missing
-  // and nobody notices for months, which is exactly what happened to what_is_it. The contract is now 20
-  // named fields: full_brief plus the 19 emitted as YAML.)
-  // (parseAgentOutput validates severity/format_type/topic_tags vocab); writing only full_brief left
-  // format_type/severity/topic_tags/intersection fields stale — items re-grounded but stayed
-  // non-conformant. (env-policy "every regeneration writes 13 fields".) last_regenerated_at is overridden
-  // with REAL now (the agent's emitted timestamp is unreliable); UUID arrays are filtered to valid UUIDs.
-  const md = parsed.metadata;
+  return writeSynthesizedBrief(sb, it, body, parsed.metadata, fmtSpec, fetched.length);
+}
+
+/**
+ * THE single write site for a synthesized brief (extracted from synthesiseAndWriteBrief 2026-09-11,
+ * task 2.2, so it is directly testable with an injected fake Supabase client -- same testability
+ * motive as harvestItemTimeline's own split; see canonical-pipeline.write-fields.npmtest.mjs). Still
+ * exactly ONE .update({...}) call, still called from exactly the one place above -- this is a name for
+ * the existing write, not a second write.
+ *
+ * Persist the FULL 26-field contract, not just the body. The agent emits the validated YAML metadata
+ * (COUNT DRIFT, corrected 2026-08-12: this comment said 13, system-prompt.ts said 19, and the actual
+ * update wrote 21 columns. Three numbers for one contract in one codebase is how a field goes missing
+ * and nobody notices for months, which is exactly what happened to what_is_it. Task 2.2 (2026-09-11,
+ * migration 316) brought the contract to 26 named fields: full_brief plus the 25 emitted as YAML --
+ * cost_mechanism / penalty_range / enforcement_body / requirement_trajectory joined as new columns,
+ * why_matters / key_data joined this regeneration contract for the first time despite already existing
+ * as columns written once at /api/admin/scan discovery time.)
+ * (parseAgentOutput validates severity/format_type/topic_tags vocab); writing only full_brief left
+ * format_type/severity/topic_tags/intersection fields stale -- items re-grounded but stayed
+ * non-conformant. last_regenerated_at is overridden with REAL now (the agent's emitted timestamp is
+ * unreliable); UUID arrays are filtered to valid UUIDs.
+ */
+export async function writeSynthesizedBrief(
+  sb: SupabaseClient,
+  it: { id: string; item_type: string },
+  body: string,
+  md: AgentMetadata,
+  fmtSpec: ReturnType<typeof specForItemType>,
+  sourceCount: number,
+): Promise<StepResult> {
   // FORMAT DETERMINISM (cont.): force format_type to the canonical f(item_type) value regardless of what
   // the agent emitted — metadata must never drift from item_type (sectionBrief extracts by item_type, so a
   // mismatched format_type guaranteed criterion-5 failure). The prompt directive above makes the structure
@@ -866,14 +887,27 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   // value /api/admin/scan or an operator already set. Only a non-null emission updates the column, so
   // adding this field can fill blanks and can never empty a populated one.
   const whatIsItPatch = md.what_is_it ? { what_is_it: md.what_is_it } : {};
+  // why_matters / key_data (task 2.2, 2026-09-11): the SAME COALESCE posture as what_is_it above --
+  // these two columns are already written once at /api/admin/scan discovery time, so a later
+  // regeneration that honestly found nothing new to add must not blank them. Only a non-null /
+  // non-empty emission patches the column.
+  const whyMattersPatch = md.why_matters ? { why_matters: md.why_matters } : {};
+  const keyDataPatch = md.key_data && md.key_data.length > 0 ? { key_data: md.key_data } : {};
   const { error: writeErr } = await sb.from("intelligence_items").update({
     full_brief: cleanCtl(body),
     ...whatIsItPatch,
+    ...whyMattersPatch,
+    ...keyDataPatch,
     severity: dbSeverity, priority: md.priority, urgency_tier: md.urgency_tier,
     format_type: md.format_type, topic_tags: md.topic_tags,
     signal_band: md.signal_band, theme: dbTheme, theme_candidate: themeCandidate, trajectory_points: md.trajectory_points,
     what_it_changes: md.what_it_changes, does_not_resolve: md.does_not_resolve,
     conversion_trigger: md.conversion_trigger, cross_references: md.cross_references,
+    // Task 2.2 (2026-09-11, migration 316): direct writes (not COALESCE'd), same posture as
+    // trajectory_points / what_it_changes above -- a null emission overwrites, honest-empty until the
+    // agent grounds them.
+    cost_mechanism: md.cost_mechanism, penalty_range: md.penalty_range,
+    enforcement_body: md.enforcement_body, requirement_trajectory: md.requirement_trajectory,
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
     intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
@@ -908,7 +942,7 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
     const edges = relTargets.filter((t) => valid.has(t)).map((t) => ({ source_item_id: it.id, target_item_id: t, relationship: "related", origin: "agent_semantic" }));
     if (edges.length) await sb.from("item_cross_references").upsert(edges, { onConflict: "source_item_id,target_item_id", ignoreDuplicates: true });
   }
-  return { ok: true, detail: `brief ${body.length}ch + 19-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${fetched.length} sources` };
+  return { ok: true, detail: `brief ${body.length}ch + 25-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${sourceCount} sources` };
 }
 
 /** STEP generate — the DEEP DIVE (the only generator). Fetch the primary source, web_search for

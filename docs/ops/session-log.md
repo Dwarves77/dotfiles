@@ -5,6 +5,62 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-11, BRIEFFIELDS task 2.2: contract, parser and the single write site
+
+Resumed task 2.2 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree
+`wt-brieffields-0911`, branch `lane/brieffields-2026-09-11`, from a prior implementer's uncommitted
+work on top of task 2.1's migration 316 (`cost_mechanism`, `penalty_range`, `enforcement_body`,
+`requirement_trajectory`). Read every modified/untracked file end to end before changing anything.
+
+**What the prior implementer had already done (judged correct, kept as-is):** `parse-output.ts`
+readers for the six new `AgentMetadata` fields (`requirement_trajectory` validated with the same
+inline-JSON + `AgentOutputParseError` shape as `trajectory_points`; `cost_mechanism` /
+`penalty_range` / `enforcement_body` / `why_matters` / `key_data` as optional passthroughs, same
+posture as `what_is_it`), `parse-output.test.mjs` (9 new cases, RED-then-GREEN), the
+`synthesiseAndWriteBrief` write block extracted into an exported, directly-testable
+`writeSynthesizedBrief(sb, it, body, md, fmtSpec, sourceCount)` (still exactly one
+`intelligence_items.update`, called from exactly the one place), the new
+`canonical-pipeline.write-fields.npmtest.mjs` (4 cases; direct-overwrite semantics for the four
+migration-316 columns, COALESCE semantics for `why_matters`/`key_data`), `system-prompt.ts`'s field
+emission list and worked example (26-field contract, `regeneration_skill_version` "2026-09-11"),
+`apply-staged-update.ts`'s stopped discard of `cost_mechanism`/`penalty_range`, and
+`contract-version.mjs` / `skill-contract-map.mjs` / `skill-prompt-parity.test.mjs` bumped in step.
+All of it matched the brief; nothing was reverted.
+
+**What I completed:** SKILL.md's Database Field Emission section had every field bullet, the worked
+example, and the version bump correct, but two things were left inconsistent within the same file:
+(1) the parity-enforcement sentence directly under "The 16 Rules for All Output" still read
+"20-field enumeration" (stale, pre-dated this task's growth to 26); (2) no Changelog entry existed
+for the 2026-09-11 contract change, breaking the file's own established convention (every prior
+contract change has one). Fixed both, then recomputed and re-pinned SKILL.md's `contentHash` in
+`skill-contract-map.mjs` (sha256, EOL-normalized) after that second edit, since the prior
+implementer's pin was computed before my two additional edits.
+
+**Tests (RED then GREEN):** `parse-output.test.mjs` (9/9), `skill-prompt-parity.test.mjs` (4/4,
+including the sanity pin at 26 fields / 16 rules), `canonical-pipeline.write-fields.npmtest.mjs`
+(4/4), all already GREEN when read (prior implementer had run RED-then-GREEN per their own file
+headers); I re-ran all three together post-edit and confirmed 17/17 pass. Also ran the full
+`src/lib/agent/*.test.mjs` glob (250/250 pass) as an incidental regression check, since
+`canonical-pipeline.ts` and `parse-output.ts` are both load-bearing for many other agent tests.
+
+**Gates:** `npx tsc --noEmit` clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all `[F28] harness-run-integrity`, `[CONFIRMED]` pre-existing Windows
+path-separator defect (`hashHarnessVersion` in `scripts/lib/run-artifact.mjs` hashes an
+OS-dependent relative path; every family shows STALE PENDING-RUN.md / STALENESS COUPLING on any
+Windows clone), being fixed by task 0.3 in lane `wt-hashsep-0911`; unrelated to this task's files.
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: 1 pass / 0 fail / 8 skip per
+commit, both before and after this task's commit. Per the coordinator's mid-task gate-scope
+correction (machine overload from six concurrent lanes each running the full suite), `bash
+.discipline/run-test-suite.sh` was NOT run in this lane; the coordinator runs it once per lane at
+push time.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` file was touched by this task (parser, prompt, write-site,
+skill doc, and test files only).
+
+---
+
 ## 2026-07-30 — Acquire ARMED, Blocker-B PROVEN end-to-end — and one run went out UNPRICED
 
 **ACQUIRE GRANT EXERCISED.** `GROUNDING_ACQUIRE_ENABLED` armed in-runner under the operator's scoped grant

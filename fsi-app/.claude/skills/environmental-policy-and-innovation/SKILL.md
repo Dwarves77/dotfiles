@@ -734,7 +734,7 @@ Operator and competitive intelligence sources: Maersk, MSC, CMA CGM, Hapag-Lloyd
 
 ## The 16 Rules for All Output
 
-Parity with the runtime contract in `src/lib/agent/system-prompt.ts` — same rule numbering and wording here, same 20-field enumeration in Database Field Emission below — is enforced by `src/lib/agent/skill-prompt-parity.test.mjs`.
+Parity with the runtime contract in `src/lib/agent/system-prompt.ts` (same rule numbering and wording here, same 26-field enumeration in Database Field Emission below) is enforced by `src/lib/agent/skill-prompt-parity.test.mjs`.
 
 1. Ground every claim in a specific source URL. Never speculate.
 2. Distinguish binding law from guidance from announcement from opinion.
@@ -769,7 +769,7 @@ This convention enables consistent display in the UI and enables a future schema
 
 ## Database Field Emission (YAML frontmatter contract)
 
-Every regeneration writes the **20-field contract** to `intelligence_items`: `full_brief` plus the 19 other fields emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code (`synthesiseAndWriteBrief` in `src/lib/agent/canonical-pipeline.ts`, the single write site) parses the YAML, maps each CHECK-constrained field to its live DB vocabulary (`src/lib/agent/metadata-vocab.ts`), and writes the row; an absent/malformed YAML block, or a metadata write rejected by a constraint, is a failed regeneration (fail-loud, never a silent partial write).
+Every regeneration writes the **26-field contract** to `intelligence_items`: `full_brief` plus the 25 other fields emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code (`writeSynthesizedBrief`, the single write site extracted from `synthesiseAndWriteBrief` in `src/lib/agent/canonical-pipeline.ts`) parses the YAML, maps each CHECK-constrained field to its live DB vocabulary (`src/lib/agent/metadata-vocab.ts`), and writes the row; an absent/malformed YAML block, or a metadata write rejected by a constraint, is a failed regeneration (fail-loud, never a silent partial write).
 
 Fields:
 
@@ -788,11 +788,17 @@ Fields:
 - `intersection_summary` — short markdown string (≤1500 chars) describing how this item interacts with the linked items. Sourced; cite linked items inline by title. Empty string OR null when no intersections were identified.
 - `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - `last_regenerated_at` — ISO 8601 timestamp at the moment of generation. Current UTC timestamp in ISO 8601 form (e.g., `2026-04-28T18:42:00Z`). Never `NOW()`, never a placeholder, never derived from source publication dates.
-- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-09-01"` (see `src/lib/agent/contract-version.mjs`, the single source of truth `contract-version.test.mjs` binds this file's stamped value to).
+- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-09-11"` (see `src/lib/agent/contract-version.mjs`, the single source of truth `contract-version.test.mjs` binds this file's stamped value to).
 - `what_it_changes` — short editorial callout (single sentence, 80-200 chars) naming what this finding/signal changes for workspace operations: cost mechanism, contract clause, routing decision, compliance action, etc. Emit on EVERY brief regardless of format. Empty string OR null only when the brief has no operational implications (rare; integrity-rule exception). The renderer surfaces this as a per-card right-column callout on /research and /market.
 - `does_not_resolve` — short editorial callout (single sentence, 80-200 chars) naming the scope limit, open question, or unresolved aspect this brief deliberately does not address. Emit on research_summary briefs ONLY (and ideally only when an open question is genuinely surfaced); null otherwise. Format: short prose ("Does NOT resolve whether [open question] — see [pending source/event] for binding answer"). Renderer surfaces as a muted secondary callout under "What it changes".
 - `conversion_trigger` — short editorial callout (single sentence, 80-200 chars) naming the future event that flips this signal from observation to commercial pressure. Emit on market_signal_brief items in signal_band price OR corporate; null otherwise. Format: short prose ("CORSIA Phase 2 review · Q4 2026" or "First commercial pilot 2028 · charging-corridor agreement signing"). Renderer surfaces as a muted secondary callout.
 - `cross_references` — short editorial callout (single sentence, 80-200 chars) listing canonical Operations/Regulations briefs this corridor signal links to. Emit on market_signal_brief items in signal_band corridor; null otherwise. Format: short prose with "↗" arrow prefix per surface ("↗ Operations · Gulf bunkering · Cape route economics"). Renderer surfaces as a callout block beneath What it changes.
+- `cost_mechanism` - one sentence naming who is obligated and how the cost reaches a forwarder's invoice (surcharge, levy, allowance cost, penalty, or pass-through). regulatory_fact_document format only; null on every other format. Verbatim-grounded: emit only when the cited source states the mechanism, never inferred or estimated. Read by RegulationDetailSurface's Who-pays cell.
+- `penalty_range` - the specific penalty amount or range, verbatim from the source's S3/S8 penalty_summary material. regulatory_fact_document format only; null otherwise, including when the source states no penalty exists. Renders in PenaltyFacts alongside enforcement_body.
+- `enforcement_body` - the name of the body that enforces the instrument, verbatim from the source's S3/S8 penalty_summary material. regulatory_fact_document format only; null otherwise. Renders in PenaltyFacts alongside penalty_range.
+- `requirement_trajectory` - the instrument's per-year requirement path as inline JSON, the same qualification-capture per-year series S8 already demands in prose. Shape: `{ "steps": [{"date": "YYYY" or "YYYY-MM-DD", "value": "a string, e.g. 40%", "label": "optional"}, ...], "note": "optional free text" }`. regulatory_fact_document format only; null when the instrument has no phase-in or step series. Deliberately distinct from `trajectory_points` above, which is a numeric price series for market_signal_brief items in signal_band price; this is a qualitative per-year requirement path.
+- `why_matters` - 3-4 sentences minimum on how this item affects freight forwarding operations: pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms with real figures or ranges when known. No generic "this is important" language. Emit on EVERY brief regardless of format.
+- `key_data` - array of hard data points: effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every entry must be specific and sourced. Emitted as a YAML inline array. Empty array allowed when the brief has no standalone data points beyond what full_brief already states. Emit on EVERY brief regardless of format.
 
 Severity to priority mapping (locked):
 
@@ -827,11 +833,17 @@ related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for shipping (linked) on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
 last_regenerated_at: 2026-08-31T18:42:00Z
-regeneration_skill_version: "2026-09-01"
+regeneration_skill_version: "2026-09-11"
 what_it_changes: "CBAM Q1 2026 reporting deadline tightens — early importers face €1.5M cost exposure pre-Q4 pass-through"
 does_not_resolve: null
 conversion_trigger: null
 cross_references: null
+cost_mechanism: "Importers pay a CBAM certificate surcharge on the carbon content declared at customs clearance."
+penalty_range: "EUR 10 to EUR 50 per tonne CO2e of undeclared embedded emissions"
+enforcement_body: "European Commission, Directorate-General for Taxation and Customs Union"
+requirement_trajectory: {"steps":[{"date":"2026-01-01","value":"purchase obligation begins","label":"certificate phase-in starts"},{"date":"2034-01-01","value":"100%","label":"full certificate obligation, free allocation phased out"}],"note":"phase-in mirrors the parallel EU ETS free-allocation phase-out"}
+why_matters: "CBAM certificate purchase obligations begin 2026-01-01, adding a direct per-tonne cost to covered imports that was previously absorbed by free EU ETS allocation. Forwarders handling CBAM goods must budget for the certificate surcharge in freight cost quotes and flag declarant obligations to importer clients ahead of the phase-in."
+key_data: ["Certificate purchase obligation begins 2026-01-01", "Full obligation (100%) from 2034-01-01", "Penalty EUR 10 to EUR 50 per tonne CO2e of undeclared emissions"]
 ---
 ```
 
@@ -851,6 +863,8 @@ When the user says "update the skill," the agent:
 8. Delivers as a downloadable file for upload to /mnt/skills/user/environmental-policy-and-innovation/
 
 ## Changelog
+
+2026-09-11: Brief-contract exposure fields (task 2.2, brief-chain-build-plan-2026-09-11 Part 2; migration 316). The Database Field Emission contract grows from 20 to 26 named fields (`full_brief` plus 25 YAML fields, was 19). Six fields join: `cost_mechanism`, `penalty_range`, `enforcement_body`, `requirement_trajectory` (new `intelligence_items` columns; regulatory_fact_document format only, verbatim-grounded, prompt-gated not parser-gated) and `why_matters`, `key_data` (existing columns, previously written only once at `/api/admin/scan` discovery time, now emitted on every regeneration for every format). `regeneration_skill_version`'s worked value advances from `"2026-09-01"` to `"2026-09-11"`, matching `src/lib/agent/contract-version.mjs`. No rule text or rule count changed (still 16). Mirrored verbatim into `src/lib/agent/system-prompt.ts`'s "Database field emission" section in the same change; parity enforced by `src/lib/agent/skill-prompt-parity.test.mjs`, whose sanity assertion is re-pinned from 20 to 26 fields.
 
 2026-09-01: Skill/prompt parity restoration (lane DOC, governing-skill parity). This file had drifted from the operative runtime contract (`src/lib/agent/system-prompt.ts`) in two places despite the header's "canonical" claim: (1) "Rules for All Output" listed only 14 rules while the prompt had advanced to 16 (rule 15, claim-level provenance labeling, and rule 16, corpus-flywheel participation, were added to the prompt without being mirrored here) — corrected by copying rules 15-16 verbatim from the prompt and renaming the section "The 16 Rules for All Output" to match; (2) the Database Field Emission section still described a "19-field contract" carried over from an earlier stage, naming 8 added fields in prose (including two, `theme_candidate` and `trajectory_points`, that are canonical-pipeline.ts-internal/derived columns the agent never emits and that do not appear anywhere in system-prompt.ts) while its own Fields: enumeration still listed only the original 13 bullets — corrected to the accurate 20-field contract (`full_brief` + the 19 YAML fields the prompt documents: adding `what_is_it`, `signal_band`, `theme`, `what_it_changes`, `does_not_resolve`, `conversion_trigger`, `cross_references` as bullets, using the prompt's own field descriptions) and the emission example was expanded to show every key. No rule text, section structure, or other doctrine changed — this is a copy correction, not a contract change, so `regeneration_skill_version` / `contract-version.mjs` are untouched. Parity between this file and the prompt is now enforced by `src/lib/agent/skill-prompt-parity.test.mjs`, registered as invariant EP-13-skill-prompt-parity.
 

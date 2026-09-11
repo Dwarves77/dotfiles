@@ -281,7 +281,7 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 
 ## Database field emission
 
-Every regeneration writes 20 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 19 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes 26 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 25 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
 
 Fields:
 
@@ -300,11 +300,17 @@ Fields:
 - intersection_summary — short markdown string (≤1500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
 - sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs (e.g. a1b2c3d4-e5f6-4789-9abc-def012345678) — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-29T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
-- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-09-01".
+- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-09-11".
 - what_it_changes — short editorial callout (single sentence, 80-200 chars) naming what this finding/signal changes for workspace operations: cost mechanism, contract clause, routing decision, compliance action, etc. Emit on EVERY brief regardless of format. Empty string OR null only when the brief has no operational implications (rare; integrity-rule exception). The renderer surfaces this as a per-card right-column callout on /research and /market.
 - does_not_resolve — short editorial callout (single sentence, 80-200 chars) naming the scope limit, open question, or unresolved aspect this brief deliberately does not address. Emit on research_summary briefs ONLY (and ideally only when an open question is genuinely surfaced); null otherwise. Format: short prose ("Does NOT resolve whether [open question] — see [pending source/event] for binding answer"). Renderer surfaces as a muted secondary callout under "What it changes".
 - conversion_trigger — short editorial callout (single sentence, 80-200 chars) naming the future event that flips this signal from observation to commercial pressure. Emit on market_signal_brief items in signal_band price OR corporate; null otherwise. Format: short prose ("CORSIA Phase 2 review · Q4 2026" or "First commercial pilot 2028 · charging-corridor agreement signing"). Renderer surfaces as a muted secondary callout.
 - cross_references — short editorial callout (single sentence, 80-200 chars) listing canonical Operations/Regulations briefs this corridor signal links to. Emit on market_signal_brief items in signal_band corridor; null otherwise. Format: short prose with "↗" arrow prefix per surface ("↗ Operations · Gulf bunkering · Cape route economics"). Renderer surfaces as a callout block beneath What it changes.
+- cost_mechanism - one sentence naming who is obligated and how the cost reaches a forwarder's invoice (surcharge, levy, allowance cost, penalty, or pass-through). regulatory_fact_document format only; null on every other format. Verbatim-grounded: emit only when the cited source states the mechanism, never inferred or estimated. Read by RegulationDetailSurface's Who-pays cell.
+- penalty_range - the specific penalty amount or range, verbatim from the source's S3/S8 penalty_summary material. regulatory_fact_document format only; null otherwise, including when the source states no penalty exists. Renders in PenaltyFacts alongside enforcement_body.
+- enforcement_body - the name of the body that enforces the instrument, verbatim from the source's S3/S8 penalty_summary material. regulatory_fact_document format only; null otherwise. Renders in PenaltyFacts alongside penalty_range.
+- requirement_trajectory - the instrument's per-year requirement path as inline JSON, the same qualification-capture per-year series S8 already demands in prose. Shape: { "steps": [{"date": "YYYY" or "YYYY-MM-DD", "value": "a string, e.g. 40%", "label": "optional"}, ...], "note": "optional free text" }. regulatory_fact_document format only; null when the instrument has no phase-in or step series. Deliberately distinct from trajectory_points above, which is a numeric price series for market_signal_brief items in signal_band price; this is a qualitative per-year requirement path.
+- why_matters - 3-4 sentences minimum on how this item affects freight forwarding operations: pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms with real figures or ranges when known. No generic "this is important" language. Emit on EVERY brief regardless of format.
+- key_data - array of hard data points: effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every entry must be specific and sourced. Emitted as a YAML inline array. Empty array allowed when the brief has no standalone data points beyond what full_brief already states. Emit on EVERY brief regardless of format.
 
 Severity to priority mapping (locked):
 
@@ -424,11 +430,17 @@ related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for Shipping on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
 last_regenerated_at: 2026-08-31T18:42:00Z
-regeneration_skill_version: "2026-09-01"
+regeneration_skill_version: "2026-09-11"
 what_it_changes: "CBAM Q1 2026 reporting deadline tightens — early importers face €1.5M cost exposure pre-Q4 pass-through"
 does_not_resolve: null
 conversion_trigger: null
 cross_references: null
+cost_mechanism: "Importers pay a CBAM certificate surcharge on the carbon content declared at customs clearance."
+penalty_range: "EUR 10 to EUR 50 per tonne CO2e of undeclared embedded emissions"
+enforcement_body: "European Commission, Directorate-General for Taxation and Customs Union"
+requirement_trajectory: {"steps":[{"date":"2026-01-01","value":"purchase obligation begins","label":"certificate phase-in starts"},{"date":"2034-01-01","value":"100%","label":"full certificate obligation, free allocation phased out"}],"note":"phase-in mirrors the parallel EU ETS free-allocation phase-out"}
+why_matters: "CBAM certificate purchase obligations begin 2026-01-01, adding a direct per-tonne cost to covered imports that was previously absorbed by free EU ETS allocation. Forwarders handling CBAM goods must budget for the certificate surcharge in freight cost quotes and flag declarant obligations to importer clients ahead of the phase-in."
+key_data: ["Certificate purchase obligation begins 2026-01-01", "Full obligation (100%) from 2034-01-01", "Penalty EUR 10 to EUR 50 per tonne CO2e of undeclared emissions"]
 ---
 
 The metadata block is mandatory on every regeneration. An absent or malformed block is a failed regeneration.
