@@ -458,6 +458,20 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
               top: barRect.top,
               left: barRect.left,
               width: barRect.width,
+              // Lane searchrow, 2026-09-11, operator screenshot: rows rendered jurisdiction-code-
+              // then-dashes with no title and no type. [CONFIRMED, .discipline/rendering harness,
+              // real ListRow mounted at this exact 330px-in-1175px box]: ListRow's shared grid
+              // (ListRow.tsx GRID) needs 489px of fixed columns before its 1fr title column gets
+              // any width, and its only narrow-reflow rule was a viewport `@media (max-width:
+              // 767px)` query, which never fires here because the VIEWPORT stays wide even though
+              // this BOX is ~330px, so the title column collapsed to 0 and painted nothing. This
+              // listbox is the first ListRow caller whose box is narrow independent of the
+              // viewport, so it now opts into CSS containment; ListRow.tsx's RESPONSIVE_CSS gained
+              // an unnamed `@container (max-width: 489px)` query that reuses the exact same
+              // reflow rules the mobile `@media` block already applies (LIST_ROW_NARROW_REFLOW_CSS,
+              // one template, two triggers) rather than a second row anatomy. No other ListRow
+              // caller sets `containerType`, so none of them are affected.
+              containerType: "inline-size",
               background: "var(--card)",
               border: "1px solid var(--line-1)",
               borderRadius: 8,
