@@ -489,6 +489,26 @@ Retrieval first: no existing path takes session-authored synthesis text. `ground
 
 - [ ] Steps: read every diff in full; confirm none of the SKILL.md text already exists on master (`git grep -n "B9\." origin/master -- .claude/skills/ledger/SKILL.md`); run `node scripts/verify/audit-finding-status.mjs`; discipline runner; commit; PR.
 
+### Task 4.3: The Intelligence Assistant (Ask mode) is ON in production, by ruling
+
+Operator, 2026-09-09, verbatim: "actually turn the AI on, we just wont use it"; "you shut it off you can turn it on". 2026-09-11: "is fixing the search and ai panel in this work tree, it should be". Three earlier lanes refused the flip citing PR #478 / Addendum 32 / RD-31; the ADR below is what resolves that.
+
+**Facts [CONFIRMED, master 5e891abd]:** `fsi-app/src/app/api/ask/route.ts:28` reads `const ASSISTANT_ENABLED = process.env.ASSISTANT_ENABLED === "true"` and refuses at `:153` when false; `fsi-app/src/app/api/workspace/bootstrap/route.ts:83` surfaces the same flag to the client, which `CommandBar.tsx` reads (`assistantEnabled === true`) to enable Ask mode; `fsi-app/.discipline/assistant-spend-gate.test.mjs:35-60` REQUIRES exactly that strict comparison and that gate ordering, so any "default on" code change fails a gate by design. `/api/ask` is a sanctioned, metered `claude-sonnet-4-6` caller (`fsi-app/.claude/CLAUDE.md`, permitted-calls table), rate-limited 60/min/user.
+
+**Files:**
+- Create: `docs/decisions/ADR-029-assistant-enabled-in-production.md` (frontmatter per ADR-009).
+- Modify: `docs/INDEX.md` (ADR line); the in-repo boundary manifest that lists env-governed behaviour (find it: grep docs and fsi-app/docs for "boundary manifest" or "ASSISTANT_ENABLED"), so the env var has an in-repo source of truth.
+- No code change to `route.ts` or the gate test: the fail-closed design stands; the flip is configuration.
+
+**Interfaces:**
+- Produces: `ASSISTANT_ENABLED=true` in the Vercel `carosledge` project, Production environment (set by the coordinator; the lane writes the ADR and the manifest row and reports the exact command); a redeploy of master so the server reads it; `GET /api/workspace/bootstrap` returns `assistantEnabled: true` on carosledge.com; Ask mode answers a real question.
+
+- [ ] **Step 1: Write ADR-029** quoting the rulings verbatim, stating: the assistant is ON in production; the strict `=== "true"` fail-closed gate is unchanged; spend is the sanctioned `/api/ask` path already attributed by `spend-client.ts` (cite the line); the env var is the single control and is recorded in the boundary manifest; Preview and Development stay OFF unless set.
+- [ ] **Step 2: Manifest row + INDEX line.**
+- [ ] **Step 3: Report the exact flip command** for the coordinator: `vercel env add ASSISTANT_ENABLED production` (value `true`) from the linked checkout, then a redeploy of the current production deployment. The lane holds no Vercel credentials and does not attempt the flip.
+- [ ] **Step 4: Verification the coordinator runs after the flip:** `curl -s https://carosledge.com/api/version` shows the redeployed sha; the operator opens the site, switches the bar to Ask, asks "what is PPWR" and gets an answer; `/api/health/spend` shows the ask row attributed. Any Ask-panel UI defect found in that check becomes a scoped follow-up task in this Part (4.4), never a silent note.
+- [ ] **Step 5: Commit** (`docs: ADR-029 assistant enabled in production; boundary manifest row`).
+
 ---
 
 ## Part 5: what fits the build lands, what does not is closed
