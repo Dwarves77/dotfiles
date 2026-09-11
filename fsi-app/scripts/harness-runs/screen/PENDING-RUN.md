@@ -45,7 +45,19 @@ below is superseded by this entry); `screen-worklist.mjs` is untouched. `RULE_NA
 no-over-match guard on an unrelated oil-price-news title) — see `docs/ops/session-log.md`'s R-B addendum.
 No screen batch ran against real census data this wave; the "planned run" note below still stands.
 
-**harness_version at write time:** `sha256:954b696120342866` (superseded above: `sha256:bcba50585bb00ce3`, `sha256:a6cb87abf8e61cd9`)
+**harness_version at write time (superseded below, see task 0.3b):** `sha256:954b696120342866` (superseded above: `sha256:bcba50585bb00ce3`, `sha256:a6cb87abf8e61cd9`)
+
+**RE-PINNED (task 0.3b, 2026-09-11, lane hashsep):** `scripts/mint/screen-worklist.mjs` (one of the
+family's two governing files) had its CLI main guard swapped from the broken hand-built `file://` +
+`process.argv[1]` comparison idiom (never true on Windows) to `isMainModule(import.meta.url)`
+(`scripts/lib/is-main.mjs`), plus the one new import line that requires. A mechanical, behavior-preserving
+edit only: the guard still calls `main()` under the identical condition, now correctly on every platform
+instead of only on POSIX. No classification RULE changed; `screen-rules.mjs` is untouched. This moves
+`screen-worklist.mjs`'s bytes and therefore the family's hash again.
+
+**harness_version at write time:** `sha256:ab50aa8b43969653` (recomputed task 0.3b, `node -e` against
+`governing-files.mjs`'s own `GOVERNING_FILES.screen` array and `run-artifact.mjs`'s `hashHarnessVersion`,
+the same 2 files, unreordered; supersedes `sha256:954b696120342866` outright).
 
 **Planned run:** the next real screen batch (round 4, whenever the census worklist next needs a
 re-screen — no round 4 is scheduled by this wave) is what supersedes this marker. Because emission is

@@ -48,6 +48,7 @@ import { scanBrief } from "../../src/lib/agent/gate-a-scan.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 import { institutionKey } from "../lib/institution-key.mjs";
 import { isImplementedSeriesKey } from "../../src/lib/market/series-registry.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-required-slots.json"), "utf8"));
@@ -753,4 +754,4 @@ function main() {
   process.exit(result.valid ? 0 : 1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (isMainModule(import.meta.url)) main();

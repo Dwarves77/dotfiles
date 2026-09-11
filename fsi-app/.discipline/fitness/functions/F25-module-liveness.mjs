@@ -770,6 +770,20 @@ export const LEGACY_ALLOWLIST = [
           'production importer, the same posture as types.contractable-barrier.check.ts above.',
         reviewByPhase: 'n/a — permanent data-fixture cited by a live conformance test; re-review only if the test is deleted or the file\'s role changes',
       },
+      {
+        file: 'fsi-app/scripts/lib/is-main-fixture.mjs',
+        reason:
+          'task 0.3b, 2026-09-11: a deliberate spawn fixture for scripts/lib/is-main.test.mjs, same shape as ' +
+          'the null-tier-host-ruling.mjs entry above ("a data-only golden-fixture file with no production ' +
+          'call site to be wired into"). isMainModule() (scripts/lib/is-main.mjs, the primitive this fixture ' +
+          'exercises) fixes a Windows defect where a hand-built file:// comparison string never equals ' +
+          'import.meta.url; proving the fix requires a REAL `node <file>` invocation (execFileSync spawning ' +
+          'this exact file), not a mocked process.argv[1] override in-process, because the defect only ' +
+          'reproduces under a genuine spawn where Node itself supplies the platform-native argv[1] shape. A ' +
+          'test-only importer does not satisfy F25\'s production-importer bar, but this file is never meant ' +
+          'to gain one: its entire purpose is being invoked as a separate process by the test.',
+        reviewByPhase: 'n/a, permanent spawn fixture for a live regression test; re-review only if the test is deleted or the fixture\'s role changes',
+      },
       // 'scripts/_wave-alpha/backfill-canonical-keys.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED
       // — migration 200's canonical_instrument_key backfill applied live 2026-07-11 (wave-alpha; RD-5,
       // 20/21 rows set, 1 unverified skipped by design). Removed from skill-contract-map.mjs's

@@ -55,6 +55,7 @@
 
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { planJurisdictionEntities } from "./backfill-entities.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export const RELATION_CORRIDOR_JURISDICTION = "touches_jurisdiction";
 export const ATTRIBUTED_BY = "rule:corridor-jurisdiction-unlocode-v1";
@@ -207,7 +208,7 @@ async function loadEnv() {
   try { process.loadEnvFile(r(ROOT, ".env.local")); } catch { /* CI: env injected */ }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   (async () => {
     await loadEnv();
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

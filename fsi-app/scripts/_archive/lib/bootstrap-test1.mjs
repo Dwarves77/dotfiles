@@ -14,6 +14,7 @@ import { VERDICT, assertReadBack, fetchOk, observeFired, findRawSourceFetch } fr
 import { DRIFT, evalPredicate } from "./drift-check.mjs";
 import { classifyPath } from "./surface-registry.mjs";
 import { crossProduct } from "./exclusion-audit.mjs";
+import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 async function tryFetchOk(status) {
   try { await fetchOk("http://x", {}, async () => ({ status, text: async () => "" })); return { threw: false, verdict: null }; }
@@ -144,7 +145,7 @@ export async function runBootstrap() {
 }
 
 // Standalone entry (also invoked by d3-run --scope=bootstrap).
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("bootstrap-test1.mjs")) {
+if (isMainModule(import.meta.url)) {
   const { rows, fullyCaught, total, vacuous, allOk } = await runBootstrap();
   console.log("=== Test 1 bootstrap matrix (positive caught + negative clean) ===\n");
   for (const r of rows) {

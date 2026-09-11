@@ -54,6 +54,8 @@
 /** Picks two DISTINCT orgs, each with at least one member, from a flat list of
  *  {org_id, user_id} rows (one arbitrary member per org is enough — the proof only needs ONE real member
  *  per side). Returns [{orgId, userId}, {orgId, userId}] or null if fewer than two distinct orgs exist. */
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+
 export function pickTwoOrgsWithMembers(rows) {
   const seen = new Map();
   for (const r of rows) {
@@ -162,7 +164,7 @@ export async function runAudit(client) {
 
 // ── CLI invocation guard. Real `pg` connection lives ONLY behind this check, so importing the functions
 // above (as the unit test does) never touches pg/pg-conn.mjs and never requires node_modules. ───────────
-const isMain = Boolean(process.argv[1]) && import.meta.url === `file://${process.argv[1]}`;
+const isMain = isMainModule(import.meta.url);
 
 if (isMain) {
   const { connectPg } = await import("../lib/pg-conn.mjs");

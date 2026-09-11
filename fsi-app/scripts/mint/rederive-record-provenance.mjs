@@ -27,6 +27,7 @@
 //   node scripts/mint/rederive-record-provenance.mjs --apply    # touch through the guarded path
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
@@ -91,7 +92,7 @@ export async function main({ apply = false } = {}, deps) {
   return { mode: "apply", candidates: candidates.length, stale: stale.length, stillInvalid, touched: res.updated, healed };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[rederive-provenance] no DB creds — cannot run here (exit 2).");

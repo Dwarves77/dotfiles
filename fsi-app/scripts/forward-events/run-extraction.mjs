@@ -42,6 +42,7 @@ import { fileURLToPath } from "node:url";
 import { extractForwardEvents, EXTRACTOR_VERSION } from "../../src/lib/forward-events/extract-forward-events.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -330,6 +331,6 @@ function main() {
 }
 
 // Only run main() when this file is executed directly (not when imported by the test suite).
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

@@ -29,6 +29,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 import { readAllByIds } from '../lib/db.mjs';
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
 
@@ -101,6 +102,6 @@ async function main() {
 }
 
 // Run main only when invoked directly, not when imported by the golden.
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('defect-signature-scan.mjs')) {
+if (isMainModule(import.meta.url)) {
   main().catch((e) => { console.error(e); process.exit(1); });
 }

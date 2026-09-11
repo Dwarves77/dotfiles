@@ -125,9 +125,22 @@ describes. The new hash, computed with the FIXED function against this tree's cu
 (`scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`,
 `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`):
 
-**harness_version at write time:** `sha256:29f6e50d650403cb`
+**harness_version at write time (superseded below, see task 0.3b):** `sha256:29f6e50d650403cb`
+
+**RE-PINNED (task 0.3b, 2026-09-11, lane hashsep):** `scripts/lib/run-artifact.mjs` (one of `meta-harness`'s
+own governing files) had its CLI main guard swapped from the broken hand-built `file://` +
+`process.argv[1]` comparison idiom (never true on Windows) to `isMainModule(import.meta.url)`
+(`scripts/lib/is-main.mjs`, a new same-directory sibling), plus the one new import line that requires. A
+mechanical, behavior-preserving edit only: the guard still calls `main()` under the identical condition,
+now correctly on every platform instead of only on POSIX; `hashHarnessVersion` itself (the function this
+family's own hash computation depends on) is unchanged by this lane, only the file's CLI entry point at
+its bottom. This moves `run-artifact.mjs`'s bytes and, self-referentially, the family's own hash again.
+
+**harness_version at write time:** `sha256:96ead321c8f54a2e` (recomputed task 0.3b, `node -e` against
+`governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array and `run-artifact.mjs`'s
+`hashHarnessVersion`, the same 5 files, unreordered; supersedes `sha256:29f6e50d650403cb` outright).
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave, unchanged in kind from the prior entries above, just a
-newer hash to discharge. No other `meta-harness` governing file was edited by this lane; only
-`scripts/lib/run-artifact.mjs` (`hashHarnessVersion`'s separator fix) moved the hash.
+newer hash to discharge. No other `meta-harness` governing file was edited by task 0.3b; only
+`scripts/lib/run-artifact.mjs` (the CLI main-guard swap) moved the hash.

@@ -18,6 +18,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
@@ -62,6 +63,6 @@ async function main() {
 }
 
 // run only when invoked directly, not when imported by the golden
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("no-generic-source-audit.mjs")) {
+if (isMainModule(import.meta.url)) {
   main().catch((e) => { console.error(e); process.exit(1); });
 }

@@ -50,7 +50,7 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, relative, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { normalizeEol } from '../lib/read-migration-sql.mjs';
 
@@ -451,7 +451,10 @@ export function isSkillContractClean(repoRoot = REPO) {
 
 // ---- CLI (operator utility, mirrors skill-map.mjs's --list/--check style) ----
 // Usage: node skill-contract-map.mjs --check   → prints problems (if any) and exits 1, else prints OK and exits 0
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('skill-contract-map.mjs')) {
+// task 0.3b: the Windows-safe main guard, inlined (no scripts/lib import precedent under
+// .discipline/governance/, unlike .discipline/fitness/functions/ which already imports scripts/lib -
+// see scripts/lib/is-main.mjs for the shared primitive this mirrors).
+if (Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const { ok, problems } = checkDrift(REPO);
   if (ok) {
     console.log(`skill-contract-map: OK — ${Object.keys(PINNED_MANIFEST).length} pinned skills, no drift.`);

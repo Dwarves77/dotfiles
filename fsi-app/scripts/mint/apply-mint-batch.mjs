@@ -176,6 +176,7 @@ import {
 // verbatim, so every existing import of these two names from this file (apply-mint-batch.test.mjs)
 // keeps working unmodified — the same convention this file already uses for buildAgentRunSearchRows etc.
 import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export { buildAgentRunSearchRows, buildSectionRows, buildClaimRows, buildCitationRows };
 export { normalizeInstrumentIdentifier, sameInstrumentIdentity };
@@ -844,7 +845,7 @@ async function main() {
   await run(values, { readAll, guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readItemProvenance, rpc });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error("apply-mint-batch: fatal:", e);
     process.exit(1);

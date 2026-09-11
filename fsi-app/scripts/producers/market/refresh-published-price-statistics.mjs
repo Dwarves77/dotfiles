@@ -28,6 +28,7 @@ import {
   deriveDisplayRows, unmappedSeriesKeys, isRatified, loadSeriesItemMap, SERIES_ITEM_MAP,
 } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
+import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected, or no creds needed for --dry */ }
@@ -168,7 +169,7 @@ async function main() {
 // WHOLE CLI run and the process killed as a side effect of the import — this file had no prior import-
 // only consumer to expose that. Behaviour when run directly (`node scripts/producers/market/
 // refresh-published-price-statistics.mjs ...`) is unchanged.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

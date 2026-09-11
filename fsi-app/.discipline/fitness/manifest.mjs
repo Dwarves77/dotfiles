@@ -215,6 +215,14 @@ import { fitnessFunction as F42 } from './functions/F42-card-shell-outside-secti
 // (RD-67-default-open-disclosure) is distinct from the card-shell RD-67 and did not move.
 import { fitnessFunction as F43 } from './functions/F43-default-open-disclosure.mjs';
 
+// Broken main guard (task 0.3b, 2026-09-11): 36 files under scripts/** and .discipline/** compared
+// import.meta.url against a hand-built `file://` + process.argv[1] string, which never equals
+// import.meta.url on Windows (forward-slash file:// URL vs a native backslash argv path), so every one
+// silently exited 0 with no output when run directly. F44 forbids the broken idiom from re-entering
+// either tree; scripts/lib/is-main.mjs's isMainModule() is the fix, and its own is-main.test.mjs carries
+// the identical regression check at the no-npm-ci pre-push layer (belt-and-suspenders).
+import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
+
 export const fitnessFunctions = [
   F2,
   F6,
@@ -253,6 +261,7 @@ export const fitnessFunctions = [
   F41,
   F42,
   F43,
+  F44,
 ];
 
 export function getFunctionById(id) {

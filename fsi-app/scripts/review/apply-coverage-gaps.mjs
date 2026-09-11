@@ -13,6 +13,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
 import { applySimpleQueue } from "./lib/apply-core.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
@@ -39,7 +40,7 @@ export async function main({ rulingPath, apply = false } = {}, deps) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const args = process.argv.slice(2);
   const idx = args.indexOf("--ruling");
   const rulingPath = idx >= 0 ? args[idx + 1] : undefined;

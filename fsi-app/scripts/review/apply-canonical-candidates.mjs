@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import * as CanonicalCandidates from "./lib/canonical-candidates.mjs";
 import { validateRuling, isRulingStale } from "./lib/ruling.mjs";
 import { canonicalizeUrl } from "../../src/lib/sources/url-canonicalize.ts";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
@@ -124,7 +125,7 @@ export async function main({ rulingPath, apply = false } = {}, deps) {
   return { queue: m.QUEUE_ID, mode: apply ? "apply" : "dry-run", results, needs_individual_review: needsIndividualReview };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const args = process.argv.slice(2);
   const idx = args.indexOf("--ruling");
   const rulingPath = idx >= 0 ? args[idx + 1] : undefined;

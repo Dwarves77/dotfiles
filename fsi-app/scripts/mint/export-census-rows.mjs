@@ -217,6 +217,7 @@ import { sameInstitution } from "../lib/institution-key.mjs";
 // note near partitionExcludeHeld below, and lib/instrument-identity.mjs's own header): apply-mint-batch.mjs's
 // checkM4 already imports the SAME two functions from here — never a local re-derivation in either file.
 import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1460,7 +1461,7 @@ export async function main() {
   }));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error("export-census-rows: fatal:", e);
     process.exit(1);

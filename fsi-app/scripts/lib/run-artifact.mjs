@@ -22,6 +22,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 
 import crypto from "node:crypto";
 import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // "meta-harness" (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family:
 // its runs are the waves that build/extend this substrate itself (MH-1..MH-3, and every wave after). Its
@@ -606,6 +607,6 @@ function main() {
 
 // Only run main() when this file is executed directly (not when imported by the test suite) — same
 // guard as screen-worklist.mjs.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

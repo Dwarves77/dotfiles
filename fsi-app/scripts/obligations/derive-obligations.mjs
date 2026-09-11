@@ -41,6 +41,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifyBindingPosition } from "../../src/lib/obligations/classify-binding-position.mjs";
 import { normaliseMode, LEG_MODE_CODES } from "../../src/lib/contracts/vocabularies.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // `normaliseMode` resolves a raw string to ANY member of TRANSPORT_MODES, corridor-only tokens included
 // (`multimodal` is itself a valid vocabulary member, just `corridorOnly: true`) — it has no opinion on
@@ -203,7 +204,7 @@ export async function main({ apply = false } = {}, deps) {
   return { ...summary, inserted: res.inserted };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[derive-obligations] no DB creds — cannot run here (exit 2).");
     process.exit(2);

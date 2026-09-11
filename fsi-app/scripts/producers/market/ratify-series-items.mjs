@@ -51,6 +51,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MAP_PATH = resolve(HERE, "../../../src/lib/market/series-item-map.mjs");
@@ -191,7 +192,7 @@ async function main() {
   console.log(`Wrote ${mapPath} — ${ratifiedCount} series ratified.`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

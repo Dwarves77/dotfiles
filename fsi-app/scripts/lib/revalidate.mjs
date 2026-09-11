@@ -37,6 +37,8 @@
 
 /** The index-ledger cache tag — mirrors src/lib/data.ts's APP_DATA_TAG (every override/watchlist/list-order
  *  mutation route flushes it; a mint apply must too, or a minted item waits 60 s to reach the ledger). */
+import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+
 export const APP_DATA_TAG = "app-data";
 
 /** PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): mirrors src/lib/data.ts's
@@ -124,6 +126,6 @@ async function main() {
 // Only run the CLI when this file is the entrypoint, matching the pattern already used elsewhere in
 // scripts/lib (run-artifact.mjs, fetch-negative-probe.mjs, inconclusive-probe.mjs) — importing this module
 // as a library must never trigger the CLI's process.exit().
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

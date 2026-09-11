@@ -35,6 +35,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* no .env.local in this environment — real calls will refuse in db.mjs instead */ }
@@ -128,7 +129,7 @@ export async function main({ apply = false } = {}) {
   return { mode: "apply", matched: targets.length, written };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main({ apply: process.argv.includes("--apply") }).catch((e) => {
     console.error("[stamp-wo26] fatal:", e);
     process.exit(1);

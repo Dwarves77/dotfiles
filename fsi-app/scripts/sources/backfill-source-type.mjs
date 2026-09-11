@@ -19,6 +19,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifySourceType, SOURCE_TYPE_VALUES } from "../../src/lib/sources/source-type-taxonomy.mjs";
+import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
@@ -116,7 +117,7 @@ export async function main({ apply = false } = {}, deps) {
   return { ...summary, written };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[backfill-source-type] no DB creds — cannot run here (exit 2).");
     process.exit(2);
