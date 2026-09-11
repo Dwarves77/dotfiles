@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import {
   checkL1, checkL2, checkL3, checkL4, checkL5, checkL6, checkL7, checkL8, checkL9, checkL10,
   isL9DesktopExempt,
@@ -242,8 +243,21 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
   const t = (id, name, x, y, width, height) => ({ id, name, x, y, width, height, contains: [] });
   const facet = t(0, 'input.cl-facet-check[]', 0, 0, 266, 24);
 
-  // Covered: the named target, at 1440, inside the entry's wave.
-  assert.deepEqual(checkL9(base({ width: 1440, targets: [facet] })), []);
+  // FACETFIX (2026-09-11), task 0.1: `checkL9` always reads the LIVE `latestTrainWave()` (it has no
+  // injectable override - only `isL9DesktopExempt` below does), so this first assertion is pinned to
+  // REAL repo history, not a fixed point in time. It used to read `[]` (the synthetic 266x24 box
+  // covered) while the repo's landed wave was still under the entry's expiryWave:70. That was the
+  // exact CI-divergence mechanism task 0.1 investigated (a depth-1 pull_request checkout has no
+  // origin/master ref and resolves latestWave to null - "unknown", treated as still-active - while a
+  // depth-1 push checkout's origin/master IS the one pushed commit, whose own subject line names the
+  // real wave): see .github/workflows/discipline.yml's checkout step and docs/ops/session-log.md's
+  // FACETFIX entry. This tree has now landed wave71 (commit 5e891abd), past the expiry, so the
+  // exemption is correctly, permanently retired for this synthetic box too - proving the SAME
+  // wave-oracle mechanism the real /regulations mount now relies on (the test below) to have stopped
+  // masking the undersized target rather than to have started masking it. The wave-pinned assertions
+  // two lines down (isL9DesktopExempt at explicit waves 70/69) are what still prove the exemption
+  // mechanism itself works; this one now proves it has expired for real.
+  assert.equal(checkL9(base({ width: 1440, targets: [facet] })).length, 1);
 
   // NOT covered at 390: below the entry's 768 floor the 44px touch target has to hold, and does.
   assert.equal(checkL9(base({ width: 390, targets: [facet] })).length, 1);
@@ -261,6 +275,27 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
   // The overlap half of L9 is never suppressed, for any target.
   const stacked = checkL9(base({ width: 1440, targets: [t(0, 'input.cl-facet-check[]', 0, 0, 266, 24), t(1, 'input.cl-facet-check[]', 0, 10, 266, 24)] }));
   assert.ok(stacked.some((h) => /adjacent targets overlap/.test(h.measured)));
+});
+
+// FACETFIX (2026-09-11): the pure-bundle test above proves the DETECTOR against a hand-built box;
+// this proves the actual PRODUCT tree, real chromium, real /regulations mount - the same measurement
+// run-rendering-guard.mjs takes in CI. It is the one test in this otherwise browser-free file that
+// needs a real chromium, so it self-skips (diagnosably, not silently) when playwright is not
+// resolvable, the same posture rule 15's execution-wiring gate requires of a no-cred verifier - a
+// lane without the browser dependency gets a skip, never a crash and never a false green. Wired for
+// real by the rendering-guard job (discipline.yml), which already installs playwright + chromium for
+// run-rendering-guard.mjs and now also runs this whole file.
+test('L9: facet checkboxes meet the hit-target floor at 1440', async (t) => {
+  try {
+    createRequire(import.meta.url).resolve('playwright');
+  } catch {
+    t.skip('playwright is not installed in this lane - this is the one browser-dependent test here; it runs for real in the rendering-guard CI job');
+    return;
+  }
+  const { runLayoutGuardFor } = await import('./run-layout-guard.mjs');
+  const findings = await runLayoutGuardFor({ route: '/regulations', width: 1440 });
+  const facet = findings.filter((f) => f.rule === 'L9' && f.element.includes('cl-facet-check'));
+  assert.deepEqual(facet, [], `facet checkbox findings: ${JSON.stringify(facet)}`);
 });
 
 // ── L10 ───────────────────────────────────────────────────────────────────────────────────────

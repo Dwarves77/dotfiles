@@ -409,8 +409,37 @@ jobs:
     # font, + verify the real strip @380px in the live-data mobile E2E) precedes required-status.
     continue-on-error: true
     steps:
+      # FULL HISTORY (task 0.1, FACETFIX, 2026-09-11; [CONFIRMED], method: fetched both real CI job
+      # logs with `gh api repos/Dwarves77/dotfiles/actions/jobs/<id>/logs` and diffed them, then read
+      # the oracle's source; full evidence in docs/ops/session-log.md's FACETFIX entry). Root cause of
+      # the push-vs-pull_request layout-guard divergence (run 34614334442 attempts 1 and 2, both
+      # green, vs master run 34634686151 attempt 2 / job 103383607922, red, same tree). This step used
+      # to omit fetch-depth entirely, which defaults to a depth-1 checkout: on a pull_request event
+      # that fetches ONLY refs/pull/<N>/merge (the synthetic merge commit, one commit deep, no
+      # origin/master ref at all), and on a push it fetches ONLY the pushed commit itself under
+      # refs/remotes/origin/master. `latestTrainWave()` (F25-module-liveness.mjs, read by
+      # exemptions-375.mjs, exemptions-law2-desktop.mjs and this guard's own L9 desktop exemption)
+      # resolves "the latest landed wave" from `git log --oneline origin/master` (falling back to
+      # HEAD). Under that depth-1 checkout the two events see DIFFERENT, WRONG inputs: a PR run's
+      # origin/master ref does not exist and its one-commit HEAD (the synthetic merge) carries no
+      # "waveNN" token, so the oracle returns null, which every exemption treats as "still active" (a
+      # false pass; both PR-run job logs print "latest landed wave: unknown" and suppress the same 4
+      # law-2 lines, leaving "layout guard: 36 route x width measurement(s), 0 finding(s)"). A push
+      # run's origin/master IS the single just-pushed commit, so the oracle returns whatever wave
+      # number happens to be IN THAT ONE COMMIT'S OWN SUBJECT LINE (a coincidence of the
+      # "train/waveNN" commit-message convention, not a real history scan), which on master run
+      # 34634686151 (commit 5e891abd, subject "train/wave71...") read as 71, past the law-2 desktop
+      # exemption's wave-70 expiry, so nothing was suppressed and the master job log shows "layout
+      # guard: 36 route x width measurement(s), 120 finding(s)" as real failures instead. Same tree,
+      # two verdicts; the guard must give one. `fetch-depth: 0` gives BOTH events the full commit
+      # history reachable from whatever they checked out (the PR merge ref's full ancestry, or
+      # master's full ancestry), so `latestTrainWave()` sees the TRUE landed-wave history either way
+      # and the two events agree. The permanent fix for the underlying finding itself (not merely the
+      # oracle divergence) is the facet-row hit-target fix in ListSurfaceRailCards.tsx, same commit.
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v5
