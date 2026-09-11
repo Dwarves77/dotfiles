@@ -169,7 +169,13 @@ export const PINNED_MANIFEST = {
     // when first navigating to a page. Reviewed against every citingFile below: none of them cites a
     // Section 4 category, and no existing statement in the skill changed - the category is a new
     // appended section, the same posture as the categories 36-41 re-pins above. No citingFiles change.
-    contentHash: '13797439c07131dc105244c291ffdd7e578471299cf72ef700a0e3fc11bda77a',
+    // 2026-09-11 (task 0.3b, lane hashsep): re-pinned for Section 4 category 44, "a CLI main guard
+    // built from a hand-typed file:// string breaks on every Windows machine" (RD-68 / F44), the class
+    // fix for the 36-file Windows main-guard defect this task closed. Reviewed against every
+    // citingFile below: none cites a Section 4 category or any statement this addition touches - the
+    // category is a new appended section, the same posture as the categories 36-43 re-pins above. No
+    // citingFiles change.
+    contentHash: '3f1222b9c88b34f8f01a652b46ebd0ffe43e9c050403600c83e868286e831fdd',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

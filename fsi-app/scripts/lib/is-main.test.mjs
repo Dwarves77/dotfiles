@@ -60,7 +60,11 @@ test('regression guard: no git-tracked file under scripts/** or .discipline/** s
   const tracked = execSync('git ls-files', { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 })
     .split('\n')
     .filter(Boolean)
-    .filter((p) => (p.startsWith('fsi-app/scripts/') || p.startsWith('fsi-app/.discipline/')) && p.endsWith('.mjs'));
+    .filter((p) => (p.startsWith('fsi-app/scripts/') || p.startsWith('fsi-app/.discipline/')) && p.endsWith('.mjs'))
+    // Test files excluded, mirroring F44's own posture: a fixture that constructs the broken idiom as a
+    // literal string to feed a check function (F44-broken-main-guard.test.mjs's own BROKEN_LITERAL) is
+    // not a live call site, and without this exclusion this very sweep would flag that fixture.
+    .filter((p) => !/\.(?:test|selftest|npmtest)\.mjs$/.test(p));
   // Detects the broken comparison regardless of a trailing `|| argv[1]?.endsWith(...)` fallback some
   // files had already grown as a partial workaround for the same defect.
   const BROKEN = /import\.meta\.url\s*===\s*`file:\/\/\$\{\s*process\.argv\[1\]\s*\}`/;
