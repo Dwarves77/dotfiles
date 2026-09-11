@@ -3,7 +3,7 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseArgs, chunk, buildCorpusItems } from "./export-corpus-for-extraction.mjs";
+import { parseArgs, chunk, chunkByCharBudget, buildCorpusItems } from "./export-corpus-for-extraction.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
@@ -76,12 +76,81 @@ test("parseArgs: --ids composes with --limit", () => {
   assert.equal(r.limit, 2);
 });
 
+// ── --with-pool-text / --char-budget (Part 3 task 3.1, W9 brief-chain plan 2026-09-11) ─────────────
+
+test("parseArgs: --with-pool-text defaults to false, --char-budget defaults to 3,000,000", () => {
+  const r = parseArgs(["--out", "x.json"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.withPoolText, false);
+  assert.equal(r.charBudget, 3_000_000);
+});
+
+test("parseArgs: --with-pool-text sets withPoolText true", () => {
+  const r = parseArgs(["--out", "x.json", "--ids", "a", "--with-pool-text"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.withPoolText, true);
+});
+
+test("parseArgs: --char-budget accepts a positive integer override", () => {
+  const r = parseArgs(["--out", "x.json", "--char-budget", "500000"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.charBudget, 500000);
+});
+
+test("parseArgs: --char-budget rejects zero, negative, and non-numeric values", () => {
+  assert.equal(parseArgs(["--out", "x.json", "--char-budget", "0"]).ok, false);
+  assert.equal(parseArgs(["--out", "x.json", "--char-budget", "-1"]).ok, false);
+  assert.equal(parseArgs(["--out", "x.json", "--char-budget", "abc"]).ok, false);
+});
+
 // ── chunk ────────────────────────────────────────────────────────────────────────────────────────
 
 test("chunk: splits into groups of the given size, last group may be short", () => {
   assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
   assert.deepEqual(chunk([], 2), []);
   assert.deepEqual(chunk([1], 10), [[1]]);
+});
+
+// ── chunkByCharBudget (Part 3 task 3.1) ─────────────────────────────────────────────────────────────
+// Pure: items carry a pre-computed `size` field, no database, no real corpus-item shape required.
+
+test("chunkByCharBudget: empty input yields no parts", () => {
+  assert.deepEqual(chunkByCharBudget([], 1000), []);
+});
+
+test("chunkByCharBudget: packs items into a part while the running total stays within budget", () => {
+  const items = [{ id: "a", size: 100 }, { id: "b", size: 100 }, { id: "c", size: 100 }];
+  const parts = chunkByCharBudget(items, 250);
+  assert.deepEqual(parts, [
+    { part: 1, items: [items[0], items[1]] },
+    { part: 2, items: [items[2]] },
+  ]);
+});
+
+test("chunkByCharBudget: an item exactly at the budget starts (and fills) its own part, not flagged oversize", () => {
+  const items = [{ id: "a", size: 300 }];
+  const parts = chunkByCharBudget(items, 300);
+  assert.deepEqual(parts, [{ part: 1, items: [items[0]] }]);
+  assert.equal(parts[0].oversize, undefined);
+});
+
+test("chunkByCharBudget: an item larger than the budget goes alone in its own part with oversize: true", () => {
+  const items = [{ id: "small", size: 50 }, { id: "huge", size: 5_000_000 }, { id: "small2", size: 50 }];
+  const parts = chunkByCharBudget(items, 3_000_000);
+  assert.deepEqual(parts, [
+    { part: 1, items: [items[0]] },
+    { part: 2, items: [items[1]], oversize: true },
+    { part: 3, items: [items[2]] },
+  ]);
+});
+
+test("chunkByCharBudget: consecutive oversize items each get their own part", () => {
+  const items = [{ id: "a", size: 10 }, { id: "b", size: 10 }];
+  const parts = chunkByCharBudget(items, 5);
+  assert.deepEqual(parts, [
+    { part: 1, items: [items[0]], oversize: true },
+    { part: 2, items: [items[1]], oversize: true },
+  ]);
 });
 
 // ── buildCorpusItems ─────────────────────────────────────────────────────────────────────────────
@@ -201,11 +270,83 @@ describe("pool read is scoped to itemIdsNeedingContext, not the whole id chunk (
   });
 
   test("the agent_run_searches readAll's .in(\"intelligence_item_id\", ...) is scoped to a context-ids variable, never the raw idChunk", () => {
-    // The claim/section reads are still scoped to idChunk directly; the pool read must NOT be.
+    // The claim/section reads are still scoped to idChunk directly; the DEFAULT (non-with-pool-text)
+    // pool read must NOT be. Anchored on "const contextIds = ..." (unique to the default branch: Part 3
+    // task 3.1 added a SECOND, textually earlier agent_run_searches read for --with-pool-text, correctly
+    // scoped to the raw idChunk instead, which a non-anchored first-match search would wrongly hit here).
     const claimReadMatch = src.match(/readAll\("section_claim_provenance"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
-    const poolReadMatch = src.match(/readAll\(\s*"agent_run_searches"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
+    const defaultBranchIdx = src.indexOf("const contextIds = [...itemIdsNeedingContext(claims)];");
+    assert.ok(defaultBranchIdx >= 0, "expected the default branch's own contextIds line");
+    const poolReadMatch = src.slice(defaultBranchIdx).match(/readAll\(\s*"agent_run_searches"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
     assert.ok(claimReadMatch && poolReadMatch, "expected both readAll calls to be found");
     assert.equal(claimReadMatch[1], "idChunk");
     assert.notEqual(poolReadMatch[1], "idChunk");
+  });
+});
+
+// ── buildCorpusItems: pool (Part 3 task 3.1, --with-pool-text) ─────────────────────────────────────
+
+test("buildCorpusItems: pool is OMITTED by default (backward-compatible with run-extraction.mjs's loadCorpus)", () => {
+  const out = buildCorpusItems([{ id: "item-1" }], [], [], [{ intelligence_item_id: "item-1", result_url: "https://x", result_content: "text" }]);
+  assert.equal(Object.hasOwn(out[0], "pool"), false);
+});
+
+test("buildCorpusItems: withPoolText:true adds pool:[{url,text}] mapped from result_url/result_content", () => {
+  const items = [{ id: "item-1" }];
+  const poolRows = [
+    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: "full captured text a" },
+    { intelligence_item_id: "item-1", result_url: "https://b.example/doc", result_content: "full captured text b" },
+  ];
+  const out = buildCorpusItems(items, [], [], poolRows, { withPoolText: true });
+  assert.deepEqual(out[0].pool, [
+    { url: "https://a.example/doc", text: "full captured text a" },
+    { url: "https://b.example/doc", text: "full captured text b" },
+  ]);
+});
+
+test("buildCorpusItems: withPoolText:true still yields pool: [] for an item with no pool rows, never omitted", () => {
+  const out = buildCorpusItems([{ id: "lonely" }], [], [], [], { withPoolText: true });
+  assert.deepEqual(out[0].pool, []);
+});
+
+test("buildCorpusItems: withPoolText:true drops pool rows missing a url or content (unusable to a brief-authoring lane)", () => {
+  const poolRows = [
+    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: "" },
+    { intelligence_item_id: "item-1", result_url: null, result_content: "orphaned text" },
+    { intelligence_item_id: "item-1", result_url: "https://ok.example/doc", result_content: "usable text" },
+  ];
+  const out = buildCorpusItems([{ id: "item-1" }], [], [], poolRows, { withPoolText: true });
+  assert.deepEqual(out[0].pool, [{ url: "https://ok.example/doc", text: "usable text" }]);
+});
+
+// ── source contract: --with-pool-text reads result_url (Part 3 task 3.1) ───────────────────────────
+// Confirms the with-pool-text branch's own agent_run_searches read selects result_url (needed for the
+// pool's `url` field) in addition to result_content: schema-audit-before-write's SELECT counterpart,
+// the column is confirmed live against migration 112's CREATE TABLE / migration 264's rename (see this
+// file's own header), and this test proves the SOURCE actually asks for it.
+describe("source contract: the --with-pool-text agent_run_searches read selects result_url", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("the withPoolText branch's readAll is scoped to the raw idChunk, deliberately NOT the context-ids subset", () => {
+    // The whole point of --with-pool-text is the FULL pool for every target item, not the due-date-context
+    // subset FE-SLOT-2b scopes the default path to.
+    const idx = src.indexOf("Part 3 task 3.1: --with-pool-text is an explicit, deliberate request for the FULL grounding pool");
+    assert.ok(idx >= 0);
+    const after = src.slice(idx, idx + 1500);
+    const poolReadMatch = after.match(/readAll\(\s*"agent_run_searches"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
+    assert.ok(poolReadMatch, "expected an agent_run_searches readAll call");
+    assert.equal(poolReadMatch[1], "idChunk");
+  });
+
+  test("the withPoolText branch's readAll select list includes result_url", () => {
+    // Anchor on the loop's own pool-read branch specifically (main() also has an earlier, unrelated
+    // `if (withPoolText)` for the targetItems filter): this comment string is unique to the read block.
+    const idx = src.indexOf("Part 3 task 3.1: --with-pool-text is an explicit, deliberate request for the FULL grounding pool");
+    assert.ok(idx >= 0, "expected the pool-read branch's own header comment");
+    const after = src.slice(idx, idx + 1500);
+    const selectMatch = after.match(/readAll\("agent_run_searches",\s*"([^"]+)"/);
+    assert.ok(selectMatch, "expected an agent_run_searches readAll call in the withPoolText branch");
+    assert.match(selectMatch[1], /\bresult_url\b/);
+    assert.match(selectMatch[1], /\bresult_content\b/);
   });
 });

@@ -1,0 +1,250 @@
+name: Brief export
+
+# W9 brief-chain plan 2026-09-11, Part 3 task 3.1: the export half of the injected-synthesis seam that
+# plan's own header names as the one gap: "no existing path takes session-authored synthesis text."
+# `export-corpus-for-extraction.mjs --with-pool-text` (this lane's own change to that script, see its
+# header, "WITH-POOL-TEXT + CHAR-BUDGET") is the READ side: pull a batch of record-grade stub items' own
+# stored claims/sections plus their FULL captured `agent_run_searches` pool text, split into char-budgeted
+# parts, and hand the parts to a session lane so it authors real briefs from stored source material instead
+# of re-fetching or inventing. This workflow is that runtime, given a dispatch for the first time; ADR-023's
+# "a producer/exporter is not complete until it has a named runtime" applied here. Task 3.2 (record-briefs
+# artifact contract) and 3.3/3.4 (the injected-synthesis seam plus apply driver) are this family's OTHER
+# half, the write side, and are separate, not-yet-built lanes; this workflow only ever reads.
+#
+# NEW SMALL WORKFLOW, NOT population-turn.yml (the brief's stated preference, and the choice made here).
+# population-turn.yml is the mint/apply/flywheel runtime for a completely different concern (minting NEW
+# record rows from census candidates, then connecting them) with its own gate, chaining, and backlog modes
+# already load-bearing for that family (see that file's own header). Bolting a THIRD, unrelated selection
+# mode (record-grade STUB export for brief authoring) onto that job would couple two runtimes that share no
+# state and complicate its already-wide "Resolve dispatch parameters" step for no shared benefit: this
+# export is READ-ONLY (db.mjs's readClient() proxy throws on any write) and has nothing to gate against
+# population-turn.yml's mint/flywheel invariants. A dedicated workflow keeps the blast radius of a dispatch
+# mistake here (a bad --limit, a bad char-budget) contained to this one small job.
+#
+# TRANSPORT, reused verbatim from ledger-consume.yml's `export_candidates` mode (read that workflow's own
+# header before changing this one): the exported part files land under `scripts/_snapshots/brief-export/`
+# (gitignored everywhere else in this repo, root .gitignore line 64, so this is the one path here that
+# must reach origin), pushed to a branch `brief-export/<run_id>` and opened as a PR via the SAME
+# `scripts/turns/deliver-artifact-branch.sh` every other runtime workflow in this repo uses (falls back to
+# a tracked issue comment, never a run failure, when the repository refuses Actions-created PRs), AND
+# uploaded as a workflow artifact, belt and suspenders, matching ledger-consume.yml exactly.
+#
+# SELECTION. `ids` (comma-separated uuids) is authoritative when given: passed straight through as
+# `--ids` to export-corpus-for-extraction.mjs, exactly as that script's own `--ids` contract already works
+# for every other caller (corpus-turn.yml's ticket queue). When `ids` is blank, this run selects up to
+# `limit` genuinely HOLLOW record-grade items itself: item_grade='record', provenance_status='verified',
+# is_archived=false, id > after_id (if given, for paging past a prior batch), and (the "stub" part of this
+# task's own name) every FACT claim the item carries is the [title] one (0 or 1 FACT, never more). This is
+# the EXACT criterion scripts/maintenance/record-hollow-sweep.mjs's header documents and measured live at
+# 551 candidates (2026-09-04); this workflow reuses that SAME read-only criterion (an inline, uncommitted
+# selection script under scripts/tmp/, gitignored scratch, root .gitignore line 25, since it is a
+# ten-line SELECT with no write side, not worth a tracked file) rather than that maintenance script's own
+# `main()`, which ARCHIVES matches and is a completely different lane's write path, not reused here.
+#
+# COST CLASS: $0, NO MODEL. export-corpus-for-extraction.mjs never calls an LLM or fetches a URL; it only
+# reads already-stored rows (intelligence_items, section_claim_provenance, intelligence_item_sections,
+# agent_run_searches) via db.mjs's read-only-guarded client. The selection script above is the same shape.
+#
+# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, no `schedule:` block armed.
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires; no new secret name.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Comma-separated intelligence_items.id list to export (passed as --ids). Leave blank to select up to `limit` hollow record-grade stub items automatically (item_grade=record, verified, live, every FACT claim is [title]-only): see this file''s header, "SELECTION".'
+        required: false
+        default: ''
+        type: string
+      limit:
+        description: 'Max items this run exports (bounded runs, no unbounded sweeps). Applies whether ids is given or auto-selected.'
+        required: false
+        default: '50'
+        type: string
+      after_id:
+        description: 'Auto-selection only (ids blank): resume past a prior batch, only items with id > after_id are considered. Ignored when ids is set.'
+        required: false
+        default: ''
+        type: string
+      char_budget:
+        description: 'Max characters per exported part file (passed as --char-budget). Default 3,000,000 matches the script''s own default.'
+        required: false
+        default: '3000000'
+        type: string
+
+concurrency:
+  group: brief-export
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "ids         = ${{ inputs.ids }} (blank = auto-select hollow record-grade stubs)"
+          echo "limit       = ${{ inputs.limit }}"
+          echo "after_id    = ${{ inputs.after_id }} (auto-selection only)"
+          echo "char_budget = ${{ inputs.char_budget }}"
+          echo "Read-only: db.mjs's readClient() proxy throws on any write; this run never mutates the database."
+
+      # SELECTION (this file's own header), only when `ids` is blank. An uncommitted, gitignored
+      # (scripts/tmp/, root .gitignore line 25) selection script: a ten-line SELECT reusing
+      # record-hollow-sweep.mjs's own documented hollow criterion, never that script's `main()` (which
+      # archives matches, a different lane's write path).
+      - name: Auto-select hollow record-grade stub ids (only when ids is blank)
+        id: select
+        if: inputs.ids == ''
+        run: |
+          mkdir -p scripts/tmp
+          cat > scripts/tmp/select-record-stub-ids.mjs <<'EOF'
+          // select-record-stub-ids.mjs: brief-export.yml's own inline selection (Part 3 task 3.1).
+          // NOT a tracked script (gitignored scratch, fsi-app/scripts/tmp/); reuses
+          // scripts/maintenance/record-hollow-sweep.mjs's own documented hollow criterion (every FACT claim
+          // is the [title] one, i.e. fact_n === title_fact_n) as a plain read, never that script's main()
+          // (which archives matches, a different lane, not reused here). Read-only: db.mjs's readClient()
+          // proxy throws on any write.
+          import { readAll } from "../lib/db.mjs";
+
+          const limit = Number(process.env.SELECT_LIMIT || "50");
+          const afterId = process.env.SELECT_AFTER_ID || "";
+
+          let items = await readAll("intelligence_items", "id", {
+            match: (q) => {
+              let qq = q.eq("item_grade", "record").eq("provenance_status", "verified").eq("is_archived", false);
+              if (afterId) qq = qq.gt("id", afterId);
+              return qq;
+            },
+          });
+          items.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+          const ids = items.map((it) => it.id);
+          const factCounts = new Map();
+          const titleFactCounts = new Map();
+          for (let i = 0; i < ids.length; i += 200) {
+            const idChunk = ids.slice(i, i + 200);
+            if (!idChunk.length) continue;
+            const rows = await readAll("section_claim_provenance", "intelligence_item_id, claim_text", {
+              match: (q) => q.in("intelligence_item_id", idChunk).eq("claim_kind", "FACT"),
+            });
+            for (const r of rows) {
+              factCounts.set(r.intelligence_item_id, (factCounts.get(r.intelligence_item_id) || 0) + 1);
+              if (typeof r.claim_text === "string" && r.claim_text.startsWith("[title]")) {
+                titleFactCounts.set(r.intelligence_item_id, (titleFactCounts.get(r.intelligence_item_id) || 0) + 1);
+              }
+            }
+          }
+          const hollow = items.filter((it) => (factCounts.get(it.id) || 0) === (titleFactCounts.get(it.id) || 0));
+          const selected = hollow.slice(0, limit).map((it) => it.id);
+          console.log(`select-record-stub-ids: ${items.length} record-grade candidate(s), ${hollow.length} hollow, ${selected.length} selected (limit ${limit}).`);
+          process.stdout.write(`SELECTED_IDS=${selected.join(",")}\n`);
+          EOF
+          SELECT_LIMIT="${{ inputs.limit }}" SELECT_AFTER_ID="${{ inputs.after_id }}" node scripts/tmp/select-record-stub-ids.mjs | tee /tmp/select.log
+          selected="$(grep '^SELECTED_IDS=' /tmp/select.log | tail -1 | cut -d= -f2-)"
+          echo "ids=$selected" >> "$GITHUB_OUTPUT"
+          if [ -z "$selected" ]; then
+            echo "::warning::no hollow record-grade stub items matched this selection (after_id=${{ inputs.after_id }}): the export step below will honestly export 0 items."
+          fi
+
+      - name: Resolve this run's --ids
+        id: resolve
+        run: |
+          if [ -n "${{ inputs.ids }}" ]; then
+            echo "ids=${{ inputs.ids }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ids=${{ steps.select.outputs.ids }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "out_base=scripts/_snapshots/brief-export/export-${{ github.run_id }}.json" >> "$GITHUB_OUTPUT"
+
+      - name: export-corpus-for-extraction.mjs --with-pool-text
+        if: steps.resolve.outputs.ids != ''
+        run: |
+          node scripts/turns/export-corpus-for-extraction.mjs \
+            --out "${{ steps.resolve.outputs.out_base }}" \
+            --ids "${{ steps.resolve.outputs.ids }}" \
+            --limit "${{ inputs.limit }}" \
+            --with-pool-text \
+            --char-budget "${{ inputs.char_budget }}" \
+            | tee /tmp/brief-export.log
+
+      - name: No ids resolved, nothing to export
+        if: steps.resolve.outputs.ids == ''
+        run: |
+          echo "brief-export: no ids (explicit or auto-selected), nothing exported this run."
+
+      # ONE commit/PR for whatever this run produced, same shape as ledger-consume.yml's own step of the
+      # same name (see that workflow's own comment for exactly why: `git add -f` for a scripts/_snapshots/
+      # path, rebase-onto-master-before-push, deliver-artifact-branch.sh's PR-or-tracked-issue fallback).
+      - name: Commit this run's exported part(s) and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ls scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json >/dev/null 2>&1; then
+            git add -f scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json
+          fi
+          if git diff --cached --quiet; then
+            echo "No exported part file to commit this run."
+            exit 0
+          fi
+          branch="brief-export/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "brief-export: run ${{ github.run_id }}, ids=${{ steps.resolve.outputs.ids }}"
+          # Same BRANCH-BASE rebase every other runtime workflow in this repo does before pushing its
+          # artifact branch (see population-turn.yml / ledger-consume.yml's own comment for the failure
+          # this avoids: a workflow-file change landing on master mid-run).
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          {
+            printf 'Automated brief export (run %s).\n\n' "${{ github.run_id }}"
+            printf 'ids: %s\nlimit: %s\nchar_budget: %s\n\n' "${{ steps.resolve.outputs.ids }}" "${{ inputs.limit }}" "${{ inputs.char_budget }}"
+            printf 'Lands: numbered, char-budgeted export part(s) under `scripts/_snapshots/brief-export/`. Each item carries its stored claims/sections plus its FULL captured agent_run_searches pool text (`pool: [{url, text}]`), for a session lane to author a brief from stored source material (Part 3 task 3.1 of the W9 brief-chain plan). A part flagged `oversize: true` carries exactly one item whose own size exceeds --char-budget, exported whole rather than truncated.\n'
+          } > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Brief export: run ${{ github.run_id }}" /tmp/pr-body.md
+
+      - name: Upload exported part(s) and run log as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brief-export-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/_snapshots/brief-export/
+            /tmp/brief-export.log
+            /tmp/select.log
+          if-no-files-found: ignore
+          retention-days: 90
