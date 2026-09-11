@@ -17698,3 +17698,56 @@ of my own new comment lines) and fixed both; zero remain. `node .discipline/runn
 The [HYPOTHESIS] in the task-1.2 report is now [CONFIRMED]: congruence (and the dedup-news branch) can
 retype `item_type` inside the same `mintIntelligenceItem` call, and the format_type stamp is now keyed
 on the item_type the row is actually inserted with.
+
+### W9-PART1, task 1.3 (2026-09-11): CELEX Decisions mint as regulations with their real titles
+
+Brief: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-1.3-brief.md` (read from worktree
+`wt-datechain-0911`); pre-flight ruling "1.3 vs 5.5" confirmed: `buildTitleForRow` and
+`CELEX_SECTOR_LETTER_MAP` are exported, pure, text-only, for task 5.5 to reuse directly rather than
+re-derive.
+
+**Halted EUDECISION worktree diff [CONFIRMED, read in full].** `wt-eudecision-0911` held an uncommitted
+diff of both `export-census-rows.mjs` and its test file (`git -C wt-eudecision-0911 diff`, read-only,
+nothing committed or checked out there). Correct in substance and kept: the CELEX_SECTOR_LETTER_MAP
+correction (D -> "regulation" in sectors 2/3/4, same operator ruling under Article 288 TFEU), the
+text-only OJ-act-title extraction added before the source-name fallback, and both of its test fixtures
+(the plain-text-capture test rewritten for the new `captured_body_lead` origin; the real 2025/1055
+OJ-Decision-text fixture proving `captured_body_act_title`). Not kept as-is: that diff left the title
+logic inline inside `buildExportRow` rather than extracting it, so it had no `buildTitleForRow` for task
+5.5 to import, and its map correction was not exported. Rewrote both: the title-resolution branch is now
+a standalone exported `buildTitleForRow({ capture, source, identifier })` function that `buildExportRow`
+calls, and `CELEX_SECTOR_LETTER_MAP` is now `export const`.
+
+**Files:** `fsi-app/scripts/mint/export-census-rows.mjs` (CELEX_SECTOR_LETTER_MAP header + map, new
+`buildTitleForRow` function placed beside `bodyLeadTitle`/`extractOjActTitle`, `buildExportRow`'s title
+branch now delegates to it, a documentation-only comment added at the `existingCaptureByUrl` DB-cache
+construction site pointing at why its `html: null` shape matters); `export-census-rows.test.mjs` (one
+renamed/updated test, three new tests, one new import).
+
+**RED then GREEN, observed myself.** Wrote the brief's two Step-1 tests plus three more (a sector-2/3/4
+map test with the brief's own keys; the brief's own `buildTitleForRow` html-less-DB-cache test verbatim;
+a longer real-OJ-Decision-text fixture proving `captured_body_act_title`; a capture.title-wins-outright
+test; a no-text/no-html/no-identifier fallback test) and updated the pre-existing plain-text-capture test
+to its new expected origin. Saved the implemented file, overwrote the working file with `git show
+HEAD:...` (the pre-fix content, test file left as edited), ran `node --test
+scripts/mint/export-census-rows.test.mjs`: FAILED at module load (`SyntaxError: ... does not provide an
+export named 'buildTitleForRow'`), confirming RED for real, not by inspection. Restored the implemented
+file, ran again: 126/126 pass, 0 fail.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked, 10
+pre-existing F28 harness-run-staleness violations (mint/screen/fetch-drain/meta-harness/forward-events/
+source-sweep/ledger-consume/change-detection/propagation/corpus-turn families), the identical set to
+tasks 1.1 and 1.2's reports, confirmed unrelated: this task's touched files do not appear in F28's
+GOVERNING_FILES. `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run against the
+full range after committing, 0 fail across every commit including this task's own (4 pass, 0 fail, 5
+skip). Did not run `run-test-suite.sh` per the brief's explicit instruction. Committed as `d3b21acf`
+(amended once, same session, before any push, solely to add the required Co-Authored-By trailer that
+was missing from the first commit attempt — a correction, not a rewrite of reviewed history).
+
+**Blast-radius count: SKIPPED.** No `SUPABASE_SERVICE_ROLE_KEY`/`NEXT_PUBLIC_SUPABASE_URL` in this
+worktree's environment and no `.env` file; the brief names this read as optional ("if the repo's read
+scripts make that easy; otherwise skip it"). Not run.
+
+### UX compliance: not applicable
+
+No `.tsx` or `.css` files were touched by this task.
