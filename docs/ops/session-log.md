@@ -17669,3 +17669,32 @@ fail). Did not run `run-test-suite.sh` per the coordinator's standing instructio
 ### UX compliance: not applicable
 
 No `.tsx` or `.css` files were touched by this task.
+
+**Addendum, coordinator follow-up (same day): the HYPOTHESIS ruled CONFIRMED, stamp moved to the FINAL
+item_type.** The coordinator invoked rule 13 (a flag is a commitment) on the placement concern flagged
+in the task-1.2 report: read `congruence()` (`src/lib/entities/source-role.mjs:30-39`) and confirmed it
+CAN retype, not just reject or flag: `if (PRIMARY_ARTIFACT_TYPES.has(String(itemType)) && role ===
+"news") return { itemType: "market_signal", changed: true, ... }` (1a). `mint-item.ts` also carries a
+second retype path, the dedup-news branch (`if (dups.length) ... if (sourceRole(sourceUrl) === "news")
+{ seed.item_type = "market_signal"; ... }`). The original placement (right after the item_grade stamp,
+before either retype) read the pre-retype `itemType` local, so a retyped mint's format_type could
+disagree with its own final item_type.
+
+Reproduced first: added a RED test to `mint-item-grade.npmtest.mjs` minting `{ ...baseSeed, source_url:
+"https://example.com/news/pop-9020" }` (item_type "regulation" on a news-role URL, triggering 1a). Ran
+`node --test` with the original placement still in place: FAILED, `actual:
+'regulatory_fact_document', expected: 'market_signal_brief'` (the format the retyped-to
+"market_signal" item_type should produce), confirming the flag was real. Moved the `if
+(seed.format_type == null) { ... }` block from immediately after the item_grade stamp to immediately
+after the domain-canonicalization block (`canonicalDomainOverride`, whose own comment already states
+the identical reasoning: "keyed on the FINAL item_type, so it runs after any 1a/dedup retype"), reading
+`seed.item_type` (the mutated value) instead of the closed-over pre-retype `itemType` local. Ran again:
+GREEN, 7/7 in the file (the new test plus the two pre-existing format_type tests plus the four
+item_grade tests). `mint-item-entities.npmtest.mjs`: 3/3, unaffected. `npx tsc --noEmit`: clean. Swept
+the diff for em/en dash and section-sign glyphs again after the move (a real em dash had crept into two
+of my own new comment lines) and fixed both; zero remain. `node .discipline/runner.mjs --mode=ci
+--range=origin/master..HEAD`: run against the new commit, clean.
+
+The [HYPOTHESIS] in the task-1.2 report is now [CONFIRMED]: congruence (and the dedup-news branch) can
+retype `item_type` inside the same `mintIntelligenceItem` call, and the format_type stamp is now keyed
+on the item_type the row is actually inserted with.

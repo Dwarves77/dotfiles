@@ -149,16 +149,6 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   // out-of-band from its seed object. Default "brief" — every pre-existing caller is unaffected.
   if (seed.item_grade == null) seed.item_grade = plan.grade ?? "brief";
 
-  // Task 1.2 (2026-09-11): stamp format_type from item_type at mint, through the SAME dispatch
-  // registry (specForItemType) that synthesiseAndWriteBrief forces post-generation
-  // (canonical-pipeline.ts), so a minted row's format_type can never disagree with what generation
-  // would later force onto it. A caller-preset seed.format_type is trusted as-is, mirroring the
-  // item_grade precedent above.
-  if (seed.format_type == null) {
-    const spec = specForItemType(itemType ?? "");
-    if (spec) seed.format_type = spec.formatType;
-  }
-
   // ── Idempotency short-circuits: return an existing row, never an INSERT ──────────────────────────
   // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR during a duplicate-probe must NEVER proceed to mint —
   // a transient read failure returns null-ish `data`, and the prior dropped-`error` code then took the
@@ -231,6 +221,20 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   if (canonicalDomain != null) {
     flags.push(`domain-canonicalized:${seed.domain ?? "null"}->${canonicalDomain}`);
     seed.domain = canonicalDomain;
+  }
+
+  // ── (5b) FORMAT_TYPE, Task 1.2 (2026-09-11), through the SAME dispatch registry (specForItemType)
+  //   that synthesiseAndWriteBrief forces post-generation (canonical-pipeline.ts:775,844), so a minted
+  //   row's format_type can never disagree with what generation would later force onto it. Coordinator
+  //   ruling (same day, round 2): keyed on seed.item_type HERE, after domain canonicalization, for the
+  //   identical reason that block gives at :225-226: the 1a congruence retype (:182) and the
+  //   dedup-news retype (:205) can both change seed.item_type before this point, and a format_type
+  //   stamped off the pre-retype item_type (this task's original placement, right after the item_grade
+  //   stamp above) would disagree with the FINAL item_type the row is actually inserted with. A
+  //   caller-preset seed.format_type is trusted as-is, mirroring the item_grade precedent.
+  if (seed.format_type == null) {
+    const spec = specForItemType((seed.item_type as string | undefined) ?? "");
+    if (spec) seed.format_type = spec.formatType;
   }
 
   // ── (6) SOURCE-LINK INVARIANT (Fix A) — the LAST gate before the INSERT: a mint cannot produce a

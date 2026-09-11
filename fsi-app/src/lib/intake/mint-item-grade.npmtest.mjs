@@ -116,6 +116,22 @@ test("task 1.2: no caller-supplied format_type -> INSERTed regulation row carrie
   assert.equal(sb.insertedRows()[0].format_type, "regulatory_fact_document");
 });
 
+test("task 1.2 follow-up: a congruence 1a retype's FINAL item_type drives format_type, not the pre-retype one", async () => {
+  // item_type "regulation" (a PRIMARY_ARTIFACT_TYPE) on a news-role source_url triggers congruence 1a,
+  // which retypes seed.item_type to "market_signal" (source-role.mjs). format_type must be derived from
+  // that FINAL item_type, so a retyped mint's format_type never disagrees with what
+  // synthesiseAndWriteBrief would later force from the same (now-stored) item_type.
+  const sb = fakeClient();
+  const r = await mintIntelligenceItem(sb, {
+    seed: { ...baseSeed, source_url: "https://example.com/news/pop-9020" },
+    origin: "staged_materialization",
+  });
+  assert.equal(r.ok, true);
+  assert.ok(r.flags.includes("congruence:1a"), "the retype must actually have fired for this test to prove anything");
+  assert.equal(sb.insertedRows()[0].item_type, "market_signal");
+  assert.equal(sb.insertedRows()[0].format_type, "market_signal_brief");
+});
+
 test("task 1.2: an 'initiative' seed with no format_type -> INSERTed row carries format_type: 'market_signal_brief'", async () => {
   const sb = fakeClient();
   const r = await mintIntelligenceItem(sb, {
