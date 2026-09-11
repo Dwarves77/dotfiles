@@ -17531,3 +17531,86 @@ Gates: `npx tsc --noEmit` clean (no code changed this round; only `docs/tech-deb
 ### FACETFIX follow-up round 5 (2026-09-11): the wired layout-guard test moves to the npm-deps job
 
 Correction to round 3 above [REFUTED in part]: `layout-guard.test.mjs` is not portable to the no-npm-ci suite. Its direct imports are relative, but `baseline.mjs` and `rules.mjs` reach `run-layout-guard.mjs` and then `.discipline/rendering/smoke/harness.mjs`, which imports esbuild. PR #632's "Discipline engine unit tests" job failed on exactly that (ERR_MODULE_NOT_FOUND esbuild) while the local hook passed because node_modules exists here; `glob-portability.test.mjs` checks direct imports only. Per the repo's precedent for transitive npm imports (the named list in discipline.yml's "App unit tests requiring npm deps" step, 2026-08-11), the file is now executed by name in that step and the directory glob is removed from `run-test-suite.sh`. The test stays wired (rule 15); only the job changed.
+## W9-PART1 2026-09-11, task 1.1
+
+Resumed task 1.1 ("Entity references at the mint chokepoint") from a prior implementer's uncommitted
+worktree state, worktree `wt-part1-0911`, branch `lane/w9-part1-2026-09-11`. Brief:
+`.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-1.1-brief.md` (read from worktree
+`wt-datechain-0911`).
+
+**Reviewed the prior implementer's diff end to end against the brief, file by file.**
+
+- `fsi-app/src/lib/entities/entity-plan.mjs` (new): the four pure planners moved verbatim from
+  `scripts/entities/backfill-entities.mjs`, with one real change beyond the move: `assertedBy`
+  promoted from a closed-over module constant to a parameter (default preserved, so the existing
+  direct-planner tests keep passing unmodified), so a mint-time write attributes provenance to
+  `link-item-entities.mjs` rather than the backfill script. Justified in the module's own header;
+  kept as is.
+- `fsi-app/scripts/entities/backfill-entities.mjs`: re-exports the four planners from
+  `entity-plan.mjs` for existing importers, plus a local import so `runJurisdiction`/`runInstrument`
+  can still call them directly (both statements needed together; a re-export alone does not create a
+  local binding). `backfill-entities.test.mjs`, 16 tests, passes unchanged, confirming the move
+  preserved behavior.
+- `fsi-app/src/lib/entities/link-item-entities.mjs` (new): the one reusable writer. Interface matches
+  the brief; `onConflict` targets verified against migrations 282 and 283 (`entities` primary key
+  `entity_id`; `entity_identifiers` primary key `entity_id,scheme,value`; `entity_refs` primary key
+  `ref_table,ref_id,entity_id,role`). Kept as is.
+- `fsi-app/src/lib/intake/mint-item.ts`, `apply-staged-update.ts`, `flywheel-defect.ts`: rule 16(e)
+  wiring matches the brief. `mint-item.ts` calls it post-insert; `apply-staged-update.ts` calls it
+  inside the substantive `update_item` path, gated on `jurisdiction_iso`/`canonical_instrument_key`
+  actually being touched; `flywheel-defect.ts`'s subtype union and `STEP_LABEL` map gained `"entities"`.
+  Kept as is.
+- `fsi-app/src/test-support/fake-supabase.mjs` (new): checked for an existing equivalent before
+  accepting it, per reuse-before-construction. No other injected-fake Supabase client with this shape
+  (chainable `select/eq/in`, `upsert` with `onConflict`/`ignoreDuplicates`, `update().eq()`) exists
+  anywhere in the tree. The only other candidate, `timeline-harvest-unlock.npmtest.mjs`'s inline
+  `fakeClient`, is a separate DATECHAIN-lane file with a narrower, hand-answered shape (two fixed
+  table queries, no upsert, no generic filtering) that cannot serve this task's tests. Genuinely new,
+  shared infrastructure, not a duplicate. Kept as is.
+- `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`: one new allowlist entry for
+  `src/test-support/fake-supabase.mjs`. Justified: the module has zero production importers by design
+  (its only callers are `.test.mjs`/`.npmtest.mjs` files, which F25's own `isTestFile()` correctly
+  excludes from the production-importer count), so without this entry F25 would go red on a
+  legitimate test-only module, the same shape the pre-existing `null-tier-host-ruling.mjs` entry in
+  the same allowlist already documents. This registers the module as a permanent test double; it does
+  not loosen the function. Kept as is.
+
+**New tests, RED then GREEN.** The prior implementer had already written both the tests and the
+implementation. Verified them by inspection against the brief, then ran them:
+`link-item-entities.test.mjs` (4 tests), `mint-item-entities.npmtest.mjs` (3 tests), and the
+pre-existing `backfill-entities.test.mjs` (16 tests): all PASS, 0 failures. Did not revert the
+implementation to re-drive a fresh RED state, since both halves were already present and consistent
+with the brief's own step 3 (module-not-found is the documented pre-implementation RED).
+
+**One real defect found and fixed.** A full run of `bash .discipline/run-test-suite.sh` (executed once,
+before the coordinator changed the gate scope mid-task) flagged
+`.discipline/shared-writer-registry.test.mjs`: `src/lib/entities/link-item-entities.mjs` writes
+`intelligence_items` (the `instrument_entity_id` update) but was not registered in
+`docs/inventories/shared-dataset-ownership.md`'s allowlist. Fixed by adding the path to the JSON
+`sharedTables["intelligence_items"]` array and a prose table row documenting the write, following the
+precedent already set by `scripts/entities/backfill-entities.mjs`'s own row (its other tables,
+`entities`/`entity_identifiers`/`entity_refs`, fall outside this registry's scope for the reason
+already stated on that row). Re-ran the single test standalone afterward: PASS.
+
+Full test-suite failures other than the one above were the known pre-existing Windows-only class named
+in the brief (`run-extraction.test.mjs`, `review-apply-*.test.mjs`, `run-mint-batch.test.mjs`,
+`screen-worklist.test.mjs`, `producers/market/*.test.mjs`, `turns/run-*.test.mjs`, 30 failures) plus 4
+more in the same pre-existing harness-run-staleness class (`F28-harness-run-integrity.test.mjs`,
+`run-artifact.test.mjs`, `verification-audit-report.test.mjs` twice), confirmed unrelated: none of
+task 1.1's touched files appear in F28's `GOVERNING_FILES` list, and none of these files import or
+reference any entity-spine module.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked, 10
+pre-existing F28 violations (harness-run staleness across the mint/screen/fetch-drain/meta-harness/
+forward-events/source-sweep/ledger-consume/change-detection/propagation/corpus-turn families),
+confirmed unrelated to this task by the same GOVERNING_FILES check above. `node .discipline/runner.mjs
+--mode=ci --range=origin/master..HEAD`: run against the committed diff, clean.
+
+**Coordinator note.** The gate scope changed mid-task: the coordinator asked that `run-test-suite.sh`
+not be run again (machine overload from six concurrent lanes running the full suite), narrowing the
+required gates to the new/existing unit tests, `tsc`, the fitness runner, and the CI-mode discipline
+runner. The one real defect above was already found and fixed before that instruction arrived.
+
+### UX compliance: not applicable
+
+No `.tsx` or `.css` files were touched by this task.
