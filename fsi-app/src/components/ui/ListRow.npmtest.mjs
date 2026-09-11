@@ -224,7 +224,7 @@ test("the IMPACT column header wraps at a word boundary instead of truncating", 
 // [CONFIRMED against a live headless-Chromium render, not assumed]: setting only `display:
 // inline-block !important` on `.cl-row-meta-tags > .cl-row-meta-text` measured a REAL rendered width
 // of 0px inside the command bar's narrow (`@container max-width: 489px`) listbox, even with 224px of
-// free space in the parent — this element's own pre-existing inline style (asserted two tests above:
+// free space in the parent; this element's own pre-existing inline style (asserted two tests above:
 // `flexShrink: 1` + `minWidth: 0`, added for the WIDE desktop layout's shrink-and-ellipsize behavior)
 // collapses it to zero width inside this narrower, doubly-nested flex context when it is the sole
 // child. `flex-shrink: 0` stops the collapse (isolated by toggling it alone: 0px -> 194.6px);

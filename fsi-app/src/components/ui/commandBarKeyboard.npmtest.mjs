@@ -1,7 +1,7 @@
 // Unit tests for CommandBar's pure keyboard/dismissal helpers (lane SEARCHKEYS, 2026-09-11).
 // Closes docs/tech-debt-log.md's "CommandBar Standard Search listbox has no Escape/click-
 // outside/arrow-key handling" (2026-09-11). Same jiti-import convention as
-// tagPopoverKeyboard.npmtest.mjs, but moveActiveIndex is its OWN function here, not a re-export —
+// tagPopoverKeyboard.npmtest.mjs, but moveActiveIndex is its OWN function here, not a re-export;
 // see commandBarKeyboard.ts's header: the dispatch brief requires clamp-not-wrap movement, which
 // tagPopoverKeyboard.ts's own (wrapping) moveHighlight does not provide.
 import { test } from "node:test";

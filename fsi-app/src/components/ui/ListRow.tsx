@@ -339,22 +339,22 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
 // SEARCHKEYS (2026-09-11), closing the open item SEARCHROW's own comment left named rather than
 // silently accepted: "the search dropdown's rows show jurisdiction + title but not type in the
 // narrow box... flagged here for an operator decision on whether the search dropdown should
-// diverge from the phone row on this one point". The dispatch for this lane makes that decision —
+// diverge from the phone row on this one point". The dispatch for this lane makes that decision;
 // the command bar's results dropdown shows item TYPE alongside jurisdiction + title, a real phone
 // row does not (B3/B4/B5's ruling stands there: title beats type for a 390px screen's space).
 //
 // This is a CONTAINER-QUERY-ONLY override, appended after `LIST_ROW_NARROW_REFLOW_CSS` inside the
-// `@container` block ONLY (RESPONSIVE_CSS below) — the sibling `@media (max-width: 767px)` block
+// `@container` block ONLY (RESPONSIVE_CSS below); the sibling `@media (max-width: 767px)` block
 // (real phones) is untouched, so this diverges the two triggers on exactly this one point rather
 // than building a third row anatomy (CLAUDE.md rule 13: same template, the container trigger gets
 // one additional rule on top). Selector specificity is matched to the rule being overridden
-// (`.cl-row-meta-tags > *:not(.cl-row-absence-slot)`, two classes) so textual order — this block is
-// appended AFTER the shared template in the emitted CSS — is what decides the cascade, not an
+// (`.cl-row-meta-tags > *:not(.cl-row-absence-slot)`, two classes) so textual order; this block is
+// appended AFTER the shared template in the emitted CSS; is what decides the cascade, not an
 // `!important` arms race with a rule this file does not want to weaken for its other trigger.
 //
 // `flex-shrink: 0` and `max-width: 100%` (SEARCHKEYS follow-up, same lane, [CONFIRMED] against a
 // real headless-Chromium render, not assumed): un-hiding `.cl-row-meta-text` via `display` alone
-// was not enough — a live render at the listbox's actual narrow box measured its rendered width at
+// was not enough; a live render at the listbox's actual narrow box measured its rendered width at
 // literally 0px (content present, `display` correctly resolving to `inline-block` blockified to
 // `block` as a flex child, but zero width), even though the parent had 224px of free space. Root
 // cause: this span's own inline style (set for the WIDE desktop layout further down this file,
@@ -362,7 +362,7 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
 // and ellipsizes when competing with the kind chip / absence reason / tags on the same line; inside
 // the narrow box's doubly-nested flex context (`.cl-row-title`'s column flex inside `.cl-row-line1`'s
 // row flex, then this row flex again), that combination flexed the item's resolved width to 0
-// instead of its content size — reproduced and isolated property-by-property in a live page
+// instead of its content size; reproduced and isolated property-by-property in a live page
 // (toggling `flex-shrink` alone from 1 to 0 took the measured width from 0px to 194.6px; toggling
 // `min-width` or `flex-basis` alone did not). `flex-shrink: 0` stops that collapse; `max-width: 100%`
 // puts an explicit ceiling back on so a LONGER type/topic/modes combination still ellipsizes against

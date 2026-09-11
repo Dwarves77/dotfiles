@@ -111,28 +111,28 @@ test("Search mode's submit control is never disabled — askDisabled is scoped t
 // ── SEARCHKEYS (2026-09-11): Escape / click-outside / arrow-key nav for the results listbox ─────
 //
 // Closes docs/tech-debt-log.md's 2026-09-11 entry. Structural/source-level, same convention as
-// every test above — these assert the code SHAPE that produces the required behaviour.
+// every test above; these assert the code SHAPE that produces the required behaviour.
 
 test("keyboard/dismissal helpers come from the one sibling module commandBarKeyboard.ts, never a second implementation inline", () => {
   assert.match(SOURCE, /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/);
 });
 
-test("Escape closes the dropdown via a `dismissed` flag, not by clearing `results` — the typed query and fetched rows survive", () => {
+test("Escape closes the dropdown via a `dismissed` flag, not by clearing `results`; the typed query and fetched rows survive", () => {
   assert.match(SOURCE, /const \[dismissed, setDismissed\] = useState\(false\);/);
   assert.match(SOURCE, /if \(e\.key === "Escape"\) \{[\s\S]{0,200}if \(!showDropdown\) return;\s*\n\s*e\.preventDefault\(\);\s*\n\s*setDismissed\(true\);/);
   // showDropdown itself gates on !dismissed, not on results being non-null.
   assert.match(SOURCE, /mode === "search" && !dismissed && value\.trim\(\)\.length >= MIN_QUERY_LEN/);
 });
 
-test("typing and re-focusing both un-dismiss — the dropdown can reopen without a second Escape-specific escape hatch", () => {
+test("typing and re-focusing both un-dismiss; the dropdown can reopen without a second Escape-specific escape hatch", () => {
   assert.match(SOURCE, /onChange=\{\(e\) => \{[\s\S]{0,200}setDismissed\(false\);/);
   assert.match(SOURCE, /onFocus=\{\(\) => \{[\s\S]{0,200}setDismissed\(false\);/);
 });
 
-test("a pointerdown outside both the bar and the portaled listbox dismisses the dropdown — pointerdown (not click) so touch is covered without a second listener", () => {
+test("a pointerdown outside both the bar and the portaled listbox dismisses the dropdown; pointerdown (not click) so touch is covered without a second listener", () => {
   assert.match(SOURCE, /document\.addEventListener\("pointerdown", onPointerDown, true\)/);
   assert.match(SOURCE, /isOutsidePointerDown\(withinBar, withinListbox\)/);
-  // Two separate refs — the listbox is portaled outside the bar's own DOM subtree (SEARCHCLIP).
+  // Two separate refs; the listbox is portaled outside the bar's own DOM subtree (SEARCHCLIP).
   assert.match(SOURCE, /const listboxRef = useRef<HTMLDivElement>\(null\);/);
 });
 
@@ -150,12 +150,28 @@ test("Enter-on-an-active-option navigates by clicking the row's own Link anchor,
 test("the input carries the WAI-ARIA combobox attributes: role, aria-autocomplete, aria-controls, aria-expanded, aria-activedescendant", () => {
   assert.match(SOURCE, /role="combobox"/);
   assert.match(SOURCE, /aria-autocomplete="list"/);
-  assert.match(SOURCE, /aria-controls=\{LISTBOX_ID\}/);
+  assert.match(SOURCE, /aria-controls=\{listboxId\}/);
   assert.match(SOURCE, /aria-expanded=\{showDropdown\}/);
-  assert.match(SOURCE, /aria-activedescendant=\{showDropdown \? activeDescendantId\(LISTBOX_ID, activeIndex\) : undefined\}/);
+  assert.match(SOURCE, /aria-activedescendant=\{showDropdown \? activeDescendantId\(listboxId, activeIndex\) : undefined\}/);
 });
 
 test("each result row is wrapped as role=\"option\" with a stable id and aria-selected on the active one, highlighted with the existing --row-hover token (no raw hex)", () => {
-  assert.match(SOURCE, /id=\{optionId\(LISTBOX_ID, index\)\}\s*\n\s*role="option"\s*\n\s*aria-selected=\{active\}/);
+  assert.match(SOURCE, /id=\{optionId\(listboxId, index\)\}\s*\n\s*role="option"\s*\n\s*aria-selected=\{active\}/);
   assert.match(SOURCE, /background: active \? "var\(--row-hover\)" : undefined/);
+});
+
+// ── Review finding (2026-09-11): the listbox id is instance-scoped, not a bare module constant ──
+//
+// No JSX render harness exists in this repo (see this file's own header note above and
+// workspace/tags/route.npmtest.mjs's), so a literal "mount two CommandBars, read two DOM ids"
+// assertion cannot live in THIS file; it lives instead as an executable, real-DOM proof in the
+// rendering guard's own smoke suite (command-bar-search-portal-smoke.mjs mounts two bars side by
+// side and asserts their listbox ids differ, see that file). This test asserts the CODE SHAPE that
+// makes two distinct ids possible in the first place: `useId()` feeds every id-bearing attribute,
+// and the old bare string constant is gone, so nothing in the file can silently reintroduce a fixed,
+// collision-prone id.
+test("the listbox id is instance-scoped via React's useId(), not a fixed module-level string", () => {
+  assert.match(SOURCE, /const listboxId = `cl-command-bar-listbox-\$\{useId\(\)\}`;/);
+  assert.doesNotMatch(SOURCE, /const LISTBOX_ID = "cl-command-bar-listbox";/, "the old fixed-id constant must be gone, not merely unused");
+  assert.match(SOURCE, /\bimport \{[\s\S]{0,120}useId,/, "useId must be imported from react");
 });
