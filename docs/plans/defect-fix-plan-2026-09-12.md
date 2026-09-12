@@ -154,6 +154,12 @@ Fix, two steps:
 1. Enumeration (read-only, one Sonnet agent, a finding not a change): every code site under fsi-app/src, fsi-app/scripts and fsi-app/supabase/migrations (triggers and functions) that (a) sets `provenance_status = 'quarantined'`, archives with a hold reason, or routes an item to a "needs review", "manual", "operator", "deferred" or "parked" state; and (b) inserts an `integrity_flags` row whose description or recommended_actions asks a person to act ("manual", "operator", "review", "confirm", "needs", "TBD") or whose only content is a run log. For each site: file and line, the condition that triggers it, what question the code could not answer, whether the answer is derivable at that point (the pool, the registry, the class table, the item's own text, a re-fetch through the free capture path), the live row count it produced (from integrity_flags.created_by and provenance_status counts, read-only SQL by the coordinator on the agent's request), and its status token. Output: docs/audits/quarantine-and-human-flag-writers-2026-09-12.md, plus a table in the W9 ledger folder.
 2. Specification (coordinator) per site: resolve at the site (derive the answer, as D13 and D15 do), record a decision and close (a resolved flag with the reason, a status value that names the state), or delete the writer when it produces nothing a runtime or a reader consumes. Sites that quarantine for a real provenance failure (ADR-016: a span not verbatim in a capture) keep quarantine as an OPEN INVESTIGATION with an enqueued resolver (research-or-erase, remediation-discipline section 2.1), never as a terminal state; the audit names the resolver for each. Lanes follow, one per family of sites.
 
+### D18. The validator's qualification check matches bare words and misses inflected forms [CONFIRMED by the batch-002 lane]
+
+Evidence: writing the 00a8c0d9 brief, the lane found the instrument's only occurrences of the exceptions vocabulary are "Exemption" and "exempted"; the validator's check uses a word-boundary match on "exempt" and reports the qualification absent, so an honest capture fails while a page-furniture "except" would pass. The lane recorded the absence honestly rather than game the check.
+
+Fix at the source (`fsi-app/scripts/turns/record-briefs/schema.mjs`, the qualification-capture mirror): each qualification kind matches a small stem list with inflections (exempt, exempts, exempted, exemption, exemptions; condition, conditions, conditional, subject to; scope, applies to, does not apply; phase, phased, per year, from <year>), case-insensitive, evaluated on the claim's verbatim `source_span` as today; the negation guard stays. Tests: "Exemption" and "exempted" in a span count as an exceptions capture; "except" inside page furniture alone does not (the span must be a claim's span, not body prose). README rule text updated to name the stems. Lane: folded into the next record-briefs lane (L12) after L9 and L10; no re-apply of landed batches is required (their captures were honest either way).
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -168,8 +174,10 @@ Fix, two steps:
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
+| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L8 harness numbering | D12 run-id artifact names across every harness family | a freed worktree | after L6 |
 | L11 quarantine and human-flag writers | D17 enumeration (read-only) then per-site specification and lanes | a freed worktree, read-only first | enumeration now; lanes after L9 and L10 |
+| L12 record-briefs validator | D18 qualification stems | a freed worktree | after L9 and L10 |
 | L10 tag decider | D15 zero-proposal flags re-derived and decided; proposer stops asking for a human | a freed worktree from master | before the tag-ratification apply |
 | L9 provisional resolver | D13 reject rule removed, accessibility as status; D14 class-table extension and residue enumeration | wt-brieffields-0911 from master after #652 | before the resolve-provisional-sources apply |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
