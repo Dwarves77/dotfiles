@@ -40,8 +40,29 @@ marker being re-pinned at the time. Fixed in the same motion per CLAUDE.md rule 
 commitment), not left as a second flagged item for a later lane: this task made no further edits of its
 own to either `corpus-turn` governing file (`consume-turn-requests.mjs`, `export-corpus-for-extraction.mjs`).
 
-**harness_version at write time:** `sha256:c6d5cb842b67944a` (recomputed via `hashHarnessVersion` against
-`governing-files.mjs`'s own `GOVERNING_FILES['corpus-turn']` array; supersedes `sha256:4dd5b697820c0069`
+**harness_version at task 3.4's write time (superseded below, see task 6.2b):** `sha256:c6d5cb842b67944a`
+(recomputed via `hashHarnessVersion` against `governing-files.mjs`'s own `GOVERNING_FILES['corpus-turn']`
+array; supersedes `sha256:4dd5b697820c0069` outright).
+
+**The planned run that would have superseded THAT marker:** unchanged in kind, the next
+`.github/workflows/corpus-turn.yml` dispatch, landing the next `corpus-turn-run-NNN.json` under that hash.
+No such run landed before task 6.2b's own edit moved the hash again (see the re-pin below).
+
+---
+
+## Re-pin (task 6.2b, 2026-09-12 -- task-6.1-audit.md fix 3)
+
+**What changed.** `scripts/turns/export-corpus-for-extraction.mjs` (one of `corpus-turn`'s two governing
+files) gained the `forward_events`/`timelines` export fields under `--with-pool-text` (reading
+`item_forward_events` and `item_timelines`, grouped by item in `buildCorpusItems`) -- the record-briefs
+family's own need (task-6.1-audit.md fix 3: forward events recorded in the database never reached a
+lane-authored brief's own forward-intelligence section). This is additive and scoped to the
+`--with-pool-text` path only; `consume-turn-requests.mjs` (this family's other governing file) and the
+default (non-`--with-pool-text`) export path are byte-identical to before this task, confirmed by
+`export-corpus-for-extraction.test.mjs`'s own "forward_events/timelines are OMITTED by default" case.
+
+**harness_version at write time:** `sha256:873a68f9eb398ea9` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['corpus-turn']`, the same 2 files, unreordered; supersedes `sha256:c6d5cb842b67944a`
 outright).
 
 **The planned run that supersedes this marker:** unchanged in kind, the next
