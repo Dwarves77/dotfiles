@@ -54,7 +54,8 @@ const CARD: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--color-border)",
   borderRadius: 8,
-  padding: "13px 16px",
+  // Admin spacing pass (task 7.5 item 4, 2026-09-12): 8pt-grid padding (was the off-grid "13px 16px").
+  padding: "16px",
 };
 
 const EYEBROW: React.CSSProperties = {
@@ -197,12 +198,15 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
     </>
   );
 
+  // Admin spacing pass (task 7.5 item 4, 2026-09-12): 8pt-grid padding + gap (rail form was
+  // "14px 16px" / gap 14; row form's gap was 12) so the rail's three cards (this one, AdminIssuesRail,
+  // ReadOnlyControlsCard) share one inner-padding value and the whole admin surface shares one gap unit.
   return rail ? (
-    <SectionCard padding="14px 16px" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+    <SectionCard padding="16px" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {cells}
     </SectionCard>
   ) : (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, margin: "0 0 14px" }}>{cells}</div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, margin: "0 0 14px" }}>{cells}</div>
   );
 }
 
