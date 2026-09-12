@@ -17527,3 +17527,7 @@ an operator can rule on each of the six items without re-running the experiment.
 
 Gates: `npx tsc --noEmit` clean (no code changed this round; only `docs/tech-debt-log.md`),
 `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all five commits.
+
+### FACETFIX follow-up round 5 (2026-09-11): the wired layout-guard test moves to the npm-deps job
+
+Correction to round 3 above [REFUTED in part]: `layout-guard.test.mjs` is not portable to the no-npm-ci suite. Its direct imports are relative, but `baseline.mjs` and `rules.mjs` reach `run-layout-guard.mjs` and then `.discipline/rendering/smoke/harness.mjs`, which imports esbuild. PR #632's "Discipline engine unit tests" job failed on exactly that (ERR_MODULE_NOT_FOUND esbuild) while the local hook passed because node_modules exists here; `glob-portability.test.mjs` checks direct imports only. Per the repo's precedent for transitive npm imports (the named list in discipline.yml's "App unit tests requiring npm deps" step, 2026-08-11), the file is now executed by name in that step and the directory glob is removed from `run-test-suite.sh`. The test stays wired (rule 15); only the job changed.

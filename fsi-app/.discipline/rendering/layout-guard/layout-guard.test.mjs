@@ -1,7 +1,11 @@
 // SITE-WIDE LAYOUT GUARD - the red-then-green proof. Lane layoutguard, 2026-09-08.
 //
-// PORTABLE: node builtins + relative .mjs only, so run-test-suite.sh's no-npm-ci job runs it (see
-// that script's header) and the npmtest glob picks it up. No browser: the detectors are pure, and
+// NOT PORTABLE to the no-npm-ci job: its direct imports are relative .mjs only, but the chain reaches
+// .discipline/rendering/smoke/harness.mjs, which imports esbuild (npm). It is executed by the
+// discipline workflow's "App unit tests requiring npm deps" step through that step's NAMED list
+// (2026-09-11, W9 task 0.1: a first attempt to glob it into run-test-suite.sh went red in CI on
+// exactly this transitive import; the glob-portability check sees direct imports only). No browser
+// is needed for the detectors themselves: they are pure, and
 // this file feeds them the measurement bundles collect.mjs produces so the judgement is proven
 // without a chromium, exactly the split assertions.test.mjs and ux-assert.test.mjs already use.
 //
