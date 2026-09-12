@@ -16,6 +16,7 @@ import {
   STORES,
   computeBriefsPendingStale,
   countBriefsPendingStale,
+  describeBriefsPendingState,
 } from "./population-report.mjs";
 
 test("classify: an empty store is EMPTY", () => {
@@ -416,4 +417,81 @@ test("briefs pending goes green (EMPTY) once the same item gets a brief-apply ou
   const filled = await entry.filledQuery(sb);
   assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 0, filled: 0 });
   assert.equal(classify({ rows: total.count, filled: filled.count }), "EMPTY");
+});
+
+// -- task 3.5 fix round 1 (coordinator review): renderReport's generic "reader has nothing to show" /
+// "fill it with: <producer>" wording is backwards for "briefs pending" -- red there means a queue needs
+// DRAINING, not a producer needing to run (the producer named is the very step that fills the queue).
+// An entry-level `describeState(state, counts)` hook overrides that wording when present.
+
+test("renderReport: an entry with describeState uses its own wording, not the generic 'nothing to show' pair", () => {
+  const lines = renderReport([
+    {
+      table: "intelligence_items",
+      fill: "brief-apply outcome present (recheck; structurally 0 whenever rows>0, see the predicate below)",
+      rows: 3,
+      filled: 0,
+      reader: "population-report.mjs's own CLI output",
+      producer: "scripts/turns/run-population-flywheel.mjs's brief-export step",
+      describeState: describeBriefsPendingState,
+    },
+  ]).join("\n");
+  assert.match(lines, /3 record item\(s\) minted before the latest population turn have no brief-apply outcome/);
+  assert.match(lines, /drain the queue: export parts in scripts\/turns\/brief-export\/pending\//);
+  assert.match(lines, /apply via brief-apply\.yml/);
+  assert.doesNotMatch(lines, /nothing to show/);
+  assert.doesNotMatch(lines, /fill it with:/);
+});
+
+test("renderReport: an entry WITHOUT describeState still renders the generic text, unchanged", () => {
+  const lines = renderReport([
+    { table: "regional_data_facts", fill: "value_numeric", rows: 75, filled: 0, reader: "matrix", producer: "the producer script" },
+  ]).join("\n");
+  assert.match(lines, /reader "matrix" has nothing to show/);
+  assert.match(lines, /fill it with: the producer script/);
+});
+
+test("renderReport: a mixed report -- one entry with the hook, one without -- each renders its own way", () => {
+  const lines = renderReport([
+    {
+      table: "intelligence_items",
+      fill: "brief-apply outcome present (recheck; structurally 0 whenever rows>0, see the predicate below)",
+      rows: 1,
+      filled: 0,
+      reader: "population-report.mjs's own CLI output",
+      producer: "scripts/turns/run-population-flywheel.mjs's brief-export step",
+      describeState: describeBriefsPendingState,
+    },
+    { table: "regional_data_facts", fill: "value_numeric", rows: 75, filled: 0, reader: "matrix", producer: "the producer script" },
+  ]).join("\n");
+  assert.match(lines, /drain the queue/);
+  assert.match(lines, /reader "matrix" has nothing to show/);
+  assert.match(lines, /fill it with: the producer script/);
+});
+
+test("describeBriefsPendingState: EMPTY reads as a caught-up queue, not a broken store", () => {
+  const lines = describeBriefsPendingState("EMPTY", { rows: 0, filled: 0 });
+  assert.ok(lines.some((l) => /caught up/.test(l)));
+  assert.ok(lines.every((l) => !/nothing to show/.test(l)));
+});
+
+test("describeBriefsPendingState: both footnotes (ADR-028 provenance, unmerged-branch visibility) are always present", () => {
+  for (const state of ["EMPTY", "ROWS_NO_VALUES"]) {
+    const lines = describeBriefsPendingState(state, { rows: 2, filled: 0 });
+    assert.ok(lines.some((l) => /ADR-028/.test(l)), `${state}: missing the ADR-028 provenance footnote`);
+    assert.ok(lines.some((l) => /\[HYPOTHESIS\]/.test(l) && /population\/<run_id>/.test(l)), `${state}: missing the unmerged-branch visibility caveat`);
+  }
+});
+
+test("the real 'briefs pending' STORES entry wires describeState to describeBriefsPendingState", () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("brief-apply outcome present"));
+  assert.equal(entry.describeState, describeBriefsPendingState);
+});
+
+test("end-to-end: the real 'briefs pending' entry renders the drain-the-queue wording through renderReport, never the generic pair", () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("brief-apply outcome present"));
+  const lines = renderReport([{ ...entry, rows: 1, filled: 0 }]).join("\n");
+  assert.match(lines, /drain the queue/);
+  assert.doesNotMatch(lines, /nothing to show/);
+  assert.doesNotMatch(lines, /fill it with:/);
 });

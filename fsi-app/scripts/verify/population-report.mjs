@@ -136,6 +136,47 @@ export async function countBriefsPendingStale(sb, {
   }
 }
 
+// Task 3.5 fix round 1 (coordinator review): the two footnotes the "briefs pending" entry's own
+// describeState (below) appends to every non-FILLED render, so a human reading the report -- not only a
+// reader of this file's source -- sees them too.
+const BRIEFS_PENDING_PROVENANCE_NOTE =
+  "outcomes are read from scripts/harness-runs/brief-apply/*.json run artifacts, per ADR-028: " +
+  "item_grade is a CACHE of the brief-runtime state, never the signal this entry itself reads.";
+// [HYPOTHESIS] (reviewer, task 3.5 fix round 1, not yet independently verified against a real unmerged
+// branch): population-turn.yml pushes each run's own mint-run/brief-apply artifacts to a
+// population/<run_id> branch before opening a PR (deliver-artifact-branch.sh); a checkout that has not
+// merged that branch yet cannot see the artifacts sitting on it, so this entry can only under-count
+// staleness on a fresh checkout, never over-count it -- a delayed red, not a fabricated one.
+const BRIEFS_PENDING_VISIBILITY_CAVEAT =
+  "[HYPOTHESIS] on a fresh checkout, artifacts still sitting on an unmerged population/<run_id> branch " +
+  "are not visible to this read, which can only DELAY a red past its true onset; it never fabricates one.";
+
+/**
+ * Task 3.5 fix round 1 (coordinator review): the "briefs pending" entry's own `describeState`. The
+ * generic renderReport wording ("reader has nothing to show" / "fill it with: <producer>") is backwards
+ * for this entry -- red here means N record items ARE minted and waiting, and the fix is DRAINING the
+ * queue (author + apply), not running the very producer that already filled it. Returns an array so
+ * renderReport prints one line per entry, matching the generic path's own two-line shape.
+ * @param {"EMPTY"|"ROWS_NO_VALUES"} state
+ * @param {{rows:number, filled:number}} counts
+ * @returns {string[]}
+ */
+export function describeBriefsPendingState(state, counts) {
+  const lines = [];
+  if (state === "EMPTY") {
+    lines.push("0 record item(s) are currently stale: the brief-apply queue is caught up, nothing to drain right now.");
+  } else {
+    lines.push(
+      `${counts.rows} record item(s) minted before the latest population turn have no brief-apply outcome; ` +
+        "drain the queue: export parts in scripts/turns/brief-export/pending/, author (record-briefs, task 3.2), " +
+        "apply via brief-apply.yml (task 3.4).",
+    );
+  }
+  lines.push(BRIEFS_PENDING_PROVENANCE_NOTE);
+  lines.push(BRIEFS_PENDING_VISIBILITY_CAVEAT);
+  return lines;
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -265,8 +306,19 @@ export const STORES = Object.freeze([
     // brief-apply outcome, so "how many of the stale items also carry an outcome" is 0 as a matter of the
     // query's own construction, not a live re-check -- computeBriefsPendingStale (above) is the one place
     // this predicate is computed, never restated.
+    //
+    // Two footnotes (task 3.5 fix round 1, coordinator review), also printed verbatim in the rendered
+    // report by describeBriefsPendingState below, not only stated here: (1) outcomes are read from
+    // scripts/harness-runs/brief-apply/*.json run artifacts, per ADR-028 -- item_grade is a CACHE of the
+    // brief-runtime state, never the signal this entry itself reads. (2) [HYPOTHESIS] on a fresh checkout,
+    // artifacts still sitting on an unmerged population/<run_id> branch are not visible to this read, which
+    // can only DELAY a red past its true onset, never fabricate one.
     totalQuery: (sb) => countBriefsPendingStale(sb),
-    filledQuery: async () => ({ count: 0, error: null }) },
+    filledQuery: async () => ({ count: 0, error: null }),
+    // Reviewer finding (task 3.5 fix round 1, [CONFIRMED] by running renderReport): the generic
+    // "reader has nothing to show" / "fill it with: <producer>" pair is backwards for this entry -- see
+    // describeBriefsPendingState's own header for why.
+    describeState: describeBriefsPendingState },
 ]);
 
 /**
@@ -281,7 +333,18 @@ export function classify({ rows, filled }) {
   return "FILLED";
 }
 
-/** Pure renderer: results -> printable lines. Injectable so the CLI's output is testable. */
+/**
+ * Pure renderer: results -> printable lines. Injectable so the CLI's output is testable.
+ *
+ * An entry may supply `describeState(state, counts)` -- returning a string or an array of strings -- to
+ * REPLACE the generic "reader has nothing to show" / "fill it with" pair for a non-FILLED state whose own
+ * meaning is not "this store needs a producer run" (task 3.5 fix round 1, coordinator review: "briefs
+ * pending"'s own red means a QUEUE needs DRAINING, not a store needing a producer -- the generic wording
+ * reads backwards for it: it would tell the reader "fill it with run-population-flywheel.mjs's brief-export
+ * step," which is exactly the step that PRODUCED the red row in the first place). `counts` is `{rows,
+ * filled}` from the same result row `classify()` already consumed. An entry without the hook keeps the
+ * original generic two-line text, byte-for-byte unchanged.
+ */
 export function renderReport(results) {
   const out = ["", "POPULATION REPORT — built, or built and filled?", ""];
   const w = Math.max(...results.map((r) => r.table.length));
@@ -290,8 +353,14 @@ export function renderReport(results) {
     const state = classify(r);
     out.push(`  ${pad(r.table, w)}  rows=${pad(r.rows, 5)} ${pad(`${r.fill}=${r.filled}`, 22)} ${state}`);
     if (state !== "FILLED") {
-      out.push(`  ${pad("", w)}  -> reader "${r.reader}" has nothing to show`);
-      out.push(`  ${pad("", w)}  -> fill it with: ${r.producer}`);
+      if (typeof r.describeState === "function") {
+        const described = r.describeState(state, { rows: r.rows, filled: r.filled });
+        const lines = Array.isArray(described) ? described : [described];
+        for (const line of lines) out.push(`  ${pad("", w)}  -> ${line}`);
+      } else {
+        out.push(`  ${pad("", w)}  -> reader "${r.reader}" has nothing to show`);
+        out.push(`  ${pad("", w)}  -> fill it with: ${r.producer}`);
+      }
     }
   }
   const unfilled = results.filter((r) => classify(r) !== "FILLED");

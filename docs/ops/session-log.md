@@ -19341,3 +19341,55 @@ this session; every gate above is fixture-driven or a pure/static check).
 
 Not applicable: no `.tsx`/`.css` touched (a backend script, a runbook, two markdown files, and a workflow
 YAML only, per the brief).
+
+### Task 3.5 fix round 1 (coordinator review)
+
+**[CONFIRMED by the reviewer, ran `renderReport`]:** `population-report.mjs`'s generic non-FILLED wording
+("reader ... has nothing to show" / "fill it with: `<producer>`") is backwards for "briefs pending": red
+there means N record items ARE waiting for a brief and the queue needs DRAINING (3.2 -> 3.4), not a
+producer that needs to run (the producer named is the very step that already filled the queue).
+
+**Fix.** `renderReport` gained an optional per-entry `describeState(state, counts)` hook: when present, it
+replaces the generic two-line pair with whatever lines the entry itself returns; entries without the hook
+render exactly as before (byte-for-byte). `describeBriefsPendingState(state, counts)` (new, exported) is
+the "briefs pending" entry's own hook: for `ROWS_NO_VALUES` it names the count and the drain path (export
+parts in `scripts/turns/brief-export/pending/`, author via record-briefs, apply via `brief-apply.yml`);
+for `EMPTY` it says the queue is caught up. Both states also print two standing footnotes: (1) outcomes
+are read from `scripts/harness-runs/brief-apply/*.json` run artifacts, per ADR-028 (item_grade is a CACHE
+of the brief-runtime state, never the signal this entry reads); (2) `[HYPOTHESIS]`, not yet independently
+verified: on a fresh checkout, artifacts still sitting on an unmerged `population/<run_id>` branch are not
+visible to this read, which can only DELAY a red past its true onset, never fabricate one.
+
+**RED then GREEN.** Swapped in the pre-fix-round-1 `population-report.mjs` (via `git show HEAD:...`)
+alongside the new tests: `SyntaxError: does not provide an export named 'describeBriefsPendingState'`,
+whole suite red. Restored: `tests 34, pass 34, fail 0` (27 pre-existing + 7 new: an entry WITH the hook
+uses its own wording and never prints "nothing to show"/"fill it with"; an entry WITHOUT the hook still
+renders the generic text unchanged; a mixed report exercises both paths side by side; the EMPTY-state
+wording; both footnotes present in every state; the real STORES entry is actually wired to the new
+function; and an end-to-end check that the real entry renders through `renderReport` with the drain
+wording, never the generic pair).
+
+**Gates.** `node --test scripts/turns/run-population-flywheel.test.mjs scripts/verify/population-report.test.mjs`:
+`tests 124, pass 124, fail 0`. `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: `38
+function(s) checked, 0 violation(s)` (no governing file touched this round, no re-pin needed). `node
+.discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: see `task-3.5-report.md`'s "Fix round 1"
+addendum for the full per-commit output. `run-test-suite.sh` NOT run, per instruction.
+
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line: diff-scoped
+byte scan (`git diff | grep '^+' | grep -c` against U+2014/U+2013/U+00A7) on both touched files, clean
+before commit. No hardcoded user-home paths: grepped the staged diff, zero matches. Staged explicitly (2
+named paths); never `git add -A`. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1
+<noreply@anthropic.com>`. Never touched `C:\Users\jason\dotfiles` (the main checkout, in prose only). No
+`git stash`. No `--no-verify`. No push. No PreToolUse skill-gate denial. No database access (no DB creds
+in this session; every gate is fixture-driven or pure/static).
+
+**Files.**
+- `fsi-app/scripts/verify/population-report.mjs` (modified: `renderReport`'s `describeState` hook,
+  `describeBriefsPendingState`, `BRIEFS_PENDING_PROVENANCE_NOTE`, `BRIEFS_PENDING_VISIBILITY_CAVEAT`, the
+  "briefs pending" entry's own comment gains the two footnotes and wires `describeState`)
+- `fsi-app/scripts/verify/population-report.test.mjs` (modified: 7 new tests)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (task 3.5 fix round 1)
+
+Not applicable: no `.tsx`/`.css` touched.
