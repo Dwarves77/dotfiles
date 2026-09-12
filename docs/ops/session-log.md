@@ -20063,3 +20063,101 @@ and one JSDoc-style line); this block documents the original change these files 
   246px tile width, derived from the real page CSS, see `admin-stat-tiles-smoke.mjs`'s own header);
   reproduced independently by the reviewer with identical results (112 pre-existing, unrelated
   failures; 0 attributable to this task).
+## 2026-09-12, W9 defect D8 investigation: local-vs-CI rendering guard divergence, read-only
+
+**What.** defect-fix-plan-2026-09-12.md's D8 (`[HYPOTHESIS]`): the local rendering guard reports 112
+failures while CI is green. Read-only investigation in `wt-facetfix-0911` (branch
+`lane/w9-d8-investigation-2026-09-12`, off `origin/master` at 6f3bcb96 / #649). No source edits, no
+database access.
+
+**Finding [CONFIRMED].** CI's rendering guard is genuinely PASS on master, not masked by its
+`continue-on-error` flag (checked two real job logs via `gh api .../jobs/<id>/logs`: run `34719995465`
+for this worktree's own HEAD commit and run `34718511035` for the commit immediately before it; both
+print `=== rendering guard PASS ===` with `0 finding(s)` after 622 are covered by the dated
+`layout-guard` baseline, expires 2026-10-15). Running the identical command
+(`node .discipline/rendering/run-rendering-guard.mjs`) locally on this Windows machine, at the exact
+same commit, with the exact same pinned Playwright (1.61.1) and Chromium (revision 1228) CI uses,
+deterministically produces 112 failures (byte-identical across two consecutive runs). The 112 break
+down 63 `/settings@1024`, 32 `/settings@1440`, 4 `/watchlist@1440`, 4 `/watchlist@1024`, 2
+`/research@1440`, 2 `/research@1024`, 1 each of `/map@1440`, `/map@1024`, `/admin@1440`,
+`/admin@1024`, `/profile@1440`, an exact category-for-category match to the reviewer's own local
+112 in review-7.5.md, on a different commit, corroborating that this is a stable, platform-determined
+finding set and not a code regression from any lane's diff. Stale build, browser-version mismatch,
+missing browser, env vars, viewport constants, and allowlist/baseline drift were all read and each
+`[REFUTED]` as the cause (identical source tree, identical commit, guard needs no `next build` at
+all). Root cause `[HYPOTHESIS]`: Chromium's text layout is partially OS-delegated (DirectWrite on
+Windows vs FreeType on Linux CI), producing different sub-pixel geometry for the guard's
+text-content-driven rules (L2 overlap, L6 top-rule presence, L7 font-family resolution, L9
+hit-target floor) even at pinned-identical browser/font versions; this class of cross-OS
+font-nondeterminism already has a named precedent in `discipline.yml`'s own header for a different
+fixture. No single native-Windows command reproduces CI exactly (neither Docker nor WSL2 is installed
+on this machine); the CI-equivalent check today is the pushed commit's actual Actions job log, not a
+local re-run of the guard on Windows.
+
+**No fix.** Investigation only, per D8's own text ("A fix is planned only after the finding").
+
+**Gates.** `node fsi-app/scripts/verify/audit-finding-status.mjs` run over the new file: 0 unlabeled
+finding-shaped lines in `rendering-guard-local-vs-ci-2026-09-12.md` (the tool's pre-existing 597-line
+backlog is across 111 other, unrelated audit files, out of D8's scope). Glyph scan (Node script over
+the new file, U+2014/U+2013/U+00A7): 0.
+
+**Files.** `docs/audits/rendering-guard-local-vs-ci-2026-09-12.md` (new), `docs/INDEX.md`,
+`docs/ops/session-log.md` (this entry).
+
+### UX compliance (task D8)
+
+Not applicable: no `.tsx`/`.css` touched; read-only investigation, no product surface changed.
+
+## 2026-09-12, W9 defect D17 investigation: quarantine and human-request flag writers, enumerated
+
+**What.** defect-fix-plan-2026-09-12.md's D17: the operator directive quoted there verbatim asks for
+the code that quarantines information and the code that opens false flags asking a person to act, so
+the coordinator can remove or fix them as a class. Read-only enumeration in `wt-facetfix-0911` (branch
+`lane/w9-d8-investigation-2026-09-12`). No source edits, no database access, no fixes proposed (the
+D17 spec reserves per-site fixes to the coordinator).
+
+**Method.** Grepped `fsi-app/src`, `fsi-app/scripts` and `fsi-app/supabase/migrations` for (a) writers
+of `provenance_status = 'quarantined'`, archive-with-hold-reason, and needs-review/manual/operator/
+deferred/parked/hold/pending-review routing, and (b) `integrity_flags` inserts or upserts asking a
+person to act or carrying only a run log. Every site reported below was opened and read directly, not
+reported from a grep match alone.
+
+**Finding [CONFIRMED].** 15 families, 21 live call sites. Family 1 (the DB provenance-gate trigger,
+`set_provenance_status()`/`validate_item_provenance()`) is the legitimate ADR-016 case ADR-030 and
+remediation-discipline section 2.1 explicitly except from removal; it already has a resolver
+(`regen-quarantined.mjs`) and a live-data invariant (RD-6). Families 2 and 3 are D13 and D15
+themselves, already scheduled. Family 4, the classification framework's zero-proposal flag
+(`propose-classifications.mjs`'s `buildClassificationFlagRow`, `apply-classifications.mjs`'s
+`evaluateAutoAdoption`), is a new, previously-unnamed sibling of D15: same shape (a proposer asks a
+human when its classifier derives nothing; the decider treats zero-proposal as "nothing to decide"
+and leaves the flag open forever), not yet on any lane. Family 10 (`acquire-primaries-batch.mjs`'s
+manual-capture hold) is a write-only orphan: grepped the full repo for its `created_by` string and
+found no reader anywhere. Five families (6, 8, 9, 14, 15: cited-host-gate, error-body-gate-write,
+census_worklist validation holds, run-log-only flags, flywheel-signal undecided-forever) were already
+remediated the SAME DAY under this same defect-fix-plan's own earlier tasks (7.1, 7.2, 7.4) or predate
+it (census_worklist), read here as in-repo precedent for how Family 4 and Family 10 should be fixed.
+Families 5, 7 and 13 (classification drift/anomaly, the null-tier-host worklist, and coverage-gap/
+anticipated-coverage) read as legitimate, by-design human-judgment or terminal-worklist states, not
+class-fix targets, per each site's own code comments; flagged for the coordinator's confirmation
+rather than excluded outright. Two historical precedents (`pending_human_verify`, retired by migration
+121; `hold_resolution_queue`/`hrq_*`, retired by migration 254) show the coordinator has fixed exactly
+this class of defect, permanently, twice before this session.
+
+**No fix.** Investigation only, per D17 step 1's own text ("a finding not a change"). D17 step 2
+(per-site: resolve, record-and-close, or delete) is reserved to the coordinator.
+
+**Gates.** `node fsi-app/scripts/verify/audit-finding-status.mjs` run over the new file: 0 unlabeled
+finding-shaped lines in `quarantine-and-human-flag-writers-2026-09-12.md` (the tool's own 597-line
+backlog is across 113 other, unrelated audit files, out of D17's scope; findings in this file are
+carried in per-family markdown tables, which the tool's own table-row exemption does not need a
+bracket token to pass, and each table cell still carries one). Glyph scan (Node script over the new
+file, U+2014/U+2013/U+00A7): 0.
+
+**Files.** `docs/audits/quarantine-and-human-flag-writers-2026-09-12.md` (new), `docs/INDEX.md`,
+`docs/ops/session-log.md` (this entry). A copy of the per-family tables was also written to
+`.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-d17-enumeration.md` in the `wt-datechain-0911`
+worktree (gitignored scratch, not a commit), per the dispatch's own instruction.
+
+### UX compliance (task D17)
+
+Not applicable: no `.tsx`/`.css` touched; read-only investigation, no product surface changed.
