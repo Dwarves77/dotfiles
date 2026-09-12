@@ -1,4 +1,4 @@
-// Run: node --test scripts/maintenance/uk-series-code-reconcile.test.mjs — no DB, deps injected.
+// Run: node --test scripts/maintenance/uk-series-code-reconcile.test.mjs, no DB, deps injected.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -9,12 +9,12 @@ import {
 
 // ── planItemSeriesCode: the four/five reported outcomes, never guessed ──────────────────────────────────
 
-test("planItemSeriesCode: match — identifier's series code already agrees with the URL's", () => {
+test("planItemSeriesCode: match, identifier's series code already agrees with the URL's", () => {
   const r = planItemSeriesCode({ id: "a", source_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "UK uksi 2021/1095" });
   assert.deepEqual(r, { id: "a", status: "match", url_series: "uksi" });
 });
 
-test("planItemSeriesCode: mismatch — THE 19-ITEM LIVE DEFECT, a Welsh /wsi/ URL mislabeled 'UK uksi', year/number untouched", () => {
+test("planItemSeriesCode: mismatch, THE 19-ITEM LIVE DEFECT, a Welsh /wsi/ URL mislabeled 'UK uksi', year/number untouched", () => {
   const r = planItemSeriesCode({
     id: "00a8c0d9-405a-48d9-a01b-9c14c4101155",
     source_url: "https://www.legislation.gov.uk/wsi/2010/2880",
@@ -35,17 +35,17 @@ test("planItemSeriesCode: mismatch for every other UK series pair, never just ws
   assert.equal(planItemSeriesCode({ id: "c", source_url: "https://www.legislation.gov.uk/ukpga/2023/52/contents", instrument_identifier: "UK ssi 2023/52" }).new_identifier, "UK ukpga 2023/52");
 });
 
-test("planItemSeriesCode: non_uk_url — source_url is not a legislation.gov.uk host, reported, no write", () => {
+test("planItemSeriesCode: non_uk_url, source_url is not a legislation.gov.uk host, reported, no write", () => {
   const r = planItemSeriesCode({ id: "d", source_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001" });
   assert.equal(r.status, "non_uk_url");
 });
 
-test("planItemSeriesCode: url_series_unrecognized — the URL carries no recognized UK series-code segment, never guessed", () => {
+test("planItemSeriesCode: url_series_unrecognized, the URL carries no recognized UK series-code segment, never guessed", () => {
   const r = planItemSeriesCode({ id: "e", source_url: "https://www.legislation.gov.uk/eur/2021/1/contents", instrument_identifier: "UK uksi 2021/1" });
   assert.equal(r.status, "url_series_unrecognized");
 });
 
-test("planItemSeriesCode: identifier_not_uk_shaped — the live corpus's 2 non-conforming rows, refused, never guessed", () => {
+test("planItemSeriesCode: identifier_not_uk_shaped, the live corpus's 2 non-conforming rows, refused, never guessed", () => {
   const r1 = planItemSeriesCode({ id: "f", source_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "2021/1095" });
   assert.equal(r1.status, "identifier_not_uk_shaped");
   assert.equal(r1.url_series, "uksi");
@@ -53,7 +53,7 @@ test("planItemSeriesCode: identifier_not_uk_shaped — the live corpus's 2 non-c
   assert.equal(r2.status, "identifier_not_uk_shaped");
 });
 
-test("planItemSeriesCode: year_number_mismatch — series agrees, year/number does not (0 live rows, but reported, never silently patched)", () => {
+test("planItemSeriesCode: year_number_mismatch, series agrees, year/number does not (0 live rows, but reported, never silently patched)", () => {
   const r = planItemSeriesCode({ id: "h", source_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "UK uksi 2021/1096" });
   assert.equal(r.status, "year_number_mismatch");
   assert.equal(r.url_series, "uksi");
@@ -179,6 +179,34 @@ test("apply: rewrites every mismatch, never touches a match, read-back confirms"
   assert.equal(itemB.old_identifier, "UK uksi 2010/2880");
   assert.equal(itemB.new_identifier, "UK wsi 2010/2880");
   assert.match(itemB.restore_sql, /instrument_identifier = 'UK uksi 2010\/2880' WHERE id = 'b';/);
+});
+
+test("a second apply over the POST-APPLY state changes 0 rows: idempotent, never re-rewrites an already-reconciled row", () => {
+  // The exact three CANDIDATES rows, but with instrument_identifier already rewritten to what the FIRST
+  // apply above produced (b: "UK wsi 2010/2880", c: "UK nisr 2024/7") -- i.e. the live corpus state AFTER
+  // a real --mode apply run. Every row's series code now agrees with its own URL.
+  const POST_APPLY = [
+    { id: "a", source_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "UK uksi 2021/1095" },
+    { id: "b", source_url: "https://www.legislation.gov.uk/wsi/2010/2880", instrument_identifier: "UK wsi 2010/2880" },
+    { id: "c", source_url: "https://www.legislation.gov.uk/nisr/2024/7/made", instrument_identifier: "UK nisr 2024/7" },
+  ];
+  const { byStatus, mismatches } = planSelection(POST_APPLY);
+  assert.deepEqual(byStatus, { match: 3 });
+  assert.deepEqual(mismatches, []);
+});
+
+test("main(): a second apply over the POST-APPLY fixture writes nothing (updateOne never called, applied 0)", async () => {
+  const POST_APPLY = [
+    { id: "a", source_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "UK uksi 2021/1095" },
+    { id: "b", source_url: "https://www.legislation.gov.uk/wsi/2010/2880", instrument_identifier: "UK wsi 2010/2880" },
+    { id: "c", source_url: "https://www.legislation.gov.uk/nisr/2024/7/made", instrument_identifier: "UK nisr 2024/7" },
+  ];
+  const d = deps({ readCandidates: async () => POST_APPLY });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.applied, 0);
+  assert.match(r.note, /nothing to rewrite/);
+  assert.equal(r.counts.mismatch_total, 0);
+  assert.equal(d.calls.some((c) => c[0] === "updateOne"), false);
 });
 
 test("apply: 0 mismatches -> no-op, reports and exits 0", async () => {
