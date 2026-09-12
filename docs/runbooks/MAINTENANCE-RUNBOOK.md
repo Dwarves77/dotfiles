@@ -2963,6 +2963,66 @@ population report (no write) to see the real orphan count and proposed tiers bef
 
 ---
 
+## 40. `timeline-backfill`
+
+**New this runbook, task 6.1c, brief-chain build plan 2026-09-11, under ADR-030** ("Items need to be
+resolved not quarantined... No item should be without some date in the timeline"). Written from
+`scripts/maintenance/timeline-backfill.mjs`'s own header.
+
+**Purpose**: corpus backfill of steps 2 through 6 of ADR-030's ordered date-derivation waterfall, for
+every live (`is_archived=false`) item that carries NO `item_timelines` row at all:
+
+1. (not this step) the brief-body timeline-section harvest, a DIFFERENT tool
+   (`scripts/backfill-item-timelines.mjs`, `extractRegulationSections` + `buildTimelineRows`), reused
+   exactly as-is. Dispatch it first, separately, over the reg-family items carrying a full brief with a
+   Confirmed Regulatory Timeline section; it writes ALL rows a brief's own section yields, not one.
+2. title date: "of DD Month YYYY" / "of DD.MM.YYYY" / a bare "DD Month YYYY" (EU/UK/IMO title forms),
+   verified against the item's own stored capture text (`agent_run_searches`) before it is trusted.
+   Label "Adopted (from the instrument title)".
+3. Federal Register URL date path (`/documents/YYYY/MM/DD/`). Label "Published in the Federal Register".
+4. legislation.gov.uk: a "Made DDth Month YYYY" line (statutory instrument), a bracketed
+   "[DDth Month YYYY]" Royal Assent line (an Act), or a year-only fallback from a UK-shaped identifier
+   (precision "year").
+5. the earliest `item_forward_events` row, labeled from its own `obligation_text`, prefixed by its kind.
+6. a dateline in the capture text for non-legal hosts (a leading "Published DD Month YYYY", a bare
+   "DD Month YYYY" in the first 400 characters, or a `<time datetime=...>` ISO date).
+7. nothing found: the item is reported in this run's own `summary.json`, never given an invented date and
+   never given `added_date` (that is the ledger's date, not the instrument's).
+
+First hit wins; every attempt is named so the row (or the report) is auditable. Precision honesty is
+`timeline-harvest.mjs`'s existing rule, reused via `src/lib/agent/timeline-backfill-derive.mjs`: a
+day-precise token maps to its exact date; any other precision keeps the original token in the label.
+
+**What it does NOT do**: never touches an item that already has an `item_timelines` row; writes AT MOST
+ONE row per undated item (the harvest's own multi-row case is step 1's job, a different script); never
+invents a date the item's own captured text does not verbatim state; never re-derives from a stale
+verdict silently, an "undateable" item is reported again on every run until something dates it or an
+operator dispositions it.
+
+**Ruling**: none by token, ADR-030 is the standing authorization; not gated behind a ruling `arg`.
+
+**Dispatch**: `mode=dry` reports the per-step counts (`counts.by_step`) and a 20-item sample per step
+(`sample_by_step`), writes nothing. `mode=apply` writes one `item_timelines` row per dateable item through
+the guarded `db.mjs` path (cited, snapshotted), and, when any item in the run was undateable, writes ONE
+`integrity_flags` row for the WHOLE run (category `data_quality`, subject_type `system`, subject_ref
+`timeline-backfill`, the full undateable id list carried in `recommended_actions[0].ids`) rather than one
+row per item. `arg`, if given, resumes past a prior run via `--after-id` (this step's own resumability
+flag, the same idiom `backfill-format-type.mjs` / `retype-eu-decisions.mjs` already use); the script also
+accepts a local `--limit N` for a by-hand bounded run (not exposed through this workflow's own `arg`,
+which only ever carries one value).
+
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/timeline-backfill/` (`counts.undated_total`,
+`counts.by_step`, `counts.written`, `counts.undateable`, `sample_by_step`, `undateable_items`,
+`flag_written`). Confirm against `scripts/verify/population-report.mjs`'s own "timeline coverage" entry:
+items without a row, excluding the reported/flagged undateable set, trending toward 0.
+
+**First dispatch** (coordinator): `mode=dry`, `step=timeline-backfill`, no `arg`, only AFTER a first
+dispatch of `scripts/backfill-item-timelines.mjs` (a different script, run by hand or via a future
+dedicated step) over the reg-family briefs carrying a timeline section, so this step's own undated count
+reflects what genuinely remains.
+
+---
+
 ## Appendix: `holdings-audit` — wired via the data-audit lane, not this runtime
 
 **New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). `scripts/holdings-audit.mjs`

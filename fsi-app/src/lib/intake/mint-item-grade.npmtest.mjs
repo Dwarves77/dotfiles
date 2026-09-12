@@ -55,6 +55,7 @@ function fakeClient({ itemId = "new-item-1" } = {}) {
     select() { return this; },
     eq() { return this; },
     in() { return this; },
+    limit() { return Promise.resolve({ data: [], error: null }); },
     then(res, rej) { return Promise.resolve({ data: [], error: null }).then(res, rej); },
   });
 
@@ -76,6 +77,8 @@ function fakeClient({ itemId = "new-item-1" } = {}) {
       if (table === "integrity_flags") {
         return { insert() { return { then(res) { return Promise.resolve({ data: null, error: null }).then(res); } }; } };
       }
+      // task 6.1c rule 16(f)'s own probes: no prior timeline row, no captures -- honest no-op.
+      if (table === "item_timelines" || table === "agent_run_searches") return emptyReadChain();
       throw new Error(`fakeClient: unexpected table ${table}`);
     },
   };
@@ -190,6 +193,15 @@ test("rule 16 still runs post-insert for a record-grade mint (discovery + forwar
       }
       if (table === "integrity_flags") {
         return { insert() { return { then(res) { return Promise.resolve({ data: null, error: null }).then(res); } }; } };
+      }
+      // task 6.1c rule 16(f)'s own probes: no prior timeline row, no captures -- honest no-op.
+      if (table === "item_timelines" || table === "agent_run_searches") {
+        return {
+          select() { return this; },
+          eq() { return this; },
+          limit() { return Promise.resolve({ data: [], error: null }); },
+          then(res, rej) { return Promise.resolve({ data: [], error: null }).then(res, rej); },
+        };
       }
       throw new Error(`unexpected table ${table}`);
     },

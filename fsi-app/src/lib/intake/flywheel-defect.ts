@@ -13,7 +13,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FLYWHEEL_DEFECT_NAMESPACE, createdBy } from "@/lib/connections/flag-namespaces.mjs";
 
-export type FlywheelDefectSubtype = "discovery" | "forward-events" | "stale-events" | "compliance-deadline" | "entities";
+export type FlywheelDefectSubtype = "discovery" | "forward-events" | "stale-events" | "compliance-deadline" | "entities" | "timeline";
 
 const STEP_LABEL: Record<FlywheelDefectSubtype, string> = {
   discovery: "(a) connection discovery",
@@ -21,6 +21,7 @@ const STEP_LABEL: Record<FlywheelDefectSubtype, string> = {
   "stale-events": "(b) forward-event staleness",
   "compliance-deadline": "(b) compliance_deadline sync (DATECHAIN, 2026-09-11)",
   entities: "(e) entity references (W9 part 1, 2026-09-11)",
+  timeline: "(f) timeline title-derivation (task 6.1c, ADR-030, 2026-09-12)",
 };
 
 /**

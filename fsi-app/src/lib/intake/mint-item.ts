@@ -18,6 +18,8 @@
 // item_forward_events (dated obligations extracted from this item's already-grounded content, see the
 // post-insert block below). It NEVER writes section_claim_provenance — extraction/links never ground reg
 // facts; it only READS that table (and intelligence_item_sections) to feed the forward-events extractor.
+// Also writes item_timelines (task 6.1c, rule 16(f), 2026-09-12): a title-derived timeline row for a
+// record item minted with no timeline row of its own, so no new item is born undated (ADR-030).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
@@ -29,6 +31,13 @@ import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-d
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
 import { specForItemType } from "@/lib/agent/extract-registry";
+import {
+  extractTitleDate,
+  containsToken,
+  finalizeTimelineRow,
+  pickBestCaptureText,
+  TITLE_DATE_BASE_LABEL,
+} from "@/lib/agent/timeline-backfill-derive.mjs";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -393,6 +402,49 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   } catch (e: unknown) {
     await recordFlywheelDefect(sb, itemId, "entities", e instanceof Error ? e.message : String(e));
     flags.push("entities-failed");
+  }
+
+  // rule 16(f) (task 6.1c, ADR-030 "every item carries a timeline date"): a record item born without a
+  // timeline row gets the title-derived row here, so no new item is born undated (rule 17: nothing runs
+  // alone). Reuses the SAME step-2 title derivation the corpus backfill
+  // (scripts/maintenance/timeline-backfill.mjs) uses -- src/lib/agent/timeline-backfill-derive.mjs's
+  // extractTitleDate, verified against the item's own stored capture text before it is trusted. At mint
+  // time via this chokepoint there is USUALLY no capture yet (captures arrive later, at generation), so
+  // this is honestly a no-op most of the time today; it is a defensive backstop for the day a caller's
+  // seed carries captures at mint, and it is exercised end-to-end by this file's own test with injected
+  // captures. Never fabricates: no capture, or the title's date not verbatim in the capture, writes
+  // nothing. MOAT BOUNDARY: reads item_timelines + agent_run_searches, writes ONLY item_timelines.
+  try {
+    const { data: existingTimeline, error: tlReadErr } = await sb
+      .from("item_timelines")
+      .select("id")
+      .eq("item_id", itemId)
+      .limit(1);
+    if (tlReadErr) throw new Error(`item_timelines read failed: ${tlReadErr.message}`);
+    if (!existingTimeline || existingTimeline.length === 0) {
+      const { data: capRows, error: capErr } = await sb
+        .from("agent_run_searches")
+        .select("result_content")
+        .eq("intelligence_item_id", itemId);
+      if (capErr) throw new Error(`agent_run_searches read failed: ${capErr.message}`);
+      const capturedText = pickBestCaptureText(capRows ?? []);
+      const titleDate = extractTitleDate(typeof seed.title === "string" ? seed.title : null);
+      if (titleDate && containsToken(capturedText, titleDate.token)) {
+        const row = finalizeTimelineRow(
+          { ...titleDate, baseLabel: TITLE_DATE_BASE_LABEL },
+          new Date().toISOString().slice(0, 10),
+          0
+        );
+        if (row) {
+          const { error: tlInsertErr } = await sb.from("item_timelines").insert({ ...row, item_id: itemId });
+          if (tlInsertErr) throw new Error(`item_timelines insert failed: ${tlInsertErr.message}`);
+          flags.push("timeline:title");
+        }
+      }
+    }
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "timeline", e instanceof Error ? e.message : String(e));
+    flags.push("timeline-failed");
   }
 
   if (seekStudy) {

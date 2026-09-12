@@ -17,6 +17,10 @@ import {
   computeBriefsPendingStale,
   countBriefsPendingStale,
   describeBriefsPendingState,
+  extractFlaggedTimelineIds,
+  computeTimelineCoverageGap,
+  countTimelineCoverageGap,
+  describeTimelineCoverageState,
 } from "./population-report.mjs";
 
 test("classify: an empty store is EMPTY", () => {
@@ -417,6 +421,92 @@ test("briefs pending goes green (EMPTY) once the same item gets a brief-apply ou
   const filled = await entry.filledQuery(sb);
   assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 0, filled: 0 });
   assert.equal(classify({ rows: total.count, filled: filled.count }), "EMPTY");
+});
+
+// -- task 6.1c (ADR-030): the "timeline coverage" entry's own predicate --------------------------------
+
+test("extractFlaggedTimelineIds: unions ids across every open timeline-backfill flag row", () => {
+  const rows = [
+    { recommended_actions: [{ action: "x", ids: ["a", "b"] }] },
+    { recommended_actions: [{ action: "x", ids: ["b", "c"] }] },
+  ];
+  assert.deepEqual(extractFlaggedTimelineIds(rows).sort(), ["a", "b", "c"]);
+});
+
+test("extractFlaggedTimelineIds: absent/malformed rows never throw, never invent an id", () => {
+  assert.deepEqual(extractFlaggedTimelineIds([]), []);
+  assert.deepEqual(extractFlaggedTimelineIds(null), []);
+  assert.deepEqual(extractFlaggedTimelineIds([{ recommended_actions: [{ action: "x" }] }]), []);
+  assert.deepEqual(extractFlaggedTimelineIds([{}]), []);
+});
+
+test("computeTimelineCoverageGap: excludes both dated and flagged ids from the defect count", () => {
+  const live = ["a", "b", "c", "d"];
+  const dated = ["a"];
+  const flagged = ["b"];
+  const got = computeTimelineCoverageGap(live, dated, flagged);
+  assert.deepEqual(got, { gapCount: 2, gapIds: ["c", "d"] });
+});
+
+test("computeTimelineCoverageGap: nothing dated and nothing flagged -> every live item is the gap", () => {
+  assert.deepEqual(computeTimelineCoverageGap(["a", "b"], [], []), { gapCount: 2, gapIds: ["a", "b"] });
+});
+
+test("computeTimelineCoverageGap: everything dated or flagged -> zero gap (EMPTY, benign)", () => {
+  assert.deepEqual(computeTimelineCoverageGap(["a", "b"], ["a"], ["b"]), { gapCount: 0, gapIds: [] });
+});
+
+function fakeTimelineCoverageClient({ liveIds = [], timelineItemIds = [], flagRows = [] } = {}) {
+  const chainableFor = (data) => ({
+    eq: () => chainableFor(data),
+    then: (resolve, reject) => Promise.resolve({ data, error: null }).then(resolve, reject),
+  });
+  return {
+    from(table) {
+      if (table === "intelligence_items") {
+        return { select: () => ({ order: () => ({ range: () => chainableFor(liveIds.map((id) => ({ id }))) }) }) };
+      }
+      if (table === "item_timelines") {
+        return { select: () => ({ order: () => ({ range: () => chainableFor(timelineItemIds.map((item_id) => ({ item_id }))) }) }) };
+      }
+      if (table === "integrity_flags") {
+        return { select: () => ({ order: () => ({ range: () => chainableFor(flagRows) }) }) };
+      }
+      throw new Error(`fakeTimelineCoverageClient: unexpected table ${table}`);
+    },
+  };
+}
+
+test("timeline coverage goes red (ROWS_NO_VALUES) when a live item has no row and is not flagged", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("items without an item_timelines row"));
+  assert.ok(entry, "timeline coverage entry must be declared");
+  const sb = fakeTimelineCoverageClient({ liveIds: ["item-1", "item-2"], timelineItemIds: ["item-1"], flagRows: [] });
+  const total = await countTimelineCoverageGap(sb);
+  const filled = await entry.filledQuery(sb);
+  assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 1, filled: 0 });
+  assert.equal(classify({ rows: total.count, filled: filled.count }), "ROWS_NO_VALUES");
+});
+
+test("timeline coverage goes green (EMPTY) once the undated item is named in an open timeline-backfill flag", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("items without an item_timelines row"));
+  const sb = fakeTimelineCoverageClient({
+    liveIds: ["item-1", "item-2"],
+    timelineItemIds: ["item-1"],
+    flagRows: [{ recommended_actions: [{ action: "manual_research_or_source_review", ids: ["item-2"] }] }],
+  });
+  const total = await countTimelineCoverageGap(sb);
+  const filled = await entry.filledQuery(sb);
+  assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 0, filled: 0 });
+  assert.equal(classify({ rows: total.count, filled: filled.count }), "EMPTY");
+});
+
+test("describeTimelineCoverageState: names both backfill scripts on red, is benign on EMPTY", () => {
+  const red = describeTimelineCoverageState("ROWS_NO_VALUES", { rows: 5, filled: 0 })[0];
+  assert.match(red, /5 live item\(s\)/);
+  assert.match(red, /backfill-item-timelines\.mjs/);
+  assert.match(red, /timeline-backfill\.mjs/);
+  const green = describeTimelineCoverageState("EMPTY", { rows: 0, filled: 0 })[0];
+  assert.match(green, /caught up/);
 });
 
 // -- task 3.5 fix round 1 (coordinator review): renderReport's generic "reader has nothing to show" /

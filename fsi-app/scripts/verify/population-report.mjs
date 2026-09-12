@@ -177,6 +177,93 @@ export function describeBriefsPendingState(state, counts) {
   return lines;
 }
 
+// ── "timeline coverage" entry (task 6.1c, ADR-030 "every item carries a timeline date") ────────────────
+// Same shape as "briefs pending" above: `total` (rows) IS the defect count itself -- the number of live
+// items that carry NO item_timelines row AND are not named in an open timeline-backfill undateable flag
+// -- never a coverage ratio. 0 reads as EMPTY (benign: nothing wrong); any nonzero count reads as
+// ROWS_NO_VALUES (red), exactly the "items without a row, excluding the flagged set" predicate the task
+// brief names.
+
+/**
+ * Pure: every open timeline-backfill integrity_flags row (scripts/maintenance/timeline-backfill.mjs's
+ * own write shape) carries its full undateable id list in recommended_actions[0].ids. Collects the union
+ * across every such row this run's own read returned (a corpus can accumulate more than one flag over
+ * multiple timeline-backfill dispatches). Never guesses an id outside what a row's own recommended_actions
+ * actually names.
+ * @param {Array<{recommended_actions?: Array<{ids?: string[]}>}>} flagRows
+ * @returns {string[]}
+ */
+export function extractFlaggedTimelineIds(flagRows) {
+  const ids = new Set();
+  for (const row of flagRows ?? []) {
+    const actions = Array.isArray(row?.recommended_actions) ? row.recommended_actions : [];
+    for (const action of actions) {
+      if (!Array.isArray(action?.ids)) continue;
+      for (const id of action.ids) if (typeof id === "string" && id) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Pure: which live item ids carry no item_timelines row AND are not in the flagged (reported-undateable)
+ * set. This IS the "timeline coverage" defect count -- see this section's own header.
+ * @param {string[]} liveItemIds
+ * @param {string[]} timelineItemIds item_timelines.item_id values already on record
+ * @param {string[]} flaggedItemIds ids named in an open timeline-backfill undateable flag
+ * @returns {{gapCount:number, gapIds:string[]}}
+ */
+export function computeTimelineCoverageGap(liveItemIds, timelineItemIds, flaggedItemIds) {
+  const dated = new Set(timelineItemIds ?? []);
+  const flagged = new Set(flaggedItemIds ?? []);
+  const gapIds = (liveItemIds ?? []).filter((id) => id && !dated.has(id) && !flagged.has(id));
+  return { gapCount: gapIds.length, gapIds };
+}
+
+/**
+ * The "timeline coverage" entry's totalQuery: three reads (live item ids, item_timelines' own item_id
+ * column, the open timeline-backfill flags) feeding computeTimelineCoverageGap (pure, above).
+ * @param {object} sb
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countTimelineCoverageGap(sb) {
+  try {
+    const liveItems = await readAll("intelligence_items", "id", {
+      match: (q) => q.eq("is_archived", false),
+      client: sb,
+    });
+    const timelineRows = await readAll("item_timelines", "item_id", { client: sb });
+    const flagRows = await readAll("integrity_flags", "recommended_actions", {
+      match: (q) => q.eq("category", "data_quality").eq("subject_type", "system").eq("subject_ref", "timeline-backfill").eq("status", "open"),
+      client: sb,
+    });
+    const flaggedIds = extractFlaggedTimelineIds(flagRows);
+    const { gapCount } = computeTimelineCoverageGap(liveItems.map((r) => r.id), timelineRows.map((r) => r.item_id), flaggedIds);
+    return { count: gapCount, error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/**
+ * "timeline coverage"'s own describeState -- same reasoning as describeBriefsPendingState: red here
+ * means N live items genuinely lack a date, the fix is DATING them (the two backfill scripts), not
+ * running "the producer" in the generic sense (though the wording still names both scripts to run).
+ * @param {"EMPTY"|"ROWS_NO_VALUES"} state
+ * @param {{rows:number, filled:number}} counts
+ * @returns {string[]}
+ */
+export function describeTimelineCoverageState(state, counts) {
+  if (state === "EMPTY") {
+    return ["0 live item(s) lack a timeline row outside the reported undateable set: timeline coverage is caught up (ADR-030)."];
+  }
+  return [
+    `${counts.rows} live item(s) carry no item_timelines row and are not named in an open timeline-backfill ` +
+      "undateable flag: dispatch scripts/backfill-item-timelines.mjs first (reg-family briefs with a timeline " +
+      "section), then scripts/maintenance/timeline-backfill.mjs (steps 2-6) to date the rest.",
+  ];
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -218,6 +305,17 @@ export const STORES = Object.freeze([
   { table: "item_forward_events", fill: "event_date",
     reader: "/api/admin/forward-events — upcoming-obligations queue",
     producer: "mint-item.ts / apply-staged-update.ts (per-item, rule 16(b)) + scripts/forward-events/dispatch-extraction.mjs (corpus backfill, this lane)" },
+  // -- task 6.1c, brief-chain build plan 2026-09-11, under ADR-030 ("every item carries a timeline
+  // date"). RED means: at least one live item carries no item_timelines row AND is not named in an open
+  // timeline-backfill undateable flag -- see countTimelineCoverageGap / computeTimelineCoverageGap above,
+  // the same "total IS the defect count" shape "briefs pending" (below) already uses.
+  { table: "intelligence_items",
+    fill: "items without an item_timelines row (excluding the timeline-backfill-flagged undateable set)",
+    reader: "item detail page timeline widget; the ADR-030 ruling (\"no item should be without some date in the timeline\")",
+    producer: "scripts/backfill-item-timelines.mjs (step 1, brief-body timeline sections) + scripts/maintenance/timeline-backfill.mjs (steps 2-6, task 6.1c) + mint-item.ts rule 16(f) (title-derivation at mint, so no new item is born undated)",
+    totalQuery: (sb) => countTimelineCoverageGap(sb),
+    filledQuery: async () => ({ count: 0, error: null }),
+    describeState: describeTimelineCoverageState },
   { table: "intelligence_items", fill: "compliance_deadline",
     reader: "item summary card — compliance deadline field",
     producer: "src/lib/forward-events/compliance-deadline-sync.mjs, called from mint-item.ts / apply-staged-update.ts and scripts/forward-events/dispatch-extraction.mjs" },
