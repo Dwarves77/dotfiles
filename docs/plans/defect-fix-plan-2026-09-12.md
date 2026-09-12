@@ -90,6 +90,16 @@ Evidence: 7.2 declines every jurisdiction proposal with the architectural gate n
 
 Decision for the operator: add `sources.jurisdictions_iso text[]` (a migration, coordinator applied) and let 7.2's rule adopt into it, or keep declining. Recommendation: add the column; the classifier already produces the values and the decline note names exactly this gap.
 
+### D10. The forward-events extractor turns a document-date sentence into an event [CONFIRMED]
+
+Evidence (coordinator, live SQL, 2026-09-12): 2 rows in `item_forward_events` (2 items, created 2026-09-11 and 2026-09-12) with `source_kind = section`, `obligation_text = "In force as of <date>."`, `source_span` equal to the bare date, and the date equal to the run date, not a date the instrument states. The batch-001 lane found the first (item 252f0ecf) because the span is not verbatim in the pool, and excluded it rather than fabricate.
+
+Root cause: the section-side extractor in the forward-events derive path (the code that reads brief sections for dated obligations) accepts an "as of" sentence whose date is the brief's own writing date; the 6.1b pilot bodies carried "as of 2026-09-12" notes, and the extractor read them as an entry-into-force event.
+
+Fix at the source: the section extractor refuses a candidate whose span is only a date, and refuses any candidate whose date equals the run date or the brief's document date unless the sentence names the instrument's own commencement (a test per case: "In force as of <today>" refused; "enters into force on 1 January 2027" accepted; a bare-date span refused). Cleanup: a data migration committed with the extractor fix and run after merge deletes rows matching exactly the shape above (`source_kind = section`, `obligation_text like 'In force as of %'`, `source_span = event_date::text`), 2 rows expected, the count asserted in the migration comment; fabricated rows are removed, never kept as records.
+
+Class fix: a forward event must be verbatim in its source (the same rule as a FACT claim); add an assertion to the forward-events write path that the span is present in the pool or section text it cites, refusing otherwise with a run-log line. Lane: L6, one Sonnet lane after L1 to L5, on a freed worktree.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -100,6 +110,7 @@ Decision for the operator: add `sources.jurisdictions_iso text[]` (a migration, 
 | L3 discipline | D5 rule 022, D7 inventory step, test and verifier | a freed worktree | none; lands before L1 and L2 push so their ranges are checked by the rule |
 | L4 7.8 | D6, review then push | wt-eudecision-0911 | review PASS |
 | L5 investigation | D8 finding | read-only | none |
+| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 
 Order of pushes (serial, each through the hook): L4, L3, L2, L1. Then: brief-export for 00a8c0d9 alone, the batch-002 lane writes its tenth brief, brief-apply with `allow_brief_overwrite` for batches 001 and 002, the three 7.2 dry runs one at a time, then their applies, then the 7.5 dry runs and applies.
 
