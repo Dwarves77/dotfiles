@@ -50,9 +50,44 @@
  *     request to /api/ask (and no raw 503 body) ever reaches the UI.
  *     Flipping ASSISTANT_ENABLED to true needs no code change here — the
  *     gate reads live bootstrap data on every render.
+ *
+ * DISMISSAL + KEYBOARD NAVIGATION (lane SEARCHKEYS, 2026-09-11, closing the tech-debt entry
+ * SEARCHCLIP logged the same day: "CommandBar Standard Search listbox has no Escape/click-
+ * outside/arrow-key handling"). The WAI-ARIA combobox pattern
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) is followed for Search mode's listbox:
+ *   - The input carries role="combobox"/aria-autocomplete="list", plus the pre-existing
+ *     aria-controls/aria-expanded; each option carries role="option" + a stable id, and the
+ *     active one carries aria-selected; the input's aria-activedescendant points at it.
+ *   - Escape closes the dropdown WITHOUT clearing the typed query. Re-typing or re-focusing the
+ *     input (while results are still held) reopens it; the underlying `results` state is never
+ *     thrown away, only a `dismissed` flag hides the dropdown until one of those two things
+ *     un-sets it. Escape while already closed is a no-op (nothing to intercept).
+ *   - A pointerdown outside BOTH the bar (`formRef`) and the portaled listbox (`listboxRef`)
+ *     dismisses it the same way; one `isOutsidePointerDown` decision
+ *     (`commandBarKeyboard.ts`) drives both paths, so "closed, query kept, reopens on
+ *     type/focus" is a single behaviour, not two similar ones. `pointerdown` (not `click`) is
+ *     used because the Pointer Events spec unifies mouse/pen/touch into one event type, so touch
+ *     is covered for free rather than needing a second `touchstart` listener.
+ *   - ArrowDown/ArrowUp move a roving `activeIndex` through the results, CLAMPING at either end;
+ *     dispatch brief for this lane, verbatim: "ArrowUp/Down clamp (not wrap)"; via
+ *     `commandBarKeyboard.ts`'s own `moveActiveIndex` (see that file's header for why this is NOT
+ *     a reuse of `TagPopover`'s wrapping `moveHighlight`: same shape, different, deliberately
+ *     non-wrapping behaviour this control needs). Enter with an active option navigates to it; the
+ *     SAME href a click on that row would follow; taking precedence over the mode's normal
+ *     submit() action; Enter with no active option (activeIndex -1, the initial state, or after the
+ *     result set changes and resets it) still submits normally.
  */
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { formatNumber } from "@/lib/format";
 import { authedFetch } from "@/lib/api/authed-fetch";
@@ -63,6 +98,12 @@ import { SkeletonListRow } from "@/components/ui/Skeleton";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { itemDetailHref } from "@/lib/item-links";
 import { jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
+import {
+  moveActiveIndex,
+  isOutsidePointerDown,
+  optionId,
+  activeDescendantId,
+} from "@/components/ui/commandBarKeyboard";
 
 type CommandBarMode = "search" | "ask";
 
@@ -94,12 +135,32 @@ export interface CommandBarProps {
 }
 
 export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandBarProps) {
+  // Instance-scoped listbox id (review finding, 2026-09-11): a bare module-level constant would
+  // collide if two CommandBars are ever mounted at once (e.g. a future split view, or today's own
+  // rendering-guard smoke tests exercising more than one instance per page); React's useId()
+  // returns a stable, unique-per-mount id, so aria-controls / aria-activedescendant / each option's
+  // id all stay correct with no coordination between instances.
+  const listboxId = `cl-command-bar-listbox-${useId()}`;
   const [mode, setMode] = useState<CommandBarMode>("search");
   const [value, setValue] = useState("");
   const [results, setResults] = useState<SearchResultRow[] | null>(null);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  // Portaled listbox's own ref (SEARCHKEYS, 2026-09-11); click-outside containment has to check
+  // this SEPARATELY from formRef, because SEARCHCLIP portals the listbox out of the bar's own DOM
+  // subtree into document.body; a single ref covering both boxes is not possible.
+  const listboxRef = useRef<HTMLDivElement>(null);
+  // True once Escape or an outside pointerdown has dismissed an OPEN dropdown; re-typing or
+  // re-focusing the input un-sets it. Deliberately separate from `results` (which stays populated)
+  // so dismissal never throws away the fetched rows; see this file's own header.
+  const [dismissed, setDismissed] = useState(false);
+  // Roving active option for ArrowUp/ArrowDown (-1 = none active, commandBarKeyboard.ts's own
+  // sentinel; same "-1 means nothing highlighted" convention tagPopoverKeyboard.ts uses, kept
+  // consistent across the app's two roving-index controls even though the movement itself differs,
+  // clamped here vs wraparound there). Reset to -1 whenever a new result set lands (effect below),
+  // so a stale index never survives past the rows it pointed at.
+  const [activeIndex, setActiveIndex] = useState(-1);
   // Portal target for the results listbox (SEARCHCLIP, 2026-09-11). The bar mounts inside
   // Masthead's SectionCard, and SectionCard's `overflow: hidden` (the shell property that keeps
   // the 3px top rule inside the card's own radius — see SectionCard.tsx's header, ratified by F42
@@ -161,8 +222,20 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     };
   }, [mode, value]);
 
+  // `!dismissed` (SEARCHKEYS, 2026-09-11): Escape and an outside pointerdown set `dismissed`
+  // without touching `results`, so the dropdown hides while the fetched rows stay held; typing
+  // (onChange below) or re-focusing the input (onFocus below) un-sets it, reopening the SAME
+  // results rather than re-fetching.
   const showDropdown =
-    mode === "search" && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
+    mode === "search" && !dismissed && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
+
+  // A fresh result set invalidates any previously active option; reset to "none active" rather
+  // than carry an index that may now point at a different row or past the new end. Not reset on
+  // `dismissed`/`showDropdown` changes: a re-opened (not re-fetched) dropdown may reasonably keep
+  // its prior active row.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [results]);
 
   // `document.body` is not defined during SSR; set it once mounted (matches every other
   // client-only DOM read in this file — the ⌘K listener above does the same window-only pattern).
@@ -192,6 +265,25 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
     };
+  }, [showDropdown]);
+
+  // Click/tap-outside dismissal (SEARCHKEYS, 2026-09-11). Listens only while the dropdown is
+  // actually open. `pointerdown` (capture phase, matching the scroll listener above so an inner
+  // scroller/stopPropagation handler can't swallow it first) fires for mouse, pen AND touch alike;
+  // one listener covers the brief's "touch included" requirement with no second touchstart
+  // handler. The containment check itself is the pure `isOutsidePointerDown` decision
+  // (commandBarKeyboard.ts): two refs because the listbox is portaled outside the bar's own DOM
+  // subtree (SEARCHCLIP), so neither ref alone can answer "is this outside the whole widget".
+  useEffect(() => {
+    if (!showDropdown) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      const withinBar = !!(target && formRef.current?.contains(target));
+      const withinListbox = !!(target && listboxRef.current?.contains(target));
+      if (isOutsidePointerDown(withinBar, withinListbox)) setDismissed(true);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [showDropdown]);
 
   const searchRows = useMemo(
@@ -235,6 +327,52 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // false in Search mode, by construction) — Search mode's submit control is never disabled,
   // matching this component's own header ("unconditional on ASSISTANT_ENABLED, unlike Ask").
   const askDisabled = mode === "ask" && !assistantEnabled;
+
+  // Navigates to a result row for Enter-on-the-active-option (onInputKeyDown below) by clicking
+  // the row's OWN Link anchor (`.cl-row-link`, ListRow's whole-row click target) rather than
+  // calling next/navigation's router directly; this is genuinely "the same navigation as clicking
+  // it" (the identical DOM element and event path a mouse click would use), not a second,
+  // divergent navigation mechanism next to next/link's own. It also sidesteps next/navigation's
+  // useRouter(), which throws outside an App Router tree (this component has no reason to require
+  // one just to move focus through a listbox); Link's own click handler reads router from
+  // useContext directly and is a no-op with no provider, so this stays safe wherever CommandBar
+  // is exercised standalone (e.g. this file's own rendering-guard smoke mount).
+  const selectRow = (index: number) => {
+    const option = document.getElementById(optionId(listboxId, index));
+    option?.querySelector<HTMLAnchorElement>("a.cl-row-link")?.click();
+  };
+
+  // Escape / ArrowUp / ArrowDown / Enter-on-an-active-option (SEARCHKEYS, 2026-09-11). Lives on
+  // the input's onKeyDown rather than the form's: Enter with an active option calls
+  // `e.preventDefault()` here, which stops the browser from also firing the form's implicit
+  // submit for that keystroke, so `selectRow` and `submit()` never both run for one Enter press.
+  // Enter with no active option is left alone and falls through to the form's own onSubmit.
+  const onInputKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      // "Escape with the dropdown already closed does nothing special"; only intercept while open.
+      if (!showDropdown) return;
+      e.preventDefault();
+      setDismissed(true);
+      return;
+    }
+    if (!showDropdown || searchRows.length === 0) return; // arrows/Enter below only act on an open, non-empty listbox
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => moveActiveIndex(i, 1, searchRows.length));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => moveActiveIndex(i, -1, searchRows.length));
+      return;
+    }
+    if (e.key === "Enter" && activeIndex >= 0) {
+      // Takes precedence over the form's own onSubmit → submit() for this one case; Enter with no
+      // active option (activeIndex -1) falls through to the form's normal submit handling.
+      e.preventDefault();
+      selectRow(activeIndex);
+    }
+  };
 
   // L9 (site-wide layout guard, operator's own numbers: ">= 44px in one dimension and >= 28px in
   // the other; adjacent targets do not overlap") caught two rounds here, both fixed rather than
@@ -327,7 +465,13 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           type="button"
           aria-pressed={mode === "search"}
           className="cl-command-bar-mode-search"
-          onClick={() => setMode("search")}
+          // `dismissed` reset (SEARCHKEYS): switching mode is a fresh interaction, so a prior
+          // Escape/outside-click dismissal must not silently suppress the dropdown after coming
+          // back to Search mode with an existing query.
+          onClick={() => {
+            setMode("search");
+            setDismissed(false);
+          }}
           style={modeTabStyle(mode === "search")}
         >
           Search
@@ -336,7 +480,10 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           type="button"
           aria-pressed={mode === "ask"}
           className="cl-command-bar-mode-ask"
-          onClick={() => setMode("ask")}
+          onClick={() => {
+            setMode("ask");
+            setDismissed(false);
+          }}
           style={modeTabStyle(mode === "ask")}
         >
           Ask
@@ -350,7 +497,15 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         onChange={(e) => {
           setValue(e.target.value);
           if (mode === "search") onSearch?.(e.target.value);
+          // Re-typing un-dismisses (SEARCHKEYS); "reopen when the user types again".
+          setDismissed(false);
         }}
+        onFocus={() => {
+          // Re-focusing with results already held un-dismisses too ("...or re-focuses the input
+          // with results present"); harmless no-op when there is nothing to show yet.
+          setDismissed(false);
+        }}
+        onKeyDown={onInputKeyDown}
         placeholder={
           mode === "ask"
             ? assistantEnabled
@@ -359,8 +514,15 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
             : (placeholder ?? `Search across ${formatNumber(itemCount)} items…`)
         }
         aria-label={mode === "ask" ? "Ask the Intelligence Assistant" : "Search across the workspace"}
-        aria-controls="cl-command-bar-listbox"
+        // WAI-ARIA combobox pattern (SEARCHKEYS, 2026-09-11): role/aria-autocomplete apply in both
+        // modes without harm (Ask mode never populates a listbox, so aria-controls simply points at
+        // an element that stays absent), matching the pre-existing aria-controls/aria-expanded,
+        // which were already unconditional the same way.
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
         aria-expanded={showDropdown}
+        aria-activedescendant={showDropdown ? activeDescendantId(listboxId, activeIndex) : undefined}
         style={{
           flex: 1,
           minWidth: 0,
@@ -450,7 +612,8 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         barRect &&
         createPortal(
           <div
-            id="cl-command-bar-listbox"
+            id={listboxId}
+            ref={listboxRef}
             role="listbox"
             aria-label="Search results"
             style={{
@@ -492,9 +655,32 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
                 <StateNote>No results for “{value.trim()}”.</StateNote>
               </div>
             ) : (
-              searchRows.map((row) => {
+              searchRows.map((row, index) => {
                 const { key, ...rowProps } = row;
-                return <ListRow key={key} {...rowProps} />;
+                const active = index === activeIndex;
+                return (
+                  // WAI-ARIA combobox pattern: each row is the "option", a thin wrapper around the
+                  // shared ListRow rather than adding role/id props to ListRow itself (which is a
+                  // shared part with unrelated callers; see this file's own header on reuse). The
+                  // active highlight reuses `--row-hover`, the SAME token `.cl-list-row:hover`
+                  // already paints, so keyboard-active and mouse-hover read as one visual state
+                  // (law 16, pattern consistency), not two different treatments for "selected".
+                  // `onMouseMove` keeps the roving index in sync with the pointer so the two
+                  // selection mechanisms (keyboard, mouse) never show two different rows
+                  // highlighted at once.
+                  <div
+                    key={key}
+                    id={optionId(listboxId, index)}
+                    role="option"
+                    aria-selected={active}
+                    onMouseMove={() => {
+                      if (activeIndex !== index) setActiveIndex(index);
+                    }}
+                    style={{ background: active ? "var(--row-hover)" : undefined }}
+                  >
+                    <ListRow {...rowProps} />
+                  </div>
+                );
               })
             )}
           </div>,

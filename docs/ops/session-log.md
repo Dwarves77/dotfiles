@@ -17079,3 +17079,188 @@ Gates (this session, actually executed, not drafted ahead of running): `node --t
 **Post-ruling re-run (after `git rm` of migration 241 and the reference fixes above):** `npx tsc --noEmit` clean; `node --test src/lib/intake/portal-harvest.npmtest.mjs` GREEN 25/25; `node .discipline/fitness/runner.mjs` unchanged at 37 checked / 10 violations, all pre-existing `[F28]`; `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean across all commits including this session's finish commits. Migration NOT applied; coordinator applies ONLY migration 240 via Supabase MCP before merge -- migration 241 no longer exists in this branch, per the coordinator's ruling that 256 is the migration home of record. PR: "land #410 (Layer C insert gate, migration 240) and #370 (census-exclude RPC consumer)", supersedes both stale PRs, does not close or merge them.
 
 ### UX compliance: not applicable
+## SEARCHKEYS lane, 2026-09-11: Search box Escape / click-outside / arrow keys, and the narrow-box type it flagged
+
+Resumed from `.worktrees/wt-searchkeys-0911` (task 4.1 of the W9 brief-chain build plan), a halted lane
+whose uncommitted diff was read in full before any further edit, per the plan's own step 1 instruction.
+Operator report this closes, verbatim: "the search function doesn't show the information for the search
+and there's no way to close that search box unless you click on an item."
+
+**Diagnosis of each reported symptom.**
+
+- **"No way to close that search box unless you click on an item"**: `[CONFIRMED]`, matches the
+  2026-09-11 tech-debt-log entry the prior lane logged while tracing SEARCHCLIP (#619, the listbox
+  portal fix): `CommandBar.tsx`'s results dropdown had no Escape handler, no document-level
+  outside-pointerdown listener, and no arrow-key roving index; the only dismissal path was navigating
+  away via a result click, the mode switch, or typing the query back under `MIN_QUERY_LEN`.
+- **"Doesn't show the information for the search"**: `[CONFIRMED]`, a second, narrower defect than
+  SEARCHROW's title-visibility fix (same day, already landed): SEARCHROW's own reused mobile reflow
+  (`LIST_ROW_NARROW_REFLOW_CSS`) restores the row's title inside the listbox's narrow (`@container
+  max-width: 489px`) box but, by reusing the mobile row's B3/B4/B5 rule verbatim, also hides the row's
+  `meta` line; which is where item TYPE renders (`metaLine({ type: item_type, modes, topic })` in
+  `CommandBar.tsx`'s `searchRows` mapping); except when the row carries a single absence reason. On a
+  real 390px phone that trade favors title over type on purpose; SEARCHROW logged it as an open item
+  rather than silently building a third row anatomy, per CLAUDE.md rule 13. This lane makes the
+  decision the SEARCHROW note asked for: the dropdown diverges from the phone row on this one point.
+
+**What was already correct in the halted diff, kept as-is, and the one thing that was not.** Read
+`CommandBar.tsx`, `ListRow.tsx`, `CommandBar.npmtest.mjs`, `docs/tech-debt-log.md`, and the two new
+files (`commandBarKeyboard.ts`/`.npmtest.mjs`) end to end against the brief (`.superpowers/sdd/brief-
+chain-build-plan-2026-09-11/task-4.1-brief.md`). The keyboard/dismissal work (CommandBar.tsx,
+commandBarKeyboard.ts) was already implemented correctly and needed no changes. The `ListRow.tsx`
+narrow-box type override looked correct by source inspection (the tech-debt-log's own RESOLVED note,
+written by the halted lane before it was stopped, described only the `display` un-hide) but per rule
+14 ("a finding is a hypothesis until it is verified") this session did not take that description on
+faith: a live headless-Chromium render of the actual listbox at a real 375px viewport (one-off
+verification script under this lane's own scratch dir, reusing the repo's own
+`command-bar-search-portal-smoke.mjs`/`smoke/harness.mjs` esbuild+Playwright mount, not a new
+discipline-engine file) measured the "un-hidden" type text at literally 0px rendered width; present
+in the DOM, `display` correctly resolved, but invisible. `[CONFIRMED]`, isolated property-by-property
+in that same live page: the span's own pre-existing inline `flexShrink: 1` / `minWidth: 0` (added
+earlier in this file for the WIDE desktop layout's shrink-and-ellipsize behavior, "DEFECT 6" comment)
+collapses it to zero width inside the narrow box's doubly-nested flex context when it is the sole
+child; toggling `flex-shrink` alone from 1 to 0 took the measured width from 0px to 194.6px in that
+same render; toggling `min-width` or `flex-basis` alone did not. Fixed in `ListRow.tsx`'s
+`LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS` by adding `flex-shrink: 0 !important` (stops the
+collapse) and `max-width: 100% !important` (puts the ceiling back so a longer type/topic/modes
+combination still ellipsizes against its own `overflow: hidden; text-overflow: ellipsis` instead of
+being clipped raw by the parent's `overflow: hidden`); re-verified in the same live render after the
+fix; short content renders at its full 194.6px inside the 224px available width, and a deliberately
+long fixture (`"regulation · air, road, ocean, rail · packaging and extended producer responsibility"`)
+renders capped at 224px with `scrollWidth` 525 vs `clientWidth` 224, confirming the ellipsis engages
+rather than a raw mid-character clip. A new structural regression test
+(`ListRow.npmtest.mjs`, "SEARCHKEYS: the narrow-box type override forces flex-shrink:0 and
+max-width:100%...") locks this in, driven red (against the original two-line rule) then green (against
+the fix) before being added.
+
+Everything else in the halted diff was already implemented correctly and needed no changes:
+- WAI-ARIA combobox pattern on the input (`role="combobox"`, `aria-autocomplete="list"`, the
+  pre-existing `aria-controls`/`aria-expanded`, plus `aria-activedescendant` pointing at the active
+  option's id) and on each row (`role="option"`, a stable `optionId(listboxId, index)`, `aria-selected`).
+- Escape closes the dropdown via a `dismissed` boolean, never by clearing `results` or `value`; typed
+  query and fetched rows survive; re-typing (`onChange`) or re-focusing (`onFocus`) un-sets `dismissed`,
+  reopening the SAME result set rather than re-fetching; Escape while already closed is a no-op
+  (`onInputKeyDown` returns early when `!showDropdown`).
+- A capture-phase `pointerdown` listener (mouse/pen/touch in one listener, no second `touchstart`
+  handler) checks containment against two separate refs; `formRef` (the bar) and the new `listboxRef`
+  (the portaled listbox, necessarily separate since SEARCHCLIP moved it to `document.body`); through
+  the pure decision `isOutsidePointerDown(withinBar, withinListbox)` in the new sibling module
+  `commandBarKeyboard.ts`.
+- ArrowUp/ArrowDown move a roving `activeIndex` via `moveActiveIndex`, CLAMPING at either end exactly as
+  the brief specifies ("ArrowUp/Down clamp, not wrap"); checked against reuse first
+  (`tagPopoverKeyboard.ts`'s `moveHighlight`/`clampHighlight`, confirmed by reading its source: `next < 0
+  -> count-1`, `next >= count -> 0`, i.e. wraps) and correctly rejected as the wrong behavior for this
+  control, not the wrong shape, so a small dedicated clamped mover was written instead of forcing reuse.
+  Reset to -1 whenever a fresh result set lands, so a stale index never survives past rows it no longer
+  points at.
+- Enter with an active option navigates by clicking that option's own `.cl-row-link` anchor (the exact
+  DOM element/event path a mouse click already uses, not a second navigation mechanism, and one that
+  needs no `next/navigation` `useRouter()`; which would throw outside an App Router tree, e.g. this
+  file's own standalone rendering-guard smoke mount); Enter with no active option falls through to the
+  form's existing `submit()`.
+- Unit tests (`commandBarKeyboard.npmtest.mjs`) already covered clamp-at-both-ends and the outside-click
+  decision across all four `(withinBar, withinListbox)` combinations, matching the brief's step 2
+  instruction; no missing cases were found, so none were added.
+
+**Files.** `fsi-app/src/components/ui/CommandBar.tsx`, `fsi-app/src/components/ui/ListRow.tsx` (the
+`LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS` fix, this session), `fsi-app/src/components/ui/
+ListRow.npmtest.mjs` (new regression test, this session), `fsi-app/src/components/ui/
+commandBarKeyboard.ts` (new, halted lane), `fsi-app/src/components/ui/commandBarKeyboard.npmtest.mjs`
+(new, halted lane), `fsi-app/src/components/ui/CommandBar.npmtest.mjs`, `docs/tech-debt-log.md`,
+`docs/ops/session-log.md` (this entry).
+
+**Tests, RED then GREEN.** The halted lane had already driven `commandBarKeyboard.npmtest.mjs` and
+`CommandBar.npmtest.mjs` red-then-green before being stopped; this session re-verified rather than
+re-derived: `node --test src/components/ui/commandBarKeyboard.npmtest.mjs
+src/components/ui/CommandBar.npmtest.mjs`; 35/35 pass (6 `moveActiveIndex` clamp/wrap cases, 4
+`isOutsidePointerDown` combinations, 2 id-builder cases, 23 CommandBar structural/shape assertions
+including the new keyboard/ARIA ones). For `ListRow.tsx`'s narrow-box override this session drove its
+OWN red-then-green: the new structural test (quoted above) run against the ORIGINAL two-line rule
+(`display: inline-block !important` only) failed to match `/flex-shrink:\s*0\s*!important/` (confirmed
+via a standalone check of that exact string, since the halted lane's file had already been edited by
+the time this test was written); after adding `flex-shrink: 0 !important; max-width: 100% !important;`
+`node --test src/components/ui/ListRow.npmtest.mjs`: 23/23 pass. The live-render verification (not a
+node --test file; a one-off script under this lane's scratch dir) is the independent proof the
+structural test alone cannot give: it showed the actual rendered width going from 0px to 194.6px on
+the exact same fixture, before vs after the fix, with no other change.
+
+**Gates.**
+- `node --test` (both files above): 35/35 and 22/22 PASS.
+- `npx tsc --noEmit`: clean, zero errors.
+- `node .discipline/fitness/runner.mjs`: 36/37 functions PASS; the one failure is `[F28]
+  harness-run-integrity`, 10 violations, all Windows path-separator hash drift
+  (`hashHarnessVersion` in `scripts/lib/run-artifact.mjs` hashes `relative(base, abs)` without
+  normalizing to POSIX separators, so the same tree hashes differently on Windows vs CI);
+  `[CONFIRMED]` pre-existing and unrelated to this lane's files: the plan's own task 0.3 names this
+  exact defect and mechanism and assigns its fix to `wt-hashsep-0911`, a different worktree. Zero F28
+  findings reference `CommandBar.tsx`, `ListRow.tsx`, or `commandBarKeyboard.ts`.
+- `node .discipline/rendering/run-rendering-guard.mjs`: FAILS overall, but every finding is pre-existing
+  master-red carried over unchanged; `input.cl-facet-check` hit-target failures on `/regulations`,
+  `/market`, `/research`, `/operations`, `/watchlist` (`[CONFIRMED]` the exact FACETFIX defect the plan's
+  section 0 documents on master commit `5e891abd`, owned by task 0.1 in a different worktree), plus
+  pre-existing `/map`, `/admin`, `/profile`, `/settings` findings (filter-chip hit targets, an Anton
+  font-family miss, several settings-page element overlaps) that predate and are untouched by this
+  lane. Zero findings name `CommandBar`, `cl-command-bar`, the results listbox, or any `ListRow` prop
+  this lane's CSS override touches; `/dashboard` (where the command bar actually mounts) has no finding
+  at all. Not this lane's regression; not fixed here (out of scope per the brief; 4.1 is the search box,
+  not the sitewide facet-checkbox hit-target debt already dispatched elsewhere).
+- `npm run audit:design`: 2,554/2,557 checks MATCH, 3 MISMATCH, all three on `compose-04-market-list`
+  (Market page's NEXT DATA DROPS grid track sizing, the CARBON COST PER FEU corridor row height) and
+  `operations-matrix-nofigure` (the no-figure fact detail column width); none reference the search box,
+  `CommandBar`, or `ListRow`'s narrow-box CSS; pre-existing and out of this lane's scope.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (`ddfa5f91`)
+  against the real diff; `2 pass, 0 fail, 7 skip (of 9 rules)`: rule 012 (hardcoded user-home path) and
+  016 (canonical Anthropic path) PASS, the other 7 skip as not applicable to this diff.
+- `npx next build`: run because `.tsx` changed; exit code 0, full production build with every route
+  (static, SSG, and dynamic) compiled, no errors or warnings in the output.
+- `bash .discipline/run-test-suite.sh`: per the coordinator's revised gate instruction (machine load;
+  six lanes running the full suite concurrently), NOT run a second time by this lane; the coordinator
+  runs it once per lane at push time. (A full run WAS started and completed once before that
+  instruction arrived, exit code 0, but its output was inconclusive under the concurrent load and is
+  not cited as evidence here; the coordinator's own run at push time is authoritative.)
+
+### UX compliance
+
+**Screen: the command bar's Standard Search results dropdown, mounted on every route via the Masthead.**
+The Masthead, and with it this CommandBar, mounts on all five customer-facing surfaces (Regulations,
+Market Intel, Research, Operations, Community), so this fix reaches every surface's search box, not
+one page's. Reader's primary goal: find an item by typing, without losing control of the search box. Shortest path:
+type, see results immediately, either click/Enter a result or dismiss and keep working. One primary
+action: select a result (Enter or click); dismissal (Escape, outside click) is the necessary secondary
+action the operator's report named as missing entirely. Feedback: unchanged from SEARCHCLIP/SEARCHFIX
+(debounced fetch, skeleton rows while loading, "No results for..." on empty); this lane adds no new
+async action, only synchronous keyboard/pointer state changes, each reflected the same frame (dropdown
+hides on Escape/outside-click, active row highlight moves on arrow keys); Doherty Threshold (law 6) is
+satisfied by construction, nothing here waits on a round trip.
+
+Laws checked against the brief's own requirements:
+- **Law 2 (Fitts's Law, target size)**: no new pointer target below the 44px/24px+8px floor was added;
+  each result row is the existing `ListRow`, already measured against this floor elsewhere. Measured
+  `[CONFIRMED]` at a real 375px viewport (this lane's live-render verification script, headless
+  Chromium via the repo's own esbuild+Playwright smoke harness, dashboard Masthead mounted with a
+  "ppwr" query, not a manual DevTools pass): the portaled listbox renders at 327px wide (`listboxWidth:
+  327`), inside the `@container (max-width: 489px)` trigger SEARCHROW added; the narrow reflow
+  applies (`rowGridCols: "3px 266px"`, matching `LIST_ROW_NARROW_REFLOW_CSS`'s 2-column grid), each row
+  measured 83.2px tall (`optionHeight: 83.21875`), clearing the 44px floor with margin; this same run is
+  what surfaced the flex-collapse defect above and confirmed its fix.
+- **Law 3 (Jakob's Law, familiar patterns)**: Escape-to-close, click-outside-to-close, and
+  arrow-key-then-Enter selection are the standard combobox/autocomplete interaction every reader already
+  knows from address bars, command palettes, and search-as-you-type widgets; the WAI-ARIA combobox
+  pattern was followed rather than inventing bespoke keyboard semantics.
+- **Law 14/15 (Postel's Law, error prevention/recovery)**: dismissal never destroys the reader's typed
+  query or the fetched results; the dropdown reopens on the next keystroke or refocus with the same data,
+  so an accidental Escape or an accidental outside click costs nothing and is trivially recoverable.
+- **Law 16 (Similarity/pattern consistency)**: the keyboard-active row highlight reuses the SAME
+  `--row-hover` token `.cl-list-row:hover` already paints on mouse hover, so keyboard and mouse selection
+  read as one visual state, not two competing treatments; the narrow-box type text un-hide reuses the
+  existing `.cl-row-meta-text` element and font tokens, no new visual language.
+- **Law 12 (Prägnanz)**: the narrow-box fix (showing item type again, and actually rendering it at
+  nonzero width) restores a piece of the row's own hierarchy (title, then jurisdiction and type
+  together) that the reused mobile reflow had incidentally hidden; no decoration added, the same two
+  `.cl-row-meta-tags`-scoped rules appended after the existing template, extended with the two flex
+  properties the live render proved necessary.
+
+No new screen, no new control beyond the pointer/keyboard handling the tech-debt entry already named,
+no new row anatomy; the `@container`-only CSS override is one small addition on top of the reflow
+SEARCHROW already shipped the same day, exactly as CLAUDE.md rule 13 (same template, one additional
+rule) requires.

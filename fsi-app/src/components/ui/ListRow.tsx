@@ -336,6 +336,49 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
     }
 `;
 
+// SEARCHKEYS (2026-09-11), closing the open item SEARCHROW's own comment left named rather than
+// silently accepted: "the search dropdown's rows show jurisdiction + title but not type in the
+// narrow box... flagged here for an operator decision on whether the search dropdown should
+// diverge from the phone row on this one point". The dispatch for this lane makes that decision;
+// the command bar's results dropdown shows item TYPE alongside jurisdiction + title, a real phone
+// row does not (B3/B4/B5's ruling stands there: title beats type for a 390px screen's space).
+//
+// This is a CONTAINER-QUERY-ONLY override, appended after `LIST_ROW_NARROW_REFLOW_CSS` inside the
+// `@container` block ONLY (RESPONSIVE_CSS below); the sibling `@media (max-width: 767px)` block
+// (real phones) is untouched, so this diverges the two triggers on exactly this one point rather
+// than building a third row anatomy (CLAUDE.md rule 13: same template, the container trigger gets
+// one additional rule on top). Selector specificity is matched to the rule being overridden
+// (`.cl-row-meta-tags > *:not(.cl-row-absence-slot)`, two classes) so textual order; this block is
+// appended AFTER the shared template in the emitted CSS; is what decides the cascade, not an
+// `!important` arms race with a rule this file does not want to weaken for its other trigger.
+//
+// `flex-shrink: 0` and `max-width: 100%` (SEARCHKEYS follow-up, same lane, [CONFIRMED] against a
+// real headless-Chromium render, not assumed): un-hiding `.cl-row-meta-text` via `display` alone
+// was not enough; a live render at the listbox's actual narrow box measured its rendered width at
+// literally 0px (content present, `display` correctly resolving to `inline-block` blockified to
+// `block` as a flex child, but zero width), even though the parent had 224px of free space. Root
+// cause: this span's own inline style (set for the WIDE desktop layout further down this file,
+// "DEFECT 6" comment) carries `flexShrink: 1` with `minWidth: 0`, added there so the text shrinks
+// and ellipsizes when competing with the kind chip / absence reason / tags on the same line; inside
+// the narrow box's doubly-nested flex context (`.cl-row-title`'s column flex inside `.cl-row-line1`'s
+// row flex, then this row flex again), that combination flexed the item's resolved width to 0
+// instead of its content size; reproduced and isolated property-by-property in a live page
+// (toggling `flex-shrink` alone from 1 to 0 took the measured width from 0px to 194.6px; toggling
+// `min-width` or `flex-basis` alone did not). `flex-shrink: 0` stops that collapse; `max-width: 100%`
+// puts an explicit ceiling back on so a LONGER type/topic/modes combination still ellipsizes against
+// its own already-inline `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` instead of
+// being clipped raw by the PARENT's `overflow: hidden` (verified with a second, deliberately long
+// fixture: without the cap the element would render past its 224px allotment; with it, scrollWidth
+// 525 vs clientWidth 224, the ellipsis engages exactly as the desktop layout's own already does).
+const LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS = `
+    .cl-row-meta-tags { display: flex !important; }
+    .cl-row-meta-tags > .cl-row-meta-text {
+      display: inline-block !important;
+      flex-shrink: 0 !important;
+      max-width: 100% !important;
+    }
+`;
+
 const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
   /* The register row (variant="register", dc.html p10) carries the same hover the list row does.
@@ -421,6 +464,7 @@ ${LIST_ROW_NARROW_REFLOW_CSS}
      desktop grid regardless of what the viewport is doing. */
   @container (max-width: 489px) {
 ${LIST_ROW_NARROW_REFLOW_CSS}
+${LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS}
   }
 `;
 
