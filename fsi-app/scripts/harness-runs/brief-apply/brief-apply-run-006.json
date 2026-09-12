@@ -1,0 +1,597 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:70029202bae4a9a6",
+  "run_id": "brief-apply-run-006",
+  "started_at": "2026-09-12T22:35:24.948Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-002.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": true,
+    "recordBriefsSchemaVersion": "rb1-2026-09-12.3"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "per_item": [
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "0053d552-1856-4796-8873-968894400956#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 9,
+    "selected": 9,
+    "skipped_stale_hash": 0,
+    "applied": 9,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "applied_item_ids": [
+      "0053d552-1856-4796-8873-968894400956",
+      "00874650-0212-4f29-a0ee-e9078832ff12",
+      "00a2452a-677e-4556-9ef2-c5749ab5f005",
+      "00d1a570-d3f9-43be-a292-44c90384b669",
+      "00dda469-8ba6-40e2-9eaf-73af397b95e8",
+      "00f06e5b-3bae-4ca3-af43-70b09e485f71",
+      "016abf00-7c1d-43f5-a917-a9a90c811f9a",
+      "018dcbf1-42e3-49f5-8029-01804818b3f8",
+      "01936f81-7f2f-419a-af3c-681c1d577b6a"
+    ],
+    "unscoped_flywheel": {
+      "analyzeCorpus": {
+        "execute": true,
+        "signals": true
+      },
+      "deriveObligations": {
+        "step": "derive-obligations",
+        "mode": "apply",
+        "counts": {
+          "forward_events": 1226,
+          "derived": 1226,
+          "skipped_no_item": 0,
+          "already_registered": 1222,
+          "to_insert": 4,
+          "binding_position_breakdown": {
+            "unclassified": 1107,
+            "direct_duty": 85,
+            "carrier_passthrough": 22,
+            "customer_contract": 12
+          }
+        },
+        "applied": 4,
+        "read_back": {
+          "obligations_total": 1226,
+          "active": 1222,
+          "by_binding_position": {
+            "null": 1109,
+            "carrier_passthrough": 22,
+            "customer_contract": 12,
+            "direct_duty": 83
+          }
+        },
+        "exitCode": 0
+      },
+      "tagProposals": {
+        "step": "tag-proposals",
+        "mode": "apply",
+        "counts": {
+          "selection": {
+            "mode": "ids",
+            "ids": [
+              "0053d552-1856-4796-8873-968894400956",
+              "00874650-0212-4f29-a0ee-e9078832ff12",
+              "00a2452a-677e-4556-9ef2-c5749ab5f005",
+              "00d1a570-d3f9-43be-a292-44c90384b669",
+              "00dda469-8ba6-40e2-9eaf-73af397b95e8",
+              "00f06e5b-3bae-4ca3-af43-70b09e485f71",
+              "016abf00-7c1d-43f5-a917-a9a90c811f9a",
+              "018dcbf1-42e3-49f5-8029-01804818b3f8",
+              "01936f81-7f2f-419a-af3c-681c1d577b6a"
+            ],
+            "since": null
+          },
+          "corpus_count": 1433,
+          "targets_count": 9,
+          "missing_ids": [],
+          "flag_candidates_count": 0,
+          "with_proposals_count": 0,
+          "existing_open_count": 1105,
+          "plan": {
+            "new_count": 0,
+            "stale_count": 0,
+            "unchanged": 0
+          },
+          "preview": [],
+          "apply_command": "node scripts/maintenance/tag-proposals.mjs --mode apply --arg ids:0053d552-1856-4796-8873-968894400956,00874650-0212-4f29-a0ee-e9078832ff12,00a2452a-677e-4556-9ef2-c5749ab5f005,00d1a570-d3f9-43be-a292-44c90384b669,00dda469-8ba6-40e2-9eaf-73af397b95e8,00f06e5b-3bae-4ca3-af43-70b09e485f71,016abf00-7c1d-43f5-a917-a9a90c811f9a,018dcbf1-42e3-49f5-8029-01804818b3f8,01936f81-7f2f-419a-af3c-681c1d577b6a"
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "wrote": null,
+        "resolved": null,
+        "note": "Wrote 0 new integrity_flags PROPOSAL row(s); resolved 0 stale row(s). This writes integrity_flags proposals ONLY — it never writes intelligence_items tags (operator rule: NO assumptions, NEVER silent auto-tagging). Ratify each with resolution_note containing \"ratify:tags\", then run the tag-ratification MAINT step to apply."
+      },
+      "tagRatification": {
+        "step": "tag-ratification",
+        "mode": "apply",
+        "counts": {
+          "open_candidates": 1105,
+          "threshold": "high",
+          "eligible": [
+            {
+              "flag_id": "04632dfd-ae7c-418b-a306-58ce3a11effd",
+              "item_id": "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "2d937af4-3e8d-4d18-a8fc-07c7e8b26a50",
+              "item_id": "60a8df3c-3aca-4456-ba20-e7a941d5d0f4",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "60d9bab8-60cc-4461-95d7-7b0aadfee336",
+              "item_id": "4dc0f3ad-2a50-4705-8072-776fe54c91e8",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "9d0cce34-acac-44ce-8a1e-767c5bdd990f",
+              "item_id": "061dce37-78f4-4621-9df3-81ee36543ad6",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "da4e41f8-01a9-46f4-a820-437aaa94ed32",
+              "item_id": "dbee543b-7569-4902-84a3-73a324c10973",
+              "eligible_count": 1,
+              "residue_count": 1
+            }
+          ],
+          "below_threshold_count": 66,
+          "not_adoptable_count": 1034,
+          "apply_results": [
+            {
+              "flag_id": "04632dfd-ae7c-418b-a306-58ce3a11effd",
+              "status": "no_change_residue_open",
+              "item_id": "14cfdaa9-aca7-4714-8456-1891d29c82e2"
+            },
+            {
+              "flag_id": "2d937af4-3e8d-4d18-a8fc-07c7e8b26a50",
+              "status": "no_change_residue_open",
+              "item_id": "60a8df3c-3aca-4456-ba20-e7a941d5d0f4"
+            },
+            {
+              "flag_id": "60d9bab8-60cc-4461-95d7-7b0aadfee336",
+              "status": "no_change_residue_open",
+              "item_id": "4dc0f3ad-2a50-4705-8072-776fe54c91e8"
+            },
+            {
+              "flag_id": "9d0cce34-acac-44ce-8a1e-767c5bdd990f",
+              "status": "no_change_residue_open",
+              "item_id": "061dce37-78f4-4621-9df3-81ee36543ad6"
+            },
+            {
+              "flag_id": "da4e41f8-01a9-46f4-a820-437aaa94ed32",
+              "status": "no_change_residue_open",
+              "item_id": "dbee543b-7569-4902-84a3-73a324c10973"
+            }
+          ]
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "note": "Auto-adopted 0/5 eligible flag(s) at/above threshold \"high\" (66 open flag(s) below threshold left untouched). Discovery NOT re-run by this step (orchestration only, per this file's header) — fallback: node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute."
+      }
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "proposer_notes": ""
+}
