@@ -78,7 +78,8 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
              "slot_key": "effective_date", "claim_kind": "FACT",
              "claim_text": "[effective_date] The captured source states, verbatim: <the quoted span>",
              "source_span": "<verbatim substring of the pool text>",
-             "source_url": "https://example.org/reg"
+             "source_url": "https://example.org/reg",
+             "section": "<the canonical section key of the entry's own format_type this claim attaches to, e.g. \"8\" for Substantive Requirements -- REQUIRED (fix round 1, finding 1); see the claim-section-attachment mirror below>"
            }
          ]
        }
@@ -117,7 +118,7 @@ validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, er
 - Per-entry AND per-claim violations are collected across the WHOLE file in one pass (not stopped at the
   first bad entry), so a producer sees every problem at once.
 
-## The five pre-write refusals (task 6.1b + task 6.2b)
+## The six pre-write refusals (task 6.1b + task 6.2b, fix round 1)
 
 A 10-item pilot batch (brief-apply run 34688130473) generated and sectioned cleanly, then quarantined
 10/10 at the ground step for defects the validator now catches before any grounding cost is spent.
@@ -197,43 +198,79 @@ source rather than writing something the ground step will quarantine anyway.
    be without some date in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with
    at least one `item_timelines` row.
 
-4. **Depth-accounting mirror (task-6.1-audit.md fix 1).** For a `regulatory_fact_document` entry whose
-   "Substantive Requirements" section is present with content, that section must END with an accounting
-   line, exactly:
+4. **Claim section attachment mirror (fix round 1, finding 1).** Every claim in `claims[]` carries
+   `section`: the canonical section key (from the entry's own `format_type` section list, e.g. `"8"` for
+   Substantive Requirements in a `regulatory_fact_document`) that claim attaches to. This is NOT cosmetic:
+   the live write path attaches a claim to a section via this SAME explicit field
+   (`canonical-pipeline.ts:1889`, `sectionMap[String(c2.section)] || secs[0].id`) -- before this field
+   existed, EVERY record-briefs claim silently attached to whatever section a live item's row at
+   `section_order = 1` happens to be, never the section its content actually describes. The validator
+   refuses: `section` missing or not a string; `section` not a member of the entry's own format's canonical
+   section-key list (naming the valid keys); or -- when the claim carries a `source_span` -- that span not
+   being a verbatim (case-insensitive) substring of THAT section's own extracted text (the same real
+   extraction the other mirrors use). **Authoring rule this implies:** know which section a claim's
+   evidence actually appears in before writing it, and declare that key; a claim cannot borrow a different
+   section's evidence to satisfy its own attachment. **record-briefs-001.json and -002.json (the pilot and
+   chunk-1 batches, already applied) predate this field and carry no `section` key on any claim** -- both
+   are refused by this validator as committed; they are RE-APPLIED (regenerated with `section` added to
+   every claim, then re-run through `apply-record-briefs.mjs`) after this fix lands, not hand-patched in
+   place.
+
+5. **Depth-accounting mirror (task-6.1-audit.md fix 1).** For a `regulatory_fact_document` entry, the
+   "Substantive Requirements" section is now REQUIRED (fix round 1, finding 5: a regulatory brief without
+   this section is not complete, refused outright rather than silently skipped) and must END with an
+   accounting line, exactly:
    ```
    Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K.
    ```
-   The validator (`extractCanonicalSections`, the SAME real section boundaries the criterion 4 mirror
-   uses) refuses when: the line is missing; `K` exceeds the number of FACT claims this entry actually
-   attaches to that section's own text (by `claim_text` or `source_span`, case-insensitively) -- K must
-   never overstate coverage; or `K < M` with no following `Shortfall: <reason>` line naming why the
-   shortfall exists (one line is enough; it may name more than one reason). For a source pool over 200,000
-   characters, `K < 5` is ALSO refused without a `Shortfall:` line, even when `K == M` -- a large-pool item
-   this thin needs its own explicit accounting, the exact gap the pilot's CLP (2.59M chars, 5 FACT claims,
-   no accounting line at all) and Environmental Permitting 2016 (965k chars, 4 FACT claims) both left open.
-   `N` is never fixed by this rule -- it must be STATED, so "the source genuinely states little" and "the
-   lane did not look far enough" stop being indistinguishable from the outside. **Authoring rule this
-   implies:** before closing "Substantive Requirements", count what you surveyed, what applied to the
-   workspace, and what you actually extracted as FACT, and write the accounting line -- add a `Shortfall:`
-   line whenever the last number is smaller than the middle one, or whenever a large pool still leaves you
-   under 5 FACT claims in this section.
+   "END with" is enforced literally (fix round 1, finding 3): the accounting line must be the LAST content
+   in the section, save for an optional following `Shortfall:` line (or several) -- any other content after
+   it (a new, uncounted obligation) is refused, naming what follows. The validator refuses when: the
+   section cannot be extracted at all; the accounting line is missing; `K` exceeds the number of FACT
+   claims this entry attaches to that section by the explicit `section` field above (fix round 1, finding
+   1 -- never a text-containment guess); or `K < M` with no following `Shortfall: <reason>` line naming why
+   the shortfall exists (one line is enough; it may name more than one reason). For a source pool over
+   200,000 characters, `K < 5` is ALSO refused without a `Shortfall:` line, even when `K == M` -- a
+   large-pool item this thin needs its own explicit accounting, the exact gap the pilot's CLP (2.59M chars,
+   5 FACT claims, no accounting line at all) and Environmental Permitting 2016 (965k chars, 4 FACT claims)
+   both left open. `N` is never fixed by this rule -- it must be STATED, so "the source genuinely states
+   little" and "the lane did not look far enough" stop being indistinguishable from the outside.
+   **Authoring rule this implies:** every regulatory_fact_document brief has a "Substantive Requirements"
+   section; before closing it, count what you surveyed, what applied to the workspace, and what you
+   actually extracted as FACT (against claims that DECLARE this section), and write the accounting line
+   LAST -- any qualification-absence notes (see the next mirror) go BEFORE it, not after. Add a
+   `Shortfall:` line immediately after the accounting line whenever the last number is smaller than the
+   middle one, or whenever a large pool still leaves you under 5 FACT claims in this section.
 
-5. **Qualification-accounting mirror (task-6.1-audit.md fix 2).** Within that same "Substantive
-   Requirements" section, each of three qualification categories is either CAPTURED (a FACT claim this
-   entry attaches to the section carries the category's own language) or explicitly recorded ABSENT with
-   the exact sentence below -- silence is refused either way, so a genuinely unqualified source and an
-   unmined one stop being indistinguishable:
-   - **Per-year trajectory** -- captured via `metadata.requirement_trajectory` (non-null), or the sentence
-     `No phase-in stated in the source.`
-   - **Exceptions, carve-outs, exemptions** -- captured via an attached FACT claim whose text matches
-     `except` / `exempt` / `carve-out`, or the sentence `No exceptions stated in the source.`
-   - **Scope limits** -- captured via an attached FACT claim whose text matches `scope` / `does not apply`
-     / `applies only` / `limited to`, or the sentence `No scope limits stated in the source.`
-   Zero captures across all ten pilot items, with no absence note anywhere, was the audit's own finding --
-   this refusal is what makes that state unreachable going forward. **Authoring rule this implies:** for
-   every regulatory_fact_document brief, before closing "Substantive Requirements", state the trajectory,
-   the exceptions, and the scope limits the source actually gives you, or write the matching absence
-   sentence verbatim when the source genuinely gives you none.
+6. **Qualification-accounting mirror (task-6.1-audit.md fix 2, fix round 1 finding 2 + finding 4).** Within
+   that same "Substantive Requirements" section, each of three qualification categories is either CAPTURED
+   or explicitly recorded ABSENT -- this mirror runs UNCONDITIONALLY whenever the section is present (fix
+   round 1, finding 2: it previously ran only when the accounting line was itself present, so it never
+   fired against a single one of the twenty pilot+chunk-1 claims; now both refusals are reported together
+   regardless of whether the accounting line exists):
+   - **Per-year trajectory** -- captured via `metadata.requirement_trajectory` (non-null), or a sentence
+     naming the articles/sections checked: `No phase-in is stated in Articles 1 to 12.` (or `Section(s)`).
+   - **Exceptions, carve-outs, exemptions** -- captured via a FACT claim DECLARING this section (the
+     explicit `section` field, mirror 4 above) whose own `source_span` (never free-form `claim_text`)
+     contains `except` / `exempt` / `carve-out` with NO negation token (`no`/`not`/`none`/`never`/`nor`)
+     in the few words immediately before the match -- a span reading "No party is exempt from this
+     requirement" does NOT satisfy this (it asserts the opposite) -- or the sentence
+     `No exceptions are stated in Articles 1 to 12.`
+   - **Scope limits** -- captured the same way, matching `scope` / `does not apply` / `applies only` /
+     `limited to` in the `source_span` (the negation window looks only at text BEFORE the match, so "does
+     not apply" itself is never misread as negated by the word "not" it happens to contain), or the
+     sentence `No scope limits are stated in Articles 1 to 12.`
+   The absence sentences now REQUIRE a named article/section citation (fix round 1, finding 4: the prior
+   fixed sentences -- `No exceptions stated in the source.`, with no reference to the source at all -- were
+   satisfiable regardless of what the source actually says; a lane could paste all three into every brief
+   unconditionally, and the pilot's own zero-captures state made this indistinguishable from a genuinely
+   unmined source). Zero captures across all ten pilot items, with no absence note anywhere, was the
+   audit's own finding -- this refusal is what makes that state unreachable going forward. **Authoring rule
+   this implies:** for every regulatory_fact_document brief, before closing "Substantive Requirements",
+   state the trajectory, the exceptions, and the scope limits the source actually gives you (as FACT claims
+   that DECLARE section `"8"`, with the qualifying language IN THE SPAN, unnegated), or write the matching
+   absence sentence naming the articles/sections you actually checked, when the source genuinely gives you
+   none.
 
 **The `allow_brief_overwrite` flag.** Task 3.3's own write site refuses to re-generate a non-`record`-grade
 item (an existing brief) unless `--allow-brief-overwrite` is passed explicitly; `.github/workflows/brief-
