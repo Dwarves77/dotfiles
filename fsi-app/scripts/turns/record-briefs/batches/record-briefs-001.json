@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T09:56:42.799Z",
+  "generated_at": "2026-09-12T09:58:01.358Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -266,6 +266,74 @@
           "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; this is an administrative registry-correction instruction. Specific penalty summary not available from primary sources as of 2026-09-12.",
           "source_span": null,
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)"
+        }
+      ]
+    },
+    {
+      "item_id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c",
+      "source_pool_hash": "60a207e974213a6fe8827f55925d9a70b41923555a3c8b46c4ff52af965dd870",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), the consolidated framework requiring an environmental permit for regulated facilities including waste operations, installations, mobile plant, water discharge activities, groundwater activities, radioactive substances activities, and medium combustion plants in England and Wales. \"These Regulations may be cited as the Environmental Permitting (England and Wales) Regulations 2016 and come into force 21 days after the day on which these Regulations are made.\" *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n# What This Regulation Is and Why It Applies to the Workspace\n\n\"A person must not, except under and to the extent authorised by an environmental permit... (a) operate a regulated facility, or (b) cause or knowingly permit a water discharge activity or groundwater activity.\" *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.* For workspaces operating or contracting UK-based warehousing, cross-dock, waste-transfer, or storage facilities in England and Wales that carry out a \"waste operation\" (\"the direct or indirect release of substances, vibrations, heat or noise from individual or diffuse sources related to the operation into the air, water or land\") or that run on-site combustion plant (e.g., backup generators, boilers) meeting the \"medium combustion plant\" definition, this Regulation sets the permitting gate that must be satisfied before operating. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.* *Legal Confirmation Required:* whether a specific workspace-controlled site (warehouse, depot, storage facility) meets the definition of a \"regulated facility\" or carries out a \"medium combustion plant\" activity as this Regulation defines those terms.\n\n# Issues Requiring Immediate Action\n\n**ACTION REQUIRED.** Verify environmental permit coverage for any England/Wales facility the workspace operates or contracts that runs a regulated waste operation, water discharge activity, or medium combustion plant, since operating without one is an offence: \"It is an offence for a person to... contravene regulation 12(1).\" *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.* *Operational implication:* an unpermitted regulated facility, or one operating outside its permit conditions, exposes the operator to criminal liability under regulation 38, not merely a civil compliance gap. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty to hold and comply with an environmental permit falls on \"the operator\" of the regulated facility or the person who causes or knowingly permits a water discharge or groundwater activity. *Legal Confirmation Required:* whether the workspace, as freight forwarder, is itself \"the operator\" of any England/Wales site in scope, or whether that duty sits with a warehousing/3PL subcontractor whose permit status the workspace should verify contractually before routing cargo through the site.\n\n# Substantive Requirements\n\n**Permit requirement.** \"A person must not, except under and to the extent authorised by an environmental permit... operate a regulated facility, or... cause or knowingly permit a water discharge activity or groundwater activity.\" *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n**Offences.** \"It is an offence for a person to... contravene regulation 12(1), or... knowingly cause or knowingly permit the contravention of regulation 12(1)(a),\" and separately \"It is an offence for a person to fail to comply with or to contravene an environmental permit condition.\" *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n**Notices and withdrawal.** The enforcing authority \"must\" act on a compliance notice served on the operator \"and... must withdraw a notice when satisfied that the steps specified in it have been taken,\" establishing a defined remediation-and-close-out process once a notice issues. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n**Medium combustion plant cutoff.** An \"existing medium combustion plant\" is one \"put into operation before 20th December 2018, or... for which an environmental permit was granted before 19th December 2017, provided that the plant is put into operation\" by a further specified date; plant falling outside this cutoff is treated as new and subject to the current permitting regime rather than the existing-plant transitional provisions. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n# Registration and Reporting Obligations\n\nEnvironmental permits are applied for and held under the regime this Regulation establishes rather than through a separate standalone registration filing; *specific application form, portal, or filing-fee detail not available from primary sources as of 2026-09-12.*\n\n# Operational System Requirements\n\nFor workspaces operating or contracting England/Wales sites in scope: (1) confirm the site's environmental permit is current and covers the specific regulated facility class or water discharge/groundwater activity conducted there, (2) for any on-site combustion plant, confirm whether it is treated as \"existing\" under the 20 December 2018 cutoff or falls under the current new-plant permitting standard, and (3) build a contractual verification step for any subcontracted UK warehousing or waste-handling site to confirm permit compliance before cargo is routed through it. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.* *Operational implication:* the compliance gap between an unverified subcontractor site and this Regulation's permit requirement is a workspace exposure even where the workspace itself does not hold the permit. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n# Confirmed Regulatory Timeline\n\n- Regulations come into force \"21 days after the day on which these Regulations are made\" (S.I. 2016/1154). In force as of 2026-09-12. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n- 20th December 2018: cutoff date defining an \"existing medium combustion plant\" for transitional permitting purposes. In force as of 2026-09-12. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n- 7 April 2019: regulation 39 (Penalties and enforcement undertakings) inserted/amended by The Environmental Protection (Miscellaneous Amendments) (England and Wales) Regulations 2018 (S.I. 2018/1227). In force as of 2026-09-12. *Source: The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/uksi/2016/1154.*\n\n# Sources\n\n- The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK Government, legislation.gov.uk, as amended (Tier 1, primary binding text). https://www.legislation.gov.uk/uksi/2016/1154\n",
+      "metadata": {
+        "severity": "ACTION REQUIRED",
+        "priority": "CRITICAL",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The Environmental Permitting (England and Wales) Regulations 2016 (S.I. 2016/1154), UK statutory instrument establishing the environmental permitting regime for regulated facilities including waste operations installations mobile plant water discharge activities groundwater activities radioactive substances activities and medium combustion plants in England and Wales.",
+        "why_matters": "Any England or Wales facility the workspace operates or contracts, such as a warehouse depot or storage site running a waste operation water discharge or on-site combustion plant, must hold and comply with an environmental permit before operating; contravention is a criminal offence carrying imprisonment on indictment. Forwarders routing cargo through third-party UK sites should verify permit status contractually since the compliance gap is an exposure even where the workspace itself does not hold the permit.",
+        "key_data": [
+          "Regulations come into force 21 days after the day they are made",
+          "Operating a regulated facility without a permit is an offence under regulation 38",
+          "Conviction on indictment carries a fine or imprisonment for a term not exceeding 5 years or both",
+          "Existing medium combustion plant cutoff put into operation before 20 December 2018"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": "on conviction on indictment a fine or imprisonment for a term not exceeding 5 years or both",
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "warehouse-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "a514027a-39c4-4ca0-a88b-0b2f828deb34"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «come into force 21 days after the day on which these Regulations are made»",
+          "source_span": "come into force 21 days after the day on which these Regulations are made",
+          "source_url": "https://www.legislation.gov.uk/uksi/2016/1154"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «put into operation before 20th December 2018»",
+          "source_span": "put into operation before 20th December 2018",
+          "source_url": "https://www.legislation.gov.uk/uksi/2016/1154"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «These Regulations extend to England and Wales only.»",
+          "source_span": "These Regulations extend to England and Wales only.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2016/1154"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "claim_text": "[penalty_summary] The captured source states, verbatim: «on conviction on indictment to a fine or imprisonment for a term not exceeding 5 years, or to both»",
+          "source_span": "on conviction on indictment to a fine or imprisonment for a term not exceeding 5 years, or to both",
+          "source_url": "https://www.legislation.gov.uk/uksi/2016/1154"
         }
       ]
     }
