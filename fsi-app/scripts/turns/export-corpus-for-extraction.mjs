@@ -244,18 +244,46 @@ export function chunkByCharBudget(items, budget) {
  *   (confirmed by re-reading that runner: it reads only `item.claims`/`item.sections`, so extra keys were
  *   always harmless there too, but this exporter still NEVER adds them on that path, keeping the two
  *   callers' outputs provably distinct rather than relying on the consumer's tolerance).
+ * `forwardEventRows`/`timelineRows` (task 6.2b, brief-chain-build-plan-2026-09-11, task-6.1-audit.md fix
+ *   3): under `withPoolText`, each item ALSO carries `forward_events: [{event_date, event_kind,
+ *   obligation_text, confidence, source_span}]` (from `item_forward_events`, migration 274 -- exactly the
+ *   four columns the audit's own fix names plus `source_span` so the lane can cite the same span back into
+ *   the brief) and `timelines: [{milestone_date, label, is_completed}]` (from `item_timelines`, migration
+ *   004). The audit's own finding: 7 of the pilot's 10 items had DB-recorded forward events that never
+ *   reached the brief's own "Anticipated Guidance and Pending Regulatory Events" section -- the forward
+ *   intelligence existed as a row the exporter never handed the lane in the first place. Both arrays
+ *   default to `[]` (an item can genuinely have none of either), never omitted, so a session lane can
+ *   always check `item.forward_events.length` without a presence guard.
  * @returns {Array<{id:string, claims:object[], sections:object[], title?:string|null, item_type?:string|null,
  *   format_type?:string|null, jurisdiction_iso?:string|null, canonical_instrument_key?:string|null,
  *   source_id?:string|null, source_url?:string|null, required_slots?:string[], pool?:Array<{url:string,text:string}>,
- *   source_pool_hash?:string}>}
+ *   source_pool_hash?:string, forward_events?:object[], timelines?:object[]}>}
  */
 export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], opts = {}) {
-  const { withPoolText = false } = opts;
+  const { withPoolText = false, forwardEventRows = [], timelineRows = [] } = opts;
   const claimsByItem = new Map();
   for (const r of claimRows) {
     const list = claimsByItem.get(r.intelligence_item_id) ?? [];
     list.push(mapClaimRow(r));
     claimsByItem.set(r.intelligence_item_id, list);
+  }
+  const forwardEventsByItem = new Map();
+  for (const r of forwardEventRows) {
+    const list = forwardEventsByItem.get(r.intelligence_item_id) ?? [];
+    list.push({
+      event_date: r.event_date,
+      event_kind: r.event_kind,
+      obligation_text: r.obligation_text,
+      confidence: r.confidence,
+      source_span: r.source_span,
+    });
+    forwardEventsByItem.set(r.intelligence_item_id, list);
+  }
+  const timelinesByItem = new Map();
+  for (const r of timelineRows) {
+    const list = timelinesByItem.get(r.item_id) ?? [];
+    list.push({ milestone_date: r.milestone_date, label: r.label, is_completed: r.is_completed });
+    timelinesByItem.set(r.item_id, list);
   }
   const sectionsByItem = new Map();
   for (const r of sectionRows) {
@@ -292,6 +320,11 @@ export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], o
       // persist time and refuses on a mismatch (a stale echo means the lane read text that no longer
       // matches what is stored).
       out.source_pool_hash = hashSourcePool(out.pool);
+      // Task 6.2b (task-6.1-audit.md fix 3): forward_events/timelines the lane must carry into the brief's
+      // own "Anticipated Guidance and Pending Regulatory Events" section and the "Confirmed Regulatory
+      // Timeline" section respectively -- never omitted when empty, so a lane can always check `.length`.
+      out.forward_events = forwardEventsByItem.get(it.id) ?? [];
+      out.timelines = timelinesByItem.get(it.id) ?? [];
     }
     return out;
   });
@@ -428,6 +461,8 @@ async function main() {
   const claimRows = [];
   const sectionRows = [];
   const poolRows = [];
+  const forwardEventRows = [];
+  const timelineRows = [];
   for (const idChunk of chunk(targetIds, 200)) {
     if (!idChunk.length) continue;
     const claims = await readAll("section_claim_provenance", "id, intelligence_item_id, claim_kind, claim_text, source_span", {
@@ -440,6 +475,26 @@ async function main() {
       match: (q) => q.in("item_id", idChunk),
     });
     sectionRows.push(...sections);
+
+    if (withPoolText) {
+      // Task 6.2b (task-6.1-audit.md fix 3): forward_events + timelines, read ONLY under --with-pool-text
+      // (the forward-events family's own default export already carries claims/sections; this is the
+      // brief-authoring export's own additional need, the same posture the pool/required_slots reads above
+      // already take). item_forward_events columns per migration 274: event_date/event_kind/
+      // obligation_text/confidence per the audit's own fix text, plus source_span so the lane can cite the
+      // same verbatim span back into the brief section it carries the event into. item_timelines columns
+      // per migration 004: milestone_date/label/is_completed.
+      const events = await readAll("item_forward_events", "intelligence_item_id, event_date, event_kind, obligation_text, confidence, source_span", {
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern): bounded per chunk, not corpus-scale)
+        match: (q) => q.in("intelligence_item_id", idChunk),
+      });
+      forwardEventRows.push(...events);
+      const timelines = await readAll("item_timelines", "item_id, milestone_date, label, is_completed", {
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern): bounded per chunk, not corpus-scale)
+        match: (q) => q.in("item_id", idChunk),
+      });
+      timelineRows.push(...timelines);
+    }
 
     if (withPoolText) {
       // Part 3 task 3.1: --with-pool-text is an explicit, deliberate request for the FULL grounding pool
@@ -466,7 +521,11 @@ async function main() {
     }
   }
 
-  const corpusItems = buildCorpusItems(targetItems, claimRows, sectionRows, poolRows, { withPoolText });
+  const corpusItems = buildCorpusItems(targetItems, claimRows, sectionRows, poolRows, {
+    withPoolText,
+    forwardEventRows,
+    timelineRows,
+  });
   const withContent = corpusItems.filter((it) => it.claims.length || it.sections.length).length;
   console.log(
     `export-corpus-for-extraction: ${corpusItems.length} item(s) exported (${withContent} carry ≥1 FACT/GAP ` +

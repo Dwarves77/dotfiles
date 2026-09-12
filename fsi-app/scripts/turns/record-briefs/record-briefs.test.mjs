@@ -43,6 +43,9 @@ function validMetadata(overrides = {}) {
   };
 }
 
+// Fix round 1, finding 1: every claim now carries `section` (the canonical section key of the entry's own
+// format_type) -- "2" is "What This Regulation Is and Why It Applies to the Workspace", the section
+// validEntry's default body states this claim's span in (see baseBody below).
 function validClaim(overrides = {}) {
   return {
     slot_key: "effective_date",
@@ -50,17 +53,47 @@ function validClaim(overrides = {}) {
     claim_text: "[effective_date] The captured source states, verbatim: «shall enter into force on 1 January 2027»",
     source_span: "shall enter into force on 1 January 2027",
     source_url: "https://example.org/reg",
+    section: "2",
     ...overrides,
   };
+}
+
+// A compliant "Substantive Requirements" section body (fix round 1, finding 5: this section is now
+// REQUIRED for every regulatory_fact_document entry, so every fixture needs one, not just the ones that
+// deliberately test it): an inert sentence (no modal verb -- criterion 4 needs no label on it), the three
+// qualification-absence notes (article-citing, fix round 1 finding 4), then the accounting line as the
+// LAST content in the section (fix round 1, finding 3). No claims attach to it by default (K=0, M=0).
+function compliantSubstantiveRequirementsBlock() {
+  return (
+    "# Substantive Requirements\n\n" +
+    "This section addresses no additional obligations beyond those already stated above.\n\n" +
+    "No phase-in is stated in Articles 1 to 12.\n" +
+    "No exceptions are stated in Articles 1 to 12.\n" +
+    "No scope limits are stated in Articles 1 to 12.\n" +
+    "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n"
+  );
+}
+
+// The full base body every validEntry() starts from: section "2" (carries the default claim's span),
+// section "14" (Confirmed Regulatory Timeline, MIRROR (c)'s own requirement), and section "8" (Substantive
+// Requirements, MIRROR (d)/(e)'s own requirement) -- compliant by default so the "happy path" tests stay
+// happy; a test exercising a NON-compliant Substantive Requirements section passes its own
+// `substantiveRequirements` override (a full "# Substantive Requirements\n\n..." block, since it always
+// sits last in the body with nothing after it to fold into).
+function baseBody({ substantiveRequirements = compliantSubstantiveRequirementsBlock() } = {}) {
+  return (
+    "# What This Regulation Is and Why It Applies to the Workspace\n\n" +
+    "This instrument shall enter into force on 1 January 2027 and sets out reporting obligations.\n\n" +
+    "# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n\n" +
+    substantiveRequirements
+  );
 }
 
 function validEntry(overrides = {}) {
   return {
     item_id: ITEM_ID,
     source_pool_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85",
-    body:
-      "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
-      "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n",
+    body: baseBody(),
     metadata: validMetadata(),
     claims: [validClaim()],
     ...overrides,
@@ -82,7 +115,7 @@ const POOL = { [ITEM_ID]: POOL_TEXT };
 describe("validateRecordBriefsFile: valid entry", () => {
   test("a fully valid file validates ok, with entries echoed back", () => {
     const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL });
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
     assert.equal(r.entries.length, 1);
     assert.equal(r.entries[0].item_id, ITEM_ID);
   });
@@ -127,14 +160,14 @@ describe("validateRecordBriefsFile: Gate A mirror", () => {
 
   test("a token covered by a FACT claim's own text/span never fails (the happy path)", () => {
     const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL });
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 });
 
 describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", () => {
   test("a section matching the unlabeled-modal pattern with no analysis label or legal callout fails, naming the section", () => {
     const entry = validEntry({
-      body: validEntry().body + "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n",
+      body: baseBody({ substantiveRequirements: "# Substantive Requirements\n\nThe operator must register with the agency.\n" }),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
     assert.equal(r.ok, false);
@@ -145,22 +178,28 @@ describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", (
 
   test("the SAME assertion labeled with a recognised analysis label passes", () => {
     const entry = validEntry({
-      body:
-        validEntry().body +
-        "\n\n# Substantive Requirements\n\n*Analytical inference:* The operator must register with the agency.\n",
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* The operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\n" +
+          "No scope limits are stated in Articles 1 to 12.\nObligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
   test("the SAME assertion behind the legal callout passes", () => {
     const entry = validEntry({
-      body:
-        validEntry().body +
-        "\n\n# Substantive Requirements\n\n*Legal Confirmation Required:* The operator must register with the agency.\n",
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Legal Confirmation Required:* The operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\n" +
+          "No scope limits are stated in Articles 1 to 12.\nObligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
   // Fix round 1, finding 2: content outside every canonical section (a preamble, a non-canonical heading
@@ -177,8 +216,10 @@ describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", (
     const entry = validEntry({
       body:
         "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
+        "\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThis instrument shall enter into force on 1 January 2027 and sets out reporting obligations." +
         "\n\n# A heading that is not a canonical section name\n\nThe operator must register with the agency." +
-        "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n",
+        "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n\n" +
+        compliantSubstantiveRequirementsBlock(),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
     assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
@@ -190,10 +231,13 @@ describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", (
   // this mirror) would isolate the two and wrongly refuse this -- the exact over-refusal the fix closes.
   test("an H1 section's early unlabeled sentence is satisfied by a label on its own H2/H3 sub-heading, matching the live write path's folded row", () => {
     const entry = validEntry({
-      body:
-        validEntry().body +
-        "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n\n" +
-        "### Detail sub-point\n\n*Analytical inference:* further detail on the registration process.\n",
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\nThe operator must register with the agency.\n\n" +
+          "### Detail sub-point\n\n*Analytical inference:* further detail on the registration process.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\n" +
+          "No scope limits are stated in Articles 1 to 12.\nObligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
     assert.equal(r.ok, true, `expected ok (the H3 sub-heading folds into the parent H1 row), got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
@@ -205,8 +249,11 @@ describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", (
     // check pre-write, so the unlabeled assertion still fails even though a FACT claim exists elsewhere
     // in the same entry.
     const entry = validEntry({
-      body: validEntry().body + "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n",
-      claims: [validClaim(), { slot_key: null, claim_kind: "FACT", claim_text: "the fine is up to EUR 500,000", source_span: "fines of up to EUR 500,000", source_url: "https://example.org/reg" }],
+      body: baseBody({ substantiveRequirements: "# Substantive Requirements\n\nThe operator must register with the agency.\n" }),
+      claims: [
+        validClaim(),
+        { slot_key: null, claim_kind: "FACT", claim_text: "the fine is up to EUR 500,000", source_span: "fines of up to EUR 500,000", source_url: "https://example.org/reg", section: "8" },
+      ],
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
     assert.equal(r.ok, false);
@@ -239,17 +286,381 @@ describe("validateRecordBriefsFile: timeline mirror", () => {
 
   test("a colon-separated entry (the lane's own shape, no dash glyph) counts as at least one row", () => {
     const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL }); // validEntry's default body
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
   test("the section-sign heading variant (\\u00A714 ...) is also accepted", () => {
     const entry = validEntry({
       body:
-        "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
-        `\n\n# ${String.fromCharCode(0xa7)}14 Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n`,
+        "# What This Regulation Is and Why It Applies to the Workspace\n\nThis instrument shall enter into force on 1 January 2027 and sets out reporting obligations." +
+        `\n\n# ${String.fromCharCode(0xa7)}14 Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n\n` +
+        compliantSubstantiveRequirementsBlock(),
     });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
-    assert.equal(r.ok, true);
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+});
+
+// ── task 6.2b (brief-chain-build-plan-2026-09-11): the two more pre-write refusals from
+// task-6.1-audit.md's ranked fixes 1 and 2, born from the pilot's own numbers -- CLP (2.59M char pool)
+// and Environmental Permitting 2016 (965k char pool) returned 4-5 FACT claims in "Substantive
+// Requirements" with no accounting of what was surveyed, and all ten pilot items scored 0/10 on
+// per-year trajectory and calculation-basis language with no way to tell a thin source apart from a
+// lane that did not look far enough. Fix round 1 (review-6.2b.md) closed five findings against this
+// pair of mirrors -- see schema.mjs's own RECORD_BRIEFS_SCHEMA_VERSION comment for the full list. ────
+
+describe("validateRecordBriefsFile: claim section attachment (fix round 1, finding 1)", () => {
+  test("a claim missing .section fails at the per-claim shape check", () => {
+    const errors = validateRecordBriefsClaim(
+      { slot_key: null, claim_kind: "GAP", claim_text: "x", source_span: null, source_url: null },
+      0,
+      ITEM_ID,
+      POOL_TEXT,
+    );
+    assert.ok(errors.some((e) => e.includes("section must be a non-empty string")), JSON.stringify(errors));
+  });
+
+  test("a claim whose .section is not a canonical key for the entry's format_type fails, naming the valid keys", () => {
+    const entry = validEntry({ claims: [validClaim({ section: "99" })] });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("is not a canonical section key"));
+    assert.ok(msg, `expected a bad-section-key error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /"99"/);
+  });
+
+  test("a claim whose source_span is verbatim in the pool but NOT present in its declared section's own text fails", () => {
+    // The default claim's span is about the effective date (section "2"'s own content) -- declaring it
+    // as section "14" (Confirmed Regulatory Timeline, whose own text never states that span) must fail.
+    const entry = validEntry({ claims: [validClaim({ section: "14" })] });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("is not present in section") && e.includes('"14"'));
+    assert.ok(msg, `expected a span-not-in-section error, got: ${JSON.stringify(r.errors)}`);
+  });
+
+  test("a claim whose section is canonical and whose source_span IS present in that section's own text passes (the happy path)", () => {
+    const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL }); // validEntry's default claim: section "2"
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+});
+
+describe("validateRecordBriefsFile: depth-accounting mirror (task-6.1-audit.md fix 1)", () => {
+  // Fix round 1, finding 1: attachment is now the explicit `.section` field, not text-containment --
+  // this claim declares section "8" (Substantive Requirements) directly.
+  const attachedClaim = {
+    slot_key: null,
+    claim_kind: "FACT",
+    claim_text: "the operator must register with the agency",
+    source_span: "operator must register with the agency",
+    source_url: "https://example.org/reg",
+    section: "8",
+  };
+  // attachedClaim's own source_span must be verbatim in the item's pool text (record-facts.mjs's
+  // assertVerbatim) -- POOL_TEXT (defined above) never states it.
+  const POOL_WITH_REGISTRATION_DUTY = { [ITEM_ID]: `${POOL_TEXT} The operator must register with the agency.` };
+
+  test("a Substantive Requirements section with no accounting line fails, naming the missing form", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("missing"));
+    assert.ok(msg, `expected a missing-accounting-line error, got: ${JSON.stringify(r.errors)}`);
+  });
+
+  // Fix round 1, finding 2's own explicit ask: the qualification mirror must still fire when the
+  // depth-accounting line itself is missing -- the state of every currently-applied batch.
+  test("qualification refusals fire even when the depth-accounting line itself is missing (fix round 1, finding 2)", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements: "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("depth accounting") && e.includes("missing")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("trajectory")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("scope")), JSON.stringify(r.errors));
+  });
+
+  test("extracted-as-FACT overstating the entry's own attached FACT claims fails, naming both counts", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 3; workspace-adjacent: 3; extracted as FACT: 3.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("overstates"));
+    assert.ok(msg, `expected an overstated-K error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /extracted as FACT: 3/);
+    assert.match(msg, /1 FACT/);
+  });
+
+  test("extracted-as-FACT below workspace-adjacent with no Shortfall line fails", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 4; workspace-adjacent: 3; extracted as FACT: 1.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("Shortfall"));
+    assert.ok(msg, `expected a missing-shortfall error, got: ${JSON.stringify(r.errors)}`);
+  });
+
+  test("the SAME shortfall passes once a Shortfall line names a reason", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 4; workspace-adjacent: 3; extracted as FACT: 1.\n" +
+          "Shortfall: the other two obligations duplicate the registration duty already stated.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 3: the accounting line must be the LAST content in the section -- a lane that
+  // tallies honestly and then keeps writing past the tally (a new, uncounted obligation) is refused.
+  test("an obligation sentence following the accounting line fails (fix round 1, finding 3)", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 1; extracted as FACT: 1.\n" +
+          "*Analytical inference:* a further obligation the tally above never counted.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("content follows the accounting line"));
+    assert.ok(msg, `expected a trailing-content error, got: ${JSON.stringify(r.errors)}`);
+  });
+
+  test("a Shortfall line immediately after the accounting line is the one permitted exception to 'nothing follows'", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 4; workspace-adjacent: 3; extracted as FACT: 1.\n" +
+          "Shortfall: the other two obligations duplicate the registration duty already stated.\n",
+      }),
+      claims: [validClaim(), attachedClaim],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL_WITH_REGISTRATION_DUTY });
+    assert.equal(r.ok, true, `expected ok (a Shortfall line is permitted), got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 5: a regulatory_fact_document entry with no extractable Substantive Requirements
+  // section at all is now refused (a regulatory brief without that section is not complete) -- the shape
+  // of the real chunk-1 item review-6.2b.md's own Finding 6 named.
+  test("a regulatory_fact_document entry with no extractable Substantive Requirements section fails (fix round 1, finding 5)", () => {
+    const entry = validEntry({
+      body:
+        "# What This Regulation Is and Why It Applies to the Workspace\n\n" +
+        "This instrument shall enter into force on 1 January 2027 and sets out reporting obligations." +
+        "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("is not present"));
+    assert.ok(msg, `expected a section-not-present error, got: ${JSON.stringify(r.errors)}`);
+  });
+
+  // The pilot's own shape (task-6.1-audit.md finding 2): CLP (2.59M chars) and Environmental Permitting
+  // 2016 (965k chars) each returned 4-5 FACT claims with no accounting at all. This fixture proves the
+  // large-pool floor fires even when K equals workspace-adjacent (no ordinary shortfall triggered).
+  test("a source pool over 200,000 chars with extracted-as-FACT under 5 and no Shortfall line fails", () => {
+    const spans = ["clp obligation span one", "clp obligation span two", "clp obligation span three", "clp obligation span four"];
+    const largePoolText = "filler text ".repeat(20_000) + spans.join(". ") + ". " + POOL_TEXT;
+    assert.ok(largePoolText.length > 200_000, "fixture pool must exceed the 200,000-char floor");
+    const claims = spans.map((s) => ({ slot_key: null, claim_kind: "FACT", claim_text: s, source_span: s, source_url: "https://example.org/reg", section: "8" }));
+    const substantiveRequirements =
+      "# Substantive Requirements\n\n*Analytical inference:* " +
+      spans.join(". ") +
+      ".\n\nNo phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+      "Obligations surveyed: 60; workspace-adjacent: 4; extracted as FACT: 4.\n";
+    const entry = validEntry({ body: baseBody({ substantiveRequirements }), claims: [validClaim(), ...claims] });
+    const pool = { [ITEM_ID]: largePoolText };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("depth accounting") && e.includes("large-pool"));
+    assert.ok(msg, `expected a large-pool error, got: ${JSON.stringify(r.errors)}`);
+
+    const entryWithShortfall = validEntry({
+      body: baseBody({
+        substantiveRequirements: substantiveRequirements.replace(
+          "extracted as FACT: 4.\n",
+          "extracted as FACT: 4.\nShortfall: the remaining obligations fall outside workspace-adjacent activity.\n",
+        ),
+      }),
+      claims: [validClaim(), ...claims],
+    });
+    const r2 = validateRecordBriefsFile(validFile([entryWithShortfall]), { poolTextByItemId: pool });
+    assert.equal(r2.ok, true, `expected ok once a Shortfall line is added, got: ${JSON.stringify(r2.ok ? [] : r2.errors)}`);
+  });
+});
+
+describe("validateRecordBriefsFile: qualification-accounting mirror (task-6.1-audit.md fix 2)", () => {
+  test("no trajectory/exception/scope capture and no absence notes fails all three, naming each category", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("trajectory")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("scope")), JSON.stringify(r.errors));
+  });
+
+  test("the SAME section passes once all three absence notes are added (no capture needed when genuinely absent)", () => {
+    const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL }); // validEntry's default body is already compliant
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  test("a metadata.requirement_trajectory satisfies the trajectory check without the absence sentence", () => {
+    const entry = validEntry({
+      metadata: validMetadata({
+        requirement_trajectory: {
+          steps: [
+            { date: "2030-01-01", value: "50%" },
+            { date: "2035-01-01", value: "70%" },
+          ],
+        },
+      }),
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 4: capture now reads the claim's own verbatim source_span (never free-form
+  // claim_text), and the span must be UNNEGATED.
+  test("an attached FACT claim naming an unnegated exception in its source_span satisfies the exceptions check without the absence sentence", () => {
+    const exceptionClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "the duty carries a carve-out for small shipments",
+      source_span: "Shipments under 500kg are exempt from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "shipments under 500kg are exempt from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), exceptionClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} Shipments under 500kg are exempt from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 4's own worked example: a NEGATED span must not satisfy "an exception is
+  // captured" -- it asserts the opposite.
+  test("a NEGATED exception span ('No party is exempt...') does NOT satisfy the exceptions check", () => {
+    const negatedClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "no party is exempt from this requirement",
+      source_span: "No party is exempt from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "no party is exempt from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), negatedClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} No party is exempt from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+  });
+
+  // Fix round 1, finding 4: "does not apply" is genuinely restrictive language, not a negated scope claim
+  // -- the negation window looks BEFORE the match, never at the match's own text, so this must still pass.
+  test("'does not apply' (a genuine scope restriction, not a negated one) still satisfies the scope check", () => {
+    const scopeClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "the duty does not apply to small consignments",
+      source_span: "This Regulation does not apply to consignments under 500kg",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "this Regulation does not apply to consignments under 500kg.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo exceptions are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), scopeClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} This Regulation does not apply to consignments under 500kg.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 4: the old fixed sentence ("No exceptions stated in the source.") is now refused
+  // -- it must cite an article/section range.
+  test("the old fixed absence sentence with no article citation no longer satisfies the check", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency.\n\n" +
+          "No phase-in stated in the source.\nNo exceptions stated in the source.\nNo scope limits stated in the source.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("trajectory")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("scope")), JSON.stringify(r.errors));
   });
 });
 
@@ -379,7 +790,7 @@ describe("validateRecordBriefsClaim", () => {
 
   test("a GAP claim needs no source_span or source_url at all", () => {
     const errors = validateRecordBriefsClaim(
-      { slot_key: "penalty_summary", claim_kind: "GAP", claim_text: "[penalty_summary] No statement located.", source_span: null, source_url: null },
+      { slot_key: "penalty_summary", claim_kind: "GAP", claim_text: "[penalty_summary] No statement located.", source_span: null, source_url: null, section: "8" },
       0,
       ITEM_ID,
       POOL_TEXT
@@ -429,8 +840,10 @@ describe("buildSyntheticFrontmatter", () => {
 describe("buildSyntheticRawText", () => {
   test("a body containing its own literal '---' line still parses (the opening fence closest to the YAML wins)", () => {
     const body =
-      "# Title\n\nSection one.\n\n---\n\nSection two, after a markdown rule." +
-      "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n";
+      "# What This Regulation Is and Why It Applies to the Workspace\n\n" +
+      "This instrument shall enter into force on 1 January 2027 and sets out reporting obligations.\n\n---\n\nSection two, after a markdown rule." +
+      "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n\n" +
+      compliantSubstantiveRequirementsBlock();
     const raw = buildSyntheticRawText(body, validMetadata());
     // parseAgentOutput is exercised indirectly via validateRecordBriefsEntry -- this test proves the raw
     // text itself is well-formed by checking the whole entry validates ok end to end.

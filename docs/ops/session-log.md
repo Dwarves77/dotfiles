@@ -19709,3 +19709,34 @@ new cross-check test importing attach-found-sources.mjs's own real `isWorklistRo
 ### UX compliance (fix round 1)
 
 Not applicable: no `.tsx`/`.css` touched.
+
+## 2026-09-12, W9 task 6.2b: depth and qualification accounting, forward events in the export, per-claim section
+
+**What.** The pilot audit's source fixes for the record-briefs lane, never per brief: the Substantive
+Requirements section ends with the accounting line `Obligations surveyed: N; workspace-adjacent: M;
+extracted as FACT: K.` and the validator refuses a missing line, an overstated K, K < M without a
+Shortfall line, and K < 5 on a pool over 200,000 characters; exceptions, conditions, scope limits and
+per-year trajectory are each captured on the claim's verbatim `source_span` (negation guarded) or
+recorded absent with a cited article; `export-corpus-for-extraction.mjs --with-pool-text` carries
+`item_forward_events` and `item_timelines` rows and the validator refuses a body that omits an exported
+forward event; every claim names its `section`, validated for membership and span presence, matching
+the write path's own attachment so claims stop collapsing onto section 1; `RECORD_BRIEFS_SCHEMA_VERSION`
+is stamped into the run artifact. Fix round 1 closed the reviewer's five findings (review-6.2b.md in the
+SDD ledger folder, re-review PASS).
+
+**Gates.** record-briefs 60/60, apply-record-briefs 35/35, export-corpus 50/50, section-list-drift 6/6,
+F28 33/33, glob-portability 3/3, shared-writer-registry 1/1, fitness 38 functions 0 violations, consistency
+clean, CI-mode discipline runner 0 fail over origin/master..HEAD, pre-push gate green (lane and
+coordinator runs), glyph byte check 0. `PENDING-RUN.md` Re-pin 7 names the batch-2 re-apply as the
+superseding run.
+
+**Files.** `fsi-app/scripts/turns/record-briefs/schema.mjs`, `README.md`, `record-briefs.test.mjs`,
+`fsi-app/scripts/turns/apply-record-briefs.mjs` and test, `fsi-app/scripts/turns/export-corpus-for-extraction.mjs`
+and test, `fsi-app/scripts/harness-runs/brief-apply/PENDING-RUN.md`, `docs/ops/session-log.md` (this entry).
+
+**Wiring lesson.** This entry was missing from the lane's range; CI's memory gate caught it and the
+pre-push hook did not (the hook has no memory-gate step). The parity fix is tasked in the W9 ledger.
+
+### UX compliance (task 6.2b)
+
+Not applicable: no `.tsx`/`.css` touched.

@@ -444,6 +444,35 @@ test("applyOneEntry: step order and outcome vocabulary, all 8 steps + provenance
   );
 });
 
+// Fix round 1, finding 1 (review-6.2b.md): record-briefs claims now carry an explicit `.section` field
+// (the canonical section key the live write path attaches the claim to, canonical-pipeline.ts:1889's own
+// `sectionMap[String(c2.section)]`). This proves the driver passes `entry.claims` through to `groundBrief`'s
+// injected ledger UNCHANGED -- no transform strips or renames the field -- by capturing the exact argument
+// groundBrief receives and asserting it is reference-identical to (and therefore carries every field of)
+// the entry's own claims array.
+test("applyOneEntry: entry.claims (including each claim's .section field) passes through to groundBrief's injectedLedger unchanged", async () => {
+  const itemId = "item-1";
+  const claims = [
+    { slot_key: "effective_date", claim_kind: "FACT", claim_text: "text", source_span: "span", source_url: "https://example.org", section: "2" },
+    { slot_key: null, claim_kind: "FACT", claim_text: "text2", source_span: "span2", source_url: "https://example.org", section: "8" },
+  ];
+  let capturedLedger = null;
+  const deps = successfulDeps({
+    groundBrief: async (_itemId, _caller, opts) => {
+      capturedLedger = opts.injectedLedger;
+      return { ok: true, detail: "grounded" };
+    },
+  });
+  await applyOneEntry(
+    { itemId, entry: { ...baseEntry(itemId), claims } },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps },
+  );
+  assert.equal(capturedLedger, claims, "groundBrief must receive the SAME array reference (no copy that could drop fields)");
+  assert.deepEqual(capturedLedger, claims);
+  assert.equal(capturedLedger[0].section, "2");
+  assert.equal(capturedLedger[1].section, "8");
+});
+
 test("applyOneEntry: a generate failure is recorded, but every OTHER step still runs (independent-step, non-halting posture)", async () => {
   const itemId = "item-2";
   const deps = successfulDeps({

@@ -381,6 +381,9 @@ test("buildCorpusItems: withPoolText:true adds title/item_type/format_type/juris
       pool: [],
       // Task 3.3 fix round 1: the 9th added field, hashSourcePool of THIS item's own (empty) pool.
       source_pool_hash: hashSourcePool([]),
+      // Task 6.2b: forward_events/timelines, empty (no rows supplied), never omitted.
+      forward_events: [],
+      timelines: [],
     },
   ]);
 });
@@ -402,6 +405,8 @@ test("buildCorpusItems: withPoolText:true defaults the 7 metadata fields to null
       required_slots: [],
       pool: [],
       source_pool_hash: hashSourcePool([]),
+      forward_events: [],
+      timelines: [],
     },
   ]);
 });
@@ -497,6 +502,48 @@ describe("source contract: --with-pool-text widens the intelligence_items column
     assert.ok(defaultPathMatch, "expected the default path's intelligence_items readAll call");
     assert.equal(defaultPathMatch[1], "ITEM_COLUMNS");
   });
+});
+
+// ── buildCorpusItems: forward_events/timelines (task 6.2b, task-6.1-audit.md fix 3) ────────────────
+// The audit's own finding: 7 of the pilot's 10 items had DB-recorded forward events that never reached
+// the brief's own "Anticipated Guidance and Pending Regulatory Events" section -- the forward
+// intelligence existed as a row the exporter never handed the lane in the first place.
+
+test("buildCorpusItems: withPoolText:true adds forward_events:[] and timelines:[] for an item with no rows in either table, never omitted", () => {
+  const out = buildCorpusItems([{ id: "lonely" }], [], [], [], { withPoolText: true });
+  assert.deepEqual(out[0].forward_events, []);
+  assert.deepEqual(out[0].timelines, []);
+});
+
+test("buildCorpusItems: forward_events/timelines are OMITTED by default (withPoolText:false), even when rows are supplied", () => {
+  const forwardEventRows = [{ intelligence_item_id: "item-1", event_date: "2027-01-01", event_kind: "entry_into_force", obligation_text: "text", confidence: "high", source_span: "span" }];
+  const timelineRows = [{ item_id: "item-1", milestone_date: "2027-01-01", label: "Enters into force", is_completed: false }];
+  const out = buildCorpusItems([{ id: "item-1" }], [], [], [], { forwardEventRows, timelineRows });
+  assert.equal(Object.hasOwn(out[0], "forward_events"), false);
+  assert.equal(Object.hasOwn(out[0], "timelines"), false);
+});
+
+test("buildCorpusItems: withPoolText:true maps item_forward_events rows to event_date/event_kind/obligation_text/confidence/source_span, grouped by item", () => {
+  const items = [{ id: "item-1" }, { id: "item-2" }];
+  const forwardEventRows = [
+    { intelligence_item_id: "item-1", event_date: "2027-01-01", event_kind: "entry_into_force", obligation_text: "Regulation enters into force on 1 January 2027.", confidence: "high", source_span: "shall enter into force on 1 January 2027" },
+    { intelligence_item_id: "item-1", event_date: "2028-06-01", event_kind: "compliance_deadline", obligation_text: "Operators shall comply by 1 June 2028.", confidence: "medium", source_span: "shall comply by 1 June 2028" },
+  ];
+  const out = buildCorpusItems(items, [], [], [], { withPoolText: true, forwardEventRows });
+  assert.deepEqual(out[0].forward_events, [
+    { event_date: "2027-01-01", event_kind: "entry_into_force", obligation_text: "Regulation enters into force on 1 January 2027.", confidence: "high", source_span: "shall enter into force on 1 January 2027" },
+    { event_date: "2028-06-01", event_kind: "compliance_deadline", obligation_text: "Operators shall comply by 1 June 2028.", confidence: "medium", source_span: "shall comply by 1 June 2028" },
+  ]);
+  assert.deepEqual(out[1].forward_events, []);
+});
+
+test("buildCorpusItems: withPoolText:true maps item_timelines rows to milestone_date/label/is_completed, grouped by item", () => {
+  const items = [{ id: "item-1" }];
+  const timelineRows = [
+    { item_id: "item-1", milestone_date: "2027-01-01", label: "Regulation enters into force.", is_completed: false },
+  ];
+  const out = buildCorpusItems(items, [], [], [], { withPoolText: true, timelineRows });
+  assert.deepEqual(out[0].timelines, [{ milestone_date: "2027-01-01", label: "Regulation enters into force.", is_completed: false }]);
 });
 
 // ── source contract: required_slots reuses canonical-pipeline.ts's own item_type_required_slots query

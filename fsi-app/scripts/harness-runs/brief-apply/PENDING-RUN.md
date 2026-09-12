@@ -122,9 +122,9 @@ real `src/lib/agent/formats/*.ts` registry, plus a header comment naming that te
 to the validator itself -- comment + export-keyword only. Neither `apply-record-briefs.mjs`,
 `canonical-pipeline.ts`, nor `flywheel-steps.mjs` were touched.
 
-**harness_version at write time:** `sha256:6f48801e6631548a` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:9bb2a500ed959054`
-outright).
+**harness_version at Re-pin 5's write time (superseded below, see Re-pin 6):** `sha256:6f48801e6631548a`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files,
+unreordered; supersedes `sha256:9bb2a500ed959054` outright).
 
 **The planned run that supersedes this marker.** Unchanged from Re-pin 3 -- the pilot RE-APPLY,
 `brief-apply-run-003.json`, from the first `brief-apply.yml` dispatch against `record-briefs-001.json`
@@ -134,3 +134,58 @@ widened timeline parser, F the workflow's `allow_brief_overwrite` input + artifa
 in fix round 1 to degrade rather than fail the run on a refused push). Per F28's reverse-audit, this file is
 deleted the moment an artifact carrying the hash above lands, or re-pinned again if a governing file
 changes before that run lands.
+
+---
+
+## Re-pin 6 (task 6.2b, 2026-09-12 -- task-6.1-audit.md's ranked fixes 1 and 2, before batch 2 continues)
+
+**What changed.** `scripts/turns/record-briefs/schema.mjs` (a governing file) gained two more pre-write
+refusals (`RECORD_BRIEFS_SCHEMA_VERSION` bumped to `rb1-2026-09-12.2`): a depth-accounting mirror
+("Substantive Requirements" must end with an "Obligations surveyed: N; workspace-adjacent: M; extracted
+as FACT: K." line, K bounded by the FACT claims actually attached to the section, a Shortfall line
+required when K < M or when a source pool over 200,000 chars still yields K < 5) and a
+qualification-accounting mirror (per-year trajectory / exceptions / scope limits each either captured by
+an attached FACT claim or recorded absent with the README's prescribed sentence). Neither
+`apply-record-briefs.mjs`, `canonical-pipeline.ts`, nor `flywheel-steps.mjs` was touched by this task.
+Still no live dispatch: no batch has been re-applied since Re-pin 5 landed.
+
+**harness_version at Re-pin 6's write time (superseded below, see Re-pin 7):** `sha256:e24e78f7e95a801b`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files,
+unreordered; supersedes `sha256:6f48801e6631548a` outright).
+
+**The planned run that would have superseded THAT marker.** The BATCH-2 apply -- the first
+`brief-apply.yml` dispatch against `record-briefs-002.json`. No such run landed before fix round 1's own
+edits moved the hash again (see the re-pin below).
+
+---
+
+## Re-pin 7 (task 6.2b fix round 1, 2026-09-12 -- review-6.2b.md, five findings)
+
+**What changed.** `scripts/turns/record-briefs/schema.mjs` (a governing file) gained a fourth pre-write
+refusal (claim section attachment, RECORD_BRIEFS_SCHEMA_VERSION bumped to `rb1-2026-09-12.3`) and rewrote
+the depth-accounting/qualification-accounting pair: claim-to-section attachment now reads an explicit
+per-claim `.section` field matching the LIVE write path's own mechanism instead of a text-containment
+guess (finding 1); the qualification mirror runs independently of the depth-accounting line's own presence
+(finding 2); the accounting line must be the section's own trailing content (finding 3); the qualification
+capture/absence checks are tightened against polarity and source blindness (finding 4); a
+regulatory_fact_document entry missing "Substantive Requirements" entirely is now refused (finding 5, also
+closing review Finding 6's chunk-1 item). `scripts/turns/apply-record-briefs.mjs` (a governing file) also
+changed: imports and stamps `RECORD_BRIEFS_SCHEMA_VERSION` into the run artifact's own `config` (finding
+5's other half -- the version marker previously had no reader anywhere in the codebase). Neither
+`canonical-pipeline.ts` nor `flywheel-steps.mjs` was touched by this fix round. Still no live dispatch: no
+batch has been re-applied since Re-pin 5 landed; record-briefs-001.json and -002.json (already applied)
+predate the `section` field on every claim and are refused by the fixed validator as committed -- they are
+re-applied (regenerated with `section` added) after this fix round merges, not hand-patched.
+
+**harness_version at write time:** `sha256:70029202bae4a9a6` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:e24e78f7e95a801b`
+outright).
+
+**The planned run that supersedes this marker.** Unchanged in kind from Re-pin 6 -- the BATCH-2 apply, the
+first `brief-apply.yml` dispatch against `record-briefs-002.json` (regenerated with the `section` field on
+every claim), run under this fix round's validator so all six pre-write refusals catch what would otherwise
+reach the ground step. That run's artifact (`brief-apply-run-004.json`, continuing this family's own
+numbering) will carry `harness_version: "sha256:70029202bae4a9a6"` if it lands with no further
+governing-file change; if not, its own harness_version records whatever the tree was at that time,
+honestly. Per F28's reverse-audit, this file is deleted the moment an artifact carrying the hash above
+lands, or re-pinned again if a governing file changes before that run lands.
