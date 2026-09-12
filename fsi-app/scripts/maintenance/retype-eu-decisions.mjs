@@ -26,6 +26,50 @@
 // three missing slots' FACT-or-GAP claims FIRST, so criterion 5 already clears by the time the retype
 // UPDATE fires.
 //
+// INTERIM-TRIGGER RISK, STEP 1 FIRES WHILE THE ITEM IS STILL 'initiative' [HYPOTHESIS, reviewed
+// 2026-09-12, coordinator fix round 1]. Migration 115 puts `WHEN (pg_trigger_depth() = 0)` ONLY on
+// `set_provenance_status_trg` (the `intelligence_items` trigger, guarding its own self-UPDATE against
+// recursion). `set_provenance_status_sections_trg` (`intelligence_item_sections`) and
+// `set_provenance_status_claims_trg` (`section_claim_provenance`) carry NO depth guard at all -- every
+// claim/section INSERT this script's step 1 makes fires `validate_item_provenance(item_id)` immediately,
+// evaluated against the item's item_type AT THAT INSTANT, which is still `initiative` (step 2's retype
+// UPDATE has not run yet). Reasoned through against the LIVE function (read in full, including migrations
+// 141/158/207 layered on top of the 114/119 version this file's own "WHY THE ORDER MATTERS" note above
+// cites):
+//   - Criterion 5 (required slots) queries `item_type_required_slots WHERE item_type = v_item.item_type`
+//     -- while still `initiative`, that is initiative's OWN five slots (action_now / conversion_trigger /
+//     driving_parties / signal_event / corridor_identity), NEVER the three this script is adding. Adding
+//     extra, non-required claims cannot make an already-covered set of five slots uncovered, so criterion
+//     5 does not fail during the interim state PROVIDED the item is currently `verified` (i.e. those five
+//     were already covered before this script ever touches it -- true by this script's own selection,
+//     which only reads `provenance_status`-agnostic `is_archived=false` `initiative` rows, not filtered to
+//     `verified` -- see the open question below).
+//   - Criterion 3's authority floor (migration 141's `v_floor_max`, migration 158's `v_floor_armed`,
+//     migration 207's `c_own_body_types` own-authoring-body extension): `initiative` is IN
+//     `c_own_body_types := ARRAY['standard','framework','initiative']`, so a FACT claim whose `source_id`
+//     shares the item's own source's `institution_id` (true for every claim this script inserts --
+//     `source_id: item.source_id`) grounds at floor 4, not the exempt (NULL) default `v_floor_max` for
+//     initiative. The floor is only ARMED at all, for a non-reg-family item_type, when the item's
+//     `priority` is CRITICAL/HIGH (`v_floor_armed`); it becomes UNCONDITIONALLY armed only once step 2's
+//     retype makes the item_type `regulation` (migration 158's reg-family-always-armed clause), at floor
+//     max 2. Criterion 3 in the LIVE function derives the tier LIVE from `sources` via `scp.source_id`
+//     (`COALESCE(tier_override, base_tier)`), NOT from the `source_tier_at_grounding` column this script
+//     stamps null on (matching provenance-heal.mjs's own STEP 3 SLOTS precedent, which never reads
+//     `source_tier_at_grounding` back either) -- so a null `source_tier_at_grounding` is not itself the
+//     risk; the risk, if any, is whether the item's OWN registered source sits above the applicable floor
+//     (2 post-retype) for a CELEX/EUR-Lex primary source, which this repo's source-credibility-model
+//     generally puts at tier 1. NOT independently re-verified per item by this script.
+//   - Criterion 4's unlabeled-assertion scan is section_row_id-scoped and exempts a section the moment ANY
+//     FACT claim exists for that section_row_id; the item's own pre-existing effective_date FACT already
+//     occupies the `record_facts` section_row_id this script appends to (per the brief: "all 351 already
+//     carry effective_date"), so this exemption should already hold independent of the order this script
+//     itself introduces.
+// NONE of this is proven against a live row -- it is read from the code, plausible, and NOT yet verified
+// against a real `validate_item_provenance` call. The interim-trigger probe below is the coordinator's own
+// mechanism to confirm it (or refute it) against one real item before any real `--mode apply` dispatch:
+// see `docs/plans/brief-chain-build-plan-2026-09-11.md`'s task 5.5 report, "Interim-trigger probe
+// (coordinator runs it)" -- a ROLLBACK-ONLY `DO $$ ... $$` block this script's author does NOT run.
+//
 // PER-ITEM ORDER (brief-mandated, load-bearing):
 //   1. Insert FACT-or-GAP claims for primary_deadline / jurisdictional_scope / penalty_summary onto the
 //      item's record_facts section, extracted from the item's own stored pool text (the largest usable

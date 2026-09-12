@@ -90,7 +90,7 @@ task 0.3b, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` 
 
 **RE-PINNED (task 5.5, brief-chain build plan 2026-09-11, lane eudecision):** `src/lib/intake/record-facts.mjs`
 (one of the 8 files `GOVERNING_FILES.mint` names) gained one export: `buildRecordSlotClaim` (previously a
-private, unexported function) is now `export function buildRecordSlotClaim` — the per-slot routing a
+private, unexported function) is now `export function buildRecordSlotClaim`: the per-slot routing a
 fresh mint's `buildRecordFacts` already used internally, needed by
 `scripts/maintenance/retype-eu-decisions.mjs` to add required-slot claims to an EXISTING item outside a
 fresh mint. No behavior change to any existing caller (the function's body and every internal call site
