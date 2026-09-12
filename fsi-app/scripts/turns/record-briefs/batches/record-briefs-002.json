@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:33:37.161Z",
+  "generated_at": "2026-09-12T18:35:41.901Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -914,6 +914,107 @@
           "claim_text": "The captured source states, verbatim: «Done at Brussels, 15 September 1999.»",
           "source_span": "Done at Brussels, 15 September 1999.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        }
+      ]
+    },
+    {
+      "item_id": "01936f81-7f2f-419a-af3c-681c1d577b6a",
+      "source_pool_hash": "cf4f5c9bcbc8bef01527d3ae1119a008621280a3a762b61c1a62a58b642c613b",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Final Act of the International Conference and Decision by the Energy Charter Conference amending the trade-related provisions of the Energy Charter Treaty (Annex I: the Amendment; Annex II: related Decisions), Official Journal L 252, 12/09/1998. *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).* This is a dense, article-by-article treaty amendment aligning the Energy Charter Treaty's trade provisions with the WTO Agreement (replacing GATT-era cross-references throughout the Treaty and its Annexes). This document is scoped to the provisions most relevant to cross-border movement of energy materials, products, and energy-related equipment: the customs-duty standstill mechanism, the classification definitions that trigger it, and the provisional-application timeline. The great majority of the amendment's text is textual substitution of \"GATT and related instruments\" with \"WTO Agreement\" throughout the Treaty's articles and Annexes, and is not separately restated here; the referenced Annexes (EM I, EM II, EQ I, EQ II, BR, BRQ) that list the specific tariff-line items are rendered as stripped tables in the captured text and are not available from this pool.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe amendment replaces Article 29 of the Energy Charter Treaty with a revised interim trade regime, and defines the two product classes the whole mechanism turns on: \"\"Energy materials and products\", based on the Harmonised System of the World Customs Organisation and the Combined Nomenclature of the European Communities, means the items included in Annexes EM I or EM II.\" and \"\"energy-related equipment\", based on the Harmonised System of the World Customs Organisation, means the items included in Annexes EQ I or EQ II.\" *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).* For workspaces arranging customs clearance or freight forwarding of energy materials, fuels, or energy-sector equipment between Energy Charter Treaty Contracting Parties, this Treaty sets a standstill ceiling on the customs duties and charges the destination or origin state may apply to that cargo, on top of whatever WTO commitments already apply. *Legal Confirmation Required:* whether a specific tariff line for a given shipment falls within the Harmonised System headings listed in Annexes EM I, EM II, EQ I, or EQ II, which this captured text does not reproduce; that classification determines whether the standstill mechanism applies to that shipment at all.\n\n# Issues Requiring Immediate Action\n\n**MONITORING.** Where the workspace clears energy materials or energy-related equipment through customs in an Energy Charter Treaty Contracting Party, confirm the Harmonised System classification of that cargo against the current Annex EM I/II or EQ I/II listings, since those Annexes (not reproduced in this captured text) determine whether the standstill and notification mechanism below applies. *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).* *Analytical inference:* the specific customs-duty exposure for a given shipment depends on the destination or origin state's own notified 1998 baseline level, which this document cannot state without that state's specific tariff record.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe obligation not to increase customs duties or charges above the notified baseline runs to Contracting Parties (states) and, for provisional application, to signatories; a freight forwarder or customs broker is not itself a Contracting Party or signatory and carries no direct treaty obligation. *Legal Confirmation Required:* whether the workspace's role in classifying and declaring cargo for customs purposes intersects with a Contracting Party's own standstill or notification duty in a way that creates downstream documentation obligations for the workspace, distinct from the state-level treaty duty itself.\n\n# Threshold Questions\n\nWhether this Treaty's standstill mechanism applies to a given shipment turns entirely on whether the goods are \"energy materials and products\" or \"energy-related equipment\" as defined above -- a Harmonised-System-based classification question, not a general-purpose one. *Legal Confirmation Required:* the specific tariff classification of a given shipment against Annexes EM I, EM II, EQ I, or EQ II is a customs-classification determination this document cannot make without the Annexes' own tariff-line content, which the captured text does not carry.\n\n# Substantive Requirements\n\n**Customs-duty standstill.** Contracting Parties generally may not raise customs duties or charges above their own notified or applied baseline level for listed energy materials, products, or energy-related equipment: \"no such Contracting Party shall increase any customs duty or charge of any kind imposed on or in connection with importation or exportation of energy materials and products listed in Annex EM II or energy-related equipment listed in Annex EQ II above the lowest of the levels applied on the date of the decision by the Charter Conference to list the particular item in the relevant Annex.\" *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).* *Analytical inference:* the qualification a bare \"customs duties are frozen\" reading would omit is that the standstill baseline is state-specific and item-specific (the level each Contracting Party itself notified or applied), not a single uniform ceiling across all Contracting Parties.\n\n**Provisional application.** Pending formal entry into force for a given signatory, the amendment can already bind that signatory provisionally: \"Each signatory which applies the Energy Charter Treaty provisionally in accordance with Article 45(1) and each Contracting Party agrees to apply this amendment provisionally pending its entry into force for such signatory or Contracting Party to the extent that such provisional application is not inconsistent with its constitution, laws or regulations.\" A signatory could opt out of that provisional application within a fixed window: \"any signatory which applies the Energy Charter Treaty provisionally or Contracting Party may deliver to the Depositary within 90 days of the date of the adoption of this amendment by the Charter Conference a declaration that it is not able to accept the provisional application of this amendment;\" *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).*\n\n**Termination of provisional application.** \"Any signatory or Contracting Party may terminate its provisional application of this amendment by written notification to the Depositary of its intention not to ratify, accept or approve this amendment. Termination of provisional application for any signatory or Contracting Party shall take effect on the expiration of 60 days from the date on which such signatory's or Contracting Party's written notification is received by the Depositary.\" *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).*\n\n# Registration and Reporting Obligations\n\nEach Contracting Party or acceding State notifies the Treaty Secretariat of its customs duties and charges applicable to energy materials, products, and energy-related equipment, and of any subsequent change to those duties or charges; the Secretariat circulates that information to other Contracting Parties. *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).* *Operational implication:* this notification duty runs between states and the Treaty Secretariat, not to private operators; a workspace cannot itself satisfy or verify this duty and instead relies on the published tariff record.\n\n# Operational System Requirements\n\nFor workspaces regularly clearing energy materials or energy-related equipment through customs in Energy Charter Treaty Contracting Parties: (1) maintain current Harmonised System tariff classifications against the Annex EM/EQ lists for the cargo types the workspace handles, since this determines whether the standstill mechanism is even in play, and (2) where a dispute arises over a customs duty applied to such cargo, note that the Treaty channels disputes through Annex D panels between Contracting Parties, not through a private right of action the workspace itself could pursue. *Operational implication:* a client affected by an unexpected duty increase on energy cargo would need to raise the matter through its own government's channels under this Treaty, not directly.\n\n# Confirmed Regulatory Timeline\n\n- 16 April 1998: The Energy Charter Treaty itself entered into force, definitively establishing the Energy Charter Conference. *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).*\n- 24 April 1998: The Conference to adopt the amendment to the trade-related provisions of the Energy Charter Treaty was held at Brussels (23 and 24 April 1998), and the Charter Conference adopted the amendment on this date, starting the 90-day window for a signatory to decline provisional application. *Source: Final Act, Energy Charter Conference, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01).*\n\n# Sources\n\n- Final Act of the International Conference and Decision by the Energy Charter Conference in respect of the amendment to the trade-related provisions of the Energy Charter Treaty, Official Journal L 252, 12/09/1998, Energy Charter Conference, EUR-Lex (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "transport"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The Final Act of the International Conference and Decision by the Energy Charter Conference, EUR-Lex (Official Journal L 252, 12/09/1998), amending the trade-related provisions (Article 29 and related Annexes) of the Energy Charter Treaty to align them with the WTO Agreement, including a customs-duty standstill mechanism for energy materials, products, and energy-related equipment traded between Contracting Parties.",
+        "why_matters": "Workspaces clearing customs or arranging freight for energy materials, fuels, or energy-sector equipment between Energy Charter Treaty Contracting Parties operate under a treaty-level standstill on customs duties for the specific Harmonised System tariff lines listed in Annexes EM I, EM II, EQ I, and EQ II, which this captured text references but does not reproduce. The obligation runs state-to-state through the Treaty Secretariat and Annex D dispute panels, not to private operators directly, so a workspace's practical exposure is limited to knowing the classification of the cargo it handles and that duty increases on that cargo are treaty-constrained for the relevant states.",
+        "key_data": [
+          "Energy Charter Treaty entered into force 16 April 1998",
+          "Amendment adopted by the Charter Conference 24 April 1998 at Brussels",
+          "90-day window from adoption for a signatory to decline provisional application",
+          "60-day notice period to terminate provisional application"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": "The Energy Charter Conference and the Treaty Secretariat, with disputes addressed through Annex D panels between Contracting Parties",
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "customs-broker",
+          "importer",
+          "exporter"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «Each signatory which applies the Energy Charter Treaty provisionally in accordance with Article 45(1) and each Contracting Party agrees to apply this amendment provisionally pending its entry into force for such signatory or Contracting Party to the extent that such provisional application is not inconsistent with its constitution, laws or regulations.»",
+          "source_span": "Each signatory which applies the Energy Charter Treaty provisionally in accordance with Article 45(1) and each Contracting Party agrees to apply this amendment provisionally pending its entry into force for such signatory or Contracting Party to the extent that such provisional application is not inconsistent with its constitution, laws or regulations.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «any signatory which applies the Energy Charter Treaty provisionally or Contracting Party may deliver to the Depositary within 90 days of the date of the adoption of this amendment by the Charter Conference a declaration that it is not able to accept the provisional application of this amendment;»",
+          "source_span": "any signatory which applies the Energy Charter Treaty provisionally or Contracting Party may deliver to the Depositary within 90 days of the date of the adoption of this amendment by the Charter Conference a declaration that it is not able to accept the provisional application of this amendment;",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «no such Contracting Party shall increase any customs duty or charge of any kind imposed on or in connection with importation or exportation of energy materials and products listed in Annex EM II or energy-related equipment listed in Annex EQ II above the lowest of the levels applied on the date of the decision by the Charter Conference to list the particular item in the relevant Annex.»",
+          "source_span": "no such Contracting Party shall increase any customs duty or charge of any kind imposed on or in connection with importation or exportation of energy materials and products listed in Annex EM II or energy-related equipment listed in Annex EQ II above the lowest of the levels applied on the date of the decision by the Charter Conference to list the particular item in the relevant Annex.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] Specific penalty provision not available from primary sources as of the export date; this Treaty amendment channels non-compliance through Annex D dispute-settlement panels between Contracting Parties rather than a stated financial penalty."
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «The Energy Charter Conference, which was definitively established on the entry into force on 16 April 1998 of the Energy Charter Treaty 1994»",
+          "source_span": "The Energy Charter Conference, which was definitively established on the entry into force on 16 April 1998 of the Energy Charter Treaty 1994",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «A Conference to adopt the amendment was held at Brussels on 23 and 24 April 1998.»",
+          "source_span": "A Conference to adopt the amendment was held at Brussels on 23 and 24 April 1998.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «\"Energy materials and products\", based on the Harmonised System of the World Customs Organisation and the Combined Nomenclature of the European Communities, means the items included in Annexes EM I or EM II.»",
+          "source_span": "\"Energy materials and products\", based on the Harmonised System of the World Customs Organisation and the Combined Nomenclature of the European Communities, means the items included in Annexes EM I or EM II.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «\"energy-related equipment\", based on the Harmonised System of the World Customs Organisation, means the items included in Annexes EQ I or EQ II.»",
+          "source_span": "\"energy-related equipment\", based on the Harmonised System of the World Customs Organisation, means the items included in Annexes EQ I or EQ II.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Any signatory or Contracting Party may terminate its provisional application of this amendment by written notification to the Depositary of its intention not to ratify, accept or approve this amendment. Termination of provisional application for any signatory or Contracting Party shall take effect on the expiration of 60 days from the date on which such signatory's or Contracting Party's written notification is received by the Depositary.»",
+          "source_span": "Any signatory or Contracting Party may terminate its provisional application of this amendment by written notification to the Depositary of its intention not to ratify, accept or approve this amendment. Termination of provisional application for any signatory or Contracting Party shall take effect on the expiration of 60 days from the date on which such signatory's or Contracting Party's written notification is received by the Depositary.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)"
         }
       ]
     }
