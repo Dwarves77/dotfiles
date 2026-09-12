@@ -399,7 +399,13 @@ export const DELETE_PROTECTED_TABLES = new Set([
 // analyze-corpus.mjs's priorThemeIds and forward-events-retext.mjs's collision/duplicate id lists are
 // both runtime-scaled with no declared cap and were calling this un-chunked before this fix).
 export const DEFAULT_DELETE_CHUNK = 200;
-export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAULT_DELETE_CHUNK } = {}) {
+// matchColumn (2026-07-18, PR #341): guardedDelete's snapshot/delete key defaulted hardcoded to "id", so a
+// table keyed differently (e.g. drain_worklist, PK intelligence_item_id) had no way to reach the guarded
+// path at all: a terminal, fully-resolved worklist row could only park, never close. Root-cause fix:
+// matchColumn defaults to "id", so every existing caller is unaffected; pass matchColumn to target a
+// different key column. No bypass path added; tombstone-then-delete and every content gate upstream are
+// unchanged.
+export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAULT_DELETE_CHUNK, matchColumn = "id" } = {}) {
   requireCite(cite);
   if (DELETE_PROTECTED_TABLES.has(table)) {
     throw new Error(
@@ -414,14 +420,14 @@ export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAUL
   for (let i = 0; i < list.length; i += chunk) {
     const slice = list.slice(i, i + chunk);
     const prior = await withTransientRetry(
-      () => sb.from(table).select("*").in("id", slice),
+      () => sb.from(table).select("*").in(matchColumn, slice),
       { label: `guardedDelete(${table}) snapshot read` }
     );
     if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
     const snapFile = snapshot(table, prior.data || [], cite, stampIso);
     out.snapshots.push(snapFile);
     const res = await withTransientRetry(
-      () => sb.from(table).delete().in("id", slice).select("id"),
+      () => sb.from(table).delete().in(matchColumn, slice).select(matchColumn),
       { label: `guardedDelete(${table}) delete` }
     );
     if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
