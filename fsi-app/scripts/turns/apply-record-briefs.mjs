@@ -533,14 +533,22 @@ async function main() {
       throw new Error(`failed to read/parse --briefs: ${err.message}`);
     }
 
-    const { createClient } = await import("@supabase/supabase-js"); // lazy: see the import note above
-    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    });
-
     const rawItemIds = Array.isArray(raw?.entries)
       ? [...new Set(raw.entries.map((e) => e?.item_id).filter((id) => typeof id === "string"))]
       : [];
+
+    // The client is built only when the file names at least one item (lazy: see the import note above).
+    // A file with no entries needs no database at all: its refusal, and the artifact that records it, are
+    // proven by the no-npm discipline job where @supabase/supabase-js is not installed (the PR #640 red).
+    // Every later use of `sb` (buildPoolContext's reads, applyOneEntry) is reached only through an entry
+    // that carries an item_id, so `sb` is never null where it is used.
+    let sb = null;
+    if (rawItemIds.length > 0) {
+      const { createClient } = await import("@supabase/supabase-js");
+      sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false },
+      });
+    }
     const { poolTextByItemId, currentHashByItemId } = await buildPoolContext(sb, rawItemIds);
 
     const validated = validateRecordBriefsFile(raw, { poolTextByItemId });

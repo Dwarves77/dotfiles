@@ -53,11 +53,13 @@ CONVENTION.md's own "brief-apply" entry for why that file is a governing file he
 ## Re-pin 2 (coordinator, 2026-09-12, the PR #640 CI fix)
 
 **What changed.** `scripts/turns/apply-record-briefs.mjs` (a governing file of this family) now loads
-`@supabase/supabase-js` lazily inside `main` instead of at module top level, so the driver's test can run
-in the no-npm discipline job (the ERR_MODULE_NOT_FOUND red on PR #640; see the session-log entry of the
-same date). Still zero artifacts: no `brief-apply.yml` dispatch has happened, the same posture as above.
+`@supabase/supabase-js` lazily inside `main`, and only when the briefs file names at least one item,
+instead of at module top level, so the driver's tests (including the validation-refusal path, which
+needs no database) run in the no-npm discipline job (the ERR_MODULE_NOT_FOUND red on PR #640; see the
+session-log entry of the same date). Still zero artifacts: no `brief-apply.yml` dispatch has happened,
+the same posture as above.
 
-**harness_version at write time:** `sha256:12f20d5562b6e005` (recomputed via `hashHarnessVersion` against
+**harness_version at write time:** `sha256:7445fa9093987e53` (recomputed via `hashHarnessVersion` against
 `GOVERNING_FILES['brief-apply']`, the same 4 files; supersedes `sha256:ca5d7b8b2da57a61` outright).
 
 **The planned run that supersedes this marker:** unchanged, the first `brief-apply-run-001.json` from the
