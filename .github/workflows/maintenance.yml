@@ -890,13 +890,31 @@ jobs:
         # URL routes to the attach-found-sources worklist (scripts/_worklists/attach-found-sources.seed.json)
         # with its host named. Respects the scrape-hold gate (SCRAPE_HOLD): while engaged, every row is
         # reported fetch_held and NOTHING is fetched or resolved (re-dispatch after the hold lifts). Not
-        # ruling-gated; apply needs no --arg. See this step's own script header for the residual note on
-        # persisting the worklist file append past this job's own runner (no workflow step here commits a
-        # working-tree change back to the branch).
+        # ruling-gated; apply needs no --arg. Fix round 1 (review-7.1-7.4.md finding C): the worklist file
+        # this step may append to is committed back to the dispatched ref by the step immediately below,
+        # since a working-tree change here does not otherwise survive this job's own runner.
         if: env.RUN_STEP == 'resolve-error-body-gate' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/resolve-error-body-gate"
           node scripts/maintenance/resolve-error-body-gate.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/resolve-error-body-gate"
+
+      - name: Commit the attach-found-sources worklist (resolve-error-body-gate apply only)
+        # Fix round 1 (review-7.1-7.4.md finding C, Important): resolve-error-body-gate's apply mode may
+        # append still-failing-URL rows to scripts/_worklists/attach-found-sources.seed.json -- a local
+        # filesystem write with no other persistence path (attach-found-sources.mjs's own consumer takes
+        # its worklist ONLY via --arg <path> to a file on disk, never from integrity_flags). Runs ONLY on
+        # a named apply dispatch of the step above (never from 'all', which this workflow's own top-level
+        # gate already restricts to dry mode) -- a dry run never touches the file, so there is nothing to
+        # commit. Uses the SAME push-degradation shape task 6.1b's commit-brief-apply-artifact.sh uses for
+        # brief-apply's own run artifact (see scripts/maintenance/commit-worklist-artifact.sh's header):
+        # a rejected push on a protected ref degrades to a warning, never fails this job.
+        if: env.RUN_STEP == 'resolve-error-body-gate' && env.RUN_MODE == 'apply'
+        run: |
+          bash scripts/maintenance/commit-worklist-artifact.sh \
+            "$GITHUB_REF_NAME" \
+            "${{ github.run_id }}" \
+            "scripts/_worklists/attach-found-sources.seed.json" \
+            "attach-found-sources worklist"
 
       - name: resolve-cited-host-gate
         # Part 7 task 7.4, brief-chain build plan 2026-09-11 / ADR-030 rider: resolves the cited-host-gate

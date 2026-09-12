@@ -33,30 +33,41 @@
 //   4. A `"held"` outcome (still failing) routes to the attach-found-sources worklist -- the existing
 //      seed file (`scripts/_worklists/attach-found-sources.seed.json`, read the SAME way
 //      attach-found-sources.mjs reads its own `--arg` worklist: a JSON array on disk) gets ONE new entry
-//      per still-failing URL, `{item_id, token: <host>, class: "error_body_refetch", sentence: <why>,
-//      search_id: null}`. NOTE ON SHAPE (documented here honestly, not silently assumed): the seed file's
-//      existing rows use `token` as a Gate-A orphan FIGURE (a verbatim numeric/date span heal-provenance's
-//      own STEP SOURCE later matches against a browser-lane-found page) -- a bare HOST is not that kind of
-//      token and this row is therefore NEVER consumed by heal-provenance's `foundSourcesForItem` matching
-//      (which keys strictly on `orphan.token`). The `class: "error_body_refetch"` marker exists precisely
-//      so a human/coordinator reading the file can tell the two row families apart; a future consumer
-//      extension for this class is NOT built here (out of this task's small-mechanical scope) -- this
-//      step's job is to put the information in the ONE place a browser-lane worklist already lives, named
-//      by task 7.4 itself, not to build a second consumption mechanism.
+//      per still-failing URL.
 //   5. The error-body-gate flag is resolved (status='resolved') once every URL it named has been either
 //      recaptured or routed -- resolution_note records the outcome per URL, per ADR-030's rider.
 //
-// RESIDUAL, NAMED HONESTLY (not silently assumed away). Appending to `attach-found-sources.seed.json` is
-// a LOCAL FILESYSTEM WRITE, not a DB write -- it has no snapshot/revert path through db.mjs's guarded
-// writes (git itself is the revert path: the change lands as a normal diff on this file for review before
-// merge, same as any other checked-in data file this repo's MAINT scripts touch). It is ALSO NOT DURABLE
-// across a GitHub Actions dispatch on its own: `.github/workflows/maintenance.yml` checks out the repo at
-// job start and uploads run artifacts, but NO step in that workflow commits a working-tree change back to
-// the branch (grepped in full, 2026-09-12) -- so a coordinator `apply` dispatch of this step would need a
-// follow-up commit of the modified seed file to persist the append past that job's own runner, exactly
-// the same practical gap every other file-based (non-DB) MAINT artifact in this repo already has. This is
-// reported as a residual in this lane's own report, not fixed here (adding a bot-commit step to
-// maintenance.yml is its own decision, with its own race/authorship questions, out of this task's scope).
+// FIX ROUND 1 (reviewer, review-7.1-7.4.md finding C -- Important, both parts CONFIRMED broken).
+//
+// (a) ROW SHAPE now matches attach-found-sources.mjs's OWN readiness gate exactly, read directly off
+// that file (`isWorklistRowReady`, `scripts/maintenance/attach-found-sources.mjs:66-69`): a row needs
+// ALL FOUR of `item_id`, `token`, `url`, `quote` non-empty, or `partitionWorklist` files it under
+// `notReady` PERMANENTLY (no future browser-lane fill can ever reach it, because nothing in that lane's
+// contract knows to add a `url`/`quote` pair to a bare `{item_id, token, class, sentence, search_id}`
+// row -- the reviewer's own finding). `buildWorklistEntry` now writes `url: <the failed-fetch URL
+// itself>` and `quote: <an excerpt of the error-body-gate flag's OWN description naming the failed
+// fetch>` (`excerptQuote`, capped at 500 chars -- the flag's description already names the failure class
+// per its own write site: "stored capture(s) excluded from grounding as failed fetches (bot wall / 403
+// / 404 / nav shell)"), so every row this step appends now PASSES `isWorklistRowReady` and is filed
+// `ready`, never permanently stuck. NOTE ON SHAPE, STILL HONEST (the reviewer's finding narrows, it does
+// not resolve): `token` here is still the bare HOST, never a Gate-A orphan FIGURE, so
+// heal-provenance.mjs's own `foundSourcesForItem` matching (which keys strictly on `orphan.token` against
+// a verbatim numeric/date span) still never matches this row to a real orphan -- being `ready` means the
+// row CAN be attempted, not that anything currently attempts to consume a `class: "error_body_refetch"`
+// row's own semantics. The `class` marker still exists so a human/coordinator can tell the two row
+// families apart; a future consumer extension for this class is still NOT built here (out of this task's
+// small-mechanical scope).
+//
+// (b) DURABILITY: `.github/workflows/maintenance.yml` now runs `scripts/maintenance/
+// commit-worklist-artifact.sh` (a generalized sibling of task 6.1b's `commit-brief-apply-artifact.sh` for
+// `brief-apply.yml`'s run artifact, modeled on it, not copied verbatim, per the fix-round instruction)
+// immediately after this step's own `apply` dispatch, committing `scripts/_worklists/
+// attach-found-sources.seed.json` back to the dispatched ref. Same posture as the template: a rejected
+// push on a protected ref (`master`) DEGRADES to a `::warning::`, never fails the run (the real per-item
+// work already happened); only a git error before any push attempt is a genuine tooling failure worth
+// `exit 1`. Read `attach-found-sources.mjs`'s own consumer contract before relying on this: it takes its
+// worklist ONLY via `--arg <path>` on disk, never from `integrity_flags` -- so committing the FILE back
+// to the ref (never a DB row) is the only architecturally consistent fix, exactly as the review found.
 //
 // PURE DECISION, TESTED. `buildWorklistEntry`, `buildResolutionNote`, `planErrorBodyFlag` and
 // `mergeWorklistEntries` are pure -- no I/O, no DB, no fetch -- so the dry report lists every URL's
@@ -106,16 +117,35 @@ export function extractFailedUrls(flag) {
   return extractFlagUrls(flag);
 }
 
+/** Trim `text` to a readable excerpt (default 500 chars, `attach-found-sources.seed.json`'s own
+ *  `isWorklistRowReady` only requires a non-empty `quote` -- 500 is generous headroom under
+ *  `integrity_flags.description`'s own 480-char write-time cap, so a description is almost always
+ *  carried whole). Pure. Never throws on null/undefined. */
+export function excerptQuote(text, maxLen = 500) {
+  const t = String(text ?? "").trim();
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, Math.max(0, maxLen - 3))}...`;
+}
+
 /**
- * The attach-found-sources worklist entry for one still-failing URL. Pure. See this file's header for
- * why `token` carries the HOST (never consumed by heal-provenance's own orphan-token matching -- this is
- * a documented, deliberate divergence from that file's OTHER rows, distinguished by `class`).
+ * The attach-found-sources worklist entry for one still-failing URL -- fix round 1 (reviewer finding C):
+ * now carries `url` and `quote` so the row PASSES `attach-found-sources.mjs`'s own `isWorklistRowReady`
+ * gate (all four of item_id/token/url/quote required) instead of being permanently `notReady`. `url` is
+ * the failed-fetch URL itself; `quote` is an excerpt of the error-body-gate FLAG'S OWN description,
+ * which already names the failure class at its write site ("stored capture(s) excluded from grounding as
+ * failed fetches (bot wall / 403 / 404 / nav shell)") -- per the fix-round instruction, never a fetched
+ * page's own text (there is none; the fetch failed). `token` still carries the HOST, not a Gate-A orphan
+ * FIGURE -- see this file's header for why that divergence from the seed file's OTHER rows is still
+ * honest and still unresolved, distinguished by `class`.
  * @param {string} itemId @param {string} url @param {string} host @param {string|null} reason
+ * @param {string} flagDescription the error-body-gate flag's own `description` column
  */
-export function buildWorklistEntry(itemId, url, host, reason) {
+export function buildWorklistEntry(itemId, url, host, reason, flagDescription) {
   return {
     item_id: itemId,
     token: host,
+    url,
+    quote: excerptQuote(flagDescription),
     class: WORKLIST_CLASS,
     sentence: `Stored capture at ${url} is a failed fetch (error-body-gate${reason ? `, ${reason}` : ""}); find a working URL for this instrument or a mirror of its content.`,
     search_id: null,
@@ -123,10 +153,13 @@ export function buildWorklistEntry(itemId, url, host, reason) {
 }
 
 /** Merge `newEntries` into `existingRows` (the parsed worklist JSON array), deduplicating on
- *  (item_id, token, class) so a re-run against the SAME still-failing URL never appends a duplicate row.
- *  Pure; returns the new full array (existing rows first, in order, then genuinely new entries). */
+ *  (item_id, token, url, class) so a re-run against the SAME still-failing URL never appends a duplicate
+ *  row. `url` is now part of the identity (fix round 1): the seed file's existing Gate-A-figure rows
+ *  don't carry a `url` at seed time either, so the key degrades gracefully to the pre-fix (item_id,
+ *  token, class) shape for those. Pure; returns the new full array (existing rows first, in order, then
+ *  genuinely new entries). */
 export function mergeWorklistEntries(existingRows, newEntries) {
-  const key = (r) => `${r.item_id}|${r.token}|${r.class ?? ""}`;
+  const key = (r) => `${r.item_id}|${r.token}|${r.url ?? ""}|${r.class ?? ""}`;
   const seen = new Set((existingRows ?? []).map(key));
   const out = [...(existingRows ?? [])];
   let appended = 0;
@@ -224,7 +257,7 @@ export async function main({ mode = "dry" } = {}, deps) {
         stillFailingCount += 1;
         const host = hostOf(url);
         outcomes.push({ url, host, action: "still_failing", reason: result.reason ?? null });
-        newWorklistEntries.push(buildWorklistEntry(plan.itemId, url, host, result.reason));
+        newWorklistEntries.push(buildWorklistEntry(plan.itemId, url, host, result.reason, flag.description));
       }
     }
 
