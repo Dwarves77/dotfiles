@@ -216,8 +216,17 @@ export function readClient() {
  */
 export async function readAll(table, columns = "*", { match, orderBy = "id", client } = {}) {
   const sb = client || readClient();
+  // orderBy: one column, or an ARRAY of columns for tables whose key is composite (entity_refs has
+  // no `id`; its primary key is ref_table, ref_id, entity_id, role). Offset pagination over a
+  // non-unique order can skip or repeat rows between pages, so a composite key orders every column
+  // of the key. Hotfix 2026-09-12 after Maintenance run 34670770742 failed at "Population BEFORE":
+  // the entity_refs report entry inherited the default `id` and PostgREST answered
+  // "column entity_refs.id does not exist".
+  const orderColumns = Array.isArray(orderBy) ? orderBy : [orderBy];
   return fetchAllRows((from, to) => {
-    let q = sb.from(table).select(columns).order(orderBy).range(from, to);
+    let q = sb.from(table).select(columns);
+    for (const col of orderColumns) q = q.order(col);
+    q = q.range(from, to);
     if (match) q = match(q);
     return withTransientRetry(() => q, { label: `readAll(${table}) page at ${from}` });
   });

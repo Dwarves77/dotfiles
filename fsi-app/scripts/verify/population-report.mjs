@@ -95,7 +95,14 @@ export const STORES = Object.freeze([
     totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false),
     filledQuery: async (sb) => {
       try {
-        const rows = await readAll("entity_refs", "ref_id", { match: (q) => q.eq("ref_table", "intelligence_items"), client: sb });
+        // entity_refs has no `id` column (primary key: ref_table, ref_id, entity_id, role; migration
+        // 283), so the paginated read orders on the key's columns. Hotfix 2026-09-12: the default
+        // order column `id` made every Maintenance run fail at "Population BEFORE" (run 34670770742).
+        const rows = await readAll("entity_refs", "ref_id", {
+          match: (q) => q.eq("ref_table", "intelligence_items"),
+          orderBy: ["ref_id", "entity_id", "role"],
+          client: sb,
+        });
         return { count: new Set(rows.map((r) => r.ref_id)).size, error: null };
       } catch (e) {
         return { count: null, error: { message: e.message } };
