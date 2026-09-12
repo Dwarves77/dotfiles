@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:31:29.529Z",
+  "generated_at": "2026-09-12T18:33:37.161Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -804,6 +804,116 @@
           "claim_text": "The captured source states, verbatim: «for the purpose of establishing whether, in the Authority's opinion, the licensee is complying or has complied with the requirements of this licence condition.»",
           "source_span": "for the purpose of establishing whether, in the Authority's opinion, the licensee is complying or has complied with the requirements of this licence condition.",
           "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        }
+      ]
+    },
+    {
+      "item_id": "018dcbf1-42e3-49f5-8029-01804818b3f8",
+      "source_pool_hash": "d5e9c5f7e510499d3eb25aa7364751ace72fe2921a5a9746a9f4d91616478e42",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes Commission Decision 1999/652/EC of 15 September 1999 confirming the measures notified by Belgium pursuant to Article 6(6) of Directive 94/62/EC on packaging and packaging waste, Official Journal L 257, 02/10/1999. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.* This document is scoped to the provisions the captured text grounds: the Directive 94/62/EC EU-wide recovery and recycling targets, Belgium's own higher national targets and the Cooperation Agreement that sets them, and the Commission's confirmation that those higher targets do not distort the internal market. This Decision is addressed to Belgium; it is analyzed here for the packaging-obligation structure it describes, which is directly relevant to any workspace moving packaged goods into Belgium.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nDirective 94/62/EC sets EU-wide minimum recovery and recycling targets for packaging waste, and Article 6(6) lets a Member State exceed them if it demonstrates adequate capacity without distorting the internal market. Belgium's three regions adopted a Cooperation Agreement imposing higher national targets, and critically, the underlying obligation reaches beyond Belgian-based operators: \"This Cooperation Agreement sets out the obligation for economic operators (packaging fillers and users, including importers in case the packaging was filled outside Belgium) to takeback and recycle/recover the packaging materials contained in the packaging waste put on the market.\" *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.* For workspaces importing goods into Belgium in packaging filled outside Belgium, or supporting clients who do so, this take-back and recycle/recover obligation attaches to the importer as an economic operator under the Belgian Cooperation Agreement, not only to a domestic Belgian filler. *Legal Confirmation Required:* whether the workspace itself, or the client on whose behalf it imports, is the \"economic operator\" bearing this obligation for a given shipment; the captured text defines the obligated class by function (filler, user, or importer of packaging filled outside Belgium) rather than by any single named role.\n\n# Issues Requiring Immediate Action\n\n**ACTION REQUIRED.** Confirm, for any client importing packaged goods into Belgium where the packaging was filled outside Belgium, whether that client has registered its intended compliance route with the Interregional Commission for Packaging or contracted an \"organisme agree\" (agreed body) to discharge the take-back and recycling obligation, since the obligation is described as attaching at the point the packaging is put on the market in Belgium. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.* *Legal Confirmation Required:* the precise scope of \"importers in case the packaging was filled outside Belgium\" as applied to a specific import transaction is a legal determination this document does not resolve.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe obligated party is the \"economic operator\" -- packaging fillers and users, including importers where the packaging was filled outside Belgium -- who may discharge the obligation individually or by contracting a third party or an agreed body. *Legal Confirmation Required:* a freight forwarder handling the carriage of the packaged goods, without itself filling or importing the packaging in its own right, is not self-evidently within this obligated class on the captured text; whether the workspace's specific role (for example, acting as importer of record) brings it within scope requires that determination.\n\n# Substantive Requirements\n\n**EU baseline targets.** \"Article 6(1)(a) establishes that, no later than 30 June 2001, between 50 % as a minimum and 65 % as a maximum by weight of the packaging waste will be recovered.\" A parallel recycling target applies: \"within this general target, and within the same time limit, between 25 % as a minimum and 45 % as a maximum by weight of the totality of packaging materials contained in packaging waste will be recycled, with a minimum of 15 % by weight for each packaging material.\" *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.*\n\n**Belgium's higher national targets, confirmed.** Belgium's Cooperation Agreement set global minimum rates exceeding the EU baseline, on a rising per-year trajectory: \"for 1998: 45 % recycling - 70 % recovery - for 1999: 50 % recycling - 80 % recovery.\" The Commission confirmed these measures in this Decision. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.* *Analytical inference:* the qualification a bare \"Belgium exceeds EU targets\" statement would omit is the specific year-by-year trajectory: recovery rose from 70% to 80%, and recycling from 45% to 50%, between 1998 and 1999, well above the EU's 2001 recovery ceiling of 65% and recycling ceiling of 45%.\n\n# Registration and Reporting Obligations\n\nEconomic operators communicate their intended compliance route to the Interregional Commission for Packaging, which evaluates and, where appropriate, approves or refuses that route; alternatively an operator can be relieved of the direct obligation by contracting with an agreed body (\"organisme agree\") that itself meets recycling and recovery targets and satisfies legal and financial requirements. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.* *Specific registration form and timeline details not available from primary sources as of the export date; those mechanics sit in the Cooperation Agreement itself, which this pool does not reproduce beyond the Commission's own summary.*\n\n# Operational System Requirements\n\nFor workspaces supporting imports of packaged goods into Belgium: (1) confirm with each relevant client whether its packaging-waste compliance route (individual registration or agreed-body contract) is in place before the goods reach the Belgian market, since the obligation is described as attaching to the packaging put on the market, and (2) track that Belgium's own confirmed targets exceed the EU baseline, so a client's Belgian compliance plan needs to meet the higher national figure, not only the EU minimum. *Operational implication:* this document cannot determine which compliance route a specific client has chosen; that is client-specific information outside this pool.\n\n# Confirmed Regulatory Timeline\n\n- 21 January 1997: The Cooperation Agreement underlying Belgium's packaging-waste measures was adopted by Decree of the Flanders Region (with a Decree of 16 January 1997 of the Walloon Region and an Ordinance of 24 January 1997 of the Brussels Region), all published in the Moniteur of 5 March 1997. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.*\n- 15 September 1999: Commission Decision 1999/652/EC adopted at Brussels, confirming the Belgian measures under Article 6(6) of Directive 94/62/EC. *Source: Commission Decision 1999/652/EC, European Commission, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652.*\n\n# Sources\n\n- Commission Decision 1999/652/EC of 15 September 1999, Official Journal L 257, 02/10/1999, European Commission, EUR-Lex (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652\n",
+      "metadata": {
+        "severity": "ACTION REQUIRED",
+        "priority": "CRITICAL",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "packaging"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Commission Decision 1999/652/EC, European Commission, EUR-Lex (Official Journal L 257, 02/10/1999), confirming under Article 6(6) of Directive 94/62/EC that Belgium's Cooperation-Agreement-based packaging recovery and recycling targets, which exceed the EU baseline, do not distort the internal market.",
+        "why_matters": "Belgium's confirmed Cooperation Agreement imposes a take-back and recycle/recover obligation on \"economic operators\" that explicitly includes importers where the packaging was filled outside Belgium, so a workspace importing packaged goods into Belgium, or supporting a client that does, can fall within the obligated class. Belgium's own confirmed targets (70% recovery / 45% recycling in 1998, rising to 80% recovery / 50% recycling in 1999) exceed the EU's 2001 baseline ceiling, so a client's Belgian compliance plan must be built to the higher national figure.",
+        "key_data": [
+          "EU baseline (Directive 94/62/EC Article 6(1)) no later than 30 June 2001: 50-65% recovery and 25-45% recycling by weight with a 15% per-material recycling floor",
+          "Belgium confirmed targets: 70% recovery / 45% recycling (1998) rising to 80% recovery / 50% recycling (1999)",
+          "Obligated economic operators include importers where the packaging was filled outside Belgium",
+          "Cooperation Agreement adopted by regional decree in January 1997 across all three Belgian regions"
+        ],
+        "cost_mechanism": "Economic operators fund take-back and recycling either directly or by contracting an agreed body (\"organisme agree\") that itself meets the confirmed recycling and recovery targets.",
+        "requirement_trajectory": {
+          "steps": [
+            {
+              "date": "1998",
+              "value": "70% recovery / 45% recycling",
+              "label": "Belgium confirmed national target"
+            },
+            {
+              "date": "1999",
+              "value": "80% recovery / 50% recycling",
+              "label": "Belgium confirmed national target"
+            }
+          ],
+          "note": "Captured pool does not state a further step beyond 1999; the EU baseline ceiling under Article 6(1) applied no later than 30 June 2001."
+        },
+        "penalty_range": null,
+        "enforcement_body": "The Interregional Commission for Packaging and the relevant Belgian Regional Government (Flanders, Wallonia, Brussels)",
+        "operational_scenario_tags": [
+          "packaging-EPR-registration"
+        ],
+        "compliance_object_tags": [
+          "importer",
+          "manufacturer-producer",
+          "distributor"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «The Cooperation Agreement was adopted by means of a Decree of 21 January 1997 of the Flanders Region, a Decree of 16 January 1997 of the Walloon Region and an Ordinance of 24 January 1997 of the Brussels Region (all published in the Moniteur of 5 March 1997).»",
+          "source_span": "The Cooperation Agreement was adopted by means of a Decree of 21 January 1997 of the Flanders Region, a Decree of 16 January 1997 of the Walloon Region and an Ordinance of 24 January 1997 of the Brussels Region (all published in the Moniteur of 5 March 1997).",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «Article 6(1)(a) establishes that, no later than 30 June 2001, between 50 % as a minimum and 65 % as a maximum by weight of the packaging waste will be recovered.»",
+          "source_span": "Article 6(1)(a) establishes that, no later than 30 June 2001, between 50 % as a minimum and 65 % as a maximum by weight of the packaging waste will be recovered.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «This Decision is addressed to the Kingdom of Belgium.»",
+          "source_span": "This Decision is addressed to the Kingdom of Belgium.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] Specific penalty provision not available from primary sources as of the export date; this Commission Decision confirms Belgium's measures without stating a penalty of its own, and enforcement of the underlying Cooperation Agreement is a matter of Belgian regional law not reproduced in this pool."
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «within this general target, and within the same time limit, between 25 % as a minimum and 45 % as a maximum by weight of the totality of packaging materials contained in packaging waste will be recycled, with a minimum of 15 % by weight for each packaging material.»",
+          "source_span": "within this general target, and within the same time limit, between 25 % as a minimum and 45 % as a maximum by weight of the totality of packaging materials contained in packaging waste will be recycled, with a minimum of 15 % by weight for each packaging material.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «This Cooperation Agreement sets out the obligation for economic operators (packaging fillers and users, including importers in case the packaging was filled outside Belgium) to takeback and recycle/recover the packaging materials contained in the packaging waste put on the market»",
+          "source_span": "This Cooperation Agreement sets out the obligation for economic operators (packaging fillers and users, including importers in case the packaging was filled outside Belgium) to takeback and recycle/recover the packaging materials contained in the packaging waste put on the market",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, Belgium's confirmed national targets: «for 1998: 45 % recycling - 70 % recovery - for 1999: 50 % recycling - 80 % recovery.»",
+          "source_span": "for 1998: 45 % recycling - 70 % recovery - for 1999: 50 % recycling - 80 % recovery.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Done at Brussels, 15 September 1999.»",
+          "source_span": "Done at Brussels, 15 September 1999.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652"
         }
       ]
     }
