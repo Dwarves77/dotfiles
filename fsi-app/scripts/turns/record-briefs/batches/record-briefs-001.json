@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T10:01:49.893Z",
+  "generated_at": "2026-09-12T10:03:43.303Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -467,6 +467,74 @@
           "claim_text": "[penalty_summary] The captured source states, verbatim: «The maximum amount of penalty that may be imposed on a licence holder in respect of a contravention may not exceed 10 per cent of the licence holder’s turnover.»",
           "source_span": "The maximum amount of penalty that may be imposed on a licence holder in respect of a contravention may not exceed 10 per cent of the licence holder’s turnover.",
           "source_url": "https://www.legislation.gov.uk/ukpga/2023/52"
+        }
+      ]
+    },
+    {
+      "item_id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc",
+      "source_pool_hash": "8d011e9f27f9ab23314a946531f972c4aa60df769deeca73a68e2b96797cecb3",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Environment Act 1995 (c. 25), the UK Act that established the Environment Agency and the Scottish Environment Protection Agency, created the contaminated land regime, and made further provision for National Parks and pollution control. The long title states the Act is \"to provide for the establishment of... bodies... to make provision with respect to contaminated land and abandoned mines; to make further provision in relation to National Parks; to make further provision for the control of pollution, the conservation of natural resources and the conservation or enhancement of the environment.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* Given the Act's breadth and long amendment history, this document is scoped to the provisions the captured text grounds: contaminated land special sites, National Park authority general powers, offence and penalty provisions, and the Act's commencement and extent clauses.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Act's contaminated land regime empowers a local authority, and in some cases the Environment Agency, to identify and remediate contaminated land: \"If, in a case where a local authority has served a remediation notice, the contaminated land in question becomes a special site, the appropriate Agency may adopt the remediation notice.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* For workspaces that own, lease, or operate UK warehousing, depot, or storage sites, this regime can attach remediation liability and cost exposure to land found to be contaminated, independent of when the contamination occurred. *Legal Confirmation Required:* whether the workspace, as occupier or operator of a specific UK site, would be the \"appropriate person\" under Part IIA of the Environmental Protection Act 1990 (as the contaminated land regime the Environment Act 1995 inserted) bearing remediation cost for that site.\n\n# Issues Requiring Immediate Action\n\n**ACTION REQUIRED.** Confirm contaminated-land search and due-diligence coverage for any UK warehouse, depot, or storage site the workspace owns, leases, or is evaluating, given the special-sites and remediation-notice regime this Act's contaminated land provisions create. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* *Operational implication:* remediation notice liability attaches to land, not to a specific tenancy term, so a site's contaminated-land status should be checked before committing to a new lease or acquisition, not only at the point of an active notice. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty to remediate contaminated land runs to the \"appropriate person\" as Part IIA defines that term (generally the polluter, or in default the current owner or occupier), and enforcement runs through the local authority or, for a special site, \"the appropriate Agency.\" *Legal Confirmation Required:* whether the workspace's occupation of a specific site (as tenant, licensee, or owner) would place it within the appropriate-person class for that site should contamination be identified.\n\n# Substantive Requirements\n\n**Special sites and remediation notices.** \"If, in a case where a local authority has served a remediation notice, the contaminated land in question becomes a special site, the appropriate Agency may adopt the remediation notice and, if it does so... it shall give notice of its decision to adopt the remediation notice to the appropriate person and to the local authority.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n\n**National Park authority general powers.** An English National Park authority \"may do anything it considers appropriate for the purposes of the carrying out of any of its functions,\" and that power \"confers power... to do it anywhere in the United Kingdom or elsewhere,\" subject to a boundary rule that the power \"does not enable an English National Park authority to do anything which it is unable to do by virtue of a pre-commencement limitation.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* A \"pre-commencement limitation\" includes a restriction \"contained in an Act passed no later than the end of the Session in which the Cities and Local Government Devolution Act 2016 is passed.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* *Operational implication:* workspaces operating logistics or event-transport activity within or adjacent to an English National Park should confirm whether a National Park authority byelaw or access restriction constitutes such a pre-commencement limitation on the authority's own general-power expansion, since that shapes what the authority may newly regulate versus what remains fixed by pre-existing law.\n\n**Offence for obstruction or false statement.** \"A person commits an offence if the person... fails without reasonable excuse to give any assistance that a relevant official reasonably requests in the exercise of a power\" or \"otherwise intentionally obstructs a relevant official in exercising one of those powers.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* A related offence for making a false statement to an authority is \"liable on summary conviction to a fine not exceeding level 5 on the standard scale.\" *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n\n# Registration and Reporting Obligations\n\nRemediation notices and special-site adoption decisions are administered directly between the local authority, the appropriate Agency, and the appropriate person on a site-by-site basis rather than through a standing jurisdiction-wide filing regime. *Specific registration or filing deadline not available from primary sources as of 2026-09-12.*\n\n# Operational System Requirements\n\nFor workspaces with UK land holdings or leases: (1) commission a contaminated-land search before acquiring or renewing a lease on a warehouse, depot, or storage site, and (2) build an escalation path for responding to a local authority information request or inspection under the Act's enforcement powers, given the obstruction offence attaches personal criminal liability up to two years' imprisonment on indictment for the most serious enforcement-obstruction offences under related provisions. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.* *Operational implication:* this due diligence step protects against inheriting remediation cost exposure through an unreviewed site acquisition or lease renewal. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n\n# Confirmed Regulatory Timeline\n\n- \"This Act shall come into force on such day as the Secretary of State may specify by order made by statutory instrument,\" with different days appointed for different provisions (Part III came into force at the end of the period of two months beginning with the day the Act was passed, subject to specified exceptions). In force as of 2026-09-12 for commenced provisions. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n- 28 January 2016 (specified purposes) / 28 March 2016 (remaining purposes): sections 65A to 65D (English National Park authority general powers) inserted by the Cities and Local Government Devolution Act 2016. In force as of 2026-09-12. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n- \"This Act shall not extend to Northern Ireland,\" except for specified sections and amendments to named Acts. In force as of 2026-09-12. *Source: Environment Act 1995 (c. 25), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/1995/25.*\n\n# Sources\n\n- Environment Act 1995 (c. 25), UK Government, legislation.gov.uk, as amended (Tier 1, primary binding text). https://www.legislation.gov.uk/ukpga/1995/25\n",
+      "metadata": {
+        "severity": "ACTION REQUIRED",
+        "priority": "CRITICAL",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Environment Act 1995 (c. 25), UK primary legislation, legislation.gov.uk, establishing the Environment Agency and the Scottish Environment Protection Agency the contaminated land special-sites and remediation-notice regime National Park authority general powers and related enforcement offences.",
+        "why_matters": "Workspaces owning leasing or evaluating UK warehousing depot or storage sites face potential contaminated-land remediation liability that attaches to land regardless of when contamination occurred, so due diligence before acquisition or lease renewal protects against inherited cost exposure. Obstructing a local authority or Environment Agency official exercising an enforcement power under the Act is a criminal offence carrying up to two years imprisonment on indictment for the most serious related offences.",
+        "key_data": [
+          "Remediation notice may be adopted by the appropriate Agency when contaminated land becomes a special site",
+          "False statement to an authority liable on summary conviction to a fine not exceeding level 5 on the standard scale",
+          "Obstruction-related offence liable on conviction on indictment to imprisonment for a term not exceeding 2 years or a fine or both",
+          "English National Park authority general powers sections 65A to 65D in force 28 January 2016 and 28 March 2016"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": "on conviction on indictment imprisonment for a term not exceeding 2 years or a fine or both",
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "warehouse-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "a514027a-39c4-4ca0-a88b-0b2f828deb34"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «this Act shall come into force on such day as the Secretary of State may specify by order made by statutory instrument»",
+          "source_span": "this Act shall come into force on such day as the Secretary of State may specify by order made by statutory instrument",
+          "source_url": "https://www.legislation.gov.uk/ukpga/1995/25"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «no later than the end of the Session in which the Cities and Local Government Devolution Act 2016 is passed»",
+          "source_span": "no later than the end of the Session in which the Cities and Local Government Devolution Act 2016 is passed",
+          "source_url": "https://www.legislation.gov.uk/ukpga/1995/25"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «this Act shall not extend to Northern Ireland»",
+          "source_span": "this Act shall not extend to Northern Ireland",
+          "source_url": "https://www.legislation.gov.uk/ukpga/1995/25"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "claim_text": "[penalty_summary] The captured source states, verbatim: «on conviction on indictment, to imprisonment for a term not exceeding 2 years or to a fine, or both»",
+          "source_span": "on conviction on indictment, to imprisonment for a term not exceeding 2 years or to a fine, or both",
+          "source_url": "https://www.legislation.gov.uk/ukpga/1995/25"
         }
       ]
     }
