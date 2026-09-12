@@ -63,7 +63,7 @@ export function buildContextForProposedCommit({ messageFile }) {
   const commitMessage = readFileSync(messageFile, 'utf-8').replace(/^#.*$/gm, '').trim();
   const stagedFiles = parseNumstat(git(['diff', '--cached', '--numstat']));
   const branchName = currentBranch();
-  return assemble({ commitMessage, stagedFiles, branchName, isMergeCommit: false, commitSha: null });
+  return assemble({ commitMessage, stagedFiles, branchName, isMergeCommit: false, commitSha: null, diffSource: { type: 'staged' } });
 }
 
 // Build CheckContext for an existing commit (CI mode).
@@ -73,13 +73,17 @@ export function buildContextForExistingCommit({ commit }) {
   const isMergeCommit = parents.length > 1;
   const stagedFiles = parseNumstat(git(['show', '--format=', '--numstat', commit]));
   const branchName = currentBranch();
-  return assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commitSha: commit });
+  return assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commitSha: commit, diffSource: { type: 'commit', sha: commit } });
 }
 
 // Build CheckContext from in-memory inputs (test fixtures).
 // Optional `fileContents`: { path: contentString } map. Rules that call
 // ctx.getFileContent(path) return injected content; absent paths return null.
-export function buildContextFromFixture({ message, files, branch = 'master', isMergeCommit = false, fileContents = null }) {
+// Optional `addedLines`: { path: [lineText, ...] } map, the lines a rule should treat as ADDED by
+// this commit (as opposed to unchanged/context lines already present before it). Rules that call
+// ctx.getAddedLines(path) return the injected array; absent paths return [] (fixture mode never
+// falls back to a real git diff, same "no injection, no data" posture as getFileContent).
+export function buildContextFromFixture({ message, files, branch = 'master', isMergeCommit = false, fileContents = null, addedLines = null }) {
   const stagedFiles = files.map((f) => ({
     path: f.path,
     status: f.status || 'M',
@@ -94,10 +98,12 @@ export function buildContextFromFixture({ message, files, branch = 'master', isM
     commitSha: null,
     isFixture: true,
     fileContents,
+    addedLines,
+    diffSource: { type: 'fixture' },
   });
 }
 
-function assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commitSha, isFixture = false, fileContents = null }) {
+function assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commitSha, isFixture = false, fileContents = null, addedLines = null, diffSource = null }) {
   const lines = commitMessage.split(/\r?\n/);
   const commitSubject = lines[0] || '';
   const blankIdx = lines.findIndex((line, i) => i > 0 && line.trim() === '');
@@ -123,6 +129,8 @@ function assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commi
     commitSha,
     isFixture,
     _fileContents: fileContents,
+    _addedLines: addedLines,
+    _diffSource: diffSource,
   };
 
   // Helpers bound to this context
@@ -149,7 +157,45 @@ function assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commi
     return null;
   };
 
+  // Return the text of every line ADDED to `path` by this commit (or by the currently staged
+  // change), as an array of strings (the `+` marker stripped, `+++`/`---` file headers excluded).
+  // Deletions and unchanged/context lines are never included; a rule reading "added lines" must
+  // not flag content that was already there before this commit. Resolution order mirrors
+  // getFileContent: an injected fixture entry wins; fixture mode with no injection returns [];
+  // real modes shell out to `git diff`/`git show` scoped to this ctx's own commit or staged state.
+  ctx.getAddedLines = (path) => {
+    if (ctx._addedLines && Object.prototype.hasOwnProperty.call(ctx._addedLines, path)) {
+      return ctx._addedLines[path];
+    }
+    if (ctx.isFixture) return [];
+    let patch = '';
+    try {
+      if (ctx._diffSource?.type === 'staged') {
+        patch = git(['diff', '--cached', '-U0', '--', path]);
+      } else if (ctx._diffSource?.type === 'commit') {
+        patch = git(['show', '--format=', '-U0', ctx._diffSource.sha, '--', path]);
+      }
+    } catch {
+      patch = '';
+    }
+    return parseAddedLineTexts(patch);
+  };
+
   return ctx;
+}
+
+// Parse a unified diff (as produced by `git diff -U0` / `git show -U0`, scoped to one path) into the
+// text of every ADDED line, in order. `+++`/`---` file-header lines are excluded (they also start with
+// the diff markers but name paths, not content); a genuine added-content line beginning with a literal
+// '+++'/'---' is the one case this cannot distinguish from a header. Accepted, same class of edge case
+// numstat-based rules already live with.
+export function parseAddedLineTexts(diffText) {
+  const out = [];
+  for (const raw of String(diffText ?? '').split(/\r?\n/)) {
+    if (raw.startsWith('+++') || raw.startsWith('---')) continue;
+    if (raw.startsWith('+')) out.push(raw.slice(1));
+  }
+  return out;
 }
 
 function parseNumstat(output) {

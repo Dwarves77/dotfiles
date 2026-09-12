@@ -80,7 +80,7 @@ Operator, 2026-09-12: "These type of issues keep happening. Why can't we make su
    - A write path reachable only in apply mode (a `--mode apply` branch, an `--execute` arm) is exercised by a test through a fake db, so a missing import cannot pass dry and fail live (the apply-classifications class, 2026-09-12).
    - Anything a GitHub Actions job writes to the working tree (a worklist, a run artifact, an export) is committed back to the dispatched ref by a step in that workflow, or it does not exist after the job ends (the brief-apply and error-body-gate class, 2026-09-12). A protected ref degrades to a warning, never a failed run.
    - A maintenance step is in `maintenance.yml`'s `step` choice list, uses the composite action like its siblings, and has its runbook section; a new fitness function or verifier is execution-wired (`.discipline/governance/execution-wiring.mjs`).
-   - No em dashes, en dashes or the section-sign glyph in added prose (`git diff origin/master..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` prints 0; verbatim data is disclosed, never edited); no user-home paths even in comments (pre-commit rule 012).
+   - No em dashes, en dashes or the section-sign glyph in added prose, enforced by discipline rule 022 (`fsi-app/.discipline/rules/022-no-dash-glyphs.mjs`); an unavoidable, verbatim glyph is disclosed with the `glyph:verbatim` marker on the same line, never edited. No user-home paths even in comments (pre-commit rule 012).
 3. The coordinator's brief may shorten the test list you run DURING the work; it never waives this preflight at the end.
 
 ## Commit
