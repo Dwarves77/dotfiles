@@ -19657,3 +19657,55 @@ misreporting the script as binary and replaced with a plain `|` before any commi
 ### UX compliance (Part 7 tasks 7.1 / 7.4)
 
 Not applicable: no `.tsx`/`.css` touched.
+
+## 2026-09-12, W9 Part 7 fix round 1: reviewer findings A (CRITICAL) and B (Important)
+
+Reviewer pass (`review-7.1-7.4.md`, read-only, independently reproduced every finding) came back NEEDS
+FIXES on two items, everything else CONFIRMED clean.
+
+**Finding A (CRITICAL), close-run-logs, REFUTED as originally shipped.** `authorship-shard-*`/
+`citation-harvest*` were a DENYLIST ("close unless the description ends in '?'"), reproduced live by the
+reviewer closing a genuine per-item BLOCKER as an informational log. Fixed: both families switched to
+the same allowlist posture `legacy-remediation` already had, keyed off each family's own fleet charter's
+CLOSE-step vocabulary (`isAuthorshipRunSummary`: attempted+completed+parked+flagged together, or a run-
+summary marker; `isCitationHarvestRunSummary`: considered+backlog+a disposition word together, or a
+marker). 16 new tests -- BLOCKER / "flagged for verifier judgment" / "NOVEL FINDING, not fixed" / genuine
+run summary, both families, plus the reviewer's own two live repros now correctly kept. 35/35 pass.
+
+**Finding B (Important), resolve-error-body-gate, both parts CONFIRMED broken.** (a) The
+attach-found-sources worklist append had no persistence path across a GitHub Actions job -- fixed with
+`scripts/maintenance/commit-worklist-artifact.sh`, a generalized sibling of task 6.1b's
+`commit-brief-apply-artifact.sh` (read in full, modeled not copied), wired into `maintenance.yml`
+immediately after resolve-error-body-gate's own apply dispatch. (b) Appended rows lacked `url`/`quote`,
+so they failed attach-found-sources.mjs's own `isWorklistRowReady` gate PERMANENTLY -- fixed by writing
+`url` (the failed-fetch URL) and `quote` (an excerpt of the flag's own description); cross-checked
+directly against the real `isWorklistRowReady` import in the new tests, not assumed. 27 tests in
+resolve-error-body-gate.test.mjs (up from 20), 6 in the new commit-worklist-artifact.test.mjs.
+
+**Finding 3 (minor).** Runbook sections renumbered 40-42 -> 41-43 to avoid the not-yet-merged 6.1c
+lane's own section-40 collision.
+
+**Gates.** `node --test` across close-run-logs/resolve-cited-host-gate/resolve-error-body-gate/
+flag-url-extract/commit-worklist-artifact/apply-classifications: 114/114. `node --test
+.discipline/glob-portability.test.mjs`: 3/3. `node .discipline/fitness/runner.mjs --quiet`: exit 0.
+`node --test .discipline/shared-writer-registry.test.mjs`: green. `npx tsc --noEmit`: clean.
+
+**Standing constraints.** Dash/section-sign glyph scan clean on every file before each commit and across
+the combined diff after. No hardcoded user-home paths. Two commits, staged explicitly (never `git add -A`):
+`d1f6518b` (finding A + the runbook's full fix-round-1 pass, including finding 3's renumbering and finding
+B's runbook-section content, since MAINTENANCE-RUNBOOK.md is one file and not independently stageable
+per-finding) and `6132c64b` (finding B's code/workflow/tests). No `git stash`, no `--no-verify`, no push.
+No database writes (no DB creds in this worktree; every gate is fixture/pure-function-driven, including a
+new cross-check test importing attach-found-sources.mjs's own real `isWorklistRowReady`).
+
+**Files.**
+- `fsi-app/scripts/maintenance/close-run-logs.mjs` / `.test.mjs` (modified: allowlist fix, 16 new tests)
+- `fsi-app/scripts/maintenance/resolve-error-body-gate.mjs` / `.test.mjs` (modified: url/quote fix, 7 new tests)
+- `fsi-app/scripts/maintenance/commit-worklist-artifact.sh` (new) / `.test.mjs` (new, 6 tests)
+- `.github/workflows/maintenance.yml` (modified: new commit-back step)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: sections renumbered 41-43, sections 41/42 content updated)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (fix round 1)
+
+Not applicable: no `.tsx`/`.css` touched.
