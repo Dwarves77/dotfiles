@@ -135,6 +135,17 @@ Fix at the source, in two deterministic steps, never a model guess (SC-13):
 2. Enumeration for the residue: a read-only script writes the remaining unresolved hosts of both backlogs to a gitignored scratch file with, per host, the row's stored name, `discovered_via`, the citing item title where one exists, and the count; the coordinator rules host classes from that list (a doctrine act, never delegated to Haiku) and the lane commits the resulting allowlist entries with their institution names. A host the coordinator cannot classify with certainty stays worklisted; that residue is reported by count in the population report.
 Lane: L9 (same lane as D13, since both change the same decision path); the dry run is repeated after both land, counts read, then apply.
 
+### D15. 1,034 tag flags carry zero proposals and ask for manual tagging, and the decider leaves them open [CONFIRMED]
+
+Evidence (coordinator, 2026-09-12): the tag-ratification dry run with `--arg auto` (run 34724664228) reports open 1,105, decidable 71 (81 adopts, 0 declines), not_adoptable 1,034. Live SQL: every open flag is `flywheel-tag:empty-signature` (2026-09-03 and 04); the 1,034 carry `PROPOSALS_JSON: []` with a description ending "needs manual operator tagging (or a KEYWORD_MAP extension) before it can join the connection graph". `evaluateAutoAdoption` returns "flag carries zero proposals" and the auto path counts the flag as not adoptable and leaves it open.
+
+Root cause: the proposer (`derive-tags.mjs`) opened a flag whose only proposal was a request for a human, and the 7.2 decider only decides flags that carry proposals. Most of these items were record-grade stubs on 2026-09-03 with a title and no brief text; hundreds of them now carry briefs (batches 001 and 002, the timeline and forward-event backfills), so the derivation that found nothing then may find tags now.
+
+Fix at the source, two parts, one lane:
+1. Decider (`tag-ratification.mjs` auto path, `apply-tags.mjs`): a zero-proposal flag is decided, never skipped. At run time the step re-derives candidates for the flag's item from its current title, instrument key, what_is_it, summary and full_brief through `derive-tags.mjs`'s own pure derivation (imported, not copied), then runs each candidate through `decideTagProposal` (closed vocabulary plus evidence present in the item's own text); adopts what passes; and resolves the flag either with the adopted tags or, when nothing derives, with `resolution_note` "no derivable tags from the item's own text on <date> (derive-tags KEYWORD_MAP); the item joins the connection graph through its entity refs; no manual tagging (ADR-030)". The dry output lists, per outcome, re-derived-and-adopted, re-derived-and-declined, and no-derivable-tags counts with a 20-row sample each. Tests: a zero-proposal flag whose item now has brief text with a vocabulary keyword is adopted and resolved; a zero-proposal flag whose item still has no derivable text is resolved with the no-derivable-tags note; a second run inserts nothing and reopens nothing.
+2. Proposer (`derive-tags.mjs`): when it finds no candidates it no longer opens an open flag asking for a human; it records the finding as an already-resolved flag with the same no-derivable-tags note (one row per item, merged on re-run), so the count stays visible in the population report and no queue forms. The phrase "needs manual operator tagging" is removed.
+Lane: L10, one Sonnet lane on a freed worktree from master, before the tag-ratification apply; the dry run is repeated after it lands.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -147,7 +158,9 @@ Lane: L9 (same lane as D13, since both change the same decision path); the dry r
 | L5 investigation | D8 finding | read-only | none |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
+| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L8 harness numbering | D12 run-id artifact names across every harness family | a freed worktree | after L6 |
+| L10 tag decider | D15 zero-proposal flags re-derived and decided; proposer stops asking for a human | a freed worktree from master | before the tag-ratification apply |
 | L9 provisional resolver | D13 reject rule removed, accessibility as status; D14 class-table extension and residue enumeration | wt-brieffields-0911 from master after #652 | before the resolve-provisional-sources apply |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
