@@ -48,6 +48,16 @@ test("activeExemptions drops an entry once the landed wave reaches its expiryWav
   assert.equal(activeExemptions(list, 60).length, 0, "stays expired past it");
 });
 
-test("activeExemptions is best-effort (never throws) when the landed wave is unknown (null) — same posture as F25's own oracle", () => {
-  assert.equal(activeExemptions(RENDERING_375_EXEMPTIONS, null).length, RENDERING_375_EXEMPTIONS.length);
+// CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up round 2, [CONFIRMED by the reviewer]):
+// this test used to assert the OPPOSITE - "best-effort... same posture as F25's own oracle" meant a
+// null wave degraded to EVERY entry counting as active. That is the same fail-open shape the
+// push-vs-pull_request layout-guard divergence exploited in the sibling exemptions-law2-desktop.mjs
+// (fixed in commit 2730ad23): a depth-1 pull_request checkout cannot resolve origin/master, so
+// latestTrainWave() returns null, and "null degrades to active" is what would let that checkout keep
+// suppressing an @375 finding a depth-1 push checkout, resolving a real and expired wave on the SAME
+// tree, correctly reports. Never throwing is still the right posture (a null wave must not crash the
+// guard); treating null as ACTIVE is not, per CLAUDE.md rule 15 - a guard's default under uncertainty
+// is closed, not open.
+test("activeExemptions never throws when the landed wave is unknown (null), and fails CLOSED, not active", () => {
+  assert.equal(activeExemptions(RENDERING_375_EXEMPTIONS, null).length, 0);
 });

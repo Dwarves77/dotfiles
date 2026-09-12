@@ -1,7 +1,11 @@
 // SITE-WIDE LAYOUT GUARD - the red-then-green proof. Lane layoutguard, 2026-09-08.
 //
-// PORTABLE: node builtins + relative .mjs only, so run-test-suite.sh's no-npm-ci job runs it (see
-// that script's header) and the npmtest glob picks it up. No browser: the detectors are pure, and
+// NOT PORTABLE to the no-npm-ci job: its direct imports are relative .mjs only, but the chain reaches
+// .discipline/rendering/smoke/harness.mjs, which imports esbuild (npm). It is executed by the
+// discipline workflow's "App unit tests requiring npm deps" step through that step's NAMED list
+// (2026-09-11, W9 task 0.1: a first attempt to glob it into run-test-suite.sh went red in CI on
+// exactly this transitive import; the glob-portability check sees direct imports only). No browser
+// is needed for the detectors themselves: they are pure, and
 // this file feeds them the measurement bundles collect.mjs produces so the judgement is proven
 // without a chromium, exactly the split assertions.test.mjs and ux-assert.test.mjs already use.
 //
@@ -16,6 +20,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import {
   checkL1, checkL2, checkL3, checkL4, checkL5, checkL6, checkL7, checkL8, checkL9, checkL10,
   isL9DesktopExempt,
@@ -242,8 +247,21 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
   const t = (id, name, x, y, width, height) => ({ id, name, x, y, width, height, contains: [] });
   const facet = t(0, 'input.cl-facet-check[]', 0, 0, 266, 24);
 
-  // Covered: the named target, at 1440, inside the entry's wave.
-  assert.deepEqual(checkL9(base({ width: 1440, targets: [facet] })), []);
+  // FACETFIX (2026-09-11), task 0.1: `checkL9` always reads the LIVE `latestTrainWave()` (it has no
+  // injectable override - only `isL9DesktopExempt` below does), so this first assertion is pinned to
+  // REAL repo history, not a fixed point in time. It used to read `[]` (the synthetic 266x24 box
+  // covered) while the repo's landed wave was still under the entry's expiryWave:70. That was the
+  // exact CI-divergence mechanism task 0.1 investigated (a depth-1 pull_request checkout has no
+  // origin/master ref and resolves latestWave to null - "unknown", treated as still-active - while a
+  // depth-1 push checkout's origin/master IS the one pushed commit, whose own subject line names the
+  // real wave): see .github/workflows/discipline.yml's checkout step and docs/ops/session-log.md's
+  // FACETFIX entry. This tree has now landed wave71 (commit 5e891abd), past the expiry, so the
+  // exemption is correctly, permanently retired for this synthetic box too - proving the SAME
+  // wave-oracle mechanism the real /regulations mount now relies on (the test below) to have stopped
+  // masking the undersized target rather than to have started masking it. The wave-pinned assertions
+  // two lines down (isL9DesktopExempt at explicit waves 70/69) are what still prove the exemption
+  // mechanism itself works; this one now proves it has expired for real.
+  assert.equal(checkL9(base({ width: 1440, targets: [facet] })).length, 1);
 
   // NOT covered at 390: below the entry's 768 floor the 44px touch target has to hold, and does.
   assert.equal(checkL9(base({ width: 390, targets: [facet] })).length, 1);
@@ -258,9 +276,53 @@ test('L9\'s desktop exemption covers exactly the one named target, at desktop wi
   assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 70), false);
   assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 69), true);
 
+  // NOT covered when the wave is UNKNOWN (coordinator review, 2026-09-11, task 0.1 follow-up,
+  // [CONFIRMED by the reviewer]): a null latestWave used to degrade to "still active" (fail open),
+  // which is the exact mechanism that let a depth-1 pull_request checkout - unable to resolve
+  // origin/master, so latestTrainWave() returns null - keep suppressing this finding while a depth-1
+  // push checkout, resolving a real and expired wave on the SAME tree, correctly reported it.
+  // fetch-depth: 0 made null unreachable on the two CI events this task observed, but the predicate
+  // itself stayed fail-open; this asserts the predicate now fails CLOSED on its own, independent of
+  // which checkout depth happens to be in front of it.
+  assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, null), false);
+
   // The overlap half of L9 is never suppressed, for any target.
   const stacked = checkL9(base({ width: 1440, targets: [t(0, 'input.cl-facet-check[]', 0, 0, 266, 24), t(1, 'input.cl-facet-check[]', 0, 10, 266, 24)] }));
   assert.ok(stacked.some((h) => /adjacent targets overlap/.test(h.measured)));
+});
+
+// FACETFIX (2026-09-11): the pure-bundle test above proves the DETECTOR against a hand-built box;
+// this proves the actual PRODUCT tree, real chromium, real /regulations mount - the same measurement
+// run-rendering-guard.mjs takes in CI. It is the one test in this otherwise browser-free file that
+// needs a real chromium, so it self-skips (diagnosably, not silently) when playwright is not
+// resolvable, the same posture rule 15's execution-wiring gate requires of a no-cred verifier - a
+// lane without the browser dependency gets a skip, never a crash and never a false green.
+//
+// CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up round 3): this file is now wired
+// into the "Discipline engine unit tests" job via run-test-suite.sh's own
+// `rendering/layout-guard/*.test.mjs` glob, not the rendering-guard job - that job never runs
+// `node --test` against any file, only `run-rendering-guard.mjs` directly (the exact gap this round
+// closes; see the header note below and docs/ops/session-log.md's FACETFIX entry). The
+// discipline-unit-tests job runs with NO `npm ci` step at all (checkout + setup-node, then straight
+// to `bash run-test-suite.sh`), so THIS test self-skips there every time - it runs for real only in
+// an environment where `npm install`/`npm ci` already put playwright in node_modules (a local run,
+// or after the "App unit tests requiring npm deps" step elsewhere installs it for other reasons).
+// That is the correct, honest state: the detector logic it exercises (checkL9, isL9DesktopExempt)
+// is unit-proven with no browser by the pure-bundle test above and by
+// exemptions-law2-desktop.test.mjs, both of which DO run in the no-npm-ci job; this one test is the
+// supplementary real-DOM confirmation, same posture as the rendering-guard job's own relationship to
+// assertions.test.mjs (see that job's header comment in discipline.yml).
+test('L9: facet checkboxes meet the hit-target floor at 1440', async (t) => {
+  try {
+    createRequire(import.meta.url).resolve('playwright');
+  } catch {
+    t.skip('playwright is not installed in this lane (e.g. the no-npm-ci discipline-unit-tests job) - the pure-bundle L9 test above and exemptions-law2-desktop.test.mjs cover the detector logic without a browser; this test is the supplementary real-chromium confirmation and runs for real wherever playwright is already installed');
+    return;
+  }
+  const { runLayoutGuardFor } = await import('./run-layout-guard.mjs');
+  const findings = await runLayoutGuardFor({ route: '/regulations', width: 1440 });
+  const facet = findings.filter((f) => f.rule === 'L9' && f.element.includes('cl-facet-check'));
+  assert.deepEqual(facet, [], `facet checkbox findings: ${JSON.stringify(facet)}`);
 });
 
 // ── L10 ───────────────────────────────────────────────────────────────────────────────────────
@@ -327,19 +389,38 @@ test('every allowlist entry carries a reason and a source - an exception with ne
   }
 });
 
-test('the Anton allowlist is exactly the operator\'s six, plus the one addition this lane declares', () => {
+// UPDATED (coordinator review, 2026-09-11, task 0.1 follow-up round 2). This test was failing on
+// origin/master already - [CONFIRMED] via `gh api repos/Dwarves77/dotfiles/actions/jobs/103383655386
+// /logs` (the "Discipline engine unit tests" job on master run 34634686151, commit 5e891abd): zero
+// occurrences of "layout-guard.test.mjs" anywhere in that job's log, and no `.github/workflows/*.yml`
+// job or `run-test-suite.sh` glob names `.discipline/rendering/layout-guard/*.test.mjs` (the suite
+// globs `rendering/*.test.mjs`, `rendering/audit/*.test.mjs` and `rendering/smoke/*.test.mjs`, none
+// of which reach the `layout-guard/` subdirectory). This is a PRE-EXISTING rule-15 orphaned proof,
+// not created by this task: `layout-guard-expiry.test.mjs`'s own header already documented the exact
+// same gap on 2026-09-09 ("[CONFIRMED 2026-09-09: the suite ran 6025 tests, 0 fail, while `node --test
+// .discipline/rendering/layout-guard/layout-guard.test.mjs` on the SAME tree... reports two
+// failures]"), reported to the coordinator rather than fixed because the two red tests read
+// `allowlists.mjs`, another lane's write set at the time. The three entries these assertions were
+// missing are now confirmed legitimate, dated, reasoned exemptions (FOLD 64, 2026-09-09, lane
+// opsmatrix3's artboard-8 matrix; read `allowlists.mjs` directly rather than assumed) - the fix here
+// is to the test's stale expected set, not to the allowlist.
+test('the Anton allowlist is exactly the operator\'s six, plus the three declared extensions', () => {
   const ids = ANTON_ALLOWLIST.map((e) => e.id);
   for (const required of ['page-title', 'card-title', 'band-tile-numeral', 'stat-block-numeral', 'headline-figure', 'timeline-callout']) {
     assert.ok(ids.includes(required), `missing the operator's "${required}"`);
   }
   const extra = ids.filter((id) => !['page-title', 'card-title', 'band-tile-numeral', 'stat-block-numeral', 'headline-figure', 'timeline-callout'].includes(id));
-  assert.deepEqual(extra, ['nav-wordmark'], 'any addition beyond his six is declared here, so it cannot be added quietly');
+  assert.deepEqual(
+    extra.sort(),
+    ['matrix-cell-score', 'matrix-fact-figure', 'nav-wordmark'].sort(),
+    'any addition beyond his six is declared here, so it cannot be added quietly'
+  );
 });
 
-test('the L5 allowlist covers exactly the four things the operator named, plus the two declared extensions', () => {
+test('the L5 allowlist covers exactly the four things the operator named, plus the three declared extensions', () => {
   const ids = POSITION_ALLOWLIST.map((e) => e.id);
   assert.deepEqual(ids.slice(0, 4), ['nav-card-sticky', 'detail-section-index-sticky', 'command-bar-hint', 'overlays']);
-  assert.deepEqual(ids.slice(4).sort(), ['map-markers', 'mobile-top-bar']);
+  assert.deepEqual(ids.slice(4).sort(), ['map-markers', 'mobile-top-bar', 'table-card-sticky-first-column']);
 });
 
 test('the operator\'s absence vocabulary is complete, and only PENDING is narrowed', () => {

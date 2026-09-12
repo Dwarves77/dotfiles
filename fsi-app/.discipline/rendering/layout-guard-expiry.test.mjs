@@ -1,16 +1,24 @@
 // THE LAYOUT-GUARD BASELINE'S EXPIRY, PROVEN BY ATTACK IN BOTH DIRECTIONS. Lane OPS72CH, 2026-09-09.
 //
-// WHY THIS FILE EXISTS AND IS NOT A BLOCK INSIDE `layout-guard/layout-guard.test.mjs`. That file is
-// matched by NO glob in `.discipline/run-test-suite.sh`: the suite globs
-// `.discipline/rendering/*.test.mjs` and the three directories under it that carry tests, and
-// `rendering/layout-guard/` is not one of them. [CONFIRMED 2026-09-09: the suite ran 6025 tests, 0
+// WHY THIS FILE EXISTS AND WAS NOT A BLOCK INSIDE `layout-guard/layout-guard.test.mjs`, AT THE TIME.
+// That file was matched by NO glob in `.discipline/run-test-suite.sh`: the suite globbed
+// `.discipline/rendering/*.test.mjs` and the three directories under it that carried tests, and
+// `rendering/layout-guard/` was not one of them. [CONFIRMED 2026-09-09: the suite ran 6025 tests, 0
 // fail, while `node --test .discipline/rendering/layout-guard/layout-guard.test.mjs` on the SAME
 // tree, and on the train branch before this lane touched it, reports two failures.] Putting a new
 // proof there would have made it exactly what CLAUDE.md rule 15 forbids: git-tracked, cited as
-// enforcement, and run by nothing. This file sits one directory up, where the suite's existing glob
-// picks it up by construction. The gap in the layout-guard directory's own wiring is reported to the
-// coordinator rather than fixed here, because the two red tests read `allowlists.mjs`, which is
-// another lane's write set.
+// enforcement, and run by nothing. This file sat one directory up instead, where the suite's
+// existing glob picked it up by construction. The gap in the layout-guard directory's own wiring was
+// reported to the coordinator rather than fixed at the time, because the two red tests read
+// `allowlists.mjs`, which was another lane's write set.
+//
+// RESOLVED (coordinator review, 2026-09-11, task 0.1 follow-up round 3). `run-test-suite.sh` now
+// carries a `fsi-app/.discipline/rendering/layout-guard/*.test.mjs` glob (proven portable by
+// `glob-portability.test.mjs`), so `layout-guard.test.mjs` is wired and runs 43/43 in the same job
+// this file runs in - the two allowlist tests were corrected against `allowlists.mjs` directly
+// (round 2) rather than deferred again. The paragraph above is kept as the historical record of why
+// this file exists at all (it still proves the baseline expiry, a genuinely separate concern from
+// layout-guard.test.mjs's own content); it no longer describes a live gap.
 //
 // WHAT IT PROVES. Operator ruling 2026-09-09: "extend the layout-guard baseline to 2026-10-15. Land
 // as wave65." The mechanism before this lane expired the baseline when `latestTrainWave()` reached

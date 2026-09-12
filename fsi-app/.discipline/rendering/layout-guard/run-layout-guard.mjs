@@ -103,6 +103,27 @@ export async function measureAllRoutes(browser, { widths = LAYOUT_WIDTHS, only =
 }
 
 /**
+ * Programmatic single-route entry (lane facetfix, 2026-09-11): the same measurement the CLI's
+ * `--route`/`--width` flags drive (see `main()` below), exposed as an importable function so a test
+ * can measure one route without owning a browser itself. Launches its own chromium (honouring
+ * `PLAYWRIGHT_CHROMIUM_EXECUTABLE`, the same override `main()` reads), measures, closes, and returns
+ * the RAW findings - no baseline application, no file writes, so a caller sees every finding the
+ * detectors produced, dated exemptions included or not, and decides what to assert on it.
+ */
+export async function runLayoutGuardFor({ route, width }) {
+  const { chromium } = createRequire(import.meta.url)('playwright');
+  const browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
+  );
+  try {
+    const { findings } = await measureAllRoutes(browser, { widths: [width], only: route });
+    return findings;
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
  * The rendering-guard slot: `{ checks, failures }`, the shape every smoke spec returns.
  *
  * Only findings OUTSIDE the dated baseline fail the build (baseline.mjs's header states the whole

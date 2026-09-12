@@ -90,8 +90,33 @@ export function isExemptLaw2Desktop(failureLine, activeEntries) {
   return named.every((n) => usable.some((e) => n.startsWith(`${e.targetName} `)));
 }
 
-/** Entries whose expiryWave has not yet been reached (or whose wave is unknown — best-effort, the
- *  same posture exemptions-375.mjs and F25's own oracle take). */
+/**
+ * Entries whose expiryWave has not yet been reached. FAILS CLOSED on an unknown wave: with no live
+ * wave number to test an expiry against, no entry can be shown to still be inside its window, so
+ * none are treated as active.
+ *
+ * CORRECTED (coordinator review, 2026-09-11, task 0.1 follow-up, [CONFIRMED by the reviewer]). The
+ * previous form treated `latestWave === null` as "still active" (fail open, "best-effort, the same
+ * posture exemptions-375.mjs and F25's own oracle take"). That was the exact mechanism behind the
+ * push-vs-pull_request layout-guard divergence this task investigated: a depth-1 pull_request
+ * checkout cannot resolve `origin/master` and so `latestTrainWave()` returns null, and "null degrades
+ * to active" is what let that checkout keep suppressing a finding a depth-1 push checkout, resolving
+ * a real and expired wave number on the SAME tree, correctly reported. `fetch-depth: 0` (this lane's
+ * earlier commit) made the null path unreachable on the two CI events actually observed, but the
+ * predicate itself stayed fail-open, so any OTHER path to an unknown wave (a future job that stays
+ * shallow, a local run with no git history, a new dated entry read by a shallow checkout before this
+ * one's fix landed) would silently re-open the exact gate this exemption exists to close on schedule.
+ * A guard's default under uncertainty is closed, not open - a fail-open exemption is not proven by
+ * asserting its expiry date exists, it is proven by attacking the path where the date cannot be read
+ * at all (CLAUDE.md rule 15).
+ */
 export function activeLaw2Exemptions(list, latestWave) {
-  return list.filter((e) => latestWave === null || latestWave < e.expiryWave);
+  if (latestWave === null && list.length > 0) {
+    console.warn(
+      "exemptions-law2-desktop: latestTrainWave() returned null (no origin/master ref and no waveNN " +
+      "token on HEAD reachable from this checkout) - treating every dated exemption as EXPIRED, fail " +
+      "closed, not fail open; a shallow checkout is the likely cause, see F25-module-liveness.mjs"
+    );
+  }
+  return list.filter((e) => latestWave !== null && latestWave < e.expiryWave);
 }

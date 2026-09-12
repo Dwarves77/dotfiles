@@ -117,17 +117,26 @@ const VISIBLE_OPTIONS_CAP = 6;
 //   checkbox   `width:13px;height:13px` inside a `gap:8px` flex span
 //   count      `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`
 //
-// WHAT THIS REPLACED. The row was `minHeight: 44` with an 11px label and an unsized count, so it
-// stood ~44px tall against the artboard's 24px and the checkbox read as floating in a tall empty
-// band (the operator measured "~33px" on the rendered pages). The group label was 10.5px/800/.1em
-// and the groups were separated by a 14px flex gap with no rule at all.
+// WHAT THIS REPLACED (railfacets, 2026-09-08). The row was `minHeight: 44` with an 11px label and
+// an unsized count, so it stood ~44px tall against the artboard's 24px and the checkbox read as
+// floating in a tall empty band (the operator measured "~33px" on the rendered pages). The group
+// label was 10.5px/800/.1em and the groups were separated by a 14px flex gap with no rule at all.
 //
-// THE 24px ROW AND THE 44px TOUCH TARGET BOTH HOLD, in one element, so nothing is traded away:
-// 24px is the DESKTOP measure and lives here; `.cl-facet-row`/`.cl-facet-more` take min-height 44px
-// below 768px from globals.css, the same breakpoint LIST_SURFACE_MOBILE_CSS uses. The two never
-// contend because they never apply at the same width. (Below 768 the four list surfaces hide this
-// card entirely in favour of the mobile chip strip and the Filters sheet — MOBILE-60 — so the 44px
-// rule is what /watchlist, the one surface that keeps the rail card at 390, actually renders.)
+// THE 24px-DESKTOP / 44px-MOBILE SPLIT DESCRIBED ABOVE NO LONGER HOLDS (FACETFIX, 2026-09-11, task
+// 0.1). It was always a DATED, expiring carve-out (exemptions-law2-desktop.mjs, "operator item C1",
+// expiryWave: 70) against two guards that fire at every width, not only below 768: docs/design/
+// ux-laws.md law 2 ("44 CSS px on the shorter axis, or 24 px with 8 px clear space" - unavailable
+// here, since these rows stack with 0px clearance) and the site-wide layout guard's L9 (short axis
+// >= 28px). The carve-out existed only because the two guards and this artboard-fidelity row first
+// met in one tree (FOLD 62) and it bought time for a real fix rather than papering over 100 findings
+// at once; it was never meant to be permanent, and it has now lapsed for real (the repo passed
+// wave70 at wave71, commit 5e891abd). The row below now carries `minHeight: 44` INLINE at every
+// width - the same 44px CSS-class rule `.cl-facet-more` (the "+N more" link row) still takes only
+// below 768px from globals.css, because a button is a different element with its own L9 measure and
+// stayed outside this task's brief. Below 768 the four list surfaces still hide this card entirely
+// in favour of the mobile chip strip and the Filters sheet (MOBILE-60); /watchlist, the one surface
+// that keeps the rail card at 390, now renders the SAME 44px row it always rendered there, just no
+// longer via a viewport-scoped CSS rule for the checkbox row specifically.
 //
 // `line-height: 16px` is the one value here with no artboard source. The artboard leaves it
 // `normal`, which resolves per font and would put the row at 23-25px depending on the face that
@@ -170,6 +179,7 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 8,
+                minHeight: 44,
                 padding: "4px 0",
                 lineHeight: "16px",
                 cursor: "pointer",

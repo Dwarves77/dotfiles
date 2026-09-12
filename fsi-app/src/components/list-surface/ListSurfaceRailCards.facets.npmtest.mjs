@@ -29,12 +29,24 @@ test("the facet group carries the artboard's 10px either side and its 1px rgba(0
   assert.match(SRC, /padding: "10px 0", borderBottom: "1px solid rgba\(0,0,0,\.06\)"/);
 });
 
-test("the facet row is the artboard's 4px-either-side 12.5px row, not a 44px block", () => {
+// FACETFIX (2026-09-11), task 0.1: this test's own min-height assertion is UPDATED, not merely
+// tolerated. The dated FOLD-62 exemption that let the artboard's 24px desktop row stand without an
+// inline min-height (exemptions-law2-desktop.mjs, expiryWave: 70) was ALWAYS meant to lapse - "past
+// wave 70 this covers nothing and the findings return" - and the real repo has now landed wave71
+// (commit 5e891abd), past that expiry, on both the site-wide L9 floor (28px short axis) and law 2
+// itself (docs/design/ux-laws.md #2: "44 CSS px on the shorter axis, or 24 px with 8 px clear space
+// on every side" - these rows are stacked with 0px clearance, so the 24px branch was never
+// available). The row's `min-height: 44` inline is the PERMANENT fix the exemption bought time for,
+// not a relapse of the block the FOLD-62 note warned against: that note described a WHOLE ~44px row
+// with an 11px label floating in a tall empty band (operator-measured "~33px"); this keeps every
+// other artboard measure (4px padding, 12.5px font, space-between) and only grows the row's own
+// height so its label - which wraps the checkbox as the real click/tap target - clears the floor.
+test("the facet row carries the artboard's 4px-either-side 12.5px type and now a real 44px hit target (FACETFIX, 2026-09-11)", () => {
   const row = SRC.slice(SRC.indexOf('className="cl-facet-row"'), SRC.indexOf('className="cl-facet-count"'));
   assert.match(row, /padding: "4px 0"/);
   assert.match(row, /fontSize: "var\(--fs-125\)"/);
   assert.match(row, /justifyContent: "space-between"/);
-  assert.doesNotMatch(row, /minHeight/, "the row's min-height belongs in globals.css, where the 390 breakpoint can reach it");
+  assert.match(row, /minHeight: 44/, "the row IS the label (the checkbox's hit target); law 2 / L9 both require >=44px (or >=24px with 8px clearance, unavailable here since rows stack with 0 clearance) on the shorter axis, at every width - the FOLD-62 desktop-only carve-out expired at wave70");
 });
 
 test("the count is 11px muted and tabular, sized in its own right rather than inheriting the row", () => {

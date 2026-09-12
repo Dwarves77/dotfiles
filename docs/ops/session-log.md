@@ -17264,3 +17264,270 @@ No new screen, no new control beyond the pointer/keyboard handling the tech-debt
 no new row anatomy; the `@container`-only CSS override is one small addition on top of the reflow
 SEARCHROW already shipped the same day, exactly as CLAUDE.md rule 13 (same template, one additional
 rule) requires.
+## FACETFIX lane, 2026-09-11: the checkbox fix and the push-vs-pull_request layout-guard divergence (task 0.1)
+
+Task 0.1 of the brief-chain build plan (`docs/plans/brief-chain-build-plan-2026-09-11.md`), resumed
+from a prior implementer's uncommitted worktree state. Two findings, both required by the brief; both
+are stated below with their status token and method, per CLAUDE.md rule 14.
+
+### Finding 1: the checkbox's 266x24px hit target. [CONFIRMED]
+
+**Method: local reproduction with `runLayoutGuardFor({ route: "/regulations", width: 1440 })` (real
+chromium, real product tree) before and after the fix, plus a diff of two live CI job logs.**
+
+Before the fix, `layout-guard L9 /regulations@1440: input.cl-facet-check[] - 266x24px` fired 16 times
+at 1440 and more at 1024 (collect.mjs's L9 collector measures the WRAPPING `<label>`'s
+`getBoundingClientRect()` for a checkbox/radio input, not the raw `<input>` - `.cl-facet-row` IS that
+label, so 266px is the card's content width and 24px is the row's `min-height`). Root cause: the
+FOLD-62 desktop exemption (`exemptions-law2-desktop.mjs`, "operator item C1", `expiryWave: 70`) was
+always a DATED carve-out against docs/design/ux-laws.md law 2 ("44 CSS px on the shorter axis, or 24
+px with 8 px clear space" - unavailable here, rows stack with 0px clearance) and the layout guard's
+own L9 (short axis >= 28px, `allowlists.mjs`), bought at FOLD 62 specifically to give time for a
+PERMANENT fix rather than paper over the ~100 findings the two guards produced together on this one
+component the moment they first met in one tree. It was never meant to survive past wave70, and the
+repo has now landed wave71 (commit 5e891abd).
+
+**Fix**: `ListSurfaceRailCards.tsx`'s `FacetSection` row (the `<label className="cl-facet-row">` that
+already wrapped the checkbox, already carried `id`/`htmlFor` via label association and kept keyboard
+focus on the input) gains `minHeight: 44` inline, at every width - not only below 768px. The visual
+box is unchanged: checkbox stays 13x13, padding stays `4px 0`, font stays 12.5px, `line-height: 16px`
+still makes the CONTENT 24px tall; only the label's own min-height grows, so the extra 20px becomes
+invisible clearance around already-designed content rather than a redraw. Verified with
+`runLayoutGuardFor`: zero `cl-facet-check` findings at `/regulations@1440` after the change (`node
+--test .discipline/rendering/layout-guard/layout-guard.test.mjs` - 41 pass, the two remaining
+failures are pre-existing allowlist drift from other lanes, see Gates below), and zero
+`cl-facet-check`/`cl-facet-more` findings anywhere in a full local `run-rendering-guard.mjs` pass (the
+`market-rows`/`operations-ledger` smoke warnings the brief named are gone).
+
+This DID conflict with two things already in the tree, both updated in this commit because leaving
+them red or leaving the doc wrong would misrepresent the fix as smaller than it is:
+- `ListSurfaceRailCards.facets.npmtest.mjs`'s test asserting the row carries NO inline `minHeight`
+  (written at FOLD 62, when the 24px-desktop/44px-mobile split was still the live design) now asserts
+  `minHeight: 44` instead, with the supersession dated in the test itself.
+- The `FacetSection` doc comment above the row (which stated "24px is the DESKTOP measure... nothing
+  traded away") is corrected to say the split no longer holds and why.
+- `layout-guard.test.mjs`'s own FOLD-62 exemption test asserted `checkL9(...)` returns `[]` for a
+  synthetic 266x24 box "at desktop width, while dated" - that assertion calls `checkL9` with NO wave
+  override, so it reads the REAL, live `latestTrainWave()`, and now correctly returns 1 finding
+  (matching Finding 2 below: the exemption expiring for real on this tree). Updated with a dated
+  comment; the wave-pinned assertions two lines down (`isL9DesktopExempt(name, 1440, 70)` /
+  `(..., 69)`) are what still prove the exemption mechanism itself, unaffected.
+`exemptions-law2-desktop.mjs` itself is left in place, now dormant (it can no longer suppress anything
+real, since the underlying geometry no longer produces the finding it was scoped to) - deleting it is
+outside this task's brief.
+
+### Finding 2: why master was red on push and the identical tree was green on the pull_request event. [CONFIRMED]
+
+**Method: fetched both real CI job logs with `gh api repos/Dwarves77/dotfiles/actions/jobs/<id>/logs`
+(the brief's own commands) and diffed them, cross-checked against a second PR attempt, then read the
+oracle's and the exemption's source to confirm the mechanism the logs point to.**
+
+Run `34614334442` (pull_request, PR #621, branch `train/wave71-2026-09-11`) is green on BOTH attempt 1
+(job `103312372742`) and attempt 2 (job `103388624656`) - `layout guard: 36 route x width
+measurement(s), 0 finding(s)` in both job logs. Run `34634686151` (push, `head_branch: master`),
+attempt 2, job `103383607922`, is red on the identical tree (commit `5e891abd`) - `layout guard: 36
+route x width measurement(s), 120 finding(s)`, all under the law-2 desktop exemption's target name.
+Both PR-attempt job logs print, verbatim: `4 failure(s) covered by a dated law-2 desktop component
+exemption (operator item C1, latest landed wave: unknown, entries expire at wave70)`; the master job
+log never prints that line at all (nothing was suppressed). The dated-baseline suppression (a
+DIFFERENT, unaffected mechanism, per `layout-guard-expiry.test.mjs`: "the wave oracle is gone" from
+`baseline.mjs`, which uses `BASELINE_EXPIRY_DATE`) covers an identical 622 findings in both logs,
+ruling it out as the cause.
+
+Root cause, read from `F25-module-liveness.mjs`'s `latestTrainWave(root, exec)`: it runs `git log
+--oneline origin/master`, falling back to `git log --oneline HEAD` if that ref does not resolve, and
+returns the highest `waveNN` token found in either output (or `null`, never throwing). Both the PR and
+push checkouts in `.github/workflows/discipline.yml` used `actions/checkout@v5` with NO `fetch-depth`
+set (defaulting to 1). On the pull_request event this checks out `refs/pull/621/merge` (one commit,
+the synthetic merge GitHub builds for the diff) with no local `origin/master` ref at all - the oracle
+falls to `HEAD`, which is that one merge commit, whose auto-generated message carries no `waveNN`
+token, so `latestTrainWave()` returns `null`. On the push event, `origin/master` DOES exist locally
+(the checkout creates a local `master` branch tracking it), but depth 1 means it holds exactly the one
+just-pushed commit - whose own subject line happens to be `train/wave71 2026-09-11 (#621)`, so the
+`git log --oneline origin/master` call succeeds and returns 71 (a coincidence of the commit-message
+convention, not a real history scan). `activeLaw2Exemptions()` (and `isL9DesktopExempt`'s own default)
+treat `latestWave === null` as "still active" - fail OPEN on unknown, not fail closed - so the PR run
+kept suppressing the finding while the push run, now able to resolve a real (and expired) wave number,
+stopped. Same tree, two verdicts, entirely from which ref happened to be reachable in a depth-1
+checkout, not from any difference in the code being measured.
+
+**Fix**: `.github/workflows/discipline.yml`'s rendering-guard job checkout step now sets
+`fetch-depth: 0`, so both events fetch full history and `origin/master` resolves identically either
+way; `latestTrainWave()` then sees the true landed-wave history under both events and the two events
+agree. This closes the ORACLE divergence; Finding 1's fix closes the underlying geometry defect the
+oracle divergence was masking on one side. Not independently re-verified by an actual CI run under
+this task (no push was made, per instruction) - the log-diff and source-read evidence above is the
+method; a coordinator should confirm on the next real push/PR pair that both events now agree.
+
+### Pre-existing, out-of-scope failures found while running the gates (not fixed here)
+
+- `layout-guard.test.mjs`: "the Anton allowlist is exactly the operator's six..." and "the L5
+  allowlist covers exactly the four things the operator named..." both fail against
+  `allowlists.mjs` entries (`matrix-cell-score`, `matrix-fact-figure`, `table-card-sticky-first-column`)
+  added by other, already-merged lanes without updating this test's hardcoded expected lists. Neither
+  file was touched by this task; confirmed pre-existing on origin/master at 5e891abd.
+- `node .discipline/fitness/runner.mjs`: F28 `harness-run-integrity` reports 10 violations, all STALE
+  PENDING-RUN.md / staleness-coupling findings across unrelated harness families (mint, screen,
+  fetch-drain, meta-harness, forward-events, source-sweep, ledger-consume, change-detection,
+  corpus-turn). None of the governing files or PENDING-RUN.md markers this task touches; pre-existing.
+- Full local `node .discipline/rendering/run-rendering-guard.mjs`: after Finding 1's fix, zero
+  `cl-facet-check`/`cl-facet-more` findings remain, but 112 OTHER layout-guard findings surface on
+  /settings, /watchlist, /research, /admin, /map, /profile - on a DIFFERENT route set than master's
+  own 120 (which were entirely the facet-check findings, on /market, /operations, /regulations,
+  /research, /watchlist), and against a different dated-baseline coverage count (534 locally vs 622 on
+  the Linux CI run, same baseline file, same date). This is the SAME class of Windows-vs-Linux
+  chromium font-rendering nondeterminism this file's own header already documents for a different
+  fixture (`timeline-labels`, "Linux-CI font-fallback digits overflow... a fixture fidelity + cross-OS
+  font-nondeterminism issue, NOT a confirmed production defect"). [HYPOTHESIS: these 112 are local
+  rendering noise, not real defects] - not independently confirmed against a Linux environment in this
+  task; NOT fixed here (unrelated routes, unrelated components, would widen scope past the brief). The
+  targeted proof that matters for this task - zero facet-check findings - is [CONFIRMED] by three
+  independent methods (the new `node --test` case, the direct `runLayoutGuardFor` probe, and this full
+  local run), none of which are sensitive to font rendering (the measurement is inline-pixel
+  `min-height`, not text metrics).
+
+### UX compliance
+
+**Screen: the Filters rail card's facet checkboxes, on every list surface that mounts
+`FiltersRailCard` (Regulations, Market Intel, Research, Operations, Watchlist).** Primary goal
+unchanged: narrow the list by checking a facet value. What changed is whether the checkbox's hit
+target is actually clickable/tappable at its stated floor, not the filtering behaviour itself.
+
+Law 2 (Fitts's Law, `docs/design/ux-laws.md` #2, "interactive targets are at least 44 CSS px on the
+shorter axis, or at least 24 px with 8 px clear space") is the operative law and was the one being
+violated: the row (the label wrapping the checkbox, which is the real hit target per the layout
+guard's own collector) measured 266x24px, short axis 24 < 44, and its neighbour rows stack with 0px
+clearance so the 24px-with-clearance branch was never available either. The fix makes the label
+`min-height: 44` so the SHORT axis clears the floor at every width, including the 375-390px band
+where MOBILE-60 already hides this card behind the chip strip on four of the five surfaces - the one
+surface that keeps the rail card narrow, /watchlist at 390, already rendered 44px there via
+`globals.css`'s `@media (max-width: 767px)` rule and is unchanged; the desktop widths (768px and up,
+including 1440 where the layout guard measured the defect) are what actually changed. Law 16
+(Similarity) holds: every facet row across all five surfaces shares the one `FacetSection` component
+(enforced by `ListSurfaceRailCards.facets.npmtest.mjs`'s "no component outside this file declares a
+facet row of its own" test), so the fix is uniform, not per-page. No new screen, no new control, no
+new row anatomy - the visual box (13x13 checkbox, 12.5px label, 11px count) is byte-identical; only
+the label's clickable height changed.
+
+### Gates
+
+Every gate run from the worktree root (`fsi-app/`), exit codes read explicitly.
+
+- `node --test .discipline/rendering/layout-guard/layout-guard.test.mjs`: 43 tests, 41 pass, 2 fail
+  (both pre-existing allowlist drift, named above, not touched by this task).
+- `node --test src/components/list-surface/ListSurfaceRailCards.facets.npmtest.mjs`: 7/7 pass.
+- `npx tsc --noEmit`: clean, exit 0.
+- `node .discipline/fitness/runner.mjs`: 37 functions checked, 10 violations, all F28 pre-existing
+  harness-staleness findings unrelated to this task (named above).
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: exit 0, no output (the range
+  was empty before this commit; re-run after committing).
+- `bash .discipline/run-test-suite.sh`: NOT RUN. Coordinator instruction mid-task: six lanes were
+  running the full suite concurrently on the shared machine; the coordinator runs it once per lane at
+  push time instead. Two earlier attempts in this session (unbounded, then 240s-bounded) showed
+  genuine but very slow progress through the fitness/functions "LIVE" full-tree-scan block under that
+  contention, not a hang in anything this task touches; a third attempt was killed the moment the
+  instruction arrived (confirmed via `Get-CimInstance Win32_Process` + `Stop-Process`, no matching
+  `node.exe` remains).
+- Full `node .discipline/rendering/run-rendering-guard.mjs` (local, not a listed gate but named by the
+  brief's own verification step): 0 `cl-facet-check`/`cl-facet-more` findings; 112 unrelated findings
+  attributed to Windows/Linux chromium rendering nondeterminism, named above, not fixed.
+
+### Follow-up (coordinator review, same day): the null-wave path still failed open
+
+Coordinator review flagged `exemptions-law2-desktop.mjs:96`'s `activeLaw2Exemptions` as still treating
+an unknown `latestWave` (`null`) as "exemption still active" ([CONFIRMED by the reviewer]; `fetch-depth:
+0` only made `null` unreachable on the two CI events this task happened to observe, not on every path
+to an unknown wave). Attacked RED first: a new `isL9DesktopExempt(name, width, null)` assertion in
+`layout-guard.test.mjs` and a corrected `exemptions-law2-desktop.test.mjs` case (the old case asserted
+the bug itself, "an unknown wave degrades to active") both failed against the unmodified predicate,
+then passed once `activeLaw2Exemptions` was changed to `latestWave !== null && latestWave < e.expiryWave`
+(fail closed) with a named `console.warn` on the null path so a shallow checkout is diagnosable, never
+silent. Re-ran layout-guard tests (41/43, same 2 pre-existing unrelated), the facets npmtest (7/7),
+`tsc --noEmit` (clean), the fitness runner (37 checked, same 10 pre-existing unrelated), and the
+discipline CI-range runner (clean) after the fix; all still green. While investigating, found the
+SAME fail-open pattern in the sibling `exemptions-375.mjs:68`'s `activeExemptions` (`latestWave ===
+null || latestWave < e.expiryWave`); left unfixed as out of this task's scope (the coordinator's fix
+named only the law2-desktop file) and flagged here per rule 13 for a follow-up dispatch.
+
+### Follow-up round 2 (coordinator review, same day): class-over-instance, and an orphaned-proof finding
+
+Two more items in the same lane, remediation-discipline section 2 (class over instance). **(1)**
+Fixed `exemptions-375.mjs:68`'s `activeExemptions`, the sibling flagged in the previous round: the
+identical fail-open-on-null shape as `exemptions-law2-desktop.mjs` (fixed above), same RED-first
+attack (corrected `exemptions-375.test.mjs`'s existing "best-effort... same posture as F25's own
+oracle" case, which asserted the bug itself, to expect 0 active entries on a null wave; RED with 1
+fail before the fix), same source fix (`latestWave !== null && latestWave < e.expiryWave`, named
+`console.warn` on the null path), GREEN after (6/6). **(2)** Established [CONFIRMED], by three
+independent methods, that `layout-guard.test.mjs` is a pre-existing rule-15 ORPHANED PROOF: read
+`run-test-suite.sh`'s globs (`rendering/*.test.mjs`, `rendering/audit/*.test.mjs`,
+`rendering/smoke/*.test.mjs`, none reaching `rendering/layout-guard/`), read `discipline.yml`'s
+rendering-guard job (runs `run-rendering-guard.mjs` directly, never `node --test` on this file), and
+fetched the real origin/master CI log (`gh api .../jobs/103383655386/logs`, the "Discipline engine
+unit tests" job on master run 34634686151/commit 5e891abd) which contains zero occurrences of
+"layout-guard.test.mjs". This matches a PRIOR lane's own dated finding already in the tree
+(`layout-guard-expiry.test.mjs`'s header, OPS72CH, 2026-09-09: "the suite ran 6025 tests, 0 fail,
+while `node --test .discipline/rendering/layout-guard/layout-guard.test.mjs` on the SAME tree...
+reports two failures", reported to the coordinator rather than fixed because the two red tests read
+`allowlists.mjs`, another lane's write set). Read `allowlists.mjs` directly and confirmed the three
+entries the two failing tests were missing (`matrix-cell-score`, `matrix-fact-figure` in
+`ANTON_ALLOWLIST`; `table-card-sticky-first-column` in `POSITION_ALLOWLIST`) are legitimate, dated,
+reasoned exemptions (FOLD 64, 2026-09-09, lane opsmatrix3's artboard-8 matrix), not undocumented
+drift, and updated both tests' stale expected sets to match. `layout-guard.test.mjs` now runs
+43/43. Not wired into any executing lane in this pass (that architectural decision - adding a glob
+to `run-test-suite.sh` or a shim file the way `layout-guard-expiry.test.mjs` does - stays the
+coordinator's call, consistent with the prior lane's own posture); the orphaned-proof status is
+reported here and in the task report rather than silently left as a stale citation.
+
+### Follow-up round 3 (coordinator review, same day): the orphaned proof gets wired, rule 15 execution-over-existence
+
+The architectural decision left open at the end of round 2 was made: `run-test-suite.sh` now carries
+`fsi-app/.discipline/rendering/layout-guard/*.test.mjs` next to the other rendering globs. Checked
+every import in `layout-guard.test.mjs` and its transitive relative dependencies
+(`manifests.mjs`, `generate-manifests.mjs`, `baseline.mjs`, `routes.mjs`, `rules.mjs`, `collect.mjs`,
+`allowlists.mjs`, `run-layout-guard.mjs`) first: all node: builtins and relative `.mjs`, no bare
+package specifier anywhere; the one npm touch (`createRequire(...).resolve('playwright')`, twice) is
+guarded by try/catch and only reached inside a dynamic `await import('./run-layout-guard.mjs')` that
+never executes when the resolve throws. `node --test .discipline/glob-portability.test.mjs` confirms
+the new glob is portable (2/2 pass); ran the newly-covered file the same way the script would (one
+`node --test` call over the whole rendering tree, 141/141 pass, including the real-chromium L9 test
+at 6.9s). Corrected `layout-guard.test.mjs`'s own header comment on that one test, which had wrongly
+claimed the rendering-guard job "now also runs this whole file" (untrue: that job only ever runs
+`run-rendering-guard.mjs` directly) - it self-skips in the no-`npm ci` discipline-unit-tests job it
+is now actually wired into, and runs for real only where playwright is already installed. Updated
+`layout-guard-expiry.test.mjs`'s header, which documented the orphan by name, to mark it resolved
+without erasing the historical record of why that file exists.
+
+**Why F23's ORPHANED-PROOF check never flagged this.** `coverage-scan.mjs`'s `ROOTS` constant is
+`['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations']` - it never walks
+`fsi-app/.discipline` at all, so a `.discipline/**/*.test.mjs` file is never even classified as
+PROOF (the classifier that feeds `isExecutionWired()`), regardless of its actual wiring state. This
+is a real, [CONFIRMED] structural gap in F23's enumeration (the discipline engine's own test suite is
+entirely outside the surface F23 protects), not a defect in `isExecutionWired()` itself; per
+instruction it is named here, not widened in this lane.
+
+Gates: layout-guard tests 43/43 (unchanged), `npx tsc --noEmit` clean,
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all four commits.
+`run-test-suite.sh` itself was NOT run in this round (coordinator runs it at push).
+
+### Follow-up round 4 (coordinator review, same day): the F23 gap, measured and delivered decision-ready, not landed
+
+Rule 13: the round-3 F23 finding is a commitment, not a comment. Measured the widening locally
+(uncommitted): temporarily set `ROOTS` in `coverage-scan.mjs` to
+`['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations', 'fsi-app/.discipline']`, ran
+`node .discipline/governance/coverage-scan.mjs`, and read the resulting report. Result: **88** newly
+governed files under `fsi-app/.discipline`, **80** classified PROOF, **1** ORPHANED-PROOF
+(`fsi-app/.discipline/rendering/fixtures-dash/fixtures.test.mjs`, confirmed unreferenced by
+`run-test-suite.sh` or any workflow file, independent of the layout-guard finding), plus 4
+UNMAPPED-WRITES and 1 UNMAPPED-ROUTING outside the PROOF class. Since the count is non-zero, the
+widening is NOT landed: `git checkout --` reverted both `coverage-scan.mjs` and the regenerated
+`coverage-report.json` (a tracked side-effect file the scan rewrites on every run), confirmed clean
+by `git status`. The finding is delivered decision-ready in `docs/tech-debt-log.md`'s own format (the
+exact one-line `ROOTS` change, the reproduction command, and the six-file list, dated 2026-09-11) so
+an operator can rule on each of the six items without re-running the experiment.
+
+Gates: `npx tsc --noEmit` clean (no code changed this round; only `docs/tech-debt-log.md`),
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` clean on all five commits.
+
+### FACETFIX follow-up round 5 (2026-09-11): the wired layout-guard test moves to the npm-deps job
+
+Correction to round 3 above [REFUTED in part]: `layout-guard.test.mjs` is not portable to the no-npm-ci suite. Its direct imports are relative, but `baseline.mjs` and `rules.mjs` reach `run-layout-guard.mjs` and then `.discipline/rendering/smoke/harness.mjs`, which imports esbuild. PR #632's "Discipline engine unit tests" job failed on exactly that (ERR_MODULE_NOT_FOUND esbuild) while the local hook passed because node_modules exists here; `glob-portability.test.mjs` checks direct imports only. Per the repo's precedent for transitive npm imports (the named list in discipline.yml's "App unit tests requiring npm deps" step, 2026-08-11), the file is now executed by name in that step and the directory glob is removed from `run-test-suite.sh`. The test stays wired (rule 15); only the job changed.
