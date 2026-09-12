@@ -7,6 +7,7 @@ import {
   RATIFY_CLASSIFICATION_TOKEN, hasRatifyClassificationToken, extractProposalsFromDescription,
   evaluateApplication, buildMergePatch, applyClassification,
   AUTO_ADOPT_FIELDS, isAutoAdoptableProposal, partitionProposals, evaluateAutoAdoption, autoAdoptClassification,
+  decideClassificationProposal, decideScopeTopicsProposal, decideClassificationProposals, buildAdoptedProposalsForMerge,
 } from "./apply-classifications.mjs";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
 import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE } from "../../src/lib/classification/flags.mjs";
@@ -275,7 +276,7 @@ test("partitionProposals: splits auto-adoptable from remaining, preserves order 
   assert.deepEqual(remaining.map((p) => p.field), ["scope_topics", "jurisdictions"]);
 });
 
-// ── evaluateAutoAdoption ─────────────────────────────────────────────────────────────────────────
+// ── evaluateAutoAdoption (task 7.2, 2026-09-12: any flag with >=1 proposal is decidable) ────────────
 
 function openFlag(overrides = {}) {
   const proposals = [{ field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true }];
@@ -289,12 +290,11 @@ function openFlag(overrides = {}) {
   };
 }
 
-test("evaluateAutoAdoption: an open flag with a high-confidence scope_modes proposal is fully covered", () => {
+test("evaluateAutoAdoption: an open flag with a high-confidence scope_modes proposal is decidable", () => {
   const r = evaluateAutoAdoption(openFlag());
   assert.equal(r.ok, true);
   assert.equal(r.sourceId, "source-1");
-  assert.equal(r.autoAdoptable.length, 1);
-  assert.equal(r.fullyCovered, true);
+  assert.equal(r.proposals.length, 1);
 });
 
 test("evaluateAutoAdoption: rejects a non-open flag (already resolved -- ratified or a prior auto-adopt pass)", () => {
@@ -309,35 +309,99 @@ test("evaluateAutoAdoption: rejects a source-drift flag even though it's open", 
   assert.match(r.error, /source-drift|item-anomaly/);
 });
 
-test("evaluateAutoAdoption: no auto-adoptable proposal (only scope_topics, medium) -> not ok, stays open", () => {
+test("evaluateAutoAdoption: a scope_topics-only flag is NOW decidable (task 7.2 closes this former forever-open residue)", () => {
   const proposals = [{ field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "x", applicable: true }];
   const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
+  assert.equal(r.ok, true);
+  assert.equal(r.proposals.length, 1);
+});
+
+test("evaluateAutoAdoption: a jurisdiction-only flag is NOW decidable too (declines, but decides)", () => {
+  const proposals = [{ field: "jurisdictions", value: ["GB"], confidence: "high", basis: "y", applicable: false }];
+  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
+  assert.equal(r.ok, true);
+  assert.equal(r.proposals.length, 1);
+});
+
+test("evaluateAutoAdoption: zero-proposal flag -> refused, nothing to decide", () => {
+  const r = evaluateAutoAdoption(openFlag({ description: "summary\n\nPROPOSALS_JSON: []" }));
   assert.equal(r.ok, false);
-  assert.match(r.error, /zero auto-adoptable/);
+  assert.match(r.error, /zero proposals/);
 });
 
-test("evaluateAutoAdoption: partial coverage (decisive scope_modes + medium scope_topics) -> fullyCovered=false", () => {
+// ── decideClassificationProposal / decideScopeTopicsProposal (task 7.2 decision rules) ─────────────
+
+test("decideClassificationProposal: expected_output adopts when unset, declines when already set", () => {
+  const proposal = { field: "expected_output", value: { regulations: 1 }, confidence: "medium" };
+  assert.equal(decideClassificationProposal(proposal, { expected_output: null }).decision, "adopt");
+  assert.equal(decideClassificationProposal(proposal, { expected_output: { regulations: 0.9 } }).decision, "decline");
+});
+
+test("decideClassificationProposal: scope_modes/scope_verticals adopt only at high confidence, else decline with reason", () => {
+  const high = decideClassificationProposal({ field: "scope_modes", value: ["ocean"], confidence: "high" }, {});
+  const medium = decideClassificationProposal({ field: "scope_verticals", value: ["fine_art"], confidence: "medium" }, {});
+  assert.equal(high.decision, "adopt");
+  assert.equal(medium.decision, "decline");
+  assert.match(medium.reason, /does not meet the decisive 'high' bar/);
+});
+
+test("decideClassificationProposal: jurisdictions ALWAYS declines (no safe write target -- architectural gate, not evidence-based)", () => {
+  const r = decideClassificationProposal({ field: "jurisdictions", value: ["GB"], confidence: "high" }, {});
+  assert.equal(r.decision, "decline");
+  assert.match(r.reason, /no safe write target/);
+});
+
+test("decideScopeTopicsProposal: adopts a topic whose keyword still matches the source's own name", () => {
+  const rows = decideScopeTopicsProposal({ field: "scope_topics", value: ["environmental"] }, { name: "EU Climate and Environment Agency" });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].decision, "adopt");
+  assert.match(rows[0].reason, /re-confirmed/);
+});
+
+test("decideScopeTopicsProposal: declines a topic whose keyword no longer matches the source's current name", () => {
+  const rows = decideScopeTopicsProposal({ field: "scope_topics", value: ["environmental"] }, { name: "Renamed Neutral Body" });
+  assert.equal(rows[0].decision, "decline");
+  assert.match(rows[0].reason, /no re-confirmable/);
+});
+
+test("decideScopeTopicsProposal: adopts the role-derived 'regulatory' topic when the source_role still qualifies", () => {
+  const rows = decideScopeTopicsProposal({ field: "scope_topics", value: ["regulatory"] }, { name: "Some Body", source_role: "primary_legal_authority" });
+  assert.equal(rows[0].decision, "adopt");
+  assert.match(rows[0].reason, /source_role=primary_legal_authority/);
+});
+
+test("decideScopeTopicsProposal: decides EVERY topic independently -- a multi-topic proposal can split adopt/decline", () => {
+  const rows = decideScopeTopicsProposal({ field: "scope_topics", value: ["environmental", "finance"] }, { name: "Environment Council" });
+  assert.equal(rows.length, 2);
+  assert.equal(rows.find((r) => r.tag === "environmental").decision, "adopt");
+  assert.equal(rows.find((r) => r.tag === "finance").decision, "decline");
+});
+
+test("decideClassificationProposals: expands scope_topics per-topic and decides every other field once, no residue", () => {
   const proposals = [
-    { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
-    { field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "y", applicable: true },
+    { field: "scope_modes", value: ["ocean"], confidence: "high" },
+    { field: "scope_topics", value: ["environmental", "finance"] },
+    { field: "jurisdictions", value: ["GB"], confidence: "high" },
   ];
-  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
-  assert.equal(r.ok, true);
-  assert.equal(r.autoAdoptable.length, 1);
-  assert.equal(r.fullyCovered, false);
+  const decisions = decideClassificationProposals(proposals, { name: "Environment Council" });
+  assert.equal(decisions.length, 4); // scope_modes + 2 scope_topics + jurisdictions
+  assert.ok(decisions.every((d) => d.decision === "adopt" || d.decision === "decline"));
 });
 
-test("evaluateAutoAdoption: a jurisdiction proposal riding along never blocks fullyCovered", () => {
-  const proposals = [
-    { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
-    { field: "jurisdictions", value: ["GB"], confidence: "high", basis: "y", applicable: false },
+test("buildAdoptedProposalsForMerge: regroups adopted scope_topics tags into one field entry, passes through other adopted fields", () => {
+  const decisions = [
+    { field: "scope_modes", value: ["ocean"], decision: "adopt" },
+    { field: "scope_topics", tag: "environmental", decision: "adopt" },
+    { field: "scope_topics", tag: "finance", decision: "decline" },
+    { field: "jurisdictions", value: ["GB"], decision: "decline" },
   ];
-  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
-  assert.equal(r.ok, true);
-  assert.equal(r.fullyCovered, true);
+  const merged = buildAdoptedProposalsForMerge(decisions);
+  assert.equal(merged.length, 2);
+  assert.deepEqual(merged.find((p) => p.field === "scope_modes").value, ["ocean"]);
+  assert.deepEqual(merged.find((p) => p.field === "scope_topics").value, ["environmental"]);
 });
 
-// ── autoAdoptClassification (fake deps) ─────────────────────────────────────────────────────────
+// ── autoAdoptClassification (fake deps) — every proposal decided, flag always closes ───────────────
 
 function fakeAutoDeps({ flag, source, updateResult = { updated: 1, snapshot: "snap.jsonl" }, resolveResult = { updated: 1, snapshot: "snap2.jsonl" } } = {}) {
   const updateCalls = [], resolveCalls = [];
@@ -362,17 +426,17 @@ test("autoAdoptClassification: not_auto_adoptable surfaces evaluateAutoAdoption'
   assert.equal(r.status, "not_auto_adoptable");
 });
 
-test("autoAdoptClassification: dry_run computes the patch and willResolve, writes nothing", async () => {
+test("autoAdoptClassification: dry_run computes the patch and decisions, writes nothing", async () => {
   const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: [] } });
   const r = await autoAdoptClassification(deps, "flag-1", { execute: false });
   assert.equal(r.status, "dry_run");
   assert.deepEqual(r.merge.patch.scope_modes, ["ocean"]);
-  assert.equal(r.willResolve, true);
+  assert.equal(r.decisions[0].decision, "adopt");
   assert.equal(deps.updateCalls.length, 0);
   assert.equal(deps.resolveCalls.length, 0);
 });
 
-test("autoAdoptClassification: fully-covered flag writes the patch AND resolves the flag", async () => {
+test("autoAdoptClassification: a decisive proposal writes the patch AND resolves the flag", async () => {
   const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: [] } });
   const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
   assert.equal(r.status, "applied");
@@ -382,40 +446,75 @@ test("autoAdoptClassification: fully-covered flag writes the patch AND resolves 
   assert.deepEqual(deps.updateCalls[0].patch.scope_modes, ["ocean"]);
   assert.equal(deps.resolveCalls.length, 1);
   assert.equal(deps.resolveCalls[0].id, "flag-1");
-  assert.match(deps.resolveCalls[0].note, /^auto-adopted:classification:scope_modes$/);
+  assert.match(deps.resolveCalls[0].note, /decided 1 \(adopted 1, declined 0\)/);
 });
 
-test("autoAdoptClassification: partially-covered flag writes the eligible field but leaves the flag open", async () => {
+test("autoAdoptClassification: mixed proposal set writes the adopted field AND resolves the flag -- no residue stays open", async () => {
   const proposals = [
     { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
     { field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "y", applicable: true },
   ];
   const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
-  const deps = fakeAutoDeps({ flag, source: { id: "source-1", scope_modes: [] } });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1", name: "Environment Council", scope_modes: [] } });
   const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
   assert.equal(r.status, "applied");
   assert.equal(r.written, true);
-  assert.equal(r.resolved, false);
-  assert.equal(deps.updateCalls.length, 1);
-  assert.equal(deps.resolveCalls.length, 0, "flag stays open for the operator to ratify scope_topics");
+  assert.equal(r.resolved, true, "task 7.2: the flag closes even though scope_topics is a separate decision");
+  assert.deepEqual(deps.updateCalls[0].patch.scope_modes, ["ocean"]);
+  assert.deepEqual(deps.updateCalls[0].patch.scope_topics, ["environmental"]);
+  assert.equal(deps.resolveCalls.length, 1);
 });
 
-test("autoAdoptClassification: value already present + fully covered -> no patch write, but still resolves (nothing left to do)", async () => {
+test("autoAdoptClassification: value already present -> no patch write, but still resolves (nothing left undecided)", async () => {
   const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: ["ocean"] } });
   const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
   assert.equal(r.status, "applied");
   assert.equal(r.written, false);
   assert.equal(r.resolved, true);
   assert.equal(deps.updateCalls.length, 0, "already-present value never triggers a write");
-  assert.equal(deps.resolveCalls.length, 1, "fully covered with nothing left to write still closes the flag");
+  assert.equal(deps.resolveCalls.length, 1, "already-decided-adopt with nothing left to write still closes the flag");
 });
 
-test("autoAdoptClassification: no auto-adoptable proposal at all -> not_auto_adoptable, no write, no resolve", async () => {
+test("autoAdoptClassification: a scope_topics-only flag with no re-confirmable evidence DECLINES and still resolves", async () => {
   const proposals = [{ field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "x", applicable: true }];
+  const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1", name: "Renamed Neutral Body" } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, false);
+  assert.equal(r.resolved, true, "task 7.2: a fully-declined flag still closes -- 'no action, and why' is a valid close");
+  assert.equal(r.decisions[0].decision, "decline");
+  assert.equal(deps.resolveCalls.length, 1);
+});
+
+test("autoAdoptClassification: a jurisdiction-only flag DECLINES (no safe write target) and still resolves", async () => {
+  const proposals = [{ field: "jurisdictions", value: ["GB"], confidence: "high", basis: "x", applicable: false }];
   const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
   const deps = fakeAutoDeps({ flag, source: { id: "source-1" } });
   const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
-  assert.equal(r.status, "not_auto_adoptable");
-  assert.equal(deps.updateCalls.length, 0);
-  assert.equal(deps.resolveCalls.length, 0);
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, false);
+  assert.equal(r.resolved, true);
+  assert.equal(r.decisions[0].decision, "decline");
+  assert.match(r.decisions[0].reason, /no safe write target/);
+});
+
+// ── INVARIANT: no residue stays open ────────────────────────────────────────────────────────────
+
+test("INVARIANT: autoAdoptClassification always resolves a decidable flag (never leaves one open)", async () => {
+  const cases = [
+    [{ field: "scope_modes", value: ["ocean"], confidence: "high" }],
+    [{ field: "scope_modes", value: ["ocean"], confidence: "medium" }],
+    [{ field: "scope_topics", value: ["environmental"], confidence: "medium" }],
+    [{ field: "jurisdictions", value: ["GB"], confidence: "high" }],
+    [{ field: "expected_output", value: { regulations: 1 }, confidence: "medium" }],
+  ];
+  for (const proposals of cases) {
+    const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+    const deps = fakeAutoDeps({ flag, source: { id: "source-1", name: "Environment Council" } });
+    const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+    assert.equal(r.status, "applied");
+    assert.equal(r.resolved, true, `proposals ${JSON.stringify(proposals)} must still resolve the flag`);
+    assert.equal(deps.resolveCalls.length, 1);
+  }
 });

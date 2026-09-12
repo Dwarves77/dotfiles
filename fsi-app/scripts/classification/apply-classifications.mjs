@@ -71,8 +71,10 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
+import { topicKeywordMatch, REGULATORY_TOPIC_ROLES } from "../../src/lib/classification/scope.mjs";
 import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
 import { createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
 
 export const RATIFY_CLASSIFICATION_TOKEN = "ratify:classification";
 const CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
@@ -259,15 +261,16 @@ export function partitionProposals(proposals) {
 }
 
 /**
- * Decide whether an OPEN integrity_flags row has anything to auto-adopt right now. PURE. Unlike
+ * Decide whether an OPEN integrity_flags row has anything to decide right now. PURE. Unlike
  * evaluateApplication, this never requires status='resolved' or a ratify marker — it evaluates the flag
- * as it stands. `fullyCovered` is true when nothing APPLICABLE remains after the auto-adoptable
- * proposals are set aside (an advisory-only jurisdiction proposal riding along never blocks full
- * coverage — there was never an apply path for it) — the caller only resolves the flag when this holds,
- * so a partially-eligible flag (e.g. a decisive scope_modes alongside a medium-confidence scope_topics)
- * writes the eligible field now and stays open for the operator to ratify the remainder.
+ * as it stands. Widened 2026-09-12 (Part 7 task 7.2 / ADR-030 rider): "every proposal decided, the flag
+ * closes with the decisions recorded" — this no longer requires an AUTO_ADOPT_FIELDS-only proposal to be
+ * present (a flag whose ONLY proposal was, say, jurisdiction-only or scope_topics-only used to have
+ * NOTHING here and stayed open forever — that residue is exactly what this rider closes). Any flag with
+ * at least one parseable proposal is now decidable; decideClassificationProposals (below) decides every
+ * one of them, adopt or decline.
  * @param {{id?:string, created_by?:string, status?:string, description?:string, subject_ref?:string}} flag
- * @returns {{ok:true, sourceId:string, autoAdoptable:Array, remaining:Array, fullyCovered:boolean} | {ok:false, error:string}}
+ * @returns {{ok:true, sourceId:string, proposals:Array} | {ok:false, error:string}}
  */
 export function evaluateAutoAdoption(flag) {
   if (!flag || typeof flag.id !== "string") return { ok: false, error: "flag not found." };
@@ -283,19 +286,144 @@ export function evaluateAutoAdoption(flag) {
   }
   const parsed = extractProposalsFromDescription(flag.description);
   if (!parsed.ok) return parsed;
-  const { autoAdoptable, remaining } = partitionProposals(parsed.value);
-  if (!autoAdoptable.length) {
-    return { ok: false, error: "flag carries zero auto-adoptable proposals -- stays open for operator ratification." };
-  }
+  if (!parsed.value.length) return { ok: false, error: "flag carries zero proposals -- nothing to decide." };
   const sourceId = String(flag.subject_ref || "").trim();
   if (!sourceId) return { ok: false, error: "flag has no subject_ref (source id)." };
-  const remainingApplicable = remaining.filter((p) => APPLICABLE_FIELDS.includes(p.field));
-  return { ok: true, sourceId, autoAdoptable, remaining, fullyCovered: remainingApplicable.length === 0 };
+  return { ok: true, sourceId, proposals: parsed.value };
+}
+
+// ───────────────────── EVERY PROPOSAL DECIDED (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ─────────────
+// "scope_topics adopts the classifier's proposal when its evidence string is present in the source's
+// stored capture, else declined with the reason. jurisdiction proposals adopt when the proposed
+// jurisdiction appears in the source's registry row or URL host country, else declined.
+// scope_modes/scope_verticals/expected_output as today. Every proposal decided, the flag closes with the
+// decisions recorded." "As today" for scope_modes/scope_verticals/expected_output means the WRITE rule is
+// unchanged (only a decisive/deterministic proposal writes) — what changes is that the non-writing
+// residue (a medium-confidence scope_modes/scope_verticals proposal) now DECLINES with a reason instead
+// of silently sitting on an open flag forever (ADR-030 rider: "a decision of 'no action, and why' is a
+// valid close").
+//
+// JURISDICTION, A HARD EXISTING GATE (read classify-source.mjs's header in full before changing this):
+// sources.jurisdictions is a LIVE, differently-scoped column (region buckets eu|us|uk|latam|asia|hk|
+// meaf|global, populated by the canonical-source-candidate review flow) — writing this framework's
+// ISO-3166 Axis-3 values into it would silently corrupt three live reads (AffectedLanesCard, MapPageView,
+// the workspace RPCs). classify-source.mjs's own proposal already marks it `applicable:false` for exactly
+// this reason. This rider does not carry an ADR authorizing a dedicated Axis-3 column, so a jurisdiction
+// proposal is DECIDED (declined, with the architectural reason) rather than written — the safe reading of
+// "adopt when it matches, else decline": there is no safe column to adopt INTO, so it always declines,
+// same as it always silently never-applied before this rider, except now the reason is recorded and the
+// flag can close instead of hanging on this one un-actionable proposal forever.
+//
+// scope_topics EVIDENCE RE-CHECK: classify-source.mjs's proposal carries ONE shared `basis` string for
+// the whole matched-topic array (no per-topic evidence field) — this function re-derives the per-topic
+// evidence itself via scope.mjs's topicKeywordMatch/REGULATORY_TOPIC_ROLES (the SAME table
+// classifyScopeTopics scans), so a topic whose keyword no longer matches the source's CURRENT name (or
+// whose role-derived "regulatory" add-on no longer applies) declines rather than adopting on a stale
+// proposal payload.
+
+/**
+ * Decide one classification proposal that is NOT scope_topics (scope_modes / scope_verticals /
+ * expected_output / jurisdictions). PURE.
+ * @param {{field:string, value:unknown, confidence?:string}} proposal
+ * @param {{expected_output?:unknown}} source
+ * @returns {{field:string, value:unknown, label:string, decision:"adopt"|"decline", reason:string}}
+ */
+export function decideClassificationProposal(proposal, source) {
+  const field = proposal.field;
+  const label = `${field}=${JSON.stringify(proposal.value)}`;
+
+  if (field === "expected_output") {
+    const already = source?.expected_output !== null && source?.expected_output !== undefined;
+    return {
+      ...proposal, label, decision: already ? "decline" : "adopt",
+      reason: already
+        ? "expected_output already set -- a classifier re-run never overwrites an existing distribution (framework: refined by observed history)."
+        : "closed role->default Axis-5 lookup -- deterministic, always adopted when unset.",
+    };
+  }
+
+  if (field === "scope_modes" || field === "scope_verticals") {
+    const decisive = proposal.confidence === "high";
+    return {
+      ...proposal, label, decision: decisive ? "adopt" : "decline",
+      reason: decisive
+        ? `confidence 'high' -- decisive single/exact name-keyword match for ${field}.`
+        : `confidence '${proposal.confidence ?? "unknown"}' does not meet the decisive 'high' bar for ${field} (only an exact name-keyword match auto-adopts without operator ratification).`,
+    };
+  }
+
+  if (field === "jurisdictions") {
+    return {
+      ...proposal, label, decision: "decline",
+      reason: "no safe write target: sources.jurisdictions holds the live region-bucket vocabulary (eu|us|uk|latam|asia|hk|meaf|global), not this framework's ISO-3166 Axis-3 values (classify-source.mjs) -- a dedicated column needs an ADR before this proposal can adopt.",
+    };
+  }
+
+  return { ...proposal, label, decision: "decline", reason: `field "${field}" has no decision rule in apply-classifications.mjs.` };
 }
 
 /**
- * The auto-adopt decide-and-apply core, DB access injected (mirrors applyClassification's shape, plus
- * `resolveFlag` for the auto-resolve step). Directly testable with a fake client.
+ * Decide a scope_topics proposal AT THE PER-TOPIC LEVEL — one decision row per proposed topic, since
+ * classify-source.mjs's proposal.value is a multi-valued array with no per-topic evidence field of its
+ * own. PURE. Evidence is re-derived (never trusted from the stale payload) via scope.mjs's own keyword
+ * table / role set.
+ * @param {{field:"scope_topics", value:string[]}} proposal
+ * @param {{name?:string|null, source_role?:string|null}} source
+ * @returns {Array<{field:"scope_topics", tag:string, label:string, decision:"adopt"|"decline", reason:string}>}
+ */
+export function decideScopeTopicsProposal(proposal, source) {
+  const topics = Array.isArray(proposal.value) ? proposal.value : [];
+  const name = source?.name ?? null;
+  const role = source?.source_role ?? null;
+  return topics.map((topic) => {
+    const label = `scope_topics:${topic}`;
+    const kwMatch = topicKeywordMatch(topic, name);
+    const roleMatch = topic === "regulatory" && role && REGULATORY_TOPIC_ROLES.has(role) ? `source_role=${role}` : null;
+    const evidence = kwMatch || roleMatch;
+    if (evidence) {
+      return { field: "scope_topics", tag: topic, label, decision: "adopt", reason: `evidence "${evidence}" re-confirmed in the source's own name/role at apply time.` };
+    }
+    return { field: "scope_topics", tag: topic, label, decision: "decline", reason: `no re-confirmable keyword or role evidence for topic "${topic}" in the source's own stored name/role (framework Axis 4a "regular and material coverage" needs a live, re-checkable signal, not a stale proposal).` };
+  });
+}
+
+/**
+ * Decide EVERY proposal a flag carries, expanding scope_topics into one row per topic. PURE. No
+ * residue: every input proposal (and every scope_topics member) produces exactly one decision row.
+ * @param {Array<object>} proposals
+ * @param {object} source
+ * @returns {Array<object>}
+ */
+export function decideClassificationProposals(proposals, source) {
+  const rows = [];
+  for (const p of Array.isArray(proposals) ? proposals : []) {
+    if (p.field === "scope_topics") rows.push(...decideScopeTopicsProposal(p, source));
+    else rows.push(decideClassificationProposal(p, source));
+  }
+  return rows;
+}
+
+/**
+ * Re-assemble the ADOPTED decision rows into buildMergePatch-ready proposals — scope_topics tags are
+ * regrouped into ONE `{field:"scope_topics", value:[...]}` entry (buildMergePatch's array-field merge
+ * expects one row per field, not one per tag). PURE.
+ * @param {Array<object>} decisions - decideClassificationProposals() output
+ * @returns {Array<{field:string, value:unknown}>}
+ */
+export function buildAdoptedProposalsForMerge(decisions) {
+  const adopted = (Array.isArray(decisions) ? decisions : []).filter((d) => d.decision === "adopt");
+  const topics = adopted.filter((d) => d.field === "scope_topics").map((d) => d.tag);
+  const others = adopted.filter((d) => d.field !== "scope_topics");
+  const merged = [...others];
+  if (topics.length) merged.push({ field: "scope_topics", value: topics });
+  return merged;
+}
+
+/**
+ * The decide-and-apply core, DB access injected (mirrors applyClassification's shape, plus `resolveFlag`
+ * for the close step). Directly testable with a fake client. Every reachable proposal is decided; the
+ * flag ALWAYS closes once reached (task 7.2: "no residue stays open" — a decline is a valid, recorded
+ * close, not a reason to leave the queue item open).
  * @param {{
  *   readFlag: (flagId:string) => Promise<{data:object|null, error:{message:string}|null}>,
  *   readSource: (sourceId:string) => Promise<{data:object|null, error:{message:string}|null}>,
@@ -306,9 +434,8 @@ export function evaluateAutoAdoption(flag) {
  * @param {{execute:boolean}} opts
  * @returns {Promise<
  *   {status:'not_found'|'read_error'|'not_auto_adoptable'|'source_read_error'|'source_not_found', error:string} |
- *   {status:'no_change', sourceId:string, merge:object} |
- *   {status:'dry_run', sourceId:string, merge:object, willResolve:boolean} |
- *   {status:'applied', sourceId:string, merge:object, written:boolean, resolved:boolean}
+ *   {status:'dry_run', sourceId:string, merge:object, decisions:Array, hasWrite:boolean} |
+ *   {status:'applied', sourceId:string, merge:object, decisions:Array, written:boolean, resolved:true}
  * >}
  */
 export async function autoAdoptClassification(deps, flagId, { execute } = {}) {
@@ -323,17 +450,17 @@ export async function autoAdoptClassification(deps, flagId, { execute } = {}) {
   if (srcErr) return { status: "source_read_error", error: srcErr.message };
   if (!source) return { status: "source_not_found", error: `no sources row with id ${decision.sourceId}.` };
 
-  const merge = buildMergePatch(source, decision.autoAdoptable);
+  const decisions = decideClassificationProposals(decision.proposals, source);
+  const mergeProposals = buildAdoptedProposalsForMerge(decisions);
+  const merge = buildMergePatch(source, mergeProposals);
   const hasWrite = Object.keys(merge.patch).length > 0;
-  if (!hasWrite && !decision.fullyCovered) return { status: "no_change", sourceId: decision.sourceId, merge };
-  if (!execute) return { status: "dry_run", sourceId: decision.sourceId, merge, willResolve: decision.fullyCovered };
+  const note = buildDecisionNote("apply-classifications decided", decisions);
+
+  if (!execute) return { status: "dry_run", sourceId: decision.sourceId, merge, decisions, hasWrite };
 
   if (hasWrite) await deps.updateSource(decision.sourceId, merge.patch);
-  if (decision.fullyCovered) {
-    const note = `auto-adopted:classification:${decision.autoAdoptable.map((p) => p.field).join(",")}`;
-    await deps.resolveFlag(flagId, note);
-  }
-  return { status: "applied", sourceId: decision.sourceId, merge, written: hasWrite, resolved: decision.fullyCovered };
+  await deps.resolveFlag(flagId, note);
+  return { status: "applied", sourceId: decision.sourceId, merge, decisions, written: hasWrite, resolved: true };
 }
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -376,7 +503,9 @@ const CITE = {
 
 const deps = {
   readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
-  readSource: (id) => sb.from("sources").select("id, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+  // Widened 2026-09-12 (task 7.2): decideScopeTopicsProposal re-checks a scope_topics proposal's
+  // per-topic evidence against the source's OWN name/source_role at apply time.
+  readSource: (id) => sb.from("sources").select("id, name, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
   updateSource: async (id, patch) => {
     const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
     return { updated: res.updated, snapshot: res.snapshot };
