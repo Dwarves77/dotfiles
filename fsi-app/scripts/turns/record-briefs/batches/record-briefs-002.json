@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:13:36.682Z",
+  "generated_at": "2026-09-12T18:17:53.485Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -116,6 +116,89 @@
           "claim_text": "The captured source states, verbatim: «the first report shall be sent to the Commission by 30 June 2005»",
           "source_span": "The first report shall be sent to the Commission by 30 June 2005.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003L0087"
+        }
+      ]
+    },
+    {
+      "item_id": "00874650-0212-4f29-a0ee-e9078832ff12",
+      "source_pool_hash": "7bc624a57c51822ec1931f407c92f60181905a0456fbe9c89654410358d309fe",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997 (S.I. 1997 No. 3058), made under the Environment Act 1995. *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.* This document is scoped to the provisions the captured original-as-made text grounds: the fixed penalty notice scheme for vehicle smoke-emission and stationary-idling offences, the amounts and escalation of the fixed penalty, and the hearing and enforcement procedure. The captured text is the original 1997 version; it does not include any subsequent amendment.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Regulations create a fixed penalty notice scheme, administered by named local authorities, for two vehicle-emissions offences: contravention of regulation 61 of the Road Vehicles (Construction and Use) Regulations 1986 (smoke and other substances emitted from vehicles) and contravention of regulation 98 of those Regulations (stopping the engine of a stationary vehicle to avoid noise and exhaust emissions). \"These Regulations make provision for specified local authorities to issue fixed penalty notices to users of vehicles within their area who contravene, or fail to comply with, regulation 61 of the Road Vehicles (Construction and Use) Regulations 1986 and to drivers of vehicles within their area who contravene, or fail to comply with, regulation 98 of those Regulations.\" *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.* For workspaces operating their own road fleet, or contracting road haulage, into or within the named participating authority areas, drivers and vehicle users are the persons directly exposed to these fixed penalty notices. *Operational implication:* the scheme covers only the seven named participating authority areas below, not UK-wide road use; exposure is geographically bounded to operations within those areas.\n\n# Issues Requiring Immediate Action\n\n**COST ALERT.** Assess whether the workspace's own vehicles, or subcontracted road haulage moving on its behalf, operate within any of the seven participating authority areas, since a smoke-emission or stationary-idling contravention there carries a fixed penalty escalating on non-payment. *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.* *Analytical inference:* effect on cost of road-fleet operations requires operator-specific route and vehicle-condition data.\n\n**MONITORING.** Confirm the current escalated fixed penalty amounts and participating-authority list against the latest available (revised) version on legislation.gov.uk, since this document is grounded only in the original-as-made text. *Legal Confirmation Required:* whether any later amendment has changed the fixed penalty amounts, the offence definitions, or the list of participating authorities since 1997.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty to avoid the underlying offences under regulation 61 and regulation 98 of the 1986 Regulations falls on \"the person using\" the vehicle for the smoke-emission offence and on the driver for the stationary-idling offence; the fixed penalty notice itself is issued to that person, not to a third party arranging the carriage. *Legal Confirmation Required:* whether the workspace, where it subcontracts road haulage rather than operating its own fleet, has any exposure beyond its own directly operated vehicles and drivers under this instrument.\n\n# Substantive Requirements\n\n**Fixed penalty amounts.** The fixed penalty is set by offence type, \"subject to regulation 9\": \"(i) of £60 in the case of a fixed penalty offence relating to regulation 61 of the 1986 Regulations, or (ii) of £20 in the case of a fixed penalty offence relating to regulation 98 of the 1986 Regulations;\" *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.*\n\n**Escalation on non-payment.** Where the fixed penalty is not paid within the payment period and no hearing has been requested, the amount is increased: \"(a) to £90, in the case of an offence relating to regulation 61 of the 1986 Regulations, and (b) to £40, in the case of an offence relating to regulation 98 of the 1986 Regulations.\" *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.* *Analytical inference:* the escalation is the qualification a headline £60/£20 figure alone would omit; the real exposure on late payment is £90/£40, half again to double the original amount.\n\n**Payment window and hearing right.** The person notified may pay within the period for paying or instead request a hearing: \"the period for paying\" in relation to any fixed penalty notice, means the period of 28 days beginning with the day on which the notice was issued.\" Requesting a hearing suspends the fixed penalty: \"Where a hearing has been requested in accordance with paragraphs (1) and (2), the fixed penalty shall not be payable.\" *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.*\n\n**Notice content.** A fixed penalty notice states the name and address of the person to whom it is issued, the vehicle's registered number, the date of the offence, the monetary amount, payment details, and the consequences of non-payment. *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.*\n\n# Registration and Reporting Obligations\n\nThis instrument creates no separate registration or periodic-reporting scheme; its own administrative record is the fixed penalty notice, whose required content is addressed in Substantive Requirements above. *Operational implication:* no ongoing filing burden attaches to the workspace beyond responding to an individual notice if one is issued.\n\n# Operational System Requirements\n\nFor workspaces operating vehicles within the seven participating authority areas: (1) brief drivers on regulation 61 (smoke) and regulation 98 (stationary-idling) compliance, since an authorised person may require a driver's name, address, and date of birth in connection with enforcement, and (2) establish an internal process for handling a fixed penalty notice within its 28-day payment window, including the decision whether to request a hearing. *Operational implication:* the 28-day window is short relative to typical internal review cycles, so a fast-track escalation path to the workspace's compliance function reduces the risk of missing the window and triggering the increased penalty.\n\n# Confirmed Regulatory Timeline\n\n- 19th December 1997: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997 made by the Secretary of State; coming into force on the seventh day after the day on which they are made. *Source: The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/1997/3058.*\n\n# Sources\n\n- The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997, S.I. 1997 No. 3058, UK Government, legislation.gov.uk (Tier 1, primary binding text, original as made). https://www.legislation.gov.uk/uksi/1997/3058\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "transport"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997 (S.I. 1997 No. 3058), UK Government legislation.gov.uk, made under the Environment Act 1995, establishing a fixed penalty notice scheme for vehicle smoke-emission and stationary-idling offences enforced by seven named local authorities.",
+        "why_matters": "Workspaces operating their own road fleet, or contracting road haulage, into or within the seven named participating authority areas (Birmingham, Bristol, Canterbury, Glasgow, Middlesbrough, Swansea, Westminster) carry direct driver-level exposure to fixed penalties of £60 or £20, escalating to £90 or £40 on late payment, for smoke-emission or stationary-idling contraventions. The scheme is geographically narrow, so exposure is limited to fleet operations physically present in those seven areas, and the fixed 28-day payment window sets the operational tempo for any notice received.",
+        "key_data": [
+          "Fixed penalty £60 (regulation 61 smoke-emission offence) or £20 (regulation 98 stationary-idling offence)",
+          "Escalated fixed penalty £90 or £40 on non-payment within the 28-day period",
+          "28-day period for paying a fixed penalty notice or requesting a hearing",
+          "Enforced only within seven named participating authority areas"
+        ],
+        "cost_mechanism": "A local-authority-issued fixed penalty notice imposes a flat per-offence charge on the vehicle's user or driver, escalating if unpaid within the 28-day window.",
+        "requirement_trajectory": null,
+        "penalty_range": "£60 (regulation 61) or £20 (regulation 98), escalating to £90 or £40 respectively on non-payment within 28 days",
+        "enforcement_body": "Named participating local authorities (Birmingham City Council, Bristol City Council, Canterbury City Council, Glasgow City Council, Middlesbrough Borough Council, the Council of the City and County of Swansea, Westminster City Council)",
+        "operational_scenario_tags": [
+          "drayage",
+          "urban-truck-zone"
+        ],
+        "compliance_object_tags": [
+          "road-fleet-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «These Regulations may be cited as the Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997 and shall come into force on the seventh day after the day on which they are made.»",
+          "source_span": "These Regulations may be cited as the Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997 and shall come into force on the seventh day after the day on which they are made.",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «the period for paying” in relation to any fixed penalty notice, means the period of 28 days beginning with the day on which the notice was issued.»",
+          "source_span": "the period for paying” in relation to any fixed penalty notice, means the period of 28 days beginning with the day on which the notice was issued.",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim, the definition of \"a participating authority\": «(i) Birmingham City Council; (ii) Bristol City Council; (iii) Canterbury City Council; (iv) Glasgow City Council; (v) Middlesbrough Borough Council; (vi) the Council of the City and County of Swansea; and (vii) Westminster City Council;»",
+          "source_span": "(i) Birmingham City Council; (ii) Bristol City Council; (iii) Canterbury City Council; (iv) Glasgow City Council; (v) Middlesbrough Borough Council; (vi) the Council of the City and County of Swansea; and (vii) Westminster City Council;",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "claim_text": "[penalty_summary] The captured source states, verbatim, the definition of \"fixed penalty\": «(i) of £60 in the case of a fixed penalty offence relating to regulation 61 of the 1986 Regulations, or (ii) of £20 in the case of a fixed penalty offence relating to regulation 98 of the 1986 Regulations;»",
+          "source_span": "(i) of £60 in the case of a fixed penalty offence relating to regulation 61 of the 1986 Regulations, or (ii) of £20 in the case of a fixed penalty offence relating to regulation 98 of the 1986 Regulations;",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, that on non-payment the amount of the fixed penalty is increased: «(a) to £90, in the case of an offence relating to regulation 61 of the 1986 Regulations, and (b) to £40, in the case of an offence relating to regulation 98 of the 1986 Regulations.»",
+          "source_span": "(a) to £90, in the case of an offence relating to regulation 61 of the 1986 Regulations, and (b) to £40, in the case of an offence relating to regulation 98 of the 1986 Regulations.",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Made 19th December 1997»",
+          "source_span": "Made 19th December 1997",
+          "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
         }
       ]
     }
