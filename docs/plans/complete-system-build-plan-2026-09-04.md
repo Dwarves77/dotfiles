@@ -152,7 +152,7 @@ and DCL < 1 s on all five surfaces, re-measured in Chrome, numbers in the log.
 4. The 6 record-verified items with zero FACT claims: re-minted from their captures or archived
    `record_hollow`; the 575 with one or two FACTs re-extracted under the current kit.
 Done when: `census_worklist` has no `would_mint`, every hold names its reason, every record item has ≥ 3
-grounded FACTs or an honest GAP per slot, all visible on the surfaces.
+grounded FACTs or an honest GAP per slot and is upgraded to a brief by W9's runtime before it counts as done, all visible on the surfaces.
 
 ### W3 — Every figure sourced (rule 18) and every source rated
 1. **attach-found-sources.** New maintenance step consuming a worklist `{item_id, token, url, quote}`
@@ -228,6 +228,13 @@ named one-shots.
 Proposer passes per family per train (Haiku), markers discharged by real runs only, `governing-files.mjs`
 the single list, meta-harness run per wave; the `ledger` and `done` skills used at every session start and
 every train; the session log and board carry every ruling. Done: already true; kept true by F28.
+
+### W9 — Brief chain: briefs exist for all items, wired at mint, populated through flywheel
+**Workstream plan:** [brief-chain-build-plan-2026-09-11](./brief-chain-build-plan-2026-09-11.md) (Part 1: architecture and ADR-028; Part 2: brief contract; Part 3: runtime execution).
+
+**Operator ruling, 2026-09-09, verbatim:** "the fix is making sure a full brief, analysis of the data and all information is pulled and then put through the flywheel to make sure we are connecting data points across the site ... briefs need to exist for all items as well."
+
+Measured 2026-09-11 [CONFIRMED]: A new item is minted at `item_grade='record'` with a stub `full_brief` and zero analysis fields. Nothing upgrades it to a brief until the brief runtime (Part 3, task 3.5) executes. The upgrade is mandatory and automatic for every new item (ADR-028): queued at mint (task 1.5), executed by the runtime, recorded in a harness artifact. The record grade is not a terminal state; it is a cache of the current upgrade state. Done when: Part 1 (ADR-028) accepted, Part 2 (brief contract design) complete, Part 3 (runtime) built and wired at mint for every new item, every item successfully upgraded, harness artifacts recorded.
 
 ## 3. Sequence (trains), dependencies, and what lands when
 
