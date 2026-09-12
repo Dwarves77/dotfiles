@@ -9,6 +9,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { main, buildRealDeps, CITE } from "./apply-classifications.mjs";
 import { __setWriteClientForTest } from "../lib/db.mjs";
+import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
+import { createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+
+// The REAL created_by value evaluateAutoAdoption requires (never the lookalike literal
+// "axis-framework:source-classification" the older fixture below used, which evaluateAutoAdoption
+// always rejects at its namespace check -- a flag tagged with the WRONG namespace never reaches the
+// `eligible` array at all, so a bug in the eligible-path code was invisible to every prior test here).
+const REAL_CLASSIFY_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
 
 // guardedUpdate snapshots prior row state to disk before writing (db.mjs) -- redirect to a tmp dir so
 // this test never touches scripts/_snapshots (same convention as reopen-validation-holds.test.mjs /
@@ -124,6 +132,31 @@ test("dry: lists open classifications and auto-adopt eligibility in counts", asy
   assert.equal(typeof r.counts.auto_adopt.eligible_count, "number");
   assert.equal(typeof r.counts.auto_adopt.not_eligible_count, "number");
   assert.ok(Array.isArray(r.counts.auto_adopt.eligible));
+});
+
+// Regression test (reviewer-confirmed with a repro, review-7.2.md): main({mode:"dry"}) threw
+// TypeError reading e.decision.autoAdoptable.length -- a field evaluateAutoAdoption stopped returning
+// after task 7.2's rewrite (it returns `proposals` now, since every open flag with >=1 proposal is
+// decidable, not just an AUTO_ADOPT_FIELDS subset). The bug was invisible to every OTHER test in this
+// file because they all used a flag tagged with the WRONG created_by literal
+// ("axis-framework:source-classification"), which evaluateAutoAdoption always rejects before ever
+// reaching the buggy line -- this is the exact repro: a REAL open flag, correct namespace, dry mode,
+// through the real wrapper (not a hand-built fake decision object).
+test("dry: does NOT throw when a real open source-classification flag exists (regression, review-7.2.md finding 1)", async () => {
+  const openFlag = {
+    id: "flag-real-1",
+    created_by: REAL_CLASSIFY_CREATED_BY,
+    status: "open",
+    description: `summary\n\nPROPOSALS_JSON: [{"field":"scope_modes","value":["ocean"],"confidence":"high","basis":"x","applicable":true}]`,
+    subject_ref: "src-1",
+  };
+  const d = baseDeps({ listOpenClassifications: async () => [openFlag] });
+  const r = await main({ mode: "dry" }, d); // must not throw
+  assert.equal(r.mode, "dry");
+  assert.equal(r.counts.auto_adopt.open_candidates, 1);
+  assert.equal(r.counts.auto_adopt.eligible_count, 1, "the real namespace/status must clear evaluateAutoAdoption");
+  assert.equal(r.counts.auto_adopt.eligible[0].proposal_count, 1);
+  assert.match(r.note, /1 OPEN source-classification flag\(s\) eligible.*1 proposals/s);
 });
 
 // ── apply mode ──────────────────────────────────────────────────────────────────────────────────

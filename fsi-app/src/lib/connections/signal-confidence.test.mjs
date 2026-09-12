@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   classifySignalGroup, classifySignalCandidates, buildAutoAdoptEdges, planSignalAdoption,
   groupStaleFlagsForResolution, SIGNAL_CONFIDENCE, AUTO_ADOPT_WEIGHT, TITLE_ENTITY_VOCABULARY,
+  buildSignalResolutionNote, planSignalFlagResolutions, buildPreResolvedSignalFlagRow,
 } from "./signal-confidence.mjs";
 import { SIGNAL_NAMESPACE, createdBy } from "./flag-namespaces.mjs";
 
@@ -151,4 +152,100 @@ test("groupStaleFlagsForResolution: groups by created_by, builds a resolution_no
 test("groupStaleFlagsForResolution: malformed rows dropped, empty input -> empty output", () => {
   assert.deepEqual(groupStaleFlagsForResolution([null, {}, { id: "x" }], SIGNAL_NAMESPACE), []);
   assert.deepEqual(groupStaleFlagsForResolution([], SIGNAL_NAMESPACE), []);
+});
+
+// ── buildSignalResolutionNote / planSignalFlagResolutions / buildPreResolvedSignalFlagRow ───────────
+// (task 7.2 / ADR-030 rider, 2026-09-12: "an UNDECIDED pair closes ... a non-edge is a decision")
+
+test("buildSignalResolutionNote: decisive candidate gets the auto-adopted token", () => {
+  const note = buildSignalResolutionNote({ signalKind: "shared_regulation_identifier", confidence: "decisive", confidenceWeight: AUTO_ADOPT_WEIGHT.shared_regulation_identifier, confidenceReason: "x" });
+  assert.equal(note, `auto-adopted:signal:shared_regulation_identifier:${AUTO_ADOPT_WEIGHT.shared_regulation_identifier}`);
+});
+
+test("buildSignalResolutionNote: undecided candidate closes with the score and the reason (a non-edge is a decision)", () => {
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: "undecided", confidenceWeight: 0, confidenceReason: "single unregistered capitalized-phrase token -- not independently corroborated" });
+  assert.match(note, /^below the decisive threshold, no edge; score=0/);
+  assert.match(note, /single unregistered capitalized-phrase token/);
+});
+
+// Coordinator ruling (review-7.2.md finding 4): resolution_note is user-read text, never an em/en dash.
+// classifySignalGroup's own `reason` (this file, unchanged by task 7.2 -- it also drives internal
+// decisions) predates this rule and carries a real em dash for the shared_title_entity single-token
+// case; buildSignalResolutionNote is the FIRST place that text lands in a written resolution_note, so
+// the sanitize happens there, at the embedding point.
+test("buildSignalResolutionNote: normalizes an em/en dash inside the embedded reason to a comma (resolution_note is user-read text)", () => {
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: "undecided", confidenceWeight: 0, confidenceReason: "single unregistered capitalized-phrase token — not independently corroborated" });
+  assert.doesNotMatch(note, /[–—]/);
+  assert.match(note, /single unregistered capitalized-phrase token, not independently corroborated/);
+});
+
+test("buildSignalResolutionNote: the REAL classifySignalGroup reason for a single title-entity token round-trips clean through the note", () => {
+  const verdict = classifySignalGroup("shared_title_entity", new Set(["Solo Phrase"]));
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: verdict.confidence, confidenceWeight: verdict.weight, confidenceReason: verdict.reason });
+  assert.doesNotMatch(note, /[–—]/, "the live reason text (with its own em dash) must never reach resolution_note un-sanitized");
+});
+
+test("planSignalFlagResolutions: an existing open flag whose candidate is now decisive disposes 'decisive'", () => {
+  const classified = classifySignalCandidates([
+    { itemA: "a", itemB: "b", signalKind: "shared_regulation_identifier", value: "2023/1805", subject_ref: "a:b:shared_regulation_identifier:2023/1805" },
+  ]);
+  const flags = [{ id: "f1", subject_ref: "a:b:shared_regulation_identifier:2023/1805", created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier") }];
+  const [r] = planSignalFlagResolutions(flags, classified, SIGNAL_NAMESPACE);
+  assert.equal(r.disposition, "decisive");
+  assert.match(r.note, /^auto-adopted:signal:/);
+});
+
+test("planSignalFlagResolutions: an existing open flag still undecided closes as 'undecided', not left open", () => {
+  const classified = classifySignalCandidates([
+    { itemA: "c", itemB: "d", signalKind: "shared_title_entity", value: "Solo Phrase", subject_ref: "c:d:shared_title_entity:Solo Phrase" },
+  ]);
+  const flags = [{ id: "f2", subject_ref: "c:d:shared_title_entity:Solo Phrase", created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") }];
+  const [r] = planSignalFlagResolutions(flags, classified, SIGNAL_NAMESPACE);
+  assert.equal(r.disposition, "undecided");
+  assert.match(r.note, /below the decisive threshold, no edge/);
+});
+
+test("planSignalFlagResolutions: a flag whose pair no longer appears in the fresh computation disposes 'stale'", () => {
+  const flags = [{ id: "f3", subject_ref: "e:f:shared_title_entity:Gone", created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") }];
+  const [r] = planSignalFlagResolutions(flags, [], SIGNAL_NAMESPACE);
+  assert.equal(r.disposition, "stale");
+  assert.match(r.note, /no longer detected/);
+});
+
+test("planSignalFlagResolutions: EVERY open flag gets a disposition -- none is silently skipped (no residue stays open)", () => {
+  const classified = classifySignalCandidates([
+    { itemA: "a", itemB: "b", signalKind: "shared_regulation_identifier", value: "2023/1805", subject_ref: "a:b:shared_regulation_identifier:2023/1805" },
+  ]);
+  const flags = [
+    { id: "f1", subject_ref: "a:b:shared_regulation_identifier:2023/1805", created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier") },
+    { id: "f2", subject_ref: "c:d:shared_title_entity:Solo Phrase", created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") },
+  ];
+  const dispositions = planSignalFlagResolutions(flags, classified, SIGNAL_NAMESPACE);
+  assert.equal(dispositions.length, 2);
+  assert.ok(dispositions.every((d) => typeof d.note === "string" && d.note.length > 0));
+});
+
+test("planSignalFlagResolutions: malformed rows are dropped, never throw", () => {
+  assert.deepEqual(planSignalFlagResolutions([null, {}], [], SIGNAL_NAMESPACE), []);
+});
+
+test("buildPreResolvedSignalFlagRow: writes a decisive candidate as an ALREADY-RESOLVED row (status:'resolved')", () => {
+  const [classified] = classifySignalCandidates([
+    { itemA: "a", itemB: "b", signalKind: "shared_regulation_identifier", value: "2023/1805", subject_ref: "a:b:shared_regulation_identifier:2023/1805" },
+  ]);
+  const row = buildPreResolvedSignalFlagRow(classified, SIGNAL_NAMESPACE, "analyze-corpus.mjs");
+  assert.equal(row.status, "resolved");
+  assert.equal(row.resolved_by, "analyze-corpus.mjs");
+  assert.equal(row.subject_ref, "a:b:shared_regulation_identifier:2023/1805");
+  assert.equal(row.created_by, createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"));
+  assert.match(row.resolution_note, /^auto-adopted:signal:/);
+});
+
+test("buildPreResolvedSignalFlagRow: writes an undecided candidate ALREADY-RESOLVED too -- never open, even at insert", () => {
+  const [classified] = classifySignalCandidates([
+    { itemA: "c", itemB: "d", signalKind: "shared_title_entity", value: "Solo Phrase", subject_ref: "c:d:shared_title_entity:Solo Phrase" },
+  ]);
+  const row = buildPreResolvedSignalFlagRow(classified, SIGNAL_NAMESPACE, "analyze-corpus.mjs");
+  assert.equal(row.status, "resolved");
+  assert.match(row.resolution_note, /below the decisive threshold, no edge/);
 });

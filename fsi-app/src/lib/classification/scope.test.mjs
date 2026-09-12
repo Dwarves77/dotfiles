@@ -2,7 +2,7 @@
 // role priors, and the honest-null contract for undeterminable inputs.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { classifyScopeModes, classifyScopeVerticals, classifyScopeTopics } from "./scope.mjs";
+import { classifyScopeModes, classifyScopeVerticals, classifyScopeTopics, topicKeywordMatch } from "./scope.mjs";
 import { isValidScopeMode, isValidScopeVertical, isValidScopeTopic } from "./vocab.mjs";
 
 // ── 4b. Modes ────────────────────────────────────────────────────────────────────────────────────
@@ -119,4 +119,18 @@ test("classifyScopeTopics: no keyword and non-regulatory role -> null", () => {
 test("classifyScopeTopics: every non-null result is vocab-valid", () => {
   const r = classifyScopeTopics({ name: "Packaging, Customs and Conservation Weekly" });
   for (const t of r.value) assert.ok(isValidScopeTopic(t));
+});
+
+// ── topicKeywordMatch (task 7.2, 2026-09-12: apply-classifications.mjs's per-topic evidence re-check) ──
+
+test("topicKeywordMatch: returns the literal matched substring for a topic that matches the name", () => {
+  assert.equal(topicKeywordMatch("environmental", "EU Climate and Environment Council"), "Environment");
+});
+
+test("topicKeywordMatch: returns null when the topic's keywords don't match the name", () => {
+  assert.equal(topicKeywordMatch("environmental", "Renamed Neutral Body"), null);
+});
+
+test("topicKeywordMatch: returns null for a topic with no keyword table at all", () => {
+  assert.equal(topicKeywordMatch("not-a-real-topic", "anything"), null);
 });

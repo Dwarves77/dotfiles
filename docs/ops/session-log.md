@@ -5,6 +5,101 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-12, W9 Part 7 task 7.2: every flywheel-tag / source-classification / signal proposal decided, fix round 1
+
+Task 7.2 of the brief-chain build plan (ADR-030 rider), worktree `wt-proprec-0911`, branch
+`lane/w9-7.2-2026-09-12`, on top of the 7.1/7.4 lane (`2b6d4f56`). First pass landed four commits
+(`1e1437bf` tag-ratification/apply-tags decision rules, `a8cb0c79` source-classification decision rules
++ `scope.mjs` evidence re-check, `71b23976` signal disposition + new `resolve-signals.mjs` maintenance
+step, `e482048e` population-report open-flags-by-family rows) plus one glyph cleanup (`5d52acfa`).
+
+**Reviewer pass (`review-7.2.md`, independently reproduced every finding) came back CONDITIONAL FAIL**;
+fixed in this round, all coordinator-confirmed repros re-verified green after the fix:
+
+**Finding 1 (Critical), CONFIRMED with a repro.** `scripts/maintenance/apply-classifications.mjs`'s
+dry-mode note builder read `e.decision.autoAdoptable.length` -- a field `evaluateAutoAdoption` stopped
+returning once task 7.2 widened it to decide every proposal (it returns `proposals` now). `main({mode:
+"dry"})` threw a `TypeError` whenever any real open source-classification flag existed -- the exact
+backlog this step exists to drain. Invisible to every existing test because they all tagged their fixture
+flag with the WRONG `created_by` literal (`"axis-framework:source-classification"`, not the real
+`flywheel-axis:source-classification`), which `evaluateAutoAdoption` rejects before ever reaching the
+buggy line. Fixed the one remaining `autoAdoptable` reference (the `eligible.map` one had already been
+fixed in the first pass); added a regression test using the REAL `created_by` value that reproduces the
+crash pre-fix and passes post-fix (verified both ways by hand before committing).
+
+**Finding 2 (Important), CONFIRMED with a repro.** `resolve-signals.mjs` and `analyze-corpus.mjs`'s
+signal-handling both built their "brand-new candidate" dedup key set from OPEN flags only. A candidate
+this pass just resolved (or that a prior run already inserted pre-resolved) still classifies the SAME
+way on the very next run -- signals are recomputed fresh, never read from a settled store -- so once its
+flag moved to `status='resolved'` it fell OUT of the open-only key set and was silently treated as
+"never seen", re-inserting a DUPLICATE already-resolved row on every re-run forever. Fixed by reading
+ALL flywheel-signal flags (any status) for the dedup key set in both files, deriving the open subset
+locally for `planSignalFlagResolutions`. Added an idempotency test to `resolve-signals.test.mjs` (a
+second run against a corpus whose flags are now all resolved inserts zero new rows; verified it fails
+pre-fix, passes post-fix). `analyze-corpus.mjs` has no test harness of its own (thin-orchestrator
+posture, unchanged by this lane, no `analyze-corpus.test.mjs` exists) -- the identical fix is applied by
+code inspection + `node --check`, proven only by the shared pure functions' own tests plus
+`resolve-signals.mjs`'s test proving the same fix pattern is correct.
+
+**Finding 3, coordinator ruling accepted, no code-behavior change.** Jurisdiction proposals: the
+`resolution_note` now names the architectural gate explicitly (`sources.jurisdictions` carries the live
+region-bucket vocabulary three surfaces already read; the ISO values have no column; no ADR authorizes
+one), framed per the ADR-030 rider's "a decision of 'no action, and why' is a valid close" -- the decline
+IS the close. `scope_topics`: added a runbook sentence stating that its evidence re-check (the source's
+own name and role) IS what task 7.2's "stored capture" language meant, since this classification
+framework has no fetched-page-text store for a source at all (`classify-source.mjs`'s own header:
+"Deterministic name/role keyword matching only, no content fetch, no LLM").
+
+**Finding 4 (Minor), CONFIRMED.** The first pass's em-dash cleanup landed literal `--` inside several
+USER-READ strings (`resolution_note`, dispatch `summary.note`, `integrity_flags.description`, error
+messages) where real punctuation reads better. Replaced with a comma, colon or semicolon per line,
+across `decision-note.mjs`, `signal-confidence.mjs` (plus a NEW defensive sanitizer,
+`buildSignalResolutionNote`, that also normalizes any em/en dash arriving from `classifySignalGroup`'s
+own pre-existing `reason` text -- the first place that text becomes an admin-visible field), `apply-tags.mjs`,
+`apply-classifications.mjs` (both), `analyze-corpus.mjs`, `resolve-signals.mjs`, `tag-ratification.mjs`
+and `MAINTENANCE-RUNBOOK.md`'s two quoted examples. Left untouched: `--` inside source-code comments
+(never user-read at runtime) and pre-existing `--`/em-dash occurrences outside this lane's own diff
+(not this lane's prose to rewrite). Two intentional exceptions kept literal, both required for the code
+to do its job: the em/en-dash character class inside the sanitizer's own regex, and the one test fixture
+that must contain a real em dash to prove the sanitizer strips it.
+
+**Gates.** `node --test` across every touched test file (`apply-tags`, `apply-classifications` x2 +
+maintenance wrapper, `tag-ratification`, `resolve-signals`, `population-report`, `signal-confidence`,
+`decision-note`, `scope`): 253/253 pass. `node --test .discipline/shared-writer-registry.test.mjs`:
+green. `node --test .discipline/glob-portability.test.mjs`: 3/3. Glyph scan
+(`git diff 2b6d4f56..HEAD | grep '^+' | grep -c` em dash/en dash/section-sign): 0 across every commit;
+4 remaining in the pre-commit working-tree diff are the two justified regex/fixture exceptions above
+(verified individually, not blanket-assumed). Full `sh fsi-app/.discipline/hooks/pre-push` run (all 4
+CI-parity steps) at the end of this round -- see this entry's own preflight tail below.
+
+**Standing constraints.** No hardcoded user-home paths. Named-path staging only (never `git add -A`).
+No `git stash`, no `--no-verify`, no push, no rebase. No database writes (no DB creds in this worktree;
+every gate is fixture/pure-function-driven).
+
+**Files (this fix round, on top of the first pass's five commits).**
+- `fsi-app/scripts/maintenance/apply-classifications.mjs` (fix: the remaining `autoAdoptable` reference)
+- `fsi-app/scripts/maintenance/apply-classifications.test.mjs` (new regression test, finding 1)
+- `fsi-app/scripts/maintenance/resolve-signals.mjs` / `.test.mjs` (fix: status-agnostic dedup, finding 2;
+  new idempotency test)
+- `fsi-app/scripts/connections/analyze-corpus.mjs` (fix: status-agnostic dedup, finding 2; glyph fix)
+- `fsi-app/scripts/classification/apply-classifications.mjs` (jurisdiction resolution_note wording,
+  finding 3; glyph fixes)
+- `fsi-app/scripts/connections/apply-tags.mjs` (glyph fixes)
+- `fsi-app/scripts/verify/population-report.mjs` (glyph fixes)
+- `fsi-app/scripts/maintenance/tag-ratification.mjs` (glyph fixes)
+- `fsi-app/src/lib/connections/decision-note.mjs` (glyph fix)
+- `fsi-app/src/lib/connections/signal-confidence.mjs` / `.test.mjs` (new sanitizer + tests, finding 4;
+  glyph fixes)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (finding 3's two runbook sentences; glyph fixes in the two
+  quoted examples)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (task 7.2, fix round 1)
+
+Not applicable: no `.tsx`/`.css` touched.
+
+---
+
 ## 2026-09-11, BRIEFFIELDS task 2.4: format_type catch-up for live briefs that carry none
 
 Task 2.4 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,

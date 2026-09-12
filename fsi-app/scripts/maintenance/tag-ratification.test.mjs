@@ -139,9 +139,9 @@ const OPEN_ALL_MEDIUM_FLAG = {
 function autoDeps(overrides = {}) {
   const calls = [];
   const items = new Map([
-    ["item-3", { id: "item-3", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] }],
+    ["item-3", { id: "item-3", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "carbon pricing appears here" }],
     ["item-4", { id: "item-4", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] }],
-    ["item-5", { id: "item-5", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] }],
+    ["item-5", { id: "item-5", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "circular economy packaging is covered" }],
   ]);
   const flags = new Map([
     [OPEN_MIXED_FLAG.id, OPEN_MIXED_FLAG],
@@ -159,34 +159,43 @@ function autoDeps(overrides = {}) {
   };
 }
 
-test("auto, dry: lists eligible/below-threshold/not-adoptable open flags, writes nothing", async () => {
+test("auto, dry: lists decidable/not-adoptable open flags + adopt/decline sample, writes nothing", async () => {
   const d = autoDeps();
   const r = await main({ mode: "dry", arg: "auto" }, d);
   assert.equal(r.counts.open_candidates, 3);
   assert.equal(r.counts.threshold, "high");
-  assert.equal(r.counts.eligible.length, 2); // mixed + all-high both have >=1 high proposal
-  assert.equal(r.counts.below_threshold_count, 1); // all-medium flag
+  assert.equal(r.counts.decidable_count, 3); // every open flag is now decidable (task 7.2 -- no residue stays open)
+  assert.equal(r.counts.not_adoptable_count, 0);
+  assert.equal(typeof r.counts.adopt_count, "number");
+  assert.equal(typeof r.counts.decline_count, "number");
+  assert.ok(Array.isArray(r.counts.adopted_sample));
+  assert.ok(Array.isArray(r.counts.declined_sample));
   assert.equal(r.applied, 0);
   assert.ok(!d.calls.some((c) => c[0] === "updateItem" || c[0] === "resolveFlag"));
 });
 
-test("auto, apply: writes the high subset, resolves the all-high flag, leaves the mixed flag open with residue", async () => {
+test("auto, apply: decides every open flag and CLOSES all three -- no residue stays open (task 7.2)", async () => {
   const d = autoDeps();
   const r = await main({ mode: "apply", arg: "auto" }, d);
-  assert.equal(r.applied, 2); // both eligible flags get SOME write (partial or full)
+  assert.equal(r.applied, 3); // every decidable flag closes, whichever way its proposals decide
   const byFlag = Object.fromEntries(r.counts.apply_results.map((x) => [x.flag_id, x.status]));
-  assert.equal(byFlag["flag-open-mixed"], "auto_adopted_partial");
-  assert.equal(byFlag["flag-open-high"], "auto_adopted");
+  assert.equal(byFlag["flag-open-mixed"], "decided");
+  assert.equal(byFlag["flag-open-high"], "decided");
+  assert.equal(byFlag["flag-open-medium"], "decided");
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-high"));
-  assert.ok(!d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-mixed"), "mixed flag must stay open");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-mixed"), "mixed flag closes too -- declined/adopted residue is still a decision");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-medium"));
   assert.deepEqual(r.read_back["item-3"].operational_scenario_tags, ["ocean-bunkering"]);
+  assert.deepEqual(r.read_back["item-3"].topic_tags, ["emissions"], "the medium proposal adopts once its evidence re-confirms in the item's own text");
   assert.deepEqual(r.read_back["item-4"].topic_tags, ["fuels"]);
+  assert.deepEqual(r.read_back["item-5"].topic_tags, ["packaging"]);
 });
 
-test("auto, apply: the below-threshold flag is never touched", async () => {
+test("auto, apply: every open flag is read and resolved -- none is skipped as untouchable residue", async () => {
   const d = autoDeps();
   await main({ mode: "apply", arg: "auto" }, d);
-  assert.ok(!d.calls.some((c) => (c[0] === "readItem" && c[1] === "item-5") || (c[0] === "resolveFlag" && c[1] === "flag-open-medium")));
+  assert.ok(d.calls.some((c) => c[0] === "readItem" && c[1] === "item-5"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-medium"));
 });
 
 test("auto is case-insensitive and trims whitespace", async () => {

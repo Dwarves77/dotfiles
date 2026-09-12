@@ -32,6 +32,8 @@
 // A signal kind this module does not recognize classifies UNDECIDED (fail closed) — a future signal
 // kind added to signal-candidates.mjs needs an explicit ruling here before it can auto-adopt.
 
+import { createdBy } from "./flag-namespaces.mjs";
+
 const CONFIDENCE = Object.freeze({ DECISIVE: "decisive", UNDECIDED: "undecided" });
 export { CONFIDENCE as SIGNAL_CONFIDENCE };
 
@@ -215,4 +217,105 @@ export function groupStaleFlagsForResolution(staleFlags, namespace) {
     groups.push({ createdBy: createdByValue, ids: byCreatedBy.get(createdByValue), resolutionNote: `auto-adopted:signal:${kind}:${weight ?? "unknown"}` });
   }
   return groups;
+}
+
+// ─────────────────────── EVERY CANDIDATE DECIDED (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ─────────
+// "an UNDECIDED pair closes with resolution_note 'below the decisive threshold, no edge; score <s>' (a
+// non-edge is a decision), decisive pairs write the edge as today." Before this: analyze-corpus.mjs's
+// own reflectFlags() convention left an undecided candidate as an OPEN integrity_flags row for as long as
+// it kept reproducing -- exactly the 1,098-row backlog task 7.2 measured, because a candidate that stays
+// undecided every run never falls into reflectFlags' "stale" bucket either. The fix is not a new
+// confidence rule (classifySignalGroup above is unchanged) -- it is that "undecided" is now itself a
+// TERMINAL decision, closed the same run it is computed, not a pending state.
+//
+// signal-candidates.mjs emits ONE row per (pair, kind, token) with its OWN subject_ref (the token is
+// PART of the key -- see that module's own subject_ref construction), so a flag's identity
+// (subject_ref + createdBy(namespace, signalKind)) already matches exactly one classified row 1:1 -- no
+// pair-level grouping is needed here (unlike groupStaleFlagsForResolution above, which groups by
+// createdBy alone for a DIFFERENT purpose: building one combined resolution_note when resolving a BATCH
+// of already-decisive flags at once).
+
+/**
+ * The resolution outcome for ONE already-classified candidate -- decisive (edge written elsewhere;
+ * this is just the flag's own closing note) or undecided (a non-edge, closing with the score and the
+ * reason signal-confidence.mjs already computed). PURE.
+ * @param {{signalKind:string, confidence:string, confidenceWeight:number, confidenceReason:string}} classifiedRow
+ * @returns {string}
+ */
+export function buildSignalResolutionNote(classifiedRow) {
+  const { signalKind, confidence, confidenceWeight, confidenceReason } = classifiedRow;
+  if (confidence === CONFIDENCE.DECISIVE) {
+    return `auto-adopted:signal:${signalKind}:${AUTO_ADOPT_WEIGHT[signalKind] ?? "unknown"}`;
+  }
+  // classifySignalGroup's own `reason` strings predate this function and are never rewritten here (they
+  // also drive internal decisions, not just this note) -- but this IS the first place that text becomes
+  // USER-READ (a resolution_note an admin view renders), so any em/en dash it carries is normalized to a
+  // comma at the embedding point, never left to reach a customer/admin-visible field.
+  const safeReason = String(confidenceReason || "").replace(/\s*[–—]\s*/g, ", ");
+  return `below the decisive threshold, no edge; score=${confidenceWeight} (${safeReason}).`;
+}
+
+/**
+ * Build the resolution disposition for EVERY currently open flywheel-signal integrity_flags row, given
+ * this run's freshly classified candidates (classifySignalCandidates output -- 1:1 with subject_ref, see
+ * header above). PURE, no I/O -- the caller (analyze-corpus.mjs / resolve-signals.mjs) performs the
+ * actual guardedUpdate writes. Every open flag reaches a terminal disposition on every run:
+ *   'decisive'  -- the candidate now classifies decisive (its edge is written by the caller separately;
+ *                 this flag's own closing note records the auto-adoption).
+ *   'undecided' -- still undecided; closes as a non-edge decision (score + reason), never left open.
+ *   'stale'     -- the pair no longer appears in the fresh computation at all (item archived/unverified
+ *                 since) -- same wording the pre-existing reflectFlags() convention already used.
+ * @param {Array<{id:string, subject_ref:string, created_by:string}>} openFlags
+ * @param {Array<object>} classified - classifySignalCandidates() output (every candidate, confidence-tagged)
+ * @param {string} namespace - SIGNAL_NAMESPACE
+ * @returns {Array<{id:string, disposition:'decisive'|'undecided'|'stale', note:string}>}
+ */
+export function planSignalFlagResolutions(openFlags, classified, namespace) {
+  const byKey = new Map();
+  for (const c of Array.isArray(classified) ? classified : []) {
+    if (!c || typeof c.subject_ref !== "string" || typeof c.signalKind !== "string") continue;
+    byKey.set(`${c.subject_ref}|${createdBy(namespace, c.signalKind)}`, c);
+  }
+  const out = [];
+  for (const flag of Array.isArray(openFlags) ? openFlags : []) {
+    if (!flag || typeof flag.id !== "string") continue;
+    const key = `${flag.subject_ref}|${flag.created_by}`;
+    const c = byKey.get(key);
+    if (!c) {
+      out.push({ id: flag.id, disposition: "stale", note: `${flag.created_by} finding no longer detected in the latest analyze-corpus pass.` });
+      continue;
+    }
+    out.push({ id: flag.id, disposition: c.confidence === CONFIDENCE.DECISIVE ? "decisive" : "undecided", note: buildSignalResolutionNote(c) });
+  }
+  return out;
+}
+
+/**
+ * Build the integrity_flags INSERT payload for a fresh candidate that carries NO existing flag row yet --
+ * already closed at insert time (status:'resolved'), so a brand-new undecided finding never sits open
+ * even momentarily (task 7.2's "no residue stays open" applies from the write, not only to the backlog).
+ * PURE.
+ * @param {object} classifiedRow - one classifySignalCandidates() output row
+ * @param {string} namespace - SIGNAL_NAMESPACE
+ * @param {string} resolvedBy - the writer's own name (e.g. "analyze-corpus.mjs")
+ * @returns {object} integrity_flags row, ready for guardedInsert/guardedInsertMany
+ */
+export function buildPreResolvedSignalFlagRow(classifiedRow, namespace, resolvedBy) {
+  const note = buildSignalResolutionNote(classifiedRow);
+  const description = classifiedRow.confidence === CONFIDENCE.DECISIVE
+    ? `signal-candidates.mjs: ${classifiedRow.signalKind} match "${classifiedRow.value}" between ${classifiedRow.itemA} and ${classifiedRow.itemB} classified decisive and was written as an item_cross_references edge.`
+    : `signal-candidates.mjs: ${classifiedRow.signalKind} match "${classifiedRow.value}" between ${classifiedRow.itemA} and ${classifiedRow.itemB} did not reach the decisive threshold; no edge written.`;
+  const nowIso = new Date().toISOString();
+  return {
+    category: "data_quality",
+    subject_type: "system",
+    subject_ref: classifiedRow.subject_ref,
+    description,
+    recommended_actions: [],
+    status: "resolved",
+    created_by: createdBy(namespace, classifiedRow.signalKind),
+    resolved_at: nowIso,
+    resolved_by: resolvedBy,
+    resolution_note: note,
+  };
 }

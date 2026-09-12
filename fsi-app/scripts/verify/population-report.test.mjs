@@ -21,7 +21,11 @@ import {
   computeTimelineCoverageGap,
   countTimelineCoverageGap,
   describeTimelineCoverageState,
+  computeOpenFlagsByFamily,
+  describeOpenFlagsByFamilyState,
+  AXIS_CLASSIFICATION_CREATED_BY,
 } from "./population-report.mjs";
+import { TAG_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
 test("classify: an empty store is EMPTY", () => {
   assert.equal(classify({ rows: 0, filled: 0 }), "EMPTY");
@@ -582,6 +586,52 @@ test("end-to-end: the real 'briefs pending' entry renders the drain-the-queue wo
   const entry = STORES.find((s) => String(s.fill).startsWith("brief-apply outcome present"));
   const lines = renderReport([{ ...entry, rows: 1, filled: 0 }]).join("\n");
   assert.match(lines, /drain the queue/);
+  assert.doesNotMatch(lines, /nothing to show/);
+  assert.doesNotMatch(lines, /fill it with:/);
+});
+
+// ── open-flags-by-family (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ───────────────────────────
+
+test("computeOpenFlagsByFamily: counts each family independently by created_by prefix/exact match", () => {
+  const rows = [
+    { created_by: createdBy(TAG_NAMESPACE, "empty-signature") },
+    { created_by: createdBy(TAG_NAMESPACE, "empty-signature") },
+    { created_by: AXIS_CLASSIFICATION_CREATED_BY },
+    { created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") },
+    { created_by: "flywheel-gap:jurisdiction_span_gap" }, // a different family entirely -- must not count
+  ];
+  assert.equal(computeOpenFlagsByFamily(rows, "tag"), 2);
+  assert.equal(computeOpenFlagsByFamily(rows, "axisSourceClassification"), 1);
+  assert.equal(computeOpenFlagsByFamily(rows, "signal"), 1);
+});
+
+test("computeOpenFlagsByFamily: an axis-namespace row that is NOT source-classification (e.g. source-drift) does not count", () => {
+  const rows = [{ created_by: "flywheel-axis:source-drift" }];
+  assert.equal(computeOpenFlagsByFamily(rows, "axisSourceClassification"), 0);
+});
+
+test("computeOpenFlagsByFamily: malformed/empty input never throws", () => {
+  assert.equal(computeOpenFlagsByFamily([null, {}, { created_by: 5 }], "tag"), 0);
+  assert.equal(computeOpenFlagsByFamily([], "signal"), 0);
+});
+
+test("describeOpenFlagsByFamilyState: names the label and the exact dispatch command", () => {
+  const describe = describeOpenFlagsByFamilyState("flywheel-tag:*", "tag-ratification.mjs --arg auto");
+  const lines = describe("ROWS_NO_VALUES", { rows: 3, filled: 0 });
+  assert.match(lines[0], /3 open flywheel-tag:\* flag\(s\)/);
+  assert.match(lines[1], /tag-ratification\.mjs --arg auto/);
+});
+
+test("STORES: all three open-flags-by-family entries are wired with their own describeState hook", () => {
+  const entries = STORES.filter((s) => s.table === "integrity_flags");
+  assert.equal(entries.length, 3);
+  for (const e of entries) assert.equal(typeof e.describeState, "function");
+});
+
+test("end-to-end: an open-flags-by-family entry renders its own wording through renderReport, never the generic pair", () => {
+  const entry = STORES.find((s) => String(s.fill).includes("open flywheel-tag:"));
+  const lines = renderReport([{ ...entry, rows: 5, filled: 0 }]).join("\n");
+  assert.match(lines, /5 open flywheel-tag:\* flag\(s\)/);
   assert.doesNotMatch(lines, /nothing to show/);
   assert.doesNotMatch(lines, /fill it with:/);
 });

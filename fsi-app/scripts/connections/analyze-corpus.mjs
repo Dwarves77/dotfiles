@@ -67,7 +67,7 @@ import { detectGaps } from "../../src/lib/connections/gaps.mjs";
 import { computeAnticipatedTargets } from "../../src/lib/connections/anticipate.mjs";
 import { diffThemes } from "../../src/lib/connections/theme-delta.mjs";
 import { detectSignalCandidates } from "../../src/lib/connections/signal-candidates.mjs";
-import { planSignalAdoption, groupStaleFlagsForResolution } from "../../src/lib/connections/signal-confidence.mjs";
+import { planSignalAdoption, planSignalFlagResolutions, buildPreResolvedSignalFlagRow } from "../../src/lib/connections/signal-confidence.mjs";
 import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
@@ -206,20 +206,29 @@ console.log(
 // edges the decisive set implies — see this file's header and that module's own for the evidence rule. ----
 const signalCandidates = RUN_SIGNALS ? detectSignalCandidates(items, edgeRows) : [];
 const signalPlan = RUN_SIGNALS ? planSignalAdoption(signalCandidates) : { classified: [], decisive: [], undecided: [], edges: [] };
-// would_resolve: existing OPEN L4 flags whose (subject_ref, created_by) now classifies decisive — read
-// unconditionally under --signals (both --dry, to report the split, and apply, to actually resolve them).
-const existingOpenSignalFlags = RUN_SIGNALS
-  ? await readAll("integrity_flags", "id, subject_ref, created_by", { match: (q) => q.eq("status", "open").like("created_by", `${SIGNAL_NAMESPACE}%`) })
+// ALL L4 flags, any status -- read unconditionally under --signals (both --dry, to preview every
+// disposition, and apply, to actually resolve them). Task 7.2 (2026-09-12): EVERY open flag closes this
+// run (decisive/undecided/stale -- see planSignalFlagResolutions), never just the newly-decisive subset.
+// Bug fix (review-7.2.md finding 2, reviewer-confirmed with a repro): reading OPEN rows only, here,
+// made the "brand-new candidate" dedup below fall out of sync the run right after a candidate closed --
+// a still-reproducing candidate whose flag just moved to 'resolved' no longer showed up in an open-only
+// read, so it looked "brand new" again and was re-inserted as a DUPLICATE resolved row every re-run.
+// Dedup must be status-agnostic: has ANY row (open or resolved) ever been written for this candidate.
+const allSignalFlags = RUN_SIGNALS
+  ? await readAll("integrity_flags", "id, subject_ref, created_by, status", { match: (q) => q.like("created_by", `${SIGNAL_NAMESPACE}%`) })
   : [];
-const decisiveFlagKeys = new Set(signalPlan.decisive.map((c) => `${c.subject_ref}|${createdBy(SIGNAL_NAMESPACE, c.signalKind)}`));
-const flagsToAutoResolve = existingOpenSignalFlags.filter((r) => decisiveFlagKeys.has(`${r.subject_ref}|${r.created_by}`));
+const existingOpenSignalFlags = allSignalFlags.filter((r) => r.status === "open");
+const previewDispositions = RUN_SIGNALS ? planSignalFlagResolutions(existingOpenSignalFlags, signalPlan.classified, SIGNAL_NAMESPACE) : [];
 if (RUN_SIGNALS) {
   console.log(
     `SIGNALS: ${signalCandidates.length} candidate(s) ` +
     `(shared_regulation_identifier=${signalCandidates.filter((c) => c.signalKind === "shared_regulation_identifier").length}, ` +
     `shared_title_entity=${signalCandidates.filter((c) => c.signalKind === "shared_title_entity").length}) — ` +
-    `would_adopt=${signalPlan.decisive.length} (${signalPlan.edges.length} edge row(s)) would_flag=${signalPlan.undecided.length} ` +
-    `would_resolve=${flagsToAutoResolve.length} stale open flag(s) (2026-09-03 auto-adoption rule; see signal-confidence.mjs).`,
+    `would_adopt=${signalPlan.decisive.length} (${signalPlan.edges.length} edge row(s)) would_close_undecided=${signalPlan.undecided.length}. ` +
+    `${existingOpenSignalFlags.length} existing open flag(s) would resolve: ` +
+    `decisive=${previewDispositions.filter((d) => d.disposition === "decisive").length}, ` +
+    `undecided=${previewDispositions.filter((d) => d.disposition === "undecided").length}, ` +
+    `stale=${previewDispositions.filter((d) => d.disposition === "stale").length} (task 7.2: no residue stays open).`,
   );
 }
 
@@ -298,13 +307,21 @@ try {
 
   // Signal-candidate handling (L4) — only when --signals was passed; otherwise this namespace is left
   // untouched (no write call at all — a default run cannot resolve, insert into, or write edges from it).
-  // 2026-09-03 auto-adoption rule (this file's header + signal-confidence.mjs): DECISIVE candidates
-  // become real item_cross_references edges (write-edges.mjs, the single writer for that origin) and
-  // any of their stale open flags are resolved with an auto-adopted audit trail; UNDECIDED candidates
-  // keep the pre-existing reflect-as-flag behavior exactly.
-  let signalResult = { inserted: 0, resolved: 0, unchanged: 0 };
+  // TASK 7.2 / ADR-030 RIDER (2026-09-12), supersedes the 2026-09-03 posture's UNDECIDED handling:
+  // "an UNDECIDED pair closes with resolution_note 'below the decisive threshold, no edge; score <s>'
+  // (a non-edge is a decision), decisive pairs write the edge as today." Before this: an undecided
+  // candidate that kept reproducing every run stayed an OPEN flag forever (reflectFlags' own "already
+  // open, unchanged" bucket never closes a still-reproducing finding) -- the measured 1,098-row backlog.
+  // The fix, via signal-confidence.mjs's planSignalFlagResolutions/buildPreResolvedSignalFlagRow (PURE,
+  // the actual decision logic; this script only performs the I/O):
+  //   1. EVERY existing open flywheel-signal flag gets a terminal disposition against this run's fresh
+  //      classification -- decisive (edge already written above; flag closes with the auto-adopted note),
+  //      undecided (closes as a non-edge decision), or stale (pair no longer reproduces; closes as before).
+  //   2. A fresh candidate with NO existing flag row at all is inserted ALREADY RESOLVED -- a brand-new
+  //      undecided finding never sits open even momentarily.
   let signalEdgesWritten = { written: 0, inserted: 0, refreshed: 0, skippedForeignOrigin: 0, failedChunks: 0, snapshot: null };
-  let signalAutoResolved = 0;
+  let signalDispositionCounts = { decisive: 0, undecided: 0, stale: 0 };
+  let signalNewPreResolved = 0;
   if (RUN_SIGNALS) {
     if (signalPlan.edges.length) {
       signalEdgesWritten = await writeDiscoveredEdges(writeClient(), signalPlan.edges, { snapshot: { dir: SNAP_DIR, cite: CITE } });
@@ -313,36 +330,40 @@ try {
         `${signalEdgesWritten.skippedForeignOrigin} skipped (owned by another origin); ${signalEdgesWritten.failedChunks} chunk failure(s).`,
       );
     }
-    if (flagsToAutoResolve.length) {
-      const groups = groupStaleFlagsForResolution(flagsToAutoResolve, SIGNAL_NAMESPACE);
-      for (const g of groups) {
-        // IN-CHUNK (2026-09-04): see resolveStaleFlags above — a group here can be every open
-        // shared_title_entity flag at once (1,317 live), the exact list that broke #24 and #26.
-        const res = await guardedUpdateByIds(
-          "integrity_flags",
-          g.ids,
-          { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: g.resolutionNote },
-          { cite: CITE, select: "id", chunk: IN_CHUNK },
-        );
-        signalAutoResolved += res.updated;
-      }
-      console.log(`SIGNALS AUTO-RESOLVED: ${signalAutoResolved} stale open flag(s) (candidate now writes as a decisive edge).`);
-    }
 
-    const signalFindings = signalPlan.undecided.map((c) => ({
-      subjectRef: c.subject_ref,
-      row: {
-        // 'data_quality' — closest existing legal category (metadata/text the platform holds but
-        // discovery's basis set does not use); operator review only — the decisive residue above is
-        // what auto-adopts, this is the undecidable remainder (see signal-confidence.mjs).
-        category: "data_quality", subject_type: "system", subject_ref: c.subject_ref,
-        description: c.description,
-        recommended_actions: ["Operator review only — this candidate did not reach auto-adoption confidence (signal-confidence.mjs)."],
-        status: "open", created_by: createdBy(SIGNAL_NAMESPACE, c.signalKind),
-      },
-    }));
-    signalResult = await reflectFlags(SIGNAL_NAMESPACE, signalFindings);
-    console.log(`SIGNALS REFLECTED: ${signalResult.inserted} opened, ${signalResult.resolved} resolved (${signalResult.unchanged} already open, unchanged).`);
+    const dispositions = planSignalFlagResolutions(existingOpenSignalFlags, signalPlan.classified, SIGNAL_NAMESPACE);
+    // Each disposition carries its OWN distinct resolution_note (unlike the pre-7.2
+    // groupStaleFlagsForResolution path, which combined many ids under one SHARED note), so this is a
+    // per-row guardedUpdate, not a batched `.in("id", [...])` call -- no IN-CHUNK URL-length concern
+    // applies here (that concern is specific to a single request naming every id at once).
+    for (const d of dispositions) {
+      await guardedUpdate(
+        "integrity_flags",
+        (qb) => qb.eq("id", d.id),
+        { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: d.note },
+        { cite: CITE },
+      );
+      signalDispositionCounts[d.disposition] = (signalDispositionCounts[d.disposition] ?? 0) + 1;
+    }
+    console.log(
+      `SIGNALS RESOLVED (existing): ${dispositions.length} flag(s); decisive=${signalDispositionCounts.decisive}, ` +
+      `undecided=${signalDispositionCounts.undecided}, stale=${signalDispositionCounts.stale}.`,
+    );
+
+    const existingKeys = new Set(allSignalFlags.map((r) => `${r.subject_ref}|${r.created_by}`));
+    const seenFresh = new Set();
+    const newPreResolvedRows = [];
+    for (const c of signalPlan.classified) {
+      const key = `${c.subject_ref}|${createdBy(SIGNAL_NAMESPACE, c.signalKind)}`;
+      if (existingKeys.has(key) || seenFresh.has(key)) continue; // already handled above, or a dup within this run
+      seenFresh.add(key);
+      newPreResolvedRows.push(buildPreResolvedSignalFlagRow(c, SIGNAL_NAMESPACE, "analyze-corpus.mjs"));
+    }
+    if (newPreResolvedRows.length) {
+      const ins = await guardedInsertMany("integrity_flags", newPreResolvedRows, { cite: CITE, select: "id" });
+      signalNewPreResolved = ins.inserted;
+    }
+    console.log(`SIGNALS NEW (pre-resolved): ${signalNewPreResolved} row(s) written closed from the start (never sat open).`);
   }
 
   // F6: attach the theme-delta digest to THIS run's ledger row via its own column (migration 276 —

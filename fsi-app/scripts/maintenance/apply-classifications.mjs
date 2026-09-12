@@ -312,8 +312,7 @@ export async function main({ mode = "dry" } = {}, deps) {
     eligible: eligible.map((e) => ({
       flag_id: e.flag.id,
       item_id: e.decision.sourceId,
-      auto_adoptable_count: e.decision.autoAdoptable.length,
-      remaining_count: e.decision.remaining.length,
+      proposal_count: e.decision.proposals.length,
     })),
   };
 
@@ -322,7 +321,7 @@ export async function main({ mode = "dry" } = {}, deps) {
       `DRY -- proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new ` +
       `flag(s) (${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length + anomalyResult.plan.staleIds.length} stale resolved). ` +
       `${eligible.length} OPEN source-classification flag(s) eligible for auto-adoption (` +
-      `${eligible.reduce((n, e) => n + e.decision.autoAdoptable.length, 0)} proposals). Nothing written. ` +
+      `${eligible.reduce((n, e) => n + e.decision.proposals.length, 0)} proposals). Nothing written. ` +
       `Apply with: node scripts/maintenance/apply-classifications.mjs --mode apply`;
     return summary;
   }
@@ -413,7 +412,9 @@ export async function buildRealDeps() {
       return rows;
     },
     readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
-    readSource: (id) => sb.from("sources").select("id, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+    // Widened 2026-09-12 (task 7.2): decideScopeTopicsProposal re-checks a scope_topics proposal's
+    // per-topic evidence against the source's OWN name/source_role at apply time.
+    readSource: (id) => sb.from("sources").select("id, name, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
     updateSource: async (id, patch) => {
       const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
       return { updated: res.updated, snapshot: res.snapshot };

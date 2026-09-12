@@ -10,6 +10,7 @@ import {
   RATIFY_TAGS_TOKEN, hasRatifyTagsToken, extractProposalsFromDescription, evaluateApplication,
   buildMergePatch, planDiscoveryForItem, applyTags,
   AUTO_ADOPT_THRESHOLD, evaluateAutoAdoption, partitionByConfidence, buildAutoAdoptionNote, autoAdoptTags,
+  decideTagProposal, decideTagProposals, evidencePresentInItemText, itemOwnText,
 } from "./apply-tags.mjs";
 import { buildFlagRow } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
@@ -392,69 +393,137 @@ test("autoAdoptTags: already-resolved flag -> not_adoptable, item never read (id
   assert.ok(!d.calls.length);
 });
 
-test("autoAdoptTags: all-medium proposals -> below_threshold, item never read, nothing written", async () => {
-  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [PROPOSALS[1]] }); // just the medium one
-  const d = autoDeps({ flag: openFlag({ description: row.description }) });
-  const r = await autoAdoptTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "below_threshold");
-  assert.equal(r.residueCount, 1);
-  assert.ok(!d.calls.length);
+// ── decideTagProposal / decideTagProposals / evidencePresentInItemText (task 7.2, 2026-09-12) ──────
+// "every flywheel-tag proposal is decided: high confidence adopts (as today); medium adopts when the
+// proposed tag is in the closed vocabulary and the item's own text contains the keyword that produced
+// it ... otherwise declined with the reason." No residue: every proposal decides one way or the other.
+
+test("itemOwnText: concatenates title/what_is_it/summary/full_brief, tolerating missing fields", () => {
+  assert.equal(itemOwnText({ title: "A", full_brief: "B" }), "A\n\n\nB");
+  assert.equal(itemOwnText({}), "\n\n\n");
 });
 
-test("autoAdoptTags: mixed high+medium on an empty item -> writes ONLY the high tag, flag stays OPEN (auto_adopted_partial)", async () => {
-  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+test("evidencePresentInItemText: case-insensitive substring match against the item's own text", () => {
+  assert.ok(evidencePresentInItemText("bunkering", { title: "New Bunkering Rules" }));
+  assert.ok(evidencePresentInItemText("PPWR", { summary: "under the ppwr regime" }));
+  assert.ok(!evidencePresentInItemText("bunkering", { title: "unrelated" }));
+  assert.ok(!evidencePresentInItemText("", { title: "bunkering" }), "empty evidence never matches");
+});
+
+test("decideTagProposal: high confidence always adopts, regardless of vocabulary/text", () => {
+  const d = decideTagProposal({ field: "operational_scenario_tags", tag: "ocean-bunkering", evidence: "bunkering", confidence: "high" }, {});
+  assert.equal(d.decision, "adopt");
+  assert.match(d.reason, /confidence 'high'/);
+});
+
+test("decideTagProposal: medium adopts when the tag is in the closed vocabulary AND evidence is re-confirmed in the item's own text", () => {
+  const item = { full_brief: "This regime falls under the corporate sustainability reporting directive (CSRD)." };
+  const d = decideTagProposal({ field: "operational_scenario_tags", tag: "sustainability-report-CSRD", evidence: "CSRD", confidence: "medium" }, item);
+  assert.equal(d.decision, "adopt");
+  assert.match(d.reason, /re-confirmed present/);
+});
+
+test("decideTagProposal: medium declines when the evidence is no longer present in the item's own text", () => {
+  const item = { full_brief: "Nothing about that topic here." };
+  const d = decideTagProposal({ field: "operational_scenario_tags", tag: "sustainability-report-CSRD", evidence: "CSRD", confidence: "medium" }, item);
+  assert.equal(d.decision, "decline");
+  assert.match(d.reason, /not found/);
+});
+
+test("decideTagProposal: medium declines when the tag is not in the live closed vocabulary for its field", () => {
+  const item = { full_brief: "carbon pricing mentioned here" };
+  const d = decideTagProposal({ field: "topic_tags", tag: "not-a-real-topic", evidence: "carbon pricing", confidence: "medium" }, item);
+  assert.equal(d.decision, "decline");
+  assert.match(d.reason, /not in the live closed vocabulary/);
+});
+
+test("decideTagProposals: decides every proposal, no residue (mixed high+medium)", () => {
+  const item = { full_brief: "carbon pricing appears here" };
+  const decisions = decideTagProposals(PROPOSALS, item); // [high ocean-bunkering, medium emissions]
+  assert.equal(decisions.length, 2);
+  assert.ok(decisions.every((d) => d.decision === "adopt" || d.decision === "decline"));
+  assert.equal(decisions.find((d) => d.tag === "ocean-bunkering").decision, "adopt");
+  assert.equal(decisions.find((d) => d.tag === "emissions").decision, "adopt"); // evidence present + in closed vocab
+});
+
+// ── autoAdoptTags (injected-dependency core, mocked DB) -- every proposal decided, flag always closes ──
+
+test("autoAdoptTags: all-medium proposals, evidence present -> DECIDES (adopts), writes and resolves", async () => {
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [PROPOSALS[1]] }); // just the medium one (emissions, evidence "carbon pricing")
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "carbon pricing discussed at length" };
+  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "decided");
+  assert.deepEqual(r.merge.patch, { topic_tags: ["emissions"] });
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1"));
+});
+
+test("autoAdoptTags: all-medium proposal, evidence absent -> DECIDES (declines), no write, flag still resolves", async () => {
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [PROPOSALS[1]] });
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "nothing relevant here" };
+  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "decided_no_change");
+  assert.deepEqual(r.merge.patch, {});
+  assert.equal(r.decisions[0].decision, "decline");
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "a fully-decided flag always closes, even an all-decline one");
+});
+
+test("autoAdoptTags: mixed high+medium (evidence present) on an empty item -> writes BOTH, resolves the flag, no residue", async () => {
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "carbon pricing appears here" };
+  const d = autoDeps({ flag: openFlag(), item }); // PROPOSALS = [high ocean-bunkering, medium emissions]
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "decided");
+  assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"], topic_tags: ["emissions"] });
+  assert.ok(d.calls.some((c) => c[0] === "updateItem"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "the flag closes -- no residue stays open (task 7.2)");
+});
+
+test("autoAdoptTags: mixed high+medium (evidence ABSENT for the medium one) -> writes only the high tag, DECLINES the medium, still resolves", async () => {
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "no mention of that here" };
   const d = autoDeps({ flag: openFlag(), item });
   const r = await autoAdoptTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "auto_adopted_partial");
-  assert.equal(r.residueCount, 1);
+  assert.equal(r.status, "decided");
   assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"] });
-  assert.ok(!("topic_tags" in r.merge.patch), "the medium (emissions) proposal must not be written");
-  assert.ok(d.calls.some((c) => c[0] === "updateItem"));
-  assert.ok(!d.calls.some((c) => c[0] === "resolveFlag"), "a flag with residue must not be resolved");
+  assert.ok(!("topic_tags" in r.merge.patch));
+  assert.equal(r.decisions.find((d2) => d2.tag === "emissions").decision, "decline");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "declined residue never keeps the flag open (task 7.2 supersedes the old auto_adopted_partial posture)");
 });
 
-test("autoAdoptTags: all-high proposals on an empty item -> writes tags AND resolves the flag (auto_adopted)", async () => {
+test("autoAdoptTags: all-high proposals on an empty item -> writes tags AND resolves the flag", async () => {
   const allHigh = [PROPOSALS[0]]; // just the high one
   const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
   const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
   const d = autoDeps({ flag: openFlag({ description: row.description }), item });
   const r = await autoAdoptTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "auto_adopted");
+  assert.equal(r.status, "decided");
   assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"] });
-  assert.equal(r.resolvedNote, "auto-adopted:tags:high");
+  assert.match(r.resolvedNote, /decided 1 \(adopted 1, declined 0\)/);
   assert.ok(d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-1"));
-  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1" && c[2] === "auto-adopted:tags:high"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1"));
 });
 
-test("autoAdoptTags: dry run (execute=false) computes the patch, calls neither updateItem nor resolveFlag", async () => {
+test("autoAdoptTags: dry run (execute=false) computes decisions, calls neither updateItem nor resolveFlag", async () => {
   const allHigh = [PROPOSALS[0]];
   const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
   const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
   const d = autoDeps({ flag: openFlag({ description: row.description }), item });
   const r = await autoAdoptTags(d, "flag-1", { execute: false });
   assert.equal(r.status, "dry_run");
-  assert.equal(r.hasResidue, false);
+  assert.equal(r.decisions.length, 1);
+  assert.equal(r.decisions[0].decision, "adopt");
   assert.ok(!d.calls.length);
 });
 
-test("autoAdoptTags: mixed proposal set where the eligible tag is ALREADY present -> no_change_residue_open, nothing written", async () => {
-  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [] };
+test("autoAdoptTags: eligible tag ALREADY present -> no write, but the flag still resolves (nothing left undecided)", async () => {
+  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [], full_brief: "no mention" };
   const d = autoDeps({ flag: openFlag(), item });
   const r = await autoAdoptTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "no_change_residue_open");
-  assert.equal(r.residueCount, 1);
-  assert.ok(!d.calls.length);
-});
-
-test("autoAdoptTags: all-high proposal already present, no residue -> resolves with no item write (resolved_no_change)", async () => {
-  const allHigh = [PROPOSALS[0]];
-  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
-  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [] };
-  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
-  const r = await autoAdoptTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "resolved_no_change");
-  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
+  assert.equal(r.status, "decided_no_change");
+  assert.deepEqual(r.merge.patch, {});
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag"));
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
 });
 
 test("autoAdoptTags: item not found -> item_not_found", async () => {
@@ -470,10 +539,29 @@ test("autoAdoptTags: idempotent — a second run against the now-resolved flag r
   const flag = openFlag({ description: row.description });
   const d1 = autoDeps({ flag, item });
   const r1 = await autoAdoptTags(d1, "flag-1", { execute: true });
-  assert.equal(r1.status, "auto_adopted");
+  assert.equal(r1.status, "decided");
   // Simulate the resolved flag a second dispatch would read back.
   const d2 = autoDeps({ flag: { ...flag, status: "resolved", resolved_by: "apply-tags.mjs", resolution_note: r1.resolvedNote } });
   const r2 = await autoAdoptTags(d2, "flag-1", { execute: true });
   assert.equal(r2.status, "not_adoptable");
   assert.ok(!d2.calls.length);
+});
+
+// ── Invariant: no residue stays open -- every combination of confidence/evidence decides and closes ────
+
+test("INVARIANT: autoAdoptTags never returns a status that leaves the flag open when the flag was decidable", async () => {
+  const OPEN_LEFT_STATUSES = new Set(["dry_run", "not_found", "read_error", "not_adoptable", "item_read_error", "item_not_found"]);
+  const cases = [
+    { proposals: [PROPOSALS[0]], item: { id: "item-1" } }, // high only
+    { proposals: [PROPOSALS[1]], item: { id: "item-1", full_brief: "carbon pricing" } }, // medium, evidence present
+    { proposals: [PROPOSALS[1]], item: { id: "item-1", full_brief: "nothing" } }, // medium, evidence absent
+    { proposals: PROPOSALS, item: { id: "item-1", full_brief: "carbon pricing" } }, // mixed, both decide adopt
+  ];
+  for (const { proposals, item } of cases) {
+    const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals });
+    const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+    const r = await autoAdoptTags(d, "flag-1", { execute: true });
+    assert.ok(!OPEN_LEFT_STATUSES.has(r.status), `status "${r.status}" must not leave a decidable flag open`);
+    assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "every decidable flag must resolve on apply");
+  }
 });

@@ -28,6 +28,8 @@ import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 import { readRunHistory } from "../lib/run-artifact.mjs";
 import { extractMintedItemIds } from "../turns/run-population-flywheel.mjs";
+import { TAG_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // Task 3.5 (W9 brief-chain plan Part 3): the SAME two harness-run families run-population-flywheel.mjs
@@ -264,6 +266,59 @@ export function describeTimelineCoverageState(state, counts) {
   ];
 }
 
+// ── open-flags-by-family (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ──────────────────────────────
+// "every step's dry output lists ... counts and a sample per outcome; the population report's counters
+// [measure] the queue (open flags by family) so the drain is proven by the report, not by a claim." One
+// STORES row per family, task 7.2's own scope (tag-ratification, apply-classifications, signals) -- every
+// resolver in that scope now DECIDES every proposal it reads and closes the flag (apply-tags.mjs /
+// apply-classifications.mjs / analyze-corpus.mjs + resolve-signals.mjs), so an open row here past a
+// clean apply run is a REGRESSION (a decidable flag left open), not an expected mid-build gap. Same
+// "total IS the defect count" shape "briefs pending" / the timeline-coverage-gap entry above already use.
+
+export const AXIS_CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
+
+/** Pure predicate set, shared by countOpenFlagsByFamily below and this file's own tests. */
+export const FLAG_FAMILY_PREDICATES = Object.freeze({
+  tag: (r) => typeof r?.created_by === "string" && r.created_by.startsWith(TAG_NAMESPACE),
+  axisSourceClassification: (r) => r?.created_by === AXIS_CLASSIFICATION_CREATED_BY,
+  signal: (r) => typeof r?.created_by === "string" && r.created_by.startsWith(SIGNAL_NAMESPACE),
+});
+
+/**
+ * Pure: count OPEN integrity_flags rows matching one family predicate.
+ * @param {Array<{created_by?:string}>} flagRows
+ * @param {"tag"|"axisSourceClassification"|"signal"} family
+ * @returns {number}
+ */
+export function computeOpenFlagsByFamily(flagRows, family) {
+  const rows = Array.isArray(flagRows) ? flagRows : [];
+  return rows.filter(FLAG_FAMILY_PREDICATES[family]).length;
+}
+
+/**
+ * Live read: every OPEN integrity_flags row's created_by, then count against one family predicate.
+ * Paginated via readAll (never a raw .select() CAP-1000 could truncate).
+ * @param {object} sb
+ * @param {"tag"|"axisSourceClassification"|"signal"} family
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countOpenFlagsByFamily(sb, family) {
+  try {
+    const rows = await readAll("integrity_flags", "created_by", { match: (q) => q.eq("status", "open"), client: sb });
+    return { count: computeOpenFlagsByFamily(rows, family), error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/** describeState hook, one per family entry below -- see renderReport's own doc comment. */
+export function describeOpenFlagsByFamilyState(label, dispatchStep) {
+  return (state, counts) => [
+    `${counts.rows} open ${label} flag(s) still require a decision.`,
+    `Dispatch (mode=apply): ${dispatchStep}: decides (adopts or declines) every proposal it reads and closes the flag; no residue stays open.`,
+  ];
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -417,6 +472,29 @@ export const STORES = Object.freeze([
     // "reader has nothing to show" / "fill it with: <producer>" pair is backwards for this entry -- see
     // describeBriefsPendingState's own header for why.
     describeState: describeBriefsPendingState },
+  // -- Part 7 task 7.2, brief-chain build plan 2026-09-11 / ADR-030 rider: "no queue on the admin page
+  // may require a human click to resolve" -- one row per family this task's resolvers own. RED (rows>0)
+  // means a decidable flag was left open; each resolver (apply-tags.mjs / apply-classifications.mjs /
+  // analyze-corpus.mjs+resolve-signals.mjs) now decides every proposal it reads, so a nonzero count here
+  // after a clean apply dispatch is a regression, not an expected mid-build gap.
+  { table: "integrity_flags", fill: "open flywheel-tag:* flags (defect count itself, see below)",
+    reader: "population-report.mjs's own CLI output; the flywheel-tag: queue task 7.2's tag-ratification step drains",
+    producer: "scripts/maintenance/tag-ratification.mjs --arg auto --mode apply",
+    totalQuery: (sb) => countOpenFlagsByFamily(sb, "tag"),
+    filledQuery: async () => ({ count: 0, error: null }),
+    describeState: describeOpenFlagsByFamilyState("flywheel-tag:*", "tag-ratification.mjs --arg auto") },
+  { table: "integrity_flags", fill: `open ${AXIS_CLASSIFICATION_CREATED_BY} flags (defect count itself, see below)`,
+    reader: "population-report.mjs's own CLI output; the source-classification queue task 7.2's apply-classifications step drains",
+    producer: "scripts/maintenance/apply-classifications.mjs --mode apply",
+    totalQuery: (sb) => countOpenFlagsByFamily(sb, "axisSourceClassification"),
+    filledQuery: async () => ({ count: 0, error: null }),
+    describeState: describeOpenFlagsByFamilyState(AXIS_CLASSIFICATION_CREATED_BY, "apply-classifications.mjs") },
+  { table: "integrity_flags", fill: "open flywheel-signal:* flags (defect count itself, see below)",
+    reader: "population-report.mjs's own CLI output; the signal-candidate queue task 7.2's resolve-signals step drains",
+    producer: "scripts/maintenance/resolve-signals.mjs --mode apply",
+    totalQuery: (sb) => countOpenFlagsByFamily(sb, "signal"),
+    filledQuery: async () => ({ count: 0, error: null }),
+    describeState: describeOpenFlagsByFamilyState("flywheel-signal:*", "resolve-signals.mjs") },
 ]);
 
 /**

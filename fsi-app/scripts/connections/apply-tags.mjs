@@ -102,8 +102,11 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
-import { FIELD_CAPS, meetsConfidence } from "../../src/lib/connections/derive-tags.mjs";
+import {
+  FIELD_CAPS, meetsConfidence, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES,
+} from "../../src/lib/connections/derive-tags.mjs";
 import { TAG_NAMESPACE, isInNamespace } from "../../src/lib/connections/flag-namespaces.mjs";
+import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
 
 // The one place the auto-adoption confidence cutoff lives — see the file-header "THRESHOLD, JUSTIFIED
@@ -227,6 +230,90 @@ export function partitionByConfidence(proposals, threshold = AUTO_ADOPT_THRESHOL
  */
 export function buildAutoAdoptionNote(threshold = AUTO_ADOPT_THRESHOLD) {
   return `auto-adopted:tags:${threshold}`;
+}
+
+// ─────────────────────── EVERY PROPOSAL DECIDED (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ───────────
+// "tag-ratification: every flywheel-tag proposal is decided: high confidence adopts (as today); medium
+// adopts when the proposed tag is in the closed vocabulary and the item's own text contains the keyword
+// that produced it (the proposer's evidence, re-checked); otherwise declined with the reason. The flag
+// closes ... once every proposal is decided; no residue stays open." This supersedes the 2026-09-03
+// posture above (partitionByConfidence/below_threshold leaving a flag open with medium residue): a
+// derive-tags.mjs proposal carries only "high"|"medium" (no lower tier exists -- see that module's
+// header), so deciding both tiers exhaustively covers every proposal a flag can carry.
+//
+// FIELD_VOCAB re-checks a medium proposal's tag against the SAME closed-vocabulary SoTs derive-tags.mjs
+// itself derives from (TOPIC_TAG_VALUES/COMPLIANCE_OBJECT_VALUES/SCENARIO_TAG_VALUES) -- re-read live at
+// apply time, not trusted from the (possibly stale) proposal payload, so a tag retired from the
+// vocabulary since the flag was opened declines rather than silently writing a dead token.
+const FIELD_VOCAB = Object.freeze({
+  topic_tags: new Set(TOPIC_TAG_VALUES),
+  compliance_object_tags: new Set(COMPLIANCE_OBJECT_VALUES),
+  operational_scenario_tags: new Set(SCENARIO_TAG_VALUES),
+});
+
+// The item's own text a medium proposal's keyword evidence must be RE-CONFIRMED present in (task 7.2's
+// exact field list) -- narrower than propose-tags.mjs's own enrichment scope (sections/claims/search
+// results), deliberately: apply time re-checks only what a single readItem() call can cheaply carry, so
+// a proposal whose evidence lived only in grounded material outside these four fields declines honestly
+// rather than trusting a payload this step cannot itself re-verify.
+export const TAG_EVIDENCE_TEXT_FIELDS = Object.freeze(["title", "what_is_it", "summary", "full_brief"]);
+
+/** Concatenate an item's own text fields (task 7.2's evidence-recheck scope). PURE. */
+export function itemOwnText(item) {
+  return TAG_EVIDENCE_TEXT_FIELDS.map((f) => (typeof item?.[f] === "string" ? item[f] : "")).join("\n");
+}
+
+/**
+ * True when `evidence` (the literal matched substring derive-tags.mjs recorded on the proposal) is
+ * still present, case-insensitively, in the item's own title/what_is_it/summary/full_brief. PURE.
+ * @param {string} evidence
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function evidencePresentInItemText(evidence, item) {
+  const needle = String(evidence || "").trim().toLowerCase();
+  if (!needle) return false;
+  return itemOwnText(item).toLowerCase().includes(needle);
+}
+
+/**
+ * Decide ONE proposal: adopt or decline, with a stated reason. PURE. High confidence adopts unchanged
+ * from the 2026-09-03 posture; medium adopts only when BOTH the tag is in its field's live closed
+ * vocabulary AND the keyword evidence that produced it is re-confirmable in the item's own text --
+ * otherwise it declines, never silently sitting undecided.
+ * @param {{field:string, tag:string, evidence:string, confidence:string}} proposal
+ * @param {object} item - the target intelligence_items row (title/what_is_it/summary/full_brief read)
+ * @param {string} [threshold] - defaults to AUTO_ADOPT_THRESHOLD
+ * @returns {{field:string, tag:string, evidence:string, confidence:string, label:string, decision:"adopt"|"decline", reason:string}}
+ */
+export function decideTagProposal(proposal, item, threshold = AUTO_ADOPT_THRESHOLD) {
+  const label = `${proposal.field}:${proposal.tag}`;
+  if (meetsConfidence(proposal.confidence, threshold)) {
+    return { ...proposal, label, decision: "adopt", reason: `confidence '${proposal.confidence}' meets the auto-adopt threshold '${threshold}' (title/instrument-key identity match).` };
+  }
+  const vocab = FIELD_VOCAB[proposal.field];
+  if (!vocab || !vocab.has(proposal.tag)) {
+    return { ...proposal, label, decision: "decline", reason: `tag "${proposal.tag}" is not in the live closed vocabulary for ${proposal.field}.` };
+  }
+  if (!evidencePresentInItemText(proposal.evidence, item)) {
+    return { ...proposal, label, decision: "decline", reason: `keyword evidence "${proposal.evidence}" was not found in the item's own title, what_is_it, summary, or full_brief.` };
+  }
+  return {
+    ...proposal, label, decision: "adopt",
+    reason: `confidence '${proposal.confidence}': tag is in the closed vocabulary for ${proposal.field} and keyword evidence "${proposal.evidence}" is re-confirmed present in the item's own text.`,
+  };
+}
+
+/**
+ * Decide EVERY proposal in a list. PURE. No residue: every input proposal produces exactly one
+ * adopt/decline decision.
+ * @param {Array<object>} proposals
+ * @param {object} item
+ * @param {string} [threshold]
+ * @returns {Array<object>}
+ */
+export function decideTagProposals(proposals, item, threshold = AUTO_ADOPT_THRESHOLD) {
+  return (Array.isArray(proposals) ? proposals : []).map((p) => decideTagProposal(p, item, threshold));
 }
 
 /**
@@ -358,39 +445,28 @@ export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_AD
   const decision = evaluateAutoAdoption(flag);
   if (!decision.ok) return { status: "not_adoptable", error: decision.error };
 
-  const partition = partitionByConfidence(decision.proposals, threshold);
-  if (!partition.eligible.length) {
-    // Nothing meets the bar — leave the flag exactly as it is today. Not an error: this is the expected
-    // shape for a flag whose only candidates are body-only (medium) matches.
-    return { status: "below_threshold", itemId: decision.itemId, residueCount: partition.residue.length };
-  }
-
   const { data: item, error: itemErr } = await deps.readItem(decision.itemId);
   if (itemErr) return { status: "item_read_error", error: itemErr.message };
   if (!item) return { status: "item_not_found", error: `no intelligence_items row with id ${decision.itemId}.` };
 
-  const merge = buildMergePatch(item, partition.eligible);
-  const hasResidue = partition.residue.length > 0;
-  const note = buildAutoAdoptionNote(threshold);
+  // Task 7.2: every proposal is decided (adopt or decline), never left as "below threshold" residue on
+  // an open flag -- a derive-tags.mjs proposal carries only "high"|"medium", both decided by
+  // decideTagProposal, so this partition is always exhaustive.
+  const decisions = decideTagProposals(decision.proposals, item, threshold);
+  const adopted = decisions.filter((d) => d.decision === "adopt");
+  const merge = buildMergePatch(item, adopted);
+  const hasWrite = Object.keys(merge.patch).length > 0;
+  const note = buildDecisionNote(`tag-ratification (auto, threshold=${threshold})`, decisions);
 
-  if (!Object.keys(merge.patch).length) {
-    // Every eligible tag was already present (or capped out) — nothing to write for the item. Still,
-    // when there is no residue left to review, the flag itself has nothing further to decide, so it
-    // resolves (idempotent: re-running finds it already resolved and refuses at evaluateAutoAdoption).
-    if (hasResidue) return { status: "no_change_residue_open", itemId: decision.itemId, merge, residueCount: partition.residue.length };
-    if (!execute) return { status: "dry_run_resolve_only", itemId: decision.itemId, merge, flagId };
-    await deps.resolveFlag(flagId, note);
-    return { status: "resolved_no_change", itemId: decision.itemId, merge, flagId };
-  }
+  if (!execute) return { status: "dry_run", itemId: decision.itemId, merge, decisions, hasWrite };
 
-  if (!execute) return { status: "dry_run", itemId: decision.itemId, merge, hasResidue };
-
-  const upd = await deps.updateItem(decision.itemId, merge.patch);
-  if (hasResidue) {
-    return { status: "auto_adopted_partial", itemId: decision.itemId, merge, updated: upd.updated, snapshot: upd.snapshot, residueCount: partition.residue.length };
-  }
+  if (hasWrite) await deps.updateItem(decision.itemId, merge.patch);
   await deps.resolveFlag(flagId, note);
-  return { status: "auto_adopted", itemId: decision.itemId, merge, updated: upd.updated, snapshot: upd.snapshot, flagId, resolvedNote: note };
+  return {
+    status: hasWrite ? "decided" : "decided_no_change",
+    itemId: decision.itemId, merge, decisions, flagId, resolvedNote: note,
+    updated: hasWrite ? 1 : 0,
+  };
 }
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -442,7 +518,9 @@ const CITE = {
 
 const deps = {
   readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
-  readItem: (id) => sb.from("intelligence_items").select("id, operational_scenario_tags, compliance_object_tags, topic_tags").eq("id", id).maybeSingle(),
+  // Widened 2026-09-12 (task 7.2): decideTagProposal re-checks a medium-confidence proposal's keyword
+  // evidence against the item's OWN title/what_is_it/summary/full_brief, not just its tag arrays.
+  readItem: (id) => sb.from("intelligence_items").select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, what_is_it, summary, full_brief").eq("id", id).maybeSingle(),
   updateItem: async (id, patch) => {
     const res = await guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE });
     return { updated: res.updated, snapshot: res.snapshot };
@@ -503,31 +581,30 @@ function report(flagId, result) {
       console.log(`apply-tags: flag ${flagId} — no change needed for item ${result.itemId} (every proposal already present or capped out). Nothing written.`);
       return true;
     case "dry_run":
-      console.log(
-        `apply-tags: flag ${flagId} applicable -> item ${result.itemId} patch: ` +
-        `${JSON.stringify(result.merge.patch)}${result.hasResidue ? " (residue proposal(s) below threshold — flag stays open)" : ""} (DRY RUN — nothing written. Re-run with --execute to apply.)`,
-      );
+      if ("decisions" in result) {
+        // Auto path (decideTagProposals) -- every proposal decided, task 7.2's dry output shape.
+        const adopted = result.decisions.filter((d) => d.decision === "adopt").length;
+        const declined = result.decisions.filter((d) => d.decision === "decline").length;
+        console.log(
+          `apply-tags: flag ${flagId} -> item ${result.itemId} would decide ${result.decisions.length} proposal(s) ` +
+          `(adopt ${adopted}, decline ${declined}); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
+          `(DRY RUN: nothing written. Re-run with --execute to apply.)`,
+        );
+      } else {
+        console.log(
+          `apply-tags: flag ${flagId} applicable -> item ${result.itemId} patch: ` +
+          `${JSON.stringify(result.merge.patch)} (DRY RUN: nothing written. Re-run with --execute to apply.)`,
+        );
+      }
       return true;
     case "applied":
       console.log(`WROTE: item ${result.itemId} updated (${result.updated} row) with ${JSON.stringify(result.merge.patch)} (snapshot: ${result.snapshot}).`);
       return true;
-    case "below_threshold":
-      console.log(`apply-tags: flag ${flagId} — no proposal meets the auto-adoption threshold (${result.residueCount} below threshold). Flag stays open for review, unchanged.`);
+    case "decided":
+      console.log(`WROTE + RESOLVED: item ${result.itemId} updated with ${JSON.stringify(result.merge.patch)}; flag ${flagId} closed (${result.decisions.length} proposal(s) decided).`);
       return true;
-    case "no_change_residue_open":
-      console.log(`apply-tags: flag ${flagId} — eligible tag(s) already present on item ${result.itemId}; ${result.residueCount} residue proposal(s) remain below threshold. Flag stays open, nothing written.`);
-      return true;
-    case "dry_run_resolve_only":
-      console.log(`apply-tags: flag ${flagId} — eligible tag(s) already present on item ${result.itemId}, no residue; flag would RESOLVE (DRY RUN — nothing written).`);
-      return true;
-    case "resolved_no_change":
-      console.log(`apply-tags: flag ${flagId} RESOLVED (auto-adopted:tags — no item write needed, tags already present).`);
-      return true;
-    case "auto_adopted_partial":
-      console.log(`WROTE: item ${result.itemId} updated (${result.updated} row) with ${JSON.stringify(result.merge.patch)} (snapshot: ${result.snapshot}); flag ${flagId} stays OPEN — ${result.residueCount} residue proposal(s) below threshold.`);
-      return true;
-    case "auto_adopted":
-      console.log(`WROTE + RESOLVED: item ${result.itemId} updated (${result.updated} row) with ${JSON.stringify(result.merge.patch)} (snapshot: ${result.snapshot}); flag ${flagId} resolved (${result.resolvedNote}).`);
+    case "decided_no_change":
+      console.log(`RESOLVED: flag ${flagId} closed with no item write needed (every proposal declined, or already present); ${result.decisions.length} proposal(s) decided.`);
       return true;
     default:
       return false;
@@ -542,7 +619,7 @@ if (flagId) {
     ? await autoAdoptTags(deps, flagId, { execute: EXECUTE })
     : await applyTags(deps, flagId, { execute: EXECUTE });
   if (!report(flagId, result)) anyFailed = true;
-  if (result.status === "applied" || result.status === "auto_adopted" || result.status === "auto_adopted_partial") {
+  if (result.status === "applied" || result.status === "decided") {
     appliedItemIds.push(result.itemId);
   }
 } else {
