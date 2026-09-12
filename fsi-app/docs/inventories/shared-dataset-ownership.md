@@ -116,8 +116,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/timeline-backfill.mjs",
       "scripts/maintenance/resolve-cited-host-gate.mjs",
       "scripts/maintenance/resolve-error-body-gate.mjs",
-      "scripts/maintenance/resolve-signals.mjs"
-      "scripts/maintenance/resolve-provisional-sources.mjs"
+      "scripts/maintenance/resolve-signals.mjs",
       "scripts/maintenance/resolve-provisional-sources.mjs",
       "src/lib/sources/null-tier-host-worklist.mjs"
     ],
