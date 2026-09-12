@@ -186,16 +186,61 @@ const UK_ROYAL_ASSENT_BRACKET_RE = /\[(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{
 // a sector letter, never a UK type token) can never match this fallback: the CELEX-year negative.
 const UK_IDENTIFIER_YEAR_RE = /\b(?:uk\w*|asp|wsi|ssi|nia|mnia)\b.*?(\d{4})\/\d+/i;
 
+// Fix round 1 (review-6.1c.md, Important finding): UK_MADE_LINE_RE / UK_ROYAL_ASSENT_BRACKET_RE were run
+// unanchored over the WHOLE captured text, so a citation to a different instrument's own dated front
+// matter (a "Made DD Month YYYY" or bracketed "[DD Month YYYY]" line quoted in explanatory text, an
+// amendment-history summary box, or a footnote) positioned EARLIER than the item's own front matter would
+// be picked first by `.exec()`, which always returns the first match. The real legislation.gov.uk shape
+// is: [item's own title] -> [Made line OR Royal Assent bracket] -> [Laid before Parliament / Coming into
+// force lines, SIs only] -> [enacting formula] -> "PART 1" / "1." (the first substantive provision). Two
+// deterministic bounds, both justified from that shape, not a guess:
+//   (a) START: the item's own title, when it is verbatim-locatable in the capture, anchors the window so
+//       any pre-pended chrome (a citation, an "About this item" summary, an amendment-history box) that
+//       precedes the item's own document content is excluded outright. Falls back to the start of the
+//       text when the title cannot be located (never assumed absent -- the risk this leaves is exactly
+//       the ORIGINAL, narrower "normal document order" case the review already found plausible-but-
+//       unproven, i.e. a citation embedded in the SAME front matter's own enacting formula, which
+//       structurally follows the item's own Made/Assent line and so cannot be matched first anyway).
+//   (b) END: the first "PART 1"/"Part 1" heading, a line beginning "1." (the first numbered provision),
+//       or a bare "Regulation 1"/"Section 1" citation -- capped at UK_FRONT_MATTER_MAX_CHARS regardless,
+//       so a capture with NO such marker (a truncated or atypically-formatted front matter) still gets a
+//       bounded search rather than reverting to the original unbounded bug.
+const UK_FRONT_MATTER_BOUNDARY_RE = /^\s*(?:part\s+1\b|1\.\s)|\bregulation\s+1\b|\bsection\s+1\b/im;
+const UK_FRONT_MATTER_MAX_CHARS = 1500;
+
+/**
+ * Bounds a legislation.gov.uk capture to the item's OWN front matter: starts at the item's own title
+ * (when verbatim-locatable, skipping any pre-title chrome/citation), ends at the first substantive-body
+ * marker or a fixed character ceiling, whichever comes first. Pure.
+ * @param {string} fullText
+ * @param {string|null|undefined} title
+ * @returns {string}
+ */
+export function ukFrontMatterWindow(fullText, title) {
+  let start = 0;
+  if (typeof title === "string" && title.trim()) {
+    const idx = fullText.toLowerCase().indexOf(title.trim().toLowerCase());
+    if (idx >= 0) start = idx;
+  }
+  const rest = fullText.slice(start);
+  const boundary = UK_FRONT_MATTER_BOUNDARY_RE.exec(rest);
+  const end = Math.min(boundary ? boundary.index : UK_FRONT_MATTER_MAX_CHARS, UK_FRONT_MATTER_MAX_CHARS);
+  return rest.slice(0, end);
+}
+
 /**
  * Step 4: legislation.gov.uk's own dated lines. Order: the "Made" line of a statutory instrument, then
  * the bracketed Royal Assent line of an Act, then a year-only fallback derived from a UK-shaped
  * identifier (precision "year", the label keeps the bare year token, per timeline-harvest.mjs's own
- * precision rule, reused here via formatPrecisionLabel). Pure.
- * @param {{capturedText?: string|null, identifier?: string|null}} input
+ * precision rule, reused here via formatPrecisionLabel). The Made/Assent search is bounded to the item's
+ * own front matter (ukFrontMatterWindow, above) so a citation to a different instrument's own dated line
+ * elsewhere in the capture is never picked first. Pure.
+ * @param {{capturedText?: string|null, identifier?: string|null, title?: string|null}} input
  * @returns {{token:string, iso:string, precision:string, baseLabel:string, form:string}|null}
  */
-export function extractLegislationGovUkDate({ capturedText, identifier } = {}) {
-  const text = typeof capturedText === "string" ? capturedText : "";
+export function extractLegislationGovUkDate({ capturedText, identifier, title } = {}) {
+  const fullText = typeof capturedText === "string" ? capturedText : "";
+  const text = ukFrontMatterWindow(fullText, title);
 
   const made = UK_MADE_LINE_RE.exec(text);
   if (made) {
@@ -352,7 +397,7 @@ export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, ide
   attempts.push({ step: "federal_register", outcome: "no-match" });
 
   // Step 4: legislation.gov.uk (Made / Royal Assent / year-only identifier fallback).
-  const leg = extractLegislationGovUkDate({ capturedText, identifier });
+  const leg = extractLegislationGovUkDate({ capturedText, identifier, title });
   if (leg) {
     attempts.push({ step: "legislation_gov_uk", outcome: "hit", form: leg.form, token: leg.token });
     return { result: { ...leg, source: "legislation_gov_uk" }, attempts };

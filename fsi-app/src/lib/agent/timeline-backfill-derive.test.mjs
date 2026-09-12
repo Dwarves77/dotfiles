@@ -15,6 +15,7 @@ import {
   extractTitleDate,
   extractFederalRegisterDate,
   extractLegislationGovUkDate,
+  ukFrontMatterWindow,
   extractForwardEventDate,
   extractDatelineDate,
   deriveTimelineFromMetadata,
@@ -139,6 +140,44 @@ test("legislation.gov.uk: year-only fallback from a UK-shaped identifier when th
 
 test("negative: a CELEX-shaped identifier never fires the UK year-only fallback", () => {
   assert.equal(extractLegislationGovUkDate({ capturedText: "no dated lines here", identifier: "32019R1242" }), null);
+});
+
+// Fix round 1 (review-6.1c.md, Important finding): the "Made"/Royal-Assent regexes must not pick up a
+// citation to a DIFFERENT instrument's own dated front matter that appears earlier in the capture than
+// the item's own title/front matter.
+
+test("negative: a cited instrument's own 'Made' line appearing BEFORE the item's own title is not taken", () => {
+  const capturedText =
+    "This Order revokes the Blah Order 2016 (S.I. 2016/45), made 12th January 2016, with saving provisions.\n\n" +
+    "The Environmental Protection (Fees) Regulations 2023\n\n" +
+    "STATUTORY INSTRUMENTS\n2023 No. 456\n" +
+    "Made - - - - 15th March 2023\n" +
+    "Laid before Parliament - - - - 20th March 2023\n" +
+    "Coming into force - - - - 1st April 2023\n" +
+    "PART 1\nIntroductory\n" +
+    "1. These Regulations may be cited as the Environmental Protection (Fees) Regulations 2023.";
+  const r = extractLegislationGovUkDate({ capturedText, title: "The Environmental Protection (Fees) Regulations 2023" });
+  assert.deepEqual(r, { token: "15th March 2023", iso: "2023-03-15", precision: "day", baseLabel: "Made (legislation.gov.uk)", form: "made" });
+});
+
+test("negative: a footnote quoting a different Act's Royal Assent line, before the item's own title, is not taken", () => {
+  const capturedText =
+    "This Act repeals provisions of the Old Waste Act 2016 [12th January 2016] as amended.\n\n" +
+    "Environmental Protection Act 2023\n\n" +
+    "An Act to make provision about environmental targets and enforcement.\n\n" +
+    "[15th March 2023]\n\n" +
+    "BE IT ENACTED by the King's most Excellent Majesty...\n\n" +
+    "PART 1\nIntroductory\n" +
+    "1. This Act may be cited as the Environmental Protection Act 2023.";
+  const r = extractLegislationGovUkDate({ capturedText, title: "Environmental Protection Act 2023" });
+  assert.deepEqual(r, { token: "15th March 2023", iso: "2023-03-15", precision: "day", baseLabel: "Royal Assent (legislation.gov.uk)", form: "royal_assent" });
+});
+
+test("ukFrontMatterWindow: without a locatable title, still bounds the END at the first PART 1/1. marker or the char ceiling", () => {
+  const capturedText = "preamble text with no title match here\nMade - - - - 15th March 2023\nPART 1\n1. body text with 12th January 2016 buried in it";
+  const window = ukFrontMatterWindow(capturedText, "a title that never appears in the capture");
+  assert.ok(!window.includes("12th January 2016"), "the body text past PART 1 must be excluded from the window");
+  assert.ok(window.includes("15th March 2023"), "the front matter itself must still be inside the window");
 });
 
 test("legislation.gov.uk: no match on empty/absent inputs", () => {
