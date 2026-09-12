@@ -167,6 +167,13 @@ jobs:
           # 6.2b went red here while the lane's own pre-push run was green: pre-push had no memory-gate
           # step at all). This step only computes the same RANGE it always has and hands it to the
           # script; the classification rules and messages live in that one file now, not here.
+          #
+          # DELIBERATE PARITY DEVIATION (review-7.8.md finding F1, coordinator ruling D6, 2026-09-12):
+          # this inline shell used to `exit 1` the instant the memory gate failed on a pull_request
+          # event, so a range failing both checks only ever showed the memory gate's error. The script
+          # evaluates and prints both verdicts unconditionally, so a combined failure now shows two
+          # error lines instead of one. Kept on purpose: a lane sees every failure in one run. The exit
+          # code (and therefore what CI enforces) is unchanged either way.
           if [ "$EVENT_NAME" = "push" ]; then
             case "$PUSH_BEFORE" in
               0000000000000000000000000000000000000000|"")

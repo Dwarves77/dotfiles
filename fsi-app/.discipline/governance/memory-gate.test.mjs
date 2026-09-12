@@ -129,3 +129,13 @@ test('uxGateVerdict: .css change also gates on the UX compliance block', () => {
   assert.equal(v.applicable, true);
   assert.equal(v.ok, false);
 });
+
+// review-7.8.md finding F2, coordinator ruling D6: the failure message must use the original shell's
+// single Unicode ellipsis glyph (U+2026), byte-identical, not three ASCII periods.
+test('uxGateVerdict: failure message ends the file sample with the single ellipsis glyph U+2026', () => {
+  const v = uxGateVerdict(['fsi-app/src/components/Foo.tsx', 'fsi-app/src/app/globals.css'], [], { range: 'a..b' });
+  assert.equal(v.ok, false);
+  assert.ok(v.message.includes('…'), 'message must contain U+2026');
+  assert.ok(!v.message.includes('...'), 'message must not contain the three-ASCII-period placeholder');
+  assert.equal(v.message.match(/…/g).length, 1, 'exactly one ellipsis glyph');
+});

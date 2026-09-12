@@ -31,6 +31,15 @@
 // so memory-gate.test.mjs needs no repo fixture. LIVE DRIVER below gathers `git diff --name-only <range>`
 // and the session-log's own diff text for the range. node builtins + relative imports only (no-npm
 // discipline glob; fsi-app/.discipline/glob-portability.test.mjs enforces this transitively).
+//
+// DELIBERATE PARITY DEVIATION (review-7.8.md finding F1, coordinator ruling D6, 2026-09-12): the
+// original inline shell exited the whole step the moment the memory gate failed on a pull_request
+// event, so a range failing BOTH gates only ever printed the memory gate's own error, never the UX
+// gate's. This CLI evaluates and prints both verdicts unconditionally, so a combined failure on
+// pull_request prints TWO error lines instead of one. Ruling: keep the new behaviour on purpose (a lane
+// sees every failure in one run instead of fixing one, re-pushing, and hitting the next) rather than
+// re-introduce the short-circuit. The exit code is identical either way (both shapes fail the step), so
+// this changes nothing about what CI enforces, only how much of the failure a lane sees at once.
 
 import { execFileSync } from 'node:child_process';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
@@ -94,12 +103,16 @@ export function uxGateVerdict(files, sessionLogDiffLines, { range = '<range>' } 
   if (hasComplianceLine) {
     return { applicable: true, ok: true, message: 'UX compliance gate OK', warnNote: '' };
   }
-  const sample = surface.slice(0, 3).join(' ');
+  // Trailing space matches the original shell's `tr '\n' ' '` behaviour (a space after every filename,
+  // including the last), so the ellipsis below sits exactly where the original's did (review-7.8.md F2:
+  // byte-identical message, U+2026 restored, not the "..." three-ASCII-period placeholder this file
+  // shipped with in fix round 0 -- U+2026 is not in the banned em-dash/en-dash/section-sign set).
+  const sample = surface.slice(0, 3).join(' ') + ' ';
   return {
     applicable: true,
     ok: false,
     message:
-      `UX compliance gate: this range (${range}) touches a customer surface (${sample} ...) but the ` +
+      `UX compliance gate: this range (${range}) touches a customer surface (${sample}…) but the ` +
       `session-log addendum added in the same range has no 'UX compliance' block (docs/design/` +
       `ux-laws.md, DP-2). Add it: per screen, the primary goal, the path, the one primary action, the ` +
       `feedback state per async action.`,
