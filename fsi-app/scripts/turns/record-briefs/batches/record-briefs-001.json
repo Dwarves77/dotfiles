@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T10:03:43.303Z",
+  "generated_at": "2026-09-12T10:05:01.819Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -535,6 +535,78 @@
           "claim_text": "[penalty_summary] The captured source states, verbatim: «on conviction on indictment, to imprisonment for a term not exceeding 2 years or to a fine, or both»",
           "source_span": "on conviction on indictment, to imprisonment for a term not exceeding 2 years or to a fine, or both",
           "source_url": "https://www.legislation.gov.uk/ukpga/1995/25"
+        }
+      ]
+    },
+    {
+      "item_id": "7dabbe8a-2ba9-4242-8a51-57495e56993f",
+      "source_pool_hash": "86fa79531e0b9dabf143ea50c29276cdc3722a83449db5f049bb0ba0ffd76db1",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025, which establishes the default values CBAM declarants use to determine embedded emissions in goods (other than electricity), indirect embedded emissions, and embedded emissions in imported electricity, under the EU Carbon Border Adjustment Mechanism (CBAM). \"Article 7 of Regulation (EU) 2023/956 requires the use of default values for determining embedded emissions in goods other than electricity and in imported electricity, and for determining indirect embedded emissions.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n# What This Regulation Is and Why It Applies to the Workspace\n\n\"Where the embedded emissions in imported goods are determined on the basis of default values in accordance with Article 7(2), point (b), of Regulation (EU) 2023/956, the default values laid down in Annex I to this Regulation shall be used.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.* A derogation also applies to precursor materials: \"where a country of production cannot be identified for a precursor, the default values laid down in Annex IV shall be used.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.* For workspaces forwarding or brokering customs clearance for CBAM-covered goods (cement, iron and steel, aluminium, fertilisers, hydrogen, and electricity) imported into the EU, this Regulation supplies the fallback emissions figures an importer or authorised CBAM declarant must use when actual supplier-level emissions data is unavailable. *Legal Confirmation Required:* whether the workspace, or a specific client it forwards for, is itself the importer or authorised CBAM declarant responsible for applying these default values, as opposed to a party merely arranging transport.\n\n# Issues Requiring Immediate Action\n\n**COST ALERT.** Confirm with any importer or customs-broker client handling CBAM-covered cargo whether their embedded-emissions declarations rely on these default values or on actual supplier data, since default values apply \"where the embedded emissions in imported goods are determined on the basis of default values.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.* *Operational implication:* a client using default values (as opposed to actual, typically lower, verified supplier emissions) may face a higher CBAM certificate cost exposure than one with verified data, which can affect quoted landed cost and margin conversations with the client. *Analytical inference:* the magnitude of that cost difference for a specific shipment requires product-and-route-specific data. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty to determine and declare embedded emissions, whether by default values or actual values, sits with the importer or authorised CBAM declarant under Regulation (EU) 2023/956, not with the forwarder arranging carriage. *Legal Confirmation Required:* whether the workspace's role in a given transaction (freight forwarder, customs broker, or NVOCC) brings it within the \"authorised CBAM declarant\" duty-holder class Regulation (EU) 2023/956 defines, or whether that duty sits entirely with the importer client.\n\n# Substantive Requirements\n\n**Default values for imported goods.** \"Where the embedded emissions in imported goods are determined on the basis of default values in accordance with Article 7(2), point (b), of Regulation (EU) 2023/956, the default values laid down in Annex I to this Regulation shall be used.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n**Precursor derogation.** \"Where the embedded emissions of complex goods are determined on the basis of actual values, and the embedded emissions of precurs[ors cannot be determined by country of production]... the default values laid down in Annex IV shall be used\" where \"a country of production cannot be identified for a precursor.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n**Scheduled revision.** The default values set by this Regulation are not fixed indefinitely: \"It shall be revised in 2027 at the latest.\" *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.* *Analytical inference:* importer and forwarder clients relying on these default values should expect a revised default-value set to apply from the 2027 revision, which can change declared emissions and certificate cost calculations for the same goods without any change in the underlying supply chain.\n\n*Specific penalty, sanction, or enforcement provision not available from primary sources as of 2026-09-12: this implementing Regulation sets default emissions values and states no penalty provision of its own; CBAM's own penalty regime sits in the parent Regulation (EU) 2023/956, not in the captured text.*\n\n# Registration and Reporting Obligations\n\nDefault values apply within the CBAM declaration process the parent Regulation (EU) 2023/956 establishes; this implementing Regulation does not create a separate registration or filing requirement of its own. *Specific registration or filing deadline not available from primary sources as of 2026-09-12.*\n\n# Operational System Requirements\n\nFor workspaces supporting CBAM-covered importer or customs-broker clients: (1) confirm which default-value set (Annex I, II, III, or IV) applies to the specific goods, indirect emissions, electricity, or unidentified-origin precursor category involved, and (2) flag the scheduled 2027 revision as a trigger to re-confirm the client's default-value basis before that date. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.* *Operational implication:* this is a monitoring-and-advisory step for the forwarder, since the declaration duty itself sits with the importer or authorised CBAM declarant. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n# Confirmed Regulatory Timeline\n\n- 16 December 2025: Commission Implementing Regulation (EU) 2025/2621 adopted (\"Done at Brussels, 16 December 2025\"). In force as of 2026-09-12. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n- This Regulation \"shall enter into force on the third day following that of its publication in the Official Journal of the European Union.\" In force as of 2026-09-12. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n- 1 January 2026: application date (\"It shall apply from 1 January 2026\"). In force as of 2026-09-12. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n- 2027: scheduled revision deadline (\"It shall be revised in 2027 at the latest\"). Future trigger as of 2026-09-12. *Source: Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025 laying down rules for the application of Regulation (EU) 2023/956 as regards the establishment of default values, European Commission, OJ, 16 December 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621.*\n\n# Sources\n\n- Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025, European Commission, OJ, 16 December 2025 (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621\n",
+      "metadata": {
+        "severity": "COST ALERT",
+        "priority": "HIGH",
+        "urgency_tier": "elevated",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "emissions",
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Commission Implementing Regulation (EU) 2025/2621 of 16 December 2025, European Commission, adopted under Article 7(7) of the CBAM Regulation (EU) 2023/956, establishing default values for embedded emissions in imported goods indirect emissions imported electricity and precursors with unidentified country of production applicable from 1 January 2026 and due for revision in 2027 at the latest.",
+        "why_matters": "Importers and customs-broker clients handling CBAM-covered goods such as cement iron and steel aluminium fertilisers hydrogen and electricity must use these default values when actual supplier emissions data is unavailable which can raise declared embedded emissions and CBAM certificate cost exposure compared to verified actual-value declarations. Forwarders should confirm with importer clients which default-value annex applies and flag the 2027 revision as a trigger to re-check the client's declaration basis.",
+        "key_data": [
+          "Regulation enters into force the third day following publication in the Official Journal",
+          "Applies from 1 January 2026",
+          "Scheduled revision in 2027 at the latest",
+          "Four annexes cover goods other than electricity indirect emissions imported electricity and unidentified-origin precursors"
+        ],
+        "cost_mechanism": "A CBAM declarant using default values rather than verified actual supplier emissions data may face a higher declared embedded-emissions figure which increases the number of CBAM certificates that must be purchased for the covered import.",
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [
+          "CBAM-declaration"
+        ],
+        "compliance_object_tags": [
+          "importer",
+          "customs-broker"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "260089a9-e334-4104-843c-cdfc28a94dcc"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «This Regulation shall enter into force on the third day following that of its publication in the Official Journal of the European Union»",
+          "source_span": "This Regulation shall enter into force on the third day following that of its publication in the Official Journal of the European Union",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «It shall apply from 1 January 2026.»",
+          "source_span": "It shall apply from 1 January 2026.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «This Regulation shall be binding in its entirety and directly applicable in all Member States.»",
+          "source_span": "This Regulation shall be binding in its entirety and directly applicable in all Member States.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; this implementing Regulation sets default emissions values only, and CBAM's own penalty regime sits in the parent Regulation (EU) 2023/956. Specific penalty summary not available from primary sources as of 2026-09-12.",
+          "source_span": null,
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R2621"
         }
       ]
     }
