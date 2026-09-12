@@ -18327,3 +18327,83 @@ Maintenance run 34670770742 (the first format_type backfill dry run) failed at "
 ### UX compliance
 
 Not applicable: no `.tsx` or `.css` touched.
+
+## EUDECISION lane, 2026-09-12: task 5.5, retype the live CELEX 'D'-letter Decisions to regulation
+
+Worktree `wt-eudecision-0911`, branch `lane/eudecision-2026-09-12`. Built
+`scripts/maintenance/retype-eu-decisions.mjs` (dry by default, `--mode apply`/`--limit`/`--after-id`),
+the MAINT step that retypes the live CELEX 'D'-letter (Decision) `intelligence_items` rows from
+`item_type='initiative'` to `item_type='regulation'` (task 1.3's operator ruling, PR #633: a CELEX
+Decision is a binding act under Article 288 TFEU) without dropping `provenance_status='verified'`.
+
+Per-item order (load-bearing, matches migration 114's criterion 5 exactly): (1) insert FACT-or-GAP claims
+for `primary_deadline` / `jurisdictional_scope` / `penalty_summary` onto the item's `record_facts`
+section, extracted from the item's own stored pool text via `record-facts.mjs`'s `buildRecordSlotClaim`
+(exported by this task; previously private) and `extractSlotFact` -- the same extractors a fresh mint
+uses; (2) update `item_type`/`format_type`, and the title only when a re-extraction (via
+`export-census-rows.mjs`'s `buildTitleForRow`, task 1.3's own shared branch) is verbatim in the pool
+text; (3) read back `provenance_status`, reporting every item that did not stay `verified`; (4) queue the
+applied batch for the population flywheel. Also reports (no change) the non-CELEX `initiative` rows and
+the `market_signal` rows.
+
+The flywheel queue step (`queueFlywheelStep`) resolves `run-population-flywheel.mjs`'s `ids` entry point
+(task 3.4's `runUnscopedFlywheelSteps`) lazily, via an injectable dynamic import -- that export is not yet
+on master (Part 3 is in review on a separate lane); a missing export or an import failure both resolve to
+the same named skip, `"flywheel: ids entry point not present on this branch"`, exercised alongside the
+present-export branch in this task's own test.
+
+Reused rather than re-implemented (reuse-before-construction): `heal-provenance.mjs`'s
+`loadRequiredSlots`/`claimCoversSlot`/`missingRequiredSlots` (which slot is already covered) and
+`bestCaptureText`/`findSearchIdForSpan` (which capture is usable/matches a span) -- the SAME functions
+that file's own STEP 3 SLOTS uses for an identical claim-insertion row shape; `export-census-rows.mjs`'s
+`classifyItemTypeFromCelexKey` (task 1.3's corrected `CELEX_SECTOR_LETTER_MAP`) to IDENTIFY the retype
+population, rather than authoring a second CELEX-letter table.
+
+**RED/GREEN.** `mv`'d the implementation aside, ran `node --test
+scripts/maintenance/retype-eu-decisions.test.mjs`: RED, `ERR_MODULE_NOT_FOUND`, `tests 1, pass 0, fail 1`.
+Restored: GREEN, `tests 22, pass 22, fail 0` -- covering the write order (claims strictly before the
+retype UPDATE, section content appended, provenance read back after), the verbatim-title rule (applied
+only when the re-extraction is a literal substring of the pool text and differs from the stored title;
+never a fallback title), the non-verified read-back reporting, and both flywheel branches.
+
+**Gate outputs.**
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/fitness/runner.mjs`: found ONE pre-existing violation before any fix -- `[F28]`
+  reported the `mint` family's `PENDING-RUN.md` marker stale (`src/lib/intake/record-facts.mjs` is one of
+  `GOVERNING_FILES.mint`'s 8 files; exporting `buildRecordSlotClaim` moved the file's bytes and therefore
+  the family's hash). [CONFIRMED, method: `git stash push -u` this task's whole working tree, re-ran the
+  runner against the committed branch tip -- 0 violations; popped the stash] the violation was introduced
+  by this task's own edit, not pre-existing on the branch. Fixed in the same motion (rule 13): re-pinned
+  `scripts/harness-runs/mint/PENDING-RUN.md` to the recomputed hash (`sha256:a4771a1955310523`, via
+  `hashHarnessVersion` against the unreordered 8-file list). After the re-pin: `38 function(s) checked, 0
+  violation(s)`.
+- `node .discipline/fitness/functions/F28-harness-run-integrity.test.mjs` (full suite): `tests 33, pass
+  33, fail 0`, including `F28 passes GREEN against the live tree`.
+- `node .discipline/shared-writer-registry.test.mjs` (not wired into any runner, run by hand per rule 15's
+  own "attack, don't assert presence" posture applied to a discipline check that already exists): found
+  the new file's writes to `intelligence_items`/`section_claim_provenance`/`intelligence_item_sections`
+  unregistered; fixed in the same motion by adding it to `docs/inventories/shared-dataset-ownership.md`'s
+  allowlist (all three tables) plus a dated prose note; re-ran, `tests 1, pass 1, fail 0`.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: see this lane's commit entry
+  below.
+- `bash .discipline/run-test-suite.sh` NOT run, per instruction.
+
+**Standing constraints checked.** No em dashes, en dashes, or section-sign glyph: scanned every new file
+whole-file and every modified file's added (`+`) lines only (Python, byte-level Unicode scan for
+U+2014/U+2013/U+00A7) -- 0 matches. No hardcoded user-home paths: grepped every touched/new file for
+`C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches. Findings above are labeled `[CONFIRMED]` with the
+method named. Staged explicitly (named paths); never `git add -A`. Never touched
+`C:\Users\jason\dotfiles` (the main checkout); no `git stash` used to set work aside for this task itself
+(one `git stash push -u -m` was used, and popped immediately in the same investigation, only to confirm
+the F28 finding above was this task's own regression rather than pre-existing -- the same technique task
+3.4's own report already used for an identical purpose). No `--no-verify`; no push. No PreToolUse
+skill-gate denial on any Write/Edit this task.
+
+**No database access.** This task ran no DB-credentialed command; every gate above is a static/pure
+test or fitness-function run against the working tree. The coordinator dispatches dry, reads the report,
+then apply, via `.github/workflows/maintenance.yml`'s new `retype-eu-decisions` step.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` touched (this task is a data-layer MAINT script and its workflow
+wiring only).
