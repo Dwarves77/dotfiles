@@ -436,9 +436,18 @@ second loop "without a human in the path" (`docs/specs/08-flywheel-design.md:128
 verified live items sat untagged with zero tag flags ever ratified — the ratify-only gate was a dead
 end in practice. New rule: a DETERMINISTIC derivation (derive-tags.mjs's `confidence: "high"` tier — a
 keyword matched in the item's own title/instrument-key, not just its body text) auto-adopts with
-provenance recorded on the flag row (`resolution_note = auto-adopted:tags:<threshold>`,
-`resolved_by='apply-tags.mjs'`); lower-confidence (`medium`) proposals stay on an open flag for review
-exactly as before. Full reasoning + the measured threshold justification: `apply-tags.mjs`'s own header.
+provenance recorded on the flag row. Full reasoning + the measured threshold justification:
+`apply-tags.mjs`'s own header.
+
+**Ruling (2026-09-12, ADR-030 rider, task 7.2 — supersedes the "lower-confidence residue stays open"
+line above)**: 1,288 open `flywheel-axis:source-classification` / 1,105 `flywheel-tag:` flags measured
+that day, most stuck on exactly the medium-confidence residue the 2026-09-03 rule left untouched forever
+("Items need to be resolved not quarantined... All questions have answers"). New rule: EVERY proposal on
+a flag is now decided, not just the high-confidence subset — a medium proposal adopts when its tag is in
+the live closed vocabulary AND its keyword evidence is re-confirmed present in the item's own
+title/what_is_it/summary/full_brief (re-checked at apply time, not trusted from the possibly-stale
+proposal payload), else it declines with the reason. The flag ALWAYS closes once every proposal is
+decided — no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`decideTagProposals`.
 
 **Dispatch, id path (unchanged)**:
 - `mode=dry` — lists every `status='resolved'` flag in the TAG namespace, split into `ratifiable`
@@ -449,19 +458,19 @@ exactly as before. Full reasoning + the measured threshold justification: `apply
   land). Each id runs through `apply-tags.mjs`'s own `applyTags({execute:true})` (merge-only tag write,
   cited, snapshotted).
 
-**Dispatch, auto path (new)**:
-- `arg=auto` (case-insensitive) with `mode=dry` — lists every OPEN TAG_NAMESPACE flag, split into
-  `eligible` (>=1 proposal at/above threshold, with its `eligible_count`/`residue_count`) and
-  `below_threshold_count`/`not_adoptable_count`. Writes nothing.
-- `arg=auto` with `mode=apply` — runs every eligible flag through `autoAdoptTags({execute:true})`: this
-  is the one dispatch shape where "apply everything eligible" is intentional (eligibility is
-  derive-tags.mjs's own deterministic evidence, not a per-flag operator judgment call). Writes ONLY the
-  eligible (>= threshold) tags per flag (merge-only, never removes an existing tag); a flag whose every
-  proposal cleared the threshold is resolved (`auto-adopted:tags:<threshold>`); a flag with some
-  below-threshold residue is left OPEN, untouched, with the eligible tags already written — a human can
-  still ratify the residue later via the ordinary `ratify:tags` id path (a harmless no-op merge for the
-  part already applied). Idempotent — safe to re-dispatch; an already-resolved flag is skipped, and a
-  still-open partial flag recomputes the same split and writes a no-op the second time.
+**Dispatch, auto path (2026-09-03, decision rule widened 2026-09-12)**:
+- `arg=auto` (case-insensitive) with `mode=dry` — lists every OPEN TAG_NAMESPACE flag as `decidable`
+  (>=1 parseable proposal) or `not_adoptable` (malformed/foreign-namespace/zero-proposal), then runs
+  every decidable flag through `autoAdoptTags({execute:false})` to report `adopt_count`/`decline_count`
+  and a 20-row sample per outcome (`adopted_sample`/`declined_sample`) — the coordinator reads this
+  before apply. Writes nothing.
+- `arg=auto` with `mode=apply` — runs every decidable flag through `autoAdoptTags({execute:true})`:
+  every proposal decides (adopt or decline — see the ruling above), the merge writes only the adopted
+  subset (merge-only, never removes an existing tag), and the flag ALWAYS closes with the shared
+  `decision-note.mjs` `DECISIONS_JSON` grammar recording each proposal's outcome and reason
+  (`resolution_note` starts with a human summary line, e.g. "tag-ratification (auto, threshold=high) —
+  decided 2 (adopted 1, declined 1)."). Idempotent — safe to re-dispatch; an already-resolved flag is
+  skipped by `evaluateAutoAdoption`'s own `status==='open'` requirement.
 
 **Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
 summary's `note` carries the documented fallback:
@@ -2028,20 +2037,35 @@ any turn — this step is the missing coordinator-dispatch runtime.
 
 **What it does**: Dry — computes fresh Axis 3/4/5 proposals (classify gaps, drift, item-category
 anomalies) as `integrity_flags`, without writing, then evaluates every resulting OPEN
-source-classification flag for what `--auto-adopt` would adopt (`eligible` vs `below_threshold`). Apply —
-runs the propose logic with real writes (new `integrity_flags` rows, stale ones resolved), then runs
-`autoAdoptClassification` for every OPEN source-classification flag, writing only the high-confidence
-(`scope_modes`/`scope_verticals` at `"high"` confidence — a decisive name match) and deterministic
-(`expected_output`, a closed role→default lookup) fields through the guarded path. `scope_topics` stays
-ratification-only (an undecidable "regular and material coverage" judgment); `sources.jurisdictions` is
-**never** written by this step — a jurisdiction proposal, if any, rides along in the flag's description
-as advisory-only and is filtered out before any auto-adopt patch is built.
+source-classification flag for what `--auto-adopt` would decide. Apply — runs the propose logic with
+real writes (new `integrity_flags` rows, stale ones resolved), then runs `autoAdoptClassification` for
+every OPEN source-classification flag, writing only the high-confidence (`scope_modes`/`scope_verticals`
+at `"high"` confidence — a decisive name match), deterministic (`expected_output`, a closed
+role→default lookup), and evidence-reconfirmed (`scope_topics`, see below) fields through the guarded
+path.
 
-**Ruling**: the operator's own 2026-09-03 ruling (cited above) — no per-dispatch token; the axis-level
-auto-adopt eligibility rules are the gate.
+**Ruling (2026-09-12, ADR-030 rider, task 7.2 — widens the 2026-09-03 posture above)**: measured that day,
+1,288 open `flywheel-axis:source-classification` flags, most stuck forever on exactly the two fields the
+2026-09-03 rule never decided at all — `scope_topics` (always "ratification-only", never auto-evaluated)
+and `jurisdictions` (never applicable, silently excluded from `fullyCovered`, so a jurisdiction-only flag
+had NOTHING here and stayed open with no path to close). New rule, per proposal: `scope_topics` decides
+PER TOPIC — adopts a topic when `scope.mjs`'s own keyword table (or the role-derived `"regulatory"` rule)
+re-confirms evidence in the source's CURRENT name/role, else declines with the reason (never trusted from
+the possibly-stale proposal payload). `jurisdictions` ALWAYS declines — this is an architectural gate, not
+an evidence check: `sources.jurisdictions` is a live, differently-scoped region-bucket column
+(`eu|us|uk|latam|asia|hk|meaf|global`) three live surfaces already read; writing this framework's
+ISO-3166 values into it would silently corrupt those reads (`classify-source.mjs`'s own header), and no
+ADR yet authorizes a dedicated Axis-3 column. `scope_modes`/`scope_verticals`/`expected_output` keep their
+existing write rule exactly ("as today") — what changes is that a non-writing residue (e.g. a
+medium-confidence `scope_modes` proposal) now DECLINES with a reason instead of leaving the flag open.
+**Every proposal on a flag is now decided — the flag ALWAYS closes**, via the shared `decision-note.mjs`
+`DECISIONS_JSON` grammar (`resolution_note` = a human summary line, e.g. "apply-classifications decided —
+decided 3 (adopted 2, declined 1)."). See `apply-classifications.mjs`'s `decideClassificationProposal`/
+`decideScopeTopicsProposal`/`decideClassificationProposals`.
 
-**Dispatch**: no `arg`. `mode=dry` reports the fresh proposal counts and the auto-adopt eligibility
-split. `mode=apply` writes through the guarded path (rule 015).
+**Dispatch**: no `arg`. `mode=dry` reports the fresh proposal counts and the decision split
+(`counts.auto_adopt.eligible`/`decidable_count`/`not_eligible_count`). `mode=apply` writes through the
+guarded path (rule 015) and closes every reached flag.
 
 **Artifact / read back**: `summary.json`'s counts for proposed/resolved/auto-adopted flags, per-source
 detail. Confirm against `SELECT resolution_note, count(*) FROM integrity_flags WHERE resolution_note LIKE
@@ -3203,6 +3227,44 @@ instrument_identifier FROM intelligence_items WHERE is_archived=false AND source
 
 **Registration**: `docs/inventories/shared-dataset-ownership.md`'s `intelligence_items` section (this step
 writes it, added to the enforced JSON allowlist and the narrative note above it).
+## 45. `resolve-signals`
+
+**Purpose**: drain the `flywheel-signal:*` `integrity_flags` backlog -- Part 7 task 7.2 (1,098 open
+`flywheel-signal:shared_title_entity` rows measured 2026-09-12). `analyze-corpus.mjs`'s own `--signals`
+pass only runs inside `corpus-turn.yml`, and even there its pre-7.2 behavior never closed a candidate that
+kept reproducing the SAME undecided verdict every run (the "already open, unchanged" bucket in its
+dedup-before-insert convention). This step is the standalone dispatch runtime for the SAME decision path
+(never a second copy): `detectSignalCandidates` (`src/lib/connections/signal-candidates.mjs`),
+`planSignalAdoption` / `planSignalFlagResolutions` / `buildPreResolvedSignalFlagRow`
+(`src/lib/connections/signal-confidence.mjs`), all imported unmodified.
+
+**Upstream**: `scripts/maintenance/resolve-signals.mjs`. Recomputes every signal candidate fresh over the
+live verified/non-archived corpus + the full `item_cross_references` edge set, then, per open flag:
+`decisive` (its candidate now classifies decisive -- the edge is written via `write-edges.mjs`, and the
+flag closes with the `auto-adopted:signal:<kind>:<weight>` note); `undecided` (still below the decisive
+threshold -- closes with `resolution_note` `"below the decisive threshold, no edge; score=<s> (<reason>)"`,
+per ADR-030's "a decision of 'no action, and why' is a valid close"); `stale` (the pair no longer
+reproduces at all -- item archived/unverified since; closes with the pre-existing "no longer detected"
+wording). A brand-new candidate with no existing flag row yet is inserted ALREADY RESOLVED
+(`status='resolved'` at insert) so a fresh finding never sits open even momentarily.
+
+**Ruling**: ADR-030 rider / task 7.2. Not gated by a separate `arg` token; apply needs no `arg`.
+
+**Dispatch**: `mode=dry` reports the full disposition split (`counts.dispositions.decisive` /
+`.undecided` / `.stale`), the would-adopt edge count, and a 20-row sample per outcome
+(`counts.sample_decisive` / `counts.sample_undecided`) -- writes nothing. `mode=apply` writes the
+decisive edges, resolves every open flag with its disposition, and inserts any brand-new
+already-resolved rows.
+
+**Artifact / read back**: `summary.json`'s `counts.dispositions` and `read_back.remaining_open` --
+confirm against `SELECT count(*) FROM integrity_flags WHERE status='open' AND created_by LIKE
+'flywheel-signal:%'` (0 expected after a clean apply, per the population report's open-flags-by-family
+entry).
+
+**Resolution-note format**: this step's `resolution_note` is plain text (not the shared
+`decision-note.mjs` DECISIONS_JSON grammar `tag-ratification`/`apply-classifications` use below) --
+one candidate maps to exactly one flag 1:1 (no multi-proposal decomposition needed), so a single
+human-readable line already carries everything an admin view needs.
 
 ---
 
