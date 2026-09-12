@@ -1648,8 +1648,12 @@ async function main() {
       return;
     }
 
-    const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
-    const db = { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient };
+    // Pass the WHOLE ../lib/db.mjs module (task 6.1b, remediation-discipline class fix, 2026-09-12): the
+    // prior five-function subset omitted readAllByIds, which stepDeriveObligations' own
+    // deriveObligationsMain call requires -- the SAME latent bug apply-record-briefs.mjs's own call site
+    // carried (see that file's fix comment). This backlog path shares the identical broken destructure,
+    // so it is fixed in the same motion rather than left to throw on its own next --backlog dispatch.
+    const db = await import("../lib/db.mjs");
 
     const artifactResults = [];
     let failed = false;
@@ -1704,8 +1708,8 @@ async function main() {
     return;
   }
 
-  const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
-  const db = { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient };
+  // Whole-module pass -- see the --backlog branch's own comment above for why (task 6.1b, fix D class fix).
+  const db = await import("../lib/db.mjs");
   const startedAt = new Date().toISOString();
 
   let outcome;

@@ -613,14 +613,16 @@ async function main() {
     // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
     // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
     if (parsed.execute) {
-      const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
-      unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, {
-        readAll,
-        guardedInsertMany,
-        guardedUpdate,
-        guardedUpdateByIds,
-        readClient,
-      });
+      // Pass the WHOLE ../lib/db.mjs module (task 6.1b, fix D) -- the same object run-population-
+      // flywheel.mjs's own main passes to runFlywheelForOneArtifact. The prior five-function subset
+      // (readAll/guardedInsertMany/guardedUpdate/guardedUpdateByIds/readClient) omitted readAllByIds,
+      // which stepDeriveObligations' own deriveObligationsMain call requires (derive-obligations.mjs's
+      // own `main({ mode }, { readAll, readAllByIds, guardedInsertMany })`) -- the pilot's `readAllByIds
+      // is not a function` throw from scripts/obligations/derive-obligations.mjs:161. A namespace import
+      // exposes every named export as a property, so this can never omit a function a future flywheel
+      // step handler starts calling.
+      const db = await import("../lib/db.mjs");
+      unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, db);
       console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
     }
   } catch (err) {

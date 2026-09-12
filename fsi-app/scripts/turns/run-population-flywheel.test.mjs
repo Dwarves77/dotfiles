@@ -659,7 +659,7 @@ const STALE = (runId, minted = 3) => ({
 const DRY = (runId) => ({ run_id: runId, metrics: { attempted: 3, valid: 0, invalid: 3 } }); // minted absent
 // mint-run-001/mint-run-005's own shape: metrics.minted > 0 but no per_item entry carries an item_id at
 // all (pre-item_id-field schema) — hasRecoverableMintedIds is false for these, unlike DRY (minted absent).
-// LEGACY-2 (2026-09-04): "unrecoverable" now means NO key of any kind — an entry carrying per_item.id (the
+// LEGACY-2 (2026-09-04): "unrecoverable" now means NO key of any kind -- an entry carrying per_item.id (the
 // CELEX/canonical key mint-run-001/005 record) is resolvable by resolveMintedItemIds at run time and IS
 // selected by --backlog; see KEYED_LEGACY below.
 const UNRECOVERABLE = (runId, minted = 6) => ({
@@ -965,26 +965,39 @@ test("disambiguateByArtifactTime: the run's own row archived as duplicate_of_ver
   assert.deepEqual(disambiguateByArtifactTime(rows, "2026-09-01T00:49:22Z"), ["ff95b385"]);
 });
 
-// DB-NAMESPACE (2026-09-04): backlog apply #27 died in tag-proposals with
-// "db.guardedUpdateByIds is not a function" — IN-CHUNK had switched updateStale to the chunked
-// writer without adding it to the hand-built `db` namespace the driver passes around. This test reads
-// the driver's own source and pins the contract: every `db.<fn>(` the driver calls is (a) a real export
-// of scripts/lib/db.mjs and (b) present in every `const db = { ... }` namespace literal the driver builds.
-test("db namespace: every db.<fn> the driver calls is exported by db.mjs and present in each namespace it builds", async () => {
+// DB-NAMESPACE (2026-09-04, superseded 2026-09-12 -- task 6.1b, fix D). backlog apply #27 died in
+// tag-proposals with "db.guardedUpdateByIds is not a function" -- IN-CHUNK had switched updateStale to the
+// chunked writer without adding it to the hand-built `db` namespace the driver passed around. The FIRST
+// fix (this test, originally) pinned "every hand-built namespace literal must list every function the
+// driver calls" -- but a hand-built subset can ALWAYS drift again the next time a callee starts using a
+// new db function, which is exactly the class this bug already recurred as. The pilot recurred it a THIRD
+// time (apply-record-briefs.mjs's OWN call site: "readAllByIds is not a function" from derive-
+// obligations.mjs, task 6.1b finding D) -- a hand-built subset that omitted a function neither of THIS
+// driver's own call sites needed directly, but a downstream step handler (stepDeriveObligations ->
+// deriveObligationsMain) did. The CLASS fix (2026-09-12): both of this driver's own db-acquisition sites
+// now pass the WHOLE `../lib/db.mjs` namespace object through, unmodified -- a namespace import always
+// carries every export, by construction, so this bug class cannot recur here again. This test now proves
+// the NEW invariant: no hand-built `const db = { ... }` object-literal namespace remains in the driver at
+// all (the thing that could drift), every `const db = ...` acquisition is a whole-module import, and every
+// `db.<fn>(` the driver's own step handlers call is still a real db.mjs export (the part of the original
+// test worth keeping).
+test("db namespace: the driver never hand-builds a db namespace object literal, and every db.<fn> it calls is a real db.mjs export", async () => {
   const { readFile } = await import("node:fs/promises");
   const src = await readFile(new URL("./run-population-flywheel.mjs", import.meta.url), "utf8");
+
   const called = new Set([...src.matchAll(/\bdb\.([A-Za-z_]\w*)\s*\(/g)].map((m) => m[1]));
   assert.ok(called.size >= 4, `expected the driver to call several db functions, saw ${[...called].join(", ")}`);
   const dbModule = await import("../lib/db.mjs");
   for (const fn of called) {
     assert.equal(typeof dbModule[fn], "function", `db.mjs must export ${fn}`);
   }
-  const namespaces = [...src.matchAll(/const db = \{([^}]*)\}/g)].map((m) => m[1]);
-  assert.ok(namespaces.length >= 2, "the driver builds its db namespace in at least two places");
-  for (const ns of namespaces) {
-    const names = new Set(ns.split(",").map((s) => s.trim()).filter(Boolean));
-    for (const fn of called) assert.ok(names.has(fn), `namespace literal is missing ${fn}: { ${ns.trim()} }`);
-  }
+
+  // No hand-built subset object literal left to drift.
+  assert.doesNotMatch(src, /const db = \{[^}]*\}/, "the driver must not hand-build a db namespace object literal (whole-module pass only)");
+
+  // Both db-acquisition call sites are whole-module imports.
+  const acquisitions = [...src.matchAll(/const db = await import\("\.\.\/lib\/db\.mjs"\);/g)];
+  assert.ok(acquisitions.length >= 2, `expected at least two whole-module db acquisitions, found ${acquisitions.length}`);
 });
 
 // ── LEGACY-4 (2026-09-04): the two id shapes backlog apply #28 could not resolve ─────────────────────
