@@ -269,7 +269,7 @@ export function describeTimelineCoverageState(state, counts) {
 // ── open-flags-by-family (Part 7 task 7.2 / ADR-030 rider, 2026-09-12) ──────────────────────────────
 // "every step's dry output lists ... counts and a sample per outcome; the population report's counters
 // [measure] the queue (open flags by family) so the drain is proven by the report, not by a claim." One
-// STORES row per family, task 7.2's own scope (tag-ratification, apply-classifications, signals) — every
+// STORES row per family, task 7.2's own scope (tag-ratification, apply-classifications, signals) -- every
 // resolver in that scope now DECIDES every proposal it reads and closes the flag (apply-tags.mjs /
 // apply-classifications.mjs / analyze-corpus.mjs + resolve-signals.mjs), so an open row here past a
 // clean apply run is a REGRESSION (a decidable flag left open), not an expected mid-build gap. Same
@@ -311,11 +311,11 @@ export async function countOpenFlagsByFamily(sb, family) {
   }
 }
 
-/** describeState hook, one per family entry below — see renderReport's own doc comment. */
+/** describeState hook, one per family entry below -- see renderReport's own doc comment. */
 export function describeOpenFlagsByFamilyState(label, dispatchStep) {
   return (state, counts) => [
     `${counts.rows} open ${label} flag(s) still require a decision.`,
-    `Dispatch (mode=apply): ${dispatchStep} — decides (adopts or declines) every proposal it reads and closes the flag; no residue stays open.`,
+    `Dispatch (mode=apply): ${dispatchStep} -- decides (adopts or declines) every proposal it reads and closes the flag; no residue stays open.`,
   ];
 }
 

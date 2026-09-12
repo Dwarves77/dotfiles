@@ -101,7 +101,7 @@ export function classifyScopeVerticals({ name, sourceRole } = {}) {
 
 // Exported 2026-09-12 (Part 7 task 7.2 / ADR-030 rider): apply-classifications.mjs's decision step
 // re-checks a scope_topics proposal's per-topic keyword evidence against the source's OWN name/role at
-// apply time (not trusted from the possibly-stale proposal payload) via topicKeywordMatch below — the
+// apply time (not trusted from the possibly-stale proposal payload) via topicKeywordMatch below -- the
 // SAME table classifyScopeTopics uses, never a second hand-typed copy.
 export const TOPIC_KEYWORDS = Object.freeze({
   regulatory: [/\bregulat/i, /\blegislat/i, /\bdirective\b/i, /\bstatute\b/i],
@@ -120,14 +120,14 @@ export const TOPIC_KEYWORDS = Object.freeze({
   materials_science: [/\bmaterials?\s*science\b/i, /\bmaterials?\s*research\b/i],
 });
 
-// Exported 2026-09-12 (task 7.2) — see TOPIC_KEYWORDS note above; the same re-check applies to the
+// Exported 2026-09-12 (task 7.2) -- see TOPIC_KEYWORDS note above; the same re-check applies to the
 // role-derived "regulatory" addition.
 export const REGULATORY_TOPIC_ROLES = new Set(["primary_legal_authority", "government_press"]);
 
 /**
  * The literal matched substring (evidence) for ONE topic against a source's own name, or null if no
  * keyword for that topic matches. PURE. Re-derivable at apply time from the SAME TOPIC_KEYWORDS table
- * classifyScopeTopics() itself scans — never a second guess at what "the evidence" was.
+ * classifyScopeTopics() itself scans -- never a second guess at what "the evidence" was.
  * @param {string} topic - one of vocab.mjs's SCOPE_TOPICS values
  * @param {string|null|undefined} name
  * @returns {string|null}

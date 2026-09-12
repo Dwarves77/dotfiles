@@ -238,11 +238,11 @@ export function buildAutoAdoptionNote(threshold = AUTO_ADOPT_THRESHOLD) {
 // that produced it (the proposer's evidence, re-checked); otherwise declined with the reason. The flag
 // closes ... once every proposal is decided; no residue stays open." This supersedes the 2026-09-03
 // posture above (partitionByConfidence/below_threshold leaving a flag open with medium residue): a
-// derive-tags.mjs proposal carries only "high"|"medium" (no lower tier exists — see that module's
+// derive-tags.mjs proposal carries only "high"|"medium" (no lower tier exists -- see that module's
 // header), so deciding both tiers exhaustively covers every proposal a flag can carry.
 //
 // FIELD_VOCAB re-checks a medium proposal's tag against the SAME closed-vocabulary SoTs derive-tags.mjs
-// itself derives from (TOPIC_TAG_VALUES/COMPLIANCE_OBJECT_VALUES/SCENARIO_TAG_VALUES) — re-read live at
+// itself derives from (TOPIC_TAG_VALUES/COMPLIANCE_OBJECT_VALUES/SCENARIO_TAG_VALUES) -- re-read live at
 // apply time, not trusted from the (possibly stale) proposal payload, so a tag retired from the
 // vocabulary since the flag was opened declines rather than silently writing a dead token.
 const FIELD_VOCAB = Object.freeze({
@@ -252,7 +252,7 @@ const FIELD_VOCAB = Object.freeze({
 });
 
 // The item's own text a medium proposal's keyword evidence must be RE-CONFIRMED present in (task 7.2's
-// exact field list) — narrower than propose-tags.mjs's own enrichment scope (sections/claims/search
+// exact field list) -- narrower than propose-tags.mjs's own enrichment scope (sections/claims/search
 // results), deliberately: apply time re-checks only what a single readItem() call can cheaply carry, so
 // a proposal whose evidence lived only in grounded material outside these four fields declines honestly
 // rather than trusting a payload this step cannot itself re-verify.
@@ -279,7 +279,7 @@ export function evidencePresentInItemText(evidence, item) {
 /**
  * Decide ONE proposal: adopt or decline, with a stated reason. PURE. High confidence adopts unchanged
  * from the 2026-09-03 posture; medium adopts only when BOTH the tag is in its field's live closed
- * vocabulary AND the keyword evidence that produced it is re-confirmable in the item's own text —
+ * vocabulary AND the keyword evidence that produced it is re-confirmable in the item's own text --
  * otherwise it declines, never silently sitting undecided.
  * @param {{field:string, tag:string, evidence:string, confidence:string}} proposal
  * @param {object} item - the target intelligence_items row (title/what_is_it/summary/full_brief read)
@@ -450,7 +450,7 @@ export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_AD
   if (!item) return { status: "item_not_found", error: `no intelligence_items row with id ${decision.itemId}.` };
 
   // Task 7.2: every proposal is decided (adopt or decline), never left as "below threshold" residue on
-  // an open flag — a derive-tags.mjs proposal carries only "high"|"medium", both decided by
+  // an open flag -- a derive-tags.mjs proposal carries only "high"|"medium", both decided by
   // decideTagProposal, so this partition is always exhaustive.
   const decisions = decideTagProposals(decision.proposals, item, threshold);
   const adopted = decisions.filter((d) => d.decision === "adopt");
@@ -582,18 +582,18 @@ function report(flagId, result) {
       return true;
     case "dry_run":
       if ("decisions" in result) {
-        // Auto path (decideTagProposals) — every proposal decided, task 7.2's dry output shape.
+        // Auto path (decideTagProposals) -- every proposal decided, task 7.2's dry output shape.
         const adopted = result.decisions.filter((d) => d.decision === "adopt").length;
         const declined = result.decisions.filter((d) => d.decision === "decline").length;
         console.log(
           `apply-tags: flag ${flagId} -> item ${result.itemId} would decide ${result.decisions.length} proposal(s) ` +
           `(adopt ${adopted}, decline ${declined}); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
-          `(DRY RUN — nothing written. Re-run with --execute to apply.)`,
+          `(DRY RUN -- nothing written. Re-run with --execute to apply.)`,
         );
       } else {
         console.log(
           `apply-tags: flag ${flagId} applicable -> item ${result.itemId} patch: ` +
-          `${JSON.stringify(result.merge.patch)} (DRY RUN — nothing written. Re-run with --execute to apply.)`,
+          `${JSON.stringify(result.merge.patch)} (DRY RUN -- nothing written. Re-run with --execute to apply.)`,
         );
       }
       return true;
@@ -604,7 +604,7 @@ function report(flagId, result) {
       console.log(`WROTE + RESOLVED: item ${result.itemId} updated with ${JSON.stringify(result.merge.patch)}; flag ${flagId} closed (${result.decisions.length} proposal(s) decided).`);
       return true;
     case "decided_no_change":
-      console.log(`RESOLVED: flag ${flagId} closed with no item write needed (every proposal declined, or already present) — ${result.decisions.length} proposal(s) decided.`);
+      console.log(`RESOLVED: flag ${flagId} closed with no item write needed (every proposal declined, or already present) -- ${result.decisions.length} proposal(s) decided.`);
       return true;
     default:
       return false;

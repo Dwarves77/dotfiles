@@ -206,9 +206,9 @@ console.log(
 // edges the decisive set implies — see this file's header and that module's own for the evidence rule. ----
 const signalCandidates = RUN_SIGNALS ? detectSignalCandidates(items, edgeRows) : [];
 const signalPlan = RUN_SIGNALS ? planSignalAdoption(signalCandidates) : { classified: [], decisive: [], undecided: [], edges: [] };
-// Existing OPEN L4 flags — read unconditionally under --signals (both --dry, to preview every
+// Existing OPEN L4 flags -- read unconditionally under --signals (both --dry, to preview every
 // disposition, and apply, to actually resolve them). Task 7.2 (2026-09-12): EVERY open flag closes this
-// run (decisive/undecided/stale — see planSignalFlagResolutions), never just the newly-decisive subset.
+// run (decisive/undecided/stale -- see planSignalFlagResolutions), never just the newly-decisive subset.
 const existingOpenSignalFlags = RUN_SIGNALS
   ? await readAll("integrity_flags", "id, subject_ref, created_by", { match: (q) => q.eq("status", "open").like("created_by", `${SIGNAL_NAMESPACE}%`) })
   : [];
@@ -222,7 +222,7 @@ if (RUN_SIGNALS) {
     `${existingOpenSignalFlags.length} existing open flag(s) would resolve: ` +
     `decisive=${previewDispositions.filter((d) => d.disposition === "decisive").length}, ` +
     `undecided=${previewDispositions.filter((d) => d.disposition === "undecided").length}, ` +
-    `stale=${previewDispositions.filter((d) => d.disposition === "stale").length} (task 7.2 — no residue stays open).`,
+    `stale=${previewDispositions.filter((d) => d.disposition === "stale").length} (task 7.2 -- no residue stays open).`,
   );
 }
 
@@ -305,13 +305,13 @@ try {
   // "an UNDECIDED pair closes with resolution_note 'below the decisive threshold, no edge; score <s>'
   // (a non-edge is a decision), decisive pairs write the edge as today." Before this: an undecided
   // candidate that kept reproducing every run stayed an OPEN flag forever (reflectFlags' own "already
-  // open, unchanged" bucket never closes a still-reproducing finding) — the measured 1,098-row backlog.
+  // open, unchanged" bucket never closes a still-reproducing finding) -- the measured 1,098-row backlog.
   // The fix, via signal-confidence.mjs's planSignalFlagResolutions/buildPreResolvedSignalFlagRow (PURE,
   // the actual decision logic; this script only performs the I/O):
   //   1. EVERY existing open flywheel-signal flag gets a terminal disposition against this run's fresh
-  //      classification — decisive (edge already written above; flag closes with the auto-adopted note),
+  //      classification -- decisive (edge already written above; flag closes with the auto-adopted note),
   //      undecided (closes as a non-edge decision), or stale (pair no longer reproduces; closes as before).
-  //   2. A fresh candidate with NO existing flag row at all is inserted ALREADY RESOLVED — a brand-new
+  //   2. A fresh candidate with NO existing flag row at all is inserted ALREADY RESOLVED -- a brand-new
   //      undecided finding never sits open even momentarily.
   let signalEdgesWritten = { written: 0, inserted: 0, refreshed: 0, skippedForeignOrigin: 0, failedChunks: 0, snapshot: null };
   let signalDispositionCounts = { decisive: 0, undecided: 0, stale: 0 };
@@ -328,7 +328,7 @@ try {
     const dispositions = planSignalFlagResolutions(existingOpenSignalFlags, signalPlan.classified, SIGNAL_NAMESPACE);
     // Each disposition carries its OWN distinct resolution_note (unlike the pre-7.2
     // groupStaleFlagsForResolution path, which combined many ids under one SHARED note), so this is a
-    // per-row guardedUpdate, not a batched `.in("id", [...])` call — no IN-CHUNK URL-length concern
+    // per-row guardedUpdate, not a batched `.in("id", [...])` call -- no IN-CHUNK URL-length concern
     // applies here (that concern is specific to a single request naming every id at once).
     for (const d of dispositions) {
       await guardedUpdate(
@@ -340,7 +340,7 @@ try {
       signalDispositionCounts[d.disposition] = (signalDispositionCounts[d.disposition] ?? 0) + 1;
     }
     console.log(
-      `SIGNALS RESOLVED (existing): ${dispositions.length} flag(s) — decisive=${signalDispositionCounts.decisive}, ` +
+      `SIGNALS RESOLVED (existing): ${dispositions.length} flag(s) -- decisive=${signalDispositionCounts.decisive}, ` +
       `undecided=${signalDispositionCounts.undecided}, stale=${signalDispositionCounts.stale}.`,
     );
 

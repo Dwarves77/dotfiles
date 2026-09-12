@@ -144,7 +144,7 @@ async function runAutoAdopt(apply, deps) {
   const summary = { step: "tag-ratification", mode: apply ? "apply" : "dry", counts: {}, applied: 0, read_back: {}, exitCode: 0 };
 
   // Task 7.2 / ADR-030 rider (2026-09-12): every flywheel-tag proposal is DECIDED (adopt or decline),
-  // never left as "below threshold" residue on an open flag — see apply-tags.mjs's decideTagProposal.
+  // never left as "below threshold" residue on an open flag -- see apply-tags.mjs's decideTagProposal.
   // Every open flag with >=1 parseable proposal is now decidable; "not adoptable" is limited to a
   // malformed/foreign-namespace/zero-proposal row.
   const openFlags = await deps.listOpenCandidates();
@@ -159,8 +159,8 @@ async function runAutoAdopt(apply, deps) {
     not_adoptable_count: notAdoptable.length,
   };
 
-  // Dry output (spec: "adopt/decline counts and a 20-row sample per outcome") — run every decidable
-  // flag through autoAdoptTags in dry mode (execute:false — reads only, no write) to surface the
+  // Dry output (spec: "adopt/decline counts and a 20-row sample per outcome") -- run every decidable
+  // flag through autoAdoptTags in dry mode (execute:false -- reads only, no write) to surface the
   // per-proposal decision the coordinator reads before apply.
   const allDecisions = [];
   for (const { flag } of decidable) {
@@ -195,7 +195,7 @@ async function runAutoAdopt(apply, deps) {
   summary.note =
     `Decided ${applied}/${decidable.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}" -- every flag ` +
     `closed (no residue stays open, task 7.2). Discovery NOT re-run by this step (orchestration only, per ` +
-    "this file's header) — fallback: node scripts/connections/" +
+    "this file's header) -- fallback: node scripts/connections/" +
     `discover-for-items.mjs --ids ${touchedItemIds.join(",") || "<item id(s)>"} --execute.`;
 
   const readBack = {};

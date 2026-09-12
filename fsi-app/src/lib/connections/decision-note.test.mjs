@@ -1,4 +1,4 @@
-// decision-note.test.mjs — proves the shared resolution_note grammar round-trips and reports honest
+// decision-note.test.mjs -- proves the shared resolution_note grammar round-trips and reports honest
 // adopt/decline counts. Run: node --test src/lib/connections/decision-note.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";

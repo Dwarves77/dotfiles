@@ -163,7 +163,7 @@ test("buildSignalResolutionNote: decisive candidate gets the auto-adopted token"
 });
 
 test("buildSignalResolutionNote: undecided candidate closes with the score and the reason (a non-edge is a decision)", () => {
-  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: "undecided", confidenceWeight: 0, confidenceReason: "single unregistered capitalized-phrase token — not independently corroborated" });
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: "undecided", confidenceWeight: 0, confidenceReason: "single unregistered capitalized-phrase token -- not independently corroborated" });
   assert.match(note, /^below the decisive threshold, no edge; score=0/);
   assert.match(note, /single unregistered capitalized-phrase token/);
 });
@@ -195,7 +195,7 @@ test("planSignalFlagResolutions: a flag whose pair no longer appears in the fres
   assert.match(r.note, /no longer detected/);
 });
 
-test("planSignalFlagResolutions: EVERY open flag gets a disposition — none is silently skipped (no residue stays open)", () => {
+test("planSignalFlagResolutions: EVERY open flag gets a disposition -- none is silently skipped (no residue stays open)", () => {
   const classified = classifySignalCandidates([
     { itemA: "a", itemB: "b", signalKind: "shared_regulation_identifier", value: "2023/1805", subject_ref: "a:b:shared_regulation_identifier:2023/1805" },
   ]);
@@ -224,7 +224,7 @@ test("buildPreResolvedSignalFlagRow: writes a decisive candidate as an ALREADY-R
   assert.match(row.resolution_note, /^auto-adopted:signal:/);
 });
 
-test("buildPreResolvedSignalFlagRow: writes an undecided candidate ALREADY-RESOLVED too — never open, even at insert", () => {
+test("buildPreResolvedSignalFlagRow: writes an undecided candidate ALREADY-RESOLVED too -- never open, even at insert", () => {
   const [classified] = classifySignalCandidates([
     { itemA: "c", itemB: "d", signalKind: "shared_title_entity", value: "Solo Phrase", subject_ref: "c:d:shared_title_entity:Solo Phrase" },
   ]);

@@ -264,9 +264,9 @@ export function partitionProposals(proposals) {
  * Decide whether an OPEN integrity_flags row has anything to decide right now. PURE. Unlike
  * evaluateApplication, this never requires status='resolved' or a ratify marker — it evaluates the flag
  * as it stands. Widened 2026-09-12 (Part 7 task 7.2 / ADR-030 rider): "every proposal decided, the flag
- * closes with the decisions recorded" — this no longer requires an AUTO_ADOPT_FIELDS-only proposal to be
+ * closes with the decisions recorded" -- this no longer requires an AUTO_ADOPT_FIELDS-only proposal to be
  * present (a flag whose ONLY proposal was, say, jurisdiction-only or scope_topics-only used to have
- * NOTHING here and stayed open forever — that residue is exactly what this rider closes). Any flag with
+ * NOTHING here and stayed open forever -- that residue is exactly what this rider closes). Any flag with
  * at least one parseable proposal is now decidable; decideClassificationProposals (below) decides every
  * one of them, adopt or decline.
  * @param {{id?:string, created_by?:string, status?:string, description?:string, subject_ref?:string}} flag
@@ -298,24 +298,24 @@ export function evaluateAutoAdoption(flag) {
 // jurisdiction appears in the source's registry row or URL host country, else declined.
 // scope_modes/scope_verticals/expected_output as today. Every proposal decided, the flag closes with the
 // decisions recorded." "As today" for scope_modes/scope_verticals/expected_output means the WRITE rule is
-// unchanged (only a decisive/deterministic proposal writes) — what changes is that the non-writing
+// unchanged (only a decisive/deterministic proposal writes) -- what changes is that the non-writing
 // residue (a medium-confidence scope_modes/scope_verticals proposal) now DECLINES with a reason instead
 // of silently sitting on an open flag forever (ADR-030 rider: "a decision of 'no action, and why' is a
 // valid close").
 //
 // JURISDICTION, A HARD EXISTING GATE (read classify-source.mjs's header in full before changing this):
 // sources.jurisdictions is a LIVE, differently-scoped column (region buckets eu|us|uk|latam|asia|hk|
-// meaf|global, populated by the canonical-source-candidate review flow) — writing this framework's
+// meaf|global, populated by the canonical-source-candidate review flow) -- writing this framework's
 // ISO-3166 Axis-3 values into it would silently corrupt three live reads (AffectedLanesCard, MapPageView,
 // the workspace RPCs). classify-source.mjs's own proposal already marks it `applicable:false` for exactly
 // this reason. This rider does not carry an ADR authorizing a dedicated Axis-3 column, so a jurisdiction
-// proposal is DECIDED (declined, with the architectural reason) rather than written — the safe reading of
+// proposal is DECIDED (declined, with the architectural reason) rather than written -- the safe reading of
 // "adopt when it matches, else decline": there is no safe column to adopt INTO, so it always declines,
 // same as it always silently never-applied before this rider, except now the reason is recorded and the
 // flag can close instead of hanging on this one un-actionable proposal forever.
 //
 // scope_topics EVIDENCE RE-CHECK: classify-source.mjs's proposal carries ONE shared `basis` string for
-// the whole matched-topic array (no per-topic evidence field) — this function re-derives the per-topic
+// the whole matched-topic array (no per-topic evidence field) -- this function re-derives the per-topic
 // evidence itself via scope.mjs's topicKeywordMatch/REGULATORY_TOPIC_ROLES (the SAME table
 // classifyScopeTopics scans), so a topic whose keyword no longer matches the source's CURRENT name (or
 // whose role-derived "regulatory" add-on no longer applies) declines rather than adopting on a stale
@@ -363,7 +363,7 @@ export function decideClassificationProposal(proposal, source) {
 }
 
 /**
- * Decide a scope_topics proposal AT THE PER-TOPIC LEVEL — one decision row per proposed topic, since
+ * Decide a scope_topics proposal AT THE PER-TOPIC LEVEL -- one decision row per proposed topic, since
  * classify-source.mjs's proposal.value is a multi-valued array with no per-topic evidence field of its
  * own. PURE. Evidence is re-derived (never trusted from the stale payload) via scope.mjs's own keyword
  * table / role set.
@@ -404,7 +404,7 @@ export function decideClassificationProposals(proposals, source) {
 }
 
 /**
- * Re-assemble the ADOPTED decision rows into buildMergePatch-ready proposals — scope_topics tags are
+ * Re-assemble the ADOPTED decision rows into buildMergePatch-ready proposals -- scope_topics tags are
  * regrouped into ONE `{field:"scope_topics", value:[...]}` entry (buildMergePatch's array-field merge
  * expects one row per field, not one per tag). PURE.
  * @param {Array<object>} decisions - decideClassificationProposals() output
@@ -422,7 +422,7 @@ export function buildAdoptedProposalsForMerge(decisions) {
 /**
  * The decide-and-apply core, DB access injected (mirrors applyClassification's shape, plus `resolveFlag`
  * for the close step). Directly testable with a fake client. Every reachable proposal is decided; the
- * flag ALWAYS closes once reached (task 7.2: "no residue stays open" — a decline is a valid, recorded
+ * flag ALWAYS closes once reached (task 7.2: "no residue stays open" -- a decline is a valid, recorded
  * close, not a reason to leave the queue item open).
  * @param {{
  *   readFlag: (flagId:string) => Promise<{data:object|null, error:{message:string}|null}>,

@@ -2,18 +2,18 @@
 // resolve-signals.mjs -- MAINT step for task 7.2 of the W9 brief-chain build plan, Part 7 (ADR-030
 // rider, 2026-09-12): drains the flywheel-signal:* backlog (1,098 open title-entity-link flags measured
 // 2026-09-12) that analyze-corpus.mjs's own --signals pass, running only inside corpus-turn.yml, never
-// touches for a candidate that keeps reproducing the SAME undecided verdict every run — reflectFlags'
+// touches for a candidate that keeps reproducing the SAME undecided verdict every run -- reflectFlags'
 // (pre-7.2) "already open, unchanged" bucket never closed a still-reproducing finding, so an undecided
 // signal sat open forever once opened.
 //
 // THE RULE (task 7.2, verbatim): "an UNDECIDED pair closes with resolution_note 'below the decisive
 // threshold, no edge; score <s>' (a non-edge is a decision), decisive pairs write the edge as today."
 // This step is the SAME code path analyze-corpus.mjs's own --signals pass now uses (task 7.2 also
-// updated that file) — detectSignalCandidates (signal-candidates.mjs), planSignalAdoption /
+// updated that file) -- detectSignalCandidates (signal-candidates.mjs), planSignalAdoption /
 // planSignalFlagResolutions / buildPreResolvedSignalFlagRow (signal-confidence.mjs), all imported
 // UNMODIFIED, never re-implemented here. This file adds NO new decision logic: it is the standalone
 // maintenance-dispatch runtime for a pass that would otherwise only ever run bundled inside a full
-// corpus-turn (checkout + npm ci + clustering + gap detection + anticipate — expensive just to reach
+// corpus-turn (checkout + npm ci + clustering + gap detection + anticipate -- expensive just to reach
 // the signals step), so the backlog can be drained in ONE targeted apply dispatch.
 //
 // WHAT IT DOES, both modes:
@@ -84,7 +84,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   const dispositions = planSignalFlagResolutions(openFlags, plan.classified, SIGNAL_NAMESPACE);
 
   // Brand-new candidates with no existing flag row at all (never seen before, or the OLD open flag was
-  // already resolved above under a different disposition this same pass would also match — the
+  // already resolved above under a different disposition this same pass would also match -- the
   // existingKeys set is built from the OPEN flags read at the top, so a candidate already covered by a
   // disposition above is correctly excluded here).
   const existingKeys = new Set(openFlags.map((r) => `${r.subject_ref}|${r.created_by}`));

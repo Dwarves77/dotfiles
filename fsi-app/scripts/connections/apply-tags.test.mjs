@@ -446,7 +446,7 @@ test("decideTagProposals: decides every proposal, no residue (mixed high+medium)
   assert.equal(decisions.find((d) => d.tag === "emissions").decision, "adopt"); // evidence present + in closed vocab
 });
 
-// ── autoAdoptTags (injected-dependency core, mocked DB) — every proposal decided, flag always closes ──
+// ── autoAdoptTags (injected-dependency core, mocked DB) -- every proposal decided, flag always closes ──
 
 test("autoAdoptTags: all-medium proposals, evidence present -> DECIDES (adopts), writes and resolves", async () => {
   const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [PROPOSALS[1]] }); // just the medium one (emissions, evidence "carbon pricing")
@@ -477,7 +477,7 @@ test("autoAdoptTags: mixed high+medium (evidence present) on an empty item -> wr
   assert.equal(r.status, "decided");
   assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"], topic_tags: ["emissions"] });
   assert.ok(d.calls.some((c) => c[0] === "updateItem"));
-  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "the flag closes — no residue stays open (task 7.2)");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "the flag closes -- no residue stays open (task 7.2)");
 });
 
 test("autoAdoptTags: mixed high+medium (evidence ABSENT for the medium one) -> writes only the high tag, DECLINES the medium, still resolves", async () => {
@@ -547,7 +547,7 @@ test("autoAdoptTags: idempotent — a second run against the now-resolved flag r
   assert.ok(!d2.calls.length);
 });
 
-// ── Invariant: no residue stays open — every combination of confidence/evidence decides and closes ────
+// ── Invariant: no residue stays open -- every combination of confidence/evidence decides and closes ────
 
 test("INVARIANT: autoAdoptTags never returns a status that leaves the flag open when the flag was decidable", async () => {
   const OPEN_LEFT_STATUSES = new Set(["dry_run", "not_found", "read_error", "not_adoptable", "item_read_error", "item_not_found"]);

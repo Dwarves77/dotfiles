@@ -164,7 +164,7 @@ test("auto, dry: lists decidable/not-adoptable open flags + adopt/decline sample
   const r = await main({ mode: "dry", arg: "auto" }, d);
   assert.equal(r.counts.open_candidates, 3);
   assert.equal(r.counts.threshold, "high");
-  assert.equal(r.counts.decidable_count, 3); // every open flag is now decidable (task 7.2 — no residue stays open)
+  assert.equal(r.counts.decidable_count, 3); // every open flag is now decidable (task 7.2 -- no residue stays open)
   assert.equal(r.counts.not_adoptable_count, 0);
   assert.equal(typeof r.counts.adopt_count, "number");
   assert.equal(typeof r.counts.decline_count, "number");
@@ -174,7 +174,7 @@ test("auto, dry: lists decidable/not-adoptable open flags + adopt/decline sample
   assert.ok(!d.calls.some((c) => c[0] === "updateItem" || c[0] === "resolveFlag"));
 });
 
-test("auto, apply: decides every open flag and CLOSES all three — no residue stays open (task 7.2)", async () => {
+test("auto, apply: decides every open flag and CLOSES all three -- no residue stays open (task 7.2)", async () => {
   const d = autoDeps();
   const r = await main({ mode: "apply", arg: "auto" }, d);
   assert.equal(r.applied, 3); // every decidable flag closes, whichever way its proposals decide
@@ -183,7 +183,7 @@ test("auto, apply: decides every open flag and CLOSES all three — no residue s
   assert.equal(byFlag["flag-open-high"], "decided");
   assert.equal(byFlag["flag-open-medium"], "decided");
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-high"));
-  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-mixed"), "mixed flag closes too — declined/adopted residue is still a decision");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-mixed"), "mixed flag closes too -- declined/adopted residue is still a decision");
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-medium"));
   assert.deepEqual(r.read_back["item-3"].operational_scenario_tags, ["ocean-bunkering"]);
   assert.deepEqual(r.read_back["item-3"].topic_tags, ["emissions"], "the medium proposal adopts once its evidence re-confirms in the item's own text");
@@ -191,7 +191,7 @@ test("auto, apply: decides every open flag and CLOSES all three — no residue s
   assert.deepEqual(r.read_back["item-5"].topic_tags, ["packaging"]);
 });
 
-test("auto, apply: every open flag is read and resolved — none is skipped as untouchable residue", async () => {
+test("auto, apply: every open flag is read and resolved -- none is skipped as untouchable residue", async () => {
   const d = autoDeps();
   await main({ mode: "apply", arg: "auto" }, d);
   assert.ok(d.calls.some((c) => c[0] === "readItem" && c[1] === "item-5"));

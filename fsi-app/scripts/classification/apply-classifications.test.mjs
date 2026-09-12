@@ -401,7 +401,7 @@ test("buildAdoptedProposalsForMerge: regroups adopted scope_topics tags into one
   assert.deepEqual(merged.find((p) => p.field === "scope_topics").value, ["environmental"]);
 });
 
-// ── autoAdoptClassification (fake deps) — every proposal decided, flag always closes ───────────────
+// ── autoAdoptClassification (fake deps) -- every proposal decided, flag always closes ───────────────
 
 function fakeAutoDeps({ flag, source, updateResult = { updated: 1, snapshot: "snap.jsonl" }, resolveResult = { updated: 1, snapshot: "snap2.jsonl" } } = {}) {
   const updateCalls = [], resolveCalls = [];
