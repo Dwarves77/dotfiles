@@ -5,8 +5,8 @@ lane's own model access produces, validated by a pure, dependency-free function 
 on it. This directory is the answer to Part 3 of `docs/plans/brief-chain-build-plan-2026-09-11.md`'s own
 gap: no existing path takes session-authored synthesis text (`synthesiseAndWriteBrief` has no injection
 parameter and unconditionally calls `generateBriefText`). A record-briefs file is how a session lane hands
-the driver (task 3.4, not yet built) a batch of full briefs it authored offline, for record-grade items
-that today carry only a title-plus-GAP-claims payload.
+the driver (task 3.4, `scripts/turns/apply-record-briefs.mjs`) a batch of full briefs it authored offline,
+for record-grade items that today carry only a title-plus-GAP-claims payload.
 
 ## The mechanism, in one sentence
 
@@ -28,11 +28,24 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
    `record-facts.mjs`'s `assertVerbatim` or `validate-mint-payload.mjs` criterion 3 at mint time -- never
    invent a fact, never paraphrase a span, locate one that is already present in the text.
 
+   Under `--with-pool-text`, each item also carries `forward_events: [{event_date, event_kind,
+   obligation_text, confidence, source_span}]` (from `item_forward_events`, migration 274) and
+   `timelines: [{milestone_date, label, is_completed}]` (from `item_timelines`, migration 004) -- both
+   default to `[]`, never omitted (task-6.1-audit.md fix 3, task 6.2b). READ THEM: 7 of the pilot's 10
+   items had DB-recorded forward events that never reached the brief's own forward-intelligence section --
+   the events existed as rows the export handed the lane, but the lane's own body never surfaced them.
+
 2. **Author the full brief.** For each item: the markdown body under its `format_type`'s section list (per
    `src/lib/agent/system-prompt.ts`), the 20-field metadata contract (a SUBSET of the full 26-field
    `AgentMetadata` contract -- see "Which fields, and why fewer than the full contract" below), and a
    `claims[]` array where every `FACT` claim's `source_span` is a literal, verbatim quote from the item's
-   own pool text.
+   own pool text. Carry EVERY entry in the item's exported `forward_events` array into the "Anticipated
+   Guidance and Pending Regulatory Events" section as a dated entry (event_date, event_kind, the
+   obligation_text in prose, citing the row's own `source_span` verbatim), and into the "Confirmed
+   Regulatory Timeline" section too when the event is itself a milestone the reader needs on the timeline
+   -- never leave a forward event as a database row the brief's own reader-facing prose never mentions.
+   Likewise carry every entry in the exported `timelines` array (a milestone already recorded from a prior
+   pass) into the timeline section rather than re-deriving or dropping it.
 
 3. **Write the batch** to a committed repo path -- `scripts/turns/record-briefs/record-briefs-NNN.json`,
    zero-padded, incrementing, the SAME naming convention `ledger-verdicts/README.md` documents and for the
@@ -77,6 +90,15 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
    the actual enforcement task 3.4's driver runs -- this README is the same contract in prose. Keep them
    in agreement: `record-briefs.test.mjs` is the executable spec.
 
+5. **Discovery note (task-6.1-audit.md fix 5).** In the lane's own commit/report for the batch, add ONE
+   line per item stating whether the exported pool alone sufficed to fill every required slot and section,
+   or the lane found the source genuinely silent on a slot (naming which one). No code enforces this --
+   it is a report-template convention, the same honesty the depth-accounting and qualification-accounting
+   mirrors above ask the BRIEF itself to state, restated one level up so a reviewer reading the lane's
+   report (never the individual briefs) can also tell "the source said little" apart from "the lane did
+   not look far enough", per item, at a glance. Example line: `b7135a5b: pool sufficed for all required
+   slots; per-year trajectory genuinely absent from the captured text.`
+
 ## `validateRecordBriefsFile(json, { poolTextByItemId })`
 
 ```
@@ -95,7 +117,7 @@ validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, er
 - Per-entry AND per-claim violations are collected across the WHOLE file in one pass (not stopped at the
   first bad entry), so a producer sees every problem at once.
 
-## The three pre-write refusals (task 6.1b, 2026-09-12)
+## The five pre-write refusals (task 6.1b + task 6.2b)
 
 A 10-item pilot batch (brief-apply run 34688130473) generated and sectioned cleanly, then quarantined
 10/10 at the ground step for defects the validator now catches before any grounding cost is spent.
@@ -174,6 +196,44 @@ source rather than writing something the ground step will quarantine anyway.
    publication, or entry-into-force date qualifies when no other dated milestone exists. "No item should
    be without some date in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with
    at least one `item_timelines` row.
+
+4. **Depth-accounting mirror (task-6.1-audit.md fix 1).** For a `regulatory_fact_document` entry whose
+   "Substantive Requirements" section is present with content, that section must END with an accounting
+   line, exactly:
+   ```
+   Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K.
+   ```
+   The validator (`extractCanonicalSections`, the SAME real section boundaries the criterion 4 mirror
+   uses) refuses when: the line is missing; `K` exceeds the number of FACT claims this entry actually
+   attaches to that section's own text (by `claim_text` or `source_span`, case-insensitively) -- K must
+   never overstate coverage; or `K < M` with no following `Shortfall: <reason>` line naming why the
+   shortfall exists (one line is enough; it may name more than one reason). For a source pool over 200,000
+   characters, `K < 5` is ALSO refused without a `Shortfall:` line, even when `K == M` -- a large-pool item
+   this thin needs its own explicit accounting, the exact gap the pilot's CLP (2.59M chars, 5 FACT claims,
+   no accounting line at all) and Environmental Permitting 2016 (965k chars, 4 FACT claims) both left open.
+   `N` is never fixed by this rule -- it must be STATED, so "the source genuinely states little" and "the
+   lane did not look far enough" stop being indistinguishable from the outside. **Authoring rule this
+   implies:** before closing "Substantive Requirements", count what you surveyed, what applied to the
+   workspace, and what you actually extracted as FACT, and write the accounting line -- add a `Shortfall:`
+   line whenever the last number is smaller than the middle one, or whenever a large pool still leaves you
+   under 5 FACT claims in this section.
+
+5. **Qualification-accounting mirror (task-6.1-audit.md fix 2).** Within that same "Substantive
+   Requirements" section, each of three qualification categories is either CAPTURED (a FACT claim this
+   entry attaches to the section carries the category's own language) or explicitly recorded ABSENT with
+   the exact sentence below -- silence is refused either way, so a genuinely unqualified source and an
+   unmined one stop being indistinguishable:
+   - **Per-year trajectory** -- captured via `metadata.requirement_trajectory` (non-null), or the sentence
+     `No phase-in stated in the source.`
+   - **Exceptions, carve-outs, exemptions** -- captured via an attached FACT claim whose text matches
+     `except` / `exempt` / `carve-out`, or the sentence `No exceptions stated in the source.`
+   - **Scope limits** -- captured via an attached FACT claim whose text matches `scope` / `does not apply`
+     / `applies only` / `limited to`, or the sentence `No scope limits stated in the source.`
+   Zero captures across all ten pilot items, with no absence note anywhere, was the audit's own finding --
+   this refusal is what makes that state unreachable going forward. **Authoring rule this implies:** for
+   every regulatory_fact_document brief, before closing "Substantive Requirements", state the trajectory,
+   the exceptions, and the scope limits the source actually gives you, or write the matching absence
+   sentence verbatim when the source genuinely gives you none.
 
 **The `allow_brief_overwrite` flag.** Task 3.3's own write site refuses to re-generate a non-`record`-grade
 item (an existing brief) unless `--allow-brief-overwrite` is passed explicitly; `.github/workflows/brief-
@@ -273,11 +333,11 @@ which `scripts/turns/record-briefs/*.test.mjs` is. `validateRecordBriefsFile` is
 already use: a pure, dependency-free function that returns an array of human-readable error strings
 (empty = valid), fail-closed at the caller.
 
-## What task 3.4's driver is expected to do with a validated file
+## What task 3.4's driver does with a validated file
 
-Not built by this task -- named here so this contract's consumer-side expectations are written down in one
-place, the same way `ledger-verdicts/README.md`'s "What the driver does with a verdict file" section
-documents `run-ledger-consume.mjs`'s side of that contract:
+Built as `scripts/turns/apply-record-briefs.mjs` -- named here so this contract's consumer-side
+expectations are written down in one place, the same way `ledger-verdicts/README.md`'s "What the driver
+does with a verdict file" section documents `run-ledger-consume.mjs`'s side of that contract:
 
 - **Schema violation -> the WHOLE file is rejected.** A structurally malformed entry is a producer bug.
 - **`source_pool_hash` mismatch -> that entry is refused, per task 3.3's own brief**: "refuses when
