@@ -3276,6 +3276,133 @@ entry).
 `decision-note.mjs` DECISIONS_JSON grammar `tag-ratification`/`apply-classifications` use below) --
 one candidate maps to exactly one flag 1:1 (no multi-proposal decomposition needed), so a single
 human-readable line already carries everything an admin view needs.
+## 46. `resolve-provisional-sources`
+
+**Purpose**: resolve pending `provisional_sources` rows (489 with `status='pending_review'` since
+April) and `sources` rows with `status='provisional'` (563) -- Part 7 task 7.5 item 1. Retires the
+human-approval half of the ruled-digest path (`scripts/review/build-review-digests.mjs` +
+`scripts/review/apply-provisional-sources.mjs`, keep/suspend from an operator ruling file) for every
+row the deterministic rule below can classify.
+
+**Upstream**: `scripts/maintenance/resolve-provisional-sources.mjs`, reusing (never a second copy):
+`existingTierForHost` (`scripts/maintenance/canonical-autoverify.mjs`, live-registry institution-key
+lookup, rule a), `classTierForHost`/`decidePoolHostRegistration` (`src/lib/sources/host-authority.ts`,
+the SC-13 class table, rule b), `buildPromotedSourceRow`/`findExistingSourceByCanonicalUrl`
+(`src/lib/sources/promote-provisional.ts`, extracted THIS TASK out of
+`/api/admin/sources/promote/route.ts`'s approve arm so the route and this step share one promoted-row
+shape -- the route now calls the same module), and `checkVerticalFitGate`
+(`src/lib/sources/vertical-fit-gate.ts`, the same off-vertical block the route runs).
+
+**The rule, per row**: (a) the host's registrable domain matches an existing ACTIVE institution in
+`sources` -> promote/activate at the institution's canonical tier; (b) no institution match, but the
+SC-13 class table resolves a tier -> promote/activate at that tier; (c) neither (a) nor (b) resolved a
+tier AND the URL is confirmed dead (`provisional_sources.accessibility_verified=false`, or
+`sources.fetch_status='error'` -- a WALL such as `cdn_block`/`blocked` is NOT dead, "a wall is not a
+dead link", the same posture `canonical-autoverify.mjs` already takes) -> reject with the reason; (d)
+otherwise (alive or unprobed, still unclassifiable) -> worklist. Rule (a)/(b) always wins over a dead
+signal -- a resolvable tier is never rejected. The vertical-fit gate runs on every `provisional_sources`
+promote-arm candidate; a gate refusal downgrades a would-be promote to a reject, citing the gate's
+reason.
+
+**Write shapes differ by table** (the row already exists for `sources`, so promote/reject/worklist are
+UPDATEs there, never a second INSERT):
+- `provisional_sources` promote -> INSERT a new `sources` row (via `buildPromotedSourceRow`, with the
+  SAME Q10 canonical-URL dedup guard the promote route runs -- a match reuses the existing row instead
+  of minting a duplicate) + `status='promoted'`, `promoted_to_source_id`, `reviewed_at`,
+  `reviewer_notes`.
+- `provisional_sources` reject -> `status='rejected'`, `reviewed_at`, `reviewer_notes`.
+- `provisional_sources` worklist -> `status='needs_more_data'` (the one CHECK-legal value judged closest
+  to "awaiting a class-table ruling"; no dedicated value exists in the tracked vocabulary -- a documented
+  judgment call, change `PROVISIONAL_WORKLIST_STATUS` in the script if the coordinator rules otherwise),
+  `reviewed_at`, `reviewer_notes`.
+- `sources` (status='provisional') promote -> `status='active'`, `base_tier`/`effective_tier` stamped to
+  the resolved tier (never `tier_override`, which stays reserved for an explicit operator act).
+- `sources` reject -> `status='suspended'` (this codebase's existing "unselectable by the grounding
+  resolver" vocabulary value, RD-39/40).
+- `sources` worklist -> status stays `'provisional'` (already the awaiting-decision resting state for
+  this table -- no value is invented); the equivalent record is appended to `notes` instead of
+  `reviewer_notes`/`reviewed_at`, which this table does not have.
+
+**ONE `integrity_flags` worklist row PER RUN** (rule d), naming every unclassifiable host across both
+tables in one batched row (`category='source_issue'`, `created_by='resolve-provisional-sources'`,
+`subject_ref='resolve-provisional-sources-batch'`) -- a DIFFERENT aggregation granularity than the
+`null-tier-host` per-host flag (task 7.4's `resolve-cited-host-gate`), which merges one row per host
+across every run. This step never reads or writes a `null-tier-host` flag.
+
+**Ruling**: ADR-030 rider. Not gated by a separate `arg` token. $0, no LLM, no fetch -- every check is
+the deterministic class table, the live-registry lookup, and the STORED `accessibility_verified`/
+`fetch_status` columns.
+
+**[HYPOTHESIS, not independently re-verified live]**: the promote route (and this step) write
+`provisional_sources.status='promoted'`; migration 004's own tracked `CHECK` constraint text lists
+`('pending_review','confirmed','rejected','needs_more_data')`, with no `'promoted'` value and no later
+migration found altering it. This step matches the EXISTING route's convention rather than inventing a
+different one -- a real constraint mismatch would be the route's own pre-existing defect, surfaced by
+either one throwing on a live apply, not something this step introduces. Confirm live before the first
+apply dispatch (`SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid =
+'provisional_sources'::regclass AND contype='c'`).
+
+**Dispatch**: `mode=dry` classifies every row (rule a/b/c/d) and reports counts + a 20-row sample per
+outcome, plus whether a batch worklist flag would be written; writes nothing. `mode=apply` performs the
+promote/reject/worklist write per row, then the one batch flag if any host worklisted.
+
+**Artifact / read back**: `summary.json`'s `counts.{promote,reject,worklist}`, `by_update_type`-style
+`samples`, and `read_back.{provisional_sources_pending_review_remaining,sources_provisional_remaining}`
+-- confirm against `SELECT count(*) FROM provisional_sources WHERE status='pending_review'` and `SELECT
+count(*) FROM sources WHERE status='provisional'` (both should shrink by the promoted+rejected count;
+the worklisted count moves to `needs_more_data` / stays `provisional`), plus `SELECT * FROM
+integrity_flags WHERE created_by='resolve-provisional-sources' ORDER BY created_at DESC LIMIT 1` for the
+batch flag naming any still-unclassifiable hosts.
+
+---
+
+## 47. `finish-staged-updates`
+
+**Purpose**: run every approved-never-materialized `staged_updates` row (33, April to July --
+`status='approved'` AND `materialized_at IS NULL`, from the retired human-approval flow that predates
+the machine-gated mint chokepoint) through the SAME chokepoint a fresh staged row already meets -- Part
+7 task 7.5 item 2, RD-20 ("staged_updates is transit-only... a materialization failure ages into the
+flag resolver... never a parked approved-unmaterialized orphan").
+
+**Upstream**: `scripts/maintenance/finish-staged-updates.mjs`, calling `applyStagedUpdate`
+(`src/lib/intake/apply-staged-update.ts`, imported unmodified via jiti) -- the ONE materialization
+chokepoint `run-intake-cycle.ts`'s own STAGE->MINT step and `drainChangeSweepUpdates` already use. No
+second gate: for `new_item` this runs the entity-gate then `mintIntelligenceItem` (congruence 1a/1b +
+subject-existence dedup + the relevance floor); for `update_item`/`status_change`/`new_source`/
+`archive_item` it applies the same fixed-shape UPDATE/INSERT those types always use.
+
+**Write shape mirrors `run-intake-cycle.ts`'s own convention exactly**: a materialized row keeps
+`status='approved'` (the RD-20 resolved state for this table) and stamps `materialized_at` +
+`materialized_item_id` + `materialization_error=null` + `reviewed_by`/`reviewed_at`; a machine refusal
+sets `status='rejected'` + `materialization_error` (the chokepoint's own reason, verbatim) +
+`reviewed_by`/`reviewed_at`. No row is left `approved` with `materialized_at` still null.
+
+**The scrape-hold clause, and why it does not currently bind any row here**: the dispatch requires "if
+the materialization needs a fetch and the scrape hold is engaged, report 'held' per row, never bypass."
+[CONFIRMED, full read of the entire call graph `applyStagedUpdate` reaches for all five update types --
+`mintIntelligenceItem`, `flywheel-steps.mjs`'s `runDiscoveryStep`/`runForwardEventsStep`,
+`syncComplianceDeadlineForItem`, `linkItemEntities`]: none of these perform an external fetch -- every
+one is a Supabase read/derive/write over rows already in the database (grep for `fetch(`/`browserless`/
+`canonical-fetch` across that call graph returns zero hits). Materializing a `staged_updates` row is the
+MINT step only; the separate GROUND step (`generateBriefWorkflow`, which DOES fetch and is gated by
+`SCRAPE_HOLD`) is `run-intake-cycle.ts`'s own later, distinct step for a brand-new candidate, and is
+NOT run by this step -- a freshly-materialized `new_item` row with no brief yet is an ordinary
+record-grade stub, task 7.3's research-or-erase/quarantine-disposition scope, not a second job folded
+in here silently. `deps.holdEngaged()` is still checked and reported every run
+(`scrape_hold_engaged_at_run_time` in the summary) so a future call-graph change that DOES introduce a
+fetch is visible before it would ever run live.
+
+**Ruling**: ADR-030 rider / RD-20. Not gated by a separate `arg` token. $0, no LLM, no fetch.
+
+**Dispatch**: `mode=dry` runs every row through `applyStagedUpdate` with `dryRun: true` (the identical
+gates, no write) and reports counts + a per-update-type breakdown + a 20-row sample per outcome. `mode=apply`
+performs the real materialize-or-reject write per row.
+
+**Artifact / read back**: `summary.json`'s `counts.{materialized,rejected}`, `by_update_type`, and
+`read_back.approved_unmaterialized_remaining` -- confirm against `SELECT count(*) FROM staged_updates
+WHERE status='approved' AND materialized_at IS NULL` (0 expected after a clean apply) and `SELECT
+status, materialization_error FROM staged_updates WHERE reviewed_by='finish-staged-updates'` for the
+per-row disposition.
 
 ---
 

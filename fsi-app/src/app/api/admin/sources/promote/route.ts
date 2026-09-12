@@ -20,8 +20,11 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
-import { classifySourceRole } from "@/lib/sources/classify-source-role";
 import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
+// task 7.5 (brief-chain build plan Part 7, 2026-09-12): the row-shape builder + dedup-match helper
+// are shared with scripts/maintenance/resolve-provisional-sources.mjs so the two promotion paths
+// (this operator route, and the automatic class-table resolver) can never drift on shape.
+import { buildPromotedSourceRow, findExistingSourceByCanonicalUrl } from "@/lib/sources/promote-provisional";
 
 
 interface PromoteBody {
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
     const { data: hostMatches } = canonHost
       ? await supabase.from("sources").select("id, url").ilike("url", `%${canonHost}%`)
       : { data: [] };
-    const existingSource = (hostMatches || []).find((s) => canonicalizeUrl(s.url) === canonUrl) || null;
+    const existingSource = findExistingSourceByCanonicalUrl(hostMatches || [], canonUrl);
     if (existingSource) {
       await supabase
         .from("provisional_sources")
@@ -150,38 +153,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the new source row from the provisional record + reviewer fields.
-    // source_role = WHAT the entity is (classified from name+url). category +
+    // Build the new source row from the provisional record + reviewer fields, through the shared
+    // builder (task 7.5): source_role = WHAT the entity is (classified from name+url); category +
     // intelligence_types DERIVE from it via the migration-123 trigger, so they are NOT set here
     // (the old hardcoded intelligence_types:['GUIDE'] placeholder is gone — the trigger overrides).
+    // Phase 1.5: Q2 split. base_tier = operator promotion choice; effective_tier initialized equal
+    // per Day 1 invariant (buildPromotedSourceRow sets both from the one `assignedTier` argument).
     const newSource = {
-      name: prov.name,
-      url: canonUrl,
-      source_role: classifySourceRole(prov.name, canonUrl),
-      description: prov.description || "",
-      // Phase 1.5: Q2 split. base_tier = operator promotion choice;
-      // effective_tier initialized equal per Day 1 invariant.
-      base_tier: assignedTier,
-      effective_tier: assignedTier,
-      tier_at_creation: assignedTier,
+      ...buildPromotedSourceRow(prov, assignedTier, {
+        promotedBy: `reviewer ${auth.userId.slice(0, 8)}`,
+        note: body.reviewerNotes,
+        nowIso: now,
+      }),
+      // Reviewer-supplied classification fields the shared builder leaves empty by default (the
+      // maintenance caller has no reviewer to supply these; this route does).
       domains: body.domains || [],
       jurisdictions: body.jurisdictions || [],
       transport_modes: body.transport_modes || [],
       topic_tags: body.topic_tags || [],
-      access_method: "scrape", // sane default; route handler decides per source later
-      status: "active",
-      update_frequency: "weekly",
-      intelligence_types: [] as string[], // derived by the migration-123 trigger from category; never hardcoded
-      vertical_tags: [],
-      notes:
-        // F18: live promotion date, not a frozen literal (matches bulk-approve/decide's
-        // `${now.slice(0, 10)}` convention — full-read-audit-2026-08-31.md §2.2).
-        `Promoted from provisional ${now.slice(0, 10)} by reviewer ${auth.userId.slice(0, 8)}. ` +
-        `Discovered via ${prov.discovered_via}. ${body.reviewerNotes || ""}`.trim(),
     };
 
     const { data: inserted, error: insertErr } = await supabase
-      .from("sources")
+      .from("sources") // fitness-allow: F22 (source_role is set by buildPromotedSourceRow, imported above -- it calls classifySourceRole(name, url) internally; task 7.5's extraction moved the row-shape construction out of this file's own literal, so the lexical file-level scan no longer sees the "classifySourceRole" string here even though the classification still happens at birth)
       .insert(newSource)
       .select("id")
       .single();

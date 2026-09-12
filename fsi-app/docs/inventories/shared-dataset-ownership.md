@@ -117,6 +117,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/resolve-cited-host-gate.mjs",
       "scripts/maintenance/resolve-error-body-gate.mjs",
       "scripts/maintenance/resolve-signals.mjs"
+      "scripts/maintenance/resolve-provisional-sources.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -187,7 +188,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/community/posts/[id]/promote/route.ts",
       "src/app/api/admin/scan/route.ts",
       "src/lib/intake/run-intake-cycle.ts",
-      "src/lib/sources/change-sweep.mjs"
+      "src/lib/sources/change-sweep.mjs",
+      "scripts/maintenance/finish-staged-updates.mjs"
     ],
     "source_tier_opinions": [
       "src/lib/sources/tier-opinion-writer.ts",
@@ -262,6 +264,26 @@ imported unmodified); a recaptured URL is stored via `buildCaptureSearchRow` (sa
 inserted into `agent_run_searches` through the guarded path, then the flag is resolved with the outcome.
 A still-failing URL is never inserted into `agent_run_searches` -- it routes to the (file-based, not DB)
 attach-found-sources worklist instead, and the flag is still resolved.
+
+Note (added by Part 7 task 7.5, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+resolve-provisional-sources.mjs` added to `integrity_flags` -- resolves the 489 pending
+`provisional_sources` rows and the 563 `sources` rows with `status='provisional'` by the deterministic
+SC-13 rules (an institution match or the class table promotes/activates at a real tier; a dead/
+inaccessible URL rejects with the reason). `sources` and `provisional_sources` themselves stay OUT of
+this registry's scope by design (see this doc's own scope note above) -- the ONE tracked table this
+script writes is `integrity_flags`, for the single per-run batched worklist row (`buildBatchWorklistFlag`)
+naming every host neither rule could classify. `integrity_flags` writes reuse no other script's flag row
+(a DIFFERENT aggregation granularity than `null-tier-host`'s per-host merge, see the script's own header
+for why); the promote-arm row shape is shared with `/api/admin/sources/promote`'s approve arm via the new
+`src/lib/sources/promote-provisional.ts` module (that route refactored to consume it, no behavior change).
+
+Note (added by Part 7 task 7.5, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+finish-staged-updates.mjs` added to `staged_updates` -- runs the 33 approved-never-materialized rows
+(April to July) through the SAME mint chokepoint (`applyStagedUpdate`, `src/lib/intake/apply-staged-
+update.ts`, imported unmodified) `run-intake-cycle.ts`'s own STAGE->MINT step already uses, then stamps
+the SAME three columns (`materialized_at`/`materialized_item_id`/`materialization_error`) that step
+already stamps on success, or `status='rejected'` on a machine refusal. No second chokepoint, no second
+write shape -- this is a third caller of the one function every live path already uses.
 
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
