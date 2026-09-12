@@ -229,12 +229,12 @@ Proposer passes per family per train (Haiku), markers discharged by real runs on
 the single list, meta-harness run per wave; the `ledger` and `done` skills used at every session start and
 every train; the session log and board carry every ruling. Done: already true; kept true by F28.
 
-### W9 — Brief chain: briefs exist for all items, wired at mint, populated through flywheel
+### W9: Brief chain, briefs exist for all items, wired at mint, populated through flywheel
 **Workstream plan:** [brief-chain-build-plan-2026-09-11](./brief-chain-build-plan-2026-09-11.md) (Part 1: architecture and ADR-028; Part 2: brief contract; Part 3: runtime execution).
 
-**Operator ruling, 2026-09-09, verbatim:** "the fix is making sure a full brief, analysis of the data and all information is pulled and then put through the flywheel to make sure we are connecting data points across the site ... briefs need to exist for all items as well."
+**Operator ruling, 2026-09-09, verbatim** (docs/ops/session-log.md:16493-16500): "the fix is making sure a full brief, analysis of the data and all information is pulled and then put through the flywheel to make sure we are connecting data points across the site, right now we have a completely broken and unwired set of tools. it should NOT be locked out, it's integral to the site, so this needs addressed. You're giving me these three like they are options to fix but ALL of them look like they need fixed, the system isn't working because all of this is a problem and briefs need to exist for all items as well."
 
-Measured 2026-09-11 [CONFIRMED]: A new item is minted at `item_grade='record'` with a stub `full_brief` and zero analysis fields. Nothing upgrades it to a brief until the brief runtime (Part 3, task 3.5) executes. The upgrade is mandatory and automatic for every new item (ADR-028): queued at mint (task 1.5), executed by the runtime, recorded in a harness artifact. The record grade is not a terminal state; it is a cache of the current upgrade state. Done when: Part 1 (ADR-028) accepted, Part 2 (brief contract design) complete, Part 3 (runtime) built and wired at mint for every new item, every item successfully upgraded, harness artifacts recorded.
+Measured 2026-09-11 [CONFIRMED]: A new item is minted at `item_grade='record'` with a stub `full_brief` and zero analysis fields. Nothing upgrades it to a brief until the brief runtime (Part 3, task 3.4, the brief-apply driver) executes. The upgrade is mandatory and automatic for every new item (ADR-028): queued at mint (task 3.5), executed by the runtime (task 3.4), recorded in a harness artifact. The record grade is not a terminal state; it is a cache of the current upgrade state. Done when: Part 1 (ADR-028) accepted, Part 2 (brief contract design) complete, Part 3 (runtime) built and wired at mint for every new item, every item successfully upgraded, harness artifacts recorded.
 
 ## 3. Sequence (trains), dependencies, and what lands when
 
