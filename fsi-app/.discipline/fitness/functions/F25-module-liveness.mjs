@@ -321,13 +321,13 @@ const COMPONENTS = [
 // 2026-08-31 pending an unpriced crawl orchestrator) are NOT re-added here — checked this session: both
 // now have a real production importer, scripts/turns/run-source-sweep.mjs, so the orchestrator the
 // register found missing has since landed and F25 enforces their liveness going forward.
+// 'src/lib/coverage/identity.mjs' (register #8) is REMOVED from this list (task 6.1b, 2026-09-12): it now
+// has a real production importer -- src/lib/sources/target-match.mjs's own-URL match (fix C) imports
+// classifyIdentifier directly, reusing its CELEX_RE/UK_TYPES vocabulary rather than re-deriving a second
+// identifier-shape parser. The register #8 -> #11 sequencing this entry named (WIRE only once census-
+// writer.mjs has a caller) is superseded by this independent, earlier wiring -- #11 remains whatever its
+// own status is, unaffected.
 const PROVEN_BUT_UNWIRED = [
-  {
-    file: 'src/lib/coverage/identity.mjs',
-    disposition:
-      'W1 register #8: WIRE (call from census-writer.mjs:73), but explicitly sequenced behind #11 — "only ' +
-      'takes effect once census-writer.mjs itself has a caller." #11 is still HOLD, so this stays unwired.',
-  },
   {
     file: 'src/lib/intake/census-writer.mjs',
     disposition:

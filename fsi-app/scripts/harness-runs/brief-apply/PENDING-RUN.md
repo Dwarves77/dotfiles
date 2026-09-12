@@ -59,8 +59,46 @@ needs no database) run in the no-npm discipline job (the ERR_MODULE_NOT_FOUND re
 session-log entry of the same date). Still zero artifacts: no `brief-apply.yml` dispatch has happened,
 the same posture as above.
 
-**harness_version at write time:** `sha256:7445fa9093987e53` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['brief-apply']`, the same 4 files; supersedes `sha256:ca5d7b8b2da57a61` outright).
+**harness_version at Re-pin 2's write time (superseded below, see Re-pin 3):** `sha256:7445fa9093987e53`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files;
+supersedes `sha256:ca5d7b8b2da57a61` outright).
 
 **The planned run that supersedes this marker:** unchanged, the first `brief-apply-run-001.json` from the
 first `brief-apply.yml` dispatch (Part 6's pilot batch, `record-briefs-001.json`).
+
+---
+
+## Re-pin 3 (task 6.1b, 2026-09-12 -- the pilot's five source defects, fixed at the source)
+
+**What changed.** Two things moved `brief-apply`'s own hash since Re-pin 2, AND the family's own
+zero-artifact posture ended in the same task: (1) `scripts/turns/apply-record-briefs.mjs` (a governing
+file) now imports the WHOLE `../lib/db.mjs` module for `runUnscopedFlywheelSteps` instead of a
+five-function subset that omitted `readAllByIds` -- the pilot's own `readAllByIds is not a function`
+throw (finding D); (2) `scripts/turns/record-briefs/schema.mjs` (a governing file) gained three new
+pre-write refusals (Gate A mirror, criterion 4 mirror, timeline mirror -- findings A, B, E) plus their new
+imports (`gate-a-scan.mjs`, `extract-sections.ts`, `timeline-parse.mjs`, `timeline-harvest.mjs`).
+`src/lib/agent/canonical-pipeline.ts` and `src/lib/intake/flywheel-steps.mjs` (this family's other two
+governing files) were NOT touched by this task.
+
+**The family is no longer zero-artifact.** The coordinator's scratchpad copies of the pilot's own two run
+artifacts -- `brief-apply-run-001.json` (the DRY run 34688043789, verbatim) and `brief-apply-run-002.json`
+(the APPLY run 34688130473, renumbered from `brief-apply-run-001` with a `proposer_notes` line recording
+why: CI claimed 001 twice because `.github/workflows/brief-apply.yml` never committed its artifact back to
+the dispatched ref before this task's fix 5) -- are committed alongside this re-pin, in this same task.
+Both stamp `harness_version: "sha256:7445fa9093987e53"` (Re-pin 2's hash, the pre-fix tree they actually
+ran against) -- neither matches the CURRENT hash below, which is expected: rule (c)'s staleness coupling
+compares the LATEST artifact's hash against the CURRENT tree, and this marker is exactly the honest
+acknowledgment that the tree moved since those two runs.
+
+**harness_version at write time:** `sha256:23efe6a3833474fa` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:7445fa9093987e53`
+outright).
+
+**The planned run that supersedes this marker.** Not the first run any more (001 and 002 already exist,
+landed by this task) -- the marker's superseding run is now the pilot RE-APPLY, `brief-apply-run-003.json`,
+from the first `brief-apply.yml` dispatch against `record-briefs-001.json` under this task's fixed code
+(five defects fixed: A/B Gate A + criterion 4 pre-write refusals now catch what the ground step used to
+quarantine, C target-match own-url match, D the whole-module db pass, E the widened timeline parser, F the
+workflow's `allow_brief_overwrite` input + artifact commit-back). Per F28's reverse-audit, this file is
+deleted the moment an artifact carrying the hash above lands, or re-pinned again if a governing file
+changes before that run lands.
