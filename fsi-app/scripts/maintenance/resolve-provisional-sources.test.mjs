@@ -270,6 +270,55 @@ test("main() apply: a dead sources-table row calls rejectSourcesRow with the rea
   assert.match(deps.calls.rejectSources[0].reason, /dead\.example/);
 });
 
+// Fix round 2 for D3 (defect-fix-plan-2026-09-12.md, re-review of 16179a2a, CONFIRMED regression):
+// worklistProvisional/worklistSourcesRow were nested inside `if (plan.host)` next to the null-tier-host
+// flag merge, so a row whose URL has no parsable host was COUNTED as worklisted but its own row was
+// NEVER written on apply, and never reached a terminal state. Fixed: the row-level write runs for
+// every worklist decision; only the per-host flag merge is conditional on having a real host.
+test("main() apply: a provisional_sources row with an unparsable URL reaches its terminal state with 'URL has no parsable host', and no flag row is inserted", async () => {
+  const pending = [{ id: "p9", url: "not-a-url" }];
+  const deps = fakeDeps({ pending });
+  const summary = await main({ mode: "apply" }, deps);
+
+  assert.equal(deps.calls.worklist.length, 1, "the row's own terminal write must run even with no host");
+  assert.equal(deps.calls.worklist[0].id, "p9");
+  assert.equal(deps.calls.worklist[0].reason, "URL has no parsable host");
+  assert.equal(deps.calls.insertNullTierFlag.length, 0, "a null host has no flag to merge into");
+  assert.equal(deps.calls.updateNullTierFlag.length, 0);
+  assert.equal(summary.counts.worklist, 1);
+  assert.equal(summary.worklist_flag_writes.inserted, 0);
+
+  // A second run over the identical input changes nothing further: the row-level write runs again
+  // (idempotent, same terminal status/reason both times) and still no flag row is ever touched.
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(deps.calls.worklist.length, 2);
+  assert.equal(deps.calls.worklist[1].reason, "URL has no parsable host");
+  assert.equal(deps.calls.insertNullTierFlag.length, 0);
+  assert.equal(deps.calls.updateNullTierFlag.length, 0);
+  assert.equal(second.worklist_flag_writes.inserted, 0);
+  assert.equal(second.worklist_flag_writes.updated, 0);
+});
+
+test("main() apply: a sources-table row with an unparsable URL reaches its terminal state with 'URL has no parsable host'", async () => {
+  const sourcesProv = [{ id: "s9", url: "not-a-url" }];
+  const deps = fakeDeps({ sourcesProv });
+  const summary = await main({ mode: "apply" }, deps);
+
+  assert.equal(deps.calls.worklistSources.length, 1, "the row's own terminal write must run even with no host");
+  assert.equal(deps.calls.worklistSources[0].id, "s9");
+  assert.equal(deps.calls.worklistSources[0].reason, "URL has no parsable host");
+  assert.equal(deps.calls.insertNullTierFlag.length, 0);
+  assert.equal(summary.counts.worklist, 1);
+});
+
+test("main() dry: a null-host worklist row is counted but the row-level write never fires in dry mode", async () => {
+  const pending = [{ id: "p10", url: "not-a-url" }];
+  const deps = fakeDeps({ pending });
+  const summary = await main({ mode: "dry" }, deps);
+  assert.equal(summary.counts.worklist, 1);
+  assert.equal(deps.calls.worklist.length, 0, "dry mode must never write, including the row-level terminal write");
+});
+
 test("main(): zero pending rows across both tables is a clean no-op", async () => {
   const deps = fakeDeps({});
   const summary = await main({ mode: "apply" }, deps);

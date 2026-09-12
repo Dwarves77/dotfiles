@@ -348,12 +348,15 @@ async function applyProvisionalDecision(row, plan, { apply, deps, summary, workl
     if (apply) await deps.rejectProvisional(row.id, decision.reason);
     return;
   }
-  // worklist (rule d, defect D3 fix): merge into the SAME per-host null-tier-host flag, never a
-  // second worklist mechanism.
+  // worklist (rule d): the row's own terminal write ALWAYS happens (defect fix D3, fix round 2,
+  // review-7.5.md re-review, CONFIRMED regression) -- a row whose URL has no parsable host still
+  // reaches a terminal state, with `decision.reason` ("URL has no parsable host") recorded on it. Only
+  // the per-host null-tier-host flag merge is conditional on having a real host to merge under; a null
+  // host has no flag to merge into.
   summary.counts.worklist += 1;
   summary.samples.worklist.push({ table: "provisional_sources", id: row.id, host: plan.host });
-  if (plan.host) {
-    if (apply) await applyNullTierWorklist(plan.host, "provisional_sources", row.id, deps, worklistFlagOps);
+  if (apply) {
+    if (plan.host) await applyNullTierWorklist(plan.host, "provisional_sources", row.id, deps, worklistFlagOps);
     await deps.worklistProvisional(row.id, decision.reason);
   }
 }
@@ -373,10 +376,12 @@ async function applySourcesDecision(row, plan, { apply, deps, summary, worklistF
     if (apply) await deps.rejectSourcesRow(row.id, decision.reason);
     return;
   }
+  // worklist (rule d): same fix round 2 correction as applyProvisionalDecision above -- the row's own
+  // terminal write always happens; only the per-host flag merge is conditional on a real host.
   summary.counts.worklist += 1;
   summary.samples.worklist.push({ table: "sources", id: row.id, host: plan.host });
-  if (plan.host) {
-    if (apply) await applyNullTierWorklist(plan.host, "sources", row.id, deps, worklistFlagOps);
+  if (apply) {
+    if (plan.host) await applyNullTierWorklist(plan.host, "sources", row.id, deps, worklistFlagOps);
     await deps.worklistSourcesRow(row.id, decision.reason);
   }
 }
