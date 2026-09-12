@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T09:58:01.358Z",
+  "generated_at": "2026-09-12T09:59:20.596Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -334,6 +334,72 @@
           "claim_text": "[penalty_summary] The captured source states, verbatim: «on conviction on indictment to a fine or imprisonment for a term not exceeding 5 years, or to both»",
           "source_span": "on conviction on indictment to a fine or imprisonment for a term not exceeding 5 years, or to both",
           "source_url": "https://www.legislation.gov.uk/uksi/2016/1154"
+        }
+      ]
+    },
+    {
+      "item_id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad",
+      "source_pool_hash": "45b5373f1abb7162f10899b4ab29477fb928b6966c858dc43d420d3084e91a6d",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes Commission Directive (EU) 2015/996 of 19 May 2015, which establishes the common noise assessment methods (the CNOSSOS-EU methodology) Member States must use under the Environmental Noise Directive 2002/49/EC. \"Annex II to Directive 2002/49/EC is replaced by the text set out in the Annex to this Directive.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* The Annex's calculation method \"applies to industrial infrastructures and land transport infrastructures. It therefore applies in particular to road and railway infrastructures. Aircraft transport is included in the scope of the method only for the noise produced during ground operations and excludes take-off and landing.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nUnder Directive 2002/49/EC, \"Member States shall ensure that strategic noise maps are made... no later than 30 June 2007 and 30 June 2012 and thereafter reviewed, and revised if necessary, at least every 5 years,\" and \"Directive 2002/49/EC provides for action plans to be based on strategic noise maps.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* This Directive standardizes how those maps and the resulting action plans are calculated for roads, railways, industrial sites, and aircraft ground operations. For workspaces operating transport, warehousing, or event-logistics activity near mapped noise-sensitive infrastructure (major roads, railway lines, airports, industrial estates) in EU Member States, the strategic noise maps and action plans this methodology feeds can drive locally imposed operating restrictions (curfews, routing limits, noise-abatement procedures). *Legal Confirmation Required:* whether any specific local noise action plan derived from this methodology imposes an operating restriction on a workspace-controlled site or route.\n\n# Issues Requiring Immediate Action\n\n**MONITORING.** Track whether the competent authority for any airport, major road, or railway corridor the workspace regularly uses for time-sensitive cargo (e.g., live-events touring, film and TV production logistics) has published or updated a noise action plan under the CNOSSOS-EU methodology, since national transposition of this common assessment method was required \"by 31 December 2018 at the latest.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* *Operational implication:* a newly adopted or revised noise action plan can introduce or tighten night-time movement restrictions at airports or road corridors relevant to time-critical, high-value cargo scheduling, even though this Directive itself imposes no direct obligation on carriers or forwarders. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe Directive's own obligations run to Member States: \"This Directive is addressed to the Member States.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* It requires Member State authorities to \"bring into force the laws, regulations and administrative provisions necessary to comply with this Directive,\" not workspace-level compliance. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* Any operational consequence for the workspace arrives indirectly, through a Member State's own noise action plan or airport/road operating restriction, not through a direct duty this Directive creates for carriers or forwarders.\n\n# Substantive Requirements\n\n**Scope of the calculation method.** \"The method of calculation described in this document applies to industrial infrastructures and land transport infrastructures... in particular to road and railway infrastructures,\" with aircraft transport \"included in the scope of the method only for the noise produced during ground operations and excludes take-off and landing.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n**Transposition obligation.** \"Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2018 at the latest. They shall forthwith communicate to the Commission the text of those provisions.\" *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n**Strategic noise mapping cadence.** Strategic noise maps under the parent Directive 2002/49/EC must be produced \"no later than 30 June 2007 and 30 June 2012 and thereafter reviewed, and revised if necessary, at least every 5 years,\" feeding the action plans this common methodology standardizes. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n*Specific penalty, sanction, or enforcement provision not available from primary sources as of 2026-09-12: this Directive is a technical implementing measure addressed to Member States and states no penalty provision binding an operator, carrier, or forwarder.*\n\n# Registration and Reporting Obligations\n\nMember States \"shall forthwith communicate to the Commission the text of\" the transposing national provisions once adopted; this is a Member-State-to-Commission reporting duty, not a workspace-facing filing. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n# Operational System Requirements\n\nFor workspaces with recurring time-sensitive movements near mapped noise-sensitive infrastructure: (1) monitor the relevant airport, road, or rail authority's published noise action plan for movement-window or curfew changes, and (2) build lead-time buffers into scheduling for cargo (e.g., live-events staging, film production equipment) that depends on off-peak or night-time transport near noise-restricted corridors. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.* *Operational implication:* since the Directive creates no direct workspace duty, this is a monitoring-and-scheduling control rather than a compliance build. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n# Confirmed Regulatory Timeline\n\n- 19 May 2015: Commission Directive (EU) 2015/996 adopted. In force as of 2026-09-12. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n- This Directive \"shall enter into force on the day following that of its publication in the Official Journal of the European Union.\" In force as of 2026-09-12. *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n- 31 December 2018: deadline for Member States to bring national transposing measures into force. In force as of 2026-09-12 (deadline passed). *Source: Commission Directive (EU) 2015/996 of 19 May 2015 establishing common noise assessment methods according to Directive 2002/49/EC, European Commission, OJ L 168, 1.7.2015. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996.*\n\n# Sources\n\n- Commission Directive (EU) 2015/996 of 19 May 2015, European Commission, OJ L 168, 1.7.2015 (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Commission Directive (EU) 2015/996 of 19 May 2015, European Commission, OJ L 168 1.7.2015, establishing the CNOSSOS-EU common noise assessment methods that replace Annex II to Directive 2002/49/EC for calculating environmental noise from road railway industrial and aircraft-ground-operation sources across EU Member States.",
+        "why_matters": "This Directive standardizes how Member States calculate strategic noise maps and the noise action plans built on them for roads railways industrial sites and airport ground operations. Forwarders scheduling time-sensitive high-value cargo such as live-events touring or film and TV production equipment near mapped noise-sensitive corridors should monitor local noise action plans for curfew or movement-window changes since restrictions arrive indirectly through Member State action rather than through a direct duty this Directive creates.",
+        "key_data": [
+          "Directive adopted 19 May 2015 OJ L 168 1.7.2015",
+          "Member State transposition deadline 31 December 2018",
+          "Strategic noise maps required no later than 30 June 2007 and 30 June 2012 and reviewed at least every 5 years",
+          "Aircraft noise scope limited to ground operations excluding take-off and landing"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "260089a9-e334-4104-843c-cdfc28a94dcc"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «This Directive shall enter into force on the day following that of its publication in the Official Journal of the European Union»",
+          "source_span": "This Directive shall enter into force on the day following that of its publication in the Official Journal of the European Union",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2018 at the latest.»",
+          "source_span": "Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2018 at the latest.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «The method of calculation described in this document applies to industrial infrastructures and land transport infrastructures.»",
+          "source_span": "The method of calculation described in this document applies to industrial infrastructures and land transport infrastructures.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; this Directive is a technical implementing measure addressed to the Member States. Specific penalty summary not available from primary sources as of 2026-09-12.",
+          "source_span": null,
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996"
         }
       ]
     }
