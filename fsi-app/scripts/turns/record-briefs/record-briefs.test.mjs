@@ -58,7 +58,9 @@ function validEntry(overrides = {}) {
   return {
     item_id: ITEM_ID,
     source_pool_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85",
-    body: "# Regulation Brief\n\nThis instrument sets out reporting obligations.",
+    body:
+      "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
+      "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n",
     metadata: validMetadata(),
     claims: [validClaim()],
     ...overrides,
@@ -101,6 +103,124 @@ describe("validateRecordBriefsFile: FACT span not in the pool text", () => {
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: {} });
     assert.equal(r.ok, false);
     assert.ok(r.errors.some((e) => e.includes("not a verbatim substring") && e.includes(ITEM_ID)));
+  });
+});
+
+// ── task 6.1b (brief-chain-build-plan-2026-09-11): the three new pre-write refusals, born from the
+// 10-item pilot batch that generated and sectioned cleanly, then quarantined 10/10 at the ground step for
+// defects this validator now catches before any grounding cost is spent. ─────────────────────────────
+
+describe("validateRecordBriefsFile: Gate A mirror", () => {
+  test("a figure/date token in the body with no covering FACT claim fails, naming the token and its class", () => {
+    const entry = validEntry({
+      body:
+        validEntry().body +
+        "\n\n# Issues Requiring Immediate Action\n\n*Specific deadline not confirmed as of 2027-03-01.*\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("Gate A mirror"));
+    assert.ok(msg, `expected a Gate A mirror error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /2027-03-01/);
+    assert.match(msg, /deadline/);
+  });
+
+  test("a token covered by a FACT claim's own text/span never fails (the happy path)", () => {
+    const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true);
+  });
+});
+
+describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", () => {
+  test("a section matching the unlabeled-modal pattern with no analysis label or legal callout fails, naming the section", () => {
+    const entry = validEntry({
+      body: validEntry().body + "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("criterion 4 mirror"));
+    assert.ok(msg, `expected a criterion 4 mirror error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /Substantive Requirements/);
+  });
+
+  test("the SAME assertion labeled with a recognised analysis label passes", () => {
+    const entry = validEntry({
+      body:
+        validEntry().body +
+        "\n\n# Substantive Requirements\n\n*Analytical inference:* The operator must register with the agency.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true);
+  });
+
+  test("the SAME assertion behind the legal callout passes", () => {
+    const entry = validEntry({
+      body:
+        validEntry().body +
+        "\n\n# Substantive Requirements\n\n*Legal Confirmation Required:* The operator must register with the agency.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true);
+  });
+
+  test("an unlabeled assertion in the preamble before the first heading is caught too", () => {
+    const entry = validEntry({ body: "The operator must register before shipping.\n\n" + validEntry().body });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("criterion 4 mirror") && e.includes("preamble")));
+  });
+
+  test("this mirror is STRICTER than the live DB rule: a FACT claim attached to the section is NOT an escape here", () => {
+    // The live validate_item_provenance criterion 4 also accepts a FACT claim carrying the same
+    // section_key as an alternative to a label -- this validator has no section_key/claim attachment to
+    // check pre-write, so the unlabeled assertion still fails even though a FACT claim exists elsewhere
+    // in the same entry.
+    const entry = validEntry({
+      body: validEntry().body + "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n",
+      claims: [validClaim(), { slot_key: null, claim_kind: "FACT", claim_text: "the fine is up to EUR 500,000", source_span: "fines of up to EUR 500,000", source_url: "https://example.org/reg" }],
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("criterion 4 mirror")));
+  });
+});
+
+describe("validateRecordBriefsFile: timeline mirror", () => {
+  test("a body with no Confirmed Regulatory Timeline section fails, naming the missing heading", () => {
+    const entry = validEntry({ body: "# Regulation Brief\n\nThis instrument sets out reporting obligations." });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("timeline mirror"));
+    assert.ok(msg, `expected a timeline mirror error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /no "Confirmed Regulatory Timeline" section/);
+  });
+
+  test("a Confirmed Regulatory Timeline section whose only line fails to parse (no colon/dash separator) fails, printing the parser's view", () => {
+    const entry = validEntry({
+      body:
+        "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
+        "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027 regulation enters into force with no separator\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    const msg = r.errors.find((e) => e.includes("timeline mirror"));
+    assert.ok(msg, `expected a timeline mirror error, got: ${JSON.stringify(r.errors)}`);
+    assert.match(msg, /ZERO rows/);
+  });
+
+  test("a colon-separated entry (the lane's own shape, no dash glyph) counts as at least one row", () => {
+    const r = validateRecordBriefsFile(validFile(), { poolTextByItemId: POOL }); // validEntry's default body
+    assert.equal(r.ok, true);
+  });
+
+  test("the section-sign heading variant (\\u00A714 ...) is also accepted", () => {
+    const entry = validEntry({
+      body:
+        "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
+        `\n\n# ${String.fromCharCode(0xa7)}14 Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n`,
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true);
   });
 });
 
@@ -279,7 +399,9 @@ describe("buildSyntheticFrontmatter", () => {
 
 describe("buildSyntheticRawText", () => {
   test("a body containing its own literal '---' line still parses (the opening fence closest to the YAML wins)", () => {
-    const body = "# Title\n\nSection one.\n\n---\n\nSection two, after a markdown rule.";
+    const body =
+      "# Title\n\nSection one.\n\n---\n\nSection two, after a markdown rule." +
+      "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n";
     const raw = buildSyntheticRawText(body, validMetadata());
     // parseAgentOutput is exercised indirectly via validateRecordBriefsEntry -- this test proves the raw
     // text itself is well-formed by checking the whole entry validates ok end to end.

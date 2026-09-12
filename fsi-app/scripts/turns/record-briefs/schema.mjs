@@ -72,12 +72,83 @@
 
 import { parseAgentOutput, AgentOutputParseError } from "../../../src/lib/agent/parse-output.ts";
 import { assertVerbatim } from "../../../src/lib/intake/record-facts.mjs";
+import { scanBrief } from "../../../src/lib/agent/gate-a-scan.mjs";
+import { extractSectionByHeading } from "../../../src/lib/agent/extract-sections.ts";
+import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
+import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-11.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.1";
+// 2026-09-12.1 (task 6.1b, brief-chain-build-plan-2026-09-11): three new pre-write refusals, added after
+// a 10-item pilot batch generated and sectioned cleanly, then quarantined 10/10 at the ground step for
+// defects this validator could have caught before any grounding cost was spent -- see the three "MIRROR"
+// blocks in validateRecordBriefsEntry below. Quarantine is never the end state of brief-apply (operator
+// ruling, 2026-09-12); refusing HERE, naming the exact token or section, is how the lane fixes the source
+// before a write is ever attempted.
 
 // Mirrors parse-output.ts's own (private) CLAIM_KIND_VALUES -- see header "ONE LOCAL VOCABULARY" above.
 const CLAIM_KIND_VALUES = Object.freeze(["FACT", "ANALYSIS", "LEGAL", "GAP"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ── criterion-4 mirror vocabulary -- ANOTHER named duplicate (same posture as CLAIM_KIND_VALUES above):
+// mirrors scripts/mint/validate-mint-payload.mjs's own (module-private) ANALYSIS_LABEL_RE / LEGAL_CALLOUT
+// / UNLABELED_MODAL_RE, itself "ported verbatim from migration 171's c_label_re / c_legal_req_re" per that
+// file's own comment. Re-declared here rather than imported because validate-mint-payload.mjs exports
+// none of the three (only validateMintPayload itself is exported). This mirror is DELIBERATELY STRICTER
+// than the live DB rule: the DB's own unlabeled_assertion check also accepts a FACT claim attached to the
+// section (`hasFactInSection`) as an alternative to a label/callout -- that escape is NOT available here,
+// because claim-to-section attachment happens at write time (when a real `intelligence_item_sections` row
+// exists to attach the claim to) and cannot be known from a record-briefs entry's flat `body` string. A
+// batch that would pass the live DB check via that escape can still fail here; see README.md.
+const ANALYSIS_LABEL_RE =
+  /\*?(per the workspace's reading|analytical inference|industry interpretation|operational implication)(\s*\([^)]*\))?:\*?/i;
+const LEGAL_CALLOUT = "*legal confirmation required:*";
+const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
+
+function ilikeIncludes(haystack, needle) {
+  return String(haystack ?? "").toLowerCase().includes(String(needle ?? "").toLowerCase());
+}
+
+/** Split a body's markdown into sections at `#`-headings (any level 1-6). The preamble before the first
+ *  heading (if any) is its own section with `heading: null` -- checked the same as every other section,
+ *  since an unlabeled assertion before the first heading is just as unlabeled as one inside a section.
+ *  @param {string} body @returns {{heading:string|null, text:string}[]} */
+function splitBodyIntoSections(body) {
+  const lines = String(body ?? "").split(/\r?\n/);
+  const sections = [];
+  let current = { heading: null, lines: [] };
+  for (const line of lines) {
+    if (/^#{1,6}\s+/.test(line)) {
+      sections.push(current);
+      current = { heading: line.replace(/^#{1,6}\s+/, "").trim(), lines: [] };
+    } else {
+      current.lines.push(line);
+    }
+  }
+  sections.push(current);
+  return sections.map((s) => ({ heading: s.heading, text: s.lines.join("\n") }));
+}
+
+// ── timeline mirror -- the two heading variants extract-regulation-sections.ts's own (module-private)
+// SECTION_HEADINGS["14"] accepts, reproduced here as the same two literal strings (never exported from
+// that module, so this is the same named-duplicate posture as CLAIM_KIND_VALUES/ANALYSIS_LABEL_RE above).
+// The section-sign form is written with a \u escape, never the literal glyph (this repo's own dash/
+// section-sign ban), which matches the SAME character the live heading variant uses either way.
+const TIMELINE_HEADING_VARIANTS = Object.freeze([
+  "Confirmed Regulatory Timeline",
+  "\u00A714 Confirmed Regulatory Timeline",
+]);
+// Only used for buildTimelineRows' is_completed flag, which this mirror never inspects (it only checks
+// row COUNT) -- a fixed sentinel keeps this validator pure and deterministic rather than depending on the
+// wall clock for a value that plays no part in any refusal decision here.
+const TIMELINE_MIRROR_TODAY_ISO = "1970-01-01";
+
+function findTimelineSection(body) {
+  for (const variant of TIMELINE_HEADING_VARIANTS) {
+    const extracted = extractSectionByHeading(String(body ?? ""), variant);
+    if (extracted) return extracted;
+  }
+  return null;
+}
 
 function isNonEmptyString(v) {
   return typeof v === "string" && v.trim().length > 0;
@@ -290,6 +361,76 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
     entry.claims.forEach((claim, ci) => {
       errors.push(...validateRecordBriefsClaim(claim, ci, itemId, poolText));
     });
+  }
+
+  const hasBody = typeof entry.body === "string" && entry.body.trim() !== "";
+
+  // ── MIRROR (a): Gate A -- every figure/date token scanBrief harvests from the body must be covered by
+  // some FACT claim's own claim_text or source_span (see gate-a-scan.mjs). No `derivedCovered` set is
+  // computed at authoring time (that requires a live DB lookup of grounded DERIVED claims -- see
+  // gate-a-derived.mjs -- which this pure, offline validator has no access to and no need for: a
+  // record-briefs entry carries no DERIVED claims of its own), so this mirror is scanBrief's LITERAL arm
+  // only. README.md's authoring rules state the consequence plainly: every figure/date written in the
+  // body is either inside a FACT claim's text or span, verbatim from the pool, or not written at all.
+  if (hasBody && Array.isArray(entry.claims)) {
+    const factClaims = entry.claims
+      .filter((c) => c && typeof c === "object" && c.claim_kind === "FACT")
+      .map((c) => ({ claim_text: c.claim_text, source_span: c.source_span }));
+    const gateA = scanBrief(entry.body, factClaims);
+    if (gateA.orphan_count > 0) {
+      const list = gateA.orphans.map((o) => `${JSON.stringify(o.token)} (${o.class})`).join(", ");
+      at(
+        `Gate A mirror: ${gateA.orphan_count} orphan token(s) in the body with no covering FACT claim: ${list}. ` +
+          "Either add a FACT claim whose claim_text or source_span carries the token verbatim, or remove the token from the body.",
+      );
+    }
+  }
+
+  // ── MIRROR (b): criterion 4 -- every section whose text matches the unlabeled-modal pattern must carry
+  // one of the four analysis labels or the legal callout INSIDE that same section. Deliberately STRICTER
+  // than the live DB rule (see the ANALYSIS_LABEL_RE/LEGAL_CALLOUT/UNLABELED_MODAL_RE header comment
+  // above): the DB's own check also accepts a FACT claim attached to the section as an alternative, which
+  // this validator cannot evaluate pre-write (claim-to-section attachment happens at the real write site,
+  // once a real intelligence_item_sections row exists).
+  if (hasBody) {
+    for (const section of splitBodyIntoSections(entry.body)) {
+      if (!section.text.trim()) continue;
+      if (
+        UNLABELED_MODAL_RE.test(section.text) &&
+        !(ANALYSIS_LABEL_RE.test(section.text) || ilikeIncludes(section.text, LEGAL_CALLOUT))
+      ) {
+        const where = section.heading ? `section ${JSON.stringify(section.heading)}` : "the preamble before the first heading";
+        at(
+          `criterion 4 mirror: unlabeled assertion in ${where} -- matches /requires|must|mandates|obligates|prohibits|applies to/i ` +
+            "with no *Analytical inference:*/*Industry interpretation:*/*Operational implication:* label and no *Legal Confirmation Required:* callout in that section.",
+        );
+      }
+    }
+  }
+
+  // ── MIRROR (c): timeline -- the body must contain a "Confirmed Regulatory Timeline" section whose
+  // entries, run through the SAME parser (timeline-parse.mjs) and buildTimelineRows (timeline-
+  // harvest.mjs) the live write site uses, yield at least one row. "No item should be without some date
+  // in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with at least one
+  // item_timelines row, and this refuses BEFORE the write when that would not hold.
+  if (hasBody) {
+    const timelineSection = findTimelineSection(entry.body);
+    if (!timelineSection) {
+      at(
+        'timeline mirror: body has no "Confirmed Regulatory Timeline" section (heading required -- ' +
+          "the instrument's own adoption, publication, or entry-into-force date qualifies when no other dated milestone exists).",
+      );
+    } else {
+      const parsedEntries = parseTimeline(timelineSection.contentMarkdown);
+      const { rows, skipped } = buildTimelineRows(parsedEntries, TIMELINE_MIRROR_TODAY_ISO);
+      if (rows.length === 0) {
+        at(
+          `timeline mirror: the "Confirmed Regulatory Timeline" section yields ZERO rows once parsed ` +
+            `(the parser's own view: ${parsedEntries.length} raw entr${parsedEntries.length === 1 ? "y" : "ies"} found, ` +
+            `${skipped.length} skipped as unparseable: ${JSON.stringify(skipped)}). Section text: ${JSON.stringify(timelineSection.contentMarkdown.slice(0, 500))}`,
+        );
+      }
+    }
   }
 
   return errors;
