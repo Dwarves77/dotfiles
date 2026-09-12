@@ -37,7 +37,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   applyTags, evaluateApplication,
-  evaluateAutoAdoption, partitionByConfidence, autoAdoptTags, AUTO_ADOPT_THRESHOLD,
+  evaluateAutoAdoption, autoAdoptTags, AUTO_ADOPT_THRESHOLD,
 } from "../connections/apply-tags.mjs";
 import { TAG_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
 import { runCli } from "./lib/cli.mjs";
@@ -143,45 +143,59 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 async function runAutoAdopt(apply, deps) {
   const summary = { step: "tag-ratification", mode: apply ? "apply" : "dry", counts: {}, applied: 0, read_back: {}, exitCode: 0 };
 
+  // Task 7.2 / ADR-030 rider (2026-09-12): every flywheel-tag proposal is DECIDED (adopt or decline),
+  // never left as "below threshold" residue on an open flag — see apply-tags.mjs's decideTagProposal.
+  // Every open flag with >=1 parseable proposal is now decidable; "not adoptable" is limited to a
+  // malformed/foreign-namespace/zero-proposal row.
   const openFlags = await deps.listOpenCandidates();
-  const evaluated = openFlags.map((f) => {
-    const decision = evaluateAutoAdoption(f);
-    if (!decision.ok) return { flag: f, decision, partition: null };
-    return { flag: f, decision, partition: partitionByConfidence(decision.proposals) };
-  });
-  const eligible = evaluated.filter((e) => e.decision.ok && e.partition.eligible.length > 0);
-  const belowThreshold = evaluated.filter((e) => e.decision.ok && e.partition.eligible.length === 0);
+  const evaluated = openFlags.map((f) => ({ flag: f, decision: evaluateAutoAdoption(f) }));
+  const decidable = evaluated.filter((e) => e.decision.ok);
   const notAdoptable = evaluated.filter((e) => !e.decision.ok);
 
   summary.counts = {
     open_candidates: openFlags.length,
     threshold: AUTO_ADOPT_THRESHOLD,
-    eligible: eligible.map((e) => ({
-      flag_id: e.flag.id,
-      item_id: e.decision.itemId,
-      eligible_count: e.partition.eligible.length,
-      residue_count: e.partition.residue.length,
-    })),
-    below_threshold_count: belowThreshold.length,
+    decidable_count: decidable.length,
     not_adoptable_count: notAdoptable.length,
   };
+
+  // Dry output (spec: "adopt/decline counts and a 20-row sample per outcome") — run every decidable
+  // flag through autoAdoptTags in dry mode (execute:false — reads only, no write) to surface the
+  // per-proposal decision the coordinator reads before apply.
+  const allDecisions = [];
+  for (const { flag } of decidable) {
+    const r = await autoAdoptTags(deps, flag.id, { execute: false, threshold: AUTO_ADOPT_THRESHOLD });
+    if (Array.isArray(r.decisions)) {
+      for (const d of r.decisions) allDecisions.push({ flag_id: flag.id, item_id: r.itemId, ...d });
+    }
+  }
+  const adoptedSample = allDecisions.filter((d) => d.decision === "adopt");
+  const declinedSample = allDecisions.filter((d) => d.decision === "decline");
+  summary.counts.adopt_count = adoptedSample.length;
+  summary.counts.decline_count = declinedSample.length;
+  summary.counts.adopted_sample = adoptedSample.slice(0, 20);
+  summary.counts.declined_sample = declinedSample.slice(0, 20);
 
   if (!apply) return summary;
 
   let applied = 0;
   const results = [];
-  for (const { flag } of eligible) {
-    const r = await autoAdoptTags(deps, flag.id, { execute: true });
-    results.push({ flag_id: flag.id, status: r.status, item_id: r.itemId ?? null });
-    if (r.status === "auto_adopted" || r.status === "auto_adopted_partial") applied += 1;
+  for (const { flag } of decidable) {
+    const r = await autoAdoptTags(deps, flag.id, { execute: true, threshold: AUTO_ADOPT_THRESHOLD });
+    results.push({
+      flag_id: flag.id, status: r.status, item_id: r.itemId ?? null,
+      adopted: r.decisions?.filter((d) => d.decision === "adopt").length ?? 0,
+      declined: r.decisions?.filter((d) => d.decision === "decline").length ?? 0,
+    });
+    if (r.status === "decided" || r.status === "decided_no_change") applied += 1;
   }
   summary.applied = applied;
   summary.counts.apply_results = results;
-  const touchedItemIds = [...new Set(results.filter((r) => r.status === "auto_adopted" || r.status === "auto_adopted_partial").map((r) => r.item_id))];
+  const touchedItemIds = [...new Set(results.filter((r) => r.status === "decided").map((r) => r.item_id))];
   summary.note =
-    `Auto-adopted ${applied}/${eligible.length} eligible flag(s) at/above threshold "${AUTO_ADOPT_THRESHOLD}" ` +
-    `(${belowThreshold.length} open flag(s) below threshold left untouched). Discovery NOT re-run by this ` +
-    "step (orchestration only, per this file's header) — fallback: node scripts/connections/" +
+    `Decided ${applied}/${decidable.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}" -- every flag ` +
+    `closed (no residue stays open, task 7.2). Discovery NOT re-run by this step (orchestration only, per ` +
+    "this file's header) — fallback: node scripts/connections/" +
     `discover-for-items.mjs --ids ${touchedItemIds.join(",") || "<item id(s)>"} --execute.`;
 
   const readBack = {};
@@ -243,10 +257,13 @@ if (IS_MAIN) {
           return rows;
         },
         readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
+        // Widened 2026-09-12 (task 7.2): the auto path re-checks a medium-confidence proposal's keyword
+        // evidence against the item's own title/what_is_it/summary/full_brief (apply-tags.mjs's
+        // decideTagProposal), not just its tag arrays.
         readItem: (id) =>
           sb
             .from("intelligence_items")
-            .select("id, operational_scenario_tags, compliance_object_tags, topic_tags")
+            .select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, what_is_it, summary, full_brief")
             .eq("id", id)
             .maybeSingle(),
         updateItem: async (id, patch) => {
