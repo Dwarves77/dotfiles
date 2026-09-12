@@ -11,6 +11,21 @@ Operator's instruction, 2026-09-09, verbatim (also recorded in `docs/ops/session
 
 Operator's order, 2026-09-11, verbatim (also recorded in `docs/ops/session-log.md`): "get it done."
 
+## Status 2026-09-11 (added by lane LANDDOCS, landing this runbook)
+
+Command 1 (forward-events backfill) is no longer pending: it was applied in run 34612367135
+(2026-09-11 14:48Z, mode=apply, command=forward-events, `--execute`). `item_forward_events` moved 821
+to 1,209 rows (289 to 365 items); `compliance_deadline` moved 71 to 87. See `docs/ops/HANDOFF-2026-09-11.md`
+CORRECTIONS item 1.
+
+[CONFIRMED] Command 2 (timeline harvest) was applied on 2026-09-11 in date-chain run 34635080848
+(mode=apply, command=timeline-harvest): item_timelines went from 1,169 to 1,229 rows, items from 131
+to 152 (+21 filled, 117 replaced, 12 HELD).
+
+[CONFIRMED] Outside this workflow, the entity backfill was applied on 2026-09-11 in propagation-drain
+run 34635876636 (mode=apply, backfill_entities=true): entity_refs +1,693, entities +855,
+entity_identifiers +837, no errors.
+
 ## Runtime
 
 Commands 1 and 2 (forward-events backfill and timeline harvest — both FREE, no-model, pure parsers) run
