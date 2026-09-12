@@ -18587,6 +18587,60 @@ push. No PreToolUse skill-gate denial on any Write/Edit this round. No database 
 Not applicable: no `.tsx` or `.css` touched. (The casing observation above is a content/UX note for the
 operator's future decision, not a UI change made this round.)
 ## 2026-09-11, W9-PART3 task 3.2: the record-briefs artifact contract
+## W9-PART3 (2026-09-11)
+
+### Task 3.1: export stub items' claims and pool text for session-lane brief authoring
+
+Worktree `wt-part3-0911`, branch `lane/w9-part3-2026-09-11`, per
+`docs/plans/brief-chain-build-plan-2026-09-11.md` Part 3 task 3.1. Added by the coordinator's own
+follow-up (2026-09-11), correcting a gap task 3.2's own session-log subsection flagged below: task
+3.1's report claimed this subsection was added at the time, but `git log --oneline -- docs/ops/
+session-log.md` shows none of task 3.1's three commits touched this file. The original claim is
+`[REFUTED]`: it was never committed. This entry is the fix.
+
+**Accomplished.** `fsi-app/scripts/turns/export-corpus-for-extraction.mjs` gained `--with-pool-text`
+(adds each stub item's `agent_run_searches.result_content`/`result_url` as `pool: [{url, text}]`,
+filtered through `read-and-extract.mjs`'s `usableCapturesOrdered` 200-char usable-capture floor, the
+same floor `canonical-pipeline.ts` and the due-date-context path already use for "first capture"
+ordering) and `--char-budget N` (default 3,000,000; a pure `chunkByCharBudget` packs items into
+numbered parts under the budget, an item whose own JSON size exceeds the budget goes alone in its own
+part flagged `oversize: true`). Each exported item under `--with-pool-text` also carries eight fields
+the default (unflagged) export path never did: `title`, `item_type`, `format_type`,
+`jurisdiction_iso`, `canonical_instrument_key`, `source_id`, `source_url` (plain pass-through of the
+matching `intelligence_items` column), and `required_slots` (a `string[]` of `slot_key`, read via a
+Set-deduplicated, item-type-batched `item_type_required_slots` query, the same query shape
+`canonical-pipeline.ts`'s own `requiredSlotsFor` uses). A new `.github/workflows/brief-export.yml`
+(dispatch-only: explicit `ids`, or up to `limit` auto-selected hollow record-grade stubs reusing
+`record-hollow-sweep.mjs`'s own documented criterion as a read) delivers the numbered parts via the
+same branch+PR transport `ledger-consume.yml`'s `export_candidates` mode uses
+(`deliver-artifact-branch.sh`). The default (unflagged) export path is unchanged.
+
+**Commits** (this branch, in order): `c465f029` (feat(brief-chain): export stub items' claims and
+pool text for session-lane brief authoring; renamed from the original `8a4661b3` when the coordinator
+rebased the lane onto `brieffields`), `d9157ce5` (fix(brief-chain): task 3.1 fix round 1: full item
+shape, usable-capture floor, boundary test, grade note), `62233564` (fix(brief-chain): F39-allow the
+bounded `item_type` `.in()` filter, widen test slice window).
+
+**Gates.** `node --test scripts/turns/export-corpus-for-extraction.test.mjs`: 43/43 pass (34
+pre-existing plus 9 new/updated across both fix-round commits). `npx tsc --noEmit`: clean on both
+commits. `node .discipline/fitness/runner.mjs`: 10 violations, all pre-existing `[F28]`
+harness-staleness findings unrelated to this task's files, with one exception caught and fixed before
+commit review: the new `item_type_required_slots` `.in("item_type", itemTypes)` read tripped F39
+(unbounded-in-filter), justified and allowlisted with an inline `// fitness-allow: F39` marker because
+`item_type`'s whole vocabulary is fixed at exactly 12 values by migration 004's own `CHECK (item_type
+IN (...))` constraint (`004_source_trust_framework.sql`), so `itemTypes` (already Set-deduplicated)
+can never exceed 12 elements regardless of corpus size; fitness returned to the documented
+10-violation baseline after the fix. `node .discipline/runner.mjs --mode=ci
+--range=origin/master..HEAD`: both commits pass, 4 pass/0 fail/5 skip each (rules 012/015/016/019).
+`bash .discipline/run-test-suite.sh` NOT run, per the coordinator's own gate-scope instruction for
+this lane.
+
+### UX compliance: not applicable
+
+This task touches no `.tsx`/`.css` under `fsi-app/src`; it is a backend script/workflow change only
+(`export-corpus-for-extraction.mjs`, its test, and a new GitHub Actions workflow).
+
+### Task 3.2: the record-briefs artifact contract
 
 Worktree `wt-part3-0911`, branch `lane/w9-part3-2026-09-11`, on top of task 2.2's parser (`92085ff9`) and
 task 3.1's export (`c465f029`, `d9157ce5`, `62233564`), per `docs/plans/brief-chain-build-plan-2026-09-11.md`
