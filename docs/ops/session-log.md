@@ -19541,3 +19541,23 @@ per-fix proof: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-6.1b-rep
 ## 2026-09-12, lane contract: the wiring preflight
 
 Operator, verbatim: "These type of issues keep happening. Why can't we make sure all of the items are wired properly before we start the work and fail." The day's refusals (shared-writer registry at push, a no-npm import in CI, a stale F28 marker, an apply-only crash in a live run, a worklist a CI job wrote and lost) were all existing gates firing after the work. docs/dispatches/lane-common-contract.md gains a "Wiring preflight" section: the lane runs the push gate itself without pushing (`sh fsi-app/.discipline/hooks/pre-push < /dev/null`) before it reports, serialised by the coordinator, and walks a list of the wiring rules that have refused lanes. The coordinator's briefs may shorten the tests run during the work; they never waive the preflight at the end. This corrects the coordinator's own 2026-09-12 instruction to lanes not to run the full suite, which removed the gate that would have caught four of the five.
+## 2026-09-12, W9 Part 7.1/7.4 lane: apply-classifications.mjs apply-mode crash (7.4c)
+
+Coordinator-reported live crash, maintenance run 34691660889 (apply-classifications, apply mode): `ReferenceError: guardedUpdate is not defined` at `updateSource` (the MAINT wrapper `scripts/maintenance/apply-classifications.mjs`, called from `scripts/classification/apply-classifications.mjs`'s `autoAdoptClassification`). Root cause [CONFIRMED, read + reproduced]: the wrapper's `buildDeps()` destructured `readAll, readClient, guardedInsertMany, guardedUpdateByIds` from `../lib/db.mjs` but not `guardedUpdate`, which both `updateSource` and `resolveFlag` call. Dry mode never reaches those two closures (`main` returns before Phase 2's write loop when `mode !== "apply"`), so every existing dry-mode test, and the file's own pre-fix tests (which pass a hand-built fake `deps` object into `main()` and never touch the real `buildDeps()`/db.mjs import), stayed green while the real apply path crashed on the first eligible auto-adopt.
+
+Fix: added `guardedUpdate` to the import; extracted the inline `buildDeps: async () => {...}` into a named export `buildRealDeps()` so a test can call the REAL closures (not a fake stand-in) with db.mjs's `__setWriteClientForTest` seam. Three new tests in `apply-classifications.test.mjs`: `updateSource` and `resolveFlag` each exercised through `buildRealDeps()` against a fake Supabase client (proving the real `guardedUpdate` import wires through, snapshot path returned, correct table/patch), plus a contract-completeness test invoking every `buildRealDeps()` member once. Verified the regression test actually catches the bug: reverted the import, re-ran, got the exact `ReferenceError: guardedUpdate is not defined` at `updateSource`/`resolveFlag`; restored, green again (15/15).
+
+Class note: this is the "apply-only code path invisible to dry-mode tests" shape (an apply-only write closure with a missing import can pass every dry-mode-only test suite) -- the durable fix is exporting the real deps-builder so tests exercise the actual import graph instead of a fully-mocked stand-in, not just adding a narrower unit test.
+
+**Gates.** `node --test scripts/maintenance/apply-classifications.test.mjs`: 15/15. `node --check` both files: OK. `node .discipline/glob-portability.test.mjs`: 3/3. `node .discipline/fitness/runner.mjs --quiet`: exit 0. `npx tsc --noEmit` (from fsi-app): clean.
+
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line (diff-scoped byte scan on both touched files, clean before commit -- two pre-existing em dashes on lines this fix's diff already touched were also converted to `--` while there). No hardcoded user-home paths. Staged explicitly (2 named paths); never `git add -A`. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No `git stash`, no `--no-verify`, no push. No database access (no DB creds in this worktree; the fix and its test are both fixture/seam-driven, zero live writes).
+
+**Files.**
+- `fsi-app/scripts/maintenance/apply-classifications.mjs` (modified: `guardedUpdate` added to the db.mjs import; `buildDeps` extracted to exported `buildRealDeps()`)
+- `fsi-app/scripts/maintenance/apply-classifications.test.mjs` (modified: 3 new `buildRealDeps()` regression tests + the write-client-seam fixture)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (7.4c)
+
+Not applicable: no `.tsx`/`.css` touched.
