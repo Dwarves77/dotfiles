@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T09:59:20.596Z",
+  "generated_at": "2026-09-12T10:01:49.893Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -400,6 +400,73 @@
           "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; this Directive is a technical implementing measure addressed to the Member States. Specific penalty summary not available from primary sources as of 2026-09-12.",
           "source_span": null,
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015L0996"
+        }
+      ]
+    },
+    {
+      "item_id": "767482b8-5065-4c27-8d07-cbe660cc9f62",
+      "source_pool_hash": "7d9a27ef81fec51d86a0af2f63dca9cf6a484e4d7667b712173cde8eacff75cd",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Energy Act 2023 (c. 52), a broad UK primary Act covering hydrogen production revenue support, carbon capture and storage licensing, gas and electricity economic regulation, and related energy-transition infrastructure. \"This Act may be cited as the Energy Act 2023.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* Given the Act's breadth, this document is scoped to the provisions the captured text grounds: hydrogen production revenue support contracts and the hydrogen levy, carbon storage licensee notification duties to the North Sea Transition Authority (OGA), and the licence-holder financial penalty regime; other parts of the Act are outside this document's grounded scope.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Act empowers the Secretary of State to make \"revenue support regulations\" funding \"hydrogen production revenue support contracts,\" recovered through a hydrogen levy charged to \"GB gas shippers\" and \"Northern Ireland gas shippers\": \"a description so specified may not include persons other than\" (a) \"GB gas shippers\" or (b) \"Northern Ireland gas shippers.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* It also creates licensee duties in the carbon storage regime: \"a licensee, and... an exploration operator under a carbon storage licence... must appoint an individual to act as an information and samples coordinator, and notify the OGA of that individual's name and contact details.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* For workspaces engaged in hydrogen or alternative-fuel supply chains, or providing logistics for carbon capture, usage and storage (CCUS) project equipment and materials, this Act sets the funding and licensing framework those upstream counterparties operate under. The Act applies to activities in \"the territorial sea adjacent to the United Kingdom,\" covering offshore carbon storage and gas activity. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# Issues Requiring Immediate Action\n\n**COST ALERT.** Assess whether any client that is a GB or Northern Ireland gas shipper is exposed to hydrogen levy pass-through costs, since the levy is recovered from those shipper classes to fund hydrogen production revenue support contracts. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* *Operational implication:* a gas-shipper client's hydrogen levy exposure can flow into downstream energy pricing that affects freight and warehousing operating costs where gas is a direct input, though the specific pass-through mechanism to any individual workspace client requires client-specific data. *Analytical inference:* effect on cost of gas-dependent operations requires carrier-specific and shipper-specific data. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe Act's duty holders are gas shippers (for the hydrogen levy), and licensees or exploration operators under a carbon storage licence (for the OGA notification duty); the workspace, as freight forwarder, does not fall within either duty-holder class on the captured text. *Legal Confirmation Required:* whether any workspace activity constitutes acting as a \"GB gas shipper\" or holding a \"carbon storage licence\" as the Act defines those terms; absent that, the workspace's exposure is indirect, through client relationships with covered gas shippers or carbon storage licensees.\n\n# Substantive Requirements\n\n**Hydrogen levy recovery.** \"Any sum that a relevant market participant is required by virtue of revenue support regulations to pay to a hydrogen levy administrator, and has not been paid by the date on which it is required... to be paid, may be recovered from the relevant ma[rket participant].\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* Levy-payer eligibility is restricted to \"GB gas shippers\" and \"Northern Ireland gas shippers.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n**Financial penalty right of appeal.** Where revenue support regulations impose a financial penalty, \"provision made... for the imposition of a financial penalty must include provision for a right of appeal against the imposition of the penalty.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n**Carbon storage information coordinator duty.** A licensee or carbon storage exploration operator \"must appoint an individual to act as an information and samples coordinator, and notify the OGA of that individual's name and contact details,\" and \"must comply with subsection (1) within a reasonable period after... the date on which this section comes into force... or... becoming a relevant person.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n**Licence-holder penalty cap.** \"The maximum amount of penalty that may be imposed on a licence holder in respect of a contravention may not exceed 10 per cent of the licence holder's turnover.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# Registration and Reporting Obligations\n\nEconomic-regulator reporting includes \"a summary of final and provisional orders made and penalties imposed by the economic regulator during the year\" as part of the annual transport-and-storage (T&S) report. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* Carbon storage licensees separately notify the OGA of their appointed information and samples coordinator, as above. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# Operational System Requirements\n\nFor workspaces with clients that are gas shippers or carbon storage licensees: (1) confirm the client's hydrogen levy payment status to the levy administrator, since unpaid sums are recoverable from the relevant market participant, and (2) for carbon storage clients, confirm an information and samples coordinator has been appointed and notified to the OGA within the statutory reasonable period after becoming a relevant person. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.* *Operational implication:* neither duty creates a direct system build for the forwarder, since the duty holders are the gas shipper or the licensee, not the carrier. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# Confirmed Regulatory Timeline\n\n- \"The provisions of this Act come into force on such day or days as the Secretary of State may by regulations appoint,\" with specified provisions in force at Royal Assent or by later commencement regulations (e.g., section 70 in force at 26.12.2023). In force as of 2026-09-12 for commenced provisions. *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n- 31 December 2040 and each five-year anniversary is the \"relevant date\" for a net zero-related statutory review; where the Secretary of State decides not to repeal a relevant provision, a statement must be published \"no later than 3 months after that date explaining why not.\" *Source: Energy Act 2023 (c. 52), UK Government (legislation.gov.uk), as amended. https://www.legislation.gov.uk/ukpga/2023/52.*\n\n# Sources\n\n- Energy Act 2023 (c. 52), UK Government, legislation.gov.uk, as amended (Tier 1, primary binding text). https://www.legislation.gov.uk/ukpga/2023/52\n",
+      "metadata": {
+        "severity": "COST ALERT",
+        "priority": "HIGH",
+        "urgency_tier": "elevated",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "fuels",
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Energy Act 2023 (c. 52), UK primary legislation, legislation.gov.uk, covering hydrogen production revenue support contracts and the hydrogen levy carbon storage licensing and OGA notification duties and gas and electricity economic regulation including a licence-holder financial penalty regime capped at 10 percent of turnover.",
+        "why_matters": "Clients that are GB or Northern Ireland gas shippers may bear hydrogen levy costs funding hydrogen production revenue support contracts which can flow into downstream energy pricing relevant to gas-dependent freight and warehousing operations. Clients holding carbon storage licences carry a duty to appoint and notify an information and samples coordinator to the OGA and licence holders generally face a penalty regime capped at 10 percent of turnover for contraventions. The workspace itself is not a duty holder under the Act but should track these exposures through client relationships.",
+        "key_data": [
+          "Hydrogen levy recoverable from GB and Northern Ireland gas shippers only",
+          "Licence-holder penalty capped at 10 percent of the licence holder's turnover",
+          "Carbon storage licensees must notify the OGA of an information and samples coordinator within a reasonable period",
+          "Net zero review relevant date 31 December 2040 and each five-year anniversary with a 3-month statement deadline if a provision is not repealed"
+        ],
+        "cost_mechanism": "Gas shippers pay sums to a hydrogen levy administrator to fund hydrogen production revenue support contracts and unpaid sums are recoverable from the shipper.",
+        "requirement_trajectory": null,
+        "penalty_range": "financial penalty on a licence holder capped at 10 per cent of the licence holder's turnover",
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "a514027a-39c4-4ca0-a88b-0b2f828deb34"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «The provisions of this Act come into force on such day or days as the Secretary of State may by regulations appoint»",
+          "source_span": "The provisions of this Act come into force on such day or days as the Secretary of State may by regulations appoint",
+          "source_url": "https://www.legislation.gov.uk/ukpga/2023/52"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «no later than 3 months after that date explaining why not»",
+          "source_span": "no later than 3 months after that date explaining why not",
+          "source_url": "https://www.legislation.gov.uk/ukpga/2023/52"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «the territorial sea adjacent to the United Kingdom»",
+          "source_span": "the territorial sea adjacent to the United Kingdom",
+          "source_url": "https://www.legislation.gov.uk/ukpga/2023/52"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "claim_text": "[penalty_summary] The captured source states, verbatim: «The maximum amount of penalty that may be imposed on a licence holder in respect of a contravention may not exceed 10 per cent of the licence holder’s turnover.»",
+          "source_span": "The maximum amount of penalty that may be imposed on a licence holder in respect of a contravention may not exceed 10 per cent of the licence holder’s turnover.",
+          "source_url": "https://www.legislation.gov.uk/ukpga/2023/52"
         }
       ]
     }
