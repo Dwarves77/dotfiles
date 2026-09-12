@@ -224,6 +224,21 @@ export interface Resource {
   costMechanism?: string;      // How the cost flows to freight (surcharge, penalty, allowance)
   actionOwner?: string;        // Suggested internal owner: Legal, Sustainability, Ocean Product, etc.
   lastVerifiedDate?: string;   // ISO date when data was last verified against source
+  /**
+   * Task 2.3 (brief-chain-build-plan-2026-09-11, migration 316 intelligence_items.requirement_
+   * trajectory): the instrument's per-year requirement path (e.g. a phase-in percentage climbing
+   * year over year), rendered by src/components/detail/RequirementTrajectory.tsx on the Exposure
+   * card's Trajectory cell for regulation-family items. Shape mirrors AgentMetadata's
+   * RequirementTrajectoryJSON (src/lib/agent/parse-output.ts) inlined here rather than imported,
+   * following the same convention trajectoryPoints above already established for its own
+   * TrajectoryPointsJSON counterpart. Optional/undefined until a regeneration writes it (honest
+   * absence, never defaulted client-side); a step's `date` is a free-form string, not guaranteed
+   * ISO (the parser only requires it to be a string).
+   */
+  requirementTrajectory?: {
+    steps: Array<{ date: string; value: string; label?: string }>;
+    note?: string;
+  };
 
   // WO-13 B4 re-point (2026-08-30): the Market list-page key figure now
   // binds here instead of the removed `marketData.currentPrice` orphan

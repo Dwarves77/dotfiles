@@ -5,6 +5,299 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-11, BRIEFFIELDS task 2.4: format_type catch-up for live briefs that carry none
+
+Task 2.4 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,
+branch `lane/brieffields-2026-09-11`, on top of tasks 2.1-2.3 (commit `955a1afb`). Read the task
+brief (first 9 lines of `task-2.4-brief.md`, ignoring Part 3), the plan's Part 2 task 2.4 and the
+pre-flight row "1.2 vs 2.4 specForItemType", `scripts/lib/db.mjs` (`guardedUpdate` /
+`guardedUpdateByIds`), `source-type-backfill.mjs` and `origin-class-backfill.mjs` (the injected-deps
+MAINT-wrapper shape), `.github/workflows/maintenance.yml`'s command switch and `mode dry|apply`
+pattern, and `src/lib/agent/extract-registry.ts` (`specForItemType`) before writing any code.
+
+**What this task did.** New `fsi-app/scripts/maintenance/backfill-format-type.mjs`: stamps
+`intelligence_items.format_type` for every live (`is_archived=false`) row that carries none,
+regardless of `item_grade`, deriving the value from `specForItemType(item_type)` -- the SAME
+resolver task 1.2's mint-time stamp and `canonical-pipeline.ts`'s `synthesiseAndWriteBrief` write
+site use. No second mapping table anywhere in this file. (Scope corrected same day -- see
+"Coordinator follow-up" below: the first pass scoped this to `item_grade='brief'` only, which
+undercounted the true blast radius by excluding 1,101 record-grade stubs.) A pure
+`planFormatTypeBackfill(rows, specForItemTypeFn)`
+groups candidate ids by the resolved `format_type`; an `item_type` the resolver does not recognize
+is skipped and reported by id (`{id, item_type}`), never guessed. Dry mode (default) only plans and
+reports counts; apply mode writes each format_type group through `guardedUpdateByIds` (cite +
+`applyMatch` re-checking `format_type IS NULL` per chunk, so a row someone else classified between
+the read and the write is left alone) and reads back the post-write distribution. `--limit N` /
+`--after-id <uuid>` bound and resume a batch (the same idiom `backfill-item-timelines.mjs` /
+`forward-events/dispatch-extraction.mjs` already use); neither lives in the shared
+`scripts/maintenance/lib/cli.mjs` parser (no other MAINT wrapper needs pagination flags of its own),
+so they are parsed locally and merged into the options `runCli` passes to `main()`.
+
+**Why jiti is loaded lazily.** `specForItemType`'s home (`extract-registry.ts`) imports
+`formats/*.ts` -> `prose-extractor.ts` -> `format-spec.ts`, all through the `@/lib/...` TS path
+alias that only Next.js's bundler resolves; a plain `node` import throws immediately (the same gap
+`run-ledger-consume.mjs`'s own header names). This file has a companion `.test.mjs` inside
+`run-test-suite.sh`'s no-npm-ci glob (`fsi-app/scripts/maintenance/*.test.mjs`), so a top-level
+`jiti`/`.ts` import here would pass locally and fail in CI with `ERR_MODULE_NOT_FOUND` (the exact
+recurrence `.discipline/glob-portability.test.mjs`'s own header documents against
+`audit-gate.test.mjs`). `createJiti` + `jiti.import("../../src/lib/agent/extract-registry.ts")` are
+therefore called only inside `buildDeps()`, itself only reached from the `if (IS_MAIN)` CLI branch
+-- never when the test file imports this module's exports. `scripts/verify/format-structure.mjs` is
+the sibling precedent for the jiti+alias shape (it has no companion test, so it loads jiti at top
+level; this file cannot).
+
+**Blast radius.** Could not query the live count in this sandbox (no `.env.local`, no
+`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` present) -- flagged, not fabricated. The
+CURRENT, coordinator-measured figure (2026-09-11 [CONFIRMED, execute_sql against
+`kwrsbpiseruzbfwjpvsp`], superseding the 128 figure below): **1,229** rows where
+`is_archived=false AND format_type IS NULL`, broken down by `item_type`: regulation 660,
+initiative 377, directive 87, framework 67, research_finding 13, guidance 10, market_signal 10,
+regional_data 5. (An earlier read of the plan's own pre-flight table, scoped to `item_grade='brief'`
+only, found 128 -- that scope excluded the 1,101 record-grade stubs, which also carry NULL
+`format_type`; see "Coordinator follow-up" below.) The equivalent read-only count via this script's
+own path is `node scripts/maintenance/backfill-format-type.mjs --mode dry` (reads
+`intelligence_items` scoped to `is_archived=false AND format_type IS NULL`, prints
+`counts.null_candidates_scanned` and `counts.by_format_type` once a session with real creds runs
+it).
+
+**Tests (RED then GREEN).** `backfill-format-type.test.mjs` (new, 6 cases: the pure mapper against
+every item_type in the real vocabulary -- mirrored from `src/lib/agent/formats/*.ts`'s
+`itemTypes`/`formatType` exports, 12 item_types across 5 formats, verified 2026-09-11 [CONFIRMED]
+against the migration-004 CHECK constraint too -- unknown-type skip-not-guess, `parseBatchArgs`,
+dry/apply orchestration with injected deps, and `--limit`/`--after-id` paging). Written before
+`backfill-format-type.mjs` had a real implementation (a temporary throwing stub swapped in for the
+RED run, then swapped back): RED confirmed, all 6 cases failed with `Error: not implemented yet`;
+GREEN after restoring the real implementation, 6/6 pass. One-time jiti-load proof (not a standing
+test, same posture as `run-ledger-consume.test.mjs`'s own documented gap): `node -e` script loaded
+`extract-registry.ts` through `createJiti` + the `@` alias and confirmed `specForItemType`
+resolves `regulation` -> `regulatory_fact_document`, `market_signal` -> `market_signal_brief`, and
+an unrecognized type -> `null` -- exactly the shape the injected-fake tests assume.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all pre-existing `[F28] harness-run-integrity` (named in the task brief as known,
+unrelated to this task's files). `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`:
+see the task report for the post-commit run. `.discipline/glob-portability.test.mjs` run directly
+(not the full `run-test-suite.sh`, per the brief's instruction not to run it): 2/2 pass, confirming
+the new test file's imports stay portable to the no-npm-ci CI job. `run-test-suite.sh` NOT run, per
+the brief's own instruction for this task.
+
+### UX compliance
+
+Not applicable -- this task is a backend maintenance script (`scripts/maintenance/*.mjs`) plus a
+`workflow_dispatch` wiring change in `.github/workflows/maintenance.yml`. No `.tsx`/`.css` under
+`fsi-app/src` was touched, no customer-facing surface changed.
+
+**Five surfaces affected.** None directly. The five customer surfaces (Regulations, Market Intel,
+Research, Operations, Community) read `format_type` to select which detail-surface renderer applies
+to a brief; this task fixes the underlying data (1,229 live items missing that stamp) once
+dispatched through `maintenance.yml`'s new `backfill-format-type` step, but ships no surface code
+itself.
+
+### Coordinator follow-up (same day): scope correction, 128 -> 1,229
+
+The coordinator measured the live blast radius directly (`execute_sql` against
+`kwrsbpiseruzbfwjpvsp`, 2026-09-11 [CONFIRMED]): non-archived items with `format_type IS NULL` =
+**1,229** (regulation 660, initiative 377, directive 87, framework 67, research_finding 13,
+guidance 10, market_signal 10, regional_data 5) -- not 128. The gap is exactly the 1,101
+record-grade stubs this task's first pass excluded via an `item_grade='brief'` filter that was
+never asked for by the plan text (the plan's own pre-flight table row just says "`format_type` NULL
+on live briefs: 128", which this session over-read as `item_grade='brief'`-scoped rather than
+re-deriving the predicate from first principles).
+
+Ruling: `format_type` is `f(item_type)` and deterministic -- it never depends on `item_grade`,
+`provenance_status`, or whether a real `full_brief` has been generated yet. The backfill therefore
+covers EVERY non-archived item with `format_type` NULL regardless of `item_grade`. Task 1.4's
+population-report entry "live items with NULL format_type" only goes green once the record-grade
+stubs are covered too.
+
+**Fix.** `backfill-format-type.mjs`: dropped the `item_grade='brief'` filter from both the plan-read
+and the post-apply read-back query (now `is_archived=false AND format_type IS NULL` only); header
+comment and `CITE.reason` rewritten to state the corrected scope and the ruling. Header now quotes
+the 1,229 figure and its per-item_type breakdown (superseding the 128 figure, which is kept in the
+text with an explicit "superseded" label rather than deleted, per the flag-correction convention --
+CLAUDE.md rule 13's corollary: a number that turns out wrong is corrected in place, not
+silently dropped). `backfill-format-type.test.mjs`: `ROWS` fixture now carries `item_grade` on every
+row (mixed `'brief'`/`'record'`) and a NEW record-grade row (`i5`); the query-probe assertion now
+expects `is_archived=false` alone (previously `[item_grade='brief', is_archived=false]`); the dry,
+apply, and limit/after-id tests all updated to assert `i5` is selected, written, and read back
+(`counts.null_candidates_scanned` 4->5, `would_write`/`applied` 3->4,
+`by_format_type.regulatory_fact_document` 1->2).
+
+**RED then GREEN (the fix, proven against the regression it fixes).** Restored the PRE-fix
+implementation from commit `5f8231b5` (the `item_grade='brief'`-filtered version) and ran the
+UPDATED test file against it: RED confirmed -- 2 failures, both asserting `probe.eqs` equals
+`[['is_archived', false]]` and getting `[['item_grade','brief'], ['is_archived', false]]` instead
+(the exact regression this fix removes). Restored the corrected implementation: GREEN, 6/6 pass.
+
+**Gates (re-run after the fix).** `node --test scripts/maintenance/backfill-format-type.test.mjs`:
+6/6 pass. `npx tsc --noEmit`: clean. `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`:
+see the task report for the post-commit output. No em dash / en dash / section-sign glyph introduced
+by this follow-up (checked by direct grep on both changed files).
+
+---
+
+## 2026-09-11, BRIEFFIELDS task 2.3: resource mapping, RPC reads, and the four detail surfaces
+
+Task 2.3 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree `wt-brieffields-0911`,
+branch `lane/brieffields-2026-09-11`, on top of tasks 2.1 (migration 316, not applied live) and 2.2
+(the parser/write site, commit `70a7ca00`). Read the brief, the plan's Part 2, both predecessor
+reports, `docs/design/ux-laws.md`, `docs/design/design-principles.md` (DP-1, DP-2), and the mock
+(`docs/design/handoff-2026-09-06/"Caros Ledge UI System.dc.html"`, the regulation Exposure card)
+before touching any `.tsx`.
+
+**What this task did.** Wired `cost_mechanism` / `penalty_range` / `enforcement_body` /
+`requirement_trajectory` / `why_matters` / `key_data` from the database through the resource
+mappers to the four detail surfaces. `why_matters` / `key_data` were already mapped on both
+mappers (pre-existing columns, no change needed there). The four migration-316 fields were not:
+
+- `src/types/resource.ts`: added `requirementTrajectory?: { steps: Array<{ date, value, label? }>;
+  note? }`, inlined the same way `trajectoryPoints` already inlines its own JSON shape rather than
+  importing `RequirementTrajectoryJSON` from `parse-output.ts`.
+- `src/lib/supabase-server.ts`: both mappers now read the four columns. The list mapper
+  (`rpcRowToResource`) gains them as REAL passthroughs, not dormant like `jurisdictionIso`/
+  `itemGrade`/`originClass` above them, since migration 316 already widens all 11 RPCs it feeds
+  (task 2.1's own scope table). The detail mapper's stale P1-4 comment ("penalty_range /
+  enforcement_body / legal_instrument are NOT in the schema") was deleted and replaced with the
+  four real field reads, `select("*")` already returning them once the migration applies.
+- `src/lib/list-pagination.ts`: `toLedgerRowPayload` now also blanks the four fields (Exposure-card
+  / Penalties-section content, same detail-surface-only class as `trajectoryPoints`), with
+  `list-pagination.test.mjs` updated to fixture them and assert the trim (was previously a
+  no-op assertion since the fixture never carried these fields).
+- `src/components/detail/RequirementTrajectory.tsx` (new): the one renderer, exported as a plain
+  function (`renderRequirementTrajectory`, not a JSX component) so the four callers can chain it
+  with `||` against their existing `conversionTrigger` / `Absence` fallback. Renders exactly the
+  mock's string, `40% (2025) -> 70% (Sep 30 2026) -> 100% (2027); <note>`, using the mock's real
+  U+2192 arrow glyph in its output (not the standing em-dash/en-dash/section-sign prohibition, a
+  different codepoint, called out in the file's own header). The "which step is imminent" decision
+  is factored into `src/lib/detail/requirement-trajectory-classify.ts` (no JSX, unit-tested).
+- Four call sites (`RegulationDetailSurface.tsx`, `OperationsDetailSurface.tsx`,
+  `MarketSignalDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`): Trajectory cell now reads
+  `renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <fallback>`.
+  `PenaltyFacts`/`hasPenaltyContent` in `RegulationDetailSurface.tsx` already existed and already
+  read `penaltyRange`/`costMechanism`/`enforcementBody` correctly (renders when any of the three is
+  present); no change was needed there, only the mapper making those values real.
+
+**Tests (RED then GREEN).** `requirement-trajectory-classify.test.mjs` (new, 8 cases: imminent-step
+selection when a future step exists, all-past falls back to the last reached step, all-future
+bolds the soonest, unparseable dates bold nothing, mixed parseable/unparseable, single-step,
+empty). Written before `requirement-trajectory-classify.ts` existed; RED confirmed
+(`ERR_MODULE_NOT_FOUND`, 0 pass/1 fail), then GREEN after (8/8). `list-pagination.test.mjs`: 19/19
+pass, byte reduction 67% on the 60-row fixture (was 40%+ threshold before this task's fields were
+added to the fixture and the blank list).
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all pre-existing `[F28] harness-run-integrity` (Windows path-hash defect, owned by
+lane `wt-hashsep-0911`, unrelated to this task's files); F43 and F35 both PASS. The rendering
+guard's smoke runner: `run-rendering-guard.mjs` loads, bundles, and reaches the browser-launch
+step, then fails there (`Executable doesn't exist`, chromium binary) because `npx playwright
+install chromium` cannot reach `cdn.playwright.dev` from this sandbox (network allowlist gap, not
+a defect in the fixture code, confirmed by the syntax check passing and the failure occurring only
+at `browserType.launch`). New fixture states (`exposure-fields-present`, `exposure-fields-absent`)
+were added to `detail-surfaces-smoke.mjs`'s `REGULATION_STATES` for when the guard CAN run (CI, or
+the coordinator's machine); could not be executed end to end in this session. `node
+.discipline/runner.mjs --mode=ci --range=origin/master..HEAD` and `npx next build` run after
+commit (see the task report for output). `run-test-suite.sh` NOT run, per the brief's own
+instruction for this task.
+
+### UX compliance
+
+**Reader's primary goal.** A forwarder viewing a regulation/operations/research/market-signal
+detail page needs, at a glance in the Exposure card: who bears the regulation's cost and how (Who
+pays), and the instrument's per-year requirement path (Trajectory) so it reads as a trend, not a
+single flat figure.
+
+**Laws checked.**
+- Law 4 (Proximity): the Trajectory value stays inside the existing four-cell Exposure grid
+  (Where / Who pays / Your lanes / Trajectory); no new grouping introduced.
+- Law 5 (Miller's, chunking): the trajectory string is one compact line (value + date per step,
+  typically 2-4 steps), not a table or a new expandable section, so it does not add a working-
+  memory burden beside the other three cells.
+- Law 12 (Prägnanz): the honest Absence convention is preserved end to end, both fields fall
+  through to the SAME `<Absence reason=... />` component the surface already used, never a
+  fabricated value or a blank hole.
+- Law 16 (Similarity): the new renderer's bold treatment (the imminent step) uses the same inline
+  `fontWeight: 700` pattern `PenaltyFacts`'s own labels already use on this same surface, not a new
+  visual treatment.
+- Law 2 (Fitts's, target size): not applicable. No new interactive element (button, link, control)
+  was added; the change is text content inside an existing non-interactive cell.
+
+**DP entries.** DP-2 (UX laws on every surface) applies; addressed above. DP-1 (single-pane
+operator review) does not apply: these are the four CUSTOMER-facing detail surfaces, explicitly out
+of DP-1's scope.
+
+**375 px measurement.** `detail-surfaces-smoke.mjs`'s `runDetailSpec` measures every state at
+`MOBILE_VIEWPORT` (375 x 812) and `DESKTOP_VIEWPORT`; the two new states added this task inherit
+that measurement once the guard runs. Could not execute the actual Playwright measurement in this
+sandbox (browser download blocked, see Gates above); verified by reading instead:
+`DetailShell.tsx`'s `DetailExposure` sets `overflowWrap: "anywhere"` on every cell's value
+container and collapses `.cl-exposure-grid` to a single column under 520 px, so a long trajectory
+string wraps rather than overflowing at 375 px. This is a code-read substitute for the browser
+measurement, not equivalent to it; flagged, not silently asserted.
+
+**Five surfaces affected.** Regulations (RegulationDetailSurface.tsx: Trajectory + Who pays +
+Penalties, all three now real), Market Intel (MarketSignalDetailSurface.tsx: Trajectory + Who
+pays), Research (ResearchFindingDetailSurface.tsx: Trajectory + Who pays), Operations
+(OperationsDetailSurface.tsx: Trajectory + Who pays). Community: not applicable, no
+intelligence_items-backed detail surface there.
+
+---
+
+## 2026-09-11, BRIEFFIELDS task 2.2: contract, parser and the single write site
+
+Resumed task 2.2 of the brief-chain-build-plan-2026-09-11 (Part 2) in worktree
+`wt-brieffields-0911`, branch `lane/brieffields-2026-09-11`, from a prior implementer's uncommitted
+work on top of task 2.1's migration 316 (`cost_mechanism`, `penalty_range`, `enforcement_body`,
+`requirement_trajectory`). Read every modified/untracked file end to end before changing anything.
+
+**What the prior implementer had already done (judged correct, kept as-is):** `parse-output.ts`
+readers for the six new `AgentMetadata` fields (`requirement_trajectory` validated with the same
+inline-JSON + `AgentOutputParseError` shape as `trajectory_points`; `cost_mechanism` /
+`penalty_range` / `enforcement_body` / `why_matters` / `key_data` as optional passthroughs, same
+posture as `what_is_it`), `parse-output.test.mjs` (9 new cases, RED-then-GREEN), the
+`synthesiseAndWriteBrief` write block extracted into an exported, directly-testable
+`writeSynthesizedBrief(sb, it, body, md, fmtSpec, sourceCount)` (still exactly one
+`intelligence_items.update`, called from exactly the one place), the new
+`canonical-pipeline.write-fields.npmtest.mjs` (4 cases; direct-overwrite semantics for the four
+migration-316 columns, COALESCE semantics for `why_matters`/`key_data`), `system-prompt.ts`'s field
+emission list and worked example (26-field contract, `regeneration_skill_version` "2026-09-11"),
+`apply-staged-update.ts`'s stopped discard of `cost_mechanism`/`penalty_range`, and
+`contract-version.mjs` / `skill-contract-map.mjs` / `skill-prompt-parity.test.mjs` bumped in step.
+All of it matched the brief; nothing was reverted.
+
+**What I completed:** SKILL.md's Database Field Emission section had every field bullet, the worked
+example, and the version bump correct, but two things were left inconsistent within the same file:
+(1) the parity-enforcement sentence directly under "The 16 Rules for All Output" still read
+"20-field enumeration" (stale, pre-dated this task's growth to 26); (2) no Changelog entry existed
+for the 2026-09-11 contract change, breaking the file's own established convention (every prior
+contract change has one). Fixed both, then recomputed and re-pinned SKILL.md's `contentHash` in
+`skill-contract-map.mjs` (sha256, EOL-normalized) after that second edit, since the prior
+implementer's pin was computed before my two additional edits.
+
+**Tests (RED then GREEN):** `parse-output.test.mjs` (9/9), `skill-prompt-parity.test.mjs` (4/4,
+including the sanity pin at 26 fields / 16 rules), `canonical-pipeline.write-fields.npmtest.mjs`
+(4/4), all already GREEN when read (prior implementer had run RED-then-GREEN per their own file
+headers); I re-ran all three together post-edit and confirmed 17/17 pass. Also ran the full
+`src/lib/agent/*.test.mjs` glob (250/250 pass) as an incidental regression check, since
+`canonical-pipeline.ts` and `parse-output.ts` are both load-bearing for many other agent tests.
+
+**Gates:** `npx tsc --noEmit` clean. `node .discipline/fitness/runner.mjs`: 37 functions checked,
+10 violations, all `[F28] harness-run-integrity`, `[CONFIRMED]` pre-existing Windows
+path-separator defect (`hashHarnessVersion` in `scripts/lib/run-artifact.mjs` hashes an
+OS-dependent relative path; every family shows STALE PENDING-RUN.md / STALENESS COUPLING on any
+Windows clone), being fixed by task 0.3 in lane `wt-hashsep-0911`; unrelated to this task's files.
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: 1 pass / 0 fail / 8 skip per
+commit, both before and after this task's commit. Per the coordinator's mid-task gate-scope
+correction (machine overload from six concurrent lanes each running the full suite), `bash
+.discipline/run-test-suite.sh` was NOT run in this lane; the coordinator runs it once per lane at
+push time.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` file was touched by this task (parser, prompt, write-site,
+skill doc, and test files only).
+
+---
+
 ## 2026-07-30 — Acquire ARMED, Blocker-B PROVEN end-to-end — and one run went out UNPRICED
 
 **ACQUIRE GRANT EXERCISED.** `GROUNDING_ACQUIRE_ENABLED` armed in-runner under the operator's scoped grant

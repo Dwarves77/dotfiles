@@ -26,4 +26,14 @@
 // anticipated obligations to the operator through integrity_flags rather than acting on them
 // autonomously, and (d) record a failure of (a) or (b) as an integrity_flags defect, never a silent
 // skip. Both homes advance together — contract-version.test.mjs is the drift guard.
-export const CURRENT_SKILL_CONTRACT_VERSION = "2026-09-01";
+// 2026-09-11 (task 2.2, brief-chain-build-plan-2026-09-11 Part 2): the contract grows from 20 to 26
+// named fields (full_brief plus the 25 YAML fields). Six fields join: cost_mechanism, penalty_range,
+// enforcement_body, requirement_trajectory (new intelligence_items columns, migration 316,
+// regulatory_fact_document format only, prompt-gated not parser-gated) and why_matters, key_data
+// (existing columns, previously written only once at /api/admin/scan discovery time, now part of the
+// regeneration contract too, emitted on every format). No rule text changed, only the field
+// enumeration; system-prompt.ts's "Database field emission" section and
+// .claude/skills/environmental-policy-and-innovation/SKILL.md's "Database Field Emission" section
+// both advance together with this constant; contract-version.test.mjs and skill-prompt-parity.test.mjs
+// are the two drift guards.
+export const CURRENT_SKILL_CONTRACT_VERSION = "2026-09-11";

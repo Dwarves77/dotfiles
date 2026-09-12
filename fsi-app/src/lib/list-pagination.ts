@@ -85,6 +85,14 @@ export function toLedgerRowPayload(r: Resource): Resource {
     recommendedActions: undefined,
     openQuestions: undefined,
     sourceUrls: undefined,
+    // Task 2.3 (migration 316): costMechanism / penaltyRange / enforcementBody /
+    // requirementTrajectory are Exposure-card and Penalties-section content, same
+    // detail-surface-only class as trajectoryPoints above -- neither ledger row reads them
+    // (same grep this module's own header describes), so they are trimmed here too.
+    costMechanism: undefined,
+    penaltyRange: undefined,
+    enforcementBody: undefined,
+    requirementTrajectory: undefined,
   };
 }
 

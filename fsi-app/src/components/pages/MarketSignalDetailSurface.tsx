@@ -50,6 +50,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
+import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { FactCard } from "@/components/ui/FactCard";
 import { useResourceStore } from "@/stores/resourceStore";
@@ -414,7 +415,10 @@ export function MarketSignalDetailSurface({
             },
             {
               label: "Trajectory",
-              value: r.conversionTrigger || (priceBoard[0]?.contextLine ?? <Absence reason="pending" />),
+              value:
+                renderRequirementTrajectory(r.requirementTrajectory) ||
+                r.conversionTrigger ||
+                (priceBoard[0]?.contextLine ?? <Absence reason="pending" />),
             },
           ]}
         />

@@ -216,7 +216,19 @@ export const PINNED_MANIFEST = {
     // brought to parity with system-prompt.ts's 16 rules (was 14) and the Database Field Emission
     // section's Fields: enumeration was brought to the full 20-field list (was 13) — see the SKILL.md
     // changelog entry and invariants.mjs's EP-13-skill-prompt-parity for the full account.
-    contentHash: '2e86aed5da3ede2635df429a68f7f425f8a0b867ccc350c4b887a8dd6d136b95',
+    // Re-pinned again 2026-09-11 (task 2.2, brief-chain-build-plan-2026-09-11 Part 2): the Database
+    // Field Emission section's Fields: enumeration grew to 26 (was 20) -- cost_mechanism,
+    // penalty_range, enforcement_body, requirement_trajectory, why_matters and key_data joined,
+    // verbatim-matched against system-prompt.ts by skill-prompt-parity.test.mjs -- and
+    // regeneration_skill_version's worked value advanced to "2026-09-11" alongside
+    // contract-version.mjs. Rule text and count (16) are unchanged. Re-pinned a second time in the
+    // same task after the "20-field enumeration" cross-reference sentence under the Rules heading and
+    // a new changelog entry were added to keep the file internally consistent, a third time after that
+    // same cross-reference sentence's em dashes were replaced with parentheses (standing no-em-dash
+    // rule for new/edited prose), and a fourth time (coordinator glyph-fix round) after the
+    // regeneration_skill_version bullet's em dash separator was replaced with the plain hyphen the
+    // other new bullets in this same edit already used.
+    contentHash: '688c91be1cd603fc54e833c177ac48cb8b0f22fc7588109ef029585aae0ff8f7',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

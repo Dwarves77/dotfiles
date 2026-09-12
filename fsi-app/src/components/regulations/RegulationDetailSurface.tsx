@@ -65,6 +65,7 @@ import { TagChip } from "@/components/ui/Chips";
 import { formatDate } from "@/lib/format";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
+import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -263,7 +264,10 @@ export function RegulationDetailSurface({
             { label: "Where", value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || <Absence reason="not in primary source" /> },
             { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
             { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            { label: "Trajectory", value: r.conversionTrigger || <Absence reason="pending" /> },
+            {
+              label: "Trajectory",
+              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
+            },
           ]}
         />
 
