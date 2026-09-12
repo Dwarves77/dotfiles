@@ -2,7 +2,7 @@
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **two** artifacts
 (`brief-apply-run-001` and `brief-apply-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-004** (this branch; see the numbering finding in the pass below).
+verbatim: **brief-apply-run-006** (this branch; see the numbering finding in the passes below).
 
 ## Pass over brief-apply-run-001 and brief-apply-run-002 (2026-09-12, task 6.1b)
 
@@ -122,3 +122,28 @@ reconciled live (19 rows rewritten, read-back confirmed; 00a8c0d9 now "UK wsi 20
 
 **Family gates status:** GREEN on the 6.2b contract (record-briefs.test.mjs 60/60). This attestation names
 brief-apply-run-004 as this branch's latest artifact.
+
+## Pass over brief-apply-run-005 and brief-apply-run-006 on brief-lane/002-2026-09-12 (2026-09-12, coordinator)
+
+**Artifacts read:** brief-apply-run-005 (dry, config.execute=false, allowBriefOverwrite=true,
+record-briefs-002.json regenerated under the 6.2b contract by task 6.2c, commit e4c87ec9, 9 entries,
+9 "would_apply", zero defects_found) and brief-apply-run-006 (apply, started_at 2026-09-12T22:35:24.948Z,
+config.execute=true, metrics applied=9, quarantined=0, generate_failed=0, defects_found []; per-item
+trace: 9 generated, 9 sectioned, 9 grounded, 9 verified, 9 grown, discovery 12 refs each, forward-events
+0 new on 6 items, 1 new on two, 2 new on one, compliance-deadline unchanged on all 9).
+
+**Live read-back (coordinator SQL, 2026-09-12 22:40 UTC):** all 9 items provenance_status verified,
+item_grade brief, updated at 22:35 UTC by this run [CONFIRMED]. The tenth item of this chunk, 00a8c0d9,
+is not in the regenerated file: the export refused it while quarantined (defect D1, task 6.2d, in review);
+its identifier is reconciled (task 7.4e, #648) and its brief is written from a fresh export after 6.2d
+merges, then applied on this branch as its own run.
+
+**Hypotheses (verified, with basis):**
+- [CONFIRMED] the 6.2b contract applies cleanly on this chunk too (no quarantine, no attachment fallback).
+- [CONFIRMED] numbering: run-005 and run-006 continue this branch's own sequence and collide by name
+  with brief-lane/001's; defect D12 in docs/plans/defect-fix-plan-2026-09-12.md; the coordinator lands
+  both branches' artifacts on master under run-id names.
+
+**Proposal:** none new beyond D1 and D12.
+
+**Family gates status:** GREEN. This attestation names brief-apply-run-006 as this branch's latest artifact.
