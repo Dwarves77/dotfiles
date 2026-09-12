@@ -17037,3 +17037,15 @@ The mechanism, named precisely: I searched `docs/decisions/` for the column ques
 **Open threads left behind.** Skill v2 and the handoff need landing via a worktree PR. The operator must upload `ledger` at `claude.ai/customize/skills` and delete the old `resume` entry; account skills are not files and no agent can do this. Cloud containers cannot push to this repo (git proxy: "not in this session's authorized repository set") — adding the repo to a session's authorized sources would remove that limit.
 
 **Next step for a cold session.** Type `ledger`. Then, if the work touches the flywheel, run U0: `node fsi-app/scripts/connections/backfill-edges.mjs --dry`.
+
+## ADR029 lane, 2026-09-11: the Intelligence Assistant is ON in production by ruling
+
+Task 4.3 of the W9 brief-chain build plan (`docs/plans/brief-chain-build-plan-2026-09-11.md`). The operator ruled that the assistant is enabled in production ("actually turn the AI on, we just won't use it"). The code stays fail-closed: `/api/ask` refuses unless `ASSISTANT_ENABLED === "true"`, and `.discipline/assistant-spend-gate.test.mjs` keeps that shape. The flip is the environment variable in Vercel Production, an out-of-repo boundary, so this lane records the decision as `docs/decisions/ADR-029-assistant-enabled-in-production.md`, adds the INDEX line, and adds the boundary row to `fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md`. No runtime code changed.
+
+After merge the operator sets `ASSISTANT_ENABLED=true` for Production (`vercel env add ASSISTANT_ENABLED production`, value `true`, then redeploy) from an authenticated Vercel CLI or the dashboard; the build machine's CLI is not logged in.
+
+Gates: review Approved; discipline runner clean; pre-push hook 4/4. Commit c6adbe80 (rebased to f2477ca8), plus this addendum, which the CI memory gate required because the boundary manifest lives under `fsi-app/.discipline/`.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` touched.
