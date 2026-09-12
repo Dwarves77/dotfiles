@@ -367,6 +367,12 @@ jobs:
         # so it is named here rather than left git-tracked and run by nothing (CLAUDE.md rule 15). The
         # FIRST scripts/**/*.npmtest.mjs file in this repo, proves the jiti alias resolution
         # apply-record-briefs.mjs's own loadPipeline()/loadFlywheelDefect() depend on.
+        #
+        # scripts/turns/record-briefs/section-list-drift.npmtest.mjs ADDED 2026-09-12 (task 6.1b fix round
+        # 1 follow-up): same reason as apply-record-briefs.npmtest.mjs above (fsi-app/scripts/** is outside
+        # the glob) -- proves record-briefs/schema.mjs's mirrored per-format canonical section list stays
+        # in exact sync with the real src/lib/agent/formats/*.ts registry, so that mirror's own drift
+        # cannot go silent.
         run: |
           set -u
           globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
@@ -379,7 +385,8 @@ jobs:
           fsi-app/scripts/lib/inconclusive-probe.selftest.mjs
           fsi-app/scripts/lib/surface-registry.selftest.mjs
           fsi-app/src/lib/sources/reconcile.selftest.mjs
-          fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs"
+          fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs
+          fsi-app/scripts/turns/record-briefs/section-list-drift.npmtest.mjs"
           files=$(printf '%s\n%s\n' "$globbed" "$named" | tr -s ' ' | sed '/^$/d')
           if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 

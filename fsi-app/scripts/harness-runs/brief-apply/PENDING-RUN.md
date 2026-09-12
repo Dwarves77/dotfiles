@@ -107,8 +107,23 @@ validate-time and ground-time by a mechanism other than `derivedCovered`) is now
 (review finding 3). Neither change touches `apply-record-briefs.mjs`, `canonical-pipeline.ts`, or
 `flywheel-steps.mjs`.
 
-**harness_version at write time:** `sha256:9bb2a500ed959054` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:23efe6a3833474fa`
+**harness_version at Re-pin 4's write time (superseded below, see Re-pin 5):** `sha256:9bb2a500ed959054`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files,
+unreordered; superseded `sha256:23efe6a3833474fa` outright).
+
+---
+
+## Re-pin 5 (fix round 1 follow-up, 2026-09-12 -- the section-list drift guard)
+
+**What changed.** `scripts/turns/record-briefs/schema.mjs` (a governing file) changed again: exported
+`SECTION_DEFS_BY_FORMAT_TYPE` (previously module-private) so the new
+`scripts/turns/record-briefs/section-list-drift.npmtest.mjs` can prove it stays in exact sync with the
+real `src/lib/agent/formats/*.ts` registry, plus a header comment naming that test. No behavioral change
+to the validator itself -- comment + export-keyword only. Neither `apply-record-briefs.mjs`,
+`canonical-pipeline.ts`, nor `flywheel-steps.mjs` were touched.
+
+**harness_version at write time:** `sha256:6f48801e6631548a` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:9bb2a500ed959054`
 outright).
 
 **The planned run that supersedes this marker.** Unchanged from Re-pin 3 -- the pilot RE-APPLY,

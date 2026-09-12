@@ -84,6 +84,15 @@ export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.1";
 // blocks in validateRecordBriefsEntry below. Quarantine is never the end state of brief-apply (operator
 // ruling, 2026-09-12); refusing HERE, naming the exact token or section, is how the lane fixes the source
 // before a write is ever attempted.
+//
+// GUARDED MIRROR (fix round 1 follow-up, 2026-09-12): the criterion 4 mirror's per-format canonical
+// section list (`SECTION_DEFS_BY_FORMAT_TYPE`, below) is a second copy of the real format registry
+// (src/lib/agent/formats/*.ts via extract-registry.ts), kept here only because the real files import via
+// "@/" tsconfig aliases glob-portability.test.mjs cannot resolve. A second copy drifts -- so this mirror's
+// exact equality with the real registry (per format: key, heading, headingAlts) is a PROVEN fact, checked
+// by `scripts/turns/record-briefs/section-list-drift.npmtest.mjs` (loaded through jiti, run by
+// discipline.yml's "App unit tests requiring npm deps" step's named list), not an assumption a future
+// registry edit could silently invalidate.
 
 // Mirrors parse-output.ts's own (private) CLAIM_KIND_VALUES -- see header "ONE LOCAL VOCABULARY" above.
 const CLAIM_KIND_VALUES = Object.freeze(["FACT", "ANALYSIS", "LEGAL", "GAP"]);
@@ -129,7 +138,13 @@ function ilikeIncludes(haystack, needle) {
 // import via "@/" tsconfig aliases, which glob-portability.test.mjs treats as a bare specifier the
 // no-npm-ci job cannot resolve -- importing them here would break portability, so the (small, rarely-
 // changing) DATA is mirrored instead of the (larger, already-reused) ALGORITHM.
-const SECTION_DEFS_BY_FORMAT_TYPE = Object.freeze({
+// EXPORTED for scripts/turns/record-briefs/section-list-drift.npmtest.mjs -- the coordinator's own fix
+// round 1 follow-up: a second copy of the format registry drifts, so this constant's equality with the
+// REAL FormatSpec objects (src/lib/agent/formats/*.ts, loaded through jiti since they use "@/" aliases)
+// is a proven fact, not an assumption. That test is the one place this mirror is checked against the
+// registry; every other consumer (extractCanonicalSections, above) reads this exported constant, kept as
+// the runtime source here for glob-portability (no npm deps, no jiti, in the plain `node --test` path).
+export const SECTION_DEFS_BY_FORMAT_TYPE = Object.freeze({
   regulatory_fact_document: [
     { key: "1", heading: "Purpose and Scope of This Document" },
     { key: "2", heading: "What This Regulation Is and Why It Applies to the Workspace" },
