@@ -1,0 +1,501 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:7445fa9093987e53",
+  "run_id": "brief-apply-run-002",
+  "started_at": "2026-09-12T10:19:44.879Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-001.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-001.json"
+  ],
+  "per_item": [
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [gate_a_unproven_or_stale]: [{\"reason\":\"gate_a_unproven_or_stale\",\"criterion\":7}]"
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [unlabeled_assertion,gate_a_unproven_or_stale]: [{\"reason\":\"unlabeled_assertion\",\"criterion\":4,\"section_row_id\":\"f597b7b8-84b9-4dc6-b816-c44e923208aa\"},{\"reason\":\"unlab"
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [gate_a_unproven_or_stale]: [{\"reason\":\"gate_a_unproven_or_stale\",\"criterion\":7}]"
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#ground",
+      "outcome": "ground_failed",
+      "error": "target-instrument MISMATCH: capture bears a different instrument identifier (2019/1122, 2021/355, 2021/447, 2019/331, 2021/927, 2003/87); the item's own identifier (2022/217) is absent — held, not ground"
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#ground",
+      "outcome": "ground_failed",
+      "error": "target-instrument MISMATCH: capture bears a different instrument identifier (2018/849, 2020/363, 2018/850, 2018/851, 2003/807, 2016/774, 2009/596, 2008/1137, 2002/1774, 2009/1069, 2006/1013, 2016/1628, 2008/1272, 2014/1297, 2015/412, 2017/852, 2012/493, 2020/248, 2000/532, 2014/955, 2006/66, 2000/53, 2012/27, 2010/75, 1999/31, 2003/33, 2015/2193, 2006/21, 2009/126, 2008/98, 2000/60, 2012/19, 2013/56, 2013/12, 2011/97, 2014/99, 2014/101, 2009/31, 2009/148, 2006/12, 2006/95, 2014/35, 2009/158, 2009/72, 2011/92, 2004/35, 2003/87, 2006/118, 2003/4, 2001/80, 2008/1, 1999/45, 2009/147, 2014/52, 2009/41, 2001/18, 2011/833); the item's own identifier (2016/1154) is absent — held, not ground"
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [unlabeled_assertion,gate_a_unproven_or_stale]: [{\"reason\":\"unlabeled_assertion\",\"criterion\":4,\"section_row_id\":\"a2a9c1ed-05bf-4aac-b59a-6ccb916f762c\"},{\"reason\":\"unlab"
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#ground",
+      "outcome": "ground_failed",
+      "error": "target-instrument MISMATCH: capture bears a different instrument identifier (2019/943, 2011/833); the item's own identifier (2023/52) is absent — held, not ground"
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#ground",
+      "outcome": "ground_failed",
+      "error": "target-instrument MISMATCH: capture bears a different instrument identifier (2019/1021, 2017/852, 2008/1102, 2009/1005, 2014/517, 2006/842, 2018/851, 2006/66, 2003/87, 2008/98, 2011/833); the item's own identifier (1995/25) is absent — held, not ground"
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [gate_a_unproven_or_stale]: [{\"reason\":\"gate_a_unproven_or_stale\",\"criterion\":7}]"
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [gate_a_unproven_or_stale]: [{\"reason\":\"gate_a_unproven_or_stale\",\"criterion\":7}]"
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#forward-events",
+      "outcome": "forward-events:3",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 10,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 10,
+    "generate_failed": 0,
+    "applied_item_ids": [
+      "51748690-2ab6-4f88-bab6-a080499d677a",
+      "d90a9642-653b-4c0b-80fa-cfa58132a2f6",
+      "facf8b08-08e9-41d8-a0cb-8162c2b94794",
+      "3d50b8e4-df06-43e9-acda-36ac8fb0668f",
+      "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c",
+      "0f8d177f-907f-4366-91b6-5ec6aef9b7ad",
+      "767482b8-5065-4c27-8d07-cbe660cc9f62",
+      "252f0ecf-f9fe-47f5-8593-6c0f31b614dc",
+      "7dabbe8a-2ba9-4242-8a51-57495e56993f",
+      "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3"
+    ],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [
+    {
+      "description": "apply-record-briefs.mjs threw during a run: readAllByIds is not a function",
+      "root_cause": "TypeError: readAllByIds is not a function\n    at main (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/obligations/derive-obligations.mjs:161:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async main (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/maintenance/derive-obligations.mjs:20:15)\n    at async Object.stepDeriveObligations [as derive-obligations] (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/run-population-flywheel.mjs:1228:19)\n    at async runUnscopedFlywheelSteps (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/run-population-flywheel.mjs:1484:30)\n    at async main (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/apply-record-briefs.mjs:617:18)\n    at async file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/apply-record-briefs.mjs:475:36",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-001.json"
+  ],
+  "proposer_notes": "Renumbered by the coordinator from brief-apply-run-001 (2026-09-12): brief-apply.yml did not commit artifacts back, so the dry run 34688043789 and this apply run 34688130473 both claimed 001 in fresh checkouts; task 6.1b makes the workflow commit its artifact to the dispatched ref."
+}

@@ -17,6 +17,7 @@
 // (parseYearNumber / euCandidates / detectScheme) — no reinvented identifier derivation (reuse-before-construction).
 
 import { parseYearNumber, euCandidates, detectScheme } from "./identifier-variants.mjs";
+import { classifyIdentifier } from "../coverage/identity.mjs";
 
 const YEAR_LO = 1950, YEAR_HI = 2099;
 const isYear = (n) => n >= YEAR_LO && n <= YEAR_HI;
@@ -223,10 +224,71 @@ export function foreignInstrumentTokens(claimText, item = {}) {
   return [...inClaim].filter((t) => !own.has(t));
 }
 
+// ── OWN-URL MATCH (task 6.1b, fix C, brief-chain-build-plan-2026-09-11) ─────────────────────────────────
+//
+// The pilot's four UK/CELEX mismatches (252f0ecf UK ukpga 1995/25, 767482b8 UK ukpga 2023/52, b7135a5b UK
+// uksi 2016/1154, 3d50b8e4 CELEX 32022D0217(02)) share one shape: the instrument's OWN text never cites
+// its own number in a form scanInstrumentIds recognises (an Act rarely quotes its own citation inline),
+// while it DOES cite OTHER instruments in that recognised form -- so verifyTargetMatch's text-only check
+// reads a real, correct capture as a conflicting-instrument MISMATCH. In every case the pool block's own
+// URL bears the identifier (eur-lex.europa.eu/...CELEX:32022D0217(02), legislation.gov.uk/ukpga/2023/52):
+// a block whose URL carries the item's own identifier is trusted as a MATCH before any text verdict runs.
+//
+// REUSE, NOT REIMPLEMENTATION: identifierInUrl reuses src/lib/coverage/identity.mjs's classifyIdentifier
+// (the SAME CELEX_RE / UK_TYPES vocabulary the coverage-identity gate already owns) rather than
+// re-deriving a second CELEX/UK-legislation shape parser here.
+
+/** PURE. True when `url` itself bears the item's OWN instrument identifier. Three forms, in order:
+ *  (i)   CELEX -- the item's canonical_instrument_key/instrument_identifier as a CELEX token, with or
+ *        without a trailing "(NN)" corrigendum suffix, present in the URL (percent-decoded, so
+ *        "CELEX:32022D0217%2802%29" matches the same as the raw form).
+ *  (ii)  UK legislation -- a "<type> <year>/<n>" identifier present as the literal path
+ *        "/<type>/<year>/<n>" (classifyIdentifier's own UK_TYPES vocabulary -- ukpga, uksi, ukla, asp,
+ *        nisr and the rest of legislation.gov.uk's series codes -- reused, not re-enumerated here).
+ *  (iii) otherwise, rawIdentifierPresent's own normalisation applied to the URL (a Federal Register
+ *        document number such as "2026-13092" literal in ".../documents/.../2026-13092/...").
+ *  @param {object} item @param {string} url @returns {boolean} */
+export function identifierInUrl(item = {}, url = "") {
+  const raw = String(item.identifier || item.instrument_identifier || item.canonicalKey || item.canonical_instrument_key || "").trim();
+  if (!raw || !url) return false;
+
+  let decoded = String(url);
+  try {
+    decoded = decodeURIComponent(url);
+  } catch {
+    /* malformed % sequence -- fall back to the raw URL only */
+  }
+  const haystacks = decoded === url ? [String(url)] : [String(url), decoded];
+
+  const cls = classifyIdentifier(raw);
+  if (cls.scheme === "celex") {
+    const m = cls.normalized.match(/^([0-9CE]\d{4}[A-Z]{1,2}\d{2,4})(\(\d{2}\))?$/);
+    if (m) {
+      const base = m[1];
+      const suffix = m[2] || "";
+      for (const h of haystacks) {
+        const hay = h.toUpperCase();
+        if (suffix && hay.includes(`${base}${suffix}`)) return true;
+        if (hay.includes(base)) return true; // with or without the (NN) suffix
+      }
+    }
+  } else if (cls.scheme === "uk-legislation") {
+    const path = `/${cls.normalized}`; // e.g. "/ukpga/1995/25"
+    for (const h of haystacks) if (h.toLowerCase().includes(path)) return true;
+  }
+
+  // (iii) fallback: rawIdentifierPresent's own normalisation (loose literal substring; refuses a bare
+  // short number on its own, so this can never manufacture a match out of a tiny/generic identifier).
+  return Boolean(rawIdentifierPresent(item, decoded) || rawIdentifierPresent(item, url));
+}
+
 /**
  * PURE. Aggregate target-match over the WHOLE fetched pool (the grounding input), so a wrong-instrument
  * PRIMARY does not hard-hold when the RIGHT instrument is also present as a corroborator. Precedence:
- *   - MATCH   if ANY block matches the item (the target instrument is in the pool — ground it).
+ *   - MATCH (own-url) if ANY block's own URL bears the item's own identifier -- decided BEFORE any
+ *              text-based verdict runs (task 6.1b, fix C): a capture's URL is a stronger signal than a
+ *              prose-derived instrument token the instrument's own text may never restate.
+ *   - MATCH   if ANY block's TEXT matches the item (the target instrument is in the pool -- ground it).
  *   - MISMATCH if no block matches AND at least one bears a conflicting instrument id (the pool holds a
  *              DIFFERENT instrument and not this one → hard hold; the eu_clean_trucking class).
  *   - UNVERIFIED otherwise (no decisive id signal anywhere → soft flag; ground under the downstream gates).
@@ -235,6 +297,22 @@ export function foreignInstrumentTokens(claimText, item = {}) {
  * @returns {{ verdict:'match'|'mismatch'|'unverified', best:{ url?:string, verdict:string, via:string, score:number, expected:string[], foundOwn:string[], conflicting:string[], reason:string }, mismatches:object[] }}
  */
 export function verifyPoolTargetMatch(item = {}, blocks = []) {
+  for (const b of blocks || []) {
+    if (b && b.url && identifierInUrl(item, b.url)) {
+      const best = {
+        url: b.url,
+        verdict: "match",
+        via: "own-url",
+        score: 1,
+        expected: [...expectedInstrumentIds(item)],
+        foundOwn: [],
+        conflicting: [],
+        reason: `the block's own URL bears the item's own identifier (${b.url})`,
+      };
+      return { verdict: "match", best, mismatches: [] };
+    }
+  }
+
   const verdicts = (blocks || []).filter((b) => b && b.text).map((b) => ({ url: b.url, ...verifyTargetMatch(item, b.text) }));
   const matched = verdicts.find((v) => v.verdict === "match");
   if (matched) return { verdict: "match", best: matched, mismatches: [] };

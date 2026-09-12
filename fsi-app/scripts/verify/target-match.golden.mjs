@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
-const { verifyTargetMatch, targetMatchHolds, scanInstrumentIds, expectedInstrumentIds, subjectOverlap, SUBJECT_MATCH_THRESHOLD } =
+const { verifyTargetMatch, targetMatchHolds, scanInstrumentIds, expectedInstrumentIds, subjectOverlap, SUBJECT_MATCH_THRESHOLD, identifierInUrl, verifyPoolTargetMatch } =
   await jiti.import("../../src/lib/sources/target-match.mjs");
 
 let failed = 0;
@@ -78,6 +78,39 @@ check("groundBrief CALLS verifyPoolTargetMatch on the fetched pool", callIdx > 0
 check("the target-match call precedes the extraction pivot (gates both drivers)", callIdx > 0 && pivotIdx > callIdx);
 check("the MISMATCH hard-hold precedes the extraction pivot", holdIdx > 0 && pivotIdx > holdIdx);
 check("the gate is imported from the one home", pipe.includes('from "@/lib/sources/target-match.mjs"'));
+
+// 8. OWN-URL MATCH (task 6.1b, fix C, 2026-09-12) -- the pilot's four UK/CELEX shapes: the instrument's
+//    own text never cites its own number in a scanInstrumentIds-recognised form, but the pool block's own
+//    URL does. verifyPoolTargetMatch must MATCH via own-url, deciding BEFORE any text verdict runs.
+const PILOT_OWN_URL_CASES = [
+  { name: "252f0ecf UK ukpga 1995/25", item: { identifier: "UK ukpga 1995/25" }, url: "https://www.legislation.gov.uk/ukpga/1995/25" },
+  { name: "767482b8 UK ukpga 2023/52", item: { identifier: "UK ukpga 2023/52" }, url: "https://www.legislation.gov.uk/ukpga/2023/52" },
+  { name: "b7135a5b UK uksi 2016/1154", item: { identifier: "UK uksi 2016/1154" }, url: "https://www.legislation.gov.uk/uksi/2016/1154" },
+  { name: "3d50b8e4 CELEX 32022D0217(02)", item: { canonical_instrument_key: "32022D0217(02)" }, url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)" },
+];
+for (const c of PILOT_OWN_URL_CASES) {
+  check(`own-url MATCH: ${c.name} (${c.url})`, identifierInUrl(c.item, c.url) === true);
+}
+
+// The eu_clean_trucking NEGATIVE stays a mismatch: a URL bearing CELEX 32022L2464 for an item whose key
+// is 32024R1610 must NOT own-url-match, and the pool's TEXT verdict still mismatches (unchanged).
+check(
+  "own-url NEGATIVE: eu_clean_trucking's own key does not match the CSRD directive's URL",
+  identifierInUrl(HDV_ITEM, "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464") === false,
+);
+const csrdPool = verifyPoolTargetMatch(HDV_ITEM, [{ url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464", text: CSRD_CAPTURE }]);
+check("own-url NEGATIVE: verifyPoolTargetMatch still MISMATCHES on the CSRD capture+URL pair", csrdPool.verdict === "mismatch");
+
+// A bare short number never matches (rawIdentifierPresent's own guard, reused by identifierInUrl's fallback arm).
+check("own-url NEGATIVE: a bare short number never matches", identifierInUrl({ identifier: "25" }, "https://example.org/doc/25") === false);
+
+// verifyPoolTargetMatch wiring: own-url decided BEFORE the text verdict, even when the block's TEXT alone
+// would mismatch (a foreign instrument number appearing in the correct instrument's own captured page).
+const ukPool = verifyPoolTargetMatch(
+  { title: "Environment Act 1995", item_type: "regulation", identifier: "UK ukpga 1995/25", jurisdiction: ["UK"] },
+  [{ url: "https://www.legislation.gov.uk/ukpga/1995/25", text: "This Act amends Regulation (EU) 2022/2464 in a cross-reference, but is the Environment Act 1995 itself." }],
+);
+check("own-url WIRING: verifyPoolTargetMatch MATCHES via own-url ahead of a conflicting text signal", ukPool.verdict === "match" && ukPool.best.via === "own-url");
 
 console.log(failed ? `\nGOLDEN FAILED (${failed})` : "\nGOLDEN PASSED");
 process.exit(failed ? 1 : 0);

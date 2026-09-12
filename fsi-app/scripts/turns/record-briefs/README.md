@@ -95,9 +95,97 @@ validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, er
 - Per-entry AND per-claim violations are collected across the WHOLE file in one pass (not stopped at the
   first bad entry), so a producer sees every problem at once.
 
+## The three pre-write refusals (task 6.1b, 2026-09-12)
+
+A 10-item pilot batch (brief-apply run 34688130473) generated and sectioned cleanly, then quarantined
+10/10 at the ground step for defects the validator now catches before any grounding cost is spent.
+**Quarantine is never the end state of brief-apply** (operator ruling, 2026-09-12, verbatim: "Items need
+to be resolved not quarantined. This is a failure of the previous system."): a lane-authored brief that
+would fail one of these criteria is refused HERE, at the lane's own commit AND again in the driver's
+validate step (one validator, two call sites), naming the exact token or section so the lane fixes the
+source rather than writing something the ground step will quarantine anyway.
+
+1. **Gate A mirror.** Runs the REAL `scanBrief` (`src/lib/agent/gate-a-scan.mjs`, the same scanner
+   `item_gate_a_state` and criterion 7 use) against the entry's own FACT claims (as `{claim_text,
+   source_span}`) and refuses when `orphan_count > 0`, naming every orphan token and its class (figure or
+   deadline). No `derivedCovered` set is computed at authoring time -- that requires a live DB lookup of
+   grounded DERIVED claims this pure, offline validator has no access to, and a record-briefs entry
+   carries no DERIVED claims of its own -- so this mirror is `scanBrief`'s LITERAL coverage arm only.
+   **Authoring rule this implies:** every figure and date written in the body is either inside a FACT
+   claim's `claim_text` or `source_span`, verbatim from the pool, or not written at all. An "as of" note
+   is written WITHOUT a date token the scanner gates -- for example "as of the export date" with the real
+   date carried in the run artifact -- or the date is covered by a claim. Writing a bare "In force as of
+   2026-09-12." (a real pilot defect) gates on the ISO token; "In force as of the export date." does not.
+
+   **[HYPOTHESIS] residual risk, NOT closed by this validator (fix round 1, review finding 3).** This
+   mirror proves the body against the claims AS AUTHORED, at validate time -- it cannot prove a claim
+   survives to ground time. `buildGateARow` (the live write path) scans `full_brief` against the claims
+   that SURVIVED grounding, not the full set the lane submitted; a claim can be dropped between
+   validate-time and ground-time for reasons that have nothing to do with `derivedCovered` -- the pilot's
+   own finding C is direct proof this already fired once (a target-match MISMATCH zeroed all claims for 4
+   items, re-orphaning every Gate A token those claims used to cover). Fix C (own-URL match in
+   `target-match.mjs`) closes that specific mechanism for the three `identifierInUrl` forms it recognises
+   (CELEX, UK legislation, Federal Register); it does not close it for an item whose own-identifier shape
+   isn't one of those three, or for a claim dropped by a verbatim re-check against a live pool that has
+   changed since this validator ran. **Mitigation, why this residual is bounded rather than open-ended:**
+   `assertVerbatim` already runs in this validator (`validateRecordBriefsClaim`) against the SAME pool
+   text this Gate A mirror reads, so a claim cannot be dropped here for failing verbatim-ness this
+   validator itself already confirmed passed -- the remaining path is a target-match hold on the item's
+   whole pool, or the pool genuinely changing between validate-time and ground-time (a race this pure,
+   offline validator cannot observe). Ideally the Gate A mirror would also re-run each FACT claim's
+   `source_span` through the same target-match check `groundBrief` applies, so a claim the ground step
+   would drop is never counted as coverage here either -- not built in this task.
+
+2. **Criterion 4 mirror.** Extracts the body into the SAME section rows the real write path would persist
+   to `intelligence_item_sections` (`extractCanonicalSections` in `schema.mjs`, reusing
+   `extractSectionByNumber`/`extractSectionByHeading` from `extract-sections.ts` -- the number-first-then-
+   heading-then-alts walk `src/lib/agent/formats/prose-extractor.ts`'s `makeProseExtractor` itself runs,
+   over each format's own canonical section list, mirrored here as data since the real format files import
+   via `@/` tsconfig aliases the no-npm-ci discipline job cannot resolve). Content outside every canonical
+   section (a preamble, a non-canonical heading standing alone) is never checked, because the real write
+   path never persists it either. **Fix round 1 correction (review finding 2):** the prior version of
+   this mirror split the body at every `#`-`######` heading, a FINER boundary than the write path's own
+   (an H1-matched section's body runs to the next H1, folding in any H2/H3+ sub-heading) -- which could
+   isolate an early unlabeled sentence from a labeled sub-heading the live database folds into the same
+   row, over-refusing a compliant lane emitting the documented H1-with-H2-subsections pattern. Fixed by
+   reusing the real extraction functions instead of a bespoke splitter.
+   Refuses any resulting section whose text matches
+   `/\b(requires|must|mandates|obligates|prohibits|applies to)\b/i` unless that SAME section also carries
+   one of the four analysis labels (`*Per the workspace's reading:*`, `*Analytical inference:*`,
+   `*Industry interpretation:*`, `*Operational implication:*`) or the `*Legal Confirmation Required:*`
+   callout. **This is DELIBERATELY STRICTER than the live DB rule**, which also accepts a FACT claim
+   attached to the section (`section_key` matching) as an alternative to a label -- that escape is not
+   available here, because claim-to-section attachment happens at the real write site (once a real
+   `intelligence_item_sections` row exists to attach the claim to), not from a flat `body` string this
+   validator reads pre-write. **Authoring rule this implies:** every section that states a requirement
+   carries an analysis label or the legal callout, in that same section, even when a FACT claim elsewhere
+   in the entry covers the same ground.
+
+3. **Timeline mirror.** The body must contain a "Confirmed Regulatory Timeline" section (heading aliases:
+   `"Confirmed Regulatory Timeline"` or the section-sign form `extract-regulation-sections.ts`'s own
+   heading table already accepts) whose entries, run through the real parser
+   (`src/lib/agent/timeline-parse.mjs`'s `parseTimeline`, the SAME parser the live write site uses) and
+   `buildTimelineRows(entries, todayIso)` (`src/lib/agent/timeline-harvest.mjs`), yield at least one row.
+   Refusal prints the parser's own view of the section (how many raw entries it found, how many it
+   skipped as unparseable, and why) so the lane sees exactly why, rather than guessing. **Authoring rule
+   this implies:** the Confirmed Regulatory Timeline section is MANDATORY, with at least one dated entry
+   in the `- <date>: <label>` form (a colon separator, never a literal em/en dash -- this repo's own
+   dash-glyph ban means every lane-authored timeline entry uses a colon); the instrument's own adoption,
+   publication, or entry-into-force date qualifies when no other dated milestone exists. "No item should
+   be without some date in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with
+   at least one `item_timelines` row.
+
+**The `allow_brief_overwrite` flag.** Task 3.3's own write site refuses to re-generate a non-`record`-grade
+item (an existing brief) unless `--allow-brief-overwrite` is passed explicitly; `.github/workflows/brief-
+apply.yml` carries an `allow_brief_overwrite` boolean input (default `false`) mapped to that flag. This
+validator has no opinion on `item_grade` itself (that is a live-DB read the driver's own validate step
+performs, per "What task 3.4's driver is expected to do with a validated file" below) -- the flag only
+ever matters at the driver, never inside `validateRecordBriefsFile`.
+
 ## Reuse, not reimplementation
 
-Two things this validator does NOT reimplement (per this task's own instruction):
+Four things this validator does NOT reimplement (the first two per this task's own instruction; the
+other two added by task 6.1b for the three pre-write refusals above):
 
 1. **Metadata vocabulary** -- `src/lib/agent/parse-output.ts`'s `parseAgentOutput` is imported directly (a
    plain relative `.ts` import; Node 24's native type-stripping makes this portable to the no-npm-ci
@@ -115,14 +203,28 @@ Two things this validator does NOT reimplement (per this task's own instruction)
    (plain `.mjs`, zero transitive npm dependencies). Every `FACT` claim's `source_span` is re-checked with
    the SAME case-insensitive-substring guard `record-facts.mjs` and `validate-mint-payload.mjs` criterion 3
    already use.
+3. **Gate A scanning** -- `src/lib/agent/gate-a-scan.mjs`'s `scanBrief` is imported directly (zero
+   imports beyond `node:crypto` and its own sibling `gate-a-match.mjs`, also zero-import). The Gate A
+   mirror above calls it exactly once per entry, never a second hand-rolled figure/date-token scanner.
+4. **Timeline parsing** -- `src/lib/agent/extract-sections.ts`'s `extractSectionByHeading` (zero imports)
+   locates the section, `src/lib/agent/timeline-parse.mjs`'s `parseTimeline` (moved out of
+   `extract-regulation-sections.ts` by task 6.1b, re-exported and used by that module too -- one parser,
+   two callers) turns it into entries, and `src/lib/agent/timeline-harvest.mjs`'s `buildTimelineRows`
+   turns entries into rows. The timeline mirror above never re-implements any of the three.
 
-One local vocabulary is genuinely duplicated, and named as such rather than left silent:
+Two local vocabularies are genuinely duplicated, and named as such rather than left silent:
 `CLAIM_KIND_VALUES` (`FACT`/`ANALYSIS`/`LEGAL`/`GAP`) mirrors `parse-output.ts`'s own (also
 module-private) constant of the same name -- there is no exported claims-array validator in
 `parse-output.ts` this task's interface calls for, so this is the same judgment call
 `record-facts.mjs`'s own `assertVerbatim` docstring makes for its own re-implementation. Exporting
 `CLAIM_KIND_VALUES` from `parse-output.ts` would close this one duplication; it is a 4-value, closed,
-versioned-together vocabulary, not a drift-prone one.
+versioned-together vocabulary, not a drift-prone one. `ANALYSIS_LABEL_RE`/`LEGAL_CALLOUT`/
+`UNLABELED_MODAL_RE` (the criterion 4 mirror) mirror `scripts/mint/validate-mint-payload.mjs`'s own
+(also module-private) constants of the same name, themselves "ported verbatim from migration 171's
+c_label_re / c_legal_req_re" per that file's own comment -- re-declared here for the same reason:
+`validateMintPayload` is the only export, and this validator's own check is deliberately a STRICTER
+subset of that file's criterion 4 (see above), not an identical copy that could silently drift into
+disagreement if hand-copied loosely.
 
 ## Which fields, and why fewer than the full contract
 

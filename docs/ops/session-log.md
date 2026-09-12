@@ -19436,3 +19436,104 @@ Four pieces landed, each its own commit. (1) `src/lib/agent/timeline-backfill-de
 - `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: section 40)
 - `fsi-app/scripts/verify/population-report.mjs`, `.test.mjs` (modified: "timeline coverage" entry)
 - `docs/ops/session-log.md` (this entry)
+## 2026-09-12, W9-6.1B: the pilot's five source defects, fixed at the source before batch 2
+
+Task 6.1b (branch `lane/w9-6.1b-2026-09-12`, worktree `wt-part3-0911`). Brief-apply run 34688130473 (the
+10-item pilot, `record-briefs-001.json`) generated and sectioned 10/10 items cleanly, then quarantined
+10/10 at the ground step. Operator rulings governing this task, verbatim: "Items need to be resolved not
+quarantined. This is a failure of the previous system." and "No item should be without some date in the
+timeline." Five defects named in the pilot, all fixed at the source (schema.mjs, the parser, the
+target-match gate, the flywheel db wiring, the workflow) rather than quarantined again on the next batch.
+
+**Finding A -- Gate A orphans (criterion 7).** [CONFIRMED, re-run of the real `scanBrief` scanner against
+the pilot's own committed batch + its six pool-text export parts]. Every one of the ten pilot items' own
+body text carries an ungrounded ISO date token (mostly "as of 2026-09-12" / "In force as of 2026-09-12."
+notes with no covering FACT claim); the live pilot's own `item_gate_a_state` rows recorded this on six of
+the ten (the other four had already lost their claims to a later re-section triggered by finding C, a
+different data snapshot than the as-authored batch this session validated against). **Fix:** a Gate A
+mirror added to `scripts/turns/record-briefs/schema.mjs`'s `validateRecordBriefsEntry`, running the real
+`scanBrief` (`src/lib/agent/gate-a-scan.mjs`) against the entry's own FACT claims and refusing on any
+orphan, naming the token and its class.
+
+**Finding B -- unlabeled assertions (criterion 4).** [CONFIRMED, same re-run]. The brief named d90a9642 and
+0f8d177f; a section-by-section re-scan against `validate-mint-payload.mjs`'s own criterion 4 regexes found
+BOTH named items fail (exactly as reported) plus two more (767482b8, b7135a5b) that the live pipeline's
+single-pass gate never separately reported because it stops at the FIRST failing criterion per item (those
+two items hit finding C's target-match mismatch first). **Fix:** a criterion 4 mirror added to the same
+validator, splitting the body at `#`-headings and refusing a section matching the unlabeled-modal pattern
+with no analysis label or legal callout -- deliberately STRICTER than the live DB rule, which also accepts
+a FACT claim attached to the section (unknowable pre-write, since claim-to-section attachment happens at
+the real write site).
+
+**Finding C -- target-instrument mismatch.** [CONFIRMED via `scripts/verify/target-match.golden.mjs`,
+extended]. The four named items (252f0ecf UK ukpga 1995/25, 767482b8 UK ukpga 2023/52, b7135a5b UK uksi
+2016/1154, 3d50b8e4 CELEX 32022D0217(02)) never cite their own instrument number in a
+`scanInstrumentIds`-recognised form within their own enacted text, so `verifyTargetMatch`'s text-only check
+read each correct capture as a conflicting-instrument mismatch. In every case the pool block's own URL
+bears the identifier. **Fix:** `identifierInUrl(item, url)` added to `src/lib/sources/target-match.mjs`,
+reusing `src/lib/coverage/identity.mjs`'s `classifyIdentifier` (CELEX/UK-legislation vocabulary, not a
+second identifier-shape parser); `verifyPoolTargetMatch` now checks every block's own URL for an own-id
+match BEFORE any text verdict runs.
+
+**Finding D -- `readAllByIds is not a function`.** [CONFIRMED from the pilot's own `defects_found[0]` stack
+trace, cross-checked against the live source]. `apply-record-briefs.mjs`'s execute-mode call site passed a
+five-function subset of `../lib/db.mjs` (missing `readAllByIds`) to `runUnscopedFlywheelSteps`, whose
+`stepDeriveObligations` needs it. The IDENTICAL five-function subset was found at BOTH of
+`run-population-flywheel.mjs`'s own db-acquisition sites (recurrence + shared codepath -- a class bug, per
+remediation-discipline). **Fix:** all three sites now await the whole `../lib/db.mjs` module and pass it
+straight through; a namespace import always carries every export, so this class cannot recur here again.
+`run-population-flywheel.test.mjs`'s own "db namespace" test (previously pinning the OLD hand-built-object
+pattern that already caused two prior incidents) rewritten to assert the new invariant: no hand-built db
+namespace literal remains anywhere in the driver.
+
+**Finding E -- zero-row timeline harvest.** [CONFIRMED, re-run of the OLD dash-only parser against all ten
+pilot items' own "Confirmed Regulatory Timeline" sections: zero entries from every one]. The lane wrote
+`- 3 November 2023: label` (a colon separator -- this repo's own em/en-dash ban leaves a compliant lane no
+other choice); the old `parseTimeline` (inline in `extract-regulation-sections.ts`) required a dash
+separator only. **Fix:** the parser moved to a new pure `src/lib/agent/timeline-parse.mjs` and widened to
+accept a colon OR a dash, with a precise date-token grammar (ISO, day-month-year, month-year, quarter/half,
+bare year, or a range of those) so a qualifying clause between the date and the separator ("31 December
+2040 and each five-year anniversary: ...") still yields the correct row. Re-run against all ten pilot items
+post-fix: every one now yields at least one row, zero skipped. `extract-regulation-sections.ts` imports the
+same parser -- one implementation, two callers. A timeline mirror added to `schema.mjs` refuses a batch
+whose Confirmed Regulatory Timeline section still yields zero rows once parsed.
+
+**Finding F -- CI/workflow gaps.** [CONFIRMED]. `.github/workflows/brief-apply.yml` had no
+`allow_brief_overwrite` input and never committed `scripts/harness-runs/brief-apply/*.json` back to the
+dispatched ref, so every fresh-checkout dispatch claimed `brief-apply-run-001` again (`brief-apply-run-
+002.json`'s own `proposer_notes` records exactly this). **Fix:** the boolean input added and mapped to
+`--allow-brief-overwrite`; a new step commits the run artifact directly to the dispatched ref (git
+identity, `git pull --rebase`, one retry), never a side branch (a side branch is invisible to the next
+dispatch of the same ref until a human merges it).
+
+**Harness records.** `brief-apply-run-001.json` (DRY, verbatim) and `brief-apply-run-002.json` (APPLY,
+renumbered from `-001` with the CI-double-claim `proposer_notes`) committed; `PENDING-RUN.md` re-pinned
+(Re-pin 3) to the post-fix hash `sha256:23efe6a3833474fa`, since this task's own edits to
+`apply-record-briefs.mjs` and `schema.mjs` moved it from the artifacts' own recorded
+`sha256:7445fa9093987e53`; `LAST-PROPOSER-PASS.md` added naming `brief-apply-run-002` per F28 rule (d).
+
+**Gates.** `node --test scripts/turns/record-briefs/record-briefs.test.mjs` 38/38; new
+`src/lib/agent/timeline-parse.test.mjs` 9/9; `scripts/verify/target-match.golden.mjs` 26/26 (extended from
+18/18); `scripts/turns/apply-record-briefs.test.mjs` 34/34; `scripts/turns/run-population-flywheel.test.mjs`
+90/90; `.discipline/fitness/functions/F28-harness-run-integrity.test.mjs` 33/33;
+`.discipline/glob-portability.test.mjs` 3/3; `node .discipline/fitness/runner.mjs`: 0 violations against
+the tracked tree (13 hits reported locally are gitignored `scripts/tmp/` scratch, confirmed absent on a
+clean checkout); `npx tsc --noEmit`: clean. One incidental fix: `src/lib/coverage/identity.mjs`'s stale F25
+`LEGACY_ALLOWLIST` entry removed once finding C's fix gave it a real production importer.
+
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line (diff-scoped
+byte scan on every touched file before each commit). No hardcoded user-home paths. No database access, no
+model API calls. Never `git stash`, never `git add -A` (explicit paths every commit). Never `--no-verify`,
+never pushed. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+**Files (by fix).** Fix A/B/E (schema + parser): `scripts/turns/record-briefs/schema.mjs`,
+`scripts/turns/record-briefs/record-briefs.test.mjs`, `src/lib/agent/timeline-parse.mjs` (new),
+`src/lib/agent/timeline-parse.test.mjs` (new), `src/lib/agent/extract-regulation-sections.ts`. Fix C:
+`src/lib/sources/target-match.mjs`, `scripts/verify/target-match.golden.mjs`. Fix D:
+`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/apply-record-briefs.test.mjs`,
+`scripts/turns/run-population-flywheel.mjs`, `scripts/turns/run-population-flywheel.test.mjs`. Fix F:
+`.github/workflows/brief-apply.yml`. Harness records:
+`scripts/harness-runs/brief-apply/{brief-apply-run-001.json,brief-apply-run-002.json,PENDING-RUN.md,
+LAST-PROPOSER-PASS.md}`. Docs: `scripts/turns/record-briefs/README.md`,
+`.discipline/fitness/functions/F25-module-liveness.mjs`, `docs/ops/session-log.md` (this entry). Full
+per-fix proof: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-6.1b-report.md`.

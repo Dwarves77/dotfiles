@@ -114,6 +114,40 @@ test("DEFAULT_HARNESS_RUNS_DIR: resolves under scripts/harness-runs/brief-apply"
   assert.match(DEFAULT_HARNESS_RUNS_DIR.replaceAll("\\", "/"), /scripts\/harness-runs\/brief-apply$/);
 });
 
+// ── unscoped flywheel steps deps: fix round 2 (task 6.1b, brief-chain-build-plan-2026-09-11, fix D). The
+// pilot's exact failure was `readAllByIds is not a function` from scripts/obligations/derive-
+// obligations.mjs:161, thrown because this driver's own execute-mode call site destructured only a
+// five-function subset of ../lib/db.mjs (readAll/guardedInsertMany/guardedUpdate/guardedUpdateByIds/
+// readClient) and handed THAT to runUnscopedFlywheelSteps, whose stepDeriveObligations passes the whole
+// db object straight through to deriveObligationsMain -- which needs readAllByIds too.
+// applyOneEntry's own DI seam does not reach this call site (it lives deeper in main(), gated on
+// parsed.execute and a non-empty appliedItemIds list, which requires a real write), so this is proven the
+// SAME way the wiring proof at the bottom of target-match.golden.mjs proves its own call site: a
+// structural scan of the driver's own source confirms it passes the WHOLE module object (never a
+// destructured subset again), plus a live import of the real ../lib/db.mjs confirming every name derive-
+// obligations.mjs / tag-proposals.mjs / tag-ratification.mjs / analyze-corpus read off it is present as a
+// function -- so "the object handed to the unscoped step carries readAllByIds" is proven both structurally
+// (the driver's own code) and by content (the real module those names actually resolve on). ──────────────
+test("unscoped flywheel steps: the driver passes the WHOLE ../lib/db.mjs module to runUnscopedFlywheelSteps, never a hand-picked subset", async () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  assert.match(
+    src,
+    /const db = await import\("\.\.\/lib\/db\.mjs"\);\s*\n\s*unscoped = await runUnscopedFlywheelSteps\("apply", appliedItemIds, db\);/,
+    "expected the execute-mode call site to await the whole db.mjs module and pass it straight through",
+  );
+  // The old five-function destructure must be gone from this call site entirely.
+  assert.doesNotMatch(
+    src,
+    /const \{ readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient \} = await import\("\.\.\/lib\/db\.mjs"\);/,
+    "the prior subset destructure (missing readAllByIds) must not reappear",
+  );
+
+  const db = await import("../lib/db.mjs");
+  for (const name of ["readAllByIds", "readAll", "guardedInsertMany", "guardedUpdate", "guardedUpdateByIds", "readClient"]) {
+    assert.equal(typeof db[name], "function", `../lib/db.mjs must export ${name} as a function`);
+  }
+});
+
 // ── entities pre-flight: fix round 1, coordinator ruling, 2026-09-11. Part 1 (lane/w9-part1-2026-09-11)
 // merged to master at c63c0bf9 while this task was under review, so src/lib/entities/link-item-entities.mjs
 // IS now on this branch (confirmed: `ls src/lib/entities/` lists it post-rebase) - importLinkItemEntities()

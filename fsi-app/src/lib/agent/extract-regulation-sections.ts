@@ -38,6 +38,7 @@
 
 import { extractSectionByHeading } from "./extract-sections";
 import { isPlaceholderSourceName } from "./source-entry-filter.mjs";
+import { parseTimeline } from "./timeline-parse.mjs";
 
 // ── Section-key vocabulary ─────────────────────────────────────────
 
@@ -387,73 +388,10 @@ function parseObligationsTable(markdown: string): ObligationRow[] {
 }
 
 // ── §14 timeline parser ────────────────────────────────────────────
-
-/**
- * §14 entries come in TWO shapes and both must parse (Phase-3b, DD-01 — the
- * corpus's flagship briefs emit a markdown TABLE, and the bullet-only parser
- * read them as zero entries, which is how 28 seeded-timeline items sat
- * unharvestable):
- *  1. Bulleted lines opening with a date or date range followed by an
- *     em-dash and the event label; trailing source citation in parentheses
- *     or after `Source:` captured separately.
- *  2. Markdown table rows `| date | milestone | status |` — date = column 1,
- *     label = column 2 (header + `|---|` separator rows skipped; the status
- *     column is display-state judgment, not part of the milestone label —
- *     completion derives from the date downstream).
- */
-function parseTimeline(markdown: string): TimelineEntry[] {
-  const blocks = markdown.split(/\n{1,}/);
-  const entries: TimelineEntry[] = [];
-
-  for (const raw of blocks) {
-    const trimmed = raw.trim();
-    if (!trimmed) continue;
-    // Skip horizontal-rule separators.
-    if (/^[-*_]{3,}$/.test(trimmed)) continue;
-    // Markdown TABLE row: | date | label | … |
-    if (trimmed.startsWith("|")) {
-      const cells = trimmed.split("|").map((c) => c.trim()).filter((c, i, arr) => !(i === 0 && c === "") && !(i === arr.length - 1 && c === ""));
-      if (cells.length < 2) continue;
-      // Separator row (|---|---|) or header row ("Date" / "Milestone").
-      if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;
-      const dateCell = cells[0].replace(/\*\*/g, "").trim();
-      if (/^date\b/i.test(dateCell)) continue; // header
-      const labelCell = (cells[1] || "").replace(/\*\*/g, "").trim();
-      if (!dateCell || !labelCell) continue;
-      entries.push({ date: dateCell, label: labelCell, source: null });
-      continue;
-    }
-    // Drop leading bullet marker.
-    const stripped = trimmed.replace(/^[-*+]\s+/, "");
-    // Match a leading date-ish token (ISO date, "Q3 2026", "Jan 2026",
-    // year only, or a date range "2026-01-01 to 2026-03-01").
-    const dateMatch = /^([\dA-Z][^\s—–-]+(?:\s+\d{4})?(?:\s+(?:to|–|—)\s+[\dA-Z][^\s—–-]+(?:\s+\d{4})?)?)\s*[—–-]\s*/i.exec(
-      stripped
-    );
-    if (!dateMatch) continue;
-    const date = dateMatch[1].trim();
-    let rest = stripped.slice(dateMatch[0].length).trim();
-
-    // Pull out a trailing source citation in parentheses or after
-    // "Source:".
-    let source: string | null = null;
-    const parenSrcMatch = /\s*\(source:\s*([^)]+)\)\s*$/i.exec(rest);
-    if (parenSrcMatch) {
-      source = parenSrcMatch[1].trim();
-      rest = rest.slice(0, parenSrcMatch.index).trim();
-    } else {
-      const trailingSrcMatch = /\s+(?:source|src)\s*[:\-—]\s*(.+)$/i.exec(rest);
-      if (trailingSrcMatch) {
-        source = trailingSrcMatch[1].trim();
-        rest = rest.slice(0, trailingSrcMatch.index).trim();
-      }
-    }
-
-    entries.push({ date, label: rest, source });
-  }
-
-  return entries;
-}
+//
+// Moved to timeline-parse.mjs (task 6.1b, brief-chain-build-plan-2026-09-11, fix E) so the record-briefs
+// pre-write validator (a plain .mjs, no `@/` alias) can call the SAME parser this module uses, instead of
+// a second hand-rolled copy. Imported at the top of this file -- one parser, two callers.
 
 // ── §15 sources list parser ────────────────────────────────────────
 

@@ -72,12 +72,188 @@
 
 import { parseAgentOutput, AgentOutputParseError } from "../../../src/lib/agent/parse-output.ts";
 import { assertVerbatim } from "../../../src/lib/intake/record-facts.mjs";
+import { scanBrief } from "../../../src/lib/agent/gate-a-scan.mjs";
+import { extractSectionByHeading, extractSectionByNumber } from "../../../src/lib/agent/extract-sections.ts";
+import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
+import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-11.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.1";
+// 2026-09-12.1 (task 6.1b, brief-chain-build-plan-2026-09-11): three new pre-write refusals, added after
+// a 10-item pilot batch generated and sectioned cleanly, then quarantined 10/10 at the ground step for
+// defects this validator could have caught before any grounding cost was spent -- see the three "MIRROR"
+// blocks in validateRecordBriefsEntry below. Quarantine is never the end state of brief-apply (operator
+// ruling, 2026-09-12); refusing HERE, naming the exact token or section, is how the lane fixes the source
+// before a write is ever attempted.
+//
+// GUARDED MIRROR (fix round 1 follow-up, 2026-09-12): the criterion 4 mirror's per-format canonical
+// section list (`SECTION_DEFS_BY_FORMAT_TYPE`, below) is a second copy of the real format registry
+// (src/lib/agent/formats/*.ts via extract-registry.ts), kept here only because the real files import via
+// "@/" tsconfig aliases glob-portability.test.mjs cannot resolve. A second copy drifts -- so this mirror's
+// exact equality with the real registry (per format: key, heading, headingAlts) is a PROVEN fact, checked
+// by `scripts/turns/record-briefs/section-list-drift.npmtest.mjs` (loaded through jiti, run by
+// discipline.yml's "App unit tests requiring npm deps" step's named list), not an assumption a future
+// registry edit could silently invalidate.
 
 // Mirrors parse-output.ts's own (private) CLAIM_KIND_VALUES -- see header "ONE LOCAL VOCABULARY" above.
 const CLAIM_KIND_VALUES = Object.freeze(["FACT", "ANALYSIS", "LEGAL", "GAP"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ── criterion-4 mirror vocabulary -- ANOTHER named duplicate (same posture as CLAIM_KIND_VALUES above):
+// mirrors scripts/mint/validate-mint-payload.mjs's own (module-private) ANALYSIS_LABEL_RE / LEGAL_CALLOUT
+// / UNLABELED_MODAL_RE, itself "ported verbatim from migration 171's c_label_re / c_legal_req_re" per that
+// file's own comment. Re-declared here rather than imported because validate-mint-payload.mjs exports
+// none of the three (only validateMintPayload itself is exported). This mirror is DELIBERATELY STRICTER
+// than the live DB rule: the DB's own unlabeled_assertion check also accepts a FACT claim attached to the
+// section (`hasFactInSection`) as an alternative to a label/callout -- that escape is NOT available here,
+// because claim-to-section attachment happens at write time (when a real `intelligence_item_sections` row
+// exists to attach the claim to) and cannot be known from a record-briefs entry's flat `body` string. A
+// batch that would pass the live DB check via that escape can still fail here; see README.md.
+const ANALYSIS_LABEL_RE =
+  /\*?(per the workspace's reading|analytical inference|industry interpretation|operational implication)(\s*\([^)]*\))?:\*?/i;
+const LEGAL_CALLOUT = "*legal confirmation required:*";
+const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
+
+function ilikeIncludes(haystack, needle) {
+  return String(haystack ?? "").toLowerCase().includes(String(needle ?? "").toLowerCase());
+}
+
+// ── criterion-4 mirror section boundaries: the REAL section extraction, not a bespoke splitter (task
+// 6.1b, fix round 1, finding 2). A bare `#{1,6}` splitter (the prior version of this file) draws section
+// boundaries FINER than the write path does: src/lib/agent/formats/prose-extractor.ts's
+// makeProseExtractor -- the ONE section-extractor every format's sectionBrief write actually runs
+// through -- only recognises H1/H2 headings matching one of a format's own CANONICAL section names/
+// numbers, and an H1-matched section's body runs to the NEXT H1, folding in any H2/H3+ sub-headings
+// (extract-sections.ts's own header: "SB 253 et al. emit body sections as H2 sub-headings"). A bespoke
+// `#{1,6}` split therefore isolates an early unlabeled sentence from a labeled sub-heading that, at the
+// real database row, shares its section -- an over-refusal in the safer direction, but still wrong: a
+// compliant lane emitting the documented H1-with-H2-subsections pattern was needlessly refused pre-write.
+//
+// REUSE, NOT A SECOND COPY OF THE ALGORITHM: extractSectionByNumber/extractSectionByHeading (already
+// imported above, from extract-sections.ts, zero further imports) ARE the real boundary-finding
+// functions makeProseExtractor itself calls, in the SAME number-first-then-heading-then-alts order.
+// What IS duplicated here, of necessity and named as such (the same posture as CLAIM_KIND_VALUES/
+// ANALYSIS_LABEL_RE above): the per-FORMAT_TYPE canonical SECTION LIST (heading/key/order/headingAlts),
+// mirrored verbatim from each of the five src/lib/agent/formats/*.ts files' own `SECTIONS` arrays.
+// extract-registry.ts (the real item_type -> FormatSpec dispatch) and every one of those five files
+// import via "@/" tsconfig aliases, which glob-portability.test.mjs treats as a bare specifier the
+// no-npm-ci job cannot resolve -- importing them here would break portability, so the (small, rarely-
+// changing) DATA is mirrored instead of the (larger, already-reused) ALGORITHM.
+// EXPORTED for scripts/turns/record-briefs/section-list-drift.npmtest.mjs -- the coordinator's own fix
+// round 1 follow-up: a second copy of the format registry drifts, so this constant's equality with the
+// REAL FormatSpec objects (src/lib/agent/formats/*.ts, loaded through jiti since they use "@/" aliases)
+// is a proven fact, not an assumption. That test is the one place this mirror is checked against the
+// registry; every other consumer (extractCanonicalSections, above) reads this exported constant, kept as
+// the runtime source here for glob-portability (no npm deps, no jiti, in the plain `node --test` path).
+export const SECTION_DEFS_BY_FORMAT_TYPE = Object.freeze({
+  regulatory_fact_document: [
+    { key: "1", heading: "Purpose and Scope of This Document" },
+    { key: "2", heading: "What This Regulation Is and Why It Applies to the Workspace" },
+    { key: "3", heading: "Issues Requiring Immediate Action" },
+    { key: "4", heading: "How the Workspace Sits in the Compliance Chain" },
+    { key: "5", heading: "Authoritative Guidance Document Analysis" },
+    { key: "6", heading: "Anticipated Authoritative Guidance and Pending Regulatory Events" },
+    { key: "7", heading: "Threshold Questions" },
+    { key: "8", heading: "Substantive Requirements" },
+    { key: "9", heading: "Product-Specific Compliance Status" },
+    { key: "10", heading: "Registration and Reporting Obligations" },
+    { key: "11", heading: "Operational System Requirements" },
+    { key: "12", heading: "Exemptions and Edge Cases" },
+    { key: "13", heading: "Adjacent Industry Research and Alternatives" },
+    { key: "14", heading: "Confirmed Regulatory Timeline" },
+    { key: "15", heading: "Sources" },
+  ],
+  research_summary: [
+    { key: "1", heading: "What the Research Found", headingAlts: ["What the Research Is Investigating", "What the Research Found — OR What the Research Is Investigating"] },
+    { key: "2", heading: "Why This Finding Matters Operationally and Commercially" },
+    { key: "3", heading: "What the Finding Changes for Strategy, Claims, or Decisions" },
+    { key: "4", heading: "Client Conversation Talking Points and Public Position" },
+    { key: "5", heading: "What the Finding Does Not Resolve", headingAlts: ["What the Finding Does Not Resolve (+ forward timing)", "What the Finding Does Not Resolve + forward timing"] },
+    { key: "6", heading: "Sources" },
+  ],
+  market_signal_brief: [
+    { key: "1", heading: "What's Moving and What Triggered It" },
+    { key: "2", heading: "Who's Driving It and What They Want" },
+    { key: "3", heading: "Expected Trajectory and Conversion Triggers" },
+    { key: "4", heading: "Operational and Cost Implications If It Materializes" },
+    { key: "5", heading: "Competitive Implications" },
+    { key: "6", heading: "Client Conversation Talking Points" },
+    { key: "7", heading: "What the Workspace Should Do Now" },
+    { key: "8", heading: "Sources" },
+  ],
+  technology_profile: [
+    { key: "1", heading: "What's Being Tested or Deployed and By Whom" },
+    { key: "2", heading: "What This Tells Us About Industry Trajectory" },
+    { key: "3", heading: "Supplier Access and Procurement Reality" },
+    { key: "4", heading: "Operational Fit by Transport Mode and Cargo Vertical" },
+    { key: "5", heading: "Competitive Positioning Implications for the Workspace" },
+    { key: "6", heading: "Conversational and Strategic Talking Points" },
+    { key: "7", heading: "Time-to-Market, Procurement Window, and Action" },
+    { key: "8", heading: "Sources" },
+  ],
+  operations_profile: [
+    { key: "1", heading: "Operational Cost Baseline for the Region" },
+    { key: "2", heading: "Feasibility of Specific Operational Choices" },
+    { key: "3", heading: "Cost Comparison Against Alternatives" },
+    { key: "4", heading: "Cross-Regional Strategic Implications" },
+    { key: "5", heading: "Competitive Positioning in the Region" },
+    { key: "6", heading: "Client Conversation Talking Points" },
+    { key: "7", heading: "Pending Changes That Shift the Calculus" },
+    { key: "8", heading: "Sources" },
+  ],
+});
+
+/**
+ * Extract the section bodies a real `sectionBrief` write would persist to `intelligence_item_sections`
+ * for this `format_type` -- the SAME number-first-then-heading-then-alts walk makeProseExtractor runs,
+ * over the SAME canonical section list. Content that falls outside every canonical section (a preamble,
+ * a non-canonical heading standing alone) is never returned: the real write path never persists it
+ * either, so scanning it here would be a false positive the live database can never reproduce.
+ * @param {string} body @param {string|null|undefined} formatType
+ * @returns {{heading:string, text:string}[]|null} null when formatType is unrecognised (caller decides)
+ */
+function extractCanonicalSections(body, formatType) {
+  const defs = SECTION_DEFS_BY_FORMAT_TYPE[formatType];
+  if (!defs) return null;
+  const src = String(body ?? "");
+  const rows = [];
+  for (const def of defs) {
+    let got = extractSectionByNumber(src, def.key);
+    if (!(got && (got.contentMarkdown || "").trim())) {
+      got = extractSectionByHeading(src, def.heading);
+      for (const alt of def.headingAlts ?? []) {
+        if (got && (got.contentMarkdown || "").trim()) break;
+        got = extractSectionByHeading(src, alt);
+      }
+    }
+    const text = (got?.contentMarkdown || "").trim();
+    if (!text) continue;
+    if (/^\*?no content for this section/i.test(text)) continue; // honest omission note -> not a row
+    rows.push({ heading: def.heading, text });
+  }
+  return rows;
+}
+
+// ── timeline mirror -- the two heading variants extract-regulation-sections.ts's own (module-private)
+// SECTION_HEADINGS["14"] accepts, reproduced here as the same two literal strings (never exported from
+// that module, so this is the same named-duplicate posture as CLAIM_KIND_VALUES/ANALYSIS_LABEL_RE above).
+// The section-sign form is written with a \u escape, never the literal glyph (this repo's own dash/
+// section-sign ban), which matches the SAME character the live heading variant uses either way.
+const TIMELINE_HEADING_VARIANTS = Object.freeze([
+  "Confirmed Regulatory Timeline",
+  "\u00A714 Confirmed Regulatory Timeline",
+]);
+// Only used for buildTimelineRows' is_completed flag, which this mirror never inspects (it only checks
+// row COUNT) -- a fixed sentinel keeps this validator pure and deterministic rather than depending on the
+// wall clock for a value that plays no part in any refusal decision here.
+const TIMELINE_MIRROR_TODAY_ISO = "1970-01-01";
+
+function findTimelineSection(body) {
+  for (const variant of TIMELINE_HEADING_VARIANTS) {
+    const extracted = extractSectionByHeading(String(body ?? ""), variant);
+    if (extracted) return extracted;
+  }
+  return null;
+}
 
 function isNonEmptyString(v) {
   return typeof v === "string" && v.trim().length > 0;
@@ -290,6 +466,105 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
     entry.claims.forEach((claim, ci) => {
       errors.push(...validateRecordBriefsClaim(claim, ci, itemId, poolText));
     });
+  }
+
+  const hasBody = typeof entry.body === "string" && entry.body.trim() !== "";
+
+  // ── MIRROR (a): Gate A -- every figure/date token scanBrief harvests from the body must be covered by
+  // some FACT claim's own claim_text or source_span (see gate-a-scan.mjs). No `derivedCovered` set is
+  // computed at authoring time (that requires a live DB lookup of grounded DERIVED claims -- see
+  // gate-a-derived.mjs -- which this pure, offline validator has no access to and no need for: a
+  // record-briefs entry carries no DERIVED claims of its own), so this mirror is scanBrief's LITERAL arm
+  // only. README.md's authoring rules state the consequence plainly: every figure/date written in the
+  // body is either inside a FACT claim's text or span, verbatim from the pool, or not written at all.
+  //
+  // [HYPOTHESIS] RESIDUAL (fix round 1, review finding 3, NOT closed by this task): this mirror proves
+  // the body against the claims AS AUTHORED, at validate time -- it cannot prove they survive to ground
+  // time. A claim can be dropped between mirror-time and ground-time for reasons that have nothing to do
+  // with derivedCovered: `buildGateARow` (write-item.ts) scans `full_brief` against the claims that
+  // SURVIVED grounding, not the full set the lane submitted. The pilot's own finding C is direct proof
+  // this already fired once -- a target-match MISMATCH zeroed all claims for 4 items ("These four also
+  // lost their record-grade slot claims to the re-section"), which would re-orphan every Gate A token
+  // those claims used to cover, independent of derivedCovered. This task's fix C (own-URL match in
+  // target-match.mjs) closes that mechanism for the three `identifierInUrl` forms it recognises (CELEX,
+  // UK legislation, Federal Register); it does NOT close it for any item whose own-identifier shape isn't
+  // one of those three, or for a claim dropped by a verbatim re-check against a live pool that changed
+  // between when THIS validator read `poolTextByItemId` and when `groundBrief` re-checks against
+  // whatever the pool is at ground time. MITIGATION (why this is bounded, not open-ended): `assertVerbatim`
+  // already runs in THIS validator (validateRecordBriefsClaim, above) against the SAME pool text supplied
+  // here, so a claim cannot be dropped for failing verbatim-ness that this validator itself already
+  // confirmed passed -- a verbatim-clean claim can still be dropped ONLY by (a) a target-match hold on
+  // the item's whole pool, or (b) the pool changing between validate-time and ground-time (a race this
+  // validator cannot observe, since it is pure and offline). Ideally, this mirror's Gate A check would
+  // also verify each FACT claim's source_span survives the SAME target-match check groundBrief applies,
+  // so a claim the ground step would drop is never counted as coverage here either -- not built in this
+  // task; tracked here and in README.md, not silently left undocumented.
+  if (hasBody && Array.isArray(entry.claims)) {
+    const factClaims = entry.claims
+      .filter((c) => c && typeof c === "object" && c.claim_kind === "FACT")
+      .map((c) => ({ claim_text: c.claim_text, source_span: c.source_span }));
+    const gateA = scanBrief(entry.body, factClaims);
+    if (gateA.orphan_count > 0) {
+      const list = gateA.orphans.map((o) => `${JSON.stringify(o.token)} (${o.class})`).join(", ");
+      at(
+        `Gate A mirror: ${gateA.orphan_count} orphan token(s) in the body with no covering FACT claim: ${list}. ` +
+          "Either add a FACT claim whose claim_text or source_span carries the token verbatim, or remove the token from the body.",
+      );
+    }
+  }
+
+  // ── MIRROR (b): criterion 4 -- every section whose text matches the unlabeled-modal pattern must carry
+  // one of the four analysis labels or the legal callout INSIDE that same section, where "section" means
+  // the SAME row the real write path would persist (extractCanonicalSections above -- fix round 1,
+  // finding 2), not a bespoke finer split that could isolate an unlabeled sentence from a labeled
+  // sub-heading the live database folds into the same row. Deliberately STRICTER than the live DB rule in
+  // the one way that remains (see the ANALYSIS_LABEL_RE/LEGAL_CALLOUT/UNLABELED_MODAL_RE header comment
+  // above): the DB's own check also accepts a FACT claim attached to the section as an alternative, which
+  // this validator cannot evaluate pre-write (claim-to-section attachment happens at the real write site,
+  // once a real intelligence_item_sections row exists). Content outside every canonical section (a
+  // preamble, a non-canonical heading standing alone) is never checked -- the real write path never
+  // persists it either. An unrecognised/missing format_type has no canonical section list to check
+  // against; the metadata vocabulary check elsewhere in this function already refuses such an entry on
+  // its own terms, so criterion 4 is silently skipped here rather than guessing a section list.
+  if (hasBody) {
+    const formatType = entry.metadata && typeof entry.metadata === "object" ? entry.metadata.format_type : null;
+    const sections = extractCanonicalSections(entry.body, formatType);
+    for (const section of sections ?? []) {
+      if (
+        UNLABELED_MODAL_RE.test(section.text) &&
+        !(ANALYSIS_LABEL_RE.test(section.text) || ilikeIncludes(section.text, LEGAL_CALLOUT))
+      ) {
+        at(
+          `criterion 4 mirror: unlabeled assertion in section ${JSON.stringify(section.heading)} -- matches /requires|must|mandates|obligates|prohibits|applies to/i ` +
+            "with no *Analytical inference:*/*Industry interpretation:*/*Operational implication:* label and no *Legal Confirmation Required:* callout in that section.",
+        );
+      }
+    }
+  }
+
+  // ── MIRROR (c): timeline -- the body must contain a "Confirmed Regulatory Timeline" section whose
+  // entries, run through the SAME parser (timeline-parse.mjs) and buildTimelineRows (timeline-
+  // harvest.mjs) the live write site uses, yield at least one row. "No item should be without some date
+  // in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with at least one
+  // item_timelines row, and this refuses BEFORE the write when that would not hold.
+  if (hasBody) {
+    const timelineSection = findTimelineSection(entry.body);
+    if (!timelineSection) {
+      at(
+        'timeline mirror: body has no "Confirmed Regulatory Timeline" section (heading required -- ' +
+          "the instrument's own adoption, publication, or entry-into-force date qualifies when no other dated milestone exists).",
+      );
+    } else {
+      const parsedEntries = parseTimeline(timelineSection.contentMarkdown);
+      const { rows, skipped } = buildTimelineRows(parsedEntries, TIMELINE_MIRROR_TODAY_ISO);
+      if (rows.length === 0) {
+        at(
+          `timeline mirror: the "Confirmed Regulatory Timeline" section yields ZERO rows once parsed ` +
+            `(the parser's own view: ${parsedEntries.length} raw entr${parsedEntries.length === 1 ? "y" : "ies"} found, ` +
+            `${skipped.length} skipped as unparseable: ${JSON.stringify(skipped)}). Section text: ${JSON.stringify(timelineSection.contentMarkdown.slice(0, 500))}`,
+        );
+      }
+    }
   }
 
   return errors;
