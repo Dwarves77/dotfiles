@@ -1,0 +1,680 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:6f48801e6631548a",
+  "run_id": "brief-apply-run-004",
+  "started_at": "2026-09-12T17:43:37.031Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-001.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": true
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-001.json"
+  ],
+  "per_item": [
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "51748690-2ab6-4f88-bab6-a080499d677a#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "d90a9642-653b-4c0b-80fa-cfa58132a2f6#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "facf8b08-08e9-41d8-a0cb-8162c2b94794#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "0f8d177f-907f-4366-91b6-5ec6aef9b7ad#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "767482b8-5065-4c27-8d07-cbe660cc9f62#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "252f0ecf-f9fe-47f5-8593-6c0f31b614dc#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "7dabbe8a-2ba9-4242-8a51-57495e56993f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 10,
+    "skipped_stale_hash": 0,
+    "applied": 8,
+    "quarantined": 2,
+    "generate_failed": 0,
+    "applied_item_ids": [
+      "51748690-2ab6-4f88-bab6-a080499d677a",
+      "d90a9642-653b-4c0b-80fa-cfa58132a2f6",
+      "facf8b08-08e9-41d8-a0cb-8162c2b94794",
+      "3d50b8e4-df06-43e9-acda-36ac8fb0668f",
+      "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c",
+      "0f8d177f-907f-4366-91b6-5ec6aef9b7ad",
+      "767482b8-5065-4c27-8d07-cbe660cc9f62",
+      "252f0ecf-f9fe-47f5-8593-6c0f31b614dc",
+      "7dabbe8a-2ba9-4242-8a51-57495e56993f",
+      "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3"
+    ],
+    "unscoped_flywheel": {
+      "analyzeCorpus": {
+        "execute": true,
+        "signals": true
+      },
+      "deriveObligations": {
+        "step": "derive-obligations",
+        "mode": "apply",
+        "counts": {
+          "forward_events": 1216,
+          "derived": 1216,
+          "skipped_no_item": 0,
+          "already_registered": 818,
+          "to_insert": 398,
+          "binding_position_breakdown": {
+            "unclassified": 1098,
+            "direct_duty": 84,
+            "carrier_passthrough": 22,
+            "customer_contract": 12
+          }
+        },
+        "applied": 398,
+        "read_back": {
+          "obligations_total": 1216,
+          "active": 1212,
+          "by_binding_position": {
+            "null": 1100,
+            "carrier_passthrough": 22,
+            "customer_contract": 12,
+            "direct_duty": 82
+          }
+        },
+        "exitCode": 0
+      },
+      "tagProposals": {
+        "step": "tag-proposals",
+        "mode": "apply",
+        "counts": {
+          "selection": {
+            "mode": "ids",
+            "ids": [
+              "51748690-2ab6-4f88-bab6-a080499d677a",
+              "d90a9642-653b-4c0b-80fa-cfa58132a2f6",
+              "facf8b08-08e9-41d8-a0cb-8162c2b94794",
+              "3d50b8e4-df06-43e9-acda-36ac8fb0668f",
+              "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c",
+              "0f8d177f-907f-4366-91b6-5ec6aef9b7ad",
+              "767482b8-5065-4c27-8d07-cbe660cc9f62",
+              "252f0ecf-f9fe-47f5-8593-6c0f31b614dc",
+              "7dabbe8a-2ba9-4242-8a51-57495e56993f",
+              "ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3"
+            ],
+            "since": null
+          },
+          "corpus_count": 1434,
+          "targets_count": 10,
+          "missing_ids": [],
+          "flag_candidates_count": 0,
+          "with_proposals_count": 0,
+          "existing_open_count": 1123,
+          "plan": {
+            "new_count": 0,
+            "stale_count": 9,
+            "unchanged": 0
+          },
+          "preview": [],
+          "apply_command": "node scripts/maintenance/tag-proposals.mjs --mode apply --arg ids:51748690-2ab6-4f88-bab6-a080499d677a,d90a9642-653b-4c0b-80fa-cfa58132a2f6,facf8b08-08e9-41d8-a0cb-8162c2b94794,3d50b8e4-df06-43e9-acda-36ac8fb0668f,b7135a5b-6a9c-487d-8ab7-a3f4e22e358c,0f8d177f-907f-4366-91b6-5ec6aef9b7ad,767482b8-5065-4c27-8d07-cbe660cc9f62,252f0ecf-f9fe-47f5-8593-6c0f31b614dc,7dabbe8a-2ba9-4242-8a51-57495e56993f,ca1c75f5-6ae5-4f17-b429-fd4b4d3859e3"
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "wrote": null,
+        "resolved": {
+          "updated": 9,
+          "rows": [
+            {
+              "id": "0273a35c-f1dd-49fb-9e9e-aa59ee7d68c8"
+            },
+            {
+              "id": "1200cb2c-868f-40eb-b8b2-33f2975ecc82"
+            },
+            {
+              "id": "5356578b-8c95-417d-bf12-584b9c63d30a"
+            },
+            {
+              "id": "6bb74b18-64b0-4289-8040-4b1aa0db3445"
+            },
+            {
+              "id": "73311eaa-4451-4f0b-8020-9876ad42035b"
+            },
+            {
+              "id": "a2bc378e-6205-4458-a659-79c37e3fb4b6"
+            },
+            {
+              "id": "a3abe6cd-1354-4d80-9be6-003417ef45f7"
+            },
+            {
+              "id": "c8d3dd81-a874-447a-a13d-33fdf450638b"
+            },
+            {
+              "id": "ec639b35-6f66-459f-ac41-ff053941f26d"
+            }
+          ],
+          "snapshots": [
+            "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/2026-09-12T17-44-58-951Z_integrity_flags.jsonl"
+          ],
+          "chunks": 1,
+          "halvings": 0,
+          "snapshot": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/2026-09-12T17-44-58-951Z_integrity_flags.jsonl"
+        },
+        "note": "Wrote 0 new integrity_flags PROPOSAL row(s); resolved 9 stale row(s). This writes integrity_flags proposals ONLY — it never writes intelligence_items tags (operator rule: NO assumptions, NEVER silent auto-tagging). Ratify each with resolution_note containing \"ratify:tags\", then run the tag-ratification MAINT step to apply."
+      },
+      "tagRatification": {
+        "step": "tag-ratification",
+        "mode": "apply",
+        "counts": {
+          "open_candidates": 1114,
+          "threshold": "high",
+          "eligible": [
+            {
+              "flag_id": "04632dfd-ae7c-418b-a306-58ce3a11effd",
+              "item_id": "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "2d937af4-3e8d-4d18-a8fc-07c7e8b26a50",
+              "item_id": "60a8df3c-3aca-4456-ba20-e7a941d5d0f4",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "60d9bab8-60cc-4461-95d7-7b0aadfee336",
+              "item_id": "4dc0f3ad-2a50-4705-8072-776fe54c91e8",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "9d0cce34-acac-44ce-8a1e-767c5bdd990f",
+              "item_id": "061dce37-78f4-4621-9df3-81ee36543ad6",
+              "eligible_count": 1,
+              "residue_count": 1
+            },
+            {
+              "flag_id": "da4e41f8-01a9-46f4-a820-437aaa94ed32",
+              "item_id": "dbee543b-7569-4902-84a3-73a324c10973",
+              "eligible_count": 1,
+              "residue_count": 1
+            }
+          ],
+          "below_threshold_count": 67,
+          "not_adoptable_count": 1042,
+          "apply_results": [
+            {
+              "flag_id": "04632dfd-ae7c-418b-a306-58ce3a11effd",
+              "status": "no_change_residue_open",
+              "item_id": "14cfdaa9-aca7-4714-8456-1891d29c82e2"
+            },
+            {
+              "flag_id": "2d937af4-3e8d-4d18-a8fc-07c7e8b26a50",
+              "status": "no_change_residue_open",
+              "item_id": "60a8df3c-3aca-4456-ba20-e7a941d5d0f4"
+            },
+            {
+              "flag_id": "60d9bab8-60cc-4461-95d7-7b0aadfee336",
+              "status": "no_change_residue_open",
+              "item_id": "4dc0f3ad-2a50-4705-8072-776fe54c91e8"
+            },
+            {
+              "flag_id": "9d0cce34-acac-44ce-8a1e-767c5bdd990f",
+              "status": "no_change_residue_open",
+              "item_id": "061dce37-78f4-4621-9df3-81ee36543ad6"
+            },
+            {
+              "flag_id": "da4e41f8-01a9-46f4-a820-437aaa94ed32",
+              "status": "no_change_residue_open",
+              "item_id": "dbee543b-7569-4902-84a3-73a324c10973"
+            }
+          ]
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "note": "Auto-adopted 0/5 eligible flag(s) at/above threshold \"high\" (67 open flag(s) below threshold left untouched). Discovery NOT re-run by this step (orchestration only, per this file's header) — fallback: node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute."
+      }
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-001.json"
+  ],
+  "proposer_notes": ""
+}
