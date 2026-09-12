@@ -123,7 +123,10 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     // rows) is the shared `SectionCard`, which owns the rule, the border, the radius and the
     // shadow. Ruling 5.1 unchanged: rule above the title, no divider below it.
     <SectionCard dataAudit="rail-card" style={{ minWidth: 0 }}>
-      <div style={{ padding: "12px 16px 14px" }}>
+      {/* Admin spacing pass (task 7.5 item 4, 2026-09-12): one consistent 8pt inner padding across
+          the right rail's three cards (this one, WorkspacesUsageRow's rail form, and
+          ReadOnlyControlsCard) — was an asymmetric off-grid "12px 16px 14px" here. */}
+      <div style={{ padding: "16px" }}>
         <div
           style={{
             display: "flex",

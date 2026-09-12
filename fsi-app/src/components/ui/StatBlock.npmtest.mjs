@@ -61,3 +61,23 @@ test("tile note is 11.5px / --ink-2 (#5A6B67), 4px margin-top (dc.html p13)", ()
 test('tile size ignores layout — no "layout ===" branch inside the tile block', () => {
   assert.doesNotMatch(tileBlock(), /layout ===/);
 });
+
+// ── admin-tile clipping fix (task 7.5 item 4, 2026-09-12: "the numbers in the sources and inject
+// tabs are being cut off") ──────────────────────────────────────────────────────────────────────
+
+test("tile numeral is pinned (flexShrink 0, nowrap) so a 4/5-digit count is never clipped or wrapped", () => {
+  const block = tileBlock();
+  assert.match(block, /flexShrink:\s*0/);
+  assert.match(block, /whiteSpace:\s*"nowrap"/);
+});
+
+test("tile label is the side that gives (flex 1 1 auto, minWidth 0) — it wraps instead of squeezing the numeral", () => {
+  const block = tileBlock();
+  assert.match(block, /flex:\s*"1 1 auto"/);
+  assert.match(block, /minWidth:\s*0/);
+});
+
+test("tile label/numeral row carries data-guard-container for the shared cell-bounds sweep", () => {
+  const block = tileBlock();
+  assert.match(block, /data-guard-container="stat-tile-row"/);
+});

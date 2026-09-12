@@ -407,6 +407,15 @@ export function AdminDashboard({
         @media (max-width: 767px) {
           .admin-t08-frame { padding: 14px 16px 16px; }
         }
+        /* Operator addendum, item 4 (2026-09-12, verbatim): "all spacing in those boxes across
+           admin need adjustment" — widened from the two clipped counts (Sources/Ingest) to a
+           spacing pass over every summary tile on /admin: the top row (Workspaces / Sources /
+           Ingest / Coverage / Research pipeline / Community pickups / Runtime / Emission factors —
+           all ONE grid, admin-t08-sections, that wraps to two rows of four at desktop width) plus
+           the right-rail Issues queue / Companies-Individuals / Read-only-controls cards. The gap
+           is one 8pt-grid token (16px) so both the row-gap and the column-gap of this single grid
+           agree — "the same gap between tiles in both rows" was already structurally true (one
+           grid, one gap value), tightened here to a real 8pt value (12px was not on the grid). */
         .admin-t08-sections { grid-template-columns: repeat(4, 1fr); }
         .cl-admin-stat-tile {
           font-family: inherit;
@@ -417,7 +426,18 @@ export function AdminDashboard({
           border-radius: var(--radius-card);
           border: 1px solid rgba(0, 0, 0, .12);
           box-shadow: 0 1px 2px rgba(26, 26, 26, .04), 0 4px 14px rgba(26, 26, 26, .06);
-          padding: 0 14px 12px 14px;
+          /* Consistent 8pt inner padding on every side (was "0 14px 12px 14px" — an asymmetric,
+             off-grid value whose zero top padding is why the label/numeral row sat flush against
+             the card's own top edge). box-sizing: border-box so the padding never adds to the
+             grid cell's own track width. min-height gives every tile in the row a shared floor
+             (tile height still grows with content — a wrapped two-line label or a two-line note —
+             this only stops a short tile from looking shorter than its row-mates) computed off the
+             8pt grid (12 * 8). overflow: hidden stays for the border-radius clip; it no longer
+             needs to double as a silent content clipper now that StatBlock's own tile row pins the
+             numeral and lets the label wrap instead of overflowing (see StatBlock.tsx). */
+          padding: 16px;
+          box-sizing: border-box;
+          min-height: 96px;
           overflow: hidden;
         }
         @media (max-width: 1180px) {
@@ -459,7 +479,7 @@ export function AdminDashboard({
                 never band tiles"). Each tile IS the section switcher the
                 sub-nav below responds to; Emission factors has no sub-nav
                 of its own and instead links straight to /admin/factors. */}
-            <div className="admin-t08-sections" style={{ display: "grid", gap: 12, margin: "0 0 18px" }}>
+            <div className="admin-t08-sections" style={{ display: "grid", gap: 16, margin: "0 0 18px" }}>
               {SECTIONS.map((s) => {
                 const on = s.name === section;
                 const badge = sectionBadge(s.name);
@@ -890,7 +910,10 @@ function ReadOnlyControlsCard({ onRefresh }: { onRefresh: () => void }) {
     // Operator items A1 + A3 (2026-09-08): shared `SectionCard`, which supplies the shadow this
     // shell was missing entirely.
     <SectionCard dataAudit="admin-readonly-controls">
-      <div style={{ padding: "12px 16px 14px" }}>
+      {/* Admin spacing pass (task 7.5 item 4, 2026-09-12): matches AdminIssuesRail's + the rail form
+          of WorkspacesUsageRow's own 16px inner padding (was an asymmetric off-grid
+          "12px 16px 14px"). */}
+      <div style={{ padding: "16px" }}>
         <div
           style={{
             fontSize: "var(--fs-105)",
@@ -910,7 +933,7 @@ function ReadOnlyControlsCard({ onRefresh }: { onRefresh: () => void }) {
           </Link>
           .
         </p>
-        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
           <RowTableAction label="Refresh" onClick={onRefresh} />
         </div>
       </div>
