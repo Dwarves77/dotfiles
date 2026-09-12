@@ -80,7 +80,7 @@ import { fileURLToPath } from "node:url";
 import { isMainModule } from "../lib/is-main.mjs";
 import { claimRunId, writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
-import { validateRecordBriefsFile } from "./record-briefs/schema.mjs";
+import { validateRecordBriefsFile, RECORD_BRIEFS_SCHEMA_VERSION } from "./record-briefs/schema.mjs";
 import { runUnscopedFlywheelSteps } from "./run-population-flywheel.mjs";
 import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-extract.mjs";
@@ -504,6 +504,11 @@ async function main() {
     limit: parsed.limit,
     afterId: parsed.afterId,
     allowBriefOverwrite: parsed.allowBriefOverwrite,
+    // Fix round 1, finding 5 (review-6.2b.md): RECORD_BRIEFS_SCHEMA_VERSION had no reader anywhere in the
+    // codebase -- stamped here so the run artifact records which validator contract judged this batch,
+    // without needing a version-comparison gate (validateRecordBriefsFile is re-run fresh every time; this
+    // is a durable record for forensics, not a live enforcement check).
+    recordBriefsSchemaVersion: RECORD_BRIEFS_SCHEMA_VERSION,
   };
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES["brief-apply"], FSI_ROOT);
 
