@@ -65,7 +65,7 @@ on:
   workflow_dispatch:
     inputs:
       ids:
-        description: 'Comma-separated intelligence_items.id list to export (passed as --ids). Leave blank to select up to `limit` hollow record-grade stub items automatically (item_grade=record, verified, live, every FACT claim is [title]-only): see this file''s header, "SELECTION".'
+        description: 'Comma-separated intelligence_items.id list to export (passed as --ids); a quarantined item named here IS exported, not silently dropped (D1 fix, defect-fix-plan-2026-09-12.md, task 6.2d), so this is how a quarantined item reaches the brief-apply allow_brief_overwrite re-ground path. Leave blank to select up to `limit` hollow record-grade stub items automatically (item_grade=record, verified, live, every FACT claim is [title]-only, quarantined items never included by auto-selection): see this file''s header, "SELECTION".'
         required: false
         default: ''
         type: string

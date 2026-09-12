@@ -5,6 +5,56 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-12, W9 task 6.2d: the brief export now includes a quarantined item named by id (D1)
+
+**What.** `defect-fix-plan-2026-09-12.md`'s D1: `export-corpus-for-extraction.mjs`'s `--ids` item scope
+ANDed the requested ids with `provenance_status = 'verified'`, so a ticket naming a quarantined item
+(brief-export run 34717714753, item 00a8c0d9) was silently dropped, exactly the item the
+`apply-record-briefs.mjs --allow-brief-overwrite` re-ground path exists to reach (ADR-030: items are
+resolved, never left quarantined). Fixed at the source: `--ids` now selects `is_archived = false` and
+`provenance_status IN ('verified', 'quarantined')`; the auto-selection paths (`--since`, and
+`brief-export.yml`'s own hollow/record auto-select) stay verified-only by design, since they pick WHAT
+to export rather than answer a ticket naming a specific id.
+
+The item-scope logic for `--ids` was extracted into a new, dependency-injected, exported function,
+`selectItemsByIds(ids, itemColumns, { readAll })`, so the fix is unit-tested against a fake `readAll`
+rather than a live database. A requested id that still is not exported is never silently dropped: it is
+classified `archived` (a row exists with `is_archived = true`) or `not_found` (no matching row, or a
+provenance_status outside the accepted set), named in the console log and carried on the written output
+as `not_exported: [{id, reason}]`, present on the single-file write and on every char-budgeted part
+under `--with-pool-text`. Every exported item now also carries its own `provenance_status`, on both the
+default and `--with-pool-text` paths, so a lane sees a quarantined item for what it is.
+
+**Files.** `fsi-app/scripts/turns/export-corpus-for-extraction.mjs` and `.test.mjs` (new
+`selectItemsByIds` function and its tests, `provenance_status` on every corpus item, `not_exported` on
+both write shapes), `.github/workflows/brief-export.yml` (the `ids` input description now states that a
+quarantined item is included when named), `fsi-app/scripts/turns/record-briefs/README.md` (a new
+paragraph telling a lane that a quarantined export is authored like any other, resolved by the
+`allow_brief_overwrite` apply), `docs/ops/session-log.md` (this entry).
+
+**Gates.** `node --test scripts/turns/export-corpus-for-extraction.test.mjs`: 68/68 (18 new: 9
+`selectItemsByIds` behavior tests over a fake `readAll`, 3 `provenance_status` pass-through tests, 6
+source-contract tests covering the ITEM_COLUMNS widening, the `--ids` branch calling `selectItemsByIds`,
+the auto-selection path staying verified-only, and the `not_exported` field on both write shapes; 3
+pre-existing exact-shape tests updated to include the new `provenance_status` field their fixtures now
+carry). Full preflight (`sh fsi-app/.discipline/hooks/pre-push`) run once at the end; tail and exit code
+in `task-6.2d-report.md`. Glyph byte check 0 over the range.
+
+**Deviation from the brief, reported per this lane's instructions.** The task brief asked for tests
+"dependency injected, no database" for the `--ids` scope change, but `main()` itself has no dependency
+injection anywhere in this file (a pre-existing posture this lane did not change). To meet the brief's
+own testability requirement without widening the write set, the `--ids` item-scope logic was extracted
+into the new exported `selectItemsByIds` function, which main() now calls; this is the mechanism the
+brief's test list implies but does not name explicitly. One pre-existing source-contract test
+(`export-corpus-for-extraction.test.mjs`, "both intelligence_items readAll calls... use the same
+ITEM_COLUMNS variable") was split into two, updated tests to match: the default path still asserts
+`ITEM_COLUMNS`, and a new test asserts `selectItemsByIds`'s own `itemColumns` parameter, since the old
+single regex no longer described the post-fix source structure.
+
+### UX compliance (task 6.2d)
+
+Not applicable: no `.tsx`/`.css` touched.
+
 ## 2026-09-12, W9 Part 7 task 7.2: every flywheel-tag / source-classification / signal proposal decided, fix round 1
 
 Task 7.2 of the brief-chain build plan (ADR-030 rider), worktree `wt-proprec-0911`, branch
