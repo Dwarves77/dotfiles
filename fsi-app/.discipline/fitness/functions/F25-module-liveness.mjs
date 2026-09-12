@@ -947,6 +947,23 @@ export const LEGACY_ALLOWLIST = [
     ];
   })(),
 
+  // W9-PART3 task 3.2 (2026-09-11): record-briefs/schema.mjs, built and unit-tested
+  // (record-briefs.test.mjs, 27 cases) ahead of its own consumer, per the sequenced build plan's own
+  // ordering (task 3.2 ships the validator, task 3.4 wires the brief-apply driver that imports it). The
+  // same "sequenced behind" shape the W1 register's #8/#11 pair already documents above, not an orphan.
+  {
+    file: 'fsi-app/scripts/turns/record-briefs/schema.mjs',
+    reason:
+      "Task 3.2 of docs/plans/brief-chain-build-plan-2026-09-11.md Part 3: the record-briefs validator, " +
+      "built and unit-tested (record-briefs.test.mjs, 27 cases) ahead of its own consumer. Task 3.4 (the " +
+      "brief-apply driver, not yet built) is this module's intended production importer, the same " +
+      "relationship run-ledger-consume.mjs has to the ledger-verdicts contract. Sequenced, not orphaned: " +
+      "remove this entry the moment task 3.4 imports validateRecordBriefsFile.",
+    reviewByPhase:
+      "brief-chain build plan Part 3, task 3.4 (operator/coordinator: remove this entry once the " +
+      "brief-apply driver imports validateRecordBriefsFile)",
+  },
+
   // lane NOTICES's notices-rail-smoke.mjs allowlist entry REMOVED here (ASSEMBLE-47 coordinator lane,
   // 2026-09-05): registered in ux-smoke-specs.mjs and given its F35 ROW_COMPONENTS entry in this same
   // commit, exactly the landing action the entry itself named as its own removal condition.

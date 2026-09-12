@@ -18586,3 +18586,69 @@ push. No PreToolUse skill-gate denial on any Write/Edit this round. No database 
 
 Not applicable: no `.tsx` or `.css` touched. (The casing observation above is a content/UX note for the
 operator's future decision, not a UI change made this round.)
+## 2026-09-11, W9-PART3 task 3.2: the record-briefs artifact contract
+
+Worktree `wt-part3-0911`, branch `lane/w9-part3-2026-09-11`, on top of task 2.2's parser (`92085ff9`) and
+task 3.1's export (`c465f029`, `d9157ce5`, `62233564`), per `docs/plans/brief-chain-build-plan-2026-09-11.md`
+Part 3 task 3.2.
+
+**Accomplished.** `fsi-app/scripts/turns/record-briefs/schema.mjs` (new): `validateRecordBriefsFile(json,
+{ poolTextByItemId }) -> { ok: true, entries } | { ok: false, errors }`, the same batch/entries file-contract
+shape `ledger-verdicts/README.md` documents. Reuses, rather than reimplements, two things per the task
+brief: (1) `src/lib/agent/parse-output.ts`'s `parseAgentOutput` for every metadata vocabulary rule (severity/
+priority/urgency_tier/format_type enums, the locked severity-to-priority mapping, topic/compliance-object
+closed vocabularies, the signal_band/theme format_type gates), reached by serializing the entry's `body` +
+`metadata` JSON into the flat-line YAML frontmatter `parseAgentOutput` expects
+(`buildSyntheticFrontmatter`/`buildSyntheticRawText`) and feeding it through the real, unmodified parser,
+the same technique task 3.3's own brief names for the write site itself; (2) `src/lib/intake/record-facts.mjs`'s
+`assertVerbatim` for every FACT claim's `source_span`, checked against the item's own pool text
+(`poolTextByItemId`, supplied by the caller from task 3.1's `pool: [{url, text}]` export). One local
+vocabulary is a genuine, named duplicate: `CLAIM_KIND_VALUES` mirrors parse-output.ts's own private
+constant of the same name (not exported, no claims-array validator exists there for this task's interface
+to call).
+
+`fsi-app/scripts/turns/record-briefs/record-briefs.test.mjs` (new, 27 tests): the three brief-named cases
+(a valid entry; a FACT span not in the pool text; a metadata vocabulary miss), plus whole-file shape,
+entry-level shape, claim-level shape, and the synthetic-frontmatter serialization edge cases (a comma
+inside an inline-array item, a newline inside a free-text scalar, a value that both starts and ends with a
+matching quote character, all three are named, refused limitations of the shared flat-YAML format, not
+silently mis-parsed).
+
+`fsi-app/scripts/turns/record-briefs/README.md` (new): the mechanism, how a lane produces a batch, the
+validator's own API, the reuse rationale, and the flat-YAML format's known limitation, in the same voice
+and structure as `ledger-verdicts/README.md`.
+
+**A wiring gap found and fixed in the same motion (CLAUDE.md rule 13).** `.discipline/run-test-suite.sh`'s
+`scripts/turns/*.test.mjs` glob is single-level (`glob-portability.test.mjs`'s own `expand()` does a plain
+`readdirSync`, no recursion); it does not reach a file in a subdirectory. `record-briefs.test.mjs` lives
+in `scripts/turns/record-briefs/`, one level down, so without a change it would be git-tracked and green
+locally but run by NOTHING in CI or pre-push, exactly the class rule 15 names ("a verifier that is
+git-tracked but run by no lane is a lie the coverage gate must not rubber-stamp"). Added
+`fsi-app/scripts/turns/record-briefs/*.test.mjs` to the glob list, immediately after the existing
+`scripts/turns/*.test.mjs` line (matching the same paired-glob pattern `scripts/mint/*.test.mjs` +
+`scripts/mint/lib/*.test.mjs` and `scripts/review/*.test.mjs` + `scripts/review/lib/*.test.mjs` already
+use for their own subdirectories). Confirmed by re-running `glob-portability.test.mjs`: it now expands
+the new file, and passes (the new file imports only `node:test`, `node:assert/strict`, and a relative
+`./schema.mjs`).
+
+**Decisions.** A separate `schema.mjs` file (not embedded in a driver, unlike `run-ledger-consume.mjs`'s
+own inline `validateVerdictsFile`) per the task brief's own Files list, so task 3.4's driver can import
+the validator without a CLI surface it does not need. `source_pool_hash` is validated as a non-empty
+string only (no fixed regex), since the brief does not name an exact hash-string format the way
+`ledger-verdicts`' `prompt_version` does (`^sha256:[0-9a-f]{16}$`); over-constraining an unstated format
+risks a false rejection once task 3.4 computes the real hash.
+
+**Blockers.** None. Task 3.3 (the injected-synthesis seam in `synthesiseAndWriteBrief`) and task 3.4 (the
+`brief-apply` driver) are the next two tasks in Part 3; neither file this task touched overlaps theirs.
+
+**Gates.** `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: RED confirmed (moved
+`schema.mjs` aside, `ERR_MODULE_NOT_FOUND`, 0 pass / 1 fail), then GREEN after restoring it, 27/27 pass.
+`node --test .discipline/glob-portability.test.mjs`: 2/2 pass (run before AND after the run-test-suite.sh
+edit, to prove the new glob line is both needed and sufficient). `npx tsc --noEmit`: clean, no output.
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (see below).
+`bash .discipline/run-test-suite.sh` NOT run, per the task's own instruction.
+
+### UX compliance
+
+Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a new backend validator
+module, its test, its README, and one discipline-suite wiring line.
