@@ -3020,7 +3020,6 @@ items without a row, excluding the reported/flagged undateable set, trending tow
 dispatch of `scripts/backfill-item-timelines.mjs` (a different script, run by hand or via a future
 dedicated step) over the reg-family briefs carrying a timeline section, so this step's own undated count
 reflects what genuinely remains.
-## 40. `close-run-logs`
 ## 41. `close-run-logs`
 
 **Purpose**: close informational `integrity_flags` run-log rows -- Part 7 task 7.1 of the brief-chain
