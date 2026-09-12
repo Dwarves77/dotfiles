@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'dry = validate + plan + print, write nothing. apply = pass --execute and run the full per-item pipeline.'
+        description: 'dry = validate + plan + print, no database writes (a run artifact is still written to disk). apply = pass --execute and run the full per-item pipeline.'
         required: true
         default: 'dry'
         type: choice

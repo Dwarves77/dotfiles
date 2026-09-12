@@ -19089,3 +19089,136 @@ calls were never executed against a live database this session (dry-mode-only, p
 
 Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a backend driver, workflow,
 and harness-registration change only.
+
+### Task 3.4 fix round 1 (coordinator review, 2026-09-11)
+
+**(1) Rebase onto origin/master (Part 1 merged at `c63c0bf9`).** `git fetch origin master && git rebase
+origin/master`. One conflict, in `src/lib/intake/apply-staged-update.ts`, exactly where the reviewer's
+`git merge-tree` predicted: the import block (kept BOTH: `linkItemEntities` from master, plus
+`runDiscoveryStep`/`runForwardEventsStep` from `flywheel-steps.mjs`) and `participateInFlywheel`'s
+signature/first comment (kept master's 4-arg form with `proposedChanges` and its comment; kept this task's
+own extracted step bodies inside; master's own entities tail and the `applyStagedUpdate` call-site
+pass-through were already unconflicted, so they carried through unchanged). `docs/ops/session-log.md` also
+conflicted once (task 3.1's own already-rebased entry and task 3.2's own entry landed at the same append
+point); resolved as a union (master's/already-applied side first, then this task's own side), per
+instruction. `docs/INDEX.md` never conflicted. 15 of this branch's own commits from before the rebase
+carried through as 17 commits on top of `origin/master` (the "brieffields" lane's own commits that master
+now already carries were dropped by the rebase as already-applied, expected).
+
+Post-rebase: `apply-staged-update-forward-participation.npmtest.mjs` (Part 1's own 3 new entity tests
+included, 16 total) passes 16/16 unchanged. `importLinkItemEntities()` now genuinely RESOLVES (Part 1's
+`src/lib/entities/link-item-entities.mjs` is on the branch) -- `importLinkItemEntities` gained an optional
+`specifier` parameter (default the real path) so the named-skip test now exercises the absent-module branch
+via a deliberately nonexistent path, independent of what actually exists on disk, and a new positive-case
+test drives the REAL resolved function end to end through the same `fakeSupabase()` client task 1.1's own
+test suite uses.
+
+**(2) Crash-safety: `main()` now writes a run artifact on ANY thrown failure, not only on success.**
+`buildPoolContext` (an unguarded Supabase read) and `runUnscopedFlywheelSteps` could throw before
+`writeRunArtifact` ran, leaving no record (rule 17). `main()` restructured to mirror `run-mint-batch.mjs`'s
+own crash-safety shape exactly: `runId = claimRunId(...)` first (inside a `try`), every mutable result
+(`perItem`/`metrics`/`appliedItemIds`/`unscoped`) declared outside the `try` so `finally` can see however
+far the run got, ONE `writeRunArtifact` call site in `finally` (guarded on `runId`), `defects_found` naming
+the thrown error when one occurred. The validation-refusal path (previously its OWN separate
+`writeRunArtifact` call, a second write site) is now unified into the SAME throw/catch/finally path -- a
+handled validation refusal is a `throw new Error(...)` like any other failure, so there is exactly one
+"how does a failure get recorded" shape, not two. RED-first (subprocess integration tests, the same pattern
+`run-mint-batch.test.mjs`'s own "artifact written on THROWN FAILURE" test uses): confirmed RED against the
+pre-fix committed code (a malformed `--briefs` file exited 1 with NO artifact and no "FAILED" message);
+GREEN after the fix, plus a second new test for the validation-refusal path and a third proving
+`claimRunId` still increments correctly across two consecutive failing runs.
+
+**(3) The jiti production path is now exercised.** Two additions:
+- `applyOneEntry` gained an overridable `deps` bag (the SAME injected-fake pattern this function already
+  used for `sb`) covering all five jiti-loaded/shared-module calls (`generateBriefFromInjected`,
+  `sectionBrief`, `groundBrief`, `growSources`, `recordFlywheelDefect`) plus the four flywheel/entities
+  calls (`runDiscoveryStep`, `runForwardEventsStep`, `syncComplianceDeadlineForItem`,
+  `importLinkItemEntities`), each defaulting to the real implementation when not overridden. Five new
+  `apply-record-briefs.test.mjs` cases drive the FULL 8-step order + outcome vocabulary against pure fakes
+  (all-succeed; a generate failure that does not halt later steps; a thrown discovery step caught and
+  flywheel-defect-recorded; the entities named-skip; provenance_status reported even when ground failed) --
+  RED-first confirmed against the pre-refactor code (4 of 5 failed, reaching the real jiti-loaded pipeline
+  instead of the fakes); all run in under 1ms each (zero jiti overhead), confirming the fakes are genuinely
+  taking the real call's place, not merely coexisting with it.
+- New `scripts/turns/apply-record-briefs.npmtest.mjs` (the FIRST `scripts/**/*.npmtest.mjs` file in this
+  repo): imports `canonical-pipeline.ts` and `flywheel-defect.ts` through the SAME `createJiti` alias setup
+  `loadPipeline()`/`loadFlywheelDefect()` use, asserts the four/one exports are real functions, and drives
+  the REAL `generateBriefFromInjected` and `recordFlywheelDefect` end to end against injected fake clients
+  (no database; a fake `sb` that throws on any table/call generateBriefFromInjected should not reach proves
+  it stops at "item not found" before any network call, per its own documented early return). Confirmed
+  this genuinely catches an alias break: temporarily pointed the alias at a nonexistent `src-BROKEN`
+  directory, re-ran -- `MODULE_NOT_FOUND`; restored, re-ran -- 4/4 green again. Wired into CI: `run-test-
+  suite.sh`'s own `*.npmtest.mjs` glob covers `fsi-app/src/**` only, not `scripts/**`, so this file is added
+  to `.github/workflows/discipline.yml`'s "App unit tests requiring npm deps" step's explicit `named` list
+  (the precedent that step's own header already documents for other npm-dependent files outside that
+  glob's reach) rather than left git-tracked and run by nothing.
+
+**(4) Glyph fix + report correction.** One em dash on this task's own added line in
+`docs/inventories/shared-dataset-ownership.md` ("a PURE extraction -- no behavior change") was missed by
+the original task's diff-scoped scan; fixed (comma in place of the dash). `task-3.4-report.md`'s "zero
+matches" claim for that scan is `[REFUTED]` in place, below, naming this one hit and the corrected method
+(the original scan's `git diff -- <file>` invocations only covered files as they stood at the moment each
+was checked; this one em dash was introduced in an edit made AFTER that file's own scan had already run and
+was never re-scanned before the "zero matches" claim was written).
+
+**(5) Dry-mode wording.** "write nothing" (unscoped) was corrected to "no database writes" (scoped) in two
+places: `.github/workflows/brief-apply.yml`'s `mode` input description, and `apply-record-briefs.mjs`'s own
+`usage()` text (both now explicitly note a run artifact is still written to disk, dry or apply -- matching
+the module's own top-of-file header comment, which already said this correctly and did not need changing).
+
+**Harness re-pin.** `brief-apply`'s own governing-file hash moved twice more this round: once from the
+rebase itself (`canonical-pipeline.ts`, a governing file, changed independent of this task via Part 1's
+merge), and once from this round's own edits to `apply-record-briefs.mjs`. `scripts/harness-runs/
+brief-apply/PENDING-RUN.md` re-pinned to the FINAL hash (`sha256:ca5d7b8b2da57a61`) after every edit in
+this round was complete. `meta-harness` and `corpus-turn`'s own pinned hashes are UNCHANGED this round
+(neither family's governing files were touched by the rebase or by this round's edits) -- confirmed by
+recomputing all three families' hashes before writing this re-pin.
+
+**Gates (verbatim, this round).**
+- `apply-record-briefs.test.mjs`: RED (4 dependency-injection cases failing pre-fix, plus the 3 crash-
+  safety cases) then GREEN, `tests 33, pass 33, fail 0`.
+- `apply-record-briefs.npmtest.mjs` (new): `tests 4, pass 4, fail 0`; confirmed it fails on a broken alias
+  (see above).
+- `apply-staged-update-forward-participation.npmtest.mjs`: `tests 16, pass 16, fail 0` (Part 1's 3 new
+  entity tests included).
+- `run-population-flywheel.test.mjs`: `tests 84, pass 84, fail 0` (unaffected by the rebase).
+- `record-briefs.test.mjs`: `tests 27, pass 27, fail 0`. `governing-files.test.mjs`: `tests 20, pass 20,
+  fail 0`. `.discipline/shared-writer-registry.test.mjs`: `tests 1, pass 1, fail 0`.
+  `.discipline/glob-portability.test.mjs`: `tests 2, pass 2, fail 0`. `scripts/verify/
+  executor-parity.golden.mjs`: `GOLDEN PASSED`.
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/fitness/runner.mjs`: `Fitness summary: 38 function(s) checked, 0 violation(s)` (after
+  the brief-apply re-pin above; before it, exactly the one expected `NO ARTIFACTS` finding for
+  `brief-apply`, since the pin had gone stale from the rebase).
+- `node .discipline/fitness/functions/F28-harness-run-integrity.test.mjs` (full suite): `tests 33, pass 33,
+  fail 0`.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (see Files/
+  commit below).
+- `bash .discipline/run-test-suite.sh` NOT run, per the standing instruction for this lane.
+
+**Standing constraints checked, this round.** No em dashes/en dashes/section-sign glyph in newly authored
+lines: diff-scoped scan (added lines only, byte-checked for U+2014/U+2013/U+00A7) across every file this
+round touched; one instance found and fixed (item 4 above), zero remaining after. No hardcoded user-home
+paths: grepped every touched/new file, zero matches. Staged explicitly, never `git add -A`. Never touched
+`C:\Users\jason\dotfiles` (the main checkout); the one `git stash push -u` used mid-round (to verify
+`corpus-turn`'s drift was pre-existing, in the ORIGINAL task's own work, not this round's) was popped
+immediately in the same command chain, leaving no state behind; no `--no-verify`; no push. No PreToolUse
+skill-gate denial on any Write/Edit this round.
+
+**Files this round.**
+- `fsi-app/scripts/turns/apply-record-briefs.mjs` (modified: `applyOneEntry` DI refactor, `main()`
+  crash-safety rewrite, dry-mode wording)
+- `fsi-app/scripts/turns/apply-record-briefs.test.mjs` (modified: 3 CLI integration tests + 5 DI tests
+  added; the entities pre-flight test updated for Part 1 now being on the branch)
+- `fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs` (new)
+- `fsi-app/src/lib/intake/apply-staged-update.ts` (rebase conflict resolution only, no new content)
+- `fsi-app/scripts/harness-runs/brief-apply/PENDING-RUN.md` (modified: re-pinned to the final hash)
+- `.github/workflows/brief-apply.yml` (modified: dry-mode wording)
+- `.github/workflows/discipline.yml` (modified: `apply-record-briefs.npmtest.mjs` added to the npm-deps
+  test step's named list)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md` (modified: em dash fix)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (fix round 1)
+
+Not applicable: no `.tsx`/`.css` touched this round either.

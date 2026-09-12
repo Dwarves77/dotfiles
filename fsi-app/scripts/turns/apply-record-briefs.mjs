@@ -130,9 +130,10 @@ function usage() {
     "                                                [--limit N] [--after-id <uuid>]",
     "                                                [--allow-brief-overwrite] [--harness-runs-dir dir]",
     "",
-    "Dry (default): validate + plan + print, write nothing to the database. --execute runs the full",
-    "per-item pipeline for real (generate -> section -> ground -> grow -> discovery -> forward-events ->",
-    "compliance-deadline -> entities), in order, for every item the plan selected.",
+    "Dry (default): validate + plan + print, no database writes (a run artifact is still written to disk,",
+    "every run gets one). --execute runs the full per-item pipeline for real (generate -> section ->",
+    "ground -> grow -> discovery -> forward-events -> compliance-deadline -> entities), in order, for",
+    "every item the plan selected.",
   ].join("\n");
 }
 
@@ -282,12 +283,14 @@ async function buildPoolContext(sb, itemIds) {
 }
 
 /** Dynamic import of task 1.1's entity-linking writer - see the module header's PRE-FLIGHT note. Returns
- *  the module's `linkItemEntities` export, or null when the module is not present on this branch (never
- *  throws for that specific case; any OTHER import-time error still propagates, since that is a real
- *  defect in a module that DOES exist, not the expected pre-merge gap). */
-export async function importLinkItemEntities() {
+ *  the module's `linkItemEntities` export, or null when the module is not present (never throws for that
+ *  specific case; any OTHER import-time error still propagates, since that is a real defect in a module
+ *  that DOES exist, not the expected pre-merge gap). `specifier` defaults to the real module path; the
+ *  test file overrides it with a deliberately nonexistent path to exercise the absent-module branch on
+ *  its own terms, independent of whether Part 1 has actually merged onto this branch. */
+export async function importLinkItemEntities(specifier = ENTITIES_MODULE_SPECIFIER) {
   try {
-    const mod = await import(ENTITIES_MODULE_SPECIFIER);
+    const mod = await import(specifier);
     return mod.linkItemEntities ?? null;
   } catch (err) {
     if (err && (err.code === "ERR_MODULE_NOT_FOUND" || /Cannot find module/.test(String(err.message ?? "")))) {
@@ -303,13 +306,33 @@ export async function importLinkItemEntities() {
  * shape) plus the item-level facts a caller needs for its own metrics (whether generate succeeded, and the
  * provenance_status read back after grounding - reported REGARDLESS of ground's own ok/fail, "a quarantine
  * is reported, never hidden").
+ *
+ * FIX ROUND 1 (coordinator, 2026-09-11): every step's real implementation is now an OVERRIDABLE dependency
+ * via `deps`, defaulting to the real jiti-loaded pipeline / flywheel-steps.mjs / entities import when not
+ * given - the same injected-fake pattern this function already uses for `sb`. This is what lets
+ * apply-record-briefs.test.mjs (plain `node --test`, no jiti) drive the FULL 8-step order and outcome
+ * vocabulary against pure fakes, deterministically and fast, while the real production call (from `main()`,
+ * no `deps` passed) is byte-identical to before this round.
  * @param {{itemId:string, entry:object}} planned
- * @param {{sb:object, allowBriefOverwrite:boolean}} ctx
+ * @param {{sb:object, allowBriefOverwrite:boolean, deps?: Partial<{
+ *   generateBriefFromInjected:Function, sectionBrief:Function, groundBrief:Function, growSources:Function,
+ *   recordFlywheelDefect:Function, runDiscoveryStep:Function, runForwardEventsStep:Function,
+ *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function
+ * }>}} ctx
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
  */
-export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite }) {
-  const { generateBriefFromInjected, sectionBrief, groundBrief, growSources } = await loadPipeline();
-  const { recordFlywheelDefect } = await loadFlywheelDefect();
+export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, deps = {} }) {
+  const needsPipeline = !(deps.generateBriefFromInjected && deps.sectionBrief && deps.groundBrief && deps.growSources);
+  const pipeline = needsPipeline ? await loadPipeline() : null;
+  const generateBriefFromInjected = deps.generateBriefFromInjected ?? pipeline.generateBriefFromInjected;
+  const sectionBrief = deps.sectionBrief ?? pipeline.sectionBrief;
+  const groundBrief = deps.groundBrief ?? pipeline.groundBrief;
+  const growSources = deps.growSources ?? pipeline.growSources;
+  const recordFlywheelDefect = deps.recordFlywheelDefect ?? (await loadFlywheelDefect()).recordFlywheelDefect;
+  const doDiscoveryStep = deps.runDiscoveryStep ?? runDiscoveryStep;
+  const doForwardEventsStep = deps.runForwardEventsStep ?? runForwardEventsStep;
+  const doComplianceSync = deps.syncComplianceDeadlineForItem ?? syncComplianceDeadlineForItem;
+  const doImportLinkItemEntities = deps.importLinkItemEntities ?? importLinkItemEntities;
 
   const steps = [];
   const record = (step, outcome, error = null) => {
@@ -383,7 +406,7 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   // 5. discovery (rule 16(a), flywheel-steps.mjs - the SAME shared function apply-staged-update.ts's own
   //    substantive path calls) ──────────────────────────────────────────────────────────────────────────
   try {
-    const { written } = await runDiscoveryStep(sb, itemId);
+    const { written } = await doDiscoveryStep(sb, itemId);
     record("discovery", written > 0 ? `discovery:${written}` : "discovery:0");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -393,7 +416,7 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
 
   // 6. forward-events (rule 16(b), flywheel-steps.mjs) ─────────────────────────────────────────────────
   try {
-    const { attempted, insertedCount, collision, staleRows } = await runForwardEventsStep(sb, itemId);
+    const { attempted, insertedCount, collision, staleRows } = await doForwardEventsStep(sb, itemId);
     if (staleRows.length) {
       await flywheelDefect(
         "stale-events",
@@ -411,7 +434,7 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
 
   // 7. compliance-deadline (rule 16(b)/17) ─────────────────────────────────────────────────────────────
   try {
-    const cd = await syncComplianceDeadlineForItem(sb, itemId);
+    const cd = await doComplianceSync(sb, itemId);
     record("compliance-deadline", cd.changed ? `compliance-deadline:${cd.value}` : "compliance-deadline:unchanged");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -421,7 +444,7 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
 
   // 8. entities (rule 16(e), task 1.1 - lazy import, see module header PRE-FLIGHT note) ─────────────────
   try {
-    const linkItemEntities = await importLinkItemEntities();
+    const linkItemEntities = await doImportLinkItemEntities();
     if (!linkItemEntities) {
       record("entities", "entities_skipped_module_not_present", ENTITIES_MODULE_NOT_PRESENT);
     } else {
@@ -470,14 +493,6 @@ async function main() {
     process.exit(2);
   }
 
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync(resolve(parsed.briefs), "utf8"));
-  } catch (err) {
-    console.error(`apply-record-briefs: failed to read/parse --briefs: ${err.message}`);
-    process.exit(1);
-  }
-
   const startedAt = new Date().toISOString();
   const runsDir = parsed.harnessRunsDir ?? DEFAULT_HARNESS_RUNS_DIR;
   const config = {
@@ -489,123 +504,146 @@ async function main() {
   };
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES["brief-apply"], FSI_ROOT);
 
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
+  // FIX ROUND 1 (coordinator, 2026-09-11): the run artifact write happens in `finally`, unconditionally,
+  // so a thrown error anywhere in the body below (an unguarded Supabase read in buildPoolContext, a
+  // throw inside runUnscopedFlywheelSteps, a malformed --briefs file, a validation refusal) still leaves
+  // a schema-valid record naming the failure - rule 17: a run that ends without recording its own outcome
+  // is a defect in the run, never a note for a coordinator. Mirrors run-mint-batch.mjs's own crash-safety
+  // shape exactly: `runId` is claimed first (inside the try, so a claim failure itself still exits
+  // cleanly with no artifact, the same rare edge case run-mint-batch.mjs accepts unchanged), every
+  // mutable result is declared here so `finally` can see it however far the run got, and there is exactly
+  // ONE writeRunArtifact call site for both the success and the failure path.
+  let runId = null;
+  let perItem = [];
+  let metrics = {};
+  let appliedItemIds = [];
+  let unscoped = null;
+  let runError = null;
 
-  const rawItemIds = Array.isArray(raw?.entries)
-    ? [...new Set(raw.entries.map((e) => e?.item_id).filter((id) => typeof id === "string"))]
-    : [];
-  const { poolTextByItemId, currentHashByItemId } = await buildPoolContext(sb, rawItemIds);
+  try {
+    runId = claimRunId(runsDir, "brief-apply");
 
-  const validated = validateRecordBriefsFile(raw, { poolTextByItemId });
-  if (!validated.ok) {
-    console.error(`apply-record-briefs: file failed validation (${validated.errors.length} error(s)):`);
-    for (const e of validated.errors) console.error(` - ${e}`);
-    const runId = claimRunId(runsDir, "brief-apply");
-    const artifactPath = writeRunArtifact(runsDir, {
-      harness_family: "brief-apply",
-      harness_version: harnessVersion,
-      run_id: runId,
-      started_at: startedAt,
-      config,
-      inputs_ref: [parsed.briefs],
-      per_item: [],
-      metrics: { file_valid: false, error_count: validated.errors.length },
-      defects_found: [
-        {
-          description: "record-briefs file failed validateRecordBriefsFile - the whole file is rejected.",
-          root_cause: validated.errors.join("; "),
-          fix_ref: null,
-        },
-      ],
-      full_trace_refs: [parsed.briefs],
-      proposer_notes: "",
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(resolve(parsed.briefs), "utf8"));
+    } catch (err) {
+      throw new Error(`failed to read/parse --briefs: ${err.message}`);
+    }
+
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
     });
-    console.error(`apply-record-briefs: wrote ${artifactPath}`);
+
+    const rawItemIds = Array.isArray(raw?.entries)
+      ? [...new Set(raw.entries.map((e) => e?.item_id).filter((id) => typeof id === "string"))]
+      : [];
+    const { poolTextByItemId, currentHashByItemId } = await buildPoolContext(sb, rawItemIds);
+
+    const validated = validateRecordBriefsFile(raw, { poolTextByItemId });
+    if (!validated.ok) {
+      metrics = { file_valid: false, error_count: validated.errors.length };
+      console.error(`apply-record-briefs: file failed validation (${validated.errors.length} error(s)):`);
+      for (const e of validated.errors) console.error(`  - ${e}`);
+      throw new Error(
+        `record-briefs file failed validateRecordBriefsFile (${validated.errors.length} error(s)): ${validated.errors.join("; ")}`,
+      );
+    }
+
+    const plan = buildApplyPlan(validated.entries, {
+      currentHashByItemId,
+      limit: parsed.limit,
+      afterId: parsed.afterId,
+    });
+
+    console.log(
+      `apply-record-briefs: ${plan.length} item(s) selected (of ${validated.entries.length} in file), ` +
+        `mode=${parsed.execute ? "apply" : "dry"}.`,
+    );
+
+    metrics = {
+      file_valid: true,
+      entries_in_file: validated.entries.length,
+      selected: plan.length,
+      skipped_stale_hash: 0,
+      applied: 0,
+      quarantined: 0,
+      generate_failed: 0,
+    };
+
+    for (const planned of plan) {
+      if (planned.skip) {
+        metrics.skipped_stale_hash += 1;
+        perItem.push({ id: planned.itemId, outcome: "stale_pool_hash", error: planned.skipReason });
+        console.log(`  ${planned.itemId}: SKIP (${planned.skipReason})`);
+        continue;
+      }
+      if (!parsed.execute) {
+        perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
+        console.log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
+        continue;
+      }
+      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite });
+      for (const step of result.steps) perItem.push(step);
+      if (!result.generated) {
+        metrics.generate_failed += 1;
+      } else {
+        appliedItemIds.push(result.itemId);
+        if (result.provenanceStatus && result.provenanceStatus !== "verified") metrics.quarantined += 1;
+        else metrics.applied += 1;
+      }
+      console.log(
+        `  ${planned.itemId}: generated=${result.generated} provenance_status=${result.provenanceStatus ?? "(unknown)"}`,
+      );
+    }
+
+    // Batch-level unscoped flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
+    // tag-ratification), scoped to exactly the items this run actually applied - never in dry mode (there
+    // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
+    // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
+    if (parsed.execute) {
+      const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
+      unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, {
+        readAll,
+        guardedInsertMany,
+        guardedUpdate,
+        guardedUpdateByIds,
+        readClient,
+      });
+      console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
+    }
+  } catch (err) {
+    runError = err instanceof Error ? err : new Error(String(err));
+  } finally {
+    if (runId) {
+      const defectsFound = runError
+        ? [
+            {
+              description: `apply-record-briefs.mjs threw during a run: ${runError.message}`,
+              root_cause: runError.stack ?? "",
+              fix_ref: null,
+            },
+          ]
+        : [];
+      const artifactPath = writeRunArtifact(runsDir, {
+        harness_family: "brief-apply",
+        harness_version: harnessVersion,
+        run_id: runId,
+        started_at: startedAt,
+        config,
+        inputs_ref: [parsed.briefs],
+        per_item: perItem,
+        metrics: { ...metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped },
+        defects_found: defectsFound,
+        full_trace_refs: [parsed.briefs],
+        proposer_notes: "",
+      });
+      console.log(`apply-record-briefs: wrote ${artifactPath}`);
+    }
+  }
+
+  if (runError) {
+    console.error(`apply-record-briefs: FAILED - ${runError.message}`);
     process.exit(1);
   }
-
-  const plan = buildApplyPlan(validated.entries, {
-    currentHashByItemId,
-    limit: parsed.limit,
-    afterId: parsed.afterId,
-  });
-
-  console.log(
-    `apply-record-briefs: ${plan.length} item(s) selected (of ${validated.entries.length} in file), ` +
-      `mode=${parsed.execute ? "apply" : "dry"}.`,
-  );
-
-  const perItem = [];
-  const metrics = {
-    file_valid: true,
-    entries_in_file: validated.entries.length,
-    selected: plan.length,
-    skipped_stale_hash: 0,
-    applied: 0,
-    quarantined: 0,
-    generate_failed: 0,
-  };
-  const appliedItemIds = [];
-
-  for (const planned of plan) {
-    if (planned.skip) {
-      metrics.skipped_stale_hash += 1;
-      perItem.push({ id: planned.itemId, outcome: "stale_pool_hash", error: planned.skipReason });
-      console.log(`  ${planned.itemId}: SKIP (${planned.skipReason})`);
-      continue;
-    }
-    if (!parsed.execute) {
-      perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
-      console.log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
-      continue;
-    }
-    const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite });
-    for (const step of result.steps) perItem.push(step);
-    if (!result.generated) {
-      metrics.generate_failed += 1;
-    } else {
-      appliedItemIds.push(result.itemId);
-      if (result.provenanceStatus && result.provenanceStatus !== "verified") metrics.quarantined += 1;
-      else metrics.applied += 1;
-    }
-    console.log(
-      `  ${planned.itemId}: generated=${result.generated} provenance_status=${result.provenanceStatus ?? "(unknown)"}`,
-    );
-  }
-
-  // Batch-level unscoped flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
-  // tag-ratification), scoped to exactly the items this run actually applied - never in dry mode (there
-  // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
-  // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
-  let unscoped = null;
-  if (parsed.execute) {
-    const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
-    unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, {
-      readAll,
-      guardedInsertMany,
-      guardedUpdate,
-      guardedUpdateByIds,
-      readClient,
-    });
-    console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
-  }
-
-  const runId = claimRunId(runsDir, "brief-apply");
-  const artifactPath = writeRunArtifact(runsDir, {
-    harness_family: "brief-apply",
-    harness_version: harnessVersion,
-    run_id: runId,
-    started_at: startedAt,
-    config,
-    inputs_ref: [parsed.briefs],
-    per_item: perItem,
-    metrics: { ...metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped },
-    defects_found: [],
-    full_trace_refs: [parsed.briefs],
-    proposer_notes: "",
-  });
-  console.log(`apply-record-briefs: wrote ${artifactPath}`);
   process.exit(0);
 }

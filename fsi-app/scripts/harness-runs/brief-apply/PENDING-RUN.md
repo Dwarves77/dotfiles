@@ -19,11 +19,31 @@ own instructions were dry-mode-only / no database writes) - the same posture `le
 `scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`,
 `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`.
 
-**harness_version at write time:** `sha256:d1ea74924de7d828`
+**harness_version at task 3.4's original write time (superseded below, see Fix round 1):** `sha256:d1ea74924de7d828`
+
+**The planned run that would have superseded THAT marker:** the first `brief-apply-run-001.json`, from the
+first `.github/workflows/brief-apply.yml` dispatch (dry or apply). No such run landed before Fix round 1's
+own edits moved the hash again (see the re-pin below).
+
+---
+
+## Fix round 1 (coordinator review, 2026-09-11)
+
+**What changed.** Two things moved `brief-apply`'s own hash since the original pin: (1) the branch was
+rebased onto `origin/master` (Part 1 merged at `c63c0bf9`), which changed `src/lib/agent/canonical-pipeline.ts`
+(one of this family's own governing files) independent of anything this task did; (2) fix round 1's own
+edits changed `scripts/turns/apply-record-briefs.mjs` itself (the DI refactor for `applyOneEntry`, the
+crash-safety `finally`-block rewrite of `main()`, and the dry-mode wording correction). No live dispatch has
+happened yet (dry-mode-only per instruction, and no committed `record-briefs-NNN.json` batch exists for a
+session lane to have authored) — still zero artifacts, the same posture as the original pin.
+
+**harness_version at write time:** `sha256:ca5d7b8b2da57a61` (recomputed via `hashHarnessVersion` against
+`governing-files.mjs`'s own `GOVERNING_FILES['brief-apply']` array, the same 4 files, unreordered;
+supersedes `sha256:d1ea74924de7d828` outright).
 
 **The planned run that supersedes this marker:** the first `brief-apply-run-001.json`, from the first
 `.github/workflows/brief-apply.yml` dispatch (dry or apply - either mode writes a run artifact; see that
 workflow's own header) against a real committed record-briefs batch. Per F28's reverse-audit, this file is
 deleted the moment an artifact carrying the hash above lands, or re-pinned if a governing file changes
-again before that run lands (canonical-pipeline.ts in particular changes often across this build - see
+again before that run lands (`canonical-pipeline.ts` in particular changes often across this build - see
 CONVENTION.md's own "brief-apply" entry for why that file is a governing file here despite its size).

@@ -361,6 +361,12 @@ jobs:
         # renaming a proof breaks every citation to it in the invariant registry; naming them here
         # wires them with no identity change. Deps are already in package.json (pg, typescript,
         # @supabase/supabase-js), so `npm ci` above resolves all of them.
+        #
+        # scripts/turns/apply-record-briefs.npmtest.mjs ADDED 2026-09-11 (task 3.4 fix round 1): this ONE
+        # IS already named *.npmtest.mjs, but the glob above is scoped to fsi-app/src/**, not scripts/**,
+        # so it is named here rather than left git-tracked and run by nothing (CLAUDE.md rule 15). The
+        # FIRST scripts/**/*.npmtest.mjs file in this repo, proves the jiti alias resolution
+        # apply-record-briefs.mjs's own loadPipeline()/loadFlywheelDefect() depend on.
         run: |
           set -u
           globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
@@ -372,7 +378,8 @@ jobs:
           fsi-app/scripts/lib/exclusion-audit.selftest.mjs
           fsi-app/scripts/lib/inconclusive-probe.selftest.mjs
           fsi-app/scripts/lib/surface-registry.selftest.mjs
-          fsi-app/src/lib/sources/reconcile.selftest.mjs"
+          fsi-app/src/lib/sources/reconcile.selftest.mjs
+          fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs"
           files=$(printf '%s\n%s\n' "$globbed" "$named" | tr -s ' ' | sed '/^$/d')
           if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 

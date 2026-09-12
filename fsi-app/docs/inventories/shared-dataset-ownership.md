@@ -383,7 +383,7 @@ neither hand-copies the read. Three write paths exist:
    than a plain insert, and never deletes — an existing row whose supporting claim/section is gone is
    flagged `flywheel-defect:stale-events` instead. The dedupe/stale-events/insert logic itself moved to
    `src/lib/intake/flywheel-steps.mjs`'s `runForwardEventsStep` (task 3.4, brief-chain build plan Part 3,
-   2026-09-11, a PURE extraction — no behavior change, re-verified against this file's own pre-existing
+   2026-09-11, a PURE extraction, no behavior change, re-verified against this file's own pre-existing
    test suite) so a SECOND caller, `scripts/turns/apply-record-briefs.mjs` (the brief-apply driver), runs
    the identical logic against a record-briefs-authored item's own forward events without a second,
    independently-maintained copy of the dedupe key. `apply-staged-update.ts` keeps the try/catch, the
