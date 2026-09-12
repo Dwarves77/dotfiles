@@ -122,9 +122,9 @@ real `src/lib/agent/formats/*.ts` registry, plus a header comment naming that te
 to the validator itself -- comment + export-keyword only. Neither `apply-record-briefs.mjs`,
 `canonical-pipeline.ts`, nor `flywheel-steps.mjs` were touched.
 
-**harness_version at write time:** `sha256:6f48801e6631548a` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:9bb2a500ed959054`
-outright).
+**harness_version at Re-pin 5's write time (superseded below, see Re-pin 6):** `sha256:6f48801e6631548a`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files,
+unreordered; supersedes `sha256:9bb2a500ed959054` outright).
 
 **The planned run that supersedes this marker.** Unchanged from Re-pin 3 -- the pilot RE-APPLY,
 `brief-apply-run-003.json`, from the first `brief-apply.yml` dispatch against `record-briefs-001.json`
@@ -134,3 +134,31 @@ widened timeline parser, F the workflow's `allow_brief_overwrite` input + artifa
 in fix round 1 to degrade rather than fail the run on a refused push). Per F28's reverse-audit, this file is
 deleted the moment an artifact carrying the hash above lands, or re-pinned again if a governing file
 changes before that run lands.
+
+---
+
+## Re-pin 6 (task 6.2b, 2026-09-12 -- task-6.1-audit.md's ranked fixes 1 and 2, before batch 2 continues)
+
+**What changed.** `scripts/turns/record-briefs/schema.mjs` (a governing file) gained two more pre-write
+refusals (`RECORD_BRIEFS_SCHEMA_VERSION` bumped to `rb1-2026-09-12.2`): a depth-accounting mirror
+("Substantive Requirements" must end with an "Obligations surveyed: N; workspace-adjacent: M; extracted
+as FACT: K." line, K bounded by the FACT claims actually attached to the section, a Shortfall line
+required when K < M or when a source pool over 200,000 chars still yields K < 5) and a
+qualification-accounting mirror (per-year trajectory / exceptions / scope limits each either captured by
+an attached FACT claim or recorded absent with the README's prescribed sentence). Neither
+`apply-record-briefs.mjs`, `canonical-pipeline.ts`, nor `flywheel-steps.mjs` was touched by this task.
+Still no live dispatch: no batch has been re-applied since Re-pin 5 landed.
+
+**harness_version at write time:** `sha256:e24e78f7e95a801b` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:6f48801e6631548a`
+outright).
+
+**The planned run that supersedes this marker.** The BATCH-2 apply -- the first `brief-apply.yml`
+dispatch against `record-briefs-002.json` (the batch the audit's own "before batch 2 continues" framing
+names), run under this task's fixed validator so the two source defects this task closes (the
+unaccounted-depth pools and the zero-qualification-capture items task-6.1-audit.md found) are refused
+pre-write rather than repeated. That run's artifact (`brief-apply-run-004.json`, continuing this family's
+own numbering) will carry `harness_version: "sha256:e24e78f7e95a801b"` if it lands with no further
+governing-file change; if not, its own harness_version records whatever the tree was at that time,
+honestly. Per F28's reverse-audit, this file is deleted the moment an artifact carrying the hash above
+lands, or re-pinned again if a governing file changes before that run lands.

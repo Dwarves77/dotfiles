@@ -77,7 +77,14 @@ import { extractSectionByHeading, extractSectionByNumber } from "../../../src/li
 import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.2";
+// 2026-09-12.2 (task 6.2b, brief-chain-build-plan-2026-09-11): two more pre-write refusals, added from
+// task-6.1-audit.md's ranked fixes 1 and 2 -- a depth-accounting mirror ("Substantive Requirements" must
+// end with an "Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K." line, K bounded by
+// the FACT claims actually attached, a Shortfall line required when K < M or when a large pool (>200,000
+// chars) still yields K < 5) and a qualification-accounting mirror (trajectory/exceptions/scope each
+// either captured by an attached FACT claim or recorded absent with the README's prescribed sentence).
+// Both apply only to regulatory_fact_document entries whose "Substantive Requirements" section is present.
 // 2026-09-12.1 (task 6.1b, brief-chain-build-plan-2026-09-11): three new pre-write refusals, added after
 // a 10-item pilot batch generated and sectioned cleanly, then quarantined 10/10 at the ground step for
 // defects this validator could have caught before any grounding cost was spent -- see the three "MIRROR"
@@ -112,6 +119,51 @@ const ANALYSIS_LABEL_RE =
   /\*?(per the workspace's reading|analytical inference|industry interpretation|operational implication)(\s*\([^)]*\))?:\*?/i;
 const LEGAL_CALLOUT = "*legal confirmation required:*";
 const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
+
+// ── depth-accounting + qualification-accounting mirror vocabulary (task 6.2b, fix round 1 of
+// task-6.1-audit.md's ranked fixes 1 and 2, 2026-09-12). The pilot audit's own numbers: two of the ten
+// pilot items (2.59M and 965k char pools) returned 4-5 FACT claims in "Substantive Requirements" with no
+// accounting of what was surveyed, and all ten items scored 0/10 on per-year trajectory and
+// calculation-basis language with no way to tell "the source states little" apart from "the lane did not
+// look far enough." Both refusals below apply ONLY when format_type is regulatory_fact_document AND the
+// "Substantive Requirements" section is present with content -- a record-briefs entry authoring some OTHER
+// format, or one that omits the section entirely, has nothing here to check (the omission itself is not
+// this fix's scope; see task-6.1-audit.md's own structural-completeness finding, which already confirmed
+// the section is present in every live pilot item).
+const OBLIGATIONS_ACCOUNTING_RE =
+  /Obligations surveyed:\s*(\d+);\s*workspace-adjacent:\s*(\d+);\s*extracted as FACT:\s*(\d+)\.?/i;
+const SHORTFALL_LINE_RE = /^Shortfall:\s*\S.*$/im;
+const LARGE_POOL_CHAR_THRESHOLD = 200_000;
+
+// The three qualification-accounting absence sentences the README prescribes (task-6.1-audit.md fix 2's
+// own worked phrase, "no phase-in stated in the source," extended to the other two categories the
+// validator checks). A lane states ONE of these verbatim when the source genuinely carries nothing of that
+// kind, so silence and a thin source stop being indistinguishable from the outside.
+const TRAJECTORY_ABSENCE_RE = /No phase-in stated in the source\.?/i;
+const EXCEPTIONS_ABSENCE_RE = /No exceptions stated in the source\.?/i;
+const SCOPE_ABSENCE_RE = /No scope limits stated in the source\.?/i;
+
+// "Captured" heuristics: a FACT claim ATTACHED to the Substantive Requirements section (its claim_text or
+// source_span appears verbatim inside that section's own text -- the same attachment test MIRROR (a)
+// above already uses for Gate A coverage) whose own text carries the category's keyword vocabulary.
+// Deliberately keyword-based, not semantic -- the same posture ANALYSIS_LABEL_RE/UNLABELED_MODAL_RE above
+// already take: a named, documented heuristic a lane can read and match, not a hidden judgment call.
+const EXCEPTION_CLAIM_RE = /\b(except|exempt|carve-?out)\b/i;
+const SCOPE_CLAIM_RE = /\b(scope|does not apply|applies only|limited to)\b/i;
+
+/** FACT claims (from an entry's `claims[]`) whose own `claim_text` or `source_span` appears verbatim
+ *  (case-insensitively) inside `sectionText` -- the section-attachment heuristic every mirror below shares.
+ *  @param {string} sectionText @param {object[]} claims @returns {object[]} */
+function factClaimsAttachedTo(sectionText, claims) {
+  return (claims ?? []).filter(
+    (c) =>
+      c &&
+      typeof c === "object" &&
+      c.claim_kind === "FACT" &&
+      ((isNonEmptyString(c.claim_text) && ilikeIncludes(sectionText, c.claim_text)) ||
+        (isNonEmptyString(c.source_span) && ilikeIncludes(sectionText, c.source_span))),
+  );
+}
 
 function ilikeIncludes(haystack, needle) {
   return String(haystack ?? "").toLowerCase().includes(String(needle ?? "").toLowerCase());
@@ -562,6 +614,95 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
           `timeline mirror: the "Confirmed Regulatory Timeline" section yields ZERO rows once parsed ` +
             `(the parser's own view: ${parsedEntries.length} raw entr${parsedEntries.length === 1 ? "y" : "ies"} found, ` +
             `${skipped.length} skipped as unparseable: ${JSON.stringify(skipped)}). Section text: ${JSON.stringify(timelineSection.contentMarkdown.slice(0, 500))}`,
+        );
+      }
+    }
+  }
+
+  // ── MIRROR (d): depth accounting -- task-6.1-audit.md fix 1. "Substantive Requirements" must end with
+  // an accounting line ("Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K.") so a
+  // reader can tell "the source genuinely states little" apart from "the lane did not look far enough."
+  // Applies only when format_type is regulatory_fact_document and the section is present with content --
+  // see this block's own vocabulary comment above for why an absent section is out of this fix's scope.
+  let reqSectionText = null;
+  if (hasBody) {
+    const formatType = entry.metadata && typeof entry.metadata === "object" ? entry.metadata.format_type : null;
+    if (formatType === "regulatory_fact_document") {
+      const sections = extractCanonicalSections(entry.body, formatType) ?? [];
+      const reqSection = sections.find((s) => s.heading === "Substantive Requirements");
+      if (reqSection) reqSectionText = reqSection.text;
+    }
+  }
+  if (reqSectionText !== null) {
+    const m = OBLIGATIONS_ACCOUNTING_RE.exec(reqSectionText);
+    if (!m) {
+      at(
+        'depth accounting: "Substantive Requirements" must end with an accounting line in the form ' +
+          '"Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K." -- missing.',
+      );
+    } else {
+      const surveyed = Number(m[1]);
+      const workspaceAdjacent = Number(m[2]);
+      const extractedAsFact = Number(m[3]);
+      const attached = factClaimsAttachedTo(reqSectionText, entry.claims);
+      const hasShortfallLine = SHORTFALL_LINE_RE.test(reqSectionText);
+      if (extractedAsFact > attached.length) {
+        at(
+          `depth accounting: "extracted as FACT: ${extractedAsFact}" overstates the ${attached.length} FACT ` +
+            'claim(s) this entry actually attaches to "Substantive Requirements" (by claim_text or ' +
+            "source_span) -- K must not exceed the claims the section actually carries.",
+        );
+      }
+      if (extractedAsFact < workspaceAdjacent && !hasShortfallLine) {
+        at(
+          `depth accounting: "extracted as FACT: ${extractedAsFact}" is less than "workspace-adjacent: ` +
+            `${workspaceAdjacent}" with no "Shortfall: <reason>" line -- each shortfall needs its own ` +
+            "one-line reason (e.g. \"duplicative of an already-stated obligation\").",
+        );
+      }
+      const poolText = poolTextByItemId[entry.item_id];
+      if (
+        isNonEmptyString(poolText) &&
+        poolText.length > LARGE_POOL_CHAR_THRESHOLD &&
+        extractedAsFact < 5 &&
+        !hasShortfallLine
+      ) {
+        at(
+          `depth accounting: source pool is ${poolText.length} chars (over ${LARGE_POOL_CHAR_THRESHOLD}) and ` +
+            `"extracted as FACT: ${extractedAsFact}" is under 5 with no "Shortfall: <reason>" line -- a ` +
+            "large-pool item this thin needs an explicit accounting for why (also surfaced by N being stated).",
+        );
+      }
+      void surveyed; // N is never fixed by the rule (task-6.1-audit.md fix 1); parsed only so the regex
+      // captures it and a caller reading this function's behaviour sees it is read, not silently discarded.
+
+      // ── MIRROR (e): qualification accounting -- task-6.1-audit.md fix 2. Each of per-year trajectory,
+      // exceptions/carve-outs, and scope limits is either captured (a FACT claim attached to this section
+      // carries the category's language) or explicitly recorded absent with the README's prescribed
+      // sentence -- zero captures indistinguishable from an unmined source was the audit's own finding.
+      const trajectoryCaptured =
+        entry.metadata &&
+        typeof entry.metadata === "object" &&
+        entry.metadata.requirement_trajectory !== null &&
+        entry.metadata.requirement_trajectory !== undefined;
+      if (!trajectoryCaptured && !TRAJECTORY_ABSENCE_RE.test(reqSectionText)) {
+        at(
+          'qualification accounting: no per-year trajectory captured (metadata.requirement_trajectory) and no ' +
+            '"No phase-in stated in the source." note in "Substantive Requirements" -- state the trajectory or ' +
+            "the honest absence.",
+        );
+      }
+      const attachedCategoryText = attached.map((c) => `${c.claim_text ?? ""} ${c.source_span ?? ""}`).join(" \n ");
+      if (!EXCEPTION_CLAIM_RE.test(attachedCategoryText) && !EXCEPTIONS_ABSENCE_RE.test(reqSectionText)) {
+        at(
+          'qualification accounting: no exception/carve-out FACT claim attached to "Substantive Requirements" ' +
+            'and no "No exceptions stated in the source." note -- state the exception or the honest absence.',
+        );
+      }
+      if (!SCOPE_CLAIM_RE.test(attachedCategoryText) && !SCOPE_ABSENCE_RE.test(reqSectionText)) {
+        at(
+          'qualification accounting: no scope-limit FACT claim attached to "Substantive Requirements" and no ' +
+            '"No scope limits stated in the source." note -- state the scope limit or the honest absence.',
         );
       }
     }
