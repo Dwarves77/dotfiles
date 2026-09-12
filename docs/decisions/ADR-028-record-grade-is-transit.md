@@ -43,6 +43,7 @@ Measured 2026-09-11 [CONFIRMED, captured in brief-chain-build-plan-2026-09-11.md
 
 - complete-system-build-plan-2026-09-04.md: section 0 (definition of done), section 1 (W9 workstream)
 - brief-chain-build-plan-2026-09-11.md: Part 1 (architecture design), Part 2 (brief contract), Part 3 (runtime execution)
+- ADR-025 (deterministic derivations auto-adopt; same principle applies to brief upgrades)
 - ADR-023 (producer execution model: briefs are produced by a named runtime)
 - rule 17 (CLAUDE.md standing rules: nothing in the build runs alone; the upgrade must be part of the item's creation contract)
 
