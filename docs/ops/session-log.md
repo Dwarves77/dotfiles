@@ -18407,3 +18407,182 @@ then apply, via `.github/workflows/maintenance.yml`'s new `retype-eu-decisions` 
 
 Not applicable: no `.tsx` or `.css` touched (this task is a data-layer MAINT script and its workflow
 wiring only).
+
+## EUDECISION lane, 2026-09-12: task 5.5b, retype titles to the act's real official title only
+
+Worktree `wt-eudecision-0911`, branch `lane/eudecision-titles-2026-09-12` from `origin/master`
+(`3446b6fa`). Task 5.5's own retype dry run proved a defect in the title it proposed: every one of its
+369 candidate titles came from `bodyLeadTitle`'s raw first-300-char page-lead slice, not from
+`extractOjActTitle`'s act-heading extraction, because `OJ_ACT_TITLE_RE` required a trailing
+`(YYYY/NNN/EC)`-shaped OJ reference to close its match -- a convention the post-2015 numbering style
+(`(EU) YYYY/NNN` stated inline right after the heading) never repeats as a trailing suffix. So the
+proposed titles were page chrome: the old EUR-Lex breadcrumb ("EUR-Lex - 32003D0278 - EN Avis juridique
+important | ..."), the new OJ header ("Official Journal of the European Union EN L series ... COUNCIL
+DECISION ..."), or a date-first variant of the same, never the act's own words alone.
+
+**The fix.** `scripts/mint/export-census-rows.mjs`'s `extractOjActTitle` now has two tiers: (1) the
+pre-existing `OJ_ACT_TITLE_RE` match, kept exactly as-is so its two pre-existing callers see no behavior
+change; (2) when that narrower shape is absent or unusable, a new `ACT_HEADING_RE` finds the act heading
+itself (Commission/Council [Implementing/Delegated] Decision, Decision of the EEA Joint Committee,
+Decision No/(EU)/(EC) N, or the "YYYY/N/EC: <Body> Decision" reference-prefixed form -- case-insensitive,
+source casing kept) wherever it starts in the text, never inside the page chrome around it (no
+alternative contains the words "EUR-Lex" or "Official Journal"), and `TITLE_TERMINATORS` (the OJ
+citation, the enacting formula, "Having regard", the EEA-relevance note) bounds where the title ends,
+searched over the FULL remaining text before any cap is applied (a terminator starting just past the cap
+must still be matched whole, or the cut lands mid-word). A title under 20 or over 400 characters, or one
+that still starts with "EUR-Lex" or "Official Journal" (defensive; unreachable by construction given the
+two tiers above, kept per the brief), is rejected -- the item keeps its stored title, reported as kept,
+never retitled to a fragment.
+
+**The second defect, same root cause.** `buildTitleForRow`'s own text-only branch fell to
+`bodyLeadTitle`'s raw slice whenever `extractOjActTitle` failed -- legitimate for the mint path's own
+"give a title-less new row SOME honest title" charter, but exactly what let a RETITLE of an existing live
+row (`retype-eu-decisions.mjs`'s `planTitleUpdate`) apply page boilerplate: the raw slice is
+text-derived and passes the verbatim check, so `planTitleUpdate`'s existing guard (which only excluded
+`source_name_fallback`) let it through. Fixed with a new `allowBodyLeadFallback` parameter (default
+`true`, the mint path's existing behavior unchanged); `planTitleUpdate` passes `allowBodyLeadFallback:
+false`, so a retype now applies a new title ONLY when `extractOjActTitle` itself found a real act
+heading -- anything else falls straight to the pre-existing `source_name_fallback` tier, already
+excluded, and the item keeps its old title.
+
+**Offline proof, all 369 real candidates** (`fsi-app/scripts/tmp/retype-dry-34674936206.summary.json`,
+key `per_item`, `new_title` fed back through the shipped `extractOjActTitle` -- run via a gitignored
+scratch script, not committed, deleted after capturing these numbers so `[F25] module-liveness` stays
+clean): extracted 367/369 (99.5%), kept 2 (both rejected purely because their true title exceeds the
+400-char ceiling -- a bare "DECISION of ..." heading with no issuing-body word, `2014/770/EU` and
+`2022/C 454/01(01)`, whose real titles run 405/415 chars; a genuine heading-detection improvement, not
+a miss). Extracted-title length: p50 238, p90 317, max 400 (six long-country-list decisions hit the
+400-char hard cap with no terminator reachable, e.g. `32022D1130(01)`; truncated cleanly at a word
+boundary the terminator scan itself lands on, never mid-reference garbage). Zero titles starting with
+"EUR-Lex" or "Official Journal". Zero over 400 characters.
+
+**RED/GREEN.** Added 10 new fixtures to `export-census-rows.test.mjs` (one per page shape named above
+plus the length/no-heading/pure-chrome edges), mined directly from the artifact's real text, shortened
+only where the assertion did not need the tail: RED against the pre-fix implementation (3 of the new
+fixtures failed on the missing Council-Implementing/Commission-Implementing and bare-"Decision (EU) N
+OF THE EUROPEAN PARLIAMENT" heading forms, one on the hard-cap-cutting-mid-terminator bug); GREEN after
+the fix, `tests 136, pass 136, fail 0` (126 pre-existing plus 10 new, none regressed). One pre-existing
+test's expected `titleOrigin` changed from `captured_body_lead` to `captured_body_act_title` for a
+fixture that is itself a genuine "Council Decision" heading -- a correct improvement (same title text,
+now a real extraction instead of an accidental slice match), corrected in place with a dated comment,
+not silently dropped. `retype-eu-decisions.test.mjs`: the pre-existing `p4` case asserted
+`typeof p4.newTitle === "string"` -- literally encoding the bug this task fixes -- corrected to assert
+`p4.newTitle === null`; two new tests added (`planTitleUpdate` and `applyOneItem` levels) proving an item
+with no act heading in its captured text keeps its old title and is reported with `title_changed: false`
+and no `title` key even sent in the UPDATE patch. `tests 24, pass 24, fail 0`.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: `38 function(s) checked, 0
+violation(s)` -- two of this task's own gitignored scratch scripts under `scripts/tmp/` tripped `[F25]
+module-liveness` (that exclusion list covers `scripts/_snapshots/`/`scripts/_plans/` but not
+`scripts/tmp/`, a gap in the fitness function's own scope predicate, not this task's to fix); resolved by
+deleting both scratch scripts once their output was captured into this entry, exactly as "gitignored
+scratch, do not commit" already implied. `[REFUTED]`: the brief's premise that `export-census-rows.mjs`
+is a mint governing file needing a `PENDING-RUN.md` re-pin -- `[CONFIRMED]`, method: read
+`scripts/harness-runs/governing-files.mjs`'s live `GOVERNING_FILES.mint` array directly -- it names 8
+files, `export-census-rows.mjs` is not one of them, so this lane's edits do not move the mint family's
+`harness_version` hash at all; no re-pin performed, none needed.
+`node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: see this lane's commit entry below.
+`bash .discipline/run-test-suite.sh` NOT run, per instruction.
+
+**Standing constraints checked.** No em dashes, en dashes, or section-sign glyph in new lines: one em
+dash was caught and fixed in this task's OWN new test fixture (`"EUR-Lex -- 32020D1043"` written with an
+em dash by mistake, replaced with a plain hyphen matching every other EUR-Lex-title fixture in this same
+file); re-scanned with `git diff origin/master..HEAD | grep '^+' | grep -c
+$'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` -- `0`. No hardcoded user-home paths: grepped every touched file
+for `C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches (this entry's own worktree-path prose above
+uses the generic `wt-eudecision-0911` label, never the literal `C:\Users\jason\...` prefix). Findings
+above labeled `[CONFIRMED]`/`[REFUTED]`. Staged explicitly (named paths); never `git add -A`. Never
+touched `C:\Users\jason\dotfiles` (the main checkout); no `git stash` used. No `--no-verify`; no push. No
+PreToolUse skill-gate denial on any Write/Edit this task. No database access: every gate above is a
+static/pure test or fitness-function run against the working tree.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` touched (this task is a mint/maintenance extraction-logic fix and
+its tests only).
+
+## EUDECISION lane, 2026-09-12: task 5.5b fix round 1 (coordinator review)
+
+Reviewer findings, all addressed: (1) critical, the 400-char hard cap could cut inside an open
+parenthesis for three real celex items; (2) important, pre-2000 2-digit-year reference prefixes
+("84/358/EEC:", "94/69/EC:") were being dropped while post-2000 4-digit-year ones were kept; (3) the
+offline proof ran over the task 5.5 artifact's own already-truncated text, which the report needed to say
+plainly rather than treat as a clean proof of the shipped extractor's real-world behavior.
+
+**(1) The dangling-paren fix.** Root cause: the OJ SERIES citation ("(2023/C 154/05)", or bare
+"2011/C 146/03" with no parens) had no literal `TITLE_TERMINATORS` entry -- unlike "Having regard" or the
+enacting formula, it has no fixed prefix to match on, only a shape. A long body before it (a country list,
+celex `32023D0502(01)`/`32023D0207(01)`/`32023D0630(02)`) ran the terminator scan dry and fell to
+`ACT_TITLE_HARD_CAP`, which could land inside the citation's own opening paren, emitting `"...into the
+European Union Transaction Log (2023"`. Fixed two ways in `export-census-rows.mjs`'s `extractOjActTitle`:
+a new `OJ_SERIES_CITATION_RE` (`\(?\s*\d{4}\/C\s?\d+\/\d+\s*\)?`, both parenthesised and bare forms as one
+pattern, matched over the FULL remaining text alongside the literal terminators) catches the citation as
+its own terminator in all three cases and in the Minor `32011D0517(01)` (bare form) besides; and a general
+safety net -- never reachable via a terminator match, only via the hard cap -- backs up to the last
+complete word when the cut lands mid-token, then `trimUnbalancedOpenParen` strips any still-dangling `(`
+and everything after it, repeating until balanced. This second net is not merely theoretical: re-running
+the offline proof over all 369 real candidates after the fix found a FOURTH item (`32018D1906`, not in the
+reviewer's named three) whose extraction previously ended `"...(notified under document C(2018)"` --
+unbalanced -- and now correctly ends at `"...amending Decision 2005/270/EC"`. Dangling-paren count across
+all 369: `0` (was 4, one more than the reviewer's own named set).
+
+**(2) The year-prefix consistency fix.** Root cause: `ACT_HEADING_RE`'s reference-prefixed alternative
+required `\d{4}` for the year, so `84/358/EEC:`/`94/69/EC:` (celex-numbering's own 2-digit pre-2000 year)
+never matched it at all and fell through to the bare `Council Decision` alternative, silently dropping the
+reference prefix that every post-2000 4-digit-year item kept. Changed to `\d{2,4}` -- the prefix is now
+kept consistently regardless of era. Verified on `31994D0069` and `31984D0358` (both real celex, EC and
+EEC suffixes respectively).
+
+**(3) The offline-proof limitation, stated plainly.** Task 5.5b's own offline proof ran `extractOjActTitle`
+over `new_title` strings from task 5.5's OWN dry-run artifact -- text task 5.5's OLD, buggy fallback had
+ALREADY truncated to (up to) 300 characters before this task ever saw it. Several sampled titles ending
+mid-word in that proof were an artifact of that upstream truncation, not evidence about the shipped
+extractor's behavior on REAL, untruncated `capturedText`. Stated as a named limitation in the report; the
+coordinator's production dry run (over live `capturedText`, never pre-truncated) is the real proof. To
+make that dry run legible without a second bespoke script, `retype-eu-decisions.mjs`'s per-item dry output
+now carries `title_source` (`"act_heading"` | `"kept"`) and `new_title_length`, and the summary carries
+`titles_extracted` / `titles_kept` / `titles_over_350` / `titles_ending_mid_word` (the last via a new pure
+`looksLikeMidWordCut(title, capturedText)`: true when the title's last character is alphanumeric AND the
+real captured text continues with a letter right where the title stops -- a genuine defect signal against
+REAL text, immune to the artifact-truncation confound above). The over_350/mid_word counts are scoped to
+`title_source === "act_heading"` only -- a `"kept"` item's title is its own pre-existing stored title, not
+this run's own extraction, so it carries no signal about extraction quality.
+
+**Casing (UX observation, not fixed this round).** Titles keep the source's own casing verbatim (no
+normalisation) -- confirmed no live surface normalises `intelligence_items.title` today, so a mixed corpus
+of ALL-CAPS ("COMMISSION DECISION of ...") and sentence-case ("Decision of the EEA Joint Committee ...")
+titles will render as-is. Flagged for the operator as a UX observation, not fixed here: normalising casing
+is a DIFFERENT, cross-cutting decision (it would touch every existing title, not just these 369) outside
+this task's scope of "retitle only with the act's real title."
+
+**RED/GREEN.** New/changed source swapped for the pre-fix-round-1 committed version (`git show
+HEAD:<path>`, never `git stash`) and restored after each check. `export-census-rows.test.mjs`: 7 new
+fixtures RED (`tests 143, pass 136, fail 7`) against the pre-round committed extractor; GREEN after the
+fix (`tests 143, pass 143, fail 0`). `retype-eu-decisions.test.mjs`: RED via `ERR_MODULE_NOT_FOUND`-shaped
+import failure (`looksLikeMidWordCut` not yet exported) against the pre-round file; GREEN after
+(`tests 31, pass 31, fail 0`). Combined: `tests 174, pass 174, fail 0`.
+
+**Gates.** `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: `38 function(s) checked, 0
+violation(s)` (this round's own scratch scripts under `scripts/tmp/` were deleted before this check, same
+`[F25]` gap noted in the prior entry). `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`:
+see this lane's commit entry below. `bash .discipline/run-test-suite.sh` NOT run, per instruction.
+
+**Offline proof, corrected numbers, all 369 real candidates, run against the SHIPPED (fixed) extractor**:
+extracted 367/369 (unchanged from before this round -- the same two items are rejected purely by the
+400-char ceiling, a bare "DECISION of ..." heading with no issuing-body word, neither case touched by this
+round's fixes); length p50 238, p90 317, max 400 (unchanged); `0` titles starting with EUR-Lex/Official
+Journal; `0` over 400 chars; `0` with an unbalanced parenthesis (was 4 before this round's fix, including
+the one the reviewer's own three-item sample did not name).
+
+**Standing constraints checked.** No em dashes/en dashes/section-sign glyph: `git diff
+origin/master..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` -- `0`. No hardcoded
+user-home paths: grepped every touched file for `C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches.
+Findings above labeled `[CONFIRMED]`. Staged explicitly; never `git add -A`. Never touched
+`C:\Users\jason\dotfiles` (the main checkout); no `git stash` used (old committed versions read via
+`git show HEAD:<path>` only, exactly as this round's RED evidence above describes). No `--no-verify`; no
+push. No PreToolUse skill-gate denial on any Write/Edit this round. No database access.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` touched. (The casing observation above is a content/UX note for the
+operator's future decision, not a UI change made this round.)

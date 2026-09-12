@@ -193,10 +193,18 @@ export function planTitleUpdate({ oldTitle, capturedText, sourceUrl }) {
   if (typeof capturedText !== "string" || !capturedText.trim()) {
     return { newTitle: null, extractedTitle: null, titleOrigin: null, verbatim: false };
   }
+  // allowBodyLeadFallback: false (task 5.5b) -- this is a RETITLE of a row that already has a title, never
+  // a brand-new mint. buildTitleForRow's own bodyLeadTitle tier is an honest "best we have" for a title-less
+  // new row, not an honest re-title here: it is a raw, un-extracted slice of the page lead, which task
+  // 5.5b's own evidence shows is frequently page chrome (the old EUR-Lex breadcrumb, the new OJ header) --
+  // exactly what produced all 369 wrong titles the pre-fix dry run proposed. With the flag false, this
+  // returns a title only when extractOjActTitle itself found a real act heading (titleOrigin
+  // "captured_body_act_title"), or falls straight to "source_name_fallback", already excluded below.
   const { title: extractedTitle, titleOrigin } = buildTitleForRow({
     capture: { text: capturedText, html: null, title: null, titleOrigin: null },
     source: { name: null, url: sourceUrl },
     identifier: null,
+    allowBodyLeadFallback: false,
   });
   if (!extractedTitle || titleOrigin === "source_name_fallback") {
     return { newTitle: null, extractedTitle: extractedTitle ?? null, titleOrigin, verbatim: false };
@@ -251,6 +259,29 @@ export function planItemRetype({ item, existingClaims, capturedText, requiredSlo
     predictedProvenance,
     missingAfter,
   };
+}
+
+/**
+ * Fix round 1 (coordinator review, 2026-09-12): a crude, honest heuristic for "this title looks like it
+ * was cut off mid-word" -- the offline proof against task 5.5's own dry-run artifact ran over TRUNCATED
+ * (up to 300-char) lead text, so several of its sampled titles ended mid-word for a reason specific to
+ * that artifact, not to the shipped extractor. This check runs against the item's REAL, untruncated
+ * `capturedText` in the coordinator's own production dry run, where that artifact-truncation cause does
+ * not apply -- a true positive here is a genuine extraction defect, not an artifact of the proof.
+ * True when `title`'s last character is alphanumeric AND the character immediately following `title`'s
+ * own text inside `capturedText` is itself a letter (i.e., the title stopped mid-token, not at a real
+ * word boundary). Case-insensitive location (the title's own casing is never normalised -- see
+ * `planTitleUpdate`). False when `title` cannot be located verbatim in `capturedText` (never guessed) or
+ * when nothing follows it there (the title runs to the end of the captured text). Pure.
+ */
+export function looksLikeMidWordCut(title, capturedText) {
+  if (!title || !capturedText) return false;
+  const lastChar = title[title.length - 1];
+  if (!/[A-Za-z0-9]/.test(lastChar)) return false;
+  const idx = capturedText.toLowerCase().indexOf(title.toLowerCase());
+  if (idx < 0) return false;
+  const nextChar = capturedText[idx + title.length];
+  return typeof nextChar === "string" && /[A-Za-z]/.test(nextChar);
 }
 
 /** True when `claim` (an already-inserted or about-to-be-inserted claim shape) covers `slotKey` --
@@ -331,6 +362,13 @@ export async function applyOneItem(item, { apply, deps, requiredSlotsMap }) {
 
   report.new_title = plan.newTitle ?? item.title;
   report.title_changed = plan.newTitle != null;
+  // Fix round 1: per-item visibility for the coordinator's production dry run (the offline proof ran over
+  // the task 5.5 artifact's own truncated lead text, not real capturedText -- see the report's own
+  // limitation note and looksLikeMidWordCut's header). title_source names WHY the title is what it is,
+  // never left implicit in title_changed alone.
+  report.title_source = report.title_changed ? "act_heading" : "kept";
+  report.new_title_length = report.new_title.length;
+  report.title_ends_mid_word = report.title_changed ? looksLikeMidWordCut(report.new_title, capturedText) : false;
   report.slots = plan.slotClaims.map((s) => ({ slot_key: s.slotKey, claim_kind: s.claim.claim_kind }));
   report.unhandled_missing_slots = plan.unhandledMissingSlots;
   report.predicted_provenance = plan.predictedProvenance;
@@ -414,6 +452,14 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
   const notVerified = [];
   let stayedVerifiedCount = 0;
   let heldNoCapture = 0;
+  // Fix round 1: titled per this run's own decision (title_source present -- a held item never reached
+  // one). titles_over_350 / titles_ending_mid_word are scoped to EXTRACTED titles only (title_source ===
+  // "act_heading") -- a "kept" item's title is the item's pre-existing stored title, not this run's own
+  // extraction, so it is not a signal about extraction quality.
+  let titlesExtracted = 0;
+  let titlesKept = 0;
+  let titlesOver350 = 0;
+  let titlesEndingMidWord = 0;
 
   for (const item of page) {
     const r = await applyOneItem(item, { apply, deps, requiredSlotsMap });
@@ -424,6 +470,13 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
       else notVerified.push({ id: item.id, celex: r.celex, provenance_status: r.provenance_status_after });
     } else if (r.outcome === "held_no_usable_capture") {
       heldNoCapture += 1;
+    }
+    if (r.title_source === "act_heading") {
+      titlesExtracted += 1;
+      if (r.new_title_length > 350) titlesOver350 += 1;
+      if (r.title_ends_mid_word) titlesEndingMidWord += 1;
+    } else if (r.title_source === "kept") {
+      titlesKept += 1;
     }
   }
 
@@ -442,6 +495,10 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
       held_no_usable_capture: heldNoCapture,
       stayed_verified: stayedVerifiedCount,
       not_verified: notVerified.length,
+      titles_extracted: titlesExtracted,
+      titles_kept: titlesKept,
+      titles_over_350: titlesOver350,
+      titles_ending_mid_word: titlesEndingMidWord,
     },
     applied: appliedIds.length,
     per_item: perItem,

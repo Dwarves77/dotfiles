@@ -521,13 +521,133 @@ export function isOjFileName(s) {
 }
 const OJ_ACT_TITLE_RE =
   /\b((?:COMMISSION|COUNCIL|EUROPEAN PARLIAMENT AND (?:OF THE )?COUNCIL|REGULATION|DIRECTIVE|DECISION|RECOMMENDATION)\b[\s\S]{0,400}?\((?:\d{4}\/[A-Z]?\s?\d+(?:\/\d+)?|\d{4}\/\d+\/[A-Z]+)\))/;
-/** The act title inside an OJ body lead, or null when no act-type keyword + OJ reference is found. */
+
+// ── task 5.5b (2026-09-12): the four page shapes the retype-eu-decisions dry run's own 369-item artifact
+// showed OJ_ACT_TITLE_RE above missing entirely -- every one of them (a) the old EUR-Lex breadcrumb lead
+// ("EUR-Lex - <celex> - EN Avis juridique important | <celex> <title> Official Journal ..."), (b) the new
+// EUR-Lex/OJ header ("Official Journal of the European Union EN L series <ref> <date> <ACT HEADING> ...",
+// or the same fields in date-first order), (c) a bare act heading with no page chrome at all, and the EEA
+// form ("Decision of the EEA Joint Committee No N/YYYY ... Official Journal ..."). OJ_ACT_TITLE_RE requires
+// a trailing "(YYYY/NNN/EC)"-shaped OJ reference to close the match; the post-2015 numbering style states
+// that reference INLINE right after the heading ("COUNCIL DECISION (EU) 2024/1005 of ...") and never
+// repeats it as a trailing suffix, so OJ_ACT_TITLE_RE never matches these at all and the caller
+// (bodyLeadTitle) fell back to a raw first-300-char slice of the whole page lead -- page boilerplate, not
+// the act's title. ACT_HEADING_RE below finds the act heading itself (never the page chrome around it,
+// because none of its alternatives contain the words "EUR-Lex" or "Official Journal") wherever it starts,
+// and TITLE_TERMINATORS bounds the title's END at the first enacting-formula/citation marker that follows.
+// Order of alternatives does not itself pick the winner -- regex match is always leftmost-first across
+// alternatives, so "2003/278/EC: Council Decision" (the reference-prefixed form) wins over the bare
+// "Council Decision" alternative automatically whenever the numeric reference appears first in the text.
+// Fix round 1 (coordinator review, 2026-09-12): the reference-prefixed alternative required a 4-digit
+// year (`\d{4}`), so every PRE-2000 act -- the celex 2-digit-year style, "84/358/EEC:", "94/69/EC:",
+// "96/149/EC:" -- lost its own reference prefix entirely (fell through to the bare "Council Decision"
+// alternative, starting the title mid-sentence) while every post-2000 4-digit-year item kept it. `\d{2,4}`
+// accepts both, so the prefix is kept consistently for every item that has one, regardless of era.
+const ACT_HEADING_RE =
+  /(Decision of the EEA Joint Committee|\d{2,4}\/\d+\/(?:EEC|EC|EU|Euratom):\s*(?:Commission|Council)\s+(?:Implementing\s+|Delegated\s+)?Decision|Commission\s+(?:Implementing\s+|Delegated\s+)?Decision|Council\s+(?:Implementing\s+|Delegated\s+)?Decision|Decision\s+(?:No\.?\s*\d|\((?:EU|EC)\)\s*\d+\/\d+))/i;
+
+// Literal markers that close a title once the heading has started -- the enacting formula ("THE ... ,"),
+// the "Having regard" recitals that open it, the "(Text with EEA relevance)" applicability note, and the
+// page's own OJ citation ("... Official Journal L 094 , ..."). Matched in source order (never re-sorted),
+// earliest occurrence wins -- see extractOjActTitle.
+const TITLE_TERMINATORS = [
+  " Official Journal",
+  "THE EUROPEAN COMMISSION,",
+  "THE COUNCIL OF THE EUROPEAN UNION,",
+  "THE EEA JOINT COMMITTEE,",
+  "Having regard",
+  "(Text with EEA relevance)",
+];
+
+// Fix round 1: the OJ SERIES citation ("(2023/C 154/05)", or the bare form with no parens, "2011/C
+// 146/03") is a distinct terminator shape TITLE_TERMINATORS' literal strings never caught -- it has no
+// fixed prefix to match on (unlike "Having regard" or the enacting formula). Left uncaught, a long body
+// (a country list before this citation, e.g. celex 32023D0502(01)) ran the terminator scan dry and fell
+// through to ACT_TITLE_HARD_CAP, which could land INSIDE the citation's own opening paren, emitting an
+// unclosed "(2023" fragment. `\(?` / `\)?` are each independently optional so both the parenthesised and
+// bare forms match as ONE pattern, and the match's own start index (including the "(" when present) is
+// always the correct cut point either way.
+const OJ_SERIES_CITATION_RE = /\(?\s*\d{4}\/C\s?\d+\/\d+\s*\)?/;
+
+const ACT_TITLE_MIN_LEN = 20;
+const ACT_TITLE_MAX_LEN = 400;
+// A heading with no terminator found anywhere (a long country list before the OJ reference is the
+// evidenced case, e.g. celex 32022D1130(01)) is cut here rather than carried to the end of whatever text
+// was captured. Set equal to ACT_TITLE_MAX_LEN itself: a heading with no terminator inside its own maximum
+// valid length would only ever be rejected by the length check below anyway, so the cap never discards a
+// title the length check would have kept, and it bounds how much unrelated body text a pathological input
+// (no terminator at all) can make this function scan/return.
+const ACT_TITLE_HARD_CAP = ACT_TITLE_MAX_LEN;
+
+/** True for a candidate act title: within the length band, and never still starting with the page chrome
+ *  it was extracted out of (the two known chrome prefixes; a defensive check -- neither extraction path
+ *  below can itself produce one, since no ACT_HEADING_RE alternative contains either phrase). Pure. */
+function isUsableActTitle(title) {
+  if (!title) return false;
+  if (title.length < ACT_TITLE_MIN_LEN || title.length > ACT_TITLE_MAX_LEN) return false;
+  if (/^EUR-Lex/i.test(title)) return false;
+  if (/^Official Journal/i.test(title)) return false;
+  return true;
+}
+
+/** Fix round 1: never emit an unclosed "(" regardless of why the cut landed inside one (the OJ-citation
+ *  terminator above closes the evidenced case; this is the general safety net for any other one). Strips
+ *  the last "(" and everything after it, repeating while more "(" than ")" remain -- the ordinary case is
+ *  exactly one dangling open paren near the very end, so this is a single iteration in practice. Pure. */
+function trimUnbalancedOpenParen(s) {
+  let out = s;
+  while ((out.match(/\(/g) ?? []).length > (out.match(/\)/g) ?? []).length) {
+    const lastOpen = out.lastIndexOf("(");
+    if (lastOpen < 0) break;
+    out = out.slice(0, lastOpen).trim();
+  }
+  return out;
+}
+
+/** The act title inside an OJ body lead, or null when no act-type keyword + OJ reference is found. Two
+ *  tiers (task 5.5b, 2026-09-12): (1) the pre-existing OJ_ACT_TITLE_RE match -- a heading through its own
+ *  trailing "(YYYY/NNN/EC)"-shaped OJ reference, kept exactly as before so the two pre-existing callers of
+ *  this function (see this file's own test) see no change; (2) when that narrower shape is absent or the
+ *  match it finds is unusable (e.g. too long -- the trailing reference sits past ACT_TITLE_MAX_LEN),
+ *  ACT_HEADING_RE finds the act heading on its own and TITLE_TERMINATORS/OJ_SERIES_CITATION_RE bound where
+ *  it ends -- see the block comments above ACT_HEADING_RE and OJ_SERIES_CITATION_RE for the page shapes
+ *  and the fix-round-1 defects this closes. Pure, text-only. */
 export function extractOjActTitle(text) {
   const t = String(text ?? "").replace(/\s+/g, " ");
-  const m = t.match(OJ_ACT_TITLE_RE);
-  if (!m) return null;
-  const title = m[1].trim();
-  return title.length >= 20 ? title : null;
+  const withRef = t.match(OJ_ACT_TITLE_RE);
+  if (withRef) {
+    const title = withRef[1].trim();
+    if (isUsableActTitle(title)) return title;
+  }
+  const headingMatch = t.match(ACT_HEADING_RE);
+  if (!headingMatch) return null;
+  const start = headingMatch.index;
+  // Scan the FULL remaining text for a terminator before applying any cap -- a terminator that starts
+  // just past ACT_TITLE_HARD_CAP (e.g. "(Text with EEA relevance)" beginning at char 385 of a 416-char
+  // lead) must still be found whole, or the cut lands mid-word instead of at the real boundary.
+  const rest = t.slice(start);
+  let end = rest.length;
+  for (const term of TITLE_TERMINATORS) {
+    const idx = rest.indexOf(term);
+    if (idx >= 0 && idx < end) end = idx;
+  }
+  const citeMatch = rest.match(OJ_SERIES_CITATION_RE);
+  if (citeMatch && citeMatch.index < end) end = citeMatch.index;
+
+  if (end > ACT_TITLE_HARD_CAP) end = ACT_TITLE_HARD_CAP;
+
+  // Fix round 1: never cut mid-word. If the character just before `end` and the character just after are
+  // BOTH word characters, the cut landed inside a single token (only reachable via the hard cap above --
+  // every terminator match above already starts at a real boundary) -- back up to the end of the
+  // previous complete word instead of emitting a fragment.
+  if (end < rest.length && /\w/.test(rest[end - 1] ?? "") && /\w/.test(rest[end] ?? "")) {
+    const lastSpace = rest.lastIndexOf(" ", end - 1);
+    if (lastSpace > 0) end = lastSpace;
+  }
+
+  let title = rest.slice(0, end).replace(/\s+/g, " ").trim();
+  title = trimUnbalancedOpenParen(title);
+  return isUsableActTitle(title) ? title : null;
 }
 /** Body-lead fallback shared by the EUR-Lex and Cellar extractors: the act title when the lead carries
  *  one (origin `captured_body_act_title`), else the first ~300 chars with any leading OJ file name
@@ -553,11 +673,21 @@ function bodyLeadTitle(text) {
  *     placeholder in step 4, even though the real title was sitting in `capture.text` the whole time.
  *  4. `${source.name ?? source.url} -- ${identifier}` (or just the source name/url with no identifier) --
  *     the pre-existing placeholder fallback text, unchanged.
+ * Task 5.5b (2026-09-12): `allowBodyLeadFallback` (default true, the mint path's existing behavior
+ * unchanged) gates step 3's OWN bodyLeadTitle fallback -- the raw, un-extracted first-300-char page lead.
+ * That fallback is an honest "best we have" title for a BRAND NEW row that has no title at all yet (the
+ * mint path's own charter); it is never an honest RE-title for a row that already carries some title,
+ * because a page-lead slice is frequently page chrome, not the act's own words (task 5.5b's own evidence:
+ * all 369 titles the pre-fix retype dry run proposed came from exactly this fallback tier). The retype
+ * script's `planTitleUpdate` (scripts/maintenance/retype-eu-decisions.mjs) is the one caller that retitles
+ * an existing live row, and passes `allowBodyLeadFallback: false` -- with it false, this function returns a
+ * title ONLY when `extractOjActTitle` itself finds a real act heading, or falls straight through to the
+ * pre-existing `source_name_fallback` tier (never invented, already excluded by that caller's own check).
  * @param {{capture: {text?:string|null, html?:string|null, title?:string|null, titleOrigin?:string|null},
- *   source: {name?:string|null, url?:string|null}, identifier?:string|null}} args
+ *   source: {name?:string|null, url?:string|null}, identifier?:string|null, allowBodyLeadFallback?:boolean}} args
  * @returns {{title:string, titleOrigin:string}}
  */
-export function buildTitleForRow({ capture, source, identifier }) {
+export function buildTitleForRow({ capture, source, identifier, allowBodyLeadFallback = true }) {
   let title = capture?.title ?? null;
   let titleOrigin = capture?.titleOrigin ?? null;
   if (!title && capture?.html) {
@@ -569,7 +699,7 @@ export function buildTitleForRow({ capture, source, identifier }) {
     if (actTitle) {
       title = actTitle;
       titleOrigin = "captured_body_act_title";
-    } else {
+    } else if (allowBodyLeadFallback) {
       const bl = bodyLeadTitle(capture.text);
       if (bl) { title = bl.title; titleOrigin = bl.origin; }
     }
