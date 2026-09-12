@@ -149,6 +149,18 @@ that would corrupt at the real write site is caught here first. A value that bot
 matching quote character (`"`/`'`) is refused for the same reason: the parser's own generic quote-stripping
 would silently remove that pair, corrupting content that was never meant to be a quoted literal.
 
+## `compliance_object_tags` out-of-vocabulary values are dropped, not rejected
+
+A lane-authored `compliance_object_tags` value that is not in `parseAgentOutput`'s closed vocabulary
+(`COMPLIANCE_OBJECT_VALUES`, `src/lib/agent/parse-output.ts`) does NOT fail validation and does NOT appear
+in the offending entry's error list. `parseAgentOutput` filters the parsed array down to vocabulary values
+only (capping at 4) and silently drops anything else -- the same leniency it applies to a model-generated
+brief, so a batch that would pass through the real write site behaves identically here: one hallucinated
+or misspelled tag costs an intersection-detection hint, never the whole entry. A lane that needs every one
+of its tags to land should check its own output against the live vocabulary before writing the batch --
+this validator (`validateRecordBriefsEntry`) has no separate check for this, by design, since inventing one
+here would make an entry pass or fail on a rule the real write site does not enforce.
+
 ## Why a hand-written validator, not a JSON-Schema library
 
 Same reason `ledger-verdicts/README.md` gives for its own family: `record-briefs.test.mjs` runs under

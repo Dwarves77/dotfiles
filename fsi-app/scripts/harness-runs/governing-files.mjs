@@ -176,4 +176,23 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/turns/consume-turn-requests.mjs',
     'scripts/turns/export-corpus-for-extraction.mjs',
   ]),
+  // brief-apply (task 3.4, brief-chain build plan Part 3, 2026-09-11): the runtime that turns a validated
+  // record-briefs file (task 3.2's schema.mjs) into a fully connected item: generate (the injected-
+  // synthesis seam, task 3.3), section, ground, grow, then the per-item flywheel (discovery/forward-
+  // events/compliance-deadline/entities), then the batch-level unscoped flywheel steps. Governing files are
+  // the driver itself, the record-briefs validator it calls first, the ONE write site the injected-
+  // synthesis seam lives in, and the two per-item flywheel steps this driver shares with apply-staged-
+  // update.ts (task 3.4's own extraction, so the two callers can never independently drift on the dedupe
+  // key or the stale-events detection). scripts/turns/run-population-flywheel.mjs (the batch-level unscoped
+  // steps this driver also calls) is DELIBERATELY excluded: it is already governed nowhere as a harness
+  // family of its own (see that file's own header, "NOT a new harness-run family"), and this family's own
+  // governing-file set tracks brief-apply's OWN behavior-bearing surface, not every module it happens to
+  // import, the same restraint corpus-turn's own entry above states for discover-for-items.mjs/
+  // run-extraction.mjs.
+  'brief-apply': Object.freeze([
+    'scripts/turns/apply-record-briefs.mjs',
+    'scripts/turns/record-briefs/schema.mjs',
+    'src/lib/agent/canonical-pipeline.ts',
+    'src/lib/intake/flywheel-steps.mjs',
+  ]),
 });

@@ -1,0 +1,141 @@
+name: Brief apply
+
+# brief-apply lane (task 3.4, brief-chain build plan Part 3, 2026-09-11). The runtime for
+# scripts/turns/apply-record-briefs.mjs: turns a validated record-briefs file (task 3.2's schema.mjs,
+# authored by a session lane per scripts/turns/record-briefs/README.md) into a fully connected item:
+# generate (the injected-synthesis seam, task 3.3), then section, ground, grow, then the per-item flywheel
+# (discovery/forward-events/compliance-deadline/entities), then the batch-level unscoped flywheel steps
+# (analyze-corpus/derive-obligations/tag-proposals/tag-ratification). CLAUDE.md rule 17 binds: a brief is
+# not done until the flywheel has connected it and the harness has recorded the outcome; this workflow
+# and its driver ARE that connection and that recording, in one dispatch.
+#
+# SAME TWO-GATE SHAPE as date-chain.yml (ADR-023 section 4): `mode` (dry|apply) gates whether ANYTHING
+# writes -- dry validates + plans + prints, apply passes --execute and runs the full per-item pipeline for
+# real. `briefs_file` names which committed record-briefs-NNN.json this dispatch consumes.
+#
+# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, no `schedule:` block; every corpus write here
+# is by explicit dispatch, never a standing cadence.
+#
+# population-report.mjs ALWAYS runs last, in every mode, `if: always()`, the same "a run that ends
+# without measuring its own effect is a defect in the run" posture date-chain.yml already applies.
+#
+# DISPATCH RECIPE: Actions tab -> Brief apply -> Run workflow (pick mode/briefs_file/limit/after_id), or
+# `gh workflow run brief-apply.yml -f mode=apply -f briefs_file=scripts/turns/record-briefs/record-briefs-001.json`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = validate + plan + print, write nothing. apply = pass --execute and run the full per-item pipeline.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      briefs_file:
+        description: 'Path to the committed record-briefs-NNN.json file this dispatch applies (scripts/turns/record-briefs/).'
+        required: true
+        type: string
+      limit:
+        description: 'Optional --limit N (max items this run processes). Leave empty for unbounded.'
+        required: false
+        default: ''
+        type: string
+      after_id:
+        description: 'Optional --after-id <uuid> to resume past a prior run (the run artifact this workflow uploads names the last item processed).'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: brief-apply
+  cancel-in-progress: false
+
+env:
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_BRIEFS_FILE: ${{ inputs.briefs_file }}
+  RUN_LIMIT: ${{ inputs.limit }}
+  RUN_AFTER_ID: ${{ inputs.after_id }}
+
+jobs:
+  brief-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger     = ${{ github.event_name }}"
+          echo "mode        = $RUN_MODE"
+          echo "briefs_file = $RUN_BRIEFS_FILE"
+          echo "limit       = ${RUN_LIMIT:-(none, unbounded)}"
+          echo "after_id    = ${RUN_AFTER_ID:-(none, start from the beginning)}"
+          echo "mode=apply passes --execute and runs the full per-item pipeline; mode=dry never writes."
+
+      - name: Build driver flags
+        run: |
+          FLAGS="--briefs $RUN_BRIEFS_FILE"
+          if [ "$RUN_MODE" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
+          if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
+          echo "DRIVER_FLAGS=$FLAGS" >> "$GITHUB_ENV"
+
+      - name: apply-record-briefs
+        run: |
+          node scripts/turns/apply-record-briefs.mjs $DRIVER_FLAGS | tee /tmp/brief-apply.log
+          echo "### brief-apply" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/brief-apply.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # ALWAYS last, in every mode: rule 17 says a run that ends without measuring its own effect is a
+      # defect in the run, never a note for a coordinator. Runs even when the driver step above failed, so
+      # the log always ends with the true state of brief coverage rather than only the exception that got
+      # there first (the same `if: always()` posture date-chain.yml's own population-report step already
+      # has).
+      - name: Population report (always, end of run)
+        if: always()
+        run: |
+          node scripts/verify/population-report.mjs | tee /tmp/population-report.log
+          echo "### population report (end of run)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/population-report.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # Every guarded write in this repo snapshots the prior row state to scripts/_snapshots/ before
+      # mutating (db.mjs's own guarded-write discipline), uploaded here so an apply run stays reversible
+      # past the runner, the same shape date-chain.yml / downstream-chain.yml / population-turn.yml already
+      # use for their own guarded-write steps.
+      - name: Upload snapshots, run artifact, and run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brief-apply-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/_snapshots/
+            fsi-app/scripts/harness-runs/brief-apply/
+            /tmp/*.log
+          if-no-files-found: warn
+          retention-days: 90

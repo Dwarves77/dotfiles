@@ -20,15 +20,13 @@
 // modules mint-item.ts's own post-insert blocks call (run-discovery.mjs, read-and-extract.mjs,
 // flywheel-defect.ts) so the two writers can never drift on shape. This file becomes, alongside
 // mint-item.ts, a writer of item_forward_events (see docs/inventories/shared-dataset-ownership.md).
-import { createHash } from "node:crypto";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
-import { runConnectionDiscovery, CONNECTION_SIGNATURE_COLUMNS } from "@/lib/connections/run-discovery.mjs";
-import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
+import { runDiscoveryStep, runForwardEventsStep } from "@/lib/intake/flywheel-steps.mjs";
 
 export interface ApplyUpdateResult {
   success: boolean;
@@ -100,24 +98,18 @@ export function isSubstantiveUpdate(proposedChanges: Record<string, unknown> | n
   return keys.some((k) => !NON_SUBSTANTIVE_UPDATE_FIELDS.has(k));
 }
 
-function md5Hex(s: unknown): string {
-  return createHash("md5").update(String(s ?? ""), "utf8").digest("hex");
-}
-
-/** Migration 275's replacement dedupe key: (intelligence_item_id, event_date, event_kind,
- *  md5(obligation_text), coalesce(source_claim_id, source_section_id)) — the intelligence_item_id part is
- *  implicit here (every row this scans is already scoped `.eq("intelligence_item_id", itemId)`). */
-function forwardEventDedupeKey(row: Record<string, unknown>): string {
-  const sourceObjectId = row.source_claim_id ?? row.source_section_id ?? "";
-  return `${row.event_date}|${row.event_kind}|${md5Hex(row.obligation_text)}|${sourceObjectId}`;
-}
-
 /**
- * Rule 16 (a)/(b)/(d) participation for a SUBSTANTIVE update_item — the same non-fatal, try/catch-per-step
- * posture mint-item.ts's post-insert blocks use, reusing the exact same shared modules (run-discovery.mjs,
- * read-and-extract.mjs, flywheel-defect.ts) so the two writers can never drift on shape. Appends its own
- * gate-decision strings onto `flags` (mint-item.ts's own convention) rather than returning a second value.
- * NEVER throws — every failure is caught, recorded via recordFlywheelDefect (rule 16d), and flagged.
+ * Rule 16 (a)/(b)/(d) participation for a SUBSTANTIVE update_item: the same non-fatal, try/catch-per-step
+ * posture mint-item.ts's post-insert blocks use, reusing the exact same shared modules (flywheel-steps.mjs,
+ * flywheel-defect.ts) so every writer can never drift on shape. Appends its own gate-decision strings onto
+ * `flags` (mint-item.ts's own convention) rather than returning a second value. NEVER throws: every
+ * failure is caught, recorded via recordFlywheelDefect (rule 16d), and flagged.
+ *
+ * (a)/(b)'s own I/O (the discovery re-read + call, and the forward-events extract/dedupe/insert) moved
+ * to flywheel-steps.mjs (task 3.4, brief-chain build plan Part 3, 2026-09-11) so a second caller (the
+ * brief-apply driver) can run the identical logic without a second copy of the dedupe key or the
+ * stale-events detection. This function keeps the try/catch, the `flags` string convention, and the
+ * recordFlywheelDefect calls, the caller-specific bookkeeping that stays here, per that module's own header.
  */
 async function participateInFlywheel(supabase: any, itemId: string, flags: string[], proposedChanges: Record<string, unknown> = {}): Promise<void> {
   // ── rule 16(a): re-run connection discovery against the item's CURRENT (post-update) signature. A
@@ -125,13 +117,7 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
   // to get an authoritative full signature when proposed_changes may have touched only SOME of the
   // signature columns — the same signature shape mint-item.ts builds from its just-inserted seed.
   try {
-    const { data: row, error: readErr } = await supabase
-      .from("intelligence_items")
-      .select(CONNECTION_SIGNATURE_COLUMNS)
-      .eq("id", itemId)
-      .single();
-    if (readErr) throw new Error(`intelligence_items re-read for discovery failed: ${readErr.message}`);
-    const written = await runConnectionDiscovery(supabase, itemId, row);
+    const { written } = await runDiscoveryStep(supabase, itemId);
     if (written > 0) flags.push(`discovery:${written}`);
   } catch (e: unknown) {
     await recordFlywheelDefect(supabase, itemId, "discovery", e instanceof Error ? e.message : String(e), { context: "update" });
@@ -139,68 +125,24 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
   }
 
   // ── rule 16(b): re-extract forward events from the item's CURRENT grounded content, write only the
-  // events not already present (migration-275 dedupe key), and — without ever deleting a row itself —
-  // flag any EXISTING item_forward_events row whose supporting claim/section has since disappeared
-  // ("stale-events"), so a human/later pass decides what to do with it.
+  // events not already present, and, without ever deleting a row itself, flag any EXISTING
+  // item_forward_events row whose supporting claim/section has since disappeared ("stale-events"), so a
+  // human/later pass decides what to do with it. ──────────────────────────────────────────────────────
   try {
-    const { events, claims, sections } = await readAndExtractForwardEvents(supabase, itemId);
-
-    const { data: existingRows, error: existingErr } = await supabase
-      .from("item_forward_events")
-      .select("id, event_date, event_kind, obligation_text, source_claim_id, source_section_id")
-      .eq("intelligence_item_id", itemId);
-    if (existingErr) throw new Error(`item_forward_events read failed: ${existingErr.message}`);
-    const existing: Array<Record<string, unknown>> = existingRows ?? [];
-
-    // stale-events: an existing row's supporting claim/section is no longer among the item's CURRENT
-    // FACT/GAP claims / rendered sections (re-grounding removed or reclassified it). Grounding rule 1
-    // (migration 274) guarantees exactly one of source_claim_id/source_section_id is set per row.
-    const currentClaimIds = new Set((claims ?? []).map((c: any) => c.claim_id));
-    const currentSectionIds = new Set((sections ?? []).map((s: any) => s.section_id));
-    const staleRows = existing.filter((r) =>
-      r.source_claim_id ? !currentClaimIds.has(r.source_claim_id as string)
-        : r.source_section_id ? !currentSectionIds.has(r.source_section_id as string)
-        : false
-    );
+    const { attempted, insertedCount, collision, staleRows } = await runForwardEventsStep(supabase, itemId);
     if (staleRows.length) {
       await recordFlywheelDefect(
         supabase,
         itemId,
         "stale-events",
-        `${staleRows.length} existing item_forward_events row(s) reference a claim/section no longer present: ${staleRows.map((r) => r.id).join(", ")}`,
+        `${staleRows.length} existing item_forward_events row(s) reference a claim/section no longer present: ${staleRows.map((r: { id: string }) => r.id).join(", ")}`,
         { context: "update" }
       );
       flags.push(`stale-events:${staleRows.length}`);
     }
-
-    // dedupe against the migration-275 key: PostgREST's upsert onConflict only accepts a plain column
-    // list, and the real unique index is EXPRESSION-based (md5(obligation_text),
-    // coalesce(source_claim_id, source_section_id)) — not expressible that way — so idempotency is done
-    // at the application layer: compute the same key the index computes, skip anything already present
-    // (or repeated within this same extraction batch), and plain-INSERT only what's left. A residual
-    // 23505 (unique_violation) — e.g. a concurrent writer landing the same key first — means the dedupe
-    // key already did its job; treated as zero-new, not a failure.
-    const existingKeys = new Set(existing.map((r) => forwardEventDedupeKey(r)));
-    const seenInBatch = new Set<string>();
-    const newRows: Array<Record<string, unknown>> = [];
-    for (const ev of events as Array<Record<string, unknown>>) {
-      const row: Record<string, unknown> = { intelligence_item_id: itemId, ...ev };
-      const key = forwardEventDedupeKey(row);
-      if (existingKeys.has(key) || seenInBatch.has(key)) continue;
-      seenInBatch.add(key);
-      newRows.push(row);
-    }
-    if (newRows.length) {
-      const { error: fwdErr } = await supabase.from("item_forward_events").insert(newRows);
-      if (fwdErr) {
-        if (fwdErr.code === "23505") {
-          flags.push("forward-events:0");
-        } else {
-          throw new Error(`item_forward_events insert failed: ${fwdErr.message}`);
-        }
-      } else {
-        flags.push(`forward-events:${newRows.length}`);
-      }
+    if (attempted > 0) {
+      if (collision) flags.push("forward-events:0");
+      else flags.push(`forward-events:${insertedCount}`);
     }
   } catch (e: unknown) {
     await recordFlywheelDefect(supabase, itemId, "forward-events", e instanceof Error ? e.message : String(e), { context: "update" });

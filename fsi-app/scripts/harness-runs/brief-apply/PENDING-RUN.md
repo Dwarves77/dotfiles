@@ -1,0 +1,29 @@
+# Pending run: brief-apply
+
+F28's rule (b) first-run acknowledgment (`.discipline/fitness/functions/F28-harness-run-integrity.mjs`):
+a newly-registered harness family has zero valid artifacts on record. This marker pins the CURRENT
+governing-file hash, written in the exact format `parsePendingRunHash` reads (`harness_version at write
+time: sha256:...`), so the family is registered-and-pending rather than historyless (see CONVENTION.md's
+own header on this distinction).
+
+**What this family is** (task 3.4, brief-chain build plan Part 3, 2026-09-11): the driver
+(`scripts/turns/apply-record-briefs.mjs`) that turns a validated record-briefs file (task 3.2's
+`schema.mjs`) into a fully connected item - generate (the injected-synthesis seam, task 3.3) -> section ->
+ground -> grow -> the per-item flywheel (discovery/forward-events/compliance-deadline/entities) -> the
+batch-level unscoped flywheel steps. No live dispatch was possible from the authoring environment (no
+committed `record-briefs-NNN.json` batch exists yet for a session lane to have authored, and this lane's
+own instructions were dry-mode-only / no database writes) - the same posture `ledger-consume` and
+`corpus-turn` recorded at their own registration.
+
+**Governing files** (`scripts/harness-runs/governing-files.mjs`'s `GOVERNING_FILES['brief-apply']`):
+`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`,
+`src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`.
+
+**harness_version at write time:** `sha256:d1ea74924de7d828`
+
+**The planned run that supersedes this marker:** the first `brief-apply-run-001.json`, from the first
+`.github/workflows/brief-apply.yml` dispatch (dry or apply - either mode writes a run artifact; see that
+workflow's own header) against a real committed record-briefs batch. Per F28's reverse-audit, this file is
+deleted the moment an artifact carrying the hash above lands, or re-pinned if a governing file changes
+again before that run lands (canonical-pipeline.ts in particular changes often across this build - see
+CONVENTION.md's own "brief-apply" entry for why that file is a governing file here despite its size).

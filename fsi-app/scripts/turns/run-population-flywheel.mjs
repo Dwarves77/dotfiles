@@ -1375,6 +1375,57 @@ const STEP_HANDLERS = Object.freeze({
   "record-last-turn": stepRecordLastTurn,
 });
 
+// ── an ids-only entry point for the four UNSCOPED-by-buildFlywheelPlan steps (task 3.4, brief-chain build
+// plan Part 3, 2026-09-11) ──────────────────────────────────────────────────────────────────────────────
+//
+// runFlywheelForOneArtifact (below) is mint-run-shaped: it takes a mint-run artifact + its own harness-run
+// directory and ends by writing that artifact's S9 outcomes back via run-mint-batch.mjs --outcomes. A
+// brief-apply batch (scripts/turns/apply-record-briefs.mjs) has no mint-run artifact of its own: its own
+// items came from a record-briefs file, not a mint, so it cannot supply what runFlywheelForOneArtifact
+// requires, and none of runFlywheelForOneArtifact's own write-outcomes/record-last-turn machinery applies
+// to it (brief-apply writes its OWN harness-run artifact directly via writeRunArtifact, never through
+// run-mint-batch.mjs). This entry point runs ONLY the four steps buildFlywheelPlan calls "the unscoped
+// steps" in this task's own brief (analyze-corpus, derive-obligations, tag-proposals, tag-ratification)
+// against a bare `batchIds` array, reusing the SAME per-step handlers (stepAnalyzeCorpus/
+// stepDeriveObligations/stepTagProposals/stepTagRatification) defined above: the analyze-corpus.mjs/
+// derive-obligations.mjs/tag-proposals.mjs/tag-ratification.mjs invocations themselves are UNCHANGED,
+// never re-implemented a second time for this caller. buildFlywheelPlan's own skip/skipReason decisions
+// (tag-proposals and tag-ratification skip when `batchIds` is empty; analyze-corpus and derive-obligations
+// never skip) are honored here too, so this entry point and the mint-run path can never disagree about
+// which of the four actually runs for a given batch.
+/**
+ * @param {"dry"|"apply"} mode
+ * @param {string[]} batchIds
+ * @param {object} db the scripts/lib/db.mjs module (readAll/guardedInsertMany/guardedUpdateByIds/readClient)
+ * @returns {Promise<{analyzeCorpus: object|{skipped:true,reason:string}, deriveObligations: object|{skipped:true,reason:string}, tagProposals: object|{skipped:true,reason:string}, tagRatification: object|{skipped:true,reason:string}}>}
+ */
+export async function runUnscopedFlywheelSteps(mode, batchIds, db) {
+  const ids = Array.isArray(batchIds) ? batchIds : [];
+  const ctx = { mode, apply: mode === "apply", batchIds: ids, db, state: {} };
+  const plan = buildFlywheelPlan(mode, ids);
+  const byName = new Map(plan.map((s) => [s.name, s]));
+  const handlerByName = {
+    "analyze-corpus": stepAnalyzeCorpus,
+    "derive-obligations": stepDeriveObligations,
+    "tag-proposals": stepTagProposals,
+    "tag-ratification": stepTagRatification,
+  };
+  const results = {};
+  for (const name of ["analyze-corpus", "derive-obligations", "tag-proposals", "tag-ratification"]) {
+    const step = byName.get(name);
+    if (step?.skip) {
+      results[toCamel(name)] = { skipped: true, reason: step.skipReason };
+      continue;
+    }
+    results[toCamel(name)] = await handlerByName[name](ctx);
+  }
+  return results;
+}
+
+function toCamel(kebab) {
+  return kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 // ── the shared per-artifact executor — the ONE code path that runs §8/§9 over one mint-run artifact,
 // used by BOTH the normal --mint-run apply/dry path AND every artifact a --backlog apply run processes
 // (never two divergent implementations of "how a mint-run artifact gets connected") ────────────────────

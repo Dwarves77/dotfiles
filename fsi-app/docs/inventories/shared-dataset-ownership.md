@@ -127,6 +127,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/turns/apply-extraction-output.mjs",
       "src/lib/intake/mint-item.ts",
       "src/lib/intake/apply-staged-update.ts",
+      "src/lib/intake/flywheel-steps.mjs",
       "scripts/maintenance/forward-events-retext.mjs",
       "scripts/forward-events/dispatch-extraction.mjs"
     ],
@@ -380,7 +381,14 @@ neither hand-copies the read. Three write paths exist:
    (307's `uq_item_forward_events_text_identity`, superseding 275's `uq_item_forward_events_dedupe`) at
    the application layer (PostgREST's upsert `onConflict` cannot target an expression-based index) rather
    than a plain insert, and never deletes — an existing row whose supporting claim/section is gone is
-   flagged `flywheel-defect:stale-events` instead.
+   flagged `flywheel-defect:stale-events` instead. The dedupe/stale-events/insert logic itself moved to
+   `src/lib/intake/flywheel-steps.mjs`'s `runForwardEventsStep` (task 3.4, brief-chain build plan Part 3,
+   2026-09-11, a PURE extraction — no behavior change, re-verified against this file's own pre-existing
+   test suite) so a SECOND caller, `scripts/turns/apply-record-briefs.mjs` (the brief-apply driver), runs
+   the identical logic against a record-briefs-authored item's own forward events without a second,
+   independently-maintained copy of the dedupe key. `apply-staged-update.ts` keeps the try/catch, the
+   `flags` string convention, and the `recordFlywheelDefect` call; `apply-record-briefs.mjs` does the same
+   with its own outcome vocabulary and `context: "brief-apply"`.
 3. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows;
    `scripts/turns/apply-extraction-output.mjs` is the actual guarded writer (`guardedInsertMany`), computing
    the same live dedupe key client-side (`dedupeKey`, updated lane FE-DEDUP 2026-09-04 to mirror migration
