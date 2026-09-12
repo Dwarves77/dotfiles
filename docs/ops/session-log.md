@@ -18945,3 +18945,147 @@ on any Write/Edit this round.
 ### UX compliance
 
 Not applicable: no `.tsx`/`.css` touched this round either.
+
+### Task 3.4: the driver and workflow: brief-apply
+
+Built `scripts/turns/apply-record-briefs.mjs`: dry-default, `--briefs <file>` `--execute` `--limit`
+`--after-id` `--allow-brief-overwrite` `--harness-runs-dir`. Per item, in order, each its own try/catch,
+outcome recorded: (1) `validateRecordBriefsFile` (3.2) over each item's CURRENT stored pool text (read
+fresh, then a pre-check hash comparison pre-empts a stale-pool item before any step runs, since
+`generateBriefFromInjected` would refuse it anyway); (2) `generateBriefFromInjected` (3.3); (3)
+`sectionBrief`; (4) `groundBrief(itemId, "brief-apply", { injectedLedger: entry.claims })`, then
+`provenance_status` is read back and recorded regardless of ground's own ok/fail (a quarantine is reported,
+never hidden); (5) `growSources`; (6) the per-item flywheel: discovery, forward-events, compliance-deadline,
+entities; (7) for the batch, the four unscoped population-flywheel steps (analyze-corpus,
+derive-obligations, tag-proposals, tag-ratification) via a new export,
+`run-population-flywheel.mjs`'s `runUnscopedFlywheelSteps(mode, batchIds, db)`.
+`.github/workflows/brief-apply.yml` copies `date-chain.yml`'s structure: `mode dry|apply` gates
+`--execute`, `briefs_file`/`limit`/`after_id` inputs, `population-report.mjs` runs last with `if: always()`.
+
+**Shared extraction, not duplication (task 3.4's own judgment call).** `apply-staged-update.ts`'s
+`participateInFlywheel` inlined its own discovery re-read and its own migration-307 dedupe key/
+stale-events detection/insert logic for forward events; the brief said the driver's flywheel step must run
+these "exactly as apply-staged-update.ts's substantive path calls them." Copying ~90 lines a second time
+would create the exact drift class task 1.1's `link-item-entities.mjs` was built to prevent for the entities
+step, so instead: `src/lib/intake/flywheel-steps.mjs` (new) holds `runDiscoveryStep` and
+`runForwardEventsStep`, extracted verbatim (no behavior change) from `apply-staged-update.ts`'s own
+try/catch bodies; `apply-staged-update.ts` now calls them, keeping its own `flags` string convention and
+`recordFlywheelDefect` calls; `apply-record-briefs.mjs` calls the SAME two functions with its own outcome
+vocabulary and `context: "brief-apply"`. Verified byte-behavior-preserving by re-running
+`apply-staged-update-forward-participation.npmtest.mjs` (13 pre-existing tests) unchanged before and after:
+13/13 pass both times. `compliance_deadline` sync was NOT wrapped (already a one-line passthrough to
+`syncComplianceDeadlineForItem`; both callers import it directly).
+
+**Pre-flight (Part 1 not merged on this branch): the entities step resolves lazily.** Per the coordinator's
+own instruction, `src/lib/entities/link-item-entities.mjs` (task 1.1, `lane/w9-part1-2026-09-11`) is not on
+this branch. `apply-record-briefs.mjs`'s entities step does a dynamic `import("../../src/lib/entities/
+link-item-entities.mjs")` inside the step itself (exported as `importLinkItemEntities`, testable directly);
+a module-not-found import failure records the outcome `entities_skipped_module_not_present` with the exact
+named reason `"entities: module not present on this branch"` (a constant, `ENTITIES_MODULE_NOT_PRESENT`,
+asserted in the test file) and moves on. A test (`importLinkItemEntities: returns null ... when Part 1's
+module is not present on this branch`) asserts this today and is annotated to flip (function returned,
+not null) the moment Part 1 merges. This lane builds and tests green now; the real entity link lands with
+zero code change here once Part 1 merges (only the dynamic import starts resolving).
+
+**jiti, not a plain import, for canonical-pipeline.ts and flywheel-defect.ts.** Both use `"@/..."` tsconfig
+path aliases, which plain `node` ESM cannot resolve (the SAME reason `scripts/_reground/executor-ground.mjs`
+already resolves `groundBrief` through `jiti`, not a plain import). Resolved LAZILY inside `applyOneEntry`
+(`loadPipeline()`/`loadFlywheelDefect()`, memoized promises), not at module top level, so the pure exports
+the test file drives (`parseArgs`, `buildApplyPlan`, `APPLY_STEP_ORDER`, ...) load instantly with zero
+jiti/canonical-pipeline.ts overhead when nothing in a given process path actually calls the pipeline.
+
+**Harness family registered: `brief-apply`.** `scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` and
+`scripts/harness-runs/governing-files.mjs`'s `GOVERNING_FILES['brief-apply']` (the driver itself,
+`record-briefs/schema.mjs`, `canonical-pipeline.ts`, `flywheel-steps.mjs`); `CONVENTION.md` gained the
+directory-layout entry, family-description prose, standing-metric paragraph, and harness_version table
+row; `scripts/harness-runs/brief-apply/PENDING-RUN.md` (new, F28 rule (b) first-run acknowledgment: zero
+artifacts, no live dispatch was possible from the authoring environment, dry-mode-only, no committed
+record-briefs batch exists yet).
+
+**Two additional F28 STALE PENDING-RUN.md findings surfaced and fixed in the same motion (rule 13).**
+Both `run-artifact.mjs` and `governing-files.mjs` are themselves `meta-harness`'s own governing files
+(self-referential by construction), so registering a new family moved `meta-harness`'s own hash; re-pinned
+`scripts/harness-runs/meta-harness/PENDING-RUN.md` to the new hash. Separately, `[CONFIRMED]` (method:
+`git stash` the whole task-3.4 working tree and re-ran `F28-harness-run-integrity.test.mjs` against the
+committed branch tip before any of this task's edits: the identical finding was already present):
+`scripts/harness-runs/corpus-turn/PENDING-RUN.md` was ALREADY stale, inherited from task 3.3 fix round 1's
+own edit to `export-corpus-for-extraction.mjs` (a `corpus-turn` governing file) that moved that family's
+hash without a re-pin at the time. Fixed in the same motion rather than left as a second flagged item for a
+later lane, per this task's own coordinator's file scope not excluding it and rule 13's "fix in the same
+motion" instruction; this task made no further edits of its own to either `corpus-turn` governing file.
+
+**A glyph-discipline defect caught and fixed in the same motion.** A first pass of this task's own new
+prose/comments used em-dash characters throughout (matching the surrounding codebase's own pervasive style,
+which this task incorrectly took as license): a diff-scoped scan (added lines only, byte-checked for
+U+2014/U+2013/U+00A7, the same method task 3.1/3.3 used) found roughly 40 instances across the five newly
+authored files plus ten touched files' added lines. Fixed by hand, file by file (never a blind global
+regex on a mixed old/new file: a first automated attempt used an over-eager whitespace-collapse regex that
+corrupted `.github/workflows/brief-apply.yml`'s YAML list-item indentation, caught by a YAML parse check
+and by stale IDE diagnostics before it reached a commit, and that file was rewritten clean from scratch).
+Final scan after the fix: zero matches across every new file (whole-file) and every modified file (added
+lines only).
+
+**Gates (verbatim).**
+- New plan-builder test, `scripts/turns/apply-record-briefs.test.mjs` (24 cases: `parseArgs`,
+  `APPLY_STEP_ORDER`, `buildApplyPlan` order/`--limit`/`--after-id`/skip-on-stale-hash, the entities
+  pre-flight skip). RED confirmed: `mv`'d the implementation aside, `tests 1, pass 0, fail 1`
+  (`ERR_MODULE_NOT_FOUND`). GREEN: `tests 24, pass 24, fail 0`.
+- `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: 27/27 pass (untouched by this task).
+- `node --test src/lib/intake/apply-staged-update-forward-participation.npmtest.mjs`: 13/13 pass
+  (unchanged assertions, re-verifying the `flywheel-steps.mjs` extraction is behavior-preserving).
+- `node --test scripts/turns/run-population-flywheel.test.mjs`: 84/84 pass (the new
+  `runUnscopedFlywheelSteps` export added no regression).
+- `node --test scripts/harness-runs/governing-files.test.mjs`: 20/20 pass.
+- `node --test .discipline/shared-writer-registry.test.mjs`: 1/1 pass (after registering
+  `flywheel-steps.mjs` as an `item_forward_events` writer in `docs/inventories/shared-dataset-ownership.md`,
+  a real finding this task's own new file triggered, fixed in the same motion).
+- `node --test src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs`: 8/8 pass (unaffected).
+- `node scripts/verify/executor-parity.golden.mjs`: `GOLDEN PASSED` (unaffected).
+- `node --test .discipline/glob-portability.test.mjs`: 2/2 pass (`scripts/turns/*.test.mjs` already covers
+  the new top-level test file; no glob change needed).
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/fitness/functions/F28-harness-run-integrity.test.mjs` (the full suite, not only the
+  aggregate runner): 33/33 pass, including `CONVENTION-TABLE-PARITY` and `F28 passes GREEN against the
+  live tree`.
+- `node .discipline/fitness/runner.mjs`: `Fitness summary: 38 function(s) checked, 0 violation(s).` Zero,
+  not the one pre-existing violation this task's own brief anticipated: the anticipated one
+  (`corpus-turn` staleness) was fixed in the same motion per rule 13, above, rather than left standing.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (see Files/
+  commit below).
+- `bash .discipline/run-test-suite.sh` NOT run, per the standing instruction for this lane.
+
+**Standing constraints checked.** No em dashes, en dashes, or section-sign glyph in newly authored lines
+(see the glyph-discipline paragraph above for the defect-and-fix). No hardcoded user-home paths: grepped
+every new/touched file for `C:/Users/`, `C:\Users\`, `/Users/jason`, zero matches. Findings above are
+labeled `[CONFIRMED]` with method named. Staged explicitly, never `git add -A`. `C:\Users\jason\dotfiles`
+(the main checkout) never touched; no `git stash`; no `--no-verify`; no push. No PreToolUse skill-gate
+denial occurred on any Write/Edit in this task. No live database access: every check in this task is
+pure/static, or a plain SELECT against the fitness/test tooling; the driver's own real per-item pipeline
+calls were never executed against a live database this session (dry-mode-only, per instruction).
+
+**Files.**
+- `fsi-app/scripts/turns/apply-record-briefs.mjs` (new)
+- `fsi-app/scripts/turns/apply-record-briefs.test.mjs` (new)
+- `fsi-app/src/lib/intake/flywheel-steps.mjs` (new)
+- `.github/workflows/brief-apply.yml` (new)
+- `fsi-app/scripts/harness-runs/brief-apply/PENDING-RUN.md` (new)
+- `fsi-app/src/lib/intake/apply-staged-update.ts` (modified: `participateInFlywheel` now calls
+  `flywheel-steps.mjs`)
+- `fsi-app/scripts/turns/run-population-flywheel.mjs` (modified: new `runUnscopedFlywheelSteps` export)
+- `fsi-app/scripts/lib/run-artifact.mjs` (modified: `ALLOWED_FAMILIES` gains `"brief-apply"`)
+- `fsi-app/scripts/harness-runs/governing-files.mjs` (modified: `GOVERNING_FILES['brief-apply']` added)
+- `fsi-app/scripts/harness-runs/CONVENTION.md` (modified: `brief-apply` family registered)
+- `fsi-app/scripts/harness-runs/meta-harness/PENDING-RUN.md` (modified: re-pinned)
+- `fsi-app/scripts/harness-runs/corpus-turn/PENDING-RUN.md` (modified: re-pinned, pre-existing drift fixed)
+- `fsi-app/scripts/turns/record-briefs/README.md` (modified: `compliance_object_tags` drop-not-reject
+  callout, the task's named minor)
+- `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs` (modified: removed the now-stale
+  `record-briefs/schema.mjs` allowlist entry)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md` (modified: `flywheel-steps.mjs` registered as an
+  `item_forward_events` writer)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance
+
+Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a backend driver, workflow,
+and harness-registration change only.
