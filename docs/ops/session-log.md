@@ -5,6 +5,56 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-12, W9 task 6.2d: the brief export now includes a quarantined item named by id (D1)
+
+**What.** `defect-fix-plan-2026-09-12.md`'s D1: `export-corpus-for-extraction.mjs`'s `--ids` item scope
+ANDed the requested ids with `provenance_status = 'verified'`, so a ticket naming a quarantined item
+(brief-export run 34717714753, item 00a8c0d9) was silently dropped, exactly the item the
+`apply-record-briefs.mjs --allow-brief-overwrite` re-ground path exists to reach (ADR-030: items are
+resolved, never left quarantined). Fixed at the source: `--ids` now selects `is_archived = false` and
+`provenance_status IN ('verified', 'quarantined')`; the auto-selection paths (`--since`, and
+`brief-export.yml`'s own hollow/record auto-select) stay verified-only by design, since they pick WHAT
+to export rather than answer a ticket naming a specific id.
+
+The item-scope logic for `--ids` was extracted into a new, dependency-injected, exported function,
+`selectItemsByIds(ids, itemColumns, { readAll })`, so the fix is unit-tested against a fake `readAll`
+rather than a live database. A requested id that still is not exported is never silently dropped: it is
+classified `archived` (a row exists with `is_archived = true`) or `not_found` (no matching row, or a
+provenance_status outside the accepted set), named in the console log and carried on the written output
+as `not_exported: [{id, reason}]`, present on the single-file write and on every char-budgeted part
+under `--with-pool-text`. Every exported item now also carries its own `provenance_status`, on both the
+default and `--with-pool-text` paths, so a lane sees a quarantined item for what it is.
+
+**Files.** `fsi-app/scripts/turns/export-corpus-for-extraction.mjs` and `.test.mjs` (new
+`selectItemsByIds` function and its tests, `provenance_status` on every corpus item, `not_exported` on
+both write shapes), `.github/workflows/brief-export.yml` (the `ids` input description now states that a
+quarantined item is included when named), `fsi-app/scripts/turns/record-briefs/README.md` (a new
+paragraph telling a lane that a quarantined export is authored like any other, resolved by the
+`allow_brief_overwrite` apply), `docs/ops/session-log.md` (this entry).
+
+**Gates.** `node --test scripts/turns/export-corpus-for-extraction.test.mjs`: 68/68 (18 new: 9
+`selectItemsByIds` behavior tests over a fake `readAll`, 3 `provenance_status` pass-through tests, 6
+source-contract tests covering the ITEM_COLUMNS widening, the `--ids` branch calling `selectItemsByIds`,
+the auto-selection path staying verified-only, and the `not_exported` field on both write shapes; 3
+pre-existing exact-shape tests updated to include the new `provenance_status` field their fixtures now
+carry). Full preflight (`sh fsi-app/.discipline/hooks/pre-push`) run once at the end; tail and exit code
+in `task-6.2d-report.md`. Glyph byte check 0 over the range.
+
+**Deviation from the brief, reported per this lane's instructions.** The task brief asked for tests
+"dependency injected, no database" for the `--ids` scope change, but `main()` itself has no dependency
+injection anywhere in this file (a pre-existing posture this lane did not change). To meet the brief's
+own testability requirement without widening the write set, the `--ids` item-scope logic was extracted
+into the new exported `selectItemsByIds` function, which main() now calls; this is the mechanism the
+brief's test list implies but does not name explicitly. One pre-existing source-contract test
+(`export-corpus-for-extraction.test.mjs`, "both intelligence_items readAll calls... use the same
+ITEM_COLUMNS variable") was split into two, updated tests to match: the default path still asserts
+`ITEM_COLUMNS`, and a new test asserts `selectItemsByIds`'s own `itemColumns` parameter, since the old
+single regex no longer described the post-fix source structure.
+
+### UX compliance (task 6.2d)
+
+Not applicable: no `.tsx`/`.css` touched.
+
 ## 2026-09-12, W9 Part 7 task 7.2: every flywheel-tag / source-classification / signal proposal decided, fix round 1
 
 Task 7.2 of the brief-chain build plan (ADR-030 rider), worktree `wt-proprec-0911`, branch
@@ -19899,3 +19949,215 @@ hooks/pre-push` (modified: step 2b), `docs/inventories/discipline.md` (modified:
 ### UX compliance (task 7.8)
 
 Not applicable: no `.tsx`/`.css` touched.
+## 2026-09-12, W9 Part 7.5: transit rows finish, admin summary-tile fix, plus fix round 1 (D2/D3/D4/D5/D6)
+
+Branch `lane/w9-7.5-2026-09-12`, worktree `wt-brieffields-0911`. Original range (commits `c93234a9`,
+`9fe211da`, `e34830ed`) built `resolve-provisional-sources.mjs` (item 1), `finish-staged-updates.mjs`
+(item 2), a dispatch note for `canonical-autoverify` covering the 3 pending `canonical_source_candidates`
+(item 3, no new code), and the admin summary-tile numeral-clipping fix plus a spacing pass (item 4).
+Reviewed (`review-7.5.md`, read-only, every test independently re-run): CONDITIONAL FAIL, three findings
+plus one pre-existing hypothesis. Coordinator wrote the fix plan (`docs/plans/defect-fix-plan-2026-09-12.md`,
+D2 through D9); this entry closes D2, D3, D4, D5, D6 for the 7.5 range as that plan specifies.
+
+**D2, provisional-source terminal status, CONFIRMED against the live database by the coordinator.**
+`provisional_sources_status_check` allowed only `pending_review`/`confirmed`/`rejected`/`needs_more_data`;
+`promoted` (written by the promote route since before this task, and by this task's own new script) had
+never succeeded against the live constraint. Migration 317 (applied live by the coordinator before this
+code merged, standing rule 3) widens the constraint to add `promoted`. Fixed at the source: the two
+literals both writers use (`resolve-provisional-sources.mjs`, `/api/admin/sources/promote/route.ts`) now
+reference shared exported constants (`PROVISIONAL_SOURCES_PROMOTED_STATUS`/`_REJECTED_STATUS`,
+`src/lib/sources/promote-provisional.ts`) instead of independent literals; a test in that module's own
+test file pins all five live CHECK values as the contract, with a comment naming the constraint.
+
+**D3, the worklist flag was not idempotent, CONFIRMED by review.** `resolve-provisional-sources.mjs`
+built a second, bespoke worklist mechanism (`buildBatchWorklistFlag`, one row per RUN) instead of reusing
+the platform's one idempotent per-host `null-tier-host` mechanism; a still-unclassifiable host produced a
+brand-new open `integrity_flags` row on every re-dispatch. Fixed: `planHostDecision`,
+`buildNullTierHostWrite` and `NULL_TIER_CREATED_BY` extracted (names and signatures unchanged) out of
+`resolve-cited-host-gate.mjs` into the new shared `src/lib/sources/null-tier-host-worklist.mjs`;
+`resolve-cited-host-gate.mjs` re-exports them so its own callers are unaffected (its own test file kept
+its integration coverage; the three functions' unit tests moved to the new module's own test file, plus
+one new cross-run idempotency test at that level). `resolve-provisional-sources.mjs` now does a
+read-modify-write per unclassifiable host through the shared module; a new test runs `main()` twice over
+the same still-unclassifiable input and asserts the second run inserts 0 new flag rows and updates the
+existing per-host row's contribution list instead (the per-item aggregate key is a synthetic
+`${table}:${id}`, since neither `provisional_sources` nor `sources` is an `intelligence_items` row).
+
+**D4, the `sources` reject path recorded no reason on the row, CONFIRMED by review.** `rejectSourcesRow`
+threaded its reason only into the guarded-write `cite` argument, which lands in an off-row audit
+snapshot file, never a column, so a declined `sources` row (status set to `suspended`, the live
+`sources_status_check` has no decline value) carried no on-row explanation. Fixed: the reason is now
+appended to `notes` in the same form `worklistSourcesRow` already used (rule name, evidence, date); a
+test asserts the orchestration calls `rejectSourcesRow` with the reason for a dead row.
+
+**D5, dash and section-sign glyphs, CONFIRMED.** 36 em dashes had entered the original range across nine
+files (comments and test-description strings only, never a persisted string or UI copy). Swept: every
+occurrence replaced with a comma, colon, semicolon or the word "to", following the same house style
+already used elsewhere in these files. Verified with the exact check named in the task:
+`git diff 2b6d4f56..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` prints 0 (pasted
+in the fix-round-1 report at the mirrored SDD path). Discipline rule 022 (the class fix that would catch
+this mechanically going forward) is a separate lane (L3) in the defect-fix plan, not built here.
+
+**D6, this entry.** The original 7.5 range had no `docs/ops/session-log.md` entry (correct at the time
+under the lane contract's "coordinator only" rule); CI's memory gate blocks the PR without one
+regardless of who is supposed to write it, so this entry covers the whole range per the coordinator's
+explicit direction for this fix round. The UX compliance block below covers item 4's `.tsx` changes
+(the only `.tsx`/`.css` touched across the whole 7.5 range, original commits only; the fix round touched
+no `.tsx`/`.css`).
+
+**Not in this entry's scope** (separate lanes per the defect-fix plan): D1 (brief export quarantine
+filter, lane L2, `wt-part3-0911`), D7 (schema-vocabulary inventory, lane L3), D8 (rendering-guard
+local-vs-CI investigation, lane L5), D9 (jurisdiction-proposal column, operator decision owed).
+
+**Gates (fix round 1).** `node --test` on every touched test file:
+`resolve-provisional-sources.test.mjs` 22/22, `promote-provisional.test.mjs` 8/8,
+`null-tier-host-worklist.test.mjs` 7/7, `resolve-cited-host-gate.test.mjs` 17/17,
+`finish-staged-updates.test.mjs` 11/11, `StatBlock.npmtest.mjs` 11/11. Full preflight
+(`sh fsi-app/.discipline/hooks/pre-push < /dev/null`, foreground, from the worktree root): see the
+fix-round-1 report at the mirrored SDD path for the verbatim tail and exit code. Glyph check: 0 (see D5
+above). `git fetch origin master` run; no rebase performed (coordinator rebases per instruction).
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access (no
+DB creds in this worktree; every gate is fixture/pure-function-driven, deps-injected). Named paths only
+staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` on every
+commit.
+
+**Files (fix round 1, in addition to the original range's files).**
+- `fsi-app/supabase/migrations/317_provisional_sources_status_promoted.sql` (new, authored by the
+  coordinator, staged with this commit; applied live separately per standing rule 3)
+- `fsi-app/src/lib/sources/promote-provisional.ts` / `.test.mjs` (modified: D2 shared status constants + test)
+- `fsi-app/src/app/api/admin/sources/promote/route.ts` (modified: D2, consumes the shared constants)
+- `fsi-app/src/lib/sources/null-tier-host-worklist.mjs` (new) / `.test.mjs` (new, D3 extraction)
+- `fsi-app/scripts/maintenance/resolve-cited-host-gate.mjs` / `.test.mjs` (modified: D3, re-exports the shared module, unit tests moved out)
+- `fsi-app/scripts/maintenance/resolve-provisional-sources.mjs` / `.test.mjs` (modified: D2/D3/D4 fixes + idempotency test)
+- `fsi-app/.discipline/rendering/smoke/admin-stat-tiles-smoke.mjs`, `fsi-app/src/components/admin/AdminDashboard.tsx`, `fsi-app/src/components/admin/redesign/AdminIssuesRail.tsx`, `fsi-app/src/components/ui/StatBlock.tsx`, `fsi-app/src/components/ui/StatBlock.npmtest.mjs` (modified: D5 glyph sweep only, no behavior change)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md`, `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: D2/D3/D4 documentation, D5 glyph sweep)
+- `docs/ops/session-log.md` (this entry)
+
+### UX compliance (Part 7.5, item 4: admin summary-tile grid + right rail)
+
+Per `docs/design/ux-laws.md` and `docs/design/design-principles.md` DP-2, read in full before the
+original `.tsx` edits (`StatBlock.tsx`, `AdminDashboard.tsx`, `AdminIssuesRail.tsx`,
+`WorkspacesUsageRow.tsx`). The fix round itself touched no `.tsx`/`.css` (glyph-only edits to comments
+and one JSDoc-style line); this block documents the original change these files still carry.
+
+- **Screen**: `/admin`, the summary-tile grid (top of the left column: Workspaces / Sources / Ingest /
+  Coverage / Research pipeline / Community pickups / Runtime / Emission factors) and the right rail
+  (Issues queue / Companies-Individuals / Read-only controls).
+- **Reader's primary goal**: scan the platform's current state (workspace/source/ingest/coverage
+  counts) and jump to the section that needs attention.
+- **Path to it**: one glance at the tile grid, click the tile whose count or tone (`critical` red)
+  signals attention; the page switches to that section's sub-nav and body. No intermediate steps.
+- **One primary action per tile**: the tile itself IS the action (`onClick={() => pickSection(...)}`,
+  `aria-pressed`); no competing controls inside a tile.
+- **Feedback state for the one asynchronous action on this surface** (`ReadOnlyControlsCard`'s Refresh
+  button, `onRefresh`): unchanged by this task, `RowTableAction`'s own component supplies its
+  click/pending affordance; this task touched only spacing (`marginTop`), not behavior.
+- **Laws applied**: law 2/8 (Fitts), every tile and the Refresh button stay well above the 44px/24px
+  floor after the min-height/padding change (96px tile height, unchanged button sizing); law 4
+  (Proximity), label and count separate in space only when the label wraps, never overlapping, proven
+  by the bounds sweep; law 16 (Similarity), the three right-rail cards now share one padding value
+  instead of three slightly different ones; law 12 (Prägnanz), no new visual noise, only corrected
+  spacing/sizing.
+- **Measurements**: `run-rendering-guard.mjs` at 375px (mobile) and two desktop 4-column widths (213px,
+  246px tile width, derived from the real page CSS, see `admin-stat-tiles-smoke.mjs`'s own header);
+  reproduced independently by the reviewer with identical results (112 pre-existing, unrelated
+  failures; 0 attributable to this task).
+## 2026-09-12, W9 defect D8 investigation: local-vs-CI rendering guard divergence, read-only
+
+**What.** defect-fix-plan-2026-09-12.md's D8 (`[HYPOTHESIS]`): the local rendering guard reports 112
+failures while CI is green. Read-only investigation in `wt-facetfix-0911` (branch
+`lane/w9-d8-investigation-2026-09-12`, off `origin/master` at 6f3bcb96 / #649). No source edits, no
+database access.
+
+**Finding [CONFIRMED].** CI's rendering guard is genuinely PASS on master, not masked by its
+`continue-on-error` flag (checked two real job logs via `gh api .../jobs/<id>/logs`: run `34719995465`
+for this worktree's own HEAD commit and run `34718511035` for the commit immediately before it; both
+print `=== rendering guard PASS ===` with `0 finding(s)` after 622 are covered by the dated
+`layout-guard` baseline, expires 2026-10-15). Running the identical command
+(`node .discipline/rendering/run-rendering-guard.mjs`) locally on this Windows machine, at the exact
+same commit, with the exact same pinned Playwright (1.61.1) and Chromium (revision 1228) CI uses,
+deterministically produces 112 failures (byte-identical across two consecutive runs). The 112 break
+down 63 `/settings@1024`, 32 `/settings@1440`, 4 `/watchlist@1440`, 4 `/watchlist@1024`, 2
+`/research@1440`, 2 `/research@1024`, 1 each of `/map@1440`, `/map@1024`, `/admin@1440`,
+`/admin@1024`, `/profile@1440`, an exact category-for-category match to the reviewer's own local
+112 in review-7.5.md, on a different commit, corroborating that this is a stable, platform-determined
+finding set and not a code regression from any lane's diff. Stale build, browser-version mismatch,
+missing browser, env vars, viewport constants, and allowlist/baseline drift were all read and each
+`[REFUTED]` as the cause (identical source tree, identical commit, guard needs no `next build` at
+all). Root cause `[HYPOTHESIS]`: Chromium's text layout is partially OS-delegated (DirectWrite on
+Windows vs FreeType on Linux CI), producing different sub-pixel geometry for the guard's
+text-content-driven rules (L2 overlap, L6 top-rule presence, L7 font-family resolution, L9
+hit-target floor) even at pinned-identical browser/font versions; this class of cross-OS
+font-nondeterminism already has a named precedent in `discipline.yml`'s own header for a different
+fixture. No single native-Windows command reproduces CI exactly (neither Docker nor WSL2 is installed
+on this machine); the CI-equivalent check today is the pushed commit's actual Actions job log, not a
+local re-run of the guard on Windows.
+
+**No fix.** Investigation only, per D8's own text ("A fix is planned only after the finding").
+
+**Gates.** `node fsi-app/scripts/verify/audit-finding-status.mjs` run over the new file: 0 unlabeled
+finding-shaped lines in `rendering-guard-local-vs-ci-2026-09-12.md` (the tool's pre-existing 597-line
+backlog is across 111 other, unrelated audit files, out of D8's scope). Glyph scan (Node script over
+the new file, U+2014/U+2013/U+00A7): 0.
+
+**Files.** `docs/audits/rendering-guard-local-vs-ci-2026-09-12.md` (new), `docs/INDEX.md`,
+`docs/ops/session-log.md` (this entry).
+
+### UX compliance (task D8)
+
+Not applicable: no `.tsx`/`.css` touched; read-only investigation, no product surface changed.
+
+## 2026-09-12, W9 defect D17 investigation: quarantine and human-request flag writers, enumerated
+
+**What.** defect-fix-plan-2026-09-12.md's D17: the operator directive quoted there verbatim asks for
+the code that quarantines information and the code that opens false flags asking a person to act, so
+the coordinator can remove or fix them as a class. Read-only enumeration in `wt-facetfix-0911` (branch
+`lane/w9-d8-investigation-2026-09-12`). No source edits, no database access, no fixes proposed (the
+D17 spec reserves per-site fixes to the coordinator).
+
+**Method.** Grepped `fsi-app/src`, `fsi-app/scripts` and `fsi-app/supabase/migrations` for (a) writers
+of `provenance_status = 'quarantined'`, archive-with-hold-reason, and needs-review/manual/operator/
+deferred/parked/hold/pending-review routing, and (b) `integrity_flags` inserts or upserts asking a
+person to act or carrying only a run log. Every site reported below was opened and read directly, not
+reported from a grep match alone.
+
+**Finding [CONFIRMED].** 15 families, 21 live call sites. Family 1 (the DB provenance-gate trigger,
+`set_provenance_status()`/`validate_item_provenance()`) is the legitimate ADR-016 case ADR-030 and
+remediation-discipline section 2.1 explicitly except from removal; it already has a resolver
+(`regen-quarantined.mjs`) and a live-data invariant (RD-6). Families 2 and 3 are D13 and D15
+themselves, already scheduled. Family 4, the classification framework's zero-proposal flag
+(`propose-classifications.mjs`'s `buildClassificationFlagRow`, `apply-classifications.mjs`'s
+`evaluateAutoAdoption`), is a new, previously-unnamed sibling of D15: same shape (a proposer asks a
+human when its classifier derives nothing; the decider treats zero-proposal as "nothing to decide"
+and leaves the flag open forever), not yet on any lane. Family 10 (`acquire-primaries-batch.mjs`'s
+manual-capture hold) is a write-only orphan: grepped the full repo for its `created_by` string and
+found no reader anywhere. Five families (6, 8, 9, 14, 15: cited-host-gate, error-body-gate-write,
+census_worklist validation holds, run-log-only flags, flywheel-signal undecided-forever) were already
+remediated the SAME DAY under this same defect-fix-plan's own earlier tasks (7.1, 7.2, 7.4) or predate
+it (census_worklist), read here as in-repo precedent for how Family 4 and Family 10 should be fixed.
+Families 5, 7 and 13 (classification drift/anomaly, the null-tier-host worklist, and coverage-gap/
+anticipated-coverage) read as legitimate, by-design human-judgment or terminal-worklist states, not
+class-fix targets, per each site's own code comments; flagged for the coordinator's confirmation
+rather than excluded outright. Two historical precedents (`pending_human_verify`, retired by migration
+121; `hold_resolution_queue`/`hrq_*`, retired by migration 254) show the coordinator has fixed exactly
+this class of defect, permanently, twice before this session.
+
+**No fix.** Investigation only, per D17 step 1's own text ("a finding not a change"). D17 step 2
+(per-site: resolve, record-and-close, or delete) is reserved to the coordinator.
+
+**Gates.** `node fsi-app/scripts/verify/audit-finding-status.mjs` run over the new file: 0 unlabeled
+finding-shaped lines in `quarantine-and-human-flag-writers-2026-09-12.md` (the tool's own 597-line
+backlog is across 113 other, unrelated audit files, out of D17's scope; findings in this file are
+carried in per-family markdown tables, which the tool's own table-row exemption does not need a
+bracket token to pass, and each table cell still carries one). Glyph scan (Node script over the new
+file, U+2014/U+2013/U+00A7): 0.
+
+**Files.** `docs/audits/quarantine-and-human-flag-writers-2026-09-12.md` (new), `docs/INDEX.md`,
+`docs/ops/session-log.md` (this entry). A copy of the per-family tables was also written to
+`.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-d17-enumeration.md` in the `wt-datechain-0911`
+worktree (gitignored scratch, not a commit), per the dispatch's own instruction.
+
+### UX compliance (task D17)
+
+Not applicable: no `.tsx`/`.css` touched; read-only investigation, no product surface changed.

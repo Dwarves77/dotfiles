@@ -39,6 +39,18 @@ export interface StatBlockProps {
 
 export function StatBlock({ label, value, note, loading, layout = "stack", tone = "default", size = "default" }: StatBlockProps) {
   if (size === "tile") {
+    // Admin-spacing fix (task 7.5 item 4, 2026-09-12; operator report "the numbers in the sources
+    // and inject tabs are being cut off"). Root cause: the label/numeral flex row had neither side
+    // pinned: a flex item's default min-width is `auto`, so a long uppercase label (two words,
+    // e.g. "COMMUNITY PICKUPS") never shrank below its own content width, squeezed the numeral out
+    // of the card's available space, and `.cl-admin-stat-tile`'s `overflow: hidden` clipped it
+    // silently rather than wrapping anything. Fix: the numeral is pinned (`flexShrink: 0`,
+    // `whiteSpace: "nowrap"`) so a 4- or 5-digit count is NEVER clipped or wrapped; the label is the
+    // side allowed to give (`flex: "1 1 auto"`, `minWidth: 0`) so it wraps to a second line instead.
+    // `data-guard-container` wires this row into the shared cell-bounds sweep
+    // (.discipline/rendering/assertions.mjs `detectBoundsViolations`, via
+    // .discipline/rendering/smoke/admin-stat-tiles-smoke.mjs) so a label/numeral overlap or a
+    // numeral escaping the row is caught mechanically, not read off a screenshot.
     const numeral_ = loading ? (
       <span
         aria-hidden="true"
@@ -53,6 +65,8 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
           lineHeight: 1,
           color: tone === "critical" ? "var(--immediate)" : "var(--ink)",
           fontVariantNumeric: "tabular-nums",
+          flexShrink: 0,
+          whiteSpace: "nowrap",
         }}
       >
         {value}
@@ -66,6 +80,9 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
           textTransform: "uppercase",
           fontWeight: 800,
           color: "var(--ink)",
+          flex: "1 1 auto",
+          minWidth: 0,
+          lineHeight: 1.3,
         }}
       >
         {label}
@@ -78,7 +95,10 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
     );
     return (
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+        <div
+          data-guard-container="stat-tile-row"
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}
+        >
           {label_tile}
           {numeral_}
         </div>

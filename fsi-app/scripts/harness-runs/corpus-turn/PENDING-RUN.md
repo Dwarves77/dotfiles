@@ -61,8 +61,33 @@ lane-authored brief's own forward-intelligence section). This is additive and sc
 default (non-`--with-pool-text`) export path are byte-identical to before this task, confirmed by
 `export-corpus-for-extraction.test.mjs`'s own "forward_events/timelines are OMITTED by default" case.
 
-**harness_version at write time:** `sha256:873a68f9eb398ea9` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['corpus-turn']`, the same 2 files, unreordered; supersedes `sha256:c6d5cb842b67944a`
+**harness_version at task 6.2b's write time (superseded below, see task 6.2d):** `sha256:873a68f9eb398ea9`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['corpus-turn']`, the same 2 files,
+unreordered; supersedes `sha256:c6d5cb842b67944a` outright).
+
+**The planned run that would have superseded THAT marker:** unchanged in kind, the next
+`.github/workflows/corpus-turn.yml` dispatch, landing the next `corpus-turn-run-NNN.json` under that hash.
+No such run landed before task 6.2d's own edit moved the hash again (see the re-pin below).
+
+---
+
+## Re-pin (task 6.2d, 2026-09-12 -- D1, defect-fix-plan-2026-09-12.md)
+
+**What changed.** `scripts/turns/export-corpus-for-extraction.mjs` (one of `corpus-turn`'s two governing
+files) fixed D1: the `--ids` item scope now selects `is_archived = false` and `provenance_status IN
+('verified', 'quarantined')`, was verified-only before, and every exported item carries its own
+`provenance_status`, on both the default and `--with-pool-text` paths; a requested id that is still not
+exported is classified `archived` or `not_found` and carried as `not_exported: [{id, reason}]` on the
+written output. The item-scope logic for `--ids` was extracted into a new exported function,
+`selectItemsByIds`. `consume-turn-requests.mjs` (this family's other governing file) is untouched by
+this task. See `docs/ops/session-log.md`'s 2026-09-12 W9 task 6.2d entry for the full account.
+
+**[CONFIRMED]** (method: `node -e` importing `hashHarnessVersion` from `scripts/lib/run-artifact.mjs`
+and `GOVERNING_FILES['corpus-turn']` from `scripts/harness-runs/governing-files.mjs` directly, against
+the working tree with this task's edits applied).
+
+**harness_version at write time:** `sha256:fb8b1521200b4795` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['corpus-turn']`, the same 2 files, unreordered; supersedes `sha256:873a68f9eb398ea9`
 outright).
 
 **The planned run that supersedes this marker:** unchanged in kind, the next

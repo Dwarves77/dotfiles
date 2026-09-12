@@ -79,6 +79,13 @@ import { runSmoke as runOpsMatrixAcceptanceSmoke } from "./smoke/ops-matrix-acce
 // resolves inside it, top within 12px of the bar) — the class of proof the other legs here cannot
 // give, since none of them measure a portaled element's real screen position.
 import { runSmoke as runCommandBarSearchPortalSmoke } from "./smoke/command-bar-search-portal-smoke.mjs";
+// task 7.5 item 4, brief-chain build plan Part 7, 2026-09-12: /admin's summary-tile grid
+// (StatBlock size="tile"). Mounts the real StatBlock inside the real .cl-admin-stat-tile /
+// admin-t08-sections CSS at the mobile (375px) and desktop (4-column, both the narrow and the
+// max-width-capped-wide case) widths and sweeps every tile's label/numeral row for the
+// clip/overlap class detectOverflows structurally cannot see (the tile's own overflow:hidden hid
+// the defect from every whole-container overflow scan). See that spec's own header.
+import { runSmoke as runAdminStatTilesSmoke } from "./smoke/admin-stat-tiles-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -216,6 +223,7 @@ async function main() {
     { name: "impact-meter-partial", run: runImpactMeterPartialSmoke },
     { name: "ops-matrix-acceptance", run: runOpsMatrixAcceptanceSmoke },
     { name: "command-bar-search-portal", run: runCommandBarSearchPortalSmoke },
+    { name: "admin-stat-tiles", run: runAdminStatTilesSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

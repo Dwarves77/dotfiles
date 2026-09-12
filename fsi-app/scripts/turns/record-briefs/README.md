@@ -28,6 +28,15 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
    `record-facts.mjs`'s `assertVerbatim` or `validate-mint-payload.mjs` criterion 3 at mint time -- never
    invent a fact, never paraphrase a span, locate one that is already present in the text.
 
+   Each item also carries its own `provenance_status` (D1 fix, `defect-fix-plan-2026-09-12.md`, task
+   6.2d). An item exported this way with `provenance_status: "quarantined"` is written like any other:
+   author its full brief the same way, from the same exported pool text, per the mechanism above. The
+   prior verified-only `--ids` filter silently dropped a quarantined id even when named explicitly, which
+   blocked the only path that resolves one -- `apply-record-briefs.mjs`'s own `--allow-brief-overwrite`
+   flag, which re-grounds it once the batch is applied (ADR-030: items are resolved, never left
+   quarantined). Auto-selection (no `--ids` given) never includes a quarantined item; only a named ticket
+   does.
+
    Under `--with-pool-text`, each item also carries `forward_events: [{event_date, event_kind,
    obligation_text, confidence, source_span}]` (from `item_forward_events`, migration 274) and
    `timelines: [{milestone_date, label, is_completed}]` (from `item_timelines`, migration 004) -- both

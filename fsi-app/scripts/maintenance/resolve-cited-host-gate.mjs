@@ -50,10 +50,17 @@
 // the count live at dispatch time before any apply.
 import { readAll, guardedUpdate, guardedInsert, registerSource, hostOf } from "../lib/db.mjs";
 import { classTierForHost, permanentlyUnregisteredClass } from "../../src/lib/sources/host-authority.ts";
-import { mergeNullTierAggregate, summarizeNullTierAggregate } from "../../src/lib/agent/null-tier-flag.mjs";
+// D3 (docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12): planHostDecision, buildNullTierHostWrite
+// and NULL_TIER_CREATED_BY moved to src/lib/sources/null-tier-host-worklist.mjs (names and signatures
+// unchanged) so scripts/maintenance/resolve-provisional-sources.mjs can share the SAME idempotent
+// per-host worklist mechanism instead of building a second one. Re-exported below so every existing
+// caller of THIS file (and this file's own test) is unaffected.
+import { planHostDecision, buildNullTierHostWrite, NULL_TIER_CREATED_BY } from "../../src/lib/sources/null-tier-host-worklist.mjs";
 import { extractFlagUrls, trimUrlPunctuation } from "./lib/flag-url-extract.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
+
+export { planHostDecision, buildNullTierHostWrite, NULL_TIER_CREATED_BY };
 
 export const CITE = Object.freeze({
   skill: "brief-chain-build-plan-2026-09-11 Part 7 task 7.4 / ADR-030 rider",
@@ -66,7 +73,6 @@ export const CITE = Object.freeze({
 });
 
 export const RESOLVED_BY = "resolve-cited-host-gate";
-export const NULL_TIER_CREATED_BY = "null-tier-host";
 
 const FLAG_COLUMNS = "id, subject_ref, description, recommended_actions, status";
 
@@ -81,44 +87,9 @@ const FLAG_COLUMNS = "id, subject_ref, description, recommended_actions, status"
  *  the extraction. Identical behavior to `extractFlagUrls`. */
 export const extractCitedUrls = extractFlagUrls;
 
-/**
- * The SC-13 decision for one cited URL: register at a deterministic tier, or route to the null-tier-host
- * worklist. Pure -- `classTierForHostFn` is injected (defaults to the real `classTierForHost`) so this is
- * unit-testable without importing the live class table's exact ruled-host set.
- * @param {string} url
- * @param {(host:string|null|undefined) => number|null} classTierForHostFn
- * @returns {{ url: string, host: string, tier: number|null, action: "register"|"worklist" }}
- */
-export function planHostDecision(url, classTierForHostFn) {
-  const host = hostOf(url);
-  const tier = host ? classTierForHostFn(host) : null;
-  return { url, host, tier, action: tier != null ? "register" : "worklist" };
-}
-
-/**
- * The null-tier-host flag write plan for one (host, item, url) contribution -- pure merge over the
- * EXISTING open flag (or null, for a fresh host), mirroring canonical-pipeline.ts's `surfaceNullTierHosts`
- * exactly (same `mergeNullTierAggregate`/`summarizeNullTierAggregate`, same row shape). Returns either an
- * `{op:"insert", row}` or `{op:"update", id, patch}` -- the caller performs the actual write.
- * @param {{ id: string, recommended_actions?: Array<{aggregate?: object}> }|null} existingFlag
- * @param {string} host @param {string} itemId @param {string} url
- * @param {"aggregator"|"platform"|null} permanentClass
- */
-export function buildNullTierHostWrite(existingFlag, host, itemId, url, permanentClass) {
-  const prior = existingFlag?.recommended_actions?.[0]?.aggregate ?? null;
-  const agg = mergeNullTierAggregate(prior, itemId, { factCount: 1, samples: [url] });
-  const { description, action, rationale } = summarizeNullTierAggregate(host, agg, permanentClass);
-  const row = {
-    category: "source_issue",
-    subject_type: "source",
-    subject_ref: host,
-    description: description.slice(0, 480),
-    recommended_actions: [{ action, rationale, aggregate: agg, sample_spans: agg.sampleSpans }],
-    status: "open",
-    created_by: NULL_TIER_CREATED_BY,
-  };
-  return existingFlag?.id ? { op: "update", id: existingFlag.id, patch: row } : { op: "insert", row };
-}
+// planHostDecision and buildNullTierHostWrite: MOVED (D3) to
+// src/lib/sources/null-tier-host-worklist.mjs; imported and re-exported above so nothing below (or
+// any external caller of this file) needs to change.
 
 /** Compose the cited-host-gate flag's own resolution_note from its per-URL outcomes. Pure. */
 export function buildResolutionNote(outcomes) {

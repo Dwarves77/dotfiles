@@ -81,13 +81,22 @@
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json --ids <uuid,uuid,...> [--limit N]
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json --ids <uuid,...> --with-pool-text [--char-budget N]
 //
-// SELECTION (lane TURNREQ, 2026-09-04): --ids scopes the export to EXACTLY the given
-// intelligence_items.id list (still ANDed with the verified/live filter below — a ticket for an item
-// that has since been archived is not re-exported) — the shape corpus-turn.yml's ticket-queue selection
-// (scripts/turns/consume-turn-requests.mjs) needs, matching discover-for-items.mjs's own --ids contract.
+// SELECTION (lane TURNREQ, 2026-09-04; widened by D1, defect-fix-plan-2026-09-12.md, task 6.2d): --ids
+// scopes the export to EXACTLY the given intelligence_items.id list, ANDed with is_archived = false and
+// provenance_status IN ('verified', 'quarantined') below (a quarantined id named explicitly IS exported:
+// per ADR-030, "items are resolved, never quarantined," so the brief-apply --allow-brief-overwrite
+// re-ground path, the thing that actually resolves a quarantined item, must be able to see it; an item
+// archived since it was queued is still not re-exported). This is the shape corpus-turn.yml's
+// ticket-queue selection (scripts/turns/consume-turn-requests.mjs) needs, matching
+// discover-for-items.mjs's own --ids contract. A requested id that still is not exported is never
+// silently dropped: it is named in this run's own `not_exported: [{id, reason}]` (reason "archived" or
+// "not_found"), both in the console log and in the written summary object (see selectItemsByIds below).
 // --since is unchanged: the pre-ticket, date-scoped mechanism, kept ONLY as an explicit backfill override
-// (see CORPUS-TURN-RUNBOOK.md). --ids and --since are mutually exclusive (ambiguous selection otherwise,
-// same rule discover-for-items.mjs's own parseArgs enforces for the identical pair of flags).
+// (see CORPUS-TURN-RUNBOOK.md), and it stays verified-only, like every other auto-selection path
+// (brief-export.yml's own hollow/record auto-select), because auto-selection picks WHAT to export, never
+// a ticket naming one specific, possibly quarantined id, so it never needs to see a quarantined item.
+// --ids and --since are mutually exclusive (ambiguous selection otherwise, same rule
+// discover-for-items.mjs's own parseArgs enforces for the identical pair of flags).
 // Exit 0 (writes --out, even for 0 matched items — an empty corpus is a valid, honestly-reported outcome,
 //   not a script failure) · 1 bad args · 2 no DB creds (cannot run here).
 
@@ -239,11 +248,13 @@ export function chunkByCharBudget(items, budget) {
  *   sha256 identity of THAT SAME `pool` array, via the one shared helper the injected-synthesis write site
  *   re-computes at persist time, so a lane's echoed hash and this exporter's stamped hash are provably the
  *   same function over the same input, never two hand-aligned copies. Default `withPoolText: false`
- *   preserves the exact pre-existing return shape (no extra keys at all, byte-identical to before this
- *   lane) for `run-extraction.mjs`'s `loadCorpus()`, the other, pre-existing caller of this function
- *   (confirmed by re-reading that runner: it reads only `item.claims`/`item.sections`, so extra keys were
- *   always harmless there too, but this exporter still NEVER adds them on that path, keeping the two
- *   callers' outputs provably distinct rather than relying on the consumer's tolerance).
+ *   preserves the exact pre-existing return shape for the 8 pool-text/metadata keys above (none of them
+ *   present, byte-identical to before this lane) for `run-extraction.mjs`'s `loadCorpus()`, the other,
+ *   pre-existing caller of this function (confirmed by re-reading that runner: it reads only
+ *   `item.claims`/`item.sections`, so extra keys were always harmless there too, but this exporter still
+ *   never adds those 8 on that path, keeping the two callers' outputs provably distinct rather than
+ *   relying on the consumer's tolerance). The ONE exception, added by D1 below, is `provenance_status`,
+ *   present on both paths.
  * `forwardEventRows`/`timelineRows` (task 6.2b, brief-chain-build-plan-2026-09-11, task-6.1-audit.md fix
  *   3): under `withPoolText`, each item ALSO carries `forward_events: [{event_date, event_kind,
  *   obligation_text, confidence, source_span}]` (from `item_forward_events`, migration 274 -- exactly the
@@ -254,7 +265,13 @@ export function chunkByCharBudget(items, budget) {
  *   intelligence existed as a row the exporter never handed the lane in the first place. Both arrays
  *   default to `[]` (an item can genuinely have none of either), never omitted, so a session lane can
  *   always check `item.forward_events.length` without a presence guard.
- * @returns {Array<{id:string, claims:object[], sections:object[], title?:string|null, item_type?:string|null,
+ * D1 fix (defect-fix-plan-2026-09-12.md, task 6.2d): every returned item ALSO carries
+ * `provenance_status` (plain pass through of `it.provenance_status`, defaulting to `null` only when the
+ * input item genuinely has no such field, a live row is NOT NULL), regardless of `withPoolText`, so a
+ * lane can tell a quarantined item apart from a verified one without a second lookup. This is the field
+ * a lane checks before writing a record-briefs entry for an item the `--ids` scope now includes even
+ * when quarantined (see `selectItemsByIds` and the item-scope block in `main()`).
+ * @returns {Array<{id:string, provenance_status:string|null, claims:object[], sections:object[], title?:string|null, item_type?:string|null,
  *   format_type?:string|null, jurisdiction_iso?:string|null, canonical_instrument_key?:string|null,
  *   source_id?:string|null, source_url?:string|null, required_slots?:string[], pool?:Array<{url:string,text:string}>,
  *   source_pool_hash?:string, forward_events?:object[], timelines?:object[]}>}
@@ -300,6 +317,9 @@ export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], o
   return items.map((it) => {
     const out = {
       id: it.id,
+      // D1 fix (defect-fix-plan-2026-09-12.md): always present, never omitted, so a lane sees a
+      // quarantined item for what it is regardless of which export mode produced it.
+      provenance_status: it.provenance_status ?? null,
       claims: attachDueDateContext(claimsByItem.get(it.id) ?? [], poolByItem.get(it.id) ?? []),
       sections: sectionsByItem.get(it.id) ?? [],
     };
@@ -330,6 +350,46 @@ export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], o
   });
 }
 
+/**
+ * D1 fix (defect-fix-plan-2026-09-12.md): resolves the --ids item scope to EXACTLY the given ids with
+ * is_archived = false and provenance_status IN ('verified', 'quarantined'). The prior verified-only
+ * filter silently dropped a quarantined id even when named explicitly by a ticket (brief-export run
+ * 34717714753, item 00a8c0d9), blocking the only path (brief-apply --allow-brief-overwrite) that
+ * re-grounds it. A requested id that still does not come back is classified: "archived" when a row
+ * exists with is_archived = true, "not_found" otherwise (no matching row at all, or present with
+ * neither accepted provenance_status; the same two-bucket shape the pre-existing "already archived, or
+ * not found" log line already used, now made explicit per id). Injected `readAll` (db.mjs's
+ * read-only-guarded client shape: `readAll(table, columns, { match })`) so this runs against a fake in
+ * tests, never a live DB.
+ * @param {string[]} ids
+ * @param {string} itemColumns
+ * @param {{ readAll: Function }} deps
+ * @returns {Promise<{ items: Array<object>, notExported: Array<{id: string, reason: "archived"|"not_found"}> }>}
+ */
+export async function selectItemsByIds(ids, itemColumns, { readAll }) {
+  const items = [];
+  for (const idChunk of chunk(ids, 200)) {
+    const rows = await readAll("intelligence_items", itemColumns, {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern), bounded per chunk, not corpus-scale)
+      match: (q) => q.in("id", idChunk).in("provenance_status", ["verified", "quarantined"]).eq("is_archived", false),
+    });
+    items.push(...rows);
+  }
+  const foundIds = new Set(items.map((it) => it.id));
+  const missing = ids.filter((id) => !foundIds.has(id));
+  if (!missing.length) return { items, notExported: [] };
+  const archivedIds = new Set();
+  for (const idChunk of chunk(missing, 200)) {
+    const rows = await readAll("intelligence_items", "id, is_archived", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern), bounded per chunk, not corpus-scale)
+      match: (q) => q.in("id", idChunk),
+    });
+    for (const r of rows) if (r.is_archived) archivedIds.add(r.id);
+  }
+  const notExported = missing.map((id) => ({ id, reason: archivedIds.has(id) ? "archived" : "not_found" }));
+  return { items, notExported };
+}
+
 if (IS_MAIN) await main();
 
 async function main() {
@@ -358,31 +418,35 @@ async function main() {
   // source_url, jurisdiction_iso) and src/lib/agent/canonical-pipeline.ts's own item read at :958/:1063
   // (canonical_instrument_key); format_type is passed through as stored (null on a never-generated stub,
   // never derived here, that backfill is task 2.4's specForItemType concern, not this exporter's).
+  // D1 fix (defect-fix-plan-2026-09-12.md): provenance_status is now selected on BOTH branches (not just
+  // under --with-pool-text) so every exported item carries it; buildCorpusItems stamps it onto every
+  // returned item regardless of withPoolText, which is how a lane sees a quarantined id for what it is.
   const ITEM_COLUMNS = withPoolText
-    ? "id, created_at, title, item_type, format_type, jurisdiction_iso, canonical_instrument_key, source_id, source_url"
-    : "id, created_at";
+    ? "id, created_at, title, item_type, format_type, jurisdiction_iso, canonical_instrument_key, source_id, source_url, provenance_status"
+    : "id, created_at, provenance_status";
 
-  // 1 — the item scope. --ids: EXACTLY the given items (still ANDed with verified/live — a ticket for an
-  // item archived since it was queued is not re-exported), the shape corpus-turn.yml's ticket-queue
-  // selection needs. Otherwise: verified/live items, optionally scoped to --since (matching
-  // discover-for-items.mjs's own created_at >= since semantics — the ROW-INSERT timestamp, not the
-  // editorial added_date) — the explicit-backfill-only path now that --ids is the default selection.
+  // 1: the item scope. --ids: EXACTLY the given items, is_archived = false AND provenance_status IN
+  // ('verified', 'quarantined') (D1 fix, defect-fix-plan-2026-09-12.md: the prior verified-only filter
+  // silently dropped a quarantined id even when named explicitly, which is exactly the item a
+  // brief-apply --allow-brief-overwrite re-ground pass exists to reach; the resolution path must reach
+  // every non-archived item, per ADR-030's "items are resolved, never quarantined"). Otherwise: verified,
+  // live items, optionally scoped to --since (matching discover-for-items.mjs's own created_at >= since
+  // semantics, the ROW-INSERT timestamp, not the editorial added_date), the explicit-backfill-only path
+  // now that --ids is the default selection; the auto-selection paths (here and brief-export.yml's own
+  // hollow/record auto-select) stay verified-only by design: they pick WHAT to export, never a ticket
+  // naming a specific, possibly quarantined id.
   let items;
+  let notExported = [];
   if (ids) {
-    items = [];
-    for (const idChunk of chunk(ids, 200)) {
-      const rows = await readAll("intelligence_items", ITEM_COLUMNS, {
-        // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
-        match: (q) => q.in("id", idChunk).eq("provenance_status", "verified").eq("is_archived", false),
-      });
-      items.push(...rows);
-    }
-    const foundIds = new Set(items.map((it) => it.id));
-    const missing = ids.filter((id) => !foundIds.has(id));
-    if (missing.length) {
+    const selected = await selectItemsByIds(ids, ITEM_COLUMNS, { readAll });
+    items = selected.items;
+    notExported = selected.notExported;
+    if (notExported.length) {
+      const archivedCount = notExported.filter((n) => n.reason === "archived").length;
+      const notFoundCount = notExported.length - archivedCount;
       console.log(
-        `export-corpus-for-extraction: ${missing.length} of ${ids.length} requested id(s) matched no ` +
-        `verified/live item (already archived, or not found) — exported anyway for the rest.`
+        `export-corpus-for-extraction: ${notExported.length} of ${ids.length} requested id(s) not exported ` +
+        `(${archivedCount} archived, ${notFoundCount} not found); exported anyway for the rest.`
       );
     }
   } else {
@@ -415,7 +479,9 @@ async function main() {
   }
 
   console.log(
-    `export-corpus-for-extraction: ${items.length} verified/live item(s) in scope` +
+    // D1 fix (defect-fix-plan-2026-09-12.md): the --ids path may now include quarantined items, so the
+    // scope label says so rather than the old, now-inaccurate "verified/live" for that path.
+    `export-corpus-for-extraction: ${items.length} ${ids ? "verified/quarantined" : "verified/live"} item(s) in scope` +
     `${since ? ` (created_at >= ${since})` : ids ? ` (${ids.length} requested id(s))` : ""}; ` +
     (withPoolText
       ? `${targetItems.length} target(s) for pool-text export (--with-pool-text: forward-event status not filtered).`
@@ -548,7 +614,10 @@ async function main() {
     for (const p of parts) {
       const partPath = join(dir, `${name}-part${p.part}${ext || ".json"}`);
       const partItems = p.items.map(({ size, ...rest }) => rest); // strip the internal size field
-      const body = { part: p.part, items: partItems, ...(p.oversize ? { oversize: true } : {}) };
+      // D1 fix (defect-fix-plan-2026-09-12.md): not_exported is a property of the WHOLE run, not one
+      // part, so it is carried on every part's own body rather than only the first, in case a lane
+      // fetches a single part.
+      const body = { part: p.part, items: partItems, not_exported: notExported, ...(p.oversize ? { oversize: true } : {}) };
       writeFileSync(partPath, JSON.stringify(body, null, 2) + "\n", "utf8");
       console.log(
         `Wrote ${partPath} (${partItems.length} item(s), ${p.items.reduce((n, it) => n + it.size, 0)} char(s)` +
@@ -564,7 +633,9 @@ async function main() {
 
   const outPath = resolve(out);
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, JSON.stringify({ items: corpusItems }, null, 2) + "\n", "utf8");
+  // D1 fix (defect-fix-plan-2026-09-12.md): not_exported carried in the summary object, never omitted,
+  // so a caller can always check its length rather than re-deriving what --ids asked for versus got.
+  writeFileSync(outPath, JSON.stringify({ items: corpusItems, not_exported: notExported }, null, 2) + "\n", "utf8");
   console.log(`Wrote ${outPath}`);
   process.exit(0);
 }

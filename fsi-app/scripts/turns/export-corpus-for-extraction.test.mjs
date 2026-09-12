@@ -3,7 +3,7 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseArgs, chunk, chunkByCharBudget, buildCorpusItems } from "./export-corpus-for-extraction.mjs";
+import { parseArgs, chunk, chunkByCharBudget, buildCorpusItems, selectItemsByIds } from "./export-corpus-for-extraction.mjs";
 // Task 3.3 fix round 1: the SAME shared helper buildCorpusItems now stamps as source_pool_hash, imported
 // directly so this file's own expectations are computed by the real function, never a hand-typed literal
 // that could silently drift from it.
@@ -181,6 +181,7 @@ test("buildCorpusItems: groups claims/sections by parent item id, maps column na
   assert.deepEqual(out, [
     {
       id: "item-1",
+      provenance_status: null,
       claims: [
         { claim_id: "claim-1", kind: "FACT", text: "text a", span: "span a" },
         { claim_id: "claim-2", kind: "GAP", text: "text b", span: null },
@@ -189,6 +190,7 @@ test("buildCorpusItems: groups claims/sections by parent item id, maps column na
     },
     {
       id: "item-2",
+      provenance_status: null,
       claims: [],
       sections: [{ section_id: "sec-1", key: "compliance_chain", md: "## md" }],
     },
@@ -197,7 +199,25 @@ test("buildCorpusItems: groups claims/sections by parent item id, maps column na
 
 test("buildCorpusItems: an item with no claims/sections gets empty arrays, never omitted", () => {
   const out = buildCorpusItems([{ id: "lonely" }], [], []);
-  assert.deepEqual(out, [{ id: "lonely", claims: [], sections: [] }]);
+  assert.deepEqual(out, [{ id: "lonely", provenance_status: null, claims: [], sections: [] }]);
+});
+
+// D1 fix (defect-fix-plan-2026-09-12.md, task 6.2d): every item carries its own provenance_status,
+// regardless of withPoolText, so a lane can tell a quarantined item apart from a verified one.
+test("buildCorpusItems: provenance_status is a plain pass through of the input item's own field", () => {
+  const out = buildCorpusItems([{ id: "item-1", provenance_status: "quarantined" }], [], []);
+  assert.equal(out[0].provenance_status, "quarantined");
+});
+
+test("buildCorpusItems: provenance_status defaults to null when absent on the input item, never omitted", () => {
+  const out = buildCorpusItems([{ id: "item-1" }], [], []);
+  assert.equal(Object.hasOwn(out[0], "provenance_status"), true);
+  assert.equal(out[0].provenance_status, null);
+});
+
+test("buildCorpusItems: provenance_status is present on the withPoolText:true path too, not just the default path", () => {
+  const out = buildCorpusItems([{ id: "item-1", provenance_status: "quarantined" }], [], [], [], { withPoolText: true });
+  assert.equal(out[0].provenance_status, "quarantined");
 });
 
 test("buildCorpusItems: content_md null coerces to empty string, never null (extractor's own contract)", () => {
@@ -368,6 +388,7 @@ test("buildCorpusItems: withPoolText:true adds title/item_type/format_type/juris
   assert.deepEqual(out, [
     {
       id: "item-1",
+      provenance_status: null,
       claims: [],
       sections: [],
       title: "Regulation (EU) 2024/0001",
@@ -393,6 +414,7 @@ test("buildCorpusItems: withPoolText:true defaults the 7 metadata fields to null
   assert.deepEqual(out, [
     {
       id: "stub-item",
+      provenance_status: null,
       claims: [],
       sections: [],
       title: null,
@@ -494,13 +516,29 @@ describe("source contract: --with-pool-text widens the intelligence_items column
     }
   });
 
-  test("both intelligence_items readAll calls (--ids path and the default path) use the same ITEM_COLUMNS variable, never a literal string", () => {
-    const idsPathMatch = src.match(/readAll\("intelligence_items",\s*(\w+),\s*\{[\s\S]*?q\.in\("id",/);
-    const defaultPathMatch = src.match(/readAll\("intelligence_items",\s*(\w+),\s*\{[\s\S]*?q\.eq\("provenance_status", "verified"\)\.eq\("is_archived", false\),?\s*\}\);/);
-    assert.ok(idsPathMatch, "expected the --ids path's intelligence_items readAll call");
-    assert.equal(idsPathMatch[1], "ITEM_COLUMNS");
+  // D1 fix (defect-fix-plan-2026-09-12.md): the --ids path's own intelligence_items readAll call moved
+  // into selectItemsByIds (its own module-level function, tested directly above and by source contract
+  // below), so it now uses that function's own `itemColumns` parameter, never a literal string; main()
+  // still passes it its own ITEM_COLUMNS constant (see "main()'s --ids branch calls selectItemsByIds").
+  test("the default path's intelligence_items readAll call uses the ITEM_COLUMNS variable, never a literal string", () => {
+    // Anchored on the else branch's own opening (unique in the file: selectItemsByIds's calls are inside
+    // its own function body, defined earlier, and never contain this exact "} else {" lead-in), so a
+    // non-anchored, non-greedy regex can never wander across function bodies to a false match.
+    const elseIdx = src.indexOf('} else {\n    items = await readAll("intelligence_items",');
+    assert.ok(elseIdx >= 0, "expected the auto-selection (else) branch's own readAll call");
+    const after = src.slice(elseIdx, elseIdx + 300);
+    const defaultPathMatch = after.match(/readAll\("intelligence_items",\s*(\w+),/);
     assert.ok(defaultPathMatch, "expected the default path's intelligence_items readAll call");
     assert.equal(defaultPathMatch[1], "ITEM_COLUMNS");
+  });
+
+  test("selectItemsByIds's own main-query readAll call uses its own itemColumns parameter, never a literal string", () => {
+    const fnIdx = src.indexOf("export async function selectItemsByIds");
+    assert.ok(fnIdx >= 0, "expected the selectItemsByIds function");
+    const after = src.slice(fnIdx, fnIdx + 800);
+    const idsPathMatch = after.match(/readAll\("intelligence_items",\s*(\w+),\s*\{[\s\S]*?q\.in\("id",/);
+    assert.ok(idsPathMatch, "expected selectItemsByIds's own intelligence_items readAll call");
+    assert.equal(idsPathMatch[1], "itemColumns");
   });
 });
 
@@ -566,5 +604,139 @@ describe("source contract: required_slots is read from item_type_required_slots 
     const buildCallIdx = src.indexOf("buildCorpusItems(targetItems, claimRows, sectionRows, poolRows");
     assert.ok(attachIdx >= 0 && buildCallIdx >= 0);
     assert.ok(attachIdx < buildCallIdx, "required_slots must be attached to targetItems before the buildCorpusItems call");
+  });
+});
+
+// D1 fix (defect-fix-plan-2026-09-12.md, task 6.2d): the --ids item scope must select verified AND
+// quarantined items, never verified-only, so a ticket naming a quarantined id (brief-export run
+// 34717714753, item 00a8c0d9) is exported instead of silently dropped. Every readAll call below is
+// dependency injected; no database is touched by any test in this file.
+
+/** Builds a fake `readAll` matching db.mjs's shape (`readAll(table, columns, { match })`), routing by
+ *  the requested column list so selectItemsByIds's two distinct queries (the main scoped read, then the
+ *  archived/not_found lookup for any missing ids) each get their own canned response. Records every call
+ *  for call-count/argument assertions. */
+function makeFakeReadAll({ main = [], lookup = [] } = {}) {
+  const calls = [];
+  const readAll = async (table, columns, opts) => {
+    calls.push({ table, columns, opts });
+    if (table === "intelligence_items" && columns === "id, is_archived") return lookup;
+    return main;
+  };
+  return { readAll, calls };
+}
+
+describe("selectItemsByIds (D1 fix, defect-fix-plan-2026-09-12.md)", () => {
+  test("a quarantined id named in ids is exported, notExported is empty", async () => {
+    const { readAll } = makeFakeReadAll({ main: [{ id: "q1", provenance_status: "quarantined" }] });
+    const result = await selectItemsByIds(["q1"], "id, provenance_status", { readAll });
+    assert.deepEqual(result.items, [{ id: "q1", provenance_status: "quarantined" }]);
+    assert.deepEqual(result.notExported, []);
+  });
+
+  test("a verified id named in ids is exported, same as before this fix", async () => {
+    const { readAll } = makeFakeReadAll({ main: [{ id: "v1", provenance_status: "verified" }] });
+    const result = await selectItemsByIds(["v1"], "id, provenance_status", { readAll });
+    assert.deepEqual(result.items, [{ id: "v1", provenance_status: "verified" }]);
+    assert.deepEqual(result.notExported, []);
+  });
+
+  test("an archived id is refused with reason archived, and is never exported", async () => {
+    const { readAll } = makeFakeReadAll({ main: [], lookup: [{ id: "a1", is_archived: true }] });
+    const result = await selectItemsByIds(["a1"], "id, provenance_status", { readAll });
+    assert.deepEqual(result.items, []);
+    assert.deepEqual(result.notExported, [{ id: "a1", reason: "archived" }]);
+  });
+
+  test("an id matching no row at all is refused with reason not_found", async () => {
+    const { readAll } = makeFakeReadAll({ main: [], lookup: [] });
+    const result = await selectItemsByIds(["ghost1"], "id, provenance_status", { readAll });
+    assert.deepEqual(result.items, []);
+    assert.deepEqual(result.notExported, [{ id: "ghost1", reason: "not_found" }]);
+  });
+
+  test("a mixed batch: exported, archived, and not_found ids are each classified correctly", async () => {
+    const { readAll } = makeFakeReadAll({
+      main: [{ id: "q1", provenance_status: "quarantined" }],
+      lookup: [{ id: "a1", is_archived: true }],
+    });
+    const result = await selectItemsByIds(["q1", "a1", "ghost1"], "id, provenance_status", { readAll });
+    assert.deepEqual(result.items, [{ id: "q1", provenance_status: "quarantined" }]);
+    assert.deepEqual(result.notExported, [
+      { id: "a1", reason: "archived" },
+      { id: "ghost1", reason: "not_found" },
+    ]);
+  });
+
+  test("the lookup query only runs when at least one id is missing", async () => {
+    const { readAll, calls } = makeFakeReadAll({ main: [{ id: "v1", provenance_status: "verified" }] });
+    await selectItemsByIds(["v1"], "id, provenance_status", { readAll });
+    assert.equal(calls.length, 1, "expected only the main scoped query, no archived/not_found lookup");
+  });
+
+  test("the lookup query runs, selecting id and is_archived, when an id is missing", async () => {
+    const { readAll, calls } = makeFakeReadAll({ main: [], lookup: [] });
+    await selectItemsByIds(["ghost1"], "id, provenance_status", { readAll });
+    assert.equal(calls.length, 2, "expected the main query plus the archived/not_found lookup");
+    assert.equal(calls[1].columns, "id, is_archived");
+  });
+
+  test("the main query is scoped to provenance_status IN verified/quarantined and is_archived = false", async () => {
+    const { readAll, calls } = makeFakeReadAll({ main: [{ id: "q1", provenance_status: "quarantined" }] });
+    await selectItemsByIds(["q1"], "id, provenance_status", { readAll });
+    const seen = { in: [], eq: [] };
+    calls[0].opts.match({
+      in(field, values) { seen.in.push([field, values]); return this; },
+      eq(field, value) { seen.eq.push([field, value]); return this; },
+    });
+    assert.deepEqual(seen.in, [["id", ["q1"]], ["provenance_status", ["verified", "quarantined"]]]);
+    assert.deepEqual(seen.eq, [["is_archived", false]]);
+  });
+
+  test("passes the caller's own itemColumns through to the main query, never a hardcoded literal", async () => {
+    const { readAll, calls } = makeFakeReadAll({ main: [] });
+    await selectItemsByIds(["ghost1"], "id, created_at, provenance_status", { readAll });
+    assert.equal(calls[0].columns, "id, created_at, provenance_status");
+  });
+});
+
+// ── source contract: the --ids item scope calls selectItemsByIds; the auto-selection path stays
+// verified-only (D1 fix, defect-fix-plan-2026-09-12.md) ─────────────────────────────────────────────
+describe("source contract: D1's provenance_status widening applies only to the --ids path", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("ITEM_COLUMNS selects provenance_status on both the withPoolText and default branches", () => {
+    const match = src.match(/const ITEM_COLUMNS = withPoolText\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"/);
+    assert.ok(match, "expected a withPoolText-conditional ITEM_COLUMNS constant with both branches");
+    assert.match(match[1], /\bprovenance_status\b/, "expected the withPoolText branch to select provenance_status");
+    assert.match(match[2], /\bprovenance_status\b/, "expected the default branch to select provenance_status");
+  });
+
+  test("main()'s --ids branch calls selectItemsByIds, not a literal readAll chain", () => {
+    const idx = src.indexOf("if (ids) {");
+    assert.ok(idx >= 0, "expected the --ids branch");
+    const after = src.slice(idx, idx + 300);
+    assert.match(after, /await selectItemsByIds\(ids, ITEM_COLUMNS, \{ readAll \}\)/);
+  });
+
+  test("the auto-selection (default/--since) path still filters provenance_status = verified only, never quarantined", () => {
+    const elseIdx = src.indexOf('} else {\n    items = await readAll("intelligence_items", ITEM_COLUMNS');
+    assert.ok(elseIdx >= 0, "expected the auto-selection (else) branch's own readAll call");
+    const after = src.slice(elseIdx, elseIdx + 400);
+    assert.match(after, /q\.eq\("provenance_status",\s*"verified"\)\.eq\("is_archived",\s*false\)/);
+    assert.doesNotMatch(after, /provenance_status",\s*\[/, "the auto-selection path must never widen to an IN list");
+  });
+});
+
+// ── source contract: the summary object carries not_exported (D1 fix, defect-fix-plan-2026-09-12.md) ──
+describe("source contract: the written summary object always carries not_exported", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("the single-file write includes not_exported alongside items", () => {
+    assert.match(src, /JSON\.stringify\(\{ items: corpusItems, not_exported: notExported \}/);
+  });
+
+  test("each char-budgeted part's own body includes not_exported alongside items", () => {
+    assert.match(src, /const body = \{ part: p\.part, items: partItems, not_exported: notExported/);
   });
 });
