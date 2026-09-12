@@ -1551,6 +1551,11 @@ test("extractOjActTitle: bare 'DECISION (EU) N OF THE EUROPEAN PARLIAMENT AND OF
 });
 
 test("extractOjActTitle: edge -- no terminator reachable before the hard cap (a long country list) is truncated at 400 chars, never over, never mid-reference garbage (celex 32022D1130(01))", () => {
+  // NOTE (fix round 1, 2026-09-12): this fixture's own natural cut happens to land exactly on a word
+  // boundary ("...Transaction Log" then a space then the citation) purely because of THIS input's own
+  // length -- that is a coincidence of this one string, not something the extractor can rely on in
+  // general. The test below this one (with an extra country inserted so the cut lands mid-word by
+  // construction) is the one that actually proves the general mid-word/unbalanced-paren safety net.
   const lead =
     "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
     "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
@@ -1561,12 +1566,116 @@ test("extractOjActTitle: edge -- no terminator reachable before the hard cap (a 
   assert.equal(title.length, 400);
   assert.ok(!title.startsWith("EUR-Lex"));
   assert.ok(!title.startsWith("Official Journal"));
+  assert.equal((title.match(/\(/g) ?? []).length, (title.match(/\)/g) ?? []).length, "no unbalanced paren");
   assert.equal(
     title,
     "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
       "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
       "Denmark, Germany, Estonia, Greece, Spain, France, Italy, Latvia, Lithuania, Hungary, the Netherlands, " +
       "Austria, Poland, Portugal, Romania, Slovakia, Finland and Sweden into the European Union Transaction Log",
+  );
+});
+
+test("extractOjActTitle: edge -- the hard cap lands MID-WORD by construction (an extra country shifts the boundary by +7 chars off the coincidental one above); trimmed back to the last complete word, never a fragment (fix round 1)", () => {
+  const lead =
+    "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
+    "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+    "Denmark, Germany, Estonia, Greece, Spain, France, Italy, Latvia, Lithuania, Hungary, Malta, the " +
+    "Netherlands, Austria, Poland, Portugal, Romania, Slovakia, Finland and Sweden into the European " +
+    "Union Transaction Log (2022/C 454/01)";
+  const title = extractOjActTitle(lead);
+  assert.equal(
+    title,
+    "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
+      "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+      "Denmark, Germany, Estonia, Greece, Spain, France, Italy, Latvia, Lithuania, Hungary, Malta, the " +
+      "Netherlands, Austria, Poland, Portugal, Romania, Slovakia, Finland and Sweden into the European Union",
+  );
+  assert.ok(title.length <= 400);
+  assert.equal((title.match(/\(/g) ?? []).length, (title.match(/\)/g) ?? []).length, "no unbalanced paren");
+  assert.ok(!/[A-Za-z]$/.test(title) || lead[lead.indexOf(title) + title.length] === " ", "never ends mid-word");
+});
+
+test("extractOjActTitle: fix round 1 -- the OJ series citation, parenthesised, is a terminator on its own (no dangling open paren) even when the hard cap would otherwise land inside it (celex 32023D0502(01), full raw text)", () => {
+  const lead =
+    "COMMISSION DECISION of 22 February 2023 instructing the Central Administrator of the European Union " +
+    "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+    "Denmark, Germany, Estonia, Ireland, Greece, Spain, France, Croatia, Italy, Latvia, Hungary, the " +
+    "Netherlands, Austria, Slovenia, Slovakia, Finland and Sweden into the European Union Transaction Log " +
+    "(2023/C 154/05)";
+  const title = extractOjActTitle(lead);
+  assert.equal(
+    title,
+    "COMMISSION DECISION of 22 February 2023 instructing the Central Administrator of the European Union " +
+      "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+      "Denmark, Germany, Estonia, Ireland, Greece, Spain, France, Croatia, Italy, Latvia, Hungary, the " +
+      "Netherlands, Austria, Slovenia, Slovakia, Finland and Sweden into the European Union Transaction Log",
+  );
+  assert.ok(!title.includes("("));
+});
+
+test("extractOjActTitle: fix round 1 -- same citation-terminator fix, celex 32023D0207(01) full raw text", () => {
+  const lead =
+    "COMMISSION DECISION of 7 December 2022 instructing the Central Administrator of the European Union " +
+    "Transaction Log to enter changes to the national allocation tables of Belgium, Czechia, Denmark, " +
+    "Germany, Ireland, Spain, France, Croatia, Italy, Latvia, Lithuania, the Netherlands, Austria, Poland, " +
+    "Portugal, Romania, Slovenia, Slovakia, Finland and Sweden into the European Union Transaction Log " +
+    "(2023/C 46/02)";
+  const title = extractOjActTitle(lead);
+  assert.ok(!title.includes("("));
+  assert.ok(title.endsWith("European Union Transaction Log"));
+});
+
+test("extractOjActTitle: fix round 1 -- same citation-terminator fix, celex 32023D0630(02) full raw text", () => {
+  const lead =
+    "COMMISSION DECISION of 18 April 2023 instructing the Central Administrator of the European Union " +
+    "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+    "Denmark, Germany, Estonia, Greece, Spain, France, Croatia, Italy, Latvia, Lithuania, Hungary, the " +
+    "Netherlands, Poland, Portugal, Romania, Slovakia and Finland into the European Union Transaction Log " +
+    "(2023/C 230/07)";
+  const title = extractOjActTitle(lead);
+  assert.ok(!title.includes("("));
+  assert.ok(title.endsWith("European Union Transaction Log"));
+});
+
+test("extractOjActTitle: fix round 1 -- the OJ series citation's BARE form (no parens) is also a terminator, celex 32011D0517(01)", () => {
+  const lead =
+    "17.5.2011 EN Official Journal of the European Union C 146/3 COMMISSION DECISION of 16 May 2011 " +
+    "establishing a forum for the exchange of information pursuant to Article 13 of the Directive " +
+    "2010/75/EU on industrial emissions 2011/C 146/03 THE EUROPEAN COMMISSION, Having regard to the " +
+    "Treaty on the Fun";
+  const title = extractOjActTitle(lead);
+  assert.equal(
+    title,
+    "COMMISSION DECISION of 16 May 2011 establishing a forum for the exchange of information pursuant to " +
+      "Article 13 of the Directive 2010/75/EU on industrial emissions",
+  );
+  assert.ok(!/\d{4}\/C\s?\d+\/\d+/.test(title), "the bare citation itself never survives into the title");
+});
+
+test("extractOjActTitle: fix round 1 -- a pre-2000, 2-digit-year reference prefix ('94/69/EC:') is kept, matching the post-2000 4-digit form's treatment (celex 31994D0069)", () => {
+  const lead =
+    "EUR-Lex - 31994D0069 - EN Avis juridique important | 31994D0069 94/69/EC: Council Decision of 15 " +
+    "December 1993 concerning the conclusion of the United Nations Framework Convention on Climate " +
+    "Change Official Journal L 033 , 07/02/1994 P. 0011 - 0012 Finnish special edition: Chapter 11 " +
+    "Volume 29 P. 00";
+  assert.equal(
+    extractOjActTitle(lead),
+    "94/69/EC: Council Decision of 15 December 1993 concerning the conclusion of the United Nations " +
+      "Framework Convention on Climate Change",
+  );
+});
+
+test("extractOjActTitle: fix round 1 -- the same 2-digit-year prefix fix, an EEC suffix, celex 31984D0358", () => {
+  const lead =
+    "EUR-Lex - 31984D0358 - EN Avis juridique important | 31984D0358 84/358/EEC: Council Decision of 28 " +
+    "June 1984 concerning the conclusion of the Agreement for cooperation in dealing with pollution of " +
+    "the North Sea by oil and other harmful substances Official Journal L 188 , 16/07/1984 P. 0007 - " +
+    "0016 Fi";
+  assert.equal(
+    extractOjActTitle(lead),
+    "84/358/EEC: Council Decision of 28 June 1984 concerning the conclusion of the Agreement for " +
+      "cooperation in dealing with pollution of the North Sea by oil and other harmful substances",
   );
 });
 

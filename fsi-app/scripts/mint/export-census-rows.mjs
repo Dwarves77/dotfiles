@@ -538,8 +538,13 @@ const OJ_ACT_TITLE_RE =
 // Order of alternatives does not itself pick the winner -- regex match is always leftmost-first across
 // alternatives, so "2003/278/EC: Council Decision" (the reference-prefixed form) wins over the bare
 // "Council Decision" alternative automatically whenever the numeric reference appears first in the text.
+// Fix round 1 (coordinator review, 2026-09-12): the reference-prefixed alternative required a 4-digit
+// year (`\d{4}`), so every PRE-2000 act -- the celex 2-digit-year style, "84/358/EEC:", "94/69/EC:",
+// "96/149/EC:" -- lost its own reference prefix entirely (fell through to the bare "Council Decision"
+// alternative, starting the title mid-sentence) while every post-2000 4-digit-year item kept it. `\d{2,4}`
+// accepts both, so the prefix is kept consistently for every item that has one, regardless of era.
 const ACT_HEADING_RE =
-  /(Decision of the EEA Joint Committee|\d{4}\/\d+\/(?:EEC|EC|EU|Euratom):\s*(?:Commission|Council)\s+(?:Implementing\s+|Delegated\s+)?Decision|Commission\s+(?:Implementing\s+|Delegated\s+)?Decision|Council\s+(?:Implementing\s+|Delegated\s+)?Decision|Decision\s+(?:No\.?\s*\d|\((?:EU|EC)\)\s*\d+\/\d+))/i;
+  /(Decision of the EEA Joint Committee|\d{2,4}\/\d+\/(?:EEC|EC|EU|Euratom):\s*(?:Commission|Council)\s+(?:Implementing\s+|Delegated\s+)?Decision|Commission\s+(?:Implementing\s+|Delegated\s+)?Decision|Council\s+(?:Implementing\s+|Delegated\s+)?Decision|Decision\s+(?:No\.?\s*\d|\((?:EU|EC)\)\s*\d+\/\d+))/i;
 
 // Literal markers that close a title once the heading has started -- the enacting formula ("THE ... ,"),
 // the "Having regard" recitals that open it, the "(Text with EEA relevance)" applicability note, and the
@@ -553,6 +558,16 @@ const TITLE_TERMINATORS = [
   "Having regard",
   "(Text with EEA relevance)",
 ];
+
+// Fix round 1: the OJ SERIES citation ("(2023/C 154/05)", or the bare form with no parens, "2011/C
+// 146/03") is a distinct terminator shape TITLE_TERMINATORS' literal strings never caught -- it has no
+// fixed prefix to match on (unlike "Having regard" or the enacting formula). Left uncaught, a long body
+// (a country list before this citation, e.g. celex 32023D0502(01)) ran the terminator scan dry and fell
+// through to ACT_TITLE_HARD_CAP, which could land INSIDE the citation's own opening paren, emitting an
+// unclosed "(2023" fragment. `\(?` / `\)?` are each independently optional so both the parenthesised and
+// bare forms match as ONE pattern, and the match's own start index (including the "(" when present) is
+// always the correct cut point either way.
+const OJ_SERIES_CITATION_RE = /\(?\s*\d{4}\/C\s?\d+\/\d+\s*\)?/;
 
 const ACT_TITLE_MIN_LEN = 20;
 const ACT_TITLE_MAX_LEN = 400;
@@ -575,13 +590,28 @@ function isUsableActTitle(title) {
   return true;
 }
 
+/** Fix round 1: never emit an unclosed "(" regardless of why the cut landed inside one (the OJ-citation
+ *  terminator above closes the evidenced case; this is the general safety net for any other one). Strips
+ *  the last "(" and everything after it, repeating while more "(" than ")" remain -- the ordinary case is
+ *  exactly one dangling open paren near the very end, so this is a single iteration in practice. Pure. */
+function trimUnbalancedOpenParen(s) {
+  let out = s;
+  while ((out.match(/\(/g) ?? []).length > (out.match(/\)/g) ?? []).length) {
+    const lastOpen = out.lastIndexOf("(");
+    if (lastOpen < 0) break;
+    out = out.slice(0, lastOpen).trim();
+  }
+  return out;
+}
+
 /** The act title inside an OJ body lead, or null when no act-type keyword + OJ reference is found. Two
  *  tiers (task 5.5b, 2026-09-12): (1) the pre-existing OJ_ACT_TITLE_RE match -- a heading through its own
  *  trailing "(YYYY/NNN/EC)"-shaped OJ reference, kept exactly as before so the two pre-existing callers of
  *  this function (see this file's own test) see no change; (2) when that narrower shape is absent or the
  *  match it finds is unusable (e.g. too long -- the trailing reference sits past ACT_TITLE_MAX_LEN),
- *  ACT_HEADING_RE finds the act heading on its own and TITLE_TERMINATORS bounds where it ends -- see the
- *  block comment above ACT_HEADING_RE for the four page shapes this closes. Pure, text-only. */
+ *  ACT_HEADING_RE finds the act heading on its own and TITLE_TERMINATORS/OJ_SERIES_CITATION_RE bound where
+ *  it ends -- see the block comments above ACT_HEADING_RE and OJ_SERIES_CITATION_RE for the page shapes
+ *  and the fix-round-1 defects this closes. Pure, text-only. */
 export function extractOjActTitle(text) {
   const t = String(text ?? "").replace(/\s+/g, " ");
   const withRef = t.match(OJ_ACT_TITLE_RE);
@@ -601,8 +631,22 @@ export function extractOjActTitle(text) {
     const idx = rest.indexOf(term);
     if (idx >= 0 && idx < end) end = idx;
   }
+  const citeMatch = rest.match(OJ_SERIES_CITATION_RE);
+  if (citeMatch && citeMatch.index < end) end = citeMatch.index;
+
   if (end > ACT_TITLE_HARD_CAP) end = ACT_TITLE_HARD_CAP;
-  const title = rest.slice(0, end).replace(/\s+/g, " ").trim();
+
+  // Fix round 1: never cut mid-word. If the character just before `end` and the character just after are
+  // BOTH word characters, the cut landed inside a single token (only reachable via the hard cap above --
+  // every terminator match above already starts at a real boundary) -- back up to the end of the
+  // previous complete word instead of emitting a fragment.
+  if (end < rest.length && /\w/.test(rest[end - 1] ?? "") && /\w/.test(rest[end] ?? "")) {
+    const lastSpace = rest.lastIndexOf(" ", end - 1);
+    if (lastSpace > 0) end = lastSpace;
+  }
+
+  let title = rest.slice(0, end).replace(/\s+/g, " ").trim();
+  title = trimUnbalancedOpenParen(title);
   return isUsableActTitle(title) ? title : null;
 }
 /** Body-lead fallback shared by the EUR-Lex and Cellar extractors: the act title when the lead carries

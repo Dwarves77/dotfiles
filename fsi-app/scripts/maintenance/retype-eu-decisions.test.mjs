@@ -15,6 +15,7 @@ import {
   main,
   queueFlywheelStep,
   parseBatchArgs,
+  looksLikeMidWordCut,
   FLYWHEEL_NOT_PRESENT,
   SLOTS_TO_ADD,
   NEW_ITEM_TYPE,
@@ -124,8 +125,45 @@ test("applyOneItem: an item whose captured text has no act heading is applied (r
   const r = await applyOneItem(makeItem({ title: "EUR-Lex - 32020D1043" }), { apply: true, deps, requiredSlotsMap: REQUIRED_SLOTS });
   assert.equal(r.title_changed, false);
   assert.equal(r.new_title, "EUR-Lex - 32020D1043");
+  // Fix round 1 (coordinator review, 2026-09-12): title_source/new_title_length give the coordinator's
+  // production dry run per-item visibility this artifact-derived offline proof could not.
+  assert.equal(r.title_source, "kept");
+  assert.equal(r.new_title_length, "EUR-Lex - 32020D1043".length);
+  assert.equal(r.title_ends_mid_word, false, "never computed for a kept title -- it is not this run's own extraction");
   const updateCall = deps.calls.find((c) => c.op === "updateItem");
   assert.ok(!("title" in updateCall.patch), "no title key is even sent when the item is kept");
+});
+
+// ── looksLikeMidWordCut + title_source/new_title_length wiring (fix round 1, 2026-09-12) ───────────────
+
+test("looksLikeMidWordCut: true when the title's last char is alphanumeric and the source text continues with a letter right there", () => {
+  assert.equal(looksLikeMidWordCut("COMMISSION DECISION of 1 January 2020 establishing a foru", "COMMISSION DECISION of 1 January 2020 establishing a forum for exchange"), true);
+});
+
+test("looksLikeMidWordCut: false when the title ends at punctuation (a real boundary, e.g. a closing paren)", () => {
+  assert.equal(looksLikeMidWordCut("COMMISSION DECISION of 1 January 2020 (2020/1)", "COMMISSION DECISION of 1 January 2020 (2020/1). This Decision enters into force."), false);
+});
+
+test("looksLikeMidWordCut: false when the title runs all the way to the end of the source text (nothing follows to continue)", () => {
+  assert.equal(looksLikeMidWordCut("COMMISSION DECISION of 1 January 2020 establishing a forum", "COMMISSION DECISION of 1 January 2020 establishing a forum"), false);
+});
+
+test("looksLikeMidWordCut: false, never guessed, when the title cannot be located verbatim in the source text", () => {
+  assert.equal(looksLikeMidWordCut("a title never actually stated by the source", "completely unrelated source text of no relation"), false);
+});
+
+test("looksLikeMidWordCut: false for empty/null inputs", () => {
+  assert.equal(looksLikeMidWordCut("", "some text"), false);
+  assert.equal(looksLikeMidWordCut(null, "some text"), false);
+  assert.equal(looksLikeMidWordCut("a title", null), false);
+});
+
+test("applyOneItem apply: a real act-heading extraction reports title_source act_heading, new_title_length matching, title_ends_mid_word false for a clean extraction", async () => {
+  const deps = fakeApplyDeps({ captures: [{ id: "cap-1", result_content: CELEX_D_TEXT }] });
+  const r = await applyOneItem(makeItem(), { apply: true, deps, requiredSlotsMap: REQUIRED_SLOTS });
+  assert.equal(r.title_source, "act_heading");
+  assert.equal(r.new_title_length, r.new_title.length);
+  assert.equal(r.title_ends_mid_word, false);
 });
 
 test("planItemRetype: three slots claimed (FACT where the source states it, honest GAP where silent); predicts verified once all four regulation slots are covered", () => {
@@ -407,4 +445,45 @@ test("main: an item held for lacking a usable capture is counted and never retyp
   assert.equal(s.counts.held_no_usable_capture, 1);
   assert.equal(s.applied, 0);
   assert.ok(!deps.writes.some((w) => w.op === "updateItem"));
+});
+
+test("main: titles_extracted/titles_kept/titles_over_350/titles_ending_mid_word summary counts (fix round 1, 2026-09-12)", async () => {
+  // a: a real, clean, short act-heading extraction -> titles_extracted, never over_350, never mid-word.
+  // b: no act-heading shape at all -> titles_kept, excluded from the other two counts entirely.
+  // c: a genuinely long act-heading extraction (386 chars, real trailing OJ reference) -> titles_extracted
+  //    AND titles_over_350.
+  const LONG_TEXT =
+    "COMMISSION DECISION of 1 January 2020 concerning the conclusion of a very long and detailed " +
+    "agreement between the European Union and a number of partner countries regarding the mutual " +
+    "recognition of environmental standards, packaging waste reduction targets, and extended producer " +
+    "responsibility obligations across all covered sectors and all member states without exception " +
+    "(2020/9999). This Decision shall enter into force on the day of its notification.";
+  const NO_HEADING_TEXT =
+    "Official Journal of the European Union EN Series L 2024/837 7.3.2024 no recognisable act heading " +
+    "appears anywhere in this particular lead, only the page's own masthead and citation furniture, and " +
+    "this decision shall enter into force on the day of its notification and is addressed to the Member " +
+    "States of the European Union.";
+  const rows = [
+    makeItem({ id: "a" }),
+    makeItem({ id: "b", canonical_instrument_key: "32021D0002" }),
+    makeItem({ id: "c", canonical_instrument_key: "32020D9999" }),
+  ];
+  const deps = fakeMainDeps({
+    initiativeRows: rows,
+    captureByItem: {
+      a: [{ id: "cap-a", result_content: CELEX_D_TEXT }],
+      b: [{ id: "cap-b", result_content: NO_HEADING_TEXT }],
+      c: [{ id: "cap-c", result_content: LONG_TEXT }],
+    },
+  });
+  const s = await main({ mode: "dry" }, deps);
+  assert.equal(s.counts.titles_extracted, 2, "a and c both produced a real act-heading extraction");
+  assert.equal(s.counts.titles_kept, 1, "b had no act heading, kept");
+  assert.equal(s.counts.titles_over_350, 1, "only c's 386-char extraction crosses the 350 threshold");
+  assert.equal(s.counts.titles_ending_mid_word, 0, "every extraction here ends at a real boundary");
+  const byId = Object.fromEntries(s.per_item.map((r) => [r.id, r]));
+  assert.equal(byId.a.title_source, "act_heading");
+  assert.equal(byId.b.title_source, "kept");
+  assert.equal(byId.c.title_source, "act_heading");
+  assert.ok(byId.c.new_title_length > 350);
 });
