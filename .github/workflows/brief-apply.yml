@@ -130,36 +130,25 @@ jobs:
       # ids repeat -- CI claiming brief-apply-run-001 twice, fixed by this step, is F28's own reverse-audit
       # PENDING-RUN.md marker (see that file's "Re-pin 3"). Runs in EVERY mode (dry writes an artifact too,
       # per the driver's own header) and even when the driver step above failed (a thrown run still leaves
-      # a schema-valid artifact, per that driver's crash-safety `finally` block). git identity + `git pull
-      # --rebase` immediately before the push, retried once on a non-fast-forward race against a
-      # concurrent dispatch on the same ref -- population-turn.yml's own artifact-commit step (git config
-      # identity, rebase before push) is the template; this pushes to the CHECKED-OUT ref itself rather
-      # than a new side branch, because a side branch is invisible to the next run's own checkout of this
-      # same ref until a human merges it, which would defeat the entire point of "run ids increment across
-      # CI runs". Never `--no-verify`.
+      # a schema-valid artifact, per that driver's crash-safety `finally` block).
+      #
+      # DEGRADES, NEVER FAILS THE RUN, on a refused push (fix round 1, review finding 1, Critical):
+      # `master` is branch-protected in this repository (enforce_admins, required checks), and once this
+      # lane merges, the "dispatched ref" for the NEXT brief-apply run is master itself -- the NORMAL
+      # case, not an edge case. A direct push to a protected ref is refused BY DESIGN every time; failing
+      # the whole run over it would turn a successful, costly apply (real Supabase writes, real model
+      # spend already done by the driver step above) into a reported CI red, against this repo's own
+      # standing rule ("push done only when the Actions run on that commit is green"). The logic (protected-
+      # ref guard, git identity, `git pull --rebase` + one retry, and the degrade-to-warning-not-error on
+      # any persistent rejection) lives in the extracted, shell-tested
+      # scripts/turns/commit-brief-apply-artifact.sh (see its own header and
+      # scripts/turns/commit-brief-apply-artifact.test.mjs) so this YAML stays a thin caller. The already-
+      # `if: always()` "Upload snapshots, run artifact, and run logs" step below is the fallback a
+      # degraded push leaves the artifact reaching the coordinator through. Never `--no-verify`.
       - name: Commit the run artifact back to the dispatched ref
         if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/brief-apply/
-          if git diff --cached --quiet; then
-            echo "No new brief-apply run artifact to commit."
-            exit 0
-          fi
-          git commit -m "brief-apply: run ${{ github.run_id }} artifact"
-          pushed=0
-          for attempt in 1 2; do
-            if git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
-              pushed=1
-              break
-            fi
-            echo "push attempt $attempt failed -- retrying after a rebase against the current ref."
-          done
-          if [ "$pushed" -ne 1 ]; then
-            echo "::error::could not push the brief-apply run artifact to ${GITHUB_REF_NAME} after 2 attempts."
-            exit 1
-          fi
+          bash scripts/turns/commit-brief-apply-artifact.sh "${GITHUB_REF_NAME}" "${{ github.run_id }}" scripts/harness-runs/brief-apply/
 
       # ALWAYS last, in every mode: rule 17 says a run that ends without measuring its own effect is a
       # defect in the run, never a note for a coordinator. Runs even when the driver step above failed, so
