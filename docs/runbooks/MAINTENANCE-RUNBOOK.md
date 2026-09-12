@@ -3020,6 +3020,103 @@ items without a row, excluding the reported/flagged undateable set, trending tow
 dispatch of `scripts/backfill-item-timelines.mjs` (a different script, run by hand or via a future
 dedicated step) over the reg-family briefs carrying a timeline section, so this step's own undated count
 reflects what genuinely remains.
+## 40. `close-run-logs`
+
+**Purpose**: close informational `integrity_flags` run-log rows -- Part 7 task 7.1 of the brief-chain
+build plan (2026-09-11), ADR-030's rider ("no queue on the admin page may require a human click to
+resolve; a run log is closed by the runtime that recognizes it as one"). Three named families: `created_by`
+starting `authorship-shard-` (the pre-consolidation 12-shard fleet charter's own CLOSE-step write, about
+370 rows), `created_by = 'legacy-remediation'` whose `description` opens with `RUN SUMMARY` (never the
+per-item PARKED rows from the same `created_by`, which task 7.3 resolves separately), and `created_by`
+starting `citation-harvest` (per-batch summary rows; the backlog counts they name are re-derived live
+elsewhere, never carried forward by this close). A universal guard applies first: a `description` ending
+in `?` is a per-item question and is never closed, regardless of which family its `created_by` matches.
+
+**Upstream**: `scripts/maintenance/close-run-logs.mjs` -- self-contained, no upstream script. The
+selection is pure and tested (`decideRunLogClosure`/`planClosure`), so the dry report lists every KEPT
+row by reason, not just a count.
+
+**Ruling**: ADR-030 rider (2026-09-12). Not gated by a separate `arg` token.
+
+**Dispatch**: `mode=dry` reads the three families (`status IN ('open','in_review')`) and reports
+`would_close`/`kept` counts by family/reason plus a 20-row kept sample. `mode=apply` resolves every
+closeable row via `guardedUpdateByIds` (`status='resolved'`, `resolved_by='close-run-logs'`,
+`resolution_note='run log, informational; closed under ADR-030 rider (Part 7.1)'`, re-matched to
+`status IN ('open','in_review')` per chunk so a row resolved by another writer between read and write is
+left alone) and reads back the remaining open count in these three families.
+
+**Artifact / read back**: `summary.json`'s `read_back.remaining_open_in_families` -- confirm against
+`SELECT count(*) FROM integrity_flags WHERE status IN ('open','in_review') AND (created_by ILIKE
+'authorship-shard-%' OR created_by = 'legacy-remediation' OR created_by ILIKE 'citation-harvest%')`; a
+non-zero remainder is expected only for kept-per-item-question rows and legacy-remediation PARKED rows.
+
+---
+
+## 41. `resolve-error-body-gate`
+
+**Purpose**: resolve the `error-body-gate` `integrity_flags` family -- Part 7 task 7.4 (34 open rows at
+authoring, no resolver anywhere in the codebase before this step). Written by
+`src/lib/agent/canonical-pipeline.ts` (~L1671) whenever a stored capture is excluded from grounding as a
+failed fetch (`isErrorBody` -- bot wall / 403 / 404 / Request-Access block / nav shell).
+
+**Upstream**: `scripts/maintenance/resolve-error-body-gate.mjs`, reusing `captureCitedUrl` +
+`buildCaptureSearchRow` (`scripts/mint/heal-provenance.mjs`, imported unmodified -- "the same write the
+heal uses") and `makePoliteFetch` (`scripts/mint/export-census-rows.mjs`).
+
+**Ruling**: ADR-030 rider. Not gated by a separate `arg` token. RESPECTS THE SCRAPE-HOLD GATE
+(`holdEngaged`, `src/lib/sources/fetch-hold.mjs`, `SCRAPE_HOLD`): while engaged, every row reports
+`fetch_held` and nothing is fetched or resolved -- re-dispatch after the hold lifts.
+
+**Dispatch**: `mode=dry` extracts every failed-fetch URL per flag and reports the hold state and per-URL
+intended action; never fetches. `mode=apply` (hold lifted) re-fetches each URL through the free capture
+path: a `"captured"` outcome stores a fresh `agent_run_searches` row via the guarded insert and the flag
+resolves noting the recapture; a still-`"held"` outcome routes the URL's host to the attach-found-sources
+worklist (`scripts/_worklists/attach-found-sources.seed.json`, `class: "error_body_refetch"` -- a
+DISTINCT row shape from that file's Gate-A-orphan-figure rows, see the script's own header for why a bare
+host is never consumed by `heal-provenance.mjs`'s own token-matching) and the flag still resolves (a
+decision either way, per ADR-030).
+
+**Residual, named honestly**: the worklist-file append is a local filesystem write with no snapshot/revert
+path through `db.mjs`'s guarded writes (git is the revert path), and it is NOT durable across a GitHub
+Actions dispatch on its own -- no step in `maintenance.yml` commits a working-tree change back to the
+branch, so a real `apply` dispatch needs a follow-up commit of the modified seed file to persist the
+append past that job's own runner. Not fixed here (a bot-commit step is its own decision with its own
+authorship/race questions, out of this small-mechanical task's scope).
+
+**Artifact / read back**: `summary.json`'s `counts` (`recaptured`/`still_failing`/`hold_engaged`) and
+`read_back.remaining_open` -- confirm against `SELECT count(*) FROM integrity_flags WHERE status='open'
+AND created_by='error-body-gate'` (0 expected after a clean apply with the hold lifted) and the modified
+`attach-found-sources.seed.json` diff for the new `error_body_refetch` rows.
+
+---
+
+## 42. `resolve-cited-host-gate`
+
+**Purpose**: resolve the `cited-host-gate` `integrity_flags` family -- Part 7 task 7.4 (25 open rows at
+authoring, no resolver anywhere in the codebase before this step). Written by
+`src/lib/agent/canonical-pipeline.ts` (~L1641) whenever a brief cites a URL whose host is unknown to both
+the item's fetched pool and the source registry.
+
+**Upstream**: `scripts/maintenance/resolve-cited-host-gate.mjs`, reusing `classTierForHost`
+(`src/lib/sources/host-authority.ts`, the SC-13 class table, imported unmodified) and `registerSource`
+(`scripts/lib/db.mjs`, idempotent by institution key). An unclassifiable host is NEVER registered under a
+guessed tier -- it routes to the existing `null-tier-host` worklist flag via the SAME
+`mergeNullTierAggregate`/`summarizeNullTierAggregate` pure helpers (`src/lib/agent/null-tier-flag.mjs`)
+`surfaceNullTierHosts` (canonical-pipeline.ts) already uses at grounding time, same row shape.
+
+**Ruling**: ADR-030 rider. Not gated by a separate `arg` token. No fetch, no network -- registration is a
+DB-only decision (`classTierForHost` is a pure pattern table).
+
+**Dispatch**: `mode=dry` extracts every cited URL per flag and reports each host's planned outcome
+(register at tier N / route to the null-tier-host worklist). `mode=apply` performs the registration or the
+null-tier-host flag read-modify-write per URL, then resolves the cited-host-gate flag with the outcome
+recorded in `resolution_note` either way.
+
+**Artifact / read back**: `summary.json`'s `counts` (`would_register_or_registered`/
+`would_worklist_or_worklisted`) and `read_back.remaining_open` -- confirm against `SELECT count(*) FROM
+integrity_flags WHERE status='open' AND created_by='cited-host-gate'` (0 expected after a clean apply) and
+`SELECT host, base_tier FROM sources ...` / `SELECT * FROM integrity_flags WHERE created_by='null-tier-host'`
+for the registered/worklisted hosts.
 
 ---
 

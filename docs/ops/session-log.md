@@ -19561,3 +19561,99 @@ Class note: this is the "apply-only code path invisible to dry-mode tests" shape
 ### UX compliance (7.4c)
 
 Not applicable: no `.tsx`/`.css` touched.
+
+## 2026-09-12, W9 Part 7 tasks 7.1 and 7.4: run-log closure + the two unwired gate resolvers
+
+Part 7 of the brief-chain build plan (ADR-030's rider: "no queue on the admin page may require a human
+click to resolve") dispatches 7.1 and 7.4 together as one small, mechanical Sonnet lane. All three steps
+are dry-by-default MAINT wrappers, wired into `maintenance.yml`, with pure decision cores and node:test
+coverage; no DB credentials existed in this worktree, so nothing below was run against live data -- every
+count is [CONFIRMED per the dispatch's own resolver map / live code read], not independently re-verified
+here, and each script's own dry mode is the mechanism that reconfirms the counts at real dispatch time.
+
+**7.1 -- `scripts/maintenance/close-run-logs.mjs`.** Closes three named `integrity_flags` run-log
+families (`authorship-shard-*`, `legacy-remediation` RUN SUMMARY rows, `citation-harvest*` batch
+summaries) with `resolved_by='close-run-logs'` and a fixed `resolution_note`. Pure core
+(`decideRunLogClosure`/`planClosure`) applies a universal "never a per-item question" guard before any
+family match, and never touches a `legacy-remediation` PARKED row (task 7.3's scope). 19 tests.
+
+**7.4 -- the two unwired gates.** `scripts/maintenance/lib/flag-url-extract.mjs` is a new shared
+primitive (extracted on the second confirmed instance, per remediation-discipline's recurrence
+threshold): both gate flags carry cited/failed URLs in `recommended_actions[].rationale` +
+`description`, and the extraction (URL regex, trailing-punctuation trim) is identical between them.
+8 tests.
+
+`scripts/maintenance/resolve-cited-host-gate.mjs` resolves `cited-host-gate` (25 open rows,
+`canonical-pipeline.ts` ~L1641): registers a cited URL's host through the SC-13 class table
+(`classTierForHost`, never a guessed tier) via `registerSource` (idempotent by institution key), or
+routes an unclassifiable host to the EXISTING `null-tier-host` worklist flag via the exact
+`mergeNullTierAggregate`/`summarizeNullTierAggregate` shape `surfaceNullTierHosts` already writes at
+grounding time. 23 tests.
+
+`scripts/maintenance/resolve-error-body-gate.mjs` resolves `error-body-gate` (34 open rows,
+`canonical-pipeline.ts` ~L1671): re-fetches each failed-fetch URL through the existing free capture path
+(`captureCitedUrl`/`buildCaptureSearchRow`, `scripts/mint/heal-provenance.mjs`, imported unmodified) --
+recaptured URLs are stored via the guarded insert into `agent_run_searches`; a still-failing URL routes
+its host to the attach-found-sources seed worklist (`scripts/_worklists/attach-found-sources.seed.json`,
+a NEW `class: "error_body_refetch"` row shape, documented as distinct from that file's Gate-A-orphan-
+figure rows since a bare host is never consumed by `heal-provenance.mjs`'s own token-matching). RESPECTS
+THE SCRAPE-HOLD GATE explicitly (`holdEngaged()`, `SCRAPE_HOLD`): while engaged every row reports
+`fetch_held`, nothing is fetched, and the flag stays open (a genuine machine block, never a bypass) --
+this is stricter than `provenance-heal.mjs`'s own sibling wrapper, which does not check the hold at all
+for this same plain-GET/PDF/Cellar/FR-API capture family [CONFIRMED by reading `provenance-heal.mjs` in
+full: it wires `makePoliteFetch` directly with no `holdEngaged`/`assertFetchAllowed` call anywhere].
+20 tests.
+
+**Named residual (not fixed, reported per rule 13).** The attach-found-sources worklist append is a
+local filesystem write with no snapshot/revert path through `db.mjs`'s guarded writes (git is the revert
+path) and is not durable across a GitHub Actions dispatch on its own: no step in `maintenance.yml`
+commits a working-tree change back to the branch for ANY file-based MAINT artifact, so a real `apply`
+dispatch of `resolve-error-body-gate` needs a follow-up commit to persist the append past that job's own
+runner. Documented in the script's own header and the runbook section; not fixed here (a bot-commit step
+is its own decision, out of this task's small-mechanical scope).
+
+**Wiring.** All three steps added to `maintenance.yml`'s step choice list and given their own `if:`-gated
+inline `run:` blocks (not the shared composite action, since F25-module-liveness's dispatch-root detector
+scans workflow YAML text for literal `.mjs` paths -- the composite action's templated
+`scripts/maintenance/${STEP}.mjs` string would never match, so these three needed the traditional inline
+shape to register as wired). `docs/inventories/shared-dataset-ownership.md` gained the two new
+`integrity_flags`/`agent_run_searches` writers plus prose justification (shared-writer-registry test).
+`docs/runbooks/MAINTENANCE-RUNBOOK.md` gained sections 40-42.
+
+**7.4c (coordinator-reported, addressed mid-lane).** `scripts/maintenance/apply-classifications.mjs`
+crashed in apply mode (`ReferenceError: guardedUpdate is not defined`, maintenance run 34691660889) --
+see this file's own separate subsection above for the full writeup, gates and commit.
+
+**Gates (whole lane).** `node --test` across all four new/modified test files
+(`close-run-logs.test.mjs`, `resolve-cited-host-gate.test.mjs`, `resolve-error-body-gate.test.mjs`,
+`lib/flag-url-extract.test.mjs`): 70/70. `node .discipline/glob-portability.test.mjs`: 3/3 (confirms
+`heal-provenance.mjs`'s whole transitive import graph, now reached via `resolve-error-body-gate.mjs`,
+stays portable to the no-npm-ci job). `node .discipline/fitness/runner.mjs --quiet`: 0 violations (F25
+module-liveness required the `maintenance.yml` wiring before it would pass -- confirmed red before, green
+after). `node --test .discipline/shared-writer-registry.test.mjs`: green after the ownership-doc update.
+`npx tsc --noEmit` (from fsi-app): clean. `run-test-suite.sh` NOT run, per instruction.
+
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line across
+every touched file (diff-scoped byte scan, clean before each commit; one caught-and-fixed false trip in a
+test description string that read `from '(cited in ...)'`, which the glob-portability checker's
+non-statement-anchored regex misread as a bare-package import -- reworded, not a checker change). No
+hardcoded user-home paths. Staged explicitly per commit; never `git add -A`. Commit trailer exact:
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No `git stash`, no `--no-verify`, no push. No
+database writes from this session (no DB creds in this worktree; every gate above is fixture/pure-
+function-driven). One incidental fix: a stray literal NUL byte inside a template-literal join separator
+in `resolve-error-body-gate.mjs` (introduced by the authoring tool, not by hand) was caught by `file(1)`
+misreporting the script as binary and replaced with a plain `|` before any commit.
+
+**Files.**
+- `fsi-app/scripts/maintenance/close-run-logs.mjs` (new), `close-run-logs.test.mjs` (new)
+- `fsi-app/scripts/maintenance/lib/flag-url-extract.mjs` (new), `flag-url-extract.test.mjs` (new)
+- `fsi-app/scripts/maintenance/resolve-cited-host-gate.mjs` (new), `resolve-cited-host-gate.test.mjs` (new)
+- `fsi-app/scripts/maintenance/resolve-error-body-gate.mjs` (new), `resolve-error-body-gate.test.mjs` (new)
+- `.github/workflows/maintenance.yml` (modified: 3 new steps + step choice list)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md` (modified: 2 new writer entries + prose)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: sections 40-42)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (Part 7 tasks 7.1 / 7.4)
+
+Not applicable: no `.tsx`/`.css` touched.
