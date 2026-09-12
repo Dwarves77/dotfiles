@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:29:17.305Z",
+  "generated_at": "2026-09-12T18:31:29.529Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -704,6 +704,106 @@
           "claim_text": "The captured source states, verbatim: «Done at Luxembourg, 14 April 2003.»",
           "source_span": "Done at Luxembourg, 14 April 2003.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
+        }
+      ]
+    },
+    {
+      "item_id": "016abf00-7c1d-43f5-a917-a9a90c811f9a",
+      "source_pool_hash": "2203d8ff17c1c64edad71ef39b53dcaee58e724a6cc24fc7379d9f137f58ff6f",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Electricity (Fuel Mix Disclosure) Regulations 2005 (S.I. 2005 No. 391), as captured in its latest available (revised) consolidated form, which modifies standard electricity supply licence conditions in Great Britain under section 33 of the Utilities Act 2000. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* This document is scoped to the provisions the captured text grounds: the licensee's fuel-mix and environmental-impact disclosure duty to customers, the evidence rules behind that disclosure, and the territorial extent. The Regulations implement Article 3.6 of Directive 2003/54/EC on the internal market in electricity.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Regulations insert a standard licence condition requiring every electricity supply licensee to disclose, to customers and in promotional materials, the fuel-mix and environmental-impact data behind the electricity it supplies. \"These Regulations do not extend to Northern Ireland.\" *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* For workspaces procuring grid electricity for warehouses, offices, or terminal facilities in Great Britain, this disclosure duty is the regulatory source of the fuel-mix percentages and the grams-of-carbon-dioxide-per-kWh figure that appear on or with an electricity bill, which the workspace can use as an input to its own Scope 2 electricity-emissions accounting. *Operational implication:* the duty runs to the licensee (the electricity supplier), not to the workspace as customer; the workspace's own use of the disclosed data for its own emissions reporting is a downstream benefit of this instrument, not an obligation it creates.\n\n# Issues Requiring Immediate Action\n\n**MONITORING.** Confirm that fuel-mix and carbon-dioxide-per-kWh disclosure data is being received from the workspace's electricity supplier(s) for each Great Britain site, since this is the sourced, supplier-verified figure this Regulation requires rather than a generic grid-average estimate. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* *Legal Confirmation Required:* whether any workspace site that generates and supplies electricity of its own (for example, on-site solar sold back to the grid) is itself a licensee subject to this disclosure duty, rather than solely a disclosure recipient.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty holder is \"the licensee\" under an electricity supply licence granted under section 6(1)(d) of the Electricity Act 1989; a freight-forwarding workspace purchasing electricity as a customer is not itself the licensee and carries no direct disclosure duty on the captured text. *Legal Confirmation Required:* whether any workspace facility with its own generation and supply arrangement could bring it within the licensee definition for that specific arrangement.\n\n# Substantive Requirements\n\n**Annual disclosure cycle.** A licensee that has supplied electricity for a full disclosure period discloses the required information during the following 12-month cycle: \"it shall during the 12 month period commencing on 1 October immediately following the end of the disclosure period, provide the information referred to in paragraph 4: (a) at least once in the period, to each customer that receives a bill or a statement in that period, either with or on the bill or the statement; and\" also in promotional materials. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.*\n\n**Disclosed content.** The disclosure covers each energy source's contribution to the licensee's total electricity purchased for supply, and \"the environmental impact per kWh of electricity supplied resulting from the total amount of electricity purchased for supply by the licensee in terms of emissions of carbon dioxide and the production of radioactive waste.\" *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.*\n\n**Rounding rule.** \"The contribution referred to in sub-paragraph 4(a) must be expressed as a percentage of the total amount of electricity purchased for supply by the licensee, rounded to the nearest whole percentage point or, where the contribution is less than one percent, to one decimal place.\" *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* *Operational implication:* this rounding convention is a data-quality qualification worth knowing before a workspace treats a disclosed fuel-mix percentage as precise to more than one decimal place.\n\n**Evidence and transition rule.** The licensee generally claims a fuel-source contribution only where it holds a guarantee of origin or generator declaration; a transitional easement allowed generator declarations for renewable sources \"until 1 July 2006 only,\" after which a guarantee of origin was required for that purpose. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* *Analytical inference:* the qualification a headline \"generator declarations are accepted evidence\" reading would omit is that this was time-limited for renewable sources, ending mid-2006; the current evidentiary standard for renewables is the guarantee of origin.\n\n# Registration and Reporting Obligations\n\nThere is no separate registration scheme beyond the electricity supply licence itself; the reporting duty is the disclosure cycle described above, and separately the licensee provides information to the Authority (Ofgem) on request, \"for the purpose of establishing whether, in the Authority's opinion, the licensee is complying or has complied with the requirements of this licence condition.\" *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.* *Operational implication:* this on-request power is the Authority's compliance-monitoring tool for the licensee, not a duty that reaches the workspace as a disclosure recipient.\n\n# Operational System Requirements\n\nFor workspaces using disclosed fuel-mix and carbon-dioxide-per-kWh data in their own emissions accounting: (1) collect the disclosure data from each Great Britain electricity supplier for each disclosure period (1 April to 31 March), and (2) apply the rounding convention above when treating a fuel-mix percentage as an input figure, rather than assuming greater precision than the source data carries. *Operational implication:* this is a data-sourcing opportunity for the workspace's own Scope 2 reporting, not a compliance burden, since the workspace sits on the receiving side of the disclosure duty.\n\n# Confirmed Regulatory Timeline\n\n- 24th February 2005: The Electricity (Fuel Mix Disclosure) Regulations 2005 made; laid before Parliament 25th February 2005; coming into force 18th March 2005. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.*\n- 1 July 2006: End of the transitional period during which a generator declaration (rather than a guarantee of origin) was accepted evidence for a renewable-energy-source contribution. *Source: The Electricity (Fuel Mix Disclosure) Regulations 2005, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/uksi/2005/391.*\n\n# Sources\n\n- The Electricity (Fuel Mix Disclosure) Regulations 2005, S.I. 2005 No. 391, UK Government, legislation.gov.uk (Tier 1, primary binding text, latest available revised consolidated version). https://www.legislation.gov.uk/uksi/2005/391\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "reporting",
+          "emissions"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The Electricity (Fuel Mix Disclosure) Regulations 2005 (S.I. 2005 No. 391), UK Government legislation.gov.uk, implementing Article 3.6 of Directive 2003/54/EC by requiring electricity supply licensees in Great Britain to disclose fuel-mix percentages and carbon-dioxide/radioactive-waste-per-kWh environmental impact data to customers and in promotional materials.",
+        "why_matters": "Workspaces procuring grid electricity for Great Britain sites receive, under this disclosure duty, a supplier-verified fuel-mix percentage and grams-of-carbon-dioxide-per-kWh figure that can feed directly into the workspace's own Scope 2 electricity-emissions accounting, rather than relying on a generic grid-average estimate. The duty runs to the electricity supplier, not the workspace, so this is a data-sourcing opportunity rather than a compliance burden, subject to the rounding convention (whole percentage points, or one decimal place below one percent) the source data itself carries.",
+        "key_data": [
+          "Made 24th February 2005; came into force 18th March 2005",
+          "Disclosure period 1 April to 31 March; disclosed during the 12-month period from the following 1 October",
+          "Contribution rounded to the nearest whole percentage point or (if below one percent) one decimal place",
+          "Generator-declaration evidence for renewable sources accepted only until 1 July 2006; guarantee of origin required thereafter"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": "The Authority (the Gas and Electricity Markets Authority, operating as Ofgem)",
+        "operational_scenario_tags": [
+          "emissions-reporting-Scope1"
+        ],
+        "compliance_object_tags": [],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «These Regulations may be cited as the Electricity (Fuel Mix Disclosure) Regulations 2005 and shall come into force on 18th March 2005.»",
+          "source_span": "These Regulations may be cited as the Electricity (Fuel Mix Disclosure) Regulations 2005 and shall come into force on 18th March 2005.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «it shall during the 12 month period commencing on 1 October immediately following the end of the disclosure period, provide the information referred to in paragraph 4: (a) at least once in the period, to each customer that receives a bill or a statement in that period, either with or on the bill or the statement; and»",
+          "source_span": "it shall during the 12 month period commencing on 1 October immediately following the end of the disclosure period, provide the information referred to in paragraph 4: (a) at least once in the period, to each customer that receives a bill or a statement in that period, either with or on the bill or the statement; and",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «These Regulations do not extend to Northern Ireland.»",
+          "source_span": "These Regulations do not extend to Northern Ireland.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] Specific penalty provision not available from primary sources as of the export date; enforcement runs through the electricity supply licence condition and the Authority's information-request power, and the captured text states no separate financial penalty."
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «the environmental impact per kWh of electricity supplied resulting from the total amount of electricity purchased for supply by the licensee in terms of emissions of carbon dioxide and the production of radioactive waste.»",
+          "source_span": "the environmental impact per kWh of electricity supplied resulting from the total amount of electricity purchased for supply by the licensee in terms of emissions of carbon dioxide and the production of radioactive waste.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «The contribution referred to in sub-paragraph 4(a) must be expressed as a percentage of the total amount of electricity purchased for supply by the licensee, rounded to the nearest whole percentage point or, where the contribution is less than one percent, to one decimal place.»",
+          "source_span": "The contribution referred to in sub-paragraph 4(a) must be expressed as a percentage of the total amount of electricity purchased for supply by the licensee, rounded to the nearest whole percentage point or, where the contribution is less than one percent, to one decimal place.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «until 1 July 2006 only, a generator declaration relating to that period indicating a renewable energy source»",
+          "source_span": "until 1 July 2006 only, a generator declaration relating to that period indicating a renewable energy source",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Made 24th February 2005 Laid before Parliament 25th February 2005 Coming into force 18th March 2005»",
+          "source_span": "Made 24th February 2005 Laid before Parliament 25th February 2005 Coming into force 18th March 2005",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «for the purpose of establishing whether, in the Authority's opinion, the licensee is complying or has complied with the requirements of this licence condition.»",
+          "source_span": "for the purpose of establishing whether, in the Authority's opinion, the licensee is complying or has complied with the requirements of this licence condition.",
+          "source_url": "https://www.legislation.gov.uk/uksi/2005/391"
         }
       ]
     }
