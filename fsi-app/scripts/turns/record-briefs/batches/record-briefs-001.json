@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-001",
-  "generated_at": "2026-09-12T09:55:36.527Z",
+  "generated_at": "2026-09-12T09:56:42.799Z",
   "entries": [
     {
       "item_id": "51748690-2ab6-4f88-bab6-a080499d677a",
@@ -200,6 +200,72 @@
           "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; EMAS participation is voluntary under Regulation (EC) No 1221/2009. Specific penalty summary not available from primary sources as of 2026-09-12.",
           "source_span": null,
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023D2463"
+        }
+      ]
+    },
+    {
+      "item_id": "3d50b8e4-df06-43e9-acda-36ac8fb0668f",
+      "source_pool_hash": "b83f852fa2377ca3e0bcd3c27ed4697dc13c0b35c18d3574a3f422c182bd1cc6",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes a Commission Decision of 17 December 2021 (2022/C 77/02) instructing the central administrator of the European Union Transaction Log to enter corrected national allocation tables of free EU Emissions Trading System (ETS) allowances for ten Member States, \"Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden,\" into the log. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).*\n\n# What This Regulation Is and Why It Applies to the Workspace\n\n\"Member States submitted to the Commission the list of installations under their territory pursuant to Article 11(1) of Directive 2003/87/EC of the European Parliament and of the Council,\" the directive establishing the EU ETS. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).* The Decision instructs entry into the Union Transaction Log of \"corrected national allocation tables... for the transitional free allocation of emission allowances for the period from 2021 to 2025.\" *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).* This is a technical, administrative EU ETS registry correction affecting the free-allowance entitlement of specific stationary industrial installations in the ten named Member States, not an obligation reaching the workspace directly; it belongs to the background EU ETS allocation machinery that shapes the carbon-cost environment those installations, and any freight that serves them, operate in.\n\n# Issues Requiring Immediate Action\n\n**MONITORING.** No workspace-facing deadline or obligation is stated in this Decision's own text; the corrective action runs between the Commission, the named Member States, and the central administrator of the registry. *Operational implication:* for workspaces with cargo verticals touching EU ETS-covered industrial installations (e.g., high-value automotive manufacturing supply chains in the affected Member States), this correction has no direct compliance step for the forwarder, but it is one input into the free-allocation baseline those installations' own carbon cost exposure is measured against. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).*\n\n# How the Workspace Sits in the Compliance Chain\n\nThe Decision's single operative article instructs only the central administrator: \"the central administrator of the European Union Transaction Log is instructed to enter the corrected national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden.\" *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).* No addressee clause naming Member States, economic operators, or private parties was located in the captured text; the workspace sits entirely outside the Decision's operative scope.\n\n# Substantive Requirements\n\nThe corrections addressed by this Decision are installation-level data fixes: for example, \"Sweden notified corrections to its national allocation table by letter dated 22 November 2021,\" concerning \"reported values for electricity consumption that are used for calculating the electricity\" component of free allocation, and Finland \"corrected the reported heat values and therefore the historical activity levels\" after several installations \"reported wrong heat balance between eligible and non-eligible heat for free allocation.\" *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).* These are registry-accuracy corrections to the transitional free-allocation calculation for named installations, not new obligations.\n\n*Specific effective date, compliance deadline, and penalty provision not available from primary sources as of 2026-09-12: the captured text is a single-article administrative instruction to the Central Administrator, states no entry-into-force clause, no deadline binding an external party, and no penalty or sanction provision.*\n\n# Registration and Reporting Obligations\n\nRegistration and reporting under the EU ETS free-allocation regime runs through the national allocation tables the ten Member States submitted under Directive 2003/87/EC Article 11(1); this Decision is the Commission's instruction to record the corrected versions of those tables, not a new filing requirement. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).*\n\n# Operational System Requirements\n\nNo workspace-facing operational system build is indicated by this Decision's text; the corrections apply to the free-allocation calculations of named EU ETS installations administered by the ten Member States and the Commission. *No operational system requirement identified for the workspace as of 2026-09-12.*\n\n# Confirmed Regulatory Timeline\n\n- 17 December 2021: Commission adopts the Decision instructing entry of the corrected national allocation tables (\"Done at Brussels, 17 December 2021\"). In force as of 2026-09-12. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).*\n- 22 November 2021: Sweden notifies its national allocation table corrections by letter, addressed by this Decision. In force as of 2026-09-12. *Source: Commission Decision of 17 December 2021 instructing the Central Administrator of the European Union Transaction Log to enter the national allocation tables of Belgium, Germany, Greece, Croatia, Latvia, Hungary, the Netherlands, Poland, Finland and Sweden into the European Union Transaction Log, European Commission, OJ C 77/19, 2022/C 77/02. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02).*\n\n# Sources\n\n- Commission Decision of 17 December 2021 (2022/C 77/02), European Commission, OJ C 77/19, published 2022 (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "informational",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "emissions"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Commission Decision of 17 December 2021 (2022/C 77/02) OJ C 77/19 instructing the central administrator of the European Union Transaction Log to enter corrected national allocation tables of free EU ETS allowances for 2021 to 2025 for installations in Belgium Germany Greece Croatia Latvia Hungary the Netherlands Poland Finland and Sweden under Directive 2003/87/EC.",
+        "why_matters": "This is a background EU ETS registry-accuracy correction to the free-allocation calculation for named industrial installations in ten Member States rather than a rule reaching freight forwarders directly. It matters only as one input shaping the carbon cost baseline of EU ETS-covered manufacturing clients in the affected Member States; there is no forwarder-facing deadline cost mechanism or penalty in the captured text.",
+        "key_data": [
+          "Decision adopted 17 December 2021",
+          "Covers transitional free allocation for the period 2021 to 2025",
+          "Ten Member States named Belgium Germany Greece Croatia Latvia Hungary the Netherlands Poland Finland and Sweden",
+          "Legal basis Directive 2003/87/EC Article 11(1) and Commission Delegated Regulation (EU) 2019/1122 Article 46(2)"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [
+          "260089a9-e334-4104-843c-cdfc28a94dcc"
+        ],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "GAP",
+          "claim_text": "[effective_date] No verbatim entry-into-force or effective-date clause was located in the captured source text; only the adoption date (17 December 2021) is stated. Specific effective date not available from primary sources as of 2026-09-12.",
+          "source_span": null,
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "GAP",
+          "claim_text": "[primary_deadline] No verbatim compliance deadline binding an external party was located in the captured source text; the Decision is a single-article instruction to the Central Administrator. Specific primary deadline not available from primary sources as of 2026-09-12.",
+          "source_span": null,
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: «Member States submitted to the Commission the list of installations under their territory pursuant to Article 11(1) of Directive 2003/87/EC»",
+          "source_span": "Member States submitted to the Commission the list of installations under their territory pursuant to Article 11(1) of Directive 2003/87/EC",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] No verbatim penalty, sanction, or enforcement provision was located in the captured source text; this is an administrative registry-correction instruction. Specific penalty summary not available from primary sources as of 2026-09-12.",
+          "source_span": null,
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0217(02)"
         }
       ]
     }
