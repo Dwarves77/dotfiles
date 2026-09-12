@@ -78,6 +78,14 @@ import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
 import { verifyPoolTargetMatch } from "@/lib/sources/target-match.mjs";
+// INJECTED-SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3): usableCapturesOrdered is
+// the SAME 200-char usable-capture floor + result_index ordering task 3.1's export already reuses from this
+// module (see that task's report) -- generateBriefFromInjected reads the item's CURRENT pool through the
+// identical filter so its pool-identity hash is computed over the same rows the export saw. hashSourcePool
+// is the ONE shared pure hash helper both task 3.1's export and this seam use (see its own file header for
+// why it lives at this path, not inside either caller).
+import { usableCapturesOrdered } from "@/lib/forward-events/read-and-extract.mjs";
+import { hashSourcePool } from "@/lib/agent/source-pool-hash.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 import { permanentlyUnregisteredClass } from "@/lib/sources/host-authority";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
@@ -727,16 +735,130 @@ function candidateReadersFor(sb: SupabaseClient) {
   };
 }
 
+// ── INJECTED-SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3) ───────────────────────
+// CC-SYNTHESIS-EXECUTOR SEAM, mirroring groundBriefImpl's own injectedLedger seam (RD-47 posture, operator
+// ruling 2026-07-16): a session lane authors a full brief body + metadata for a record-grade stub item
+// (reading the pool text task 3.1's export hands it), and generateBriefFromInjected (below) persists it
+// through the SAME parser + SAME single write site every model-driven brief uses -- the injected body is
+// VALIDATED by parseAgentOutput, never trusted (environmental-policy-and-innovation SKILL.md's integrity
+// rule). No paid model call, no fetch, no acquire-lock gate: there is no spend here to gate.
+
+/** The record-briefs `metadata` shape (task 3.2's artifact contract, scripts/turns/record-briefs/schema.mjs)
+ *  -- the 20-field subset of AgentMetadata a session lane emits. The five fields only the live generation
+ *  path produces (trajectory_points, what_it_changes, does_not_resolve, conversion_trigger, cross_references)
+ *  are absent by contract and default to their normal parseAgentOutput absence value (null / []) via the
+ *  SAME optional-field handling every live brief already relies on -- never synthesized here. */
+export interface InjectedBriefMetadata {
+  severity: AgentMetadata["severity"];
+  priority: AgentMetadata["priority"];
+  urgency_tier: AgentMetadata["urgency_tier"];
+  format_type: AgentMetadata["format_type"];
+  topic_tags: AgentMetadata["topic_tags"];
+  signal_band: AgentMetadata["signal_band"];
+  theme: AgentMetadata["theme"];
+  what_is_it: AgentMetadata["what_is_it"];
+  why_matters: AgentMetadata["why_matters"];
+  key_data: AgentMetadata["key_data"];
+  cost_mechanism: AgentMetadata["cost_mechanism"];
+  requirement_trajectory: AgentMetadata["requirement_trajectory"];
+  penalty_range: AgentMetadata["penalty_range"];
+  enforcement_body: AgentMetadata["enforcement_body"];
+  operational_scenario_tags: AgentMetadata["operational_scenario_tags"];
+  compliance_object_tags: AgentMetadata["compliance_object_tags"];
+  related_items: AgentMetadata["related_items"];
+  intersection_summary: AgentMetadata["intersection_summary"];
+  sources_used: AgentMetadata["sources_used"];
+  regeneration_skill_version: AgentMetadata["regeneration_skill_version"];
+}
+
+export interface InjectedSynthesis { body: string; metadata: InjectedBriefMetadata }
+
+// Synthetic flat-YAML frontmatter for injected.metadata, fed through the SAME parseAgentOutput every
+// model-driven brief uses (findYamlBlock / parseYamlFrontmatter, parse-output.ts). Mirrors
+// scripts/turns/record-briefs/schema.mjs's buildSyntheticFrontmatter -- SAME technique, spelled again here
+// because task 3.3's own scope is restricted to this file (schema.mjs is out of bounds for this lane); a
+// future consolidation could hoist both copies to one shared module. This is a deliberate, named
+// duplication, the same judgment schema.mjs's own header already makes for CLAIM_KIND_VALUES (no exported
+// home to import from without expanding either module's scope).
+function yamlScalarLine(v: string | null, field: string): string {
+  if (v === null) return "null";
+  if (/\r|\n/.test(v)) throw new Error(`injected metadata.${field} contains a newline, which the shared flat-YAML frontmatter format cannot represent`);
+  const t = v.trim();
+  if (t.length >= 2 && ((t[0] === '"' && t[t.length - 1] === '"') || (t[0] === "'" && t[t.length - 1] === "'"))) {
+    throw new Error(`injected metadata.${field} starts and ends with a matching quote character, which the shared parser would strip as a quoted literal`);
+  }
+  return t;
+}
+function yamlArrayLine(items: string[] | null | undefined, field: string): string {
+  if (!items || items.length === 0) return "[]";
+  for (const item of items) {
+    if (item.includes(",")) throw new Error(`injected metadata.${field} entry "${item}" contains a comma, which the shared inline-array format cannot represent`);
+    if (/\r|\n/.test(item)) throw new Error(`injected metadata.${field} entry "${item}" contains a newline`);
+  }
+  return `[${items.join(", ")}]`;
+}
+function yamlJsonLine(v: unknown): string {
+  return v === null || v === undefined ? "null" : JSON.stringify(v);
+}
+function buildInjectedFrontmatter(md: InjectedBriefMetadata): string {
+  return [
+    `severity: ${yamlScalarLine(md.severity, "severity")}`,
+    `priority: ${yamlScalarLine(md.priority, "priority")}`,
+    `urgency_tier: ${yamlScalarLine(md.urgency_tier, "urgency_tier")}`,
+    `format_type: ${yamlScalarLine(md.format_type, "format_type")}`,
+    `topic_tags: ${yamlArrayLine(md.topic_tags, "topic_tags")}`,
+    `signal_band: ${yamlScalarLine(md.signal_band, "signal_band")}`,
+    `theme: ${yamlScalarLine(md.theme, "theme")}`,
+    `operational_scenario_tags: ${yamlArrayLine(md.operational_scenario_tags, "operational_scenario_tags")}`,
+    `compliance_object_tags: ${yamlArrayLine(md.compliance_object_tags, "compliance_object_tags")}`,
+    `related_items: ${yamlArrayLine(md.related_items, "related_items")}`,
+    `intersection_summary: ${yamlScalarLine(md.intersection_summary, "intersection_summary")}`,
+    `sources_used: ${yamlArrayLine(md.sources_used, "sources_used")}`,
+    // Synthetic -- parseYamlFrontmatter requires this key structurally; writeSynthesizedBrief overrides it
+    // with the REAL persist-time timestamp regardless (same posture as the live generation path).
+    `last_regenerated_at: ${new Date().toISOString()}`,
+    `regeneration_skill_version: ${yamlScalarLine(md.regeneration_skill_version, "regeneration_skill_version")}`,
+    `what_is_it: ${yamlScalarLine(md.what_is_it ?? null, "what_is_it")}`,
+    `why_matters: ${yamlScalarLine(md.why_matters ?? null, "why_matters")}`,
+    `key_data: ${yamlArrayLine(md.key_data ?? [], "key_data")}`,
+    `cost_mechanism: ${yamlScalarLine(md.cost_mechanism ?? null, "cost_mechanism")}`,
+    `requirement_trajectory: ${yamlJsonLine(md.requirement_trajectory ?? null)}`,
+    `penalty_range: ${yamlScalarLine(md.penalty_range ?? null, "penalty_range")}`,
+    `enforcement_body: ${yamlScalarLine(md.enforcement_body ?? null, "enforcement_body")}`,
+  ].join("\n");
+}
+function buildInjectedRawText(body: string, md: InjectedBriefMetadata): string {
+  return `${body ?? ""}\n\n---\n${buildInjectedFrontmatter(md)}\n---\n`;
+}
+
 /** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
- *  the pool (fresh-fetch overwrites it; from-stored reuses it). */
+ *  the pool (fresh-fetch overwrites it; from-stored reuses it). `opts.injected` is the free-driver seam
+ *  (task 3.3): when present, the WHOLE prompt-construction + paid generateBriefText call is skipped and
+ *  control returns through the SAME write site the metered driver reaches -- see the seam header above. */
 async function synthesiseAndWriteBrief(
   sb: SupabaseClient,
   it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
   fetched: { url: string; text: string }[],
   corroborators: Corroborator[],
+  opts?: { injected?: InjectedSynthesis },
 ): Promise<StepResult> {
+  // CC-SYNTHESIS-EXECUTOR SEAM: read at exactly this one point. Nothing below this block is reachable when
+  // injected is present (early return) -- the judgment core (writeSynthesizedBrief) stays byte-for-byte the
+  // same code path either driver reaches.
+  const injected = opts?.injected ?? null;
+  if (injected) {
+    const fmtSpec = specForItemType(it.item_type);
+    let parsed: ReturnType<typeof parseAgentOutput>;
+    try {
+      parsed = parseAgentOutput(buildInjectedRawText(injected.body, injected.metadata));
+    } catch (e) {
+      return { ok: false, detail: `injected_parse_failed: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    const body = stripUrlMarkers((parsed.body || "").trim()) as string;
+    return writeSynthesizedBrief(sb, it, body, parsed.metadata, fmtSpec, fetched.length);
+  }
   // SLOT ENFORCEMENT (C1): read the item_type's required slots (cached) so the SYNTHESIS prompt names them
   // for ALL 12 types — not just the reg family the static SYSTEM_PROMPT covers. null = read failed → keep
   // the standing SYSTEM_PROMPT reg-family floor + the DB gate as backstop (fail-closed, never fabricate []).
@@ -911,6 +1033,12 @@ export async function writeSynthesizedBrief(
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
     intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
+    // ADR-028 (task 3.3, 2026-09-11): item_grade is a CACHE of "this item carries a real synthesized
+    // full_brief", not an independent editorial decision -- every successful write through this ONE site
+    // means the item now has one, live-generated or lane-injected, so the grade upgrades in the SAME
+    // update (never a second write). A 'brief'-grade item re-writing here is a harmless no-op repeat of
+    // its own value.
+    item_grade: "brief",
     last_regenerated_at: nowIso, updated_at: nowIso,
   }).eq("id", it.id);
   // FAIL LOUD: the prior code dropped `error` here, so a CHECK violation rejected the ENTIRE update
@@ -1118,6 +1246,56 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
   const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
   if (!r.ok) return r;
   return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs${ageNote})` };
+}
+
+/** THE injected-synthesis entry point (task 3.3, brief-chain-build-plan-2026-09-11 Part 3): a session lane
+ *  has already authored a full brief body + metadata for a record-grade stub item (reading the pool text
+ *  task 3.1's export handed it); this persists it through the SAME parser + SAME single write site every
+ *  model-driven brief uses -- no fetch, no web_search, no paid model call, so no acquire-lock gate applies
+ *  (there is no spend to gate; mirrors groundBriefImpl's own injected-driver posture). Refuses on two
+ *  conditions before any write is attempted:
+ *   1. STALE POOL -- sourcePoolHash must match hashSourcePool() of the item's CURRENT stored pool (the same
+ *      usable-capture floor + hash function task 3.1's export is meant to stamp); a mismatch means the lane
+ *      read pool text that no longer matches what is stored, so its verbatim spans may no longer verify.
+ *   2. GRADE -- an item that is not item_grade='record' already carries a brief; overwriting it is an
+ *      explicit order (allowBriefOverwrite), not the default action of a batch apply -- RD-36's dominance
+ *      guard still protects the grounding ledger downstream regardless of this seam's own posture.
+ *  `caller` is accepted for interface parity with the pipeline's other entry points; unused today because
+ *  there is no fetch or spend here to attribute. `sbClient` is an optional injected client (tests only --
+ *  production callers omit it and get svc()), the same shape harvestItemTimeline uses for the identical
+ *  reason (see that function's own header). */
+export async function generateBriefFromInjected(
+  itemId: string,
+  caller: string | null,
+  opts: { body: string; metadata: InjectedBriefMetadata; sourcePoolHash: string; allowBriefOverwrite?: boolean },
+  sbClient?: SupabaseClient,
+): Promise<StepResult> {
+  return withTelemetry(() => generateBriefFromInjectedImpl(itemId, caller, opts, sbClient));
+}
+async function generateBriefFromInjectedImpl(
+  itemId: string,
+  _caller: string | null,
+  opts: { body: string; metadata: InjectedBriefMetadata; sourcePoolHash: string; allowBriefOverwrite?: boolean },
+  sbClient?: SupabaseClient,
+): Promise<StepResult> {
+  const sb = sbClient ?? svc();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, item_grade").eq("id", itemId).single();
+  if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  if (it.item_grade !== "record" && !opts.allowBriefOverwrite) {
+    return { ok: false, detail: `refused: item ${itemId} is item_grade='${it.item_grade ?? "brief"}', not 'record' -- pass allowBriefOverwrite to regenerate an existing brief` };
+  }
+  const { data: poolRows, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_content, result_index").eq("intelligence_item_id", itemId);
+  if (poolErr) console.warn(`[canonical] injected-synthesis pool read failed for ${itemId}: ${poolErr.message}`);
+  const pool = usableCapturesOrdered(poolRows ?? [])
+    .filter((r: { result_url: unknown }) => typeof r.result_url === "string")
+    .map((r: { result_url: string; result_content: string }) => ({ url: r.result_url, text: r.result_content }));
+  const currentHash = hashSourcePool(pool);
+  if (currentHash !== opts.sourcePoolHash) {
+    return { ok: false, detail: `stale pool: injected sourcePoolHash (${opts.sourcePoolHash}) does not match the current stored pool hash (${currentHash}) for item ${itemId} -- the lane read text that no longer matches what is stored` };
+  }
+  const r = await synthesiseAndWriteBrief(sb, it, pool, [], { injected: { body: opts.body, metadata: opts.metadata } });
+  if (!r.ok) return r;
+  return { ok: true, detail: `${r.detail} (FROM INJECTED lane synthesis, sourcePoolHash verified, ${pool.length} pool sources)` };
 }
 
 /** REFRESH-PRIMARY-INTO-POOL — re-fetch ONLY the full enacted text (the #155 direct-HTTP transport, FREE

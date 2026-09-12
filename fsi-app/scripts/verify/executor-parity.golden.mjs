@@ -102,5 +102,43 @@ check("gate verdict is a function of the CLAIM, not the driver: clean floor FACT
 check("gate verdict is a function of the CLAIM, not the driver: sub-floor FACT holds either way",
   perFactWouldHold(subFloor, ctx) === true);
 
+// ── 8. THE SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3): a SECOND, independent
+// allowlisted divergence point, one skip-point reason: generateBriefFromInjected's driver skips the WHOLE
+// prompt-construction + paid generateBriefText call inside synthesiseAndWriteBrief (not groundBriefImpl's
+// grounding call above, a different chokepoint, same RD-47 posture: skip the paid step, never the
+// judgment). Same structural proof shape as the grounding seam above: locate the function, strip comments,
+// count driver-identity references, and prove the skip is structural (the injected branch contains ZERO
+// references to the paid call) rather than a branch that happens not to be exercised by a test. ─────────
+const synthStart = full.indexOf("async function synthesiseAndWriteBrief(");
+const synthEnd = full.indexOf("export async function writeSynthesizedBrief(", synthStart);
+check("synthesiseAndWriteBrief located (the synthesis chokepoint)", synthStart > 0 && synthEnd > synthStart);
+const synthBody = full.slice(synthStart, synthEnd);
+const synthCodeOnly = synthBody
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .split("\n")
+  .map((l) => l.replace(/\/\/.*$/, ""))
+  .join("\n");
+
+const synthInjectedRefs = (synthCodeOnly.match(/\binjected\b/g) || []).length;
+// 1 in the opts type literal + 1 declaration + 1 opts read on the same line + 1 branch condition + 2 field
+// reads (injected.body, injected.metadata) = 6. A 7th reference would be an un-audited second place this
+// function behaves differently per driver.
+check(`synthesis-seam driver-identity referenced EXACTLY 6x in code (type + decl + opts-read + branch + 2 field reads); found ${synthInjectedRefs}`,
+  synthInjectedRefs === 6);
+
+const skipBranchMatch = synthCodeOnly.match(/if\s*\(\s*injected\s*\)\s*\{[\s\S]*?return\s+writeSynthesizedBrief\([^)]*\);/);
+check("the ONE allowlisted synthesis divergence point: an early-return `if (injected) { ... }` branch", !!skipBranchMatch);
+const injectedBranch = skipBranchMatch ? skipBranchMatch[0] : "";
+check("the injected branch contains ZERO references to the paid model call (generateBriefText): structurally unreachable, not merely untaken",
+  injectedBranch.length > 0 && !injectedBranch.includes("generateBriefText("));
+check("the paid model call still exists in the function for the metered (non-injected) driver: proves the live path was bypassed, not deleted",
+  synthCodeOnly.includes("generateBriefText("));
+
+// Both drivers converge on the IDENTICAL write call, the single write site, never a second one. Found
+// twice: once inside the injected branch, once at the end of the metered (live-generation) path.
+const writeCallCount = (synthCodeOnly.match(/return\s+writeSynthesizedBrief\(sb,\s*it,\s*body,\s*parsed\.metadata,\s*fmtSpec,\s*fetched\.length\);/g) || []).length;
+check(`both drivers return through the IDENTICAL writeSynthesizedBrief(...) call, found ${writeCallCount} occurrences (one per branch, same shared write site)`,
+  writeCallCount === 2);
+
 console.log(failed ? `\nGOLDEN FAILED (${failed})` : "\nGOLDEN PASSED");
 process.exit(failed ? 1 : 0);

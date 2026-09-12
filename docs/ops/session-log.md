@@ -18706,3 +18706,132 @@ edit, to prove the new glob line is both needed and sufficient). `npx tsc --noEm
 
 Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a new backend validator
 module, its test, its README, and one discipline-suite wiring line.
+
+### Task 3.3: the injected-synthesis seam in the one write site
+
+Worktree `wt-part3-0911`, branch `lane/w9-part3-2026-09-11`, on top of task 2.2's parser/write-site
+extraction (`92085ff9`) and task 3.2's validator (`f8546b3c`), per
+`docs/plans/brief-chain-build-plan-2026-09-11.md` Part 3 task 3.3. Mid-task the coordinator rebased this
+lane onto the `brieffields` lane's new tip (HEAD moved to `20a25c07`, tree clean at that moment); confirmed
+`canonical-pipeline.ts` had not changed on master and re-read `docs/ops/session-log.md` before appending
+here, per the coordinator's own instruction.
+
+**Accomplished.** `generateBriefFromInjected(itemId, caller, { body, metadata, sourcePoolHash,
+allowBriefOverwrite? }, sbClient?) -> Promise<StepResult>` (new, exported): the free-driver entry point a
+session lane's finished brief reaches. It reads the item, refuses a non-`record`-grade item unless
+`allowBriefOverwrite` is passed, reads the item's CURRENT `agent_run_searches` pool through the same
+200-char usable-capture floor task 3.1's export uses (`usableCapturesOrdered`), hashes it
+(`hashSourcePool`), and refuses with a `stale pool` detail on a mismatch against the caller's
+`sourcePoolHash` before any write is attempted. On success it calls `synthesiseAndWriteBrief(sb, it, pool,
+[], { injected: { body, metadata } })`.
+
+`synthesiseAndWriteBrief` gained an optional 5th parameter `opts?: { injected?: InjectedSynthesis }`. The
+seam is read at exactly one point: `const injected = opts?.injected ?? null; if (injected) { ... }`, an
+early-return branch that builds a synthetic flat-YAML frontmatter from `injected.metadata`
+(`buildInjectedFrontmatter`/`buildInjectedRawText`, mirroring `scripts/turns/record-briefs/schema.mjs`'s
+own `buildSyntheticFrontmatter`, re-spelled locally because this task's file scope does not include
+schema.mjs), runs it through the SAME `parseAgentOutput` every model-driven brief uses (never trusting the
+lane's body/metadata directly, per the environmental-policy-and-innovation SKILL.md integrity rule), then
+returns through the IDENTICAL `writeSynthesizedBrief(sb, it, body, parsed.metadata, fmtSpec,
+fetched.length)` call the metered (model-driven) path also ends on. Nothing below the branch (slot
+enforcement, `buildSourceBlocks`, the candidate-connections read, the paid `generateBriefText` call and its
+one corrective retry) is reachable when `injected` is present; the judgment core (`writeSynthesizedBrief`)
+is byte-for-byte the same code either driver reaches.
+
+`writeSynthesizedBrief`'s one `intelligence_items.update` payload gained `item_grade: "brief"`,
+unconditionally (ADR-028: the grade is a cache of "this item now carries a real full_brief", not an
+independent editorial decision, so every successful write through this one site upgrades it in the SAME
+update; a `'brief'`-grade item re-writing its own value is a harmless no-op).
+
+`hashSourcePool(poolRows) -> sha256 hex` (new, `src/lib/agent/source-pool-hash.mjs`): ONE exported pure
+function, sha256 over `{url, text}` pairs sorted by url first (order-independent), NUL-joined. Lives at
+this new leaf path, not inside either caller, so neither task 3.1's export (a lightweight script) nor
+`canonical-pipeline.ts` (the whole agent runtime) has to import the other's weight, and neither direction
+inverts the codebase's established scripts/ -> src/lib/ import convention (both callers import this leaf;
+neither imports the other). **Named wiring gap, not fixed here** (out of this task's file scope):
+`export-corpus-for-extraction.mjs` does not yet call `hashSourcePool` to stamp a real `source_pool_hash` on
+its export, so a lane has no accurate value to echo back yet; task 3.2's validator already tolerates this
+(it checks the field is present and non-empty, not that it equals this function's output). Documented in
+`source-pool-hash.mjs`'s own header as a one-line follow-up once a task's scope covers that file.
+
+`scripts/verify/executor-parity.golden.mjs` gained a second, independent structural check block (its own
+numbered section 8): locates `synthesiseAndWriteBrief`, strips comments, asserts the `injected` identifier
+is referenced exactly 6 times (the type annotation, the declaration, the `opts?.injected` read on that same
+line, the branch condition, and the two `injected.body`/`injected.metadata` field reads), asserts the
+early-return branch exists, asserts that branch contains ZERO references to `generateBriefText(` (the paid
+call is structurally unreachable, not merely untaken), asserts `generateBriefText(` still exists elsewhere
+in the function (the live path was bypassed, not deleted), and asserts both branches converge on the
+identical `writeSynthesizedBrief(...)` call text (found exactly twice).
+
+**Design decisions, matching the brief's literal Interfaces text.** The injected branch does NOT re-run the
+600-char minimum-length floor or `checkBriefContent`'s research-or-erase gate the metered path applies
+after its own parse: the brief's own enumeration of what "runs unchanged" after the parse names only
+fmtSpec forcing, vocabulary mapping, the single update, and `item_cross_references`, and those two gates are
+deterministic string checks over content the lane has already had validated by task 3.2's
+`validateRecordBriefsFile` (which requires a non-empty `body`) before this seam is ever called; the real
+downstream judgment (per-claim verbatim + tier gates) happens in `groundBrief(itemId, caller, {
+injectedLedger: entry.claims })`, unchanged, per task 3.4's own plan. `caller` is accepted (interface
+parity with every other pipeline entry point) but unused inside the implementation: there is no fetch or
+spend here to attribute a ticket to. `sbClient` is an optional 4th parameter (test-only injection),
+mirroring `harvestItemTimeline`'s own established precedent for the identical reason (this module's
+`@/`-aliased imports are only importable via jiti, so a test needs an injected fake client rather than
+mocking `svc()`).
+
+**Tests.** `src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs` (new, 5 cases): a record-grade
+item with a valid hash writes exactly one `intelligence_items.update` carrying `full_brief`, the six task
+2.2 fields, `format_type` FORCED from `item_type` (never the deliberately-wrong value the fixture's injected
+metadata carries), and `item_grade: 'brief'`, while the fake client (which throws on any table the
+live/model-generation path alone needs, `item_type_required_slots`/`sources`) is never asked for either; a
+`sourcePoolHash` mismatch refuses with a detail matching `/stale pool/` and never writes; a `'brief'`-grade
+item without `allowBriefOverwrite` refuses (detail matches `/item_grade/`) and never writes; the same
+`'brief'`-grade item WITH `allowBriefOverwrite` is accepted and writes; an unknown item id returns
+`ok:false` and never writes.
+
+RED confirmed by temporarily swapping in the pre-task `canonical-pipeline.ts` (`git show HEAD:...`)
+alongside the new test file: all 5 tests failed with `TypeError: generateBriefFromInjected is not a
+function`. Restored the implementation: GREEN, 5/5 pass; confirmed the restored file is byte-identical to
+the pre-swap implementation (`diff`, no output) before proceeding.
+
+**Gates.**
+- `node --test src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs`: 5/5 pass.
+- `node --test src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs`: still 4/4 pass (unaffected by
+  the `item_grade` addition; none of its assertions do an exact-key-set match on the update payload).
+- `node scripts/verify/executor-parity.golden.mjs`: PASS, both the pre-existing grounding-seam checks (1-7)
+  and the new synthesis-seam checks (8) green.
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/fitness/runner.mjs`: 38 functions checked, 1 violation (`[F28]`, a pre-existing
+  `corpus-turn/PENDING-RUN.md` staleness finding unrelated to any file this task touched; the baseline
+  shifted from the 10 violations task 3.1/3.2 documented because the rebase onto `brieffields`/`master`
+  carried in other lanes' fixes -- confirmed by inspection, not caused by this task). `F25` (module-liveness)
+  passes with no allowlist entry needed: `hashSourcePool` has a real production importer
+  (`canonical-pipeline.ts`) from the moment it was added.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run before this task's own commit
+  (nothing to commit-scope check yet); every existing commit in the range passed, 0 fail.
+
+**Standing constraints checked.** No em dashes, en dashes, or section-sign glyph in newly authored lines:
+audited via `git diff` restricted to added (`+`) lines (byte-grepped for U+2014/U+2013/U+00A7, not a
+Python string-literal scan, which gave a false negative on this pass and had to be redone) across all
+touched/new files; six em dashes were caught in the golden file's own new comments/check-name strings and
+fixed (replaced with a colon, a comma, or removed) before this entry. No hardcoded user-home paths: grepped
+all touched/new files for `C:/Users/`, `C:\Users\`, and `/Users/jason`, zero matches. Staged explicitly
+(paths named in the Files list below), never `git add -A`. `C:\Users\jason\dotfiles` (the main checkout)
+was never touched; no `git stash` used; no `--no-verify`; no push. No PreToolUse skill-gate denial occurred
+on any Write/Edit in this task.
+
+**Files.**
+- `fsi-app/src/lib/agent/canonical-pipeline.ts` (modified: `synthesiseAndWriteBrief`'s 5th param + early
+  branch, the `InjectedBriefMetadata`/`InjectedSynthesis` types, the local synthetic-frontmatter builder,
+  `writeSynthesizedBrief`'s `item_grade` addition, the new `generateBriefFromInjected`/Impl functions, two
+  new imports)
+- `fsi-app/src/lib/agent/source-pool-hash.mjs` (new)
+- `fsi-app/src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs` (new)
+- `fsi-app/scripts/verify/executor-parity.golden.mjs` (modified: the new section-8 structural checks)
+
+**Blockers.** None. Task 3.4 (the `brief-apply` driver + workflow) is the next task in Part 3; it is
+expected to call `validateRecordBriefsFile` (3.2), then `generateBriefFromInjected` (this task), then
+`sectionBrief`/`groundBrief`/`growSources`/the flywheel steps, unchanged.
+
+### UX compliance
+
+Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a backend pipeline seam, a new
+pure helper module, its test, and one verification-golden extension.
