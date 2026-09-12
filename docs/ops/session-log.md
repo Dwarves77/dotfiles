@@ -19393,3 +19393,11 @@ in this session; every gate is fixture-driven or pure/static).
 ### UX compliance (task 3.5 fix round 1)
 
 Not applicable: no `.tsx`/`.css` touched.
+
+## 2026-09-12, W9-PART3: CI red on PR #640 and the class fix
+
+**What broke.** The "Discipline engine unit tests" job (no `npm ci`) failed with `ERR_MODULE_NOT_FOUND: Cannot find package '@supabase/supabase-js' imported from scripts/turns/apply-record-briefs.mjs`. The driver test is in the no-npm glob and imports the driver, whose top-level import of the Supabase client only resolves where node_modules exists. Locally green, CI red: the same class as PR #632 (layout-guard.test.mjs reached esbuild through a dynamic import of run-layout-guard.mjs).
+
+**Instance fix.** `apply-record-briefs.mjs` loads `@supabase/supabase-js` lazily inside `main` (dynamic import at client construction, the db.mjs shape). The driver's pure exports stay importable without node_modules. Driver test 33/33.
+
+**Class fix.** `.discipline/glob-portability.test.mjs` gains a third test: every suite test's relative-import graph is walked (static imports on every module; the root test's dynamic relative imports too, since a test body executes) and any bare package or tsconfig alias reached on that graph fails the pre-push suite with the full chain in the message. `import type` lines and `from "x"` inside string literals are excluded (both false positives on the first run: reconcile.ts, load-detail-core.ts, list-pagination.ts type imports; F40's message string; perf-budget's prose). Proven both ways [CONFIRMED]: 3/3 on the fixed tree; with the pre-fix driver restored, exactly one violation naming `apply-record-briefs.test.mjs -> apply-record-briefs.mjs: imports @supabase/supabase-js`; a direct walk of layout-guard.test.mjs reports the esbuild chain through run-layout-guard.mjs and harness.mjs, which is #632's shape.

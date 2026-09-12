@@ -72,7 +72,10 @@ import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient } from "@supabase/supabase-js";
+// @supabase/supabase-js is loaded lazily inside main() (see there): a top-level import made this
+// module, and therefore apply-record-briefs.test.mjs, unloadable in the no-npm-ci discipline job
+// (PR #640, "Cannot find package '@supabase/supabase-js'"), the same transitive-npm class
+// run-test-suite.sh's header names. The pure plan builder and the test stay portable.
 
 import { isMainModule } from "../lib/is-main.mjs";
 import { claimRunId, writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
@@ -530,6 +533,7 @@ async function main() {
       throw new Error(`failed to read/parse --briefs: ${err.message}`);
     }
 
+    const { createClient } = await import("@supabase/supabase-js"); // lazy: see the import note above
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });

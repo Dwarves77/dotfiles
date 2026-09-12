@@ -65,6 +65,65 @@ function nonPortableSpecifiers(src) {
   return bad;
 }
 
+// TRANSITIVE CHECK (2026-09-12). The direct-import check above missed two CI reds in one day: layout-guard.test.mjs
+// (PR #632) reached esbuild through run-layout-guard.mjs and the smoke harness, and apply-record-briefs.test.mjs
+// (PR #640) reached @supabase/supabase-js through the driver it imports. Both passed locally because node_modules
+// exists here. So every suite test is now walked through its RELATIVE static imports (.mjs/.js/.ts) and every
+// module on that graph must itself have only node: builtins or relative STATIC imports. Dynamic import()/require()
+// inside a function are allowed on transitive modules (they load on call, not at module load; db.mjs's lazy
+// require is the sanctioned shape). A tsconfig alias ("@/...") is a bare specifier here: it needs a loader.
+// Two deliberate exclusions, each a false positive the first run of this check produced: `import type` /
+// `export type` (erased by type-stripping, so `import type { SupabaseClient } from "@supabase/supabase-js"`
+// in a .ts module loads nothing), and `from "x"` inside a string literal (F40's HELPER_IMPORT message,
+// perf-budget's "'shell painted' from 'content painted'" prose), so only STATEMENT-POSITION imports count.
+// One deliberate inclusion: the ROOT test's own dynamic relative imports are followed too, because a test
+// body executes when the suite runs (#632's exact shape: layout-guard.test.mjs did `await import(
+// './run-layout-guard.mjs')` inside a test, and that module statically imports the esbuild harness).
+const STATIC_MODULE_RES = [
+  /^[ \t]*import\s+(?!type\b)[^;'"]*?\bfrom\s+["']([^"']+)["']/gm, // import x / {x} / * as x from "y"
+  /^[ \t]*export\s+(?!type\b)[*{][^;'"]*?\bfrom\s+["']([^"']+)["']/gm, // export * / {x} from "y" (re-export)
+  /^[ \t]*import\s+["']([^"']+)["']/gm,                             // side-effect import "y"
+];
+const DYNAMIC_RELATIVE_RE = /\b(?:import|require)\s*\(\s*["'](\.\.?\/[^"']+)["']/g;
+function staticSpecifiers(src, { includeDynamicRelative = false } = {}) {
+  const noComments = src.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const out = [];
+  for (const re of STATIC_MODULE_RES) for (const m of noComments.matchAll(re)) out.push(m[1]);
+  if (includeDynamicRelative) for (const m of noComments.matchAll(DYNAMIC_RELATIVE_RE)) out.push(m[1]);
+  return out;
+}
+function resolveRelative(fromFile, spec) {
+  const base = resolve(dirname(fromFile), spec);
+  for (const cand of [base, `${base}.mjs`, `${base}.js`, `${base}.ts`, resolve(base, "index.mjs")]) {
+    try { if (readFileSync(cand)) return cand; } catch { /* next */ }
+  }
+  return null;
+}
+/** Walk a test file's relative import graph; return "chain: imports x" strings for every bare specifier
+ *  reached through STATIC imports of any module on the graph (the root test itself is checked by the
+ *  stricter direct rule above). */
+function transitiveNonPortable(rootAbs) {
+  const seen = new Set([rootAbs]);
+  const queue = [[rootAbs, [rootAbs]]];
+  const bad = [];
+  while (queue.length) {
+    const [file, chain] = queue.shift();
+    let src;
+    try { src = readFileSync(file, "utf8"); } catch { continue; }
+    for (const s of staticSpecifiers(src, { includeDynamicRelative: file === rootAbs })) {
+      if (s.startsWith("node:")) continue;
+      if (s.startsWith("./") || s.startsWith("../")) {
+        const next = resolveRelative(file, s);
+        if (next && !seen.has(next)) { seen.add(next); queue.push([next, [...chain, next]]); }
+        continue;
+      }
+      if (file === rootAbs) continue; // the root's own bare imports are reported by the direct check
+      bad.push(`${chain.map((f) => f.slice(REPO.length + 1)).join(" -> ")}: imports ${s} (bare package or alias, unavailable without npm ci)`);
+    }
+  }
+  return [...new Set(bad)]; // a module importing the same package in several statements reports once
+}
+
 test("run-test-suite.sh lists a NON-EMPTY test glob (empty source-of-truth is a standing red)", () => {
   // The permanent guard against the failure this fix was born from: if the test list ever moves/empties,
   // glob-portability fails LOUDLY instead of silently checking nothing.
@@ -85,5 +144,17 @@ test("every discipline-glob test imports only node: builtins + relative .mjs (po
     violations.length, 0,
     `non-portable imports in the discipline test glob (they pass locally but ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
     `Fix: a glob test may import ONLY node: builtins and relative .mjs/.js. Put pure logic in a .mjs core and test that.`,
+  );
+});
+
+test("every discipline-glob test's TRANSITIVE relative-import graph reaches no bare package or alias (the class behind PRs #632 and #640)", () => {
+  const files = [...new Set(testGlobFromSuite().flatMap(expand))];
+  const violations = [];
+  for (const rel of files) violations.push(...transitiveNonPortable(resolve(REPO, rel)));
+  assert.equal(
+    violations.length, 0,
+    `transitive non-portable imports reachable from the discipline test glob (green locally, ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
+    `Fix: make the npm import lazy (dynamic import() or require() inside the function that needs it, the db.mjs shape), ` +
+    `or list the test by name in discipline.yml's npm-deps step instead of the no-npm glob.`,
   );
 });
