@@ -90,15 +90,32 @@ ran against) -- neither matches the CURRENT hash below, which is expected: rule 
 compares the LATEST artifact's hash against the CURRENT tree, and this marker is exactly the honest
 acknowledgment that the tree moved since those two runs.
 
-**harness_version at write time:** `sha256:23efe6a3833474fa` (recomputed via `hashHarnessVersion` against
-`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:7445fa9093987e53`
+**harness_version at Re-pin 3's write time (superseded below, see Re-pin 4):** `sha256:23efe6a3833474fa`
+(recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, the same 4 files,
+unreordered; superseded `sha256:7445fa9093987e53` outright).
+
+---
+
+## Re-pin 4 (fix round 1, 2026-09-12 -- review findings 2 and 3)
+
+**What changed.** `scripts/turns/record-briefs/schema.mjs` (a governing file) changed again: the
+criterion 4 mirror now extracts sections through the SAME `extractSectionByNumber`/`extractSectionByHeading`
+walk the real write path runs (review finding 2 -- the prior bespoke `#{1,6}` splitter drew section
+boundaries finer than the write path's own, which could over-refuse a compliant lane using the documented
+H1-with-H2-subsections pattern), and the Gate A mirror's own residual risk (a claim dropped between
+validate-time and ground-time by a mechanism other than `derivedCovered`) is now documented inline
+(review finding 3). Neither change touches `apply-record-briefs.mjs`, `canonical-pipeline.ts`, or
+`flywheel-steps.mjs`.
+
+**harness_version at write time:** `sha256:9bb2a500ed959054` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:23efe6a3833474fa`
 outright).
 
-**The planned run that supersedes this marker.** Not the first run any more (001 and 002 already exist,
-landed by this task) -- the marker's superseding run is now the pilot RE-APPLY, `brief-apply-run-003.json`,
-from the first `brief-apply.yml` dispatch against `record-briefs-001.json` under this task's fixed code
-(five defects fixed: A/B Gate A + criterion 4 pre-write refusals now catch what the ground step used to
-quarantine, C target-match own-url match, D the whole-module db pass, E the widened timeline parser, F the
-workflow's `allow_brief_overwrite` input + artifact commit-back). Per F28's reverse-audit, this file is
+**The planned run that supersedes this marker.** Unchanged from Re-pin 3 -- the pilot RE-APPLY,
+`brief-apply-run-003.json`, from the first `brief-apply.yml` dispatch against `record-briefs-001.json`
+under this task's fixed code (five defects fixed: A/B Gate A + criterion 4 pre-write refusals now catch
+what the ground step used to quarantine, C target-match own-url match, D the whole-module db pass, E the
+widened timeline parser, F the workflow's `allow_brief_overwrite` input + artifact commit-back, hardened
+in fix round 1 to degrade rather than fail the run on a refused push). Per F28's reverse-audit, this file is
 deleted the moment an artifact carrying the hash above lands, or re-pinned again if a governing file
 changes before that run lands.

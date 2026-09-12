@@ -163,11 +163,40 @@ describe("validateRecordBriefsFile: criterion 4 mirror (unlabeled assertion)", (
     assert.equal(r.ok, true);
   });
 
-  test("an unlabeled assertion in the preamble before the first heading is caught too", () => {
+  // Fix round 1, finding 2: content outside every canonical section (a preamble, a non-canonical heading
+  // standing alone) is never checked -- the real write path (extractCanonicalSections's own
+  // number-first-then-heading-then-alts walk) never persists it either, so a criterion-4 "violation"
+  // there would be a false positive the live database can never reproduce.
+  test("content in the preamble before the first heading is NEVER checked (the real write path never persists it)", () => {
     const entry = validEntry({ body: "The operator must register before shipping.\n\n" + validEntry().body });
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
-    assert.equal(r.ok, false);
-    assert.ok(r.errors.some((e) => e.includes("criterion 4 mirror") && e.includes("preamble")));
+    assert.equal(r.ok, true, `expected ok (preamble content is discarded by the real write path too), got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  test("content under a non-canonical heading (not one of the format's own section names) is NEVER checked either", () => {
+    const entry = validEntry({
+      body:
+        "# Regulation Brief\n\nThis instrument sets out reporting obligations." +
+        "\n\n# A heading that is not a canonical section name\n\nThe operator must register with the agency." +
+        "\n\n# Confirmed Regulatory Timeline\n\n- 1 January 2027: Regulation enters into force.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // Fix round 1, finding 2's own worked example: the write path's H1-matched section runs to the NEXT
+  // H1, folding in any H2/H3+ sub-heading -- so a label anywhere in that combined text satisfies the
+  // WHOLE section, wherever the unlabeled modal verb sits. A bespoke finer split (the prior version of
+  // this mirror) would isolate the two and wrongly refuse this -- the exact over-refusal the fix closes.
+  test("an H1 section's early unlabeled sentence is satisfied by a label on its own H2/H3 sub-heading, matching the live write path's folded row", () => {
+    const entry = validEntry({
+      body:
+        validEntry().body +
+        "\n\n# Substantive Requirements\n\nThe operator must register with the agency.\n\n" +
+        "### Detail sub-point\n\n*Analytical inference:* further detail on the registration process.\n",
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, true, `expected ok (the H3 sub-heading folds into the parent H1 row), got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
   test("this mirror is STRICTER than the live DB rule: a FACT claim attached to the section is NOT an escape here", () => {

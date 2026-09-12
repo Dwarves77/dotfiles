@@ -117,8 +117,39 @@ source rather than writing something the ground step will quarantine anyway.
    date carried in the run artifact -- or the date is covered by a claim. Writing a bare "In force as of
    2026-09-12." (a real pilot defect) gates on the ISO token; "In force as of the export date." does not.
 
-2. **Criterion 4 mirror.** Splits the body at `#`-headings (the preamble before the first heading is its
-   own section, checked the same way) and refuses any section whose text matches
+   **[HYPOTHESIS] residual risk, NOT closed by this validator (fix round 1, review finding 3).** This
+   mirror proves the body against the claims AS AUTHORED, at validate time -- it cannot prove a claim
+   survives to ground time. `buildGateARow` (the live write path) scans `full_brief` against the claims
+   that SURVIVED grounding, not the full set the lane submitted; a claim can be dropped between
+   validate-time and ground-time for reasons that have nothing to do with `derivedCovered` -- the pilot's
+   own finding C is direct proof this already fired once (a target-match MISMATCH zeroed all claims for 4
+   items, re-orphaning every Gate A token those claims used to cover). Fix C (own-URL match in
+   `target-match.mjs`) closes that specific mechanism for the three `identifierInUrl` forms it recognises
+   (CELEX, UK legislation, Federal Register); it does not close it for an item whose own-identifier shape
+   isn't one of those three, or for a claim dropped by a verbatim re-check against a live pool that has
+   changed since this validator ran. **Mitigation, why this residual is bounded rather than open-ended:**
+   `assertVerbatim` already runs in this validator (`validateRecordBriefsClaim`) against the SAME pool
+   text this Gate A mirror reads, so a claim cannot be dropped here for failing verbatim-ness this
+   validator itself already confirmed passed -- the remaining path is a target-match hold on the item's
+   whole pool, or the pool genuinely changing between validate-time and ground-time (a race this pure,
+   offline validator cannot observe). Ideally the Gate A mirror would also re-run each FACT claim's
+   `source_span` through the same target-match check `groundBrief` applies, so a claim the ground step
+   would drop is never counted as coverage here either -- not built in this task.
+
+2. **Criterion 4 mirror.** Extracts the body into the SAME section rows the real write path would persist
+   to `intelligence_item_sections` (`extractCanonicalSections` in `schema.mjs`, reusing
+   `extractSectionByNumber`/`extractSectionByHeading` from `extract-sections.ts` -- the number-first-then-
+   heading-then-alts walk `src/lib/agent/formats/prose-extractor.ts`'s `makeProseExtractor` itself runs,
+   over each format's own canonical section list, mirrored here as data since the real format files import
+   via `@/` tsconfig aliases the no-npm-ci discipline job cannot resolve). Content outside every canonical
+   section (a preamble, a non-canonical heading standing alone) is never checked, because the real write
+   path never persists it either. **Fix round 1 correction (review finding 2):** the prior version of
+   this mirror split the body at every `#`-`######` heading, a FINER boundary than the write path's own
+   (an H1-matched section's body runs to the next H1, folding in any H2/H3+ sub-heading) -- which could
+   isolate an early unlabeled sentence from a labeled sub-heading the live database folds into the same
+   row, over-refusing a compliant lane emitting the documented H1-with-H2-subsections pattern. Fixed by
+   reusing the real extraction functions instead of a bespoke splitter.
+   Refuses any resulting section whose text matches
    `/\b(requires|must|mandates|obligates|prohibits|applies to)\b/i` unless that SAME section also carries
    one of the four analysis labels (`*Per the workspace's reading:*`, `*Analytical inference:*`,
    `*Industry interpretation:*`, `*Operational implication:*`) or the `*Legal Confirmation Required:*`
