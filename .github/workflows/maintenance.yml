@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -847,6 +847,30 @@ jobs:
           EXTRA=""
           if [ -n "$RUN_ARG" ]; then EXTRA="--after-id $RUN_ARG"; fi
           node scripts/maintenance/retype-eu-decisions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/retype-eu-decisions" $EXTRA
+
+      - name: timeline-backfill
+        # Task 6.1c, brief-chain build plan 2026-09-11, under ADR-030 ("every item carries a timeline
+        # date"). Corpus sweep, steps 2-6 of the task brief's ordered derivation (title date / Federal
+        # Register URL date path / legislation.gov.uk Made-or-Royal-Assent-or-year-fallback / earliest
+        # forward event / dateline in the capture text) for every live item with NO item_timelines row.
+        # Step 1 (the brief-body timeline-section harvest) is a DIFFERENT tool
+        # (scripts/backfill-item-timelines.mjs, not this step) -- dispatch it first, separately, over the
+        # reg-family briefs carrying a timeline section; this step covers whatever remains undated after
+        # that pass. Not ruling-gated; apply needs no --arg beyond a valid selection. `arg`, if given,
+        # resumes past a prior run via --after-id (this step's own resumability flag, same idiom as
+        # backfill-format-type.mjs / retype-eu-decisions.mjs above -- a raw inline block rather than the
+        # ./.github/actions/maintenance-step composite action, because that action only ever passes
+        # --mode/--arg/--out and cannot carry this step's own --after-id resumability flag the task brief
+        # requires). An item nothing dates is reported in this run's own summary.json and, on apply,
+        # rolled into ONE integrity_flags row for the whole run (never one row per item) so
+        # scripts/verify/population-report.mjs's own "timeline coverage" entry can read the reported/
+        # excluded set back out.
+        if: env.RUN_STEP == 'timeline-backfill' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/timeline-backfill"
+          EXTRA=""
+          if [ -n "$RUN_ARG" ]; then EXTRA="--after-id $RUN_ARG"; fi
+          node scripts/maintenance/timeline-backfill.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/timeline-backfill" $EXTRA
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
