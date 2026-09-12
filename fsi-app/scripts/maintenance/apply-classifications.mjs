@@ -1,10 +1,10 @@
-// apply-classifications.mjs — MAINT dispatch step: proposes source classifications via
+// apply-classifications.mjs -- MAINT dispatch step: proposes source classifications via
 // propose-classifications.mjs logic, then auto-adopts high-confidence proposals (operator ruling
 // 2026-09-03). Two modes: dry = propose (no-op) + list what --auto-adopt would adopt; apply =
 // propose (committed writes) then auto-adopt (committed writes + flag resolution).
 //
 // WHY THIS WRAPPER EXISTS (Lane CLASSIFY-STEP, 2026-09-04). propose-classifications.mjs and
-// apply-classifications.mjs exist, but neither runs as part of any turn today — classifications
+// apply-classifications.mjs exist, but neither runs as part of any turn today -- classifications
 // never run unless a coordinator runs them by hand, which cannot happen (no credentials outside
 // Actions). This wrapper is the missing coordinator-dispatch runtime that makes the full
 // propose->auto-adopt pipeline runnable through the MAINT framework (docs/plans/finish-plan-2026-09-02.md,
@@ -26,7 +26,7 @@
 //
 // This step NEVER WRITES sources.jurisdictions (see apply-classifications.mjs's header). If
 // propose-classifications emits a jurisdiction proposal, it rides along in description (advisory-only)
-// but is filtered out before any auto-adopt patch is built — the framework's own rule (classify-source.mjs).
+// but is filtered out before any auto-adopt patch is built -- the framework's own rule (classify-source.mjs).
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -319,7 +319,7 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   if (!apply) {
     summary.note =
-      `DRY — proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new ` +
+      `DRY -- proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new ` +
       `flag(s) (${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length + anomalyResult.plan.staleIds.length} stale resolved). ` +
       `${eligible.length} OPEN source-classification flag(s) eligible for auto-adoption (` +
       `${eligible.reduce((n, e) => n + e.decision.autoAdoptable.length, 0)} proposals). Nothing written. ` +
@@ -373,57 +373,69 @@ export async function main({ mode = "dry" } = {}, deps) {
   return summary;
 }
 
+// Extracted to a named export (fix round, 2026-09-12 -- coordinator-reported crash, maintenance run
+// 34691660889): `updateSource` and `resolveFlag` below both call `guardedUpdate`, which this function's
+// own db.mjs import omitted -- a `ReferenceError: guardedUpdate is not defined` at apply time only,
+// because Phase 2's apply branch (`updateSource`/`resolveFlag`) is unreachable in dry mode (`main`
+// returns before Phase 2's write loop when `!apply` -- see this file's own `main`). Dry mode therefore
+// passed clean while a real `--mode apply` dispatch crashed on the first eligible auto-adopt. Exporting
+// `buildRealDeps` (rather than leaving it inline inside the `IS_MAIN` block) lets a test call it directly
+// with db.mjs's `__setWriteClientForTest` seam, so an apply-only closure with a missing import fails the
+// test the same way it failed production, instead of only being exercised by fake `deps` objects that
+// never touch the real imports (see apply-classifications.test.mjs's own "buildRealDeps" tests).
+export async function buildRealDeps() {
+  const { readAll, readClient, guardedInsertMany, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
+  const sb = readClient();
+
+  return {
+    readAll,
+    readClient: () => sb,
+    insertMany: (table, rows, opts) => guardedInsertMany(table, rows, opts),
+    // plan.staleIds is runtime-scaled (every stale integrity_flags row this classification pass
+    // found) with no declared cap -- chunked via guardedUpdateByIds, not a single .in(), IN-CHUNK
+    // class (2026-09-06; same shape as analyze-corpus.mjs's 1,317-id resolve).
+    updateStale: async (table, ids, patch) =>
+      guardedUpdateByIds(table, ids, patch, { cite: CITE }),
+    listOpenClassifications: async () => {
+      const rows = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb
+          .from("integrity_flags")
+          .select("id, subject_ref, created_by, status, description")
+          .eq("status", "open")
+          .eq("created_by", CLASSIFY_CREATED_BY)
+          .order("id")
+          .range(from, from + 999);
+        if (error) throw new Error(`apply-classifications: open flag read failed: ${error.message}`);
+        rows.push(...(data ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      return rows;
+    },
+    readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
+    readSource: (id) => sb.from("sources").select("id, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+    updateSource: async (id, patch) => {
+      const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
+      return { updated: res.updated, snapshot: res.snapshot };
+    },
+    resolveFlag: async (id, note) => {
+      const res = await guardedUpdate(
+        "integrity_flags",
+        (qb) => qb.eq("id", id),
+        { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "apply-classifications.mjs (MAINT)", resolution_note: note },
+        { cite: CITE },
+      );
+      return { updated: res.updated, snapshot: res.snapshot };
+    },
+  };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
   await runCli({
     step: "apply-classifications",
     main,
     needsDb: true,
-    buildDeps: async () => {
-      const { readAll, readClient, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
-      const sb = readClient();
-
-      return {
-        readAll,
-        readClient: () => sb,
-        insertMany: (table, rows, opts) => guardedInsertMany(table, rows, opts),
-        // plan.staleIds is runtime-scaled (every stale integrity_flags row this classification pass
-        // found) with no declared cap — chunked via guardedUpdateByIds, not a single .in(), IN-CHUNK
-        // class (2026-09-06; same shape as analyze-corpus.mjs's 1,317-id resolve).
-        updateStale: async (table, ids, patch) =>
-          guardedUpdateByIds(table, ids, patch, { cite: CITE }),
-        listOpenClassifications: async () => {
-          const rows = [];
-          for (let from = 0; ; from += 1000) {
-            const { data, error } = await sb
-              .from("integrity_flags")
-              .select("id, subject_ref, created_by, status, description")
-              .eq("status", "open")
-              .eq("created_by", CLASSIFY_CREATED_BY)
-              .order("id")
-              .range(from, from + 999);
-            if (error) throw new Error(`apply-classifications: open flag read failed: ${error.message}`);
-            rows.push(...(data ?? []));
-            if (!data || data.length < 1000) break;
-          }
-          return rows;
-        },
-        readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
-        readSource: (id) => sb.from("sources").select("id, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
-        updateSource: async (id, patch) => {
-          const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
-          return { updated: res.updated, snapshot: res.snapshot };
-        },
-        resolveFlag: async (id, note) => {
-          const res = await guardedUpdate(
-            "integrity_flags",
-            (qb) => qb.eq("id", id),
-            { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "apply-classifications.mjs (MAINT)", resolution_note: note },
-            { cite: CITE },
-          );
-          return { updated: res.updated, snapshot: res.snapshot };
-        },
-      };
-    },
+    buildDeps: buildRealDeps,
   });
 }

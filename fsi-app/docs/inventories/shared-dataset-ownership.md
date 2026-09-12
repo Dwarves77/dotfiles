@@ -112,7 +112,9 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/apply-classifications.mjs",
       "scripts/classification/apply-classifications.mjs",
       "scripts/turns/run-population-flywheel.mjs",
-      "scripts/maintenance/timeline-backfill.mjs"
+      "scripts/maintenance/timeline-backfill.mjs",
+      "scripts/maintenance/resolve-cited-host-gate.mjs",
+      "scripts/maintenance/resolve-error-body-gate.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -152,7 +154,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/intake/write-item.ts",
       "supabase/functions/capture-worker/index.ts",
       "scripts/remediation/refetch-capped-worklist.mjs",
-      "scripts/maintenance/provenance-heal.mjs"
+      "scripts/maintenance/provenance-heal.mjs",
+      "scripts/maintenance/resolve-error-body-gate.mjs"
     ],
     "intelligence_item_sections": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -227,6 +230,24 @@ own `record_facts` section in `intelligence_item_sections`, creating that sectio
 `scripts/maintenance/provenance-heal.mjs`'s own STEP 3 SLOTS already uses, reused rather than
 re-implemented (`bestCaptureText`/`findSearchIdForSpan`/`missingRequiredSlots`/`claimCoversSlot`,
 imported from `scripts/mint/heal-provenance.mjs`).
+
+Note (added by Part 7 task 7.4, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+resolve-cited-host-gate.mjs` added to `integrity_flags` -- resolves the `cited-host-gate` flag family
+(canonical-pipeline.ts's own write site) by registering a cited URL's host through the SC-13 class table
+(`classTierForHost`, `src/lib/sources/host-authority.ts`, imported unmodified) via `registerSource`
+(`scripts/lib/db.mjs`, unmodified), or, for a host the class table cannot classify, writing/merging the
+SAME `null-tier-host` worklist flag `surfaceNullTierHosts` (canonical-pipeline.ts) already writes at
+grounding time (`mergeNullTierAggregate`/`summarizeNullTierAggregate`, `src/lib/agent/null-tier-flag.mjs`,
+imported unmodified) -- then resolves the `cited-host-gate` flag itself with the outcome recorded.
+
+Note (added by Part 7 task 7.4, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+resolve-error-body-gate.mjs` added to `integrity_flags` and `agent_run_searches` -- resolves the
+`error-body-gate` flag family (canonical-pipeline.ts's own write site) by re-fetching each flagged failed-
+fetch URL through the existing free capture path (`captureCitedUrl`, `scripts/mint/heal-provenance.mjs`,
+imported unmodified); a recaptured URL is stored via `buildCaptureSearchRow` (same file, unmodified)
+inserted into `agent_run_searches` through the guarded path, then the flag is resolved with the outcome.
+A still-failing URL is never inserted into `agent_run_searches` -- it routes to the (file-based, not DB)
+attach-found-sources worklist instead, and the flag is still resolved.
 
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
