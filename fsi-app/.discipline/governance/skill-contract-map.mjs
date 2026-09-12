@@ -154,6 +154,9 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // remediation-discipline's citingFiles (F25 module-liveness had flagged it unwired; wiring it into
 // run-data-audit-lane.mjs's AUDITS list is what makes its own "GOVERNING SKILLS: remediation-discipline"
 // header a real citation this gate must track). No contentHash change: the skill text itself did not move.
+// 2026-09-12 (lane w9-d5-d7, D7): 'fsi-app/scripts/verify/check-vocabulary-drift.mjs' ADDED to
+// remediation-discipline's citingFiles (a new file, its own "GOVERNING SKILL: remediation-discipline"
+// header, Section 2, Class-Over-Instance). No contentHash change: the skill text itself did not move.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -187,6 +190,7 @@ export const PINNED_MANIFEST = {
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
+      'fsi-app/scripts/verify/check-vocabulary-drift.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',
       'fsi-app/scripts/verify/column-existence-parity.mjs',
       'fsi-app/scripts/verify/deferral-hygiene-audit.mjs',
