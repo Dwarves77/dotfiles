@@ -834,8 +834,11 @@ export function isEurlexHost(sourceUrl) {
 
 /** Route a required-slot key to its specialised extractor when one exists, else the generic
  *  SLOT_TRIGGERS path (extractSlotFact). Keeps buildRecordFacts' loop uniform regardless of which slots
- *  a given item_type's required-slots list names. */
-function buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }) {
+ *  a given item_type's required-slots list names. Exported (Task 5.5, brief-chain build plan
+ *  2026-09-11): a maintenance retype (retype-eu-decisions.mjs) needs the SAME per-slot routing a fresh
+ *  mint uses when adding required-slot claims to an EXISTING item, rather than re-deriving which of the
+ *  four slot keys has a specialised extractor. */
+export function buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }) {
   if (slotKey === "binding_position") return extractBindingPositionFact({ capturedText, sourceUrl });
   if (slotKey === "due_date") return extractDueDateFact({ capturedText, sourceUrl });
   if (slotKey === "corridor_identity") return extractCorridorFact({ capturedText, sourceUrl });

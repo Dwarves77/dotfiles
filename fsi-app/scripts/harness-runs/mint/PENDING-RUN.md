@@ -83,6 +83,19 @@ edit only: the guard still calls `main()` under the identical condition, now cor
 instead of only on POSIX; no mint-kit VALIDATION behavior changed. This moves the file's bytes and
 therefore the family's hash again.
 
-**harness_version at write time:** `sha256:0cc65f2728f2af1a` (recomputed task 0.3b, `node -e` against
+**harness_version at write time (superseded below, see task 5.5):** `sha256:0cc65f2728f2af1a` (recomputed
+task 0.3b, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and
+`run-artifact.mjs`'s `hashHarnessVersion`, the same 8 files, unreordered; supersedes
+`sha256:eb6c6027081dcd54` outright).
+
+**RE-PINNED (task 5.5, brief-chain build plan 2026-09-11, lane eudecision):** `src/lib/intake/record-facts.mjs`
+(one of the 8 files `GOVERNING_FILES.mint` names) gained one export: `buildRecordSlotClaim` (previously a
+private, unexported function) is now `export function buildRecordSlotClaim`: the per-slot routing a
+fresh mint's `buildRecordFacts` already used internally, needed by
+`scripts/maintenance/retype-eu-decisions.mjs` to add required-slot claims to an EXISTING item outside a
+fresh mint. No behavior change to any existing caller (the function's body and every internal call site
+are byte-identical); only its export surface widened. No mint-kit VALIDATION behavior changed.
+
+**harness_version at write time:** `sha256:a4771a1955310523` (recomputed this lane, `node -e` against
 `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion`,
-the same 8 files, unreordered; supersedes `sha256:eb6c6027081dcd54` outright).
+the same 8 files, unreordered; supersedes `sha256:0cc65f2728f2af1a` outright).

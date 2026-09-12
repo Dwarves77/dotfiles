@@ -66,7 +66,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/canonical-autoverify.mjs",
       "scripts/forward-events/dispatch-extraction.mjs",
       "src/lib/forward-events/compliance-deadline-sync.mjs",
-      "src/lib/entities/link-item-entities.mjs"
+      "src/lib/entities/link-item-entities.mjs",
+      "scripts/maintenance/retype-eu-decisions.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -141,7 +142,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/_reground/restore-overclear.mjs",
       "scripts/mint/apply-mint-batch.mjs",
       "src/lib/intake/write-item.ts",
-      "scripts/maintenance/provenance-heal.mjs"
+      "scripts/maintenance/provenance-heal.mjs",
+      "scripts/maintenance/retype-eu-decisions.mjs"
     ],
     "agent_run_searches": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -154,7 +156,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/agent/canonical-pipeline.ts",
       "src/lib/intake/write-item.ts",
       "src/workflows/generate-brief.ts",
-      "scripts/maintenance/provenance-heal.mjs"
+      "scripts/maintenance/provenance-heal.mjs",
+      "scripts/maintenance/retype-eu-decisions.mjs"
     ],
     "item_gate_a_state": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -211,6 +214,17 @@ application code. The two entries actually listed are the ones the scanner CAN a
 `scripts/turns/consume-turn-requests.mjs` (the consumer's `guardedUpdate` stamping `consumed_at`/
 `consumed_by`). See the dataset's own detail section below for the full writer/reader picture including
 the trigger.
+
+Note (added by task 5.5, brief-chain build plan 2026-09-11): `scripts/maintenance/retype-eu-decisions.mjs`
+added to `intelligence_items`, `section_claim_provenance`, and `intelligence_item_sections` above -- the
+MAINT step that retypes the live CELEX 'D'-letter (Decision) rows from `item_type='initiative'` to
+`item_type='regulation'` (task 1.3's operator ruling). It inserts FACT-or-GAP claims for the three slots
+`regulation` requires that `initiative` does not (`section_claim_provenance`, appending onto the item's
+own `record_facts` section in `intelligence_item_sections`, creating that section when absent) BEFORE the
+`item_type`/`format_type`/title UPDATE on `intelligence_items` -- the same per-item write shape
+`scripts/maintenance/provenance-heal.mjs`'s own STEP 3 SLOTS already uses, reused rather than
+re-implemented (`bestCaptureText`/`findSearchIdForSpan`/`missingRequiredSlots`/`claimCoversSlot`,
+imported from `scripts/mint/heal-provenance.mjs`).
 
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
