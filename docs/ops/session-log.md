@@ -19222,3 +19222,122 @@ skill-gate denial on any Write/Edit this round.
 ### UX compliance (fix round 1)
 
 Not applicable: no `.tsx`/`.css` touched this round either.
+
+### Task 3.5: every new item is queued for a brief automatically
+
+Brief: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-3.5-brief.md`. Plan context: Part 3
+header and task 3.5 (lines 416-419, 483-492 of `docs/plans/brief-chain-build-plan-2026-09-11.md`).
+
+**(1) `run-population-flywheel.mjs` step 12: `brief-export`.** Added after `record-last-turn`
+(`buildFlywheelPlan`'s 12th and final step). Pure helper `buildBriefExportArgs(mintRunId, batchIds,
+charBudget)` computes the exact `export-corpus-for-extraction.mjs --out <path> --ids <ids> --with-pool-text
+--char-budget <n>` invocation and its repo-tracked output path,
+`scripts/turns/brief-export/pending/<mintRunId>.json` (never `scripts/_snapshots/`, which is gitignored);
+`stepBriefExport` (the I/O handler) calls it and spawns the child process, mirroring `stepCorpusExport`'s
+own "local file only, never a DB write" posture -- runs in EITHER mode whenever the batch minted anything,
+skipped with a named reason at zero minted items. `DEFAULT_BRIEF_EXPORT_CHAR_BUDGET` (3,000,000) mirrors
+`export-corpus-for-extraction.mjs`'s own default. This driver runs no `git` command itself: the parts land
+where the SAME artifact-branch commit step `.github/workflows/population-turn.yml` already runs for the
+mint + forward-events harness-run artifacts picks them up (one added `git add
+scripts/turns/brief-export/pending` line in that existing step, plus a PR-body line naming the new queue)
+-- no second transport. `scripts/turns/brief-export/pending/README.md` (new) keeps the directory tracked
+even before any part lands there, and documents the mechanism (mirrors `record-briefs/README.md` /
+`ledger-verdicts/README.md`).
+
+This last piece (the `population-turn.yml` commit-step wiring + the `pending/README.md` placeholder) is
+NOT named in the brief's own Files list, which names only `run-population-flywheel.mjs` and
+`MINT-RUNBOOK.md`. It is added anyway, per rule 13 (a flag is a commitment): without it, step 12's own
+output would never actually reach `origin` on the run's artifact branch, silently failing the deliverable's
+own stated behavior ("commit the parts... on the run's own artifact branch") the moment a real
+`population-turn` apply ran. The addition is a single conditional `git add` line, exactly mirroring the two
+lines already there for `scripts/harness-runs/mint` and `scripts/harness-runs/forward-events`, plus a
+one-line PR-body addition -- low-risk, no behavior change to any existing step.
+
+**(2) `MINT-RUNBOOK.md` section 8 gains step 4, "Brief queuing."** The real file is
+`fsi-app/scripts/mint/MINT-RUNBOOK.md` (the brief's stated path, `docs/runbooks/MINT-RUNBOOK.md`, does not
+exist on this checkout; the file this project's runbooks convention uses lives under
+`scripts/mint/`). Documents step 12 in the runbook's own narrative numbered list (Discovery /
+Forward-event extraction / Recluster / Brief queuing), naming the tracked output path, the reused commit
+transport, and the population-report entry that watches the resulting queue.
+
+**Harness re-pin (mint family).** `MINT-RUNBOOK.md` is one of `GOVERNING_FILES.mint`'s 8 files; editing it
+moved the mint family's `harness_version` from `sha256:0cc65f2728f2af1a` to `sha256:213617fb97ab8dc4`
+(recomputed via `hashHarnessVersion` against `governing-files.mjs`'s own array, confirmed independently
+before writing the re-pin). `run-population-flywheel.mjs` itself is NOT in `GOVERNING_FILES.mint` (that
+file governs no harness family of its own -- see its own header, "NOT a new harness-run family"), so its
+own edits do not move this hash on their own. `scripts/harness-runs/mint/PENDING-RUN.md` re-pinned to the
+new hash.
+
+**(3) `population-report.mjs`: the "briefs pending" entry.** Pure predicate `computeBriefsPendingStale
+(liveRecordItems, mintRuns, briefApplyRuns)`: a live record-grade item is STALE when it carries no
+brief-apply outcome (`scripts/harness-runs/brief-apply/*.json`'s own `per_item`, task 3.4's
+`"<itemId>#<step>"` id shape) AND was minted before the LATEST population turn's own `started_at` (its own
+mint-run artifact under `scripts/harness-runs/mint/`, resolved via `extractMintedItemIds` -- reused
+unchanged, never a second copy of "what counts as minted"; falls back to `intelligence_items.created_at`
+when no mint-run artifact resolves, per the brief's own "or the equivalent you can compute" allowance). An
+item minted in the SAME (most recent) turn is never stale. `countBriefsPendingStale(sb, {readHistoryFn,
+mintDir, briefApplyDir})` is the DI-testable I/O wrapper (`readHistoryFn` defaults to the real
+`readRunHistory`) the STORES entry's `totalQuery` calls.
+
+**Entry design, deliberately deviating from the file's usual coverage-ratio shape (documented inline in the
+entry's own comment).** `total` (rows) IS the stale count itself, not a coverage ratio: 0 stale reads as
+EMPTY (this file's own documented benign state), any nonzero count reads as ROWS_NO_VALUES (the existing
+defect state) -- the exact "> 0 is red" predicate the brief asks for, which a coverage-ratio shape (some
+stale among many fine items, `filled > 0` masking the bad ones) could not express: any single stale item
+must flip the state, not only "every item is stale." `filled` is therefore not a second, independent
+measurement -- it is structurally 0 (an item counted in `total` is BY DEFINITION one with no brief-apply
+outcome), stated as such in the entry's own comment rather than silently hardcoded.
+
+**RED then GREEN, both suites.** Swapped in the pre-change `population-report.mjs` (via `git show
+HEAD:...`) alongside the new test file: `SyntaxError: does not provide an export named
+'computeBriefsPendingStale'`, whole suite red. Restored: `tests 27, pass 27, fail 0` (14 pre-existing + 13
+new: 5 pure-predicate cases including the never-guess-without-evidence and same-turn-not-stale cases, plus
+2 entry-level red/green cases through `classify()`/`countStore()`). `run-population-flywheel.test.mjs`:
+STEP_ORDER constant and four existing `buildFlywheelPlan` tests updated for the 12th step; 8 new tests
+(`buildFlywheelPlan` per-mode presence + skip-at-zero-items with a named reason, `buildBriefExportArgs`
+ids/out-path/char-budget/null-run-id/empty-batch cases). Combined: `tests 117, pass 117, fail 0`.
+
+**Gates (verbatim).**
+- `node --test scripts/turns/run-population-flywheel.test.mjs scripts/verify/population-report.test.mjs`:
+  `tests 117, pass 117, fail 0`.
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/fitness/runner.mjs`: 1 violation before the mint re-pin (`[F28] STALE PENDING-RUN.md`,
+  exactly the drift this task's own brief anticipated), 0 after.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: see `task-3.5-report.md` for the
+  full per-commit output.
+- `run-test-suite.sh` NOT run, per instruction.
+
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line: audited via
+`git diff --cached | grep '^+'` byte-scanned for U+2014/U+2013/U+00A7 across every touched file, including
+the workflow YAML and the two markdown files; 7 instances caught and fixed during authoring (four in
+`run-population-flywheel.mjs`'s own new doc comments, one each in the two test files' descriptions, one in
+`MINT-RUNBOOK.md`), one deliberately routed around rather than "fixed" (a pre-existing section-sign glyph
+naming the outcomes section, on a line in `population-turn.yml` I was about to touch: split into a new
+second `echo` line instead of appending to the existing one, so the untouched original line never enters
+this task's own diff at all). Final scan: 0
+matches across every staged file. No hardcoded user-home paths: grepped the staged diff for
+`C:\Users\`/`C:/Users/`/`/Users/jason`, zero matches. Findings above are `[CONFIRMED]` by the method named
+(live hash recomputation, RED/GREEN evidence, diff-scoped grep). Staged explicitly (8 named paths, one new
+file); never `git add -A`. Never touched `C:\Users\jason\dotfiles` (the main checkout, referenced here only
+in prose, never as a path an editor followed). No `git stash` used. No `--no-verify`. No push. No
+PreToolUse skill-gate denial on any Write/Edit. No database access of any kind (no DB creds available in
+this session; every gate above is fixture-driven or a pure/static check).
+
+**Files.**
+- `fsi-app/scripts/turns/run-population-flywheel.mjs` (modified: step 12 `brief-export`,
+  `buildBriefExportArgs`, `DEFAULT_BRIEF_EXPORT_CHAR_BUDGET`, `stepBriefExport`, `STEP_HANDLERS` entry)
+- `fsi-app/scripts/turns/run-population-flywheel.test.mjs` (modified: STEP_ORDER + 4 existing tests + 8 new)
+- `fsi-app/scripts/verify/population-report.mjs` (modified: "briefs pending" STORES entry,
+  `computeBriefsPendingStale`, `countBriefsPendingStale`, the two default harness-run dir exports)
+- `fsi-app/scripts/verify/population-report.test.mjs` (modified: 7 new tests)
+- `fsi-app/scripts/mint/MINT-RUNBOOK.md` (modified: section 8 step 4)
+- `fsi-app/scripts/harness-runs/mint/PENDING-RUN.md` (modified: re-pinned to the new hash)
+- `fsi-app/scripts/turns/brief-export/pending/README.md` (new)
+- `.github/workflows/population-turn.yml` (modified: commit step adds the brief-export queue; PR body
+  names it -- not in the brief's own Files list, added per rule 13, see above)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance (task 3.5)
+
+Not applicable: no `.tsx`/`.css` touched (a backend script, a runbook, two markdown files, and a workflow
+YAML only, per the brief).

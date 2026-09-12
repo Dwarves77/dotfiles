@@ -21,9 +21,120 @@
 //
 // $0: read-only, count-only. No writes, no model calls, no metered anything.
 
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "../lib/db.mjs";
 import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+import { readRunHistory } from "../lib/run-artifact.mjs";
+import { extractMintedItemIds } from "../turns/run-population-flywheel.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+// Task 3.5 (W9 brief-chain plan Part 3): the SAME two harness-run families run-population-flywheel.mjs
+// (mint) and apply-record-briefs.mjs (brief-apply) already read/write -- never a second, drifting copy of
+// either path.
+export const DEFAULT_MINT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
+export const DEFAULT_BRIEF_APPLY_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "brief-apply");
+
+/**
+ * Task 3.5, PURE, no I/O: the "briefs pending" queue this population-report entry watches. A live
+ * record-grade item is STALE when it carries NO brief-apply outcome (scripts/harness-runs/brief-apply/
+ * *.json's own per_item, task 3.4's own "<itemId>#<step>" id shape) AND it was minted before the LATEST
+ * population turn's own started_at -- i.e. at least one population turn has already run since this item
+ * was minted, with nothing yet applying a brief to it. This is the exact predicate this entry's own
+ * comment states verbatim, so the reader knows what red means without opening this file. An item minted in
+ * the SAME (most recent) turn is never stale by this predicate -- it has not yet had a turn to be picked
+ * up in. An item whose own mint-run artifact cannot be resolved (predates the mint harness family, or
+ * predates per_item.item_id -- see run-population-flywheel.mjs's own extractMintedItemIds/
+ * hasRecoverableMintedIds headers) falls back to its own intelligence_items.created_at: "the equivalent you
+ * can compute from what the report already reads," which this task's own brief allows. An item with
+ * NEITHER a resolvable mint-run started_at NOR a created_at is never counted stale: this function never
+ * guesses a verdict it cannot support with evidence.
+ * @param {Array<{id:string, created_at?:string|null}>} liveRecordItems
+ * @param {Array<object>} mintRuns readRunHistory(mintDir).runs
+ * @param {Array<object>} briefApplyRuns readRunHistory(briefApplyDir).runs
+ * @returns {{staleCount:number, staleIds:string[], latestTurnStartedAt:string|null}}
+ */
+export function computeBriefsPendingStale(liveRecordItems, mintRuns, briefApplyRuns) {
+  const items = Array.isArray(liveRecordItems) ? liveRecordItems : [];
+  const runs = Array.isArray(mintRuns) ? mintRuns : [];
+  const applyRuns = Array.isArray(briefApplyRuns) ? briefApplyRuns : [];
+
+  // The latest population turn's own started_at -- the newest mint-run artifact on record (population-
+  // turn.yml is the only writer of this family). Re-derived by explicit max rather than trusting
+  // readRunHistory's own ascending sort, so this function stays correct even given artifacts out of order.
+  let latestTurnStartedAt = null;
+  let latestTurnMs = -Infinity;
+  for (const r of runs) {
+    const t = Date.parse(r?.started_at ?? "");
+    if (Number.isFinite(t) && t > latestTurnMs) {
+      latestTurnMs = t;
+      latestTurnStartedAt = r.started_at;
+    }
+  }
+
+  // item_id -> the started_at of whichever mint-run artifact actually minted it. extractMintedItemIds'
+  // own MINTED_OUTCOME_VALUES vocabulary is reused unchanged: never a second, drifting copy of "what
+  // counts as minted."
+  const mintedAtByItemId = new Map();
+  for (const run of runs) {
+    for (const id of extractMintedItemIds(run)) {
+      if (!mintedAtByItemId.has(id)) mintedAtByItemId.set(id, run.started_at);
+    }
+  }
+
+  // item ids that carry ANY brief-apply per_item outcome, success or failure: "attempted" is enough to
+  // clear this queue. A failed brief-apply step is a DIFFERENT, already-visible defect (that run's own
+  // artifact names it), not a silent hole this entry should also flag.
+  const hasBriefApplyOutcome = new Set();
+  for (const run of applyRuns) {
+    for (const entry of Array.isArray(run?.per_item) ? run.per_item : []) {
+      const id = typeof entry?.id === "string" ? entry.id.split("#")[0] : null;
+      if (id) hasBriefApplyOutcome.add(id);
+    }
+  }
+
+  const staleIds = [];
+  if (latestTurnStartedAt !== null) {
+    for (const it of items) {
+      if (!it?.id || hasBriefApplyOutcome.has(it.id)) continue;
+      const mintedAt = mintedAtByItemId.get(it.id) ?? it.created_at ?? null;
+      if (!mintedAt) continue;
+      const mintedMs = Date.parse(mintedAt);
+      if (Number.isFinite(mintedMs) && mintedMs < latestTurnMs) staleIds.push(it.id);
+    }
+  }
+
+  return { staleCount: staleIds.length, staleIds, latestTurnStartedAt };
+}
+
+/**
+ * The "briefs pending" entry's totalQuery: the I/O half (one DB read + two harness-run directory reads),
+ * calling computeBriefsPendingStale (pure, above) for the actual predicate. `readHistoryFn`/`mintDir`/
+ * `briefApplyDir` are overridable so this is testable without touching the real filesystem
+ * (readRunHistory itself is a plain synchronous directory read, no network -- scripts/lib/run-artifact.mjs).
+ * @param {object} sb
+ * @param {{readHistoryFn?:Function, mintDir?:string, briefApplyDir?:string}} [opts]
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countBriefsPendingStale(sb, {
+  readHistoryFn = readRunHistory,
+  mintDir = DEFAULT_MINT_HARNESS_RUNS_DIR,
+  briefApplyDir = DEFAULT_BRIEF_APPLY_HARNESS_RUNS_DIR,
+} = {}) {
+  try {
+    const liveRecordItems = await readAll("intelligence_items", "id, created_at", {
+      match: (q) => q.eq("item_grade", "record").eq("provenance_status", "verified").eq("is_archived", false),
+      client: sb,
+    });
+    const { runs: mintRuns } = readHistoryFn(mintDir);
+    const { runs: briefApplyRuns } = readHistoryFn(briefApplyDir);
+    const { staleCount } = computeBriefsPendingStale(liveRecordItems, mintRuns, briefApplyRuns);
+    return { count: staleCount, error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
 
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
@@ -129,6 +240,33 @@ export const STORES = Object.freeze([
     // from 0 to the full 351 as task 5.5 lands, the same growing-good-count shape compliance_deadline uses.
     totalQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).regexMatch("canonical_instrument_key", "^[234]\\d{4}D"),
     filledQuery: (sb) => sb.from("intelligence_items").select("*", { count: "exact", head: true }).eq("is_archived", false).regexMatch("canonical_instrument_key", "^[234]\\d{4}D").eq("item_type", "regulation") },
+  // -- W9 PART3 lane, 2026-09-11: task 3.5, "every new item is queued for a brief automatically." A
+  // population turn's own flywheel (step 12, run-population-flywheel.mjs) exports each newly-minted
+  // record item's stored source text for a session lane to author a brief from; this entry is the queue
+  // that flywheel step feeds and apply-record-briefs.mjs (task 3.4) drains.
+  { table: "intelligence_items",
+    fill: "brief-apply outcome present (recheck; structurally 0 whenever rows>0, see the predicate below)",
+    reader: "population-report.mjs's own CLI output: the queue a session lane drains via record-briefs (task 3.2) then apply-record-briefs.mjs (task 3.4); no dedicated admin/UI surface exists yet",
+    producer: "scripts/turns/run-population-flywheel.mjs's brief-export step (task 3.5, step 12) exports the queue after every population turn; scripts/turns/apply-record-briefs.mjs (task 3.4) drains it",
+    // RED means (the exact predicate, stated here per this task's own instruction): at least one live
+    // record-grade item was minted before the LATEST population turn's own started_at (its own mint-run
+    // artifact under scripts/harness-runs/mint/, or intelligence_items.created_at when that artifact
+    // cannot be resolved) and still carries NO brief-apply outcome (scripts/harness-runs/brief-apply/
+    // *.json's own per_item, task 3.4) -- the same transit-only posture RD-20 already gives staged_updates
+    // (a transitional state is fine BRIEFLY; parked past its own bound is the defect), applied here to the
+    // brief-authoring queue instead of intake.
+    //
+    // `total` (rows) IS the stale count itself, not a coverage ratio like every entry above it: 0 stale
+    // items reads as EMPTY (this file's own documented benign state, "nothing to show because there is
+    // nothing wrong"); any nonzero count reads as ROWS_NO_VALUES (this file's existing defect state) --
+    // exactly the "> 0 is red" predicate this entry exists to catch, which a coverage-ratio shape (some
+    // stale among many fine items) could hide behind a nonzero `filled`. `filled` is therefore NOT a
+    // second, independent measurement: an item counted in `total` is BY DEFINITION one with no
+    // brief-apply outcome, so "how many of the stale items also carry an outcome" is 0 as a matter of the
+    // query's own construction, not a live re-check -- computeBriefsPendingStale (above) is the one place
+    // this predicate is computed, never restated.
+    totalQuery: (sb) => countBriefsPendingStale(sb),
+    filledQuery: async () => ({ count: 0, error: null }) },
 ]);
 
 /**

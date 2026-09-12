@@ -8,7 +8,15 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classify, renderReport, countStore, collect, STORES } from "./population-report.mjs";
+import {
+  classify,
+  renderReport,
+  countStore,
+  collect,
+  STORES,
+  computeBriefsPendingStale,
+  countBriefsPendingStale,
+} from "./population-report.mjs";
 
 test("classify: an empty store is EMPTY", () => {
   assert.equal(classify({ rows: 0, filled: 0 }), "EMPTY");
@@ -299,4 +307,113 @@ test("CELEX-Decision-as-regulation coverage goes FILLED once task 5.5 retypes th
   const got = await countStore(sb, entry);
   assert.deepEqual(got, { rows: 351, filled: 351 });
   assert.equal(classify(got), "FILLED");
+});
+
+// -- W9 PART3 lane, 2026-09-11 -- task 3.5, "every new item is queued for a brief automatically." The
+// "briefs pending" entry's predicate (computeBriefsPendingStale, pure) plus its wiring into the STORES
+// entry (countBriefsPendingStale, DI-testable without touching the real filesystem).
+
+test("computeBriefsPendingStale: a record item minted before the latest turn, with no brief-apply outcome, is stale", () => {
+  const liveRecordItems = [{ id: "item-1", created_at: "2026-09-01T00:00:00Z" }];
+  const mintRuns = [
+    { run_id: "mint-run-001", started_at: "2026-09-01T00:00:00Z", per_item: [{ item_id: "item-1", outcome: "minted_verified" }] },
+    { run_id: "mint-run-002", started_at: "2026-09-10T00:00:00Z", per_item: [] }, // the LATEST turn -- item-1 predates it
+  ];
+  const got = computeBriefsPendingStale(liveRecordItems, mintRuns, []);
+  assert.deepEqual(got.staleIds, ["item-1"]);
+  assert.equal(got.staleCount, 1);
+  assert.equal(got.latestTurnStartedAt, "2026-09-10T00:00:00Z");
+});
+
+test("computeBriefsPendingStale: the SAME item is no longer stale once a brief-apply run records its outcome", () => {
+  const liveRecordItems = [{ id: "item-1", created_at: "2026-09-01T00:00:00Z" }];
+  const mintRuns = [
+    { run_id: "mint-run-001", started_at: "2026-09-01T00:00:00Z", per_item: [{ item_id: "item-1", outcome: "minted_verified" }] },
+    { run_id: "mint-run-002", started_at: "2026-09-10T00:00:00Z", per_item: [] },
+  ];
+  const briefApplyRuns = [
+    { run_id: "brief-apply-run-001", started_at: "2026-09-05T00:00:00Z", per_item: [{ id: "item-1#generate", outcome: "generated" }] },
+  ];
+  const got = computeBriefsPendingStale(liveRecordItems, mintRuns, briefApplyRuns);
+  assert.equal(got.staleCount, 0);
+  assert.deepEqual(got.staleIds, []);
+});
+
+test("computeBriefsPendingStale: an item minted in the SAME (latest) turn is not stale yet", () => {
+  const liveRecordItems = [{ id: "item-1" }];
+  const mintRuns = [
+    { run_id: "mint-run-001", started_at: "2026-09-10T00:00:00Z", per_item: [{ item_id: "item-1", outcome: "minted_verified" }] },
+  ];
+  const got = computeBriefsPendingStale(liveRecordItems, mintRuns, []);
+  assert.equal(got.staleCount, 0);
+});
+
+test("computeBriefsPendingStale: no population turn has ever run, so nothing can be stale (never guessed)", () => {
+  const liveRecordItems = [{ id: "item-1", created_at: "2020-01-01T00:00:00Z" }];
+  const got = computeBriefsPendingStale(liveRecordItems, [], []);
+  assert.equal(got.staleCount, 0);
+  assert.equal(got.latestTurnStartedAt, null);
+});
+
+test("computeBriefsPendingStale: an item unresolvable via any mint-run artifact falls back to intelligence_items.created_at", () => {
+  const liveRecordItems = [{ id: "legacy-item", created_at: "2020-01-01T00:00:00Z" }]; // never minted through the harness family
+  const mintRuns = [{ run_id: "mint-run-002", started_at: "2026-09-10T00:00:00Z", per_item: [] }];
+  const got = computeBriefsPendingStale(liveRecordItems, mintRuns, []);
+  assert.deepEqual(got.staleIds, ["legacy-item"]);
+});
+
+// readAll's contract (scripts/lib/db.mjs): sb.from(table).select(cols).order(col).range(from,to), then
+// match(q) appends the caller's own .eq() chain(s) before the page is awaited -- any number of chained
+// .eq() calls resolve to the same final page (the "briefs pending" query chains THREE: item_grade,
+// provenance_status, is_archived).
+function fakeBriefsPendingClient(rows) {
+  const chainable = {
+    eq: () => chainable,
+    then: (resolve, reject) => Promise.resolve({ data: rows, error: null }).then(resolve, reject),
+  };
+  return {
+    from(table) {
+      if (table !== "intelligence_items") throw new Error(`unexpected table ${table}`);
+      return { select: () => ({ order: () => ({ range: () => chainable }) }) };
+    },
+  };
+}
+
+test("briefs pending goes red (ROWS_NO_VALUES) when a record item is older than the latest turn and has no brief-apply outcome", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("brief-apply outcome present"));
+  assert.ok(entry, "briefs pending entry must be declared");
+  const sb = fakeBriefsPendingClient([{ id: "item-1", created_at: "2026-09-01T00:00:00Z" }]);
+  const readHistoryFn = (dir) =>
+    String(dir).endsWith("brief-apply")
+      ? { runs: [] }
+      : {
+          runs: [
+            { run_id: "mint-run-001", started_at: "2026-09-01T00:00:00Z", per_item: [{ item_id: "item-1", outcome: "minted_verified" }] },
+            { run_id: "mint-run-002", started_at: "2026-09-10T00:00:00Z", per_item: [] },
+          ],
+        };
+  const total = await countBriefsPendingStale(sb, { readHistoryFn });
+  const filled = await entry.filledQuery(sb);
+  assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 1, filled: 0 });
+  assert.equal(classify({ rows: total.count, filled: filled.count }), "ROWS_NO_VALUES");
+});
+
+test("briefs pending goes green (EMPTY) once the same item gets a brief-apply outcome", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("brief-apply outcome present"));
+  const sb = fakeBriefsPendingClient([{ id: "item-1", created_at: "2026-09-01T00:00:00Z" }]);
+  const readHistoryFn = (dir) => {
+    if (String(dir).endsWith("brief-apply")) {
+      return { runs: [{ run_id: "brief-apply-run-001", started_at: "2026-09-05T00:00:00Z", per_item: [{ id: "item-1#generate", outcome: "generated" }] }] };
+    }
+    return {
+      runs: [
+        { run_id: "mint-run-001", started_at: "2026-09-01T00:00:00Z", per_item: [{ item_id: "item-1", outcome: "minted_verified" }] },
+        { run_id: "mint-run-002", started_at: "2026-09-10T00:00:00Z", per_item: [] },
+      ],
+    };
+  };
+  const total = await countBriefsPendingStale(sb, { readHistoryFn });
+  const filled = await entry.filledQuery(sb);
+  assert.deepEqual({ rows: total.count, filled: filled.count }, { rows: 0, filled: 0 });
+  assert.equal(classify({ rows: total.count, filled: filled.count }), "EMPTY");
 });

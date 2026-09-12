@@ -273,6 +273,18 @@ now is to read the outcomes §9 records, not to run these steps by hand:
 3. **Recluster** — `scripts/connections/analyze-corpus.mjs --signals` (whole-corpus, the same scope
    `corpus-turn.yml` uses) so the newly minted items are grouped with their real neighbors rather than
    sitting unclustered until the next scheduled turn.
+4. **Brief queuing** (task 3.5, W9 brief-chain plan Part 3, "every new item is queued for a brief
+   automatically"): step 12 of `run-population-flywheel.mjs`'s own step order, run after every step
+   above: `export-corpus-for-extraction.mjs --ids <this batch's minted item ids> --with-pool-text
+   --char-budget`, landing the numbered parts under a TRACKED repo path,
+   `scripts/turns/brief-export/pending/<mint-run-id>.json` (never `scripts/_snapshots/`, which is
+   gitignored), so a session lane can author a brief for each item from its own stored source text
+   (task 3.2's `record-briefs` contract, task 3.4's `apply-record-briefs.mjs` driver) instead of
+   re-fetching. A local file write only, both dry and apply, never a DB write. The parts commit on the
+   run's own artifact branch through the SAME commit step `.github/workflows/population-turn.yml` already
+   runs for the mint + forward-events harness-run artifacts: no second transport. `population-report.mjs`'s
+   own "briefs pending" entry (task 3.5) shows the resulting queue and goes red only when a queued item is
+   older than one population turn with still no brief-apply outcome.
 
 See `scripts/turns/run-population-flywheel.mjs`'s own header for the exact step order, dry/apply
 behavior, and how it reuses each of the scripts named above (child process or exported `main()` — it
