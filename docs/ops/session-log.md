@@ -19738,5 +19738,27 @@ and test, `fsi-app/scripts/harness-runs/brief-apply/PENDING-RUN.md`, `docs/ops/s
 pre-push hook did not (the hook has no memory-gate step). The parity fix is tasked in the W9 ledger.
 
 ### UX compliance (task 6.2b)
+## 2026-09-12, W9 task 7.4e: UK legislation series code derived from the URL, 19 live rows reconciled
+
+**What.** Batch 2 chunk 1 held item 00a8c0d9: its identifier read `UK uksi 2010/2880` while its source
+URL path is `/wsi/2010/2880`; 19 live rows share the defect [CONFIRMED by SQL]. The census and mint
+pipeline never derived a UK identifier from the item's own URL. Fix at the source: `UK_TYPES` exported from
+`src/lib/coverage/identity.mjs` as the single vocabulary; `export-census-rows.mjs` derives the series
+code from the URL path (`parseUkLegislationUrlId`, `deriveUkLegislationIdentifier`), null when no
+recognised segment, never a guessed `uksi`; EUR-Lex and Federal Register families untouched. Reconcile
+step `scripts/maintenance/uk-series-code-reconcile.mjs` (dry by default, apply through `guardedUpdate`,
+six named outcomes, only a series-code mismatch rewritten) wired as a maintenance.yml step with runbook
+section 44 and a shared-writer ownership row. Review CONDITIONAL FAIL (seven em dashes in test titles,
+no idempotency proof) closed by 0602fa8b, re-review PASS.
+
+**Gates.** export-census-rows 148/148, uk-series-code-reconcile 22/22 (second apply changes 0 rows),
+glyph byte check 0 over 2b6d4f56..HEAD, pre-push gate run by the lane and by the coordinator.
+
+**Files.** `fsi-app/src/lib/coverage/identity.mjs`, `fsi-app/scripts/mint/export-census-rows.mjs` and test,
+`fsi-app/scripts/maintenance/uk-series-code-reconcile.mjs` and test (new), `.github/workflows/maintenance.yml`,
+`docs/runbooks/MAINTENANCE-RUNBOOK.md`, `fsi-app/docs/inventories/shared-dataset-ownership.md`,
+`docs/ops/session-log.md` (this entry, added by the coordinator after CI's memory gate caught its absence).
+
+### UX compliance (task 7.4e)
 
 Not applicable: no `.tsx`/`.css` touched.
