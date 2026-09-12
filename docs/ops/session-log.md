@@ -18835,3 +18835,113 @@ expected to call `validateRecordBriefsFile` (3.2), then `generateBriefFromInject
 
 Not applicable: this task touches no `.tsx`/`.css` under `fsi-app/src`; it is a backend pipeline seam, a new
 pure helper module, its test, and one verification-golden extension.
+
+### Task 3.3 fix round 1 (coordinator ruling, before review)
+
+Two rulings, addressed in this lane (rule 13: no cross-lane deferral of a same-lane wiring gap).
+
+**(1) The injected path now runs the SAME post-parse, pre-write content gates the model path runs.**
+`synthesiseAndWriteBrief` was restructured: `slotRows` (required-slot coverage) is now read ONCE, shared by
+both drivers, before the branch. The `if (injected)` branch no longer returns through its own early write --
+it produces `parsed`/`body`/`fmtSpec` and, if a required slot is uncovered, fails immediately with
+`missing_required_slot(synthesis): ... no corrective retry is available for lane-authored synthesis` (no
+retry: retrying needs a paid model call, which does not exist for a lane-authored brief). Both the injected
+branch and the metered (model-driven) `else` branch then fall through to ONE SHARED TAIL that runs the
+600-char length floor, `checkBriefContent`'s research-or-erase gate, and the single `writeSynthesizedBrief`
+call -- a lane-authored brief is judged exactly like a model-authored one, never a lighter pass
+(environmental-policy-and-innovation SKILL.md's integrity rule).
+
+RED-first: added 3 new tests to `canonical-pipeline.injected-synthesis.npmtest.mjs` (under-floor body
+refused with the SAME detail FORMAT the model path gives, `parsed body too short (N)`; a body reading as a
+fetch-failure explanation refused via `brief_failure_gate: ...`; a body missing a required slot refused via
+`missing_required_slot(synthesis): ...` with no retry) plus one new assertion on the existing success test
+(`item_type_required_slots` IS now touched, since slot coverage is a shared content gate; `sources` is still
+never touched, since that table is prompt-construction-only). Confirmed RED by swapping in the pre-fix-round
+`canonical-pipeline.ts` (`git show HEAD:...`): 4 of 8 tests failed (the 3 new tests plus the updated
+assertion). Restored the fix: GREEN, 8/8 pass; `diff` confirmed byte-identical restoration before
+proceeding. One test-authoring bug caught and fixed in the same motion: the missing-slot test initially
+reused `itemType: "regulation"` (the default), which collided with `requiredSlotsFor`'s own MODULE-LEVEL,
+cross-test, 10-minute-TTL `SLOT_CACHE` already populated by an earlier test in the same file -- the fake
+client's `item_type_required_slots` stub was never reached, and the test read back the OTHER test's cached
+`[]`. Fixed by giving the slot test its own distinct `item_type: "directive"`.
+
+`scripts/verify/executor-parity.golden.mjs`'s section 8 was rewritten from a regex over the old early-return
+shape to a BALANCED-BRACE walk: it locates the `if (injected) { ... } else { ... }` pair, asserts the paid
+call (`generateBriefText(`) is confined to the `else` block, asserts the 600-char floor /
+`checkBriefContent(` / the ONE `writeSynthesizedBrief(...)` call all live in the SHARED TAIL after both
+blocks close, asserts NEITHER branch carries its own copy of any of the three, and asserts each of those
+three exists EXACTLY ONCE in the whole function. Confirmed the rewritten golden actually catches a
+regression: run against the pre-fix-round file, it failed 10 of 19 checks (found 2 `writeSynthesizedBrief`
+call sites, no shared tail, etc.); restored the fix, all pass.
+
+**(2) `hashSourcePool` is now used by task 3.1's export in the same lane.**
+`scripts/turns/export-corpus-for-extraction.mjs`'s `buildCorpusItems`, under `--with-pool-text`, now stamps
+`source_pool_hash: hashSourcePool(pool)` immediately after building each item's `pool` array -- the EXACT
+same array (same `usableCapturesOrdered` 200-char floor, same `result_url`-presence filter, same
+`{url, text}` field mapping from `result_url`/`result_content`) `generateBriefFromInjected` re-reads and
+re-hashes at write time, both sides importing the ONE shared helper so the two cannot independently drift on
+HOW the hash is computed. `source-pool-hash.mjs`'s own header's "KNOWN WIRING GAP" note is replaced with a
+"WIRED ON BOTH SIDES" note. `scripts/turns/record-briefs/README.md`'s `source_pool_hash` entry description
+now tells a lane to ECHO the exporter's stamped field, never hand-compute or invent one; its "What task
+3.4's driver is expected to do" section gained a line naming `hashSourcePool` as the shared function.
+
+RED-first: extended `export-corpus-for-extraction.test.mjs` with 3 new tests (the stamped hash equals
+`hashSourcePool` of the actually-exported `pool` array, and differs for a different pool, ruling out a
+constant; the empty-pool case; the hash is taken over the FILTERED pool, not the raw unfiltered input rows)
+and updated the two existing full-object `deepEqual` tests (`... key-by-key` and `... defaults the 7
+metadata fields to null`) to include the new `source_pool_hash` key -- both would otherwise now fail
+(an unexpected extra key) even on CORRECT new behavior, since `deepEqual` checks the whole object.
+Confirmed RED by swapping in the pre-fix-round file: 5 of 46 tests failed (`actual: undefined`). Restored
+the fix: GREEN, 46/46 pass.
+
+**A defect this round introduced and fixed before commit.** The `BODY` fixture shared across the original 5
+tests was 468 chars, under the (previously unenforced) 600-char floor -- harmless before this round because
+the injected branch never checked length at all, but the fix round's own shared-tail floor would now reject
+it too, breaking the ORIGINAL success test as a side effect of a CORRECT fix. Caught during the RED/GREEN
+cycle (not silently patched around): widened `BODY` to clear 600 chars with margin (repeat count 6 to 10),
+verified all original 5 tests still pass alongside the 3 new ones.
+
+**Standing constraints re-checked this round.** No em dashes, en dashes, or section-sign glyph in newly
+authored lines: audited via `git diff` restricted to added (`+`) lines, byte-grepped for
+U+2014/U+2013/U+00A7 across all seven touched files. Eleven matches in `canonical-pipeline.ts` were
+INVESTIGATED, not assumed: each was diffed against the pre-round-1 file with whitespace ignored and found to
+be PRE-EXISTING prose merely relocated (reindented into the new `else` block) by this round's restructuring,
+never touched in content -- left as-is per reuse-before-construction / minimal-diff discipline, the same
+judgment task 3.1's own report made for pre-existing em dashes it did not author. One genuine match in
+`export-corpus-for-extraction.mjs` (a comment authored this round) was fixed (colon in place of the dash).
+No hardcoded user-home paths: grepped every touched/new file for `C:/Users/`, `C:\Users\`, and
+`/Users/jason`, zero matches. Staged explicitly, never `git add -A`. `C:\Users\jason\dotfiles` (the main
+checkout) never touched; no `git stash`; no `--no-verify`; no push. No PreToolUse skill-gate denial occurred
+on any Write/Edit this round.
+
+**Gates (verbatim, this round).**
+- `node --test src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs`: 8/8 pass.
+- `node --test src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs`: still 4/4 pass.
+- `node --test scripts/turns/export-corpus-for-extraction.test.mjs`: 46/46 pass.
+- `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: still 27/27 pass (untouched this round;
+  run as a named gate per the coordinator's instruction).
+- `node scripts/verify/executor-parity.golden.mjs`: `GOLDEN PASSED`, all 29 checks (13 pre-existing
+  groundBriefImpl checks + 16 rewritten synthesis-seam checks).
+- `npx tsc --noEmit`: clean, no output.
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: run after the commit (see Files/
+  commit below).
+- `bash .discipline/run-test-suite.sh` NOT run, per the standing instruction for this lane.
+
+**Files this round.**
+- `fsi-app/src/lib/agent/canonical-pipeline.ts` (modified: `synthesiseAndWriteBrief` restructured to a
+  shared-slotRows / branch / shared-tail shape)
+- `fsi-app/src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs` (modified: fake client gains
+  `item_type_required_slots`, 3 new tests, one updated assertion, widened `BODY` fixture)
+- `fsi-app/scripts/verify/executor-parity.golden.mjs` (modified: section 8 rewritten to a balanced-brace
+  structural proof)
+- `fsi-app/src/lib/agent/source-pool-hash.mjs` (modified: header's wiring-gap note replaced)
+- `fsi-app/scripts/turns/export-corpus-for-extraction.mjs` (modified: imports and stamps `hashSourcePool`)
+- `fsi-app/scripts/turns/export-corpus-for-extraction.test.mjs` (modified: 3 new tests, 2 updated
+  `deepEqual` expectations)
+- `fsi-app/scripts/turns/record-briefs/README.md` (modified: `source_pool_hash` entry description +
+  driver-expectations note)
+- `docs/ops/session-log.md` (this subsection)
+
+### UX compliance
+
+Not applicable: no `.tsx`/`.css` touched this round either.

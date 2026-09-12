@@ -835,8 +835,11 @@ function buildInjectedRawText(body: string, md: InjectedBriefMetadata): string {
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
  *  the pool (fresh-fetch overwrites it; from-stored reuses it). `opts.injected` is the free-driver seam
- *  (task 3.3): when present, the WHOLE prompt-construction + paid generateBriefText call is skipped and
- *  control returns through the SAME write site the metered driver reaches -- see the seam header above. */
+ *  (task 3.3): when present, the WHOLE prompt-construction + paid generateBriefText call is skipped, but
+ *  both branches CONVERGE before the post-parse content gates (task 3.3 fix round 1, coordinator ruling):
+ *  a lane-authored brief is judged EXACTLY like a model-authored one, never a lighter pass -- only the
+ *  MODEL CALL is skipped, not the judgment (SKILL.md's integrity rule: the injected body is validated by
+ *  the same parser and the same gates, never trusted). See the seam header above. */
 async function synthesiseAndWriteBrief(
   sb: SupabaseClient,
   it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
@@ -844,78 +847,91 @@ async function synthesiseAndWriteBrief(
   corroborators: Corroborator[],
   opts?: { injected?: InjectedSynthesis },
 ): Promise<StepResult> {
-  // CC-SYNTHESIS-EXECUTOR SEAM: read at exactly this one point. Nothing below this block is reachable when
-  // injected is present (early return) -- the judgment core (writeSynthesizedBrief) stays byte-for-byte the
-  // same code path either driver reaches.
   const injected = opts?.injected ?? null;
+  // SLOT ENFORCEMENT (C1): read the item_type's required slots (cached) so the SYNTHESIS prompt names them
+  // for ALL 12 types — not just the reg family the static SYSTEM_PROMPT covers. null = read failed → keep
+  // the standing SYSTEM_PROMPT reg-family floor + the DB gate as backstop (fail-closed, never fabricate []).
+  // SHARED by both drivers, read ONCE regardless of which one produces `parsed`: required-slot coverage is
+  // a JUDGMENT on the brief's CONTENT, not paid-model machinery, so it applies to a lane-authored brief
+  // exactly as it applies to a model-authored one. Only the CORRECTIVE RETRY below is model-call machinery
+  // and is therefore metered-path-only; a lane-authored brief that misses a required slot fails immediately
+  // (there is no synchronous way to hand a session lane corrective feedback and re-run it).
+  const slotRows = await requiredSlotsFor(sb, it.item_type);
+
+  let parsed: ReturnType<typeof parseAgentOutput>;
+  let body: string;
+  let fmtSpec: ReturnType<typeof specForItemType>;
+
   if (injected) {
-    const fmtSpec = specForItemType(it.item_type);
-    let parsed: ReturnType<typeof parseAgentOutput>;
+    // CC-SYNTHESIS-EXECUTOR SEAM: read at exactly this one point. generateBriefText is never reached from
+    // this branch -- the free driver already has a finished, lane-authored brief.
+    fmtSpec = specForItemType(it.item_type);
     try {
       parsed = parseAgentOutput(buildInjectedRawText(injected.body, injected.metadata));
     } catch (e) {
       return { ok: false, detail: `injected_parse_failed: ${e instanceof Error ? e.message : String(e)}` };
     }
-    const body = stripUrlMarkers((parsed.body || "").trim()) as string;
-    return writeSynthesizedBrief(sb, it, body, parsed.metadata, fmtSpec, fetched.length);
-  }
-  // SLOT ENFORCEMENT (C1): read the item_type's required slots (cached) so the SYNTHESIS prompt names them
-  // for ALL 12 types — not just the reg family the static SYSTEM_PROMPT covers. null = read failed → keep
-  // the standing SYSTEM_PROMPT reg-family floor + the DB gate as backstop (fail-closed, never fabricate []).
-  const slotRows = await requiredSlotsFor(sb, it.item_type);
-  const slotDirective = slotRows ? buildSlotDirective(slotRows) : "";
-  // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
-  // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
-  // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
-  // grounding uses → spans stay matchable.
-  const withTier = await attachTiers(sb, fetched);
-  const { blocks, trims, ceilingWalls } = buildSourceBlocks(withTier, SYNTH_INPUT_BUDGET_CHARS, {
-    floorTier: authorityFloorFor(it.item_type),
-    hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
-  });
-  await recordTruncation(sb, it.id, [...trims, ...ceilingWalls]);
-  const discoveredHint = corroborators.length
-    ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
-    : "";
-  // U7 — fetch this item's graph candidates BEFORE synthesis and offer them as the CANDIDATE
-  // CONNECTIONS block (the A3 assertion rule in system-prompt.ts governs how the model may use it).
-  // Non-gating: a candidate-read failure (transient DB error, brand-new item with no graph presence
-  // yet) never blocks generation — it degrades to no candidates, the same honest-empty posture every
-  // other optional context source in this function already takes.
-  let candidateBlock = "";
-  try {
-    const candidateSelection = await selectBriefCandidates(it.id, candidateReadersFor(sb));
-    candidateBlock = formatCandidateBlock(candidateSelection);
-  } catch (e) {
-    console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
-  }
-  // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
-  // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
-  // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
-  // missing_required_slot fails every time → quarantine. Pin the format + its section set into the prompt
-  // so the STRUCTURE is right (and override format_type post-parse so metadata cannot drift).
-  const fmtSpec = specForItemType(it.item_type);
-  const formatDirective = fmtSpec
-    ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
-    : "";
-  // Part D — coverage-forcing for the REGULATORY format only (qualification capture / per-year trajectory /
-  // defined terms verbatim / legal line). Mirrors the env-policy SKILL.md + system-prompt contract; lands in
-  // the same change as those (doctrine-with-mechanism). The pipeline now feeds the FULL enacted text, so the
-  // instruction to READ ALL OF IT and capture qualifications is enforceable, not aspirational.
-  const regCoverage = fmtSpec?.formatType === "regulatory_fact_document"
-    ? `\nREGULATORY COMPLETENESS — you have the FULL enacted text below; READ ALL OF IT, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS, not just the headline number/date:
+    body = stripUrlMarkers((parsed.body || "").trim()) as string;
+    if (slotRows && slotRows.length && body.length >= 600) {
+      const missing = uncoveredSlots(body, slotRows);
+      if (missing.length) {
+        return { ok: false, detail: `missing_required_slot(synthesis): the injected brief leaves ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) -- no corrective retry is available for lane-authored synthesis` };
+      }
+    }
+  } else {
+    const slotDirective = slotRows ? buildSlotDirective(slotRows) : "";
+    // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
+    // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
+    // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
+    // grounding uses → spans stay matchable.
+    const withTier = await attachTiers(sb, fetched);
+    const { blocks, trims, ceilingWalls } = buildSourceBlocks(withTier, SYNTH_INPUT_BUDGET_CHARS, {
+      floorTier: authorityFloorFor(it.item_type),
+      hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
+    });
+    await recordTruncation(sb, it.id, [...trims, ...ceilingWalls]);
+    const discoveredHint = corroborators.length
+      ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
+      : "";
+    // U7 — fetch this item's graph candidates BEFORE synthesis and offer them as the CANDIDATE
+    // CONNECTIONS block (the A3 assertion rule in system-prompt.ts governs how the model may use it).
+    // Non-gating: a candidate-read failure (transient DB error, brand-new item with no graph presence
+    // yet) never blocks generation — it degrades to no candidates, the same honest-empty posture every
+    // other optional context source in this function already takes.
+    let candidateBlock = "";
+    try {
+      const candidateSelection = await selectBriefCandidates(it.id, candidateReadersFor(sb));
+      candidateBlock = formatCandidateBlock(candidateSelection);
+    } catch (e) {
+      console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
+    // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
+    // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
+    // missing_required_slot fails every time → quarantine. Pin the format + its section set into the prompt
+    // so the STRUCTURE is right (and override format_type post-parse so metadata cannot drift).
+    fmtSpec = specForItemType(it.item_type);
+    const formatDirective = fmtSpec
+      ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
+      : "";
+    // Part D — coverage-forcing for the REGULATORY format only (qualification capture / per-year trajectory /
+    // defined terms verbatim / legal line). Mirrors the env-policy SKILL.md + system-prompt contract; lands in
+    // the same change as those (doctrine-with-mechanism). The pipeline now feeds the FULL enacted text, so the
+    // instruction to READ ALL OF IT and capture qualifications is enforceable, not aspirational.
+    const regCoverage = fmtSpec?.formatType === "regulatory_fact_document"
+      ? `\nREGULATORY COMPLETENESS — you have the FULL enacted text below; READ ALL OF IT, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS, not just the headline number/date:
 - Exceptions / carve-outs / exemptions ("except …", "shall not apply to …") — each a verbatim FACT span.
 - The CALCULATION BASIS and conditions (e.g. "calculated as an average per manufacturing plant and year" — a per-plant-per-year basis is NOT per-unit; state it as written).
 - The DEFINED TERMS the requirement turns on — quote the regulation's OWN definitions article verbatim; never swap in a loose synonym.
 - The PER-YEAR TRAJECTORY — when a threshold changes by date, state the WHOLE time series (e.g. a 2030 floor → a 2035 added requirement → a 2038 restriction/ban), not just the entry-year value; a date-conditioned trigger ("or N years from the implementing act, whichever is later") is part of the requirement.
 A requirement stated with ZERO qualifications is a FLAG that you have not read far enough — return to the source text before asserting it.
 LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do NOT assert that the workspace (or any entity) IS a producer / importer / distributor / manufacturer, or that an obligation attaches: matching an entity to a defined role is a legal determination → route it to a "*Legal Confirmation Required:*" callout.`
-    : "";
-  // PROMPT-CACHE (Phase-3a): the pool no longer rides the END of this user message — it is the CACHED
-  // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
-  // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
-  // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
-  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
+      : "";
+    // PROMPT-CACHE (Phase-3a): the pool no longer rides the END of this user message — it is the CACHED
+    // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
+    // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
+    // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
+    const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
 Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.${candidateBlock}
@@ -924,27 +940,33 @@ VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back 
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
 - URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
 Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.`;
-  // GENERATE + POST-SYNTHESIS SLOT CHECK + ONE CORRECTIVE RETRY (C1). The brief is checked against the
-  // SAME required slots that were injected (uncoveredSlots = the grounding pre-gate heuristic, so synthesis
-  // and grounding agree on "the prose speaks to this slot"). A brief that leaves a required slot completely
-  // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
-  // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
-  // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
-  let parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
-  let body = stripUrlMarkers((parsed.body || "").trim()) as string;
-  if (slotRows && slotRows.length && body.length >= 600) {
-    const missing = uncoveredSlots(body, slotRows);
-    if (missing.length) {
-      console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
-      const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
-      parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
-      body = stripUrlMarkers((parsed.body || "").trim()) as string;
-      const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
-      if (stillMissing.length) {
-        return { ok: false, detail: `missing_required_slot(synthesis): after one corrective retry the brief still leaves ${stillMissing.length} required slot(s) unaddressed (${stillMissing.map((s) => s.slot_key).join(", ")})` };
+    // GENERATE + POST-SYNTHESIS SLOT CHECK + ONE CORRECTIVE RETRY (C1). The brief is checked against the
+    // SAME required slots that were injected (uncoveredSlots = the grounding pre-gate heuristic, so synthesis
+    // and grounding agree on "the prose speaks to this slot"). A brief that leaves a required slot completely
+    // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
+    // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
+    // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
+    parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
+    body = stripUrlMarkers((parsed.body || "").trim()) as string;
+    if (slotRows && slotRows.length && body.length >= 600) {
+      const missing = uncoveredSlots(body, slotRows);
+      if (missing.length) {
+        console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
+        const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
+        parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
+        body = stripUrlMarkers((parsed.body || "").trim()) as string;
+        const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
+        if (stillMissing.length) {
+          return { ok: false, detail: `missing_required_slot(synthesis): after one corrective retry the brief still leaves ${stillMissing.length} required slot(s) unaddressed (${stillMissing.map((s) => s.slot_key).join(", ")})` };
+        }
       }
     }
   }
+
+  // SHARED TAIL (task 3.3 fix round 1, coordinator ruling): both drivers CONVERGE here, BEFORE the two
+  // universal post-parse content gates -- a lane-authored brief is judged exactly like a model-authored
+  // one. There is exactly ONE writeSynthesizedBrief(...) call site in this function; neither branch above
+  // returns through a write of its own.
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);

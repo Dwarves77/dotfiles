@@ -52,11 +52,17 @@
 // the floor `canonical-pipeline.ts` uses to decide whether a captured row is real evidence at all) so the
 // exported pool is exactly what the pipeline itself would treat as grounding-worthy, never a second,
 // drifting copy of that threshold. All of this lands on each item `buildCorpusItems` returns as
-// `pool: [{ url, text }]` plus the eight metadata/slot fields above. SELECT-only, and every one of these
-// reads (and every one of these output fields) is reached ONLY when this flag is passed; the default
-// (unflagged) path is byte-for-byte unchanged from before this lane, so `run-extraction.mjs`'s
-// `loadCorpus()` (the other, pre-existing caller, confirmed by re-reading it: it only reads
-// `items[].claims`/`items[].sections`) sees no difference at all.
+// `pool: [{ url, text }]` plus the eight metadata/slot fields above. Task 3.3 fix round 1 (coordinator
+// ruling): each item ALSO carries `source_pool_hash: hashSourcePool(pool)` -- the sha256 identity of this
+// EXACT pool array, via the ONE shared helper (`src/lib/agent/source-pool-hash.mjs`) the injected-synthesis
+// write site (`generateBriefFromInjected`) re-computes at persist time. A session lane echoes this hash
+// back in its own artifact (`scripts/turns/record-briefs/`); a mismatch at write time means the lane read
+// pool text that no longer matches what is stored (a re-fetch, a truncation-fix refresh, another lane's
+// write landed in between), and the write is refused. SELECT-only, and every one of these reads (and every
+// one of these output fields) is reached ONLY when this flag is passed; the default (unflagged) path is
+// byte-for-byte unchanged from before this lane, so `run-extraction.mjs`'s `loadCorpus()` (the other,
+// pre-existing caller, confirmed by re-reading it: it only reads `items[].claims`/`items[].sections`) sees
+// no difference at all.
 // `--char-budget N` (default 3,000,000) then splits the exported items into numbered `--out` parts so a
 // single session lane never receives more than N characters in one file. The plan's own measurement of
 // this corpus is a 1,337-to-2,590,651-char spread per item once pool text is included, wide enough that a
@@ -97,6 +103,15 @@ import {
   itemIdsNeedingContext,
   usableCapturesOrdered,
 } from "../../src/lib/forward-events/read-and-extract.mjs";
+// Task 3.3 fix round 1 (coordinator ruling, rule 13: no cross-lane deferral): the SAME pool-identity hash
+// generateBriefFromInjected (src/lib/agent/canonical-pipeline.ts) re-computes at write time to detect a
+// stale pool. Imported here (never re-implemented) so the two sides of the seam cannot drift: see that
+// module's own header for why it is a standalone leaf (neither this script nor canonical-pipeline.ts
+// imports the other) and for the exact canonical input this exporter and that seam must both feed it: the
+// item's usable-capture pool (usableCapturesOrdered's own 200-char floor) filtered to rows carrying a
+// string result_url, mapped to `{url, text}` from `result_url`/`result_content` -- i.e. precisely the
+// `pool` array this file already builds below, unmodified, passed straight through.
+import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -220,15 +235,19 @@ export function chunkByCharBudget(items, budget) {
  *   the SAME "usable capture" floor `read-and-extract.mjs`'s own `usableCapturesOrdered` enforces (trimmed
  *   `result_content` length > 200 chars, `MIN_USABLE_POOL_CHARS`; reused via that exported function rather
  *   than a second copy of the threshold) and to rows that also carry a `result_url` (a capture with no URL
- *   cannot be cited back). Default `withPoolText: false` preserves the exact pre-existing return shape (no
- *   extra keys at all, byte-identical to before this lane) for `run-extraction.mjs`'s `loadCorpus()`, the
- *   other, pre-existing caller of this function (confirmed by re-reading that runner: it reads only
- *   `item.claims`/`item.sections`, so extra keys were always harmless there too, but this exporter still
- *   NEVER adds them on that path, keeping the two callers' outputs provably distinct rather than relying on
- *   the consumer's tolerance).
+ *   cannot be cited back); plus `source_pool_hash: hashSourcePool(pool)` (task 3.3 fix round 1) -- the
+ *   sha256 identity of THAT SAME `pool` array, via the one shared helper the injected-synthesis write site
+ *   re-computes at persist time, so a lane's echoed hash and this exporter's stamped hash are provably the
+ *   same function over the same input, never two hand-aligned copies. Default `withPoolText: false`
+ *   preserves the exact pre-existing return shape (no extra keys at all, byte-identical to before this
+ *   lane) for `run-extraction.mjs`'s `loadCorpus()`, the other, pre-existing caller of this function
+ *   (confirmed by re-reading that runner: it reads only `item.claims`/`item.sections`, so extra keys were
+ *   always harmless there too, but this exporter still NEVER adds them on that path, keeping the two
+ *   callers' outputs provably distinct rather than relying on the consumer's tolerance).
  * @returns {Array<{id:string, claims:object[], sections:object[], title?:string|null, item_type?:string|null,
  *   format_type?:string|null, jurisdiction_iso?:string|null, canonical_instrument_key?:string|null,
- *   source_id?:string|null, source_url?:string|null, required_slots?:string[], pool?:Array<{url:string,text:string}>}>}
+ *   source_id?:string|null, source_url?:string|null, required_slots?:string[], pool?:Array<{url:string,text:string}>,
+ *   source_pool_hash?:string}>}
  */
 export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], opts = {}) {
   const { withPoolText = false } = opts;
@@ -268,6 +287,11 @@ export function buildCorpusItems(items, claimRows, sectionRows, poolRows = [], o
       out.pool = usableCapturesOrdered(poolByItem.get(it.id) ?? [])
         .filter((r) => typeof r.result_url === "string")
         .map((r) => ({ url: r.result_url, text: r.result_content }));
+      // Task 3.3 fix round 1: stamp the pool-identity hash over this EXACT array, via the one shared helper
+      // -- the injected-synthesis write site recomputes the same function over the item's live pool at
+      // persist time and refuses on a mismatch (a stale echo means the lane read text that no longer
+      // matches what is stored).
+      out.source_pool_hash = hashSourcePool(out.pool);
     }
     return out;
   });

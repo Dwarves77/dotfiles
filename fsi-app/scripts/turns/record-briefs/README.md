@@ -47,7 +47,7 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
      "entries": [
        {
          "item_id": "11111111-1111-1111-1111-111111111111",
-         "source_pool_hash": "<sha256 of the pool text this entry's claims were grounded against>",
+         "source_pool_hash": "<ECHO the item's own `source_pool_hash` field from the --with-pool-text export -- export-corpus-for-extraction.mjs stamps it as hashSourcePool(pool) over the exact pool it exported (task 3.3 fix round 1); do not hand-compute or invent one, and do not echo a stale value from a re-exported/refreshed item>",
          "body": "<the full markdown brief under the item's format_type, section list per system-prompt.ts>",
          "metadata": {
            "severity": "MONITORING", "priority": "LOW", "urgency_tier": "stable",
@@ -168,6 +168,10 @@ documents `run-ledger-consume.mjs`'s side of that contract:
 - **Schema violation -> the WHOLE file is rejected.** A structurally malformed entry is a producer bug.
 - **`source_pool_hash` mismatch -> that entry is refused, per task 3.3's own brief**: "refuses when
   `sourcePoolHash` does not match the hash of the item's current stored pool (the lane read stale text)".
+  Task 3.3 fix round 1: the hash function is `hashSourcePool` (`src/lib/agent/source-pool-hash.mjs`), the
+  ONE shared helper `export-corpus-for-extraction.mjs` also uses to STAMP each exported item's
+  `source_pool_hash` field under `--with-pool-text` -- see "Which fields, and why fewer than the full
+  contract" above for where a lane gets the value it echoes back in `entries[].source_pool_hash`.
 - **`item_grade` gate -> per task 3.3's own brief**: refuses a non-`record`-grade item unless
   `--allow-brief-overwrite` is passed explicitly (existing briefs are re-generated only by explicit order).
 - Every validated entry flows into `generateBriefFromInjected(itemId, caller, { body, metadata,

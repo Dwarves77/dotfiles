@@ -21,17 +21,13 @@
 // existing "@/lib/agent/..." alias AND by scripts/turns/export-corpus-for-extraction.mjs via a relative
 // path, with neither direction inverted.
 //
-// KNOWN WIRING GAP (named, not fixed here -- out of this task's own file scope: canonical-pipeline.ts, this
-// new file, the npmtest, the executor-parity golden's allowlist, and the session log ONLY;
-// export-corpus-for-extraction.mjs is out of bounds for this lane). Task 3.1 (already committed:
-// c465f029/d9157ce5/62233564) shipped its `pool: [{url, text}]` export field WITHOUT stamping
-// source_pool_hash -- that field does not exist in its per-item output yet. Task 3.2's validator
-// (schema.mjs) already tolerates this: it checks `source_pool_hash` is present and non-empty on the
-// artifact a session lane hands back, not that it equals this function's output, so validation still passes
-// today regardless. This task's write site computes and checks the REAL hash unconditionally, so a lane
-// cannot pass this seam on a placeholder value. The follow-up wiring -- export-corpus-for-extraction.mjs
-// calling hashSourcePool(pool) and adding a real `source_pool_hash` field per item so a lane has an accurate
-// value to echo back -- is a one-line addition once a task's scope includes that file.
+// WIRED ON BOTH SIDES (task 3.3 fix round 1, coordinator ruling: no cross-lane deferral of a same-lane
+// wiring gap). `scripts/turns/export-corpus-for-extraction.mjs`'s `buildCorpusItems` (under
+// `--with-pool-text`) stamps `source_pool_hash: hashSourcePool(pool)` over the EXACT `pool` array it
+// exports (same `usableCapturesOrdered` floor, same `{url, text}` field selection this seam's own write
+// site reads back) -- both callers import this ONE function, so the two sides cannot independently drift
+// on how the hash is computed, only on WHAT it is computed over (a live DB change between export and
+// write, the condition this whole seam exists to catch).
 
 import { createHash } from "node:crypto";
 

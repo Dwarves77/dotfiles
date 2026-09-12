@@ -4,6 +4,10 @@ import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseArgs, chunk, chunkByCharBudget, buildCorpusItems } from "./export-corpus-for-extraction.mjs";
+// Task 3.3 fix round 1: the SAME shared helper buildCorpusItems now stamps as source_pool_hash, imported
+// directly so this file's own expectations are computed by the real function, never a hand-typed literal
+// that could silently drift from it.
+import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
@@ -375,6 +379,8 @@ test("buildCorpusItems: withPoolText:true adds title/item_type/format_type/juris
       source_url: "https://eur-lex.europa.eu/32024R0001",
       required_slots: ["effective_date", "jurisdictional_scope"],
       pool: [],
+      // Task 3.3 fix round 1: the 9th added field, hashSourcePool of THIS item's own (empty) pool.
+      source_pool_hash: hashSourcePool([]),
     },
   ]);
 });
@@ -395,8 +401,47 @@ test("buildCorpusItems: withPoolText:true defaults the 7 metadata fields to null
       source_url: null,
       required_slots: [],
       pool: [],
+      source_pool_hash: hashSourcePool([]),
     },
   ]);
+});
+
+// ── buildCorpusItems: source_pool_hash (Part 3 task 3.3, fix round 1) ──────────────────────────────
+// The coordinator's own ruling: stamp EXACTLY the pool rows the seam will re-hash, same ordering and same
+// field selection, so both sides of the seam (this exporter, generateBriefFromInjected) can never drift on
+// HOW the hash is computed, only on WHAT it is computed over.
+
+test("buildCorpusItems: withPoolText:true stamps source_pool_hash equal to hashSourcePool(the exported pool), non-empty pool", () => {
+  const items = [{ id: "item-1" }];
+  const textA = "full captured text a, ".repeat(15);
+  const textB = "full captured text b, ".repeat(15);
+  const poolRows = [
+    { intelligence_item_id: "item-1", result_url: "https://a.example/doc", result_content: textA, result_index: 0 },
+    { intelligence_item_id: "item-1", result_url: "https://b.example/doc", result_content: textB, result_index: 1 },
+  ];
+  const out = buildCorpusItems(items, [], [], poolRows, { withPoolText: true });
+  assert.equal(out[0].source_pool_hash, hashSourcePool(out[0].pool));
+  // Not a tautology: a DIFFERENT pool must produce a DIFFERENT hash (proves this isn't a constant).
+  assert.notEqual(out[0].source_pool_hash, hashSourcePool([{ url: "https://different.example/doc", text: "different content" }]));
+});
+
+test("buildCorpusItems: withPoolText:true stamps source_pool_hash equal to hashSourcePool([]) for an item with no usable pool rows", () => {
+  const out = buildCorpusItems([{ id: "lonely" }], [], [], [], { withPoolText: true });
+  assert.equal(out[0].source_pool_hash, hashSourcePool([]));
+});
+
+test("buildCorpusItems: withPoolText:true stamps source_pool_hash over the FILTERED pool (post usable-capture-floor / missing-url drops), not the raw input rows", () => {
+  const longEnough = "y".repeat(250);
+  const poolRows = [
+    { intelligence_item_id: "item-1", result_url: "https://short.example/doc", result_content: "s".repeat(150), result_index: 0 }, // dropped: below floor
+    { intelligence_item_id: "item-1", result_url: null, result_content: longEnough, result_index: 1 }, // dropped: no url
+    { intelligence_item_id: "item-1", result_url: "https://ok.example/doc", result_content: longEnough, result_index: 2 },
+  ];
+  const out = buildCorpusItems([{ id: "item-1" }], [], [], poolRows, { withPoolText: true });
+  assert.deepEqual(out[0].pool, [{ url: "https://ok.example/doc", text: longEnough }]);
+  assert.equal(out[0].source_pool_hash, hashSourcePool([{ url: "https://ok.example/doc", text: longEnough }]));
+  // If the hash were taken over the raw (unfiltered) rows it would NOT equal the filtered-pool hash.
+  assert.notEqual(out[0].source_pool_hash, hashSourcePool(poolRows.map((r) => ({ url: r.result_url, text: r.result_content }))));
 });
 
 // ── source contract: --with-pool-text reads result_url (Part 3 task 3.1) ───────────────────────────
