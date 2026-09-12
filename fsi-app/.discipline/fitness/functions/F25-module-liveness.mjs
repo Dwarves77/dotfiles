@@ -959,6 +959,26 @@ export const LEGACY_ALLOWLIST = [
   // an importer (see this file's own header), so the entries are the stale-allowlist condition the gate
   // exists to catch, not a defect to paper over.
 
+  // W9 part 1, task 1.1 (2026-09-11): src/test-support/fake-supabase.mjs is a SHARED injected-fake
+  // Supabase client, the same permanent-test-infrastructure shape as
+  // scripts/_ruling/null-tier-host-ruling.mjs's own entry above ("a test-only importer does not satisfy
+  // F25's production-importer bar, so it still needs an entry"), never meant to gain one: its whole
+  // reason to exist is to be imported by *.test.mjs/*.npmtest.mjs files (currently
+  // src/lib/entities/link-item-entities.test.mjs and src/lib/intake/mint-item-entities.npmtest.mjs;
+  // isTestFile() correctly does not count either as a production importer). Extracted from the
+  // bespoke fake client src/lib/agent/timeline-harvest-unlock.npmtest.mjs first established, so a
+  // second writer-level test does not hand-roll a one-off fake for the same handful of Supabase chain
+  // shapes (select/eq/in, upsert, update).
+  {
+    file: 'fsi-app/src/test-support/fake-supabase.mjs',
+    reason:
+      'A shared injected-fake Supabase client for node:test suites (select/eq/in, upsert with ' +
+      'onConflict/ignoreDuplicates, update.eq): test infrastructure, not a production capability. Its ' +
+      'only intended callers are test files, which isTestFile() correctly excludes from the ' +
+      'production-importer count. Grows new chain shapes as new writer tests need them; deleting it ' +
+      'would mean re-inlining the same fake per test file.',
+    reviewByPhase: 'n/a: permanent shared test double; re-review only if every importing test is deleted or a real production caller appears (which would itself be a design smell for a test fake)',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

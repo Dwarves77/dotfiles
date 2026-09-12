@@ -159,3 +159,128 @@ test("brief coverage counts a real (non-stub) brief as filled", async () => {
   assert.deepEqual(got, { rows: 40, filled: 12 });
   assert.equal(classify(got), "FILLED");
 });
+
+// ── W9 PART1 lane, 2026-09-11 -- attack proofs for the three birth-wiring entries (task 1.4, plan
+// docs/plans/brief-chain-build-plan-2026-09-11.md Part 1). Each starts from the "zero coverage" fixture
+// the brief's Step 1 names and asserts classify() actually goes red for it, the same posture as the
+// DATECHAIN block above, applied to the wiring tasks 1.1-1.3 add rather than the four earlier stores.
+
+// readAll's contract (scripts/lib/db.mjs): sb.from(table).select(cols).order(col).range(from,to), then
+// `match(q)` appends the caller's own filter (here, .eq("ref_table", ...)) before the page is awaited.
+function fakeEntityRefsClient({ totalCount, refRows }) {
+  return {
+    from(table) {
+      if (table === "intelligence_items") {
+        return { select: () => ({ eq: () => Promise.resolve({ count: totalCount, error: null }) }) };
+      }
+      if (table === "entity_refs") {
+        return {
+          select: () => ({
+            order: () => ({
+              range: () => ({
+                eq: () => Promise.resolve({ data: refRows, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+}
+
+test("entity_refs coverage goes red (ROWS_NO_VALUES) when no live item has an entity_refs row", async () => {
+  const entry = STORES.find((s) => s.table === "entity_refs");
+  assert.ok(entry, "entity_refs coverage entry must be declared");
+  const sb = fakeEntityRefsClient({ totalCount: 40, refRows: [] });
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 0 });
+  assert.equal(classify(got), "ROWS_NO_VALUES");
+});
+
+test("entity_refs coverage counts a live item with a real ref as filled", async () => {
+  const entry = STORES.find((s) => s.table === "entity_refs");
+  // Two rows, same item (two jurisdiction roles) -- distinctness must collapse this to 1, not 2.
+  const sb = fakeEntityRefsClient({
+    totalCount: 40,
+    refRows: [{ ref_id: "item-1" }, { ref_id: "item-1" }],
+  });
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 1 });
+  assert.equal(classify(got), "FILLED");
+});
+
+test("format_type coverage goes red (ROWS_NO_VALUES) when every live item is null", async () => {
+  const entry = STORES.find((s) => s.table === "intelligence_items" && s.fill === "format_type");
+  assert.ok(entry, "format_type coverage entry must be declared");
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          then: (res) => res({ count: 40, error: null }),
+          not: () => Promise.resolve({ count: 0, error: null }),
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 0 });
+  assert.equal(classify(got), "ROWS_NO_VALUES");
+});
+
+test("format_type coverage counts a stamped live item as filled", async () => {
+  const entry = STORES.find((s) => s.table === "intelligence_items" && s.fill === "format_type");
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          then: (res) => res({ count: 40, error: null }),
+          not: () => Promise.resolve({ count: 40, error: null }),
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 40, filled: 40 });
+  assert.equal(classify(got), "FILLED");
+});
+
+test("CELEX-Decision-as-regulation coverage goes red (ROWS_NO_VALUES) when none are retyped", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("canonical_instrument_key"));
+  assert.ok(entry, "CELEX Decision retype coverage entry must be declared");
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          regexMatch: () => ({
+            // totalQuery resolves here (only .regexMatch chained); filledQuery chains a further .eq(...).
+            then: (res) => res({ count: 351, error: null }),
+            eq: () => Promise.resolve({ count: 0, error: null }), // none retyped to regulation yet
+          }),
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 351, filled: 0 });
+  assert.equal(classify(got), "ROWS_NO_VALUES");
+});
+
+test("CELEX-Decision-as-regulation coverage goes FILLED once task 5.5 retypes the backlog", async () => {
+  const entry = STORES.find((s) => String(s.fill).startsWith("canonical_instrument_key"));
+  const sb = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          regexMatch: () => ({
+            then: (res) => res({ count: 351, error: null }),
+            eq: () => Promise.resolve({ count: 351, error: null }), // all 351 retyped
+          }),
+        }),
+      }),
+    }),
+  };
+  const got = await countStore(sb, entry);
+  assert.deepEqual(got, { rows: 351, filled: 351 });
+  assert.equal(classify(got), "FILLED");
+});

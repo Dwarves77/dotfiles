@@ -61,6 +61,12 @@
 import { readAll, guardedInsertMany, guardedUpdate } from "../lib/db.mjs";
 import { entityId, hostFromUrl } from "../../src/lib/entities/entity-id.mjs";
 import { identifierRow, VALIDATORS } from "../../src/lib/entities/crosswalk.mjs";
+// The jurisdiction/instrument planners MOVED to src/lib/entities/entity-plan.mjs (lane W9 part 1, task
+// 1.1, 2026-09-11) so mint-item.ts's rule-16(e) writer (link-item-entities.mjs) and this backfill share
+// ONE planner instead of two hand-copied implementations. Re-exported here, verbatim names, so every
+// existing importer of this module (this file's own test, main() below) is unchanged.
+export { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
+import { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
 
 const ASSERTED_BY = "scripts/entities/backfill-entities.mjs";
 const CITE = {
@@ -82,88 +88,9 @@ export function distinctNormalized(rawValues) {
   return [...seen].sort();
 }
 
-/**
- * Plan jurisdiction entities + crosswalk identifiers for a set of distinct ISO codes.
- * `existingEntityIds` (Set<string>) and `existingIdentifierKeys` (Set<"entity_id|scheme|value">) let a
- * second run skip what a first run already created. Returns { entities, identifiers, byCode } where
- * byCode maps the normalized code to its (possibly pre-existing) entity_id, for planJurisdictionRefs().
- */
-export function planJurisdictionEntities(codes, existingEntityIds = new Set(), existingIdentifierKeys = new Set()) {
-  const entities = [];
-  const identifiers = [];
-  const byCode = new Map();
-  for (const code of codes) {
-    const id = entityId("jurisdiction", code);
-    byCode.set(code, id);
-    if (!existingEntityIds.has(id)) {
-      entities.push({ entity_id: id, kind: "jurisdiction", canonical_name: code, status: "active" });
-    }
-    const scheme = VALIDATORS.ISO3166_1(code) ? "ISO3166_1" : VALIDATORS.ISO3166_2(code) ? "ISO3166_2" : null;
-    if (scheme) {
-      const key = `${id}|${scheme}|${code}`;
-      if (!existingIdentifierKeys.has(key)) identifiers.push(identifierRow(id, scheme, code, ASSERTED_BY));
-    }
-    // else: a free-text supranational code (GLOBAL/IMO/ICAO-shaped) — entity only, no crosswalk row.
-  }
-  return { entities, identifiers, byCode };
-}
-
-/**
- * Plan entity_refs rows (role='jurisdiction') for every (row, code) occurrence in `rows`
- * ([{id, jurisdiction_iso}]) against `refTable` ('intelligence_items' | 'regions'). `byCode` is the map
- * planJurisdictionEntities() returned. `existingRefKeys` is a Set of "ref_table|ref_id|entity_id|role".
- */
-export function planJurisdictionRefs(refTable, rows, byCode, existingRefKeys = new Set()) {
-  const refs = [];
-  for (const row of rows) {
-    const codes = Array.isArray(row.jurisdiction_iso ?? row.iso_codes) ? (row.jurisdiction_iso ?? row.iso_codes) : [];
-    for (const raw of codes) {
-      const code = String(raw ?? "").trim().toUpperCase();
-      if (!code) continue;
-      const entity_id = byCode.get(code) ?? entityId("jurisdiction", code);
-      const key = `${refTable}|${row.id}|${entity_id}|jurisdiction`;
-      if (existingRefKeys.has(key)) continue;
-      refs.push({ ref_table: refTable, ref_id: row.id, entity_id, role: "jurisdiction", asserted_by: ASSERTED_BY });
-      existingRefKeys.add(key); // guard against the SAME code appearing twice in one row's array
-    }
-  }
-  return refs;
-}
-
-/** Plan instrument entities + CELEX crosswalk identifiers for a set of distinct canonical_instrument_key
- *  values. Same existing-state/return shape as planJurisdictionEntities(). */
-export function planInstrumentEntities(keys, existingEntityIds = new Set(), existingIdentifierKeys = new Set()) {
-  const entities = [];
-  const identifiers = [];
-  const byKey = new Map();
-  for (const raw of keys) {
-    const key = String(raw ?? "").trim().toUpperCase();
-    if (!key) continue;
-    const id = entityId("instrument", key);
-    byKey.set(key, id);
-    if (!existingEntityIds.has(id)) {
-      entities.push({ entity_id: id, kind: "instrument", canonical_name: key, status: "active" });
-    }
-    if (VALIDATORS.CELEX(key)) {
-      const idKey = `${id}|CELEX|${key}`;
-      if (!existingIdentifierKeys.has(idKey)) identifiers.push(identifierRow(id, "CELEX", key, ASSERTED_BY));
-    }
-  }
-  return { entities, identifiers, byKey };
-}
-
-/** Plan instrument_entity_id updates for intelligence_items rows whose canonical_instrument_key is set
- *  and whose instrument_entity_id is not yet set. `items` is [{id, canonical_instrument_key}]. */
-export function planInstrumentFkUpdates(items, byKey) {
-  const updates = [];
-  for (const it of items) {
-    const key = String(it.canonical_instrument_key ?? "").trim().toUpperCase();
-    if (!key) continue;
-    const entity_id = byKey.get(key);
-    if (entity_id) updates.push({ id: it.id, instrument_entity_id: entity_id });
-  }
-  return updates;
-}
+// planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates MOVED
+// to src/lib/entities/entity-plan.mjs (see the re-export + import at the top of this file); this is
+// where they used to live (spec section 1.1/section 1.2, migration 282/283); read that module's own header for why.
 
 /** Plan organisation entities + HOST crosswalk identifiers for a set of source URLs. Same shape as the
  *  jurisdiction/instrument planners; `byHost` maps the registrable host to its entity_id. */
@@ -245,11 +172,11 @@ export async function runJurisdiction({ apply, limit }, existingEntityIds, exist
     ...items.flatMap((r) => r.jurisdiction_iso || []),
     ...regions.flatMap((r) => r.iso_codes || []),
   ]);
-  const { entities, identifiers, byCode } = planJurisdictionEntities(allCodes, existingEntityIds, existingIdentifierKeys);
+  const { entities, identifiers, byCode } = planJurisdictionEntities(allCodes, existingEntityIds, existingIdentifierKeys, ASSERTED_BY);
 
   const existingRefKeys = await existingRefKeySet();
-  const itemRefs = planJurisdictionRefs("intelligence_items", items, byCode, existingRefKeys);
-  const regionRefs = planJurisdictionRefs("regions", regions, byCode, existingRefKeys);
+  const itemRefs = planJurisdictionRefs("intelligence_items", items, byCode, existingRefKeys, ASSERTED_BY);
+  const regionRefs = planJurisdictionRefs("regions", regions, byCode, existingRefKeys, ASSERTED_BY);
   const refs = [...itemRefs, ...regionRefs];
 
   console.log(`[jurisdiction] distinct codes: ${allCodes.length}; would_create entities: ${entities.length}; existing entities: ${allCodes.length - entities.length}; identifiers to add: ${identifiers.length}; refs to add: ${refs.length} (items ${itemRefs.length} + regions ${regionRefs.length})`);
@@ -270,7 +197,7 @@ export async function runInstrument({ apply, limit }, existingEntityIds, existin
     limit,
   );
   const distinctKeys = distinctNormalized(items.map((r) => r.canonical_instrument_key));
-  const { entities, identifiers, byKey } = planInstrumentEntities(distinctKeys, existingEntityIds, existingIdentifierKeys);
+  const { entities, identifiers, byKey } = planInstrumentEntities(distinctKeys, existingEntityIds, existingIdentifierKeys, ASSERTED_BY);
 
   const needsFk = items.filter((r) => !r.instrument_entity_id);
   const updates = planInstrumentFkUpdates(needsFk, byKey);

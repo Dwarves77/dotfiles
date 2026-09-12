@@ -27,6 +27,8 @@ import { runConnectionDiscovery } from "@/lib/connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-deadline-sync.mjs";
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
+import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
+import { specForItemType } from "@/lib/agent/extract-registry";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -221,6 +223,20 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
     seed.domain = canonicalDomain;
   }
 
+  // ── (5b) FORMAT_TYPE, Task 1.2 (2026-09-11), through the SAME dispatch registry (specForItemType)
+  //   that synthesiseAndWriteBrief forces post-generation (canonical-pipeline.ts:775,844), so a minted
+  //   row's format_type can never disagree with what generation would later force onto it. Coordinator
+  //   ruling (same day, round 2): keyed on seed.item_type HERE, after domain canonicalization, for the
+  //   identical reason that block gives at :225-226: the 1a congruence retype (:182) and the
+  //   dedup-news retype (:205) can both change seed.item_type before this point, and a format_type
+  //   stamped off the pre-retype item_type (this task's original placement, right after the item_grade
+  //   stamp above) would disagree with the FINAL item_type the row is actually inserted with. A
+  //   caller-preset seed.format_type is trusted as-is, mirroring the item_grade precedent.
+  if (seed.format_type == null) {
+    const spec = specForItemType((seed.item_type as string | undefined) ?? "");
+    if (spec) seed.format_type = spec.formatType;
+  }
+
   // ── (6) SOURCE-LINK INVARIANT (Fix A) — the LAST gate before the INSERT: a mint cannot produce a
   //   source-less LIVE item. The scan path pre-resolves source_id at stage time (scan/route.ts); the
   //   manual-intake path did not, minting source-orphaned items that can never ground (grounding grounds
@@ -359,6 +375,24 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   } catch (e: unknown) {
     await recordFlywheelDefect(sb, itemId, "compliance-deadline", e instanceof Error ? e.message : String(e));
     flags.push("compliance-deadline-failed");
+  }
+
+  // rule 16(e) (2026-09-11, W9.1 "entity references at the mint chokepoint"): every NEW item is
+  // connected into the entity spine (migration 282/283) at birth, not only by the hand-dispatched
+  // scripts/entities/backfill-entities.mjs. Same non-fatal try/catch posture as (a)/(b)/(compliance
+  // sync) above: a linking failure must never fail a mint; it is RECORDED as a rule-16(d) defect.
+  // MOAT BOUNDARY: writes ONLY entities / entity_identifiers / entity_refs / intelligence_items.
+  // instrument_entity_id: the exact tables migration 283 adds, nothing else in this chokepoint.
+  try {
+    const r = await linkItemEntities(sb, {
+      id: itemId,
+      jurisdiction_iso: seed.jurisdiction_iso as string[] | undefined,
+      canonical_instrument_key: seed.canonical_instrument_key as string | undefined,
+    });
+    if (r.refs > 0 || r.instrumentEntityId) flags.push(`entities:${r.refs}${r.instrumentEntityId ? "+instrument" : ""}`);
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "entities", e instanceof Error ? e.message : String(e));
+    flags.push("entities-failed");
   }
 
   if (seekStudy) {

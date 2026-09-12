@@ -13,14 +13,21 @@
 //      flywheel-defect integrity_flags row (never a silent skip), exactly like the mint path
 //   5. an existing item_forward_events row whose supporting claim/section is gone is flagged
 //      "stale-events" (subtype), never deleted
+//   6. rule 16(e), added task 1.1 review round: entity linking on the update path is gated on which
+//      keys proposed_changes actually touches, uses the FRESH re-read of the item's row rather than
+//      proposed_changes itself, and a linking failure records a flywheel-defect (kind "entities")
+//      without failing the update. Uses the same injected fake-supabase.mjs entity spine
+//      mint-item-entities.npmtest.mjs already uses for the mint path.
 // jiti imports the TS materializer (mint-idempotency.npmtest.mjs / mint-forward-participation.npmtest.mjs
-// pattern — @/ alias resolution).
+// pattern, @/ alias resolution).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
+import { fakeSupabase } from "../../test-support/fake-supabase.mjs";
+import { entityId } from "../entities/entity-id.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
@@ -48,10 +55,12 @@ function fakeClient({
   existingForwardRows = [],
   existingReadError = null,
   forwardInsertError = null,
+  entitySpineSeed = { entities: [], entity_refs: [], entity_identifiers: [] },
 } = {}) {
   const flagInserts = [];
   const forwardEventInserts = [];
   let updateCalls = 0;
+  const entitySpine = fakeSupabase(entitySpineSeed);
 
   function intelligenceItemsChain() {
     return {
@@ -156,6 +165,7 @@ function fakeClient({
     forwardEventInserts: () => forwardEventInserts,
     crossRefUpserts: () => crossRefUpserts,
     updateCalls: () => updateCalls,
+    entitySpine,
     from(table) {
       if (table === "intelligence_items") return intelligenceItemsChain();
       if (table === "section_claim_provenance") return sectionClaimProvenanceChain();
@@ -163,6 +173,7 @@ function fakeClient({
       if (table === "item_forward_events") return itemForwardEventsChain();
       if (table === "integrity_flags") return integrityFlagsChain();
       if (table === "item_cross_references") return itemCrossReferencesChain();
+      if (table === "entities" || table === "entity_refs" || table === "entity_identifiers") return entitySpine.from(table);
       throw new Error(`fakeClient: unexpected table ${table}`);
     },
   };
@@ -338,4 +349,65 @@ test("discovery success and forward-events success can BOTH be recorded on the s
   assert.ok(!r.flags.includes("forward-events-failed"));
   assert.equal(sb.forwardEventInserts().length, 1);
   assert.equal(sb.flagInserts().filter((f) => f.created_by.startsWith("flywheel-defect:")).length, 0, "no defect flags on an all-success update");
+});
+
+// ── rule 16(e) on the update path: entity linking gated on which keys proposed_changes actually
+//    touches, using the FRESH re-read of the item's current row, not proposed_changes itself
+//    (task 1.1, review round: this branch previously had zero test coverage) ───────────────────────────
+
+test("substantive update touching canonical_instrument_key (not jurisdiction_iso) still links the RE-READ jurisdiction, proving the re-read is used, not a stale/decoy value from proposed_changes", async () => {
+  const sb = fakeClient({
+    // proposed_changes carries a DECOY jurisdiction_iso the code must NOT use (it never assigns this
+    // field on this update_type's own applied patch is irrelevant to the assertion below; the point is
+    // that if the implementation ever regressed to reading jurisdiction_iso off proposed_changes instead
+    // of re-reading the row, this decoy value would leak into entity_refs instead of the true one).
+    itemRow: { id: "item-1", item_type: "regulation", canonical_instrument_key: null, source_id: "src-1", operational_scenario_tags: [], compliance_object_tags: [], jurisdictions: [], jurisdiction_iso: ["DE"], topic_tags: [] },
+  });
+  const r = await applyStagedUpdate(sb, {
+    update_type: "update_item",
+    item_id: "item-1",
+    proposed_changes: { canonical_instrument_key: "32024R1610", jurisdiction_iso: ["FR"] },
+  });
+  assert.equal(r.success, true);
+  // The fake's intelligenceItemsChain().update() never mutates itemRow; itemRow IS what the fresh
+  // re-read returns. If linkItemEntities were called with proposed_changes' own jurisdiction_iso
+  // (["FR"]) instead of the re-read row (["DE"]), the ref below would carry "FR", not "DE".
+  const jurRef = sb.entitySpine.tables.entity_refs.find((row) => row.role === "jurisdiction");
+  assert.ok(jurRef, "a jurisdiction ref must be written");
+  assert.equal(jurRef.entity_id, entityId("jurisdiction", "DE"), "the RE-READ item row's jurisdiction_iso (DE), not proposed_changes' own value (FR), must be what was linked");
+  assert.notEqual(jurRef.entity_id, entityId("jurisdiction", "FR"), "proposed_changes' own decoy value (FR) must NOT be what was linked");
+  assert.ok(r.flags.some((f) => f.startsWith("entities:")), `expected an entities:<n> flag, got ${JSON.stringify(r.flags)}`);
+});
+
+test("a substantive update touching neither jurisdiction_iso nor canonical_instrument_key never calls linkItemEntities, even when the item already carries a jurisdiction", async () => {
+  const sb = fakeClient({
+    itemRow: { id: "item-1", item_type: "regulation", canonical_instrument_key: null, source_id: "src-1", operational_scenario_tags: [], compliance_object_tags: [], jurisdictions: [], jurisdiction_iso: ["DE"], topic_tags: [] },
+  });
+  const r = await applyStagedUpdate(sb, { update_type: "update_item", item_id: "item-1", proposed_changes: { title: "Updated title" } });
+  assert.equal(r.success, true);
+  assert.equal(sb.entitySpine.tables.entity_refs.length, 0, "no entity_refs write when proposed_changes touches neither key");
+  assert.ok(!r.flags.some((f) => f.startsWith("entities")), `expected no entities flag, got ${JSON.stringify(r.flags)}`);
+});
+
+test("linkItemEntities failure on a substantive update -> update still succeeds, and a rule-16(d) flywheel-defect flag (kind entities) is recorded", async () => {
+  const sb = fakeClient({
+    itemRow: { id: "item-1", item_type: "regulation", canonical_instrument_key: null, source_id: "src-1", operational_scenario_tags: [], compliance_object_tags: [], jurisdictions: [], jurisdiction_iso: ["DE"], topic_tags: [] },
+  });
+  const realFrom = sb.from.bind(sb);
+  sb.from = (table) => {
+    if (table === "entities") {
+      return { select: () => ({ in: () => { throw new Error("entities read failed: simulated"); } }) };
+    }
+    return realFrom(table);
+  };
+  const r = await applyStagedUpdate(sb, { update_type: "update_item", item_id: "item-1", proposed_changes: { jurisdiction_iso: ["DE"] } });
+  assert.equal(r.success, true, "an entity-linking failure must never fail the update");
+  assert.ok(r.flags.includes("entities-failed"));
+
+  const defect = sb.flagInserts().find((f) => f.created_by === "flywheel-defect:entities");
+  assert.ok(defect, "a flywheel-defect:entities integrity_flags row must be written");
+  assert.equal(defect.subject_type, "item");
+  assert.equal(defect.subject_ref, "item-1");
+  assert.match(defect.description, /simulated/);
+  assert.match(defect.description, /at update/, "the update-path context must be named");
 });
