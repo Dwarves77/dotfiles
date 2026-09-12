@@ -30,7 +30,12 @@ const CELEX_RE = /^[0-9CE]\d{4}[A-Z]{1,2}\d{2,4}(?:\(\d{2}\))?$/;
 const ELI_RE = /\beli\/[a-z_]+\/\d{4}\/[0-9a-z_-]+/i;
 // UK legislation: {type} {year} {number}, type is a legislation.gov.uk series code (uksi, ukpga, ssi…).
 // Accepts an optional leading "UK " and space-or-slash separators. e.g. "UK uksi 2021/1095".
-const UK_TYPES = new Set([
+// Exported (task 7.4e, 2026-09-12) so the ONE UK series-code vocabulary is reused, never re-enumerated, by
+// the two other places that need to recognize a legislation.gov.uk series segment: target-match.mjs's
+// identifierInUrl (already imports classifyIdentifier, which uses this set internally) and
+// scripts/mint/export-census-rows.mjs's deriveUkLegislationIdentifier / scripts/maintenance/
+// uk-series-code-reconcile.mjs's URL-side parse (both task 7.4e) -- reuse-before-construction.
+export const UK_TYPES = new Set([
   "uksi", "ukpga", "ukla", "ukcm", "ukmo", "asp", "asc", "anaw", "mwa", "nia", "nisr",
   "ssi", "wsi", "apni", "aosp", "aep", "gbla", "mnia", "apgb", "aip",
 ]);
