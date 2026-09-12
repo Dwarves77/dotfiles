@@ -150,6 +150,10 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // is invisible to every test that mounts components against canned fixtures: the whole workspace-tags
 // feature 401'd for every signed-in user from the day it landed. No citingFiles change, same posture as the
 // category 36/37/38/39 re-pins above (the files below cite the skill as a whole, not this section).
+// 2026-09-11 (task 5.3, landing #410): 'fsi-app/scripts/verify/layer-c-insert-gate-proof.mjs' ADDED to
+// remediation-discipline's citingFiles (F25 module-liveness had flagged it unwired; wiring it into
+// run-data-audit-lane.mjs's AUDITS list is what makes its own "GOVERNING SKILLS: remediation-discipline"
+// header a real citation this gate must track). No contentHash change: the skill text itself did not move.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -187,6 +191,7 @@ export const PINNED_MANIFEST = {
       'fsi-app/scripts/verify/column-existence-parity.mjs',
       'fsi-app/scripts/verify/deferral-hygiene-audit.mjs',
       'fsi-app/scripts/verify/flag-age-audit.mjs',
+      'fsi-app/scripts/verify/layer-c-insert-gate-proof.mjs',
       'fsi-app/scripts/verify/no-generic-source-audit.mjs',
       'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
       'fsi-app/scripts/verify/orphan-source-audit.mjs',
