@@ -161,6 +161,12 @@ jobs:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -u
+          # Task 7.8 (2026-09-12): both checks below (memory gate + UX compliance gate) now live in ONE
+          # script, fsi-app/.discipline/governance/memory-gate.mjs, run by BOTH this step and pre-push
+          # step 2b, so the two surfaces cannot silently disagree the way they did for PR #647 (task
+          # 6.2b went red here while the lane's own pre-push run was green: pre-push had no memory-gate
+          # step at all). This step only computes the same RANGE it always has and hands it to the
+          # script; the classification rules and messages live in that one file now, not here.
           if [ "$EVENT_NAME" = "push" ]; then
             case "$PUSH_BEFORE" in
               0000000000000000000000000000000000000000|"")
@@ -168,49 +174,11 @@ jobs:
               *)
                 RANGE="${PUSH_BEFORE}..${PUSH_SHA}" ;;
             esac
+            node fsi-app/.discipline/governance/memory-gate.mjs --range="$RANGE" --warn-only
           else
             git fetch --no-tags origin "$BASE_REF" || true
             RANGE="origin/${BASE_REF}...${PR_HEAD}"
-          fi
-          CHANGED=$(git diff --name-only "$RANGE")
-          # Run RECORDS are not code: scripts/harness-runs/** (every family's run artifacts, PENDING-RUN.md
-          # and LAST-PROPOSER-PASS.md — F28 audits these as the run's own memory) and the corpus-turn
-          # marker scripts/turns/LAST-TURN.json are emitted by the GitHub-Actions runtimes
-          # (corpus-turn.yml, source-sweep.yml) on their own branches. Gating those PRs on a session-log
-          # addendum would demand a first-person memory entry from a machine (corpus-turn PR #509 failed
-          # here, 2026-09-01). The proposer pass over those artifacts is a human/coordinator act that
-          # lands with its own addendum, as it always has.
-          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/(src|supabase/migrations|scripts|\.discipline)/' | grep -vE '^fsi-app/scripts/(harness-runs/|turns/LAST-TURN\.json$)' || true)
-          MEMORY=$(printf '%s\n' "$CHANGED" | grep -E '^docs/(ops/session-log\.md|PROGRAM-BOARD\.md)$' || true)
-          if [ -n "$CODE" ] && [ -z "$MEMORY" ]; then
-            MSG="Memory gate: this range ($RANGE) touches code but neither docs/ops/session-log.md nor docs/PROGRAM-BOARD.md. The vault is the project memory; a change it does not record is invisible to every future session. Append a session-log addendum (or update PROGRAM-BOARD) in this PR."
-            if [ "$EVENT_NAME" = "pull_request" ]; then
-              echo "::error::$MSG"; exit 1
-            else
-              echo "::warning::$MSG (warn-only on push: piecewise web-upload delivery lands code and docs as separate pushes)"
-            fi
-          else
-            echo "memory gate OK"
-          fi
-          # ── UX compliance gate (2026-09-03, RD-60 / DP-2) ─────────────────────
-          # A change that touches a customer surface (.tsx or .css under fsi-app/src) must carry a
-          # "UX compliance" block in the session-log addendum of the same range: per screen, the
-          # reader's primary goal, the path to it, the one primary action, and the feedback state for
-          # every asynchronous action (docs/design/ux-laws.md; DP-2). The measurement half (F35 +
-          # the rendering guard's UX smoke slot) proves the layout; this half proves the lane named
-          # the goal. Blocking on pull_request, warn on push, for the memory gate's reasons above.
-          SURFACE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/src/.*\.(tsx|css)$' || true)
-          if [ -n "$SURFACE" ]; then
-            if git diff "$RANGE" -- docs/ops/session-log.md | grep -qE '^\+.*UX compliance'; then
-              echo "UX compliance gate OK"
-            else
-              MSG="UX compliance gate: this range ($RANGE) touches a customer surface ($(printf '%s\n' "$SURFACE" | head -3 | tr '\n' ' ')…) but the session-log addendum added in the same range has no 'UX compliance' block (docs/design/ux-laws.md, DP-2). Add it: per screen, the primary goal, the path, the one primary action, the feedback state per async action."
-              if [ "$EVENT_NAME" = "pull_request" ]; then
-                echo "::error::$MSG"; exit 1
-              else
-                echo "::warning::$MSG (warn-only on push)"
-              fi
-            fi
+            node fsi-app/.discipline/governance/memory-gate.mjs --range="$RANGE"
           fi
 
   test-discipline-engine:

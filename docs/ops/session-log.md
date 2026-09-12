@@ -19857,3 +19857,45 @@ glyph byte check 0 over 2b6d4f56..HEAD, pre-push gate run by the lane and by the
 ### UX compliance (task 7.4e)
 
 Not applicable: no `.tsx`/`.css` touched.
+
+## 2026-09-12, W9 task 7.8: the pre-push hook runs the memory gate and the UX-compliance gate (CI parity)
+
+**What.** The class fix named by the 6.2b wiring lesson directly above: `fsi-app/.discipline/governance/
+memory-gate.mjs` (node builtins + relative imports only, CLI via `scripts/lib/is-main.mjs`) is a pure,
+injectable core (`classifyChanged`, `memoryGateVerdict`, `uxGateVerdict`) plus a `--range=<a>..<b>` (or
+`<a>...<b>`) live driver that mirrors the CODE/MEMORY/SURFACE regexes and the UX-compliance session-log
+check that used to live only as inline shell in `.github/workflows/discipline.yml`. `discipline.yml`'s
+"Memory gate" step now computes the same RANGE it always has and calls the script (`--warn-only` on push,
+matching the prior warn-on-push/fail-on-PR posture); the inline shell duplicate is deleted, the comments
+above the step are unchanged. `fsi-app/.discipline/hooks/pre-push` gains step 2b, blocking, calling the
+SAME script with `--range=origin/master..HEAD` right after the consistency runner: a range that touches
+code without a `docs/ops/session-log.md`/`docs/PROGRAM-BOARD.md` change, or a `.tsx`/`.css` change
+without an added "UX compliance" line, now fails locally before it ever reaches CI, closing exactly the
+gap PR #647 (task 6.2b) hit. `docs/inventories/discipline.md`'s pre-push section and
+`docs/dispatches/lane-common-contract.md`'s Wiring preflight section both now name step 2b explicitly.
+
+**Negative proof [CONFIRMED].** A scratch commit touching `fsi-app/src/__scratch-task-7-8-negative-
+proof.ts` alone (no vault file in the same range) made `sh fsi-app/.discipline/hooks/pre-push < /dev/null`
+fail at STEP 2b with the expected message ("Memory gate: this range (origin/master..HEAD) touches code
+but neither docs/ops/session-log.md nor docs/PROGRAM-BOARD.md..."), exit code 1, after step 1 and step 2
+both passed. The scratch commit was then dropped (`git reset HEAD~1`, working tree files preserved; the
+scratch file itself deleted) before this range's real commit(s) were made.
+
+**Gates.** `node --test fsi-app/.discipline/governance/memory-gate.test.mjs`: 16/16. `node --test
+fsi-app/.discipline/glob-portability.test.mjs`: 3/3 (the new file imports only `node:child_process` and a
+relative `is-main.mjs`). `node --test fsi-app/.discipline/shared-writer-registry.test.mjs`: 1/1 (this
+script writes no shared table). The new test file is execution-wired by the existing
+`fsi-app/.discipline/governance/*.test.mjs` glob in `run-test-suite.sh` (no glob change needed); confirmed
+via `execution-wiring.mjs`'s own `isExecutionWired`. Full preflight run once at the end, tail pasted in
+`task-7.8-report.md` (the SDD ledger, not this vault). Glyph byte check
+(`git diff origin/master..HEAD | grep '^+' | grep -c` em/en-dash/section-sign): 0.
+
+**Files.** `fsi-app/.discipline/governance/memory-gate.mjs` (new), `memory-gate.test.mjs` (new),
+`.github/workflows/discipline.yml` (modified: memory-gate step calls the script), `fsi-app/.discipline/
+hooks/pre-push` (modified: step 2b), `docs/inventories/discipline.md` (modified: pre-push section),
+`docs/dispatches/lane-common-contract.md` (modified: Wiring preflight sentence), `docs/ops/session-log.md`
+(this entry).
+
+### UX compliance (task 7.8)
+
+Not applicable: no `.tsx`/`.css` touched.
