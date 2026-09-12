@@ -24,7 +24,12 @@ import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 // task 7.5 (brief-chain build plan Part 7, 2026-09-12): the row-shape builder + dedup-match helper
 // are shared with scripts/maintenance/resolve-provisional-sources.mjs so the two promotion paths
 // (this operator route, and the automatic class-table resolver) can never drift on shape.
-import { buildPromotedSourceRow, findExistingSourceByCanonicalUrl } from "@/lib/sources/promote-provisional";
+import {
+  buildPromotedSourceRow,
+  findExistingSourceByCanonicalUrl,
+  PROVISIONAL_SOURCES_PROMOTED_STATUS,
+  PROVISIONAL_SOURCES_REJECTED_STATUS,
+} from "@/lib/sources/promote-provisional";
 
 
 interface PromoteBody {
@@ -113,7 +118,7 @@ export async function POST(request: NextRequest) {
     // Robust resolve (bulk-approve philosophy): stored URLs may be legacy-non-canonical, so
     // compare CANONICALLY in JS rather than a raw .eq that would miss them. Narrow candidates
     // to the host, then canonicalize-compare. If a row matches, reuse it and mark the
-    // provisional promoted-to it — never create a second row.
+    // provisional promoted-to it, never create a second row.
     const canonUrl = canonicalizeUrl(prov.url);
     let canonHost = "";
     try { canonHost = new URL(canonUrl).host; } catch { /* non-URL provisional URL */ }
@@ -125,11 +130,11 @@ export async function POST(request: NextRequest) {
       await supabase
         .from("provisional_sources")
         .update({
-          status: "promoted",
+          status: PROVISIONAL_SOURCES_PROMOTED_STATUS,
           promoted_to_source_id: existingSource.id,
           reviewed_at: now,
           reviewer_notes:
-            `${body.reviewerNotes || ""} [reused existing source ${existingSource.id.slice(0, 8)} — canonical URL already in registry; no duplicate created]`.trim(),
+            `${body.reviewerNotes || ""} [reused existing source ${existingSource.id.slice(0, 8)}: canonical URL already in registry, no duplicate created]`.trim(),
         })
         .eq("id", body.provisionalSourceId);
       return NextResponse.json(
@@ -137,7 +142,7 @@ export async function POST(request: NextRequest) {
           ok: true,
           sourceId: existingSource.id,
           reused: true,
-          message: "Canonical URL already in registry — reused existing source; no duplicate created.",
+          message: "Canonical URL already in registry, reused existing source; no duplicate created.",
         },
         { headers: rateLimitHeaders(auth.userId) }
       );
@@ -190,7 +195,7 @@ export async function POST(request: NextRequest) {
     const { error: updateErr } = await supabase
       .from("provisional_sources")
       .update({
-        status: "promoted",
+        status: PROVISIONAL_SOURCES_PROMOTED_STATUS,
         promoted_to_source_id: inserted.id,
         reviewed_at: now,
         reviewer_notes: body.reviewerNotes || "",
@@ -237,7 +242,7 @@ export async function POST(request: NextRequest) {
     const { error: updateErr } = await supabase
       .from("provisional_sources")
       .update({
-        status: "rejected",
+        status: PROVISIONAL_SOURCES_REJECTED_STATUS,
         reviewed_at: now,
         reviewer_notes: body.reviewerNotes || "",
       })

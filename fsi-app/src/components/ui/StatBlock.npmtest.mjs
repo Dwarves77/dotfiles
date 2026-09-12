@@ -71,7 +71,7 @@ test("tile numeral is pinned (flexShrink 0, nowrap) so a 4/5-digit count is neve
   assert.match(block, /whiteSpace:\s*"nowrap"/);
 });
 
-test("tile label is the side that gives (flex 1 1 auto, minWidth 0) — it wraps instead of squeezing the numeral", () => {
+test("tile label is the side that gives (flex 1 1 auto, minWidth 0): it wraps instead of squeezing the numeral", () => {
   const block = tileBlock();
   assert.match(block, /flex:\s*"1 1 auto"/);
   assert.match(block, /minWidth:\s*0/);

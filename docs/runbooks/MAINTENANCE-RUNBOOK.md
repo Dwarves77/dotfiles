@@ -3308,51 +3308,68 @@ reason.
 UPDATEs there, never a second INSERT):
 - `provisional_sources` promote -> INSERT a new `sources` row (via `buildPromotedSourceRow`, with the
   SAME Q10 canonical-URL dedup guard the promote route runs -- a match reuses the existing row instead
-  of minting a duplicate) + `status='promoted'`, `promoted_to_source_id`, `reviewed_at`,
-  `reviewer_notes`.
-- `provisional_sources` reject -> `status='rejected'`, `reviewed_at`, `reviewer_notes`.
+  of minting a duplicate) + `status=PROVISIONAL_SOURCES_PROMOTED_STATUS` ("promoted", exported from
+  `promote-provisional.ts`), `promoted_to_source_id`, `reviewed_at`, `reviewer_notes`.
+- `provisional_sources` reject -> `status=PROVISIONAL_SOURCES_REJECTED_STATUS` ("rejected", same
+  module), `reviewed_at`, `reviewer_notes`.
 - `provisional_sources` worklist -> `status='needs_more_data'` (the one CHECK-legal value judged closest
-  to "awaiting a class-table ruling"; no dedicated value exists in the tracked vocabulary -- a documented
-  judgment call, change `PROVISIONAL_WORKLIST_STATUS` in the script if the coordinator rules otherwise),
+  to "awaiting a class-table ruling"; no dedicated value exists in the tracked vocabulary, a documented
+  judgment call; change `PROVISIONAL_WORKLIST_STATUS` in the script if the coordinator rules otherwise),
   `reviewed_at`, `reviewer_notes`.
 - `sources` (status='provisional') promote -> `status='active'`, `base_tier`/`effective_tier` stamped to
   the resolved tier (never `tier_override`, which stays reserved for an explicit operator act).
 - `sources` reject -> `status='suspended'` (this codebase's existing "unselectable by the grounding
-  resolver" vocabulary value, RD-39/40).
+  resolver" vocabulary value, RD-39/40) WITH the decline reason appended to `notes` (defect fix D4,
+  docs/plans/defect-fix-plan-2026-09-12.md, review-7.5.md finding 3: the pre-fix version threaded the
+  reason only into the guarded-write `cite` argument, which lands in an off-row audit snapshot file,
+  never a column, so a suspended `sources` row carried no on-row explanation of why).
 - `sources` worklist -> status stays `'provisional'` (already the awaiting-decision resting state for
-  this table -- no value is invented); the equivalent record is appended to `notes` instead of
+  this table, no value is invented); the equivalent record is appended to `notes` instead of
   `reviewer_notes`/`reviewed_at`, which this table does not have.
 
-**ONE `integrity_flags` worklist row PER RUN** (rule d), naming every unclassifiable host across both
-tables in one batched row (`category='source_issue'`, `created_by='resolve-provisional-sources'`,
-`subject_ref='resolve-provisional-sources-batch'`) -- a DIFFERENT aggregation granularity than the
-`null-tier-host` per-host flag (task 7.4's `resolve-cited-host-gate`), which merges one row per host
-across every run. This step never reads or writes a `null-tier-host` flag.
+**Unclassifiable hosts merge into the SAME per-host `null-tier-host` worklist flag** (rule d) --
+defect fix D3 (docs/plans/defect-fix-plan-2026-09-12.md, review-7.5.md finding 2, CONFIRMED): the
+original version built a SECOND, non-idempotent mechanism (`buildBatchWorklistFlag`, one row inserted
+per RUN, re-read every run since `readPendingProvisional()`'s own query includes the worklisted
+status, so a still-unclassifiable host produced a brand-new open `integrity_flags` row every
+dispatch). That mechanism is DELETED. `planHostDecision`/`buildNullTierHostWrite` (extracted, D3, into
+the shared `src/lib/sources/null-tier-host-worklist.mjs`, out of `resolve-cited-host-gate.mjs`, names
+and signatures unchanged) now do a read-modify-write per host: `readNullTierFlag(host)` -> merge via
+`buildNullTierHostWrite` -> insert (new host) or update (existing open flag) -- the SAME mechanism
+task 7.4's `resolve-cited-host-gate` already uses, never a second worklist. The per-item key
+`buildNullTierHostWrite`'s aggregate merges on is a synthetic `${table}:${id}` (there is no
+intelligence_items row backing a provisional_sources/sources record), so a repeated resolve of the
+SAME row contributes to the aggregate exactly once. Idempotent by construction and proven by test (a
+second `main({mode:"apply"})` run over the same still-unclassifiable input inserts 0 new flag rows and
+updates the existing per-host row's contribution list instead).
 
-**Ruling**: ADR-030 rider. Not gated by a separate `arg` token. $0, no LLM, no fetch -- every check is
-the deterministic class table, the live-registry lookup, and the STORED `accessibility_verified`/
-`fetch_status` columns.
+**Ruling**: ADR-030 rider / defect-fix-plan-2026-09-12.md D2/D3/D4. Not gated by a separate `arg`
+token. $0, no LLM, no fetch -- every check is the deterministic class table, the live-registry lookup,
+and the STORED `accessibility_verified`/`fetch_status` columns.
 
-**[HYPOTHESIS, not independently re-verified live]**: the promote route (and this step) write
-`provisional_sources.status='promoted'`; migration 004's own tracked `CHECK` constraint text lists
-`('pending_review','confirmed','rejected','needs_more_data')`, with no `'promoted'` value and no later
-migration found altering it. This step matches the EXISTING route's convention rather than inventing a
-different one -- a real constraint mismatch would be the route's own pre-existing defect, surfaced by
-either one throwing on a live apply, not something this step introduces. Confirm live before the first
-apply dispatch (`SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid =
-'provisional_sources'::regclass AND contype='c'`).
+**Status vocabulary is now CHECK-legal, live** (defect fix D2): migration 317
+(`317_provisional_sources_status_promoted.sql`, applied live by the coordinator before this code
+merged, per standing rule 3) widened `provisional_sources_status_check` to
+`pending_review, confirmed, rejected, needs_more_data, promoted`. Before that migration, the promote
+route's `status: "promoted"` write had never succeeded against the live constraint (D2 evidence: 0
+promoted rows, 0 rows with `promoted_to_source_id`, live SQL). Both write sites (this script, and the
+promote route) now reference the SAME exported constants
+(`PROVISIONAL_SOURCES_PROMOTED_STATUS`/`_REJECTED_STATUS`, `src/lib/sources/promote-provisional.ts`)
+rather than independent literals, and a test in that module's own test file pins all five CHECK values
+as the contract (`promote-provisional.test.mjs`, with a comment naming the constraint).
 
 **Dispatch**: `mode=dry` classifies every row (rule a/b/c/d) and reports counts + a 20-row sample per
-outcome, plus whether a batch worklist flag would be written; writes nothing. `mode=apply` performs the
-promote/reject/worklist write per row, then the one batch flag if any host worklisted.
+outcome; writes nothing. `mode=apply` performs the promote/reject/worklist write per row, merging any
+worklisted host into its per-host `null-tier-host` flag.
 
-**Artifact / read back**: `summary.json`'s `counts.{promote,reject,worklist}`, `by_update_type`-style
-`samples`, and `read_back.{provisional_sources_pending_review_remaining,sources_provisional_remaining}`
--- confirm against `SELECT count(*) FROM provisional_sources WHERE status='pending_review'` and `SELECT
-count(*) FROM sources WHERE status='provisional'` (both should shrink by the promoted+rejected count;
-the worklisted count moves to `needs_more_data` / stays `provisional`), plus `SELECT * FROM
-integrity_flags WHERE created_by='resolve-provisional-sources' ORDER BY created_at DESC LIMIT 1` for the
-batch flag naming any still-unclassifiable hosts.
+**Artifact / read back**: `summary.json`'s `counts.{promote,reject,worklist}`, `samples`, and
+`read_back.{provisional_sources_pending_review_remaining,sources_provisional_remaining}`, plus
+`worklist_flag_writes.{inserted,updated}` -- confirm against `SELECT count(*) FROM provisional_sources
+WHERE status='pending_review'` and `SELECT count(*) FROM sources WHERE status='provisional'` (both
+should shrink by the promoted+rejected count; the worklisted count moves to `needs_more_data` / stays
+`provisional`), plus `SELECT * FROM integrity_flags WHERE created_by='null-tier-host' AND subject_ref
+IN (<the worklisted hosts>)` for the merged per-host flags (never `created_by='resolve-provisional-
+sources'`, which no longer writes any flag of its own).
 
 ---
 

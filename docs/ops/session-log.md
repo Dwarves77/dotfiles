@@ -19899,3 +19899,117 @@ hooks/pre-push` (modified: step 2b), `docs/inventories/discipline.md` (modified:
 ### UX compliance (task 7.8)
 
 Not applicable: no `.tsx`/`.css` touched.
+## 2026-09-12, W9 Part 7.5: transit rows finish, admin summary-tile fix, plus fix round 1 (D2/D3/D4/D5/D6)
+
+Branch `lane/w9-7.5-2026-09-12`, worktree `wt-brieffields-0911`. Original range (commits `c93234a9`,
+`9fe211da`, `e34830ed`) built `resolve-provisional-sources.mjs` (item 1), `finish-staged-updates.mjs`
+(item 2), a dispatch note for `canonical-autoverify` covering the 3 pending `canonical_source_candidates`
+(item 3, no new code), and the admin summary-tile numeral-clipping fix plus a spacing pass (item 4).
+Reviewed (`review-7.5.md`, read-only, every test independently re-run): CONDITIONAL FAIL, three findings
+plus one pre-existing hypothesis. Coordinator wrote the fix plan (`docs/plans/defect-fix-plan-2026-09-12.md`,
+D2 through D9); this entry closes D2, D3, D4, D5, D6 for the 7.5 range as that plan specifies.
+
+**D2, provisional-source terminal status, CONFIRMED against the live database by the coordinator.**
+`provisional_sources_status_check` allowed only `pending_review`/`confirmed`/`rejected`/`needs_more_data`;
+`promoted` (written by the promote route since before this task, and by this task's own new script) had
+never succeeded against the live constraint. Migration 317 (applied live by the coordinator before this
+code merged, standing rule 3) widens the constraint to add `promoted`. Fixed at the source: the two
+literals both writers use (`resolve-provisional-sources.mjs`, `/api/admin/sources/promote/route.ts`) now
+reference shared exported constants (`PROVISIONAL_SOURCES_PROMOTED_STATUS`/`_REJECTED_STATUS`,
+`src/lib/sources/promote-provisional.ts`) instead of independent literals; a test in that module's own
+test file pins all five live CHECK values as the contract, with a comment naming the constraint.
+
+**D3, the worklist flag was not idempotent, CONFIRMED by review.** `resolve-provisional-sources.mjs`
+built a second, bespoke worklist mechanism (`buildBatchWorklistFlag`, one row per RUN) instead of reusing
+the platform's one idempotent per-host `null-tier-host` mechanism; a still-unclassifiable host produced a
+brand-new open `integrity_flags` row on every re-dispatch. Fixed: `planHostDecision`,
+`buildNullTierHostWrite` and `NULL_TIER_CREATED_BY` extracted (names and signatures unchanged) out of
+`resolve-cited-host-gate.mjs` into the new shared `src/lib/sources/null-tier-host-worklist.mjs`;
+`resolve-cited-host-gate.mjs` re-exports them so its own callers are unaffected (its own test file kept
+its integration coverage; the three functions' unit tests moved to the new module's own test file, plus
+one new cross-run idempotency test at that level). `resolve-provisional-sources.mjs` now does a
+read-modify-write per unclassifiable host through the shared module; a new test runs `main()` twice over
+the same still-unclassifiable input and asserts the second run inserts 0 new flag rows and updates the
+existing per-host row's contribution list instead (the per-item aggregate key is a synthetic
+`${table}:${id}`, since neither `provisional_sources` nor `sources` is an `intelligence_items` row).
+
+**D4, the `sources` reject path recorded no reason on the row, CONFIRMED by review.** `rejectSourcesRow`
+threaded its reason only into the guarded-write `cite` argument, which lands in an off-row audit
+snapshot file, never a column, so a declined `sources` row (status set to `suspended`, the live
+`sources_status_check` has no decline value) carried no on-row explanation. Fixed: the reason is now
+appended to `notes` in the same form `worklistSourcesRow` already used (rule name, evidence, date); a
+test asserts the orchestration calls `rejectSourcesRow` with the reason for a dead row.
+
+**D5, dash and section-sign glyphs, CONFIRMED.** 36 em dashes had entered the original range across nine
+files (comments and test-description strings only, never a persisted string or UI copy). Swept: every
+occurrence replaced with a comma, colon, semicolon or the word "to", following the same house style
+already used elsewhere in these files. Verified with the exact check named in the task:
+`git diff 2b6d4f56..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` prints 0 (pasted
+in the fix-round-1 report at the mirrored SDD path). Discipline rule 022 (the class fix that would catch
+this mechanically going forward) is a separate lane (L3) in the defect-fix plan, not built here.
+
+**D6, this entry.** The original 7.5 range had no `docs/ops/session-log.md` entry (correct at the time
+under the lane contract's "coordinator only" rule); CI's memory gate blocks the PR without one
+regardless of who is supposed to write it, so this entry covers the whole range per the coordinator's
+explicit direction for this fix round. The UX compliance block below covers item 4's `.tsx` changes
+(the only `.tsx`/`.css` touched across the whole 7.5 range, original commits only; the fix round touched
+no `.tsx`/`.css`).
+
+**Not in this entry's scope** (separate lanes per the defect-fix plan): D1 (brief export quarantine
+filter, lane L2, `wt-part3-0911`), D7 (schema-vocabulary inventory, lane L3), D8 (rendering-guard
+local-vs-CI investigation, lane L5), D9 (jurisdiction-proposal column, operator decision owed).
+
+**Gates (fix round 1).** `node --test` on every touched test file:
+`resolve-provisional-sources.test.mjs` 22/22, `promote-provisional.test.mjs` 8/8,
+`null-tier-host-worklist.test.mjs` 7/7, `resolve-cited-host-gate.test.mjs` 17/17,
+`finish-staged-updates.test.mjs` 11/11, `StatBlock.npmtest.mjs` 11/11. Full preflight
+(`sh fsi-app/.discipline/hooks/pre-push < /dev/null`, foreground, from the worktree root): see the
+fix-round-1 report at the mirrored SDD path for the verbatim tail and exit code. Glyph check: 0 (see D5
+above). `git fetch origin master` run; no rebase performed (coordinator rebases per instruction).
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access (no
+DB creds in this worktree; every gate is fixture/pure-function-driven, deps-injected). Named paths only
+staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` on every
+commit.
+
+**Files (fix round 1, in addition to the original range's files).**
+- `fsi-app/supabase/migrations/317_provisional_sources_status_promoted.sql` (new, authored by the
+  coordinator, staged with this commit; applied live separately per standing rule 3)
+- `fsi-app/src/lib/sources/promote-provisional.ts` / `.test.mjs` (modified: D2 shared status constants + test)
+- `fsi-app/src/app/api/admin/sources/promote/route.ts` (modified: D2, consumes the shared constants)
+- `fsi-app/src/lib/sources/null-tier-host-worklist.mjs` (new) / `.test.mjs` (new, D3 extraction)
+- `fsi-app/scripts/maintenance/resolve-cited-host-gate.mjs` / `.test.mjs` (modified: D3, re-exports the shared module, unit tests moved out)
+- `fsi-app/scripts/maintenance/resolve-provisional-sources.mjs` / `.test.mjs` (modified: D2/D3/D4 fixes + idempotency test)
+- `fsi-app/.discipline/rendering/smoke/admin-stat-tiles-smoke.mjs`, `fsi-app/src/components/admin/AdminDashboard.tsx`, `fsi-app/src/components/admin/redesign/AdminIssuesRail.tsx`, `fsi-app/src/components/ui/StatBlock.tsx`, `fsi-app/src/components/ui/StatBlock.npmtest.mjs` (modified: D5 glyph sweep only, no behavior change)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md`, `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: D2/D3/D4 documentation, D5 glyph sweep)
+- `docs/ops/session-log.md` (this entry)
+
+### UX compliance (Part 7.5, item 4: admin summary-tile grid + right rail)
+
+Per `docs/design/ux-laws.md` and `docs/design/design-principles.md` DP-2, read in full before the
+original `.tsx` edits (`StatBlock.tsx`, `AdminDashboard.tsx`, `AdminIssuesRail.tsx`,
+`WorkspacesUsageRow.tsx`). The fix round itself touched no `.tsx`/`.css` (glyph-only edits to comments
+and one JSDoc-style line); this block documents the original change these files still carry.
+
+- **Screen**: `/admin`, the summary-tile grid (top of the left column: Workspaces / Sources / Ingest /
+  Coverage / Research pipeline / Community pickups / Runtime / Emission factors) and the right rail
+  (Issues queue / Companies-Individuals / Read-only controls).
+- **Reader's primary goal**: scan the platform's current state (workspace/source/ingest/coverage
+  counts) and jump to the section that needs attention.
+- **Path to it**: one glance at the tile grid, click the tile whose count or tone (`critical` red)
+  signals attention; the page switches to that section's sub-nav and body. No intermediate steps.
+- **One primary action per tile**: the tile itself IS the action (`onClick={() => pickSection(...)}`,
+  `aria-pressed`); no competing controls inside a tile.
+- **Feedback state for the one asynchronous action on this surface** (`ReadOnlyControlsCard`'s Refresh
+  button, `onRefresh`): unchanged by this task, `RowTableAction`'s own component supplies its
+  click/pending affordance; this task touched only spacing (`marginTop`), not behavior.
+- **Laws applied**: law 2/8 (Fitts), every tile and the Refresh button stay well above the 44px/24px
+  floor after the min-height/padding change (96px tile height, unchanged button sizing); law 4
+  (Proximity), label and count separate in space only when the label wraps, never overlapping, proven
+  by the bounds sweep; law 16 (Similarity), the three right-rail cards now share one padding value
+  instead of three slightly different ones; law 12 (Prägnanz), no new visual noise, only corrected
+  spacing/sizing.
+- **Measurements**: `run-rendering-guard.mjs` at 375px (mobile) and two desktop 4-column widths (213px,
+  246px tile width, derived from the real page CSS, see `admin-stat-tiles-smoke.mjs`'s own header);
+  reproduced independently by the reviewer with identical results (112 pre-existing, unrelated
+  failures; 0 attributable to this task).

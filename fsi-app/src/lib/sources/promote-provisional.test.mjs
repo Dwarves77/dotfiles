@@ -2,11 +2,17 @@
 // shared "provisional -> active source" row builder that /api/admin/sources/promote's approve arm
 // and scripts/maintenance/resolve-provisional-sources.mjs both consume, so the two promotion paths
 // cannot drift on shape. Node 24 native TS type-stripping (relative .ts import, no npm deps, same
-// convention as tier-discipline-no-guess.test.mjs importing host-authority.ts) — runs in the no-npm
+// convention as tier-discipline-no-guess.test.mjs importing host-authority.ts), runs in the no-npm
 // discipline glob.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPromotedSourceRow, findExistingSourceByCanonicalUrl } from "./promote-provisional.ts";
+import {
+  buildPromotedSourceRow,
+  findExistingSourceByCanonicalUrl,
+  PROVISIONAL_SOURCES_STATUS_CHECK,
+  PROVISIONAL_SOURCES_PROMOTED_STATUS,
+  PROVISIONAL_SOURCES_REJECTED_STATUS,
+} from "./promote-provisional.ts";
 
 test("buildPromotedSourceRow: stamps base_tier/effective_tier/tier_at_creation from the ONE caller-decided tier", () => {
   const row = buildPromotedSourceRow(
@@ -72,4 +78,19 @@ test("findExistingSourceByCanonicalUrl: matches by CANONICAL url, not raw string
 test("findExistingSourceByCanonicalUrl: returns null when nothing matches, and never throws on an empty/undefined list", () => {
   assert.equal(findExistingSourceByCanonicalUrl([], "https://example.gov/page"), null);
   assert.equal(findExistingSourceByCanonicalUrl(undefined, "https://example.gov/page"), null);
+});
+
+// Defect fix D2 (docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12): every status literal this
+// module (and its two callers, the promote route and resolve-provisional-sources.mjs) can write to
+// provisional_sources.status must be inside the live provisional_sources_status_check constraint
+// (migration 004, widened by migration 317 to add 'promoted', applied live before this code merges).
+// The five values are copied here VERBATIM as the contract this test pins, per the plan's own
+// instruction: pending_review, confirmed, rejected, needs_more_data, promoted.
+test("every provisional_sources status literal this module exports is in the live provisional_sources_status_check set", () => {
+  const LIVE_CHECK_CONSTRAINT_VALUES = ["pending_review", "confirmed", "rejected", "needs_more_data", "promoted"];
+  assert.deepEqual([...PROVISIONAL_SOURCES_STATUS_CHECK], LIVE_CHECK_CONSTRAINT_VALUES);
+  assert.ok(LIVE_CHECK_CONSTRAINT_VALUES.includes(PROVISIONAL_SOURCES_PROMOTED_STATUS));
+  assert.ok(LIVE_CHECK_CONSTRAINT_VALUES.includes(PROVISIONAL_SOURCES_REJECTED_STATUS));
+  assert.equal(PROVISIONAL_SOURCES_PROMOTED_STATUS, "promoted");
+  assert.equal(PROVISIONAL_SOURCES_REJECTED_STATUS, "rejected");
 });

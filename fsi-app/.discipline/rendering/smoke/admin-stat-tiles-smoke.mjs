@@ -9,7 +9,7 @@
 // ("COMMUNITY PICKUPS", "RESEARCH PIPELINE") at the admin grid's real 4-column tile width
 // (~206-290px at desktop viewports, computed from AdminDashboard.tsx's own
 // `.admin-t08-frame`/`.admin-t08-sections` CSS), the label squeezed the numeral past the tile's
-// right edge — and because `.cl-admin-stat-tile` sets `overflow: hidden`, the squeezed numeral was
+// right edge, and because `.cl-admin-stat-tile` sets `overflow: hidden`, the squeezed numeral was
 // SILENTLY CLIPPED rather than wrapping or scrolling. This is exactly the class
 // `detectBoundsViolations` (assertions.mjs, D1) exists to catch and `detectOverflows` structurally
 // cannot: a clipped box never grows its container's `scrollWidth`, so the whole-container overflow
@@ -17,12 +17,12 @@
 // incident.
 //
 // This spec mounts the REAL `StatBlock` component (size="tile") inside the REAL `.cl-admin-stat-tile`
-// / `.admin-t08-sections` CSS rules (mirrored here verbatim from AdminDashboard.tsx — no shared CSS
+// / `.admin-t08-sections` CSS rules (mirrored here verbatim from AdminDashboard.tsx; no shared CSS
 // module exists to import from a TSX bundle context, the same constraint masthead-balance-smoke.mjs
 // notes for its own inline reproduction) at three widths: the single-column mobile case (375px
 // content width) and two 4-column desktop cases spanning the real narrow-to-wide range the admin
-// frame actually produces (see the width derivation below each scenario). Eight tiles are mounted —
-// the seven SECTIONS plus Emission factors AdminDashboard.tsx's own grid renders — using the two
+// frame actually produces (see the width derivation below each scenario). Eight tiles are mounted:
+// the seven SECTIONS plus Emission factors AdminDashboard.tsx's own grid renders, using the two
 // reported values (Sources 491, Ingest 4,770) AND a synthetic 5-digit value (12,345) so a FUTURE
 // five-digit count is provably caught too (the coordinator's explicit ask), not just the two counts
 // that were reported.
@@ -42,7 +42,7 @@ import { StatBlock } from '@/components/ui/StatBlock';
 
 // Mirrored verbatim from AdminDashboard.tsx's <style> block (.cl-admin-stat-tile) and its
 // admin-t08-sections grid rule, post-fix (16px padding, min-height 96, 16px gap). Kept in sync by
-// eye — a drift here means this spec stops reproducing the real page, which the report names as an
+// eye: a drift here means this spec stops reproducing the real page, which the report names as an
 // open risk if AdminDashboard.tsx's own CSS changes again without this file being re-read.
 const TILE_CSS = \`
   .cl-admin-stat-tile {
@@ -63,7 +63,7 @@ const TILE_CSS = \`
 \`;
 
 // The eight tiles AdminDashboard.tsx's admin-t08-sections grid renders (SECTIONS + Emission
-// factors) — the two REPORTED values (Sources 491, Ingest 4,770) plus a synthetic 5-digit value
+// factors): the two REPORTED values (Sources 491, Ingest 4,770) plus a synthetic 5-digit value
 // (Emission factors, 12,345) so the fix is proven against a wider range than only the two counts
 // that were actually reported.
 const TILES = [
@@ -142,7 +142,7 @@ export async function runSmoke(browser) {
       await page.setViewportSize({ width: 1440, height: 900 });
       await mountBundle(page, bundleJs, '__mount', { columns: scenario.columns });
       // Constrain the grid wrapper to the scenario's REAL computed width (see the derivation above)
-      // rather than relying on the admin page's own media queries — same technique
+      // rather than relying on the admin page's own media queries; same technique
       // masthead-balance-smoke.mjs uses to reproduce a specific content width without mounting the
       // whole page frame.
       await page.evaluate((w) => {
@@ -159,7 +159,7 @@ export async function runSmoke(browser) {
       failures.push(...assertBoundsClean(label, bounds));
 
       // Belt-and-suspenders text-level check: the numeral's own text (e.g. "4,770", "12,345") must
-      // still be present as VISIBLE text somewhere on the page — a clipped/zero-size numeral span
+      // still be present as VISIBLE text somewhere on the page: a clipped/zero-size numeral span
       // would still exist in the DOM (React rendered it) but read zero width in the bounds sweep
       // above; this asserts the reported VALUE itself is not silently absent from render either.
       const renderedTexts = guard.texts || [];

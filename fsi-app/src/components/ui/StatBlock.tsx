@@ -41,7 +41,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
   if (size === "tile") {
     // Admin-spacing fix (task 7.5 item 4, 2026-09-12; operator report "the numbers in the sources
     // and inject tabs are being cut off"). Root cause: the label/numeral flex row had neither side
-    // pinned — a flex item's default min-width is `auto`, so a long uppercase label (two words,
+    // pinned: a flex item's default min-width is `auto`, so a long uppercase label (two words,
     // e.g. "COMMUNITY PICKUPS") never shrank below its own content width, squeezed the numeral out
     // of the card's available space, and `.cl-admin-stat-tile`'s `overflow: hidden` clipped it
     // silently rather than wrapping anything. Fix: the numeral is pinned (`flexShrink: 0`,

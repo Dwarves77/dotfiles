@@ -118,6 +118,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/resolve-error-body-gate.mjs",
       "scripts/maintenance/resolve-signals.mjs"
       "scripts/maintenance/resolve-provisional-sources.mjs"
+      "scripts/maintenance/resolve-provisional-sources.mjs",
+      "src/lib/sources/null-tier-host-worklist.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -265,17 +267,25 @@ inserted into `agent_run_searches` through the guarded path, then the flag is re
 A still-failing URL is never inserted into `agent_run_searches` -- it routes to the (file-based, not DB)
 attach-found-sources worklist instead, and the flag is still resolved.
 
-Note (added by Part 7 task 7.5, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+Note (added by Part 7 task 7.5, brief-chain build plan 2026-09-11 / ADR-030 rider; corrected by defect
+fix D3, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12): `scripts/maintenance/
 resolve-provisional-sources.mjs` added to `integrity_flags` -- resolves the 489 pending
 `provisional_sources` rows and the 563 `sources` rows with `status='provisional'` by the deterministic
 SC-13 rules (an institution match or the class table promotes/activates at a real tier; a dead/
 inaccessible URL rejects with the reason). `sources` and `provisional_sources` themselves stay OUT of
 this registry's scope by design (see this doc's own scope note above) -- the ONE tracked table this
-script writes is `integrity_flags`, for the single per-run batched worklist row (`buildBatchWorklistFlag`)
-naming every host neither rule could classify. `integrity_flags` writes reuse no other script's flag row
-(a DIFFERENT aggregation granularity than `null-tier-host`'s per-host merge, see the script's own header
-for why); the promote-arm row shape is shared with `/api/admin/sources/promote`'s approve arm via the new
-`src/lib/sources/promote-provisional.ts` module (that route refactored to consume it, no behavior change).
+script writes is `integrity_flags`. The original version built a SECOND, non-idempotent worklist
+mechanism (`buildBatchWorklistFlag`, one row per run, review-7.5.md finding 2, CONFIRMED); that
+mechanism is DELETED. Every unclassifiable host now merges into the SAME per-host `null-tier-host`
+flag the platform already reviews, via `planHostDecision`/`buildNullTierHostWrite`, extracted (D3) out
+of `resolve-cited-host-gate.mjs` into the new shared `src/lib/sources/null-tier-host-worklist.mjs`
+(listed above; `resolve-cited-host-gate.mjs` re-exports the same two functions and the
+`NULL_TIER_CREATED_BY` constant so its own callers are unaffected). The promote-arm row shape and
+status vocabulary are shared with `/api/admin/sources/promote`'s approve arm via
+`src/lib/sources/promote-provisional.ts` (that route refactored to consume it, no behavior change);
+the status literals both write (`PROVISIONAL_SOURCES_PROMOTED_STATUS`/`_REJECTED_STATUS`) are exported
+from that same module (defect fix D2) so neither caller can drift from
+`provisional_sources_status_check` (migration 004, widened by migration 317 to add `promoted`).
 
 Note (added by Part 7 task 7.5, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
 finish-staged-updates.mjs` added to `staged_updates` -- runs the 33 approved-never-materialized rows

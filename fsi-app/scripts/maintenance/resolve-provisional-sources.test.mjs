@@ -1,6 +1,7 @@
 // Pure-logic tests for resolve-provisional-sources.mjs (task 7.5 item 1, brief-chain build plan Part
-// 7, 2026-09-12). No I/O, no DB, no fetch, no jiti (checkVerticalFitGate is lazy-loaded only inside
-// buildDeps at runtime — see that file's header for why). Runs in the no-npm discipline glob.
+// 7, 2026-09-12; fixed per docs/plans/defect-fix-plan-2026-09-12.md D2/D3/D4). No I/O, no DB, no
+// fetch, no jiti (checkVerticalFitGate is lazy-loaded only inside buildDeps at runtime, see that
+// file's header for why). Runs in the no-npm discipline glob.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -10,11 +11,12 @@ import {
   sourcesDeadSignal,
   planProvisionalSourceRow,
   planSourcesProvisionalRow,
-  buildBatchWorklistFlag,
+  syntheticItemIdFor,
   PROVISIONAL_WORKLIST_STATUS,
   SOURCES_REJECT_STATUS,
   main,
 } from "./resolve-provisional-sources.mjs";
+import { PROVISIONAL_SOURCES_STATUS_CHECK } from "../../src/lib/sources/promote-provisional.ts";
 
 // ── decideHost: the four-way rule ────────────────────────────────────────────────────────────────
 
@@ -39,14 +41,14 @@ test("decideHost rule (c): dead/inaccessible rejects only when neither (a) nor (
   assert.equal(d.rule, "c");
 });
 
-test("decideHost rule (d): an unclassifiable, not-dead host worklists — never a guessed tier", () => {
+test("decideHost rule (d): an unclassifiable, not-dead host worklists, never a guessed tier", () => {
   const d = decideHost("mystery.example", { existingTier: null, classTier: null, deadOrInaccessible: false });
   assert.equal(d.action, "worklist");
   assert.equal(d.tier, null);
   assert.equal(d.rule, "d");
 });
 
-test("decideHost: rule (a)/(b) always win over a dead signal — a resolvable tier is never rejected", () => {
+test("decideHost: rule (a)/(b) always win over a dead signal, a resolvable tier is never rejected", () => {
   const a = decideHost("epa.gov", { existingTier: 2, classTier: null, deadOrInaccessible: true });
   const b = decideHost("some.edu", { existingTier: null, classTier: 4, deadOrInaccessible: true });
   assert.equal(a.action, "promote");
@@ -68,7 +70,7 @@ test("provisionalDeadSignal: only an EXPLICIT accessibility_verified===false cou
   assert.equal(provisionalDeadSignal({ accessibility_verified: null }), false);
 });
 
-test("sourcesDeadSignal: only fetch_status='error' counts as dead — a wall (cdn_block/blocked) is not a dead link", () => {
+test("sourcesDeadSignal: only fetch_status='error' counts as dead, a wall (cdn_block/blocked) is not a dead link", () => {
   assert.equal(sourcesDeadSignal({ fetch_status: "error" }), true);
   assert.equal(sourcesDeadSignal({ fetch_status: "cdn_block" }), false);
   assert.equal(sourcesDeadSignal({ fetch_status: "blocked" }), false);
@@ -110,28 +112,12 @@ test("planSourcesProvisionalRow: an existing-institution match promotes even wit
   assert.equal(plan.decision.tier, 2);
 });
 
-// ── buildBatchWorklistFlag: ONE row per run, listing every host, not one row per host ──────────────
+// ── syntheticItemIdFor (defect D3 fix): stable per-row key so a repeat resolve merges, not duplicates
 
-test("buildBatchWorklistFlag: one flag names every distinct host across both tables", () => {
-  const flag = buildBatchWorklistFlag([
-    { host: "mystery.example", table: "provisional_sources", id: "p1" },
-    { host: "mystery.example", table: "sources", id: "s1" }, // same host, different table -> deduped in the host list
-    { host: "another.example", table: "provisional_sources", id: "p2" },
-  ]);
-  assert.equal(flag.category, "source_issue");
-  assert.equal(flag.subject_type, "source");
-  assert.equal(flag.status, "open");
-  assert.equal(flag.created_by, "resolve-provisional-sources");
-  assert.match(flag.description, /mystery\.example/);
-  assert.match(flag.description, /another\.example/);
-  assert.equal(flag.recommended_actions[0].hosts.length, 2);
-  assert.equal(flag.recommended_actions[0].entries.length, 3); // all three row-level contributions preserved
-});
-
-test("buildBatchWorklistFlag: description never exceeds integrity_flags.description's 480-char write cap", () => {
-  const manyHosts = Array.from({ length: 60 }, (_, i) => ({ host: `host-${i}.example`, table: "provisional_sources", id: `p${i}` }));
-  const flag = buildBatchWorklistFlag(manyHosts);
-  assert.ok(flag.description.length <= 480, `description length ${flag.description.length} exceeds 480`);
+test("syntheticItemIdFor: stable and table-qualified, so the same row always keys the same aggregate entry", () => {
+  assert.equal(syntheticItemIdFor("provisional_sources", "p1"), "provisional_sources:p1");
+  assert.equal(syntheticItemIdFor("sources", "p1"), "sources:p1");
+  assert.notEqual(syntheticItemIdFor("provisional_sources", "p1"), syntheticItemIdFor("sources", "p1"));
 });
 
 // ── vocabulary constants (documented judgment calls, pinned so a silent drift is visible in review) ─
@@ -141,10 +127,20 @@ test("worklist/reject status vocabulary constants are the documented values", ()
   assert.equal(SOURCES_REJECT_STATUS, "suspended");
 });
 
+// Defect fix D2: PROVISIONAL_WORKLIST_STATUS must itself be inside the live
+// provisional_sources_status_check set (imported from the shared module, the one place the
+// vocabulary is spelled).
+test("PROVISIONAL_WORKLIST_STATUS is in the live provisional_sources_status_check set", () => {
+  assert.ok(PROVISIONAL_SOURCES_STATUS_CHECK.includes(PROVISIONAL_WORKLIST_STATUS));
+});
+
 // ── main(): orchestration driven entirely by a fake deps object (no DB, no jiti, no fetch) ─────────
 
-function fakeDeps({ pending = [], sourcesProv = [], active = [], gateAllow = true } = {}) {
-  const calls = { promote: [], reject: [], worklist: [], activate: [], rejectSources: [], worklistSources: [], flags: [] };
+function fakeDeps({ pending = [], sourcesProv = [], active = [], gateAllow = true, nullTierFlags = {} } = {}) {
+  const calls = {
+    promote: [], reject: [], worklist: [], activate: [], rejectSources: [], worklistSources: [],
+    readNullTierFlag: [], insertNullTierFlag: [], updateNullTierFlag: [],
+  };
   return {
     calls,
     readPendingProvisional: async () => pending,
@@ -157,7 +153,21 @@ function fakeDeps({ pending = [], sourcesProv = [], active = [], gateAllow = tru
     activateSourcesRow: async (id, tier) => calls.activate.push({ id, tier }),
     rejectSourcesRow: async (id, reason) => calls.rejectSources.push({ id, reason }),
     worklistSourcesRow: async (id, reason) => calls.worklistSources.push({ id, reason }),
-    insertBatchFlag: async (row) => { calls.flags.push(row); return { id: "flag-1" }; },
+    // Defect D3 fix: the shared per-host null-tier-host mechanism's own three deps, matching
+    // resolve-cited-host-gate.mjs's own buildDeps shape exactly.
+    readNullTierFlag: async (host) => {
+      calls.readNullTierFlag.push(host);
+      return nullTierFlags[host] ?? null;
+    },
+    insertNullTierFlag: async (row) => {
+      calls.insertNullTierFlag.push(row);
+      nullTierFlags[row.subject_ref] = { id: `flag-${row.subject_ref}`, recommended_actions: row.recommended_actions };
+    },
+    updateNullTierFlag: async (id, patch) => {
+      calls.updateNullTierFlag.push({ id, patch });
+      const host = Object.keys(nullTierFlags).find((h) => nullTierFlags[h]?.id === id);
+      if (host) nullTierFlags[host] = { id, recommended_actions: patch.recommended_actions };
+    },
   };
 }
 
@@ -176,10 +186,10 @@ test("main() dry: classifies every row into promote/reject/worklist without call
   assert.equal(summary.counts.worklist, 1);
   assert.equal(deps.calls.promote.length, 0, "dry must never write");
   assert.equal(deps.calls.reject.length, 0);
-  assert.equal(deps.calls.flags.length, 0);
+  assert.equal(deps.calls.insertNullTierFlag.length, 0);
 });
 
-test("main() apply: promotes rule-a/b rows, rejects rule-c, worklists rule-d and writes ONE batch flag", async () => {
+test("main() apply: promotes rule-a/b rows, rejects rule-c, worklists rule-d via the per-host null-tier-host merge", async () => {
   const pending = [
     { id: "p1", url: "https://epa.gov/page" },
     { id: "p3", url: "https://dead.example/page", accessibility_verified: false },
@@ -192,8 +202,38 @@ test("main() apply: promotes rule-a/b rows, rejects rule-c, worklists rule-d and
   assert.equal(deps.calls.promote[0].tier, 2);
   assert.equal(deps.calls.reject.length, 1);
   assert.equal(deps.calls.worklist.length, 1);
-  assert.equal(deps.calls.flags.length, 1, "exactly one batch worklist flag per run");
-  assert.equal(summary.worklist_flag_id, "flag-1");
+  assert.equal(deps.calls.insertNullTierFlag.length, 1, "exactly one null-tier-host flag insert for the one unclassifiable host");
+  assert.equal(deps.calls.insertNullTierFlag[0].subject_ref, "mystery.example");
+  assert.equal(summary.worklist_flag_writes.inserted, 1);
+  assert.equal(summary.worklist_flag_writes.updated, 0);
+});
+
+// Defect D3's own idempotency requirement (defect-fix-plan-2026-09-12.md D3, review-7.5.md finding 2):
+// a second run over the SAME still-unclassifiable input must insert 0 new flag rows and instead
+// update the existing per-host row's contribution list.
+test("main() apply, run twice: the second run inserts 0 new null-tier-host flag rows and updates the existing one instead", async () => {
+  const pending = [{ id: "p4", url: "https://mystery.example/page" }];
+  const deps = fakeDeps({ pending });
+
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(deps.calls.insertNullTierFlag.length, 1);
+  assert.equal(deps.calls.updateNullTierFlag.length, 0);
+  assert.equal(first.worklist_flag_writes.inserted, 1);
+
+  // Second run over the identical input (the row is still worklisted, still unclassifiable).
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(deps.calls.insertNullTierFlag.length, 1, "still exactly one insert across both runs");
+  assert.equal(deps.calls.updateNullTierFlag.length, 1, "the second run updates instead of inserting");
+  assert.equal(second.worklist_flag_writes.inserted, 0);
+  assert.equal(second.worklist_flag_writes.updated, 1);
+
+  // The contribution list merged rather than duplicating: the same synthetic item id contributes
+  // once, not twice, across the two runs.
+  const finalPatch = deps.calls.updateNullTierFlag[0].patch;
+  assert.deepEqual(
+    finalPatch.recommended_actions[0].aggregate.perItemFacts,
+    { "provisional_sources:p4": 1 },
+  );
 });
 
 test("main() apply: the vertical-fit gate can turn a would-be promote into a reject (off-vertical retired host)", async () => {
@@ -218,9 +258,21 @@ test("main() apply: sources-table provisional rows activate in place (UPDATE), n
   assert.equal(summary.counts.promote, 1);
 });
 
+// Defect D4 fix: a declined sources-table row (rule c) is routed through rejectSourcesRow, which the
+// live wiring now writes the reason into `notes` for (see buildDeps in resolve-provisional-sources.mjs).
+// This test proves the ORCHESTRATION calls rejectSourcesRow with the reason; the notes-write itself is
+// exercised by the live buildDeps wiring (no DB in this test file), asserted structurally below.
+test("main() apply: a dead sources-table row calls rejectSourcesRow with the reason (D4's own on-row record)", async () => {
+  const sourcesProv = [{ id: "s3", url: "https://dead.example/page", fetch_status: "error" }];
+  const deps = fakeDeps({ sourcesProv });
+  await main({ mode: "apply" }, deps);
+  assert.equal(deps.calls.rejectSources.length, 1);
+  assert.match(deps.calls.rejectSources[0].reason, /dead\.example/);
+});
+
 test("main(): zero pending rows across both tables is a clean no-op", async () => {
   const deps = fakeDeps({});
   const summary = await main({ mode: "apply" }, deps);
   assert.equal(summary.applied, 0);
-  assert.equal(deps.calls.flags.length, 0);
+  assert.equal(deps.calls.insertNullTierFlag.length, 0);
 });

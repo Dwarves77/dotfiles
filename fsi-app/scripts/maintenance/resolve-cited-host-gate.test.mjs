@@ -61,54 +61,10 @@ test("extractCitedUrls: empty/malformed flag returns []", () => {
   assert.deepEqual(extractCitedUrls({ recommended_actions: null, description: null }), []);
 });
 
-// ── planHostDecision ─────────────────────────────────────────────────────────────────────────────────
-
-test("planHostDecision: a legal-primary host registers at tier 1 via the real classTierForHost", () => {
-  const d = planHostDecision("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242", classTierForHost);
-  assert.equal(d.host, "eur-lex.europa.eu");
-  assert.equal(d.tier, 1);
-  assert.equal(d.action, "register");
-});
-
-test("planHostDecision: an unrecognized host routes to the worklist (never a guessed tier)", () => {
-  const d = planHostDecision("https://some-random-blog-nobody-classified.example/post", classTierForHost);
-  assert.equal(d.tier, null);
-  assert.equal(d.action, "worklist");
-});
-
-test("planHostDecision: injected classTierForHostFn is honored (unit-testable without the real class table)", () => {
-  const fakeTier = () => 4;
-  const d = planHostDecision("https://anything.example/x", fakeTier);
-  assert.equal(d.tier, 4);
-  assert.equal(d.action, "register");
-});
-
-// ── buildNullTierHostWrite ───────────────────────────────────────────────────────────────────────────
-
-test("buildNullTierHostWrite: no existing flag -> insert, with a fresh aggregate", () => {
-  const w = buildNullTierHostWrite(null, "unknown-host.example", "item-1", "https://unknown-host.example/page", null);
-  assert.equal(w.op, "insert");
-  assert.equal(w.row.created_by, NULL_TIER_CREATED_BY);
-  assert.equal(w.row.subject_ref, "unknown-host.example");
-  assert.equal(w.row.status, "open");
-  assert.deepEqual(w.row.recommended_actions[0].aggregate.perItemFacts, { "item-1": 1 });
-});
-
-test("buildNullTierHostWrite: existing flag -> update, merging the aggregate (idempotent per item)", () => {
-  const existing = {
-    id: "flag-9",
-    recommended_actions: [{ aggregate: { perItemFacts: { "item-0": 3 }, sampleSpans: ["https://unknown-host.example/other"] } }],
-  };
-  const w = buildNullTierHostWrite(existing, "unknown-host.example", "item-1", "https://unknown-host.example/page", null);
-  assert.equal(w.op, "update");
-  assert.equal(w.id, "flag-9");
-  assert.deepEqual(w.patch.recommended_actions[0].aggregate.perItemFacts, { "item-0": 3, "item-1": 1 });
-});
-
-test("buildNullTierHostWrite: a ruled aggregator/platform host gets the re-attribution wording, never register_source", () => {
-  const w = buildNullTierHostWrite(null, "policycommons.net", "item-1", "https://policycommons.net/x", "aggregator");
-  assert.equal(w.row.recommended_actions[0].action, "reattribute_to_publisher");
-});
+// planHostDecision and buildNullTierHostWrite: unit tests MOVED (D3, 2026-09-12) to
+// src/lib/sources/null-tier-host-worklist.test.mjs, alongside the module they now live in.
+// planFlag/main below still exercise both through this file's own re-export, so the integration path
+// stays covered here.
 
 // ── buildResolutionNote ──────────────────────────────────────────────────────────────────────────────
 
