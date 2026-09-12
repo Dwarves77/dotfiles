@@ -105,6 +105,7 @@ node --test \
   fsi-app/scripts/review/*.test.mjs \
   fsi-app/scripts/review/lib/*.test.mjs \
   fsi-app/scripts/turns/*.test.mjs \
+  fsi-app/scripts/turns/record-briefs/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
   fsi-app/scripts/obligations/*.test.mjs \
   fsi-app/scripts/classification/*.test.mjs \

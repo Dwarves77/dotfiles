@@ -654,6 +654,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/harness-runs/mint
           git add scripts/harness-runs/forward-events
+          # scripts/turns/brief-export/pending (task 3.5, step 12 of run-population-flywheel.mjs): the
+          # brief-export queue for a session lane. Always exists (its own tracked README.md), so this add
+          # is safe even on a run that skipped step 12 (RUN_SKIP=true, or a batch that minted nothing).
+          git add scripts/turns/brief-export/pending
           # EXPORT_DIR is empty on a flywheel_backlog dispatch or a RUN_SKIP=true no-op (export/mint never
           # ran, so nothing was ever written there) — guard the add so it never fails a step git runs with -e.
           if [ -n "$EXPORT_DIR" ] && [ -d "$EXPORT_DIR" ]; then git add -f "$EXPORT_DIR"; fi
@@ -706,6 +710,7 @@ jobs:
               echo "Rows file: ${RUN_ROWS_FILE:-(none — live export)}"
               echo
               echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items/trigger_context), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
+              echo "Also lands (task 3.5, step 12) any newly-queued brief-export part(s) under scripts/turns/brief-export/pending/ for a session lane to drain."
             } > /tmp/pr-body.md
           fi
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${RUN_MODE})" /tmp/pr-body.md

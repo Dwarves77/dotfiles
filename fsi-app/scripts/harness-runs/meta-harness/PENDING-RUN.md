@@ -136,11 +136,37 @@ now correctly on every platform instead of only on POSIX; `hashHarnessVersion` i
 family's own hash computation depends on) is unchanged by this lane, only the file's CLI entry point at
 its bottom. This moves `run-artifact.mjs`'s bytes and, self-referentially, the family's own hash again.
 
-**harness_version at write time:** `sha256:96ead321c8f54a2e` (recomputed task 0.3b, `node -e` against
-`governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array and `run-artifact.mjs`'s
-`hashHarnessVersion`, the same 5 files, unreordered; supersedes `sha256:29f6e50d650403cb` outright).
+**harness_version at task 0.3b's write time (superseded below, see task 3.4):** `sha256:96ead321c8f54a2e`
+(recomputed task 0.3b, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']`
+array and `run-artifact.mjs`'s `hashHarnessVersion`, the same 5 files, unreordered; supersedes
+`sha256:29f6e50d650403cb` outright).
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave, unchanged in kind from the prior entries above, just a
 newer hash to discharge. No other `meta-harness` governing file was edited by task 0.3b; only
 `scripts/lib/run-artifact.mjs` (the CLI main-guard swap) moved the hash.
+
+---
+
+## Task 3.4 (2026-09-11): brief-apply family registered, governing-files.mjs and CONVENTION.md edited
+
+**What changed:** task 3.4 (brief-chain build plan Part 3) registered the `brief-apply` harness family:
+`scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` gained `"brief-apply"`, and
+`scripts/harness-runs/governing-files.mjs`'s `GOVERNING_FILES` gained a `brief-apply` entry. Both files are
+`meta-harness`'s own governing files (`run-artifact.mjs` directly; `governing-files.mjs` per this file's
+own self-referential note above), so editing them to register a NEW family moves `meta-harness`'s own hash
+again, the same "the loop applies to itself" mechanism lane TURNREQ's entry above already describes for
+`corpus-turn`'s own registration. `scripts/harness-runs/CONVENTION.md` (also a `meta-harness` governing
+file) gained the `brief-apply` directory-layout entry, family-description prose, standing-metric
+paragraph, and harness_version table row in the same commit, kept in parity with `governing-files.mjs` per
+the CONVENTION-TABLE-PARITY test. `.discipline/fitness/functions/F28-harness-run-integrity.mjs` and
+`PROPOSER-RUNBOOK.md` (the other two `meta-harness` governing files) are untouched by this task.
+
+**harness_version at write time:** `sha256:f776eaece088d744` (recomputed via `hashHarnessVersion` against
+`governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array, the same 5 files, unreordered;
+supersedes `sha256:96ead321c8f54a2e` outright).
+
+**The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
+next self-application review pass over this wave. No other `meta-harness` governing file was edited by
+task 3.4; only `run-artifact.mjs`, `governing-files.mjs`, and `CONVENTION.md` moved the hash, all three for
+the single reason above (registering `brief-apply`).

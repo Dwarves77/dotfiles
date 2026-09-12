@@ -78,6 +78,14 @@ import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
 import { verifyPoolTargetMatch } from "@/lib/sources/target-match.mjs";
+// INJECTED-SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3): usableCapturesOrdered is
+// the SAME 200-char usable-capture floor + result_index ordering task 3.1's export already reuses from this
+// module (see that task's report) -- generateBriefFromInjected reads the item's CURRENT pool through the
+// identical filter so its pool-identity hash is computed over the same rows the export saw. hashSourcePool
+// is the ONE shared pure hash helper both task 3.1's export and this seam use (see its own file header for
+// why it lives at this path, not inside either caller).
+import { usableCapturesOrdered } from "@/lib/forward-events/read-and-extract.mjs";
+import { hashSourcePool } from "@/lib/agent/source-pool-hash.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 import { permanentlyUnregisteredClass } from "@/lib/sources/host-authority";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
@@ -727,73 +735,203 @@ function candidateReadersFor(sb: SupabaseClient) {
   };
 }
 
+// ── INJECTED-SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3) ───────────────────────
+// CC-SYNTHESIS-EXECUTOR SEAM, mirroring groundBriefImpl's own injectedLedger seam (RD-47 posture, operator
+// ruling 2026-07-16): a session lane authors a full brief body + metadata for a record-grade stub item
+// (reading the pool text task 3.1's export hands it), and generateBriefFromInjected (below) persists it
+// through the SAME parser + SAME single write site every model-driven brief uses -- the injected body is
+// VALIDATED by parseAgentOutput, never trusted (environmental-policy-and-innovation SKILL.md's integrity
+// rule). No paid model call, no fetch, no acquire-lock gate: there is no spend here to gate.
+
+/** The record-briefs `metadata` shape (task 3.2's artifact contract, scripts/turns/record-briefs/schema.mjs)
+ *  -- the 20-field subset of AgentMetadata a session lane emits. The five fields only the live generation
+ *  path produces (trajectory_points, what_it_changes, does_not_resolve, conversion_trigger, cross_references)
+ *  are absent by contract and default to their normal parseAgentOutput absence value (null / []) via the
+ *  SAME optional-field handling every live brief already relies on -- never synthesized here. */
+export interface InjectedBriefMetadata {
+  severity: AgentMetadata["severity"];
+  priority: AgentMetadata["priority"];
+  urgency_tier: AgentMetadata["urgency_tier"];
+  format_type: AgentMetadata["format_type"];
+  topic_tags: AgentMetadata["topic_tags"];
+  signal_band: AgentMetadata["signal_band"];
+  theme: AgentMetadata["theme"];
+  what_is_it: AgentMetadata["what_is_it"];
+  why_matters: AgentMetadata["why_matters"];
+  key_data: AgentMetadata["key_data"];
+  cost_mechanism: AgentMetadata["cost_mechanism"];
+  requirement_trajectory: AgentMetadata["requirement_trajectory"];
+  penalty_range: AgentMetadata["penalty_range"];
+  enforcement_body: AgentMetadata["enforcement_body"];
+  operational_scenario_tags: AgentMetadata["operational_scenario_tags"];
+  compliance_object_tags: AgentMetadata["compliance_object_tags"];
+  related_items: AgentMetadata["related_items"];
+  intersection_summary: AgentMetadata["intersection_summary"];
+  sources_used: AgentMetadata["sources_used"];
+  regeneration_skill_version: AgentMetadata["regeneration_skill_version"];
+}
+
+export interface InjectedSynthesis { body: string; metadata: InjectedBriefMetadata }
+
+// Synthetic flat-YAML frontmatter for injected.metadata, fed through the SAME parseAgentOutput every
+// model-driven brief uses (findYamlBlock / parseYamlFrontmatter, parse-output.ts). Mirrors
+// scripts/turns/record-briefs/schema.mjs's buildSyntheticFrontmatter -- SAME technique, spelled again here
+// because task 3.3's own scope is restricted to this file (schema.mjs is out of bounds for this lane); a
+// future consolidation could hoist both copies to one shared module. This is a deliberate, named
+// duplication, the same judgment schema.mjs's own header already makes for CLAIM_KIND_VALUES (no exported
+// home to import from without expanding either module's scope).
+function yamlScalarLine(v: string | null, field: string): string {
+  if (v === null) return "null";
+  if (/\r|\n/.test(v)) throw new Error(`injected metadata.${field} contains a newline, which the shared flat-YAML frontmatter format cannot represent`);
+  const t = v.trim();
+  if (t.length >= 2 && ((t[0] === '"' && t[t.length - 1] === '"') || (t[0] === "'" && t[t.length - 1] === "'"))) {
+    throw new Error(`injected metadata.${field} starts and ends with a matching quote character, which the shared parser would strip as a quoted literal`);
+  }
+  return t;
+}
+function yamlArrayLine(items: string[] | null | undefined, field: string): string {
+  if (!items || items.length === 0) return "[]";
+  for (const item of items) {
+    if (item.includes(",")) throw new Error(`injected metadata.${field} entry "${item}" contains a comma, which the shared inline-array format cannot represent`);
+    if (/\r|\n/.test(item)) throw new Error(`injected metadata.${field} entry "${item}" contains a newline`);
+  }
+  return `[${items.join(", ")}]`;
+}
+function yamlJsonLine(v: unknown): string {
+  return v === null || v === undefined ? "null" : JSON.stringify(v);
+}
+function buildInjectedFrontmatter(md: InjectedBriefMetadata): string {
+  return [
+    `severity: ${yamlScalarLine(md.severity, "severity")}`,
+    `priority: ${yamlScalarLine(md.priority, "priority")}`,
+    `urgency_tier: ${yamlScalarLine(md.urgency_tier, "urgency_tier")}`,
+    `format_type: ${yamlScalarLine(md.format_type, "format_type")}`,
+    `topic_tags: ${yamlArrayLine(md.topic_tags, "topic_tags")}`,
+    `signal_band: ${yamlScalarLine(md.signal_band, "signal_band")}`,
+    `theme: ${yamlScalarLine(md.theme, "theme")}`,
+    `operational_scenario_tags: ${yamlArrayLine(md.operational_scenario_tags, "operational_scenario_tags")}`,
+    `compliance_object_tags: ${yamlArrayLine(md.compliance_object_tags, "compliance_object_tags")}`,
+    `related_items: ${yamlArrayLine(md.related_items, "related_items")}`,
+    `intersection_summary: ${yamlScalarLine(md.intersection_summary, "intersection_summary")}`,
+    `sources_used: ${yamlArrayLine(md.sources_used, "sources_used")}`,
+    // Synthetic -- parseYamlFrontmatter requires this key structurally; writeSynthesizedBrief overrides it
+    // with the REAL persist-time timestamp regardless (same posture as the live generation path).
+    `last_regenerated_at: ${new Date().toISOString()}`,
+    `regeneration_skill_version: ${yamlScalarLine(md.regeneration_skill_version, "regeneration_skill_version")}`,
+    `what_is_it: ${yamlScalarLine(md.what_is_it ?? null, "what_is_it")}`,
+    `why_matters: ${yamlScalarLine(md.why_matters ?? null, "why_matters")}`,
+    `key_data: ${yamlArrayLine(md.key_data ?? [], "key_data")}`,
+    `cost_mechanism: ${yamlScalarLine(md.cost_mechanism ?? null, "cost_mechanism")}`,
+    `requirement_trajectory: ${yamlJsonLine(md.requirement_trajectory ?? null)}`,
+    `penalty_range: ${yamlScalarLine(md.penalty_range ?? null, "penalty_range")}`,
+    `enforcement_body: ${yamlScalarLine(md.enforcement_body ?? null, "enforcement_body")}`,
+  ].join("\n");
+}
+function buildInjectedRawText(body: string, md: InjectedBriefMetadata): string {
+  return `${body ?? ""}\n\n---\n${buildInjectedFrontmatter(md)}\n---\n`;
+}
+
 /** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
- *  the pool (fresh-fetch overwrites it; from-stored reuses it). */
+ *  the pool (fresh-fetch overwrites it; from-stored reuses it). `opts.injected` is the free-driver seam
+ *  (task 3.3): when present, the WHOLE prompt-construction + paid generateBriefText call is skipped, but
+ *  both branches CONVERGE before the post-parse content gates (task 3.3 fix round 1, coordinator ruling):
+ *  a lane-authored brief is judged EXACTLY like a model-authored one, never a lighter pass -- only the
+ *  MODEL CALL is skipped, not the judgment (SKILL.md's integrity rule: the injected body is validated by
+ *  the same parser and the same gates, never trusted). See the seam header above. */
 async function synthesiseAndWriteBrief(
   sb: SupabaseClient,
   it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
   fetched: { url: string; text: string }[],
   corroborators: Corroborator[],
+  opts?: { injected?: InjectedSynthesis },
 ): Promise<StepResult> {
+  const injected = opts?.injected ?? null;
   // SLOT ENFORCEMENT (C1): read the item_type's required slots (cached) so the SYNTHESIS prompt names them
   // for ALL 12 types — not just the reg family the static SYSTEM_PROMPT covers. null = read failed → keep
   // the standing SYSTEM_PROMPT reg-family floor + the DB gate as backstop (fail-closed, never fabricate []).
+  // SHARED by both drivers, read ONCE regardless of which one produces `parsed`: required-slot coverage is
+  // a JUDGMENT on the brief's CONTENT, not paid-model machinery, so it applies to a lane-authored brief
+  // exactly as it applies to a model-authored one. Only the CORRECTIVE RETRY below is model-call machinery
+  // and is therefore metered-path-only; a lane-authored brief that misses a required slot fails immediately
+  // (there is no synchronous way to hand a session lane corrective feedback and re-run it).
   const slotRows = await requiredSlotsFor(sb, it.item_type);
-  const slotDirective = slotRows ? buildSlotDirective(slotRows) : "";
-  // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
-  // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
-  // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
-  // grounding uses → spans stay matchable.
-  const withTier = await attachTiers(sb, fetched);
-  const { blocks, trims, ceilingWalls } = buildSourceBlocks(withTier, SYNTH_INPUT_BUDGET_CHARS, {
-    floorTier: authorityFloorFor(it.item_type),
-    hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
-  });
-  await recordTruncation(sb, it.id, [...trims, ...ceilingWalls]);
-  const discoveredHint = corroborators.length
-    ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
-    : "";
-  // U7 — fetch this item's graph candidates BEFORE synthesis and offer them as the CANDIDATE
-  // CONNECTIONS block (the A3 assertion rule in system-prompt.ts governs how the model may use it).
-  // Non-gating: a candidate-read failure (transient DB error, brand-new item with no graph presence
-  // yet) never blocks generation — it degrades to no candidates, the same honest-empty posture every
-  // other optional context source in this function already takes.
-  let candidateBlock = "";
-  try {
-    const candidateSelection = await selectBriefCandidates(it.id, candidateReadersFor(sb));
-    candidateBlock = formatCandidateBlock(candidateSelection);
-  } catch (e) {
-    console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
-  }
-  // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
-  // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
-  // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
-  // missing_required_slot fails every time → quarantine. Pin the format + its section set into the prompt
-  // so the STRUCTURE is right (and override format_type post-parse so metadata cannot drift).
-  const fmtSpec = specForItemType(it.item_type);
-  const formatDirective = fmtSpec
-    ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
-    : "";
-  // Part D — coverage-forcing for the REGULATORY format only (qualification capture / per-year trajectory /
-  // defined terms verbatim / legal line). Mirrors the env-policy SKILL.md + system-prompt contract; lands in
-  // the same change as those (doctrine-with-mechanism). The pipeline now feeds the FULL enacted text, so the
-  // instruction to READ ALL OF IT and capture qualifications is enforceable, not aspirational.
-  const regCoverage = fmtSpec?.formatType === "regulatory_fact_document"
-    ? `\nREGULATORY COMPLETENESS — you have the FULL enacted text below; READ ALL OF IT, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS, not just the headline number/date:
+
+  let parsed: ReturnType<typeof parseAgentOutput>;
+  let body: string;
+  let fmtSpec: ReturnType<typeof specForItemType>;
+
+  if (injected) {
+    // CC-SYNTHESIS-EXECUTOR SEAM: read at exactly this one point. generateBriefText is never reached from
+    // this branch -- the free driver already has a finished, lane-authored brief.
+    fmtSpec = specForItemType(it.item_type);
+    try {
+      parsed = parseAgentOutput(buildInjectedRawText(injected.body, injected.metadata));
+    } catch (e) {
+      return { ok: false, detail: `injected_parse_failed: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    body = stripUrlMarkers((parsed.body || "").trim()) as string;
+    if (slotRows && slotRows.length && body.length >= 600) {
+      const missing = uncoveredSlots(body, slotRows);
+      if (missing.length) {
+        return { ok: false, detail: `missing_required_slot(synthesis): the injected brief leaves ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) -- no corrective retry is available for lane-authored synthesis` };
+      }
+    }
+  } else {
+    const slotDirective = slotRows ? buildSlotDirective(slotRows) : "";
+    // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
+    // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
+    // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
+    // grounding uses → spans stay matchable.
+    const withTier = await attachTiers(sb, fetched);
+    const { blocks, trims, ceilingWalls } = buildSourceBlocks(withTier, SYNTH_INPUT_BUDGET_CHARS, {
+      floorTier: authorityFloorFor(it.item_type),
+      hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
+    });
+    await recordTruncation(sb, it.id, [...trims, ...ceilingWalls]);
+    const discoveredHint = corroborators.length
+      ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
+      : "";
+    // U7 — fetch this item's graph candidates BEFORE synthesis and offer them as the CANDIDATE
+    // CONNECTIONS block (the A3 assertion rule in system-prompt.ts governs how the model may use it).
+    // Non-gating: a candidate-read failure (transient DB error, brand-new item with no graph presence
+    // yet) never blocks generation — it degrades to no candidates, the same honest-empty posture every
+    // other optional context source in this function already takes.
+    let candidateBlock = "";
+    try {
+      const candidateSelection = await selectBriefCandidates(it.id, candidateReadersFor(sb));
+      candidateBlock = formatCandidateBlock(candidateSelection);
+    } catch (e) {
+      console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
+    // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
+    // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
+    // missing_required_slot fails every time → quarantine. Pin the format + its section set into the prompt
+    // so the STRUCTURE is right (and override format_type post-parse so metadata cannot drift).
+    fmtSpec = specForItemType(it.item_type);
+    const formatDirective = fmtSpec
+      ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
+      : "";
+    // Part D — coverage-forcing for the REGULATORY format only (qualification capture / per-year trajectory /
+    // defined terms verbatim / legal line). Mirrors the env-policy SKILL.md + system-prompt contract; lands in
+    // the same change as those (doctrine-with-mechanism). The pipeline now feeds the FULL enacted text, so the
+    // instruction to READ ALL OF IT and capture qualifications is enforceable, not aspirational.
+    const regCoverage = fmtSpec?.formatType === "regulatory_fact_document"
+      ? `\nREGULATORY COMPLETENESS — you have the FULL enacted text below; READ ALL OF IT, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS, not just the headline number/date:
 - Exceptions / carve-outs / exemptions ("except …", "shall not apply to …") — each a verbatim FACT span.
 - The CALCULATION BASIS and conditions (e.g. "calculated as an average per manufacturing plant and year" — a per-plant-per-year basis is NOT per-unit; state it as written).
 - The DEFINED TERMS the requirement turns on — quote the regulation's OWN definitions article verbatim; never swap in a loose synonym.
 - The PER-YEAR TRAJECTORY — when a threshold changes by date, state the WHOLE time series (e.g. a 2030 floor → a 2035 added requirement → a 2038 restriction/ban), not just the entry-year value; a date-conditioned trigger ("or N years from the implementing act, whichever is later") is part of the requirement.
 A requirement stated with ZERO qualifications is a FLAG that you have not read far enough — return to the source text before asserting it.
 LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do NOT assert that the workspace (or any entity) IS a producer / importer / distributor / manufacturer, or that an obligation attaches: matching an entity to a defined role is a legal determination → route it to a "*Legal Confirmation Required:*" callout.`
-    : "";
-  // PROMPT-CACHE (Phase-3a): the pool no longer rides the END of this user message — it is the CACHED
-  // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
-  // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
-  // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
-  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
+      : "";
+    // PROMPT-CACHE (Phase-3a): the pool no longer rides the END of this user message — it is the CACHED
+    // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
+    // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
+    // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
+    const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
 Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.${candidateBlock}
@@ -802,27 +940,33 @@ VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back 
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
 - URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
 Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.`;
-  // GENERATE + POST-SYNTHESIS SLOT CHECK + ONE CORRECTIVE RETRY (C1). The brief is checked against the
-  // SAME required slots that were injected (uncoveredSlots = the grounding pre-gate heuristic, so synthesis
-  // and grounding agree on "the prose speaks to this slot"). A brief that leaves a required slot completely
-  // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
-  // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
-  // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
-  let parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
-  let body = stripUrlMarkers((parsed.body || "").trim()) as string;
-  if (slotRows && slotRows.length && body.length >= 600) {
-    const missing = uncoveredSlots(body, slotRows);
-    if (missing.length) {
-      console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
-      const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
-      parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
-      body = stripUrlMarkers((parsed.body || "").trim()) as string;
-      const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
-      if (stillMissing.length) {
-        return { ok: false, detail: `missing_required_slot(synthesis): after one corrective retry the brief still leaves ${stillMissing.length} required slot(s) unaddressed (${stillMissing.map((s) => s.slot_key).join(", ")})` };
+    // GENERATE + POST-SYNTHESIS SLOT CHECK + ONE CORRECTIVE RETRY (C1). The brief is checked against the
+    // SAME required slots that were injected (uncoveredSlots = the grounding pre-gate heuristic, so synthesis
+    // and grounding agree on "the prose speaks to this slot"). A brief that leaves a required slot completely
+    // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
+    // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
+    // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
+    parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
+    body = stripUrlMarkers((parsed.body || "").trim()) as string;
+    if (slotRows && slotRows.length && body.length >= 600) {
+      const missing = uncoveredSlots(body, slotRows);
+      if (missing.length) {
+        console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
+        const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
+        parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
+        body = stripUrlMarkers((parsed.body || "").trim()) as string;
+        const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
+        if (stillMissing.length) {
+          return { ok: false, detail: `missing_required_slot(synthesis): after one corrective retry the brief still leaves ${stillMissing.length} required slot(s) unaddressed (${stillMissing.map((s) => s.slot_key).join(", ")})` };
+        }
       }
     }
   }
+
+  // SHARED TAIL (task 3.3 fix round 1, coordinator ruling): both drivers CONVERGE here, BEFORE the two
+  // universal post-parse content gates -- a lane-authored brief is judged exactly like a model-authored
+  // one. There is exactly ONE writeSynthesizedBrief(...) call site in this function; neither branch above
+  // returns through a write of its own.
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);
@@ -911,6 +1055,12 @@ export async function writeSynthesizedBrief(
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
     intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
+    // ADR-028 (task 3.3, 2026-09-11): item_grade is a CACHE of "this item carries a real synthesized
+    // full_brief", not an independent editorial decision -- every successful write through this ONE site
+    // means the item now has one, live-generated or lane-injected, so the grade upgrades in the SAME
+    // update (never a second write). A 'brief'-grade item re-writing here is a harmless no-op repeat of
+    // its own value.
+    item_grade: "brief",
     last_regenerated_at: nowIso, updated_at: nowIso,
   }).eq("id", it.id);
   // FAIL LOUD: the prior code dropped `error` here, so a CHECK violation rejected the ENTIRE update
@@ -1118,6 +1268,56 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
   const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
   if (!r.ok) return r;
   return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs${ageNote})` };
+}
+
+/** THE injected-synthesis entry point (task 3.3, brief-chain-build-plan-2026-09-11 Part 3): a session lane
+ *  has already authored a full brief body + metadata for a record-grade stub item (reading the pool text
+ *  task 3.1's export handed it); this persists it through the SAME parser + SAME single write site every
+ *  model-driven brief uses -- no fetch, no web_search, no paid model call, so no acquire-lock gate applies
+ *  (there is no spend to gate; mirrors groundBriefImpl's own injected-driver posture). Refuses on two
+ *  conditions before any write is attempted:
+ *   1. STALE POOL -- sourcePoolHash must match hashSourcePool() of the item's CURRENT stored pool (the same
+ *      usable-capture floor + hash function task 3.1's export is meant to stamp); a mismatch means the lane
+ *      read pool text that no longer matches what is stored, so its verbatim spans may no longer verify.
+ *   2. GRADE -- an item that is not item_grade='record' already carries a brief; overwriting it is an
+ *      explicit order (allowBriefOverwrite), not the default action of a batch apply -- RD-36's dominance
+ *      guard still protects the grounding ledger downstream regardless of this seam's own posture.
+ *  `caller` is accepted for interface parity with the pipeline's other entry points; unused today because
+ *  there is no fetch or spend here to attribute. `sbClient` is an optional injected client (tests only --
+ *  production callers omit it and get svc()), the same shape harvestItemTimeline uses for the identical
+ *  reason (see that function's own header). */
+export async function generateBriefFromInjected(
+  itemId: string,
+  caller: string | null,
+  opts: { body: string; metadata: InjectedBriefMetadata; sourcePoolHash: string; allowBriefOverwrite?: boolean },
+  sbClient?: SupabaseClient,
+): Promise<StepResult> {
+  return withTelemetry(() => generateBriefFromInjectedImpl(itemId, caller, opts, sbClient));
+}
+async function generateBriefFromInjectedImpl(
+  itemId: string,
+  _caller: string | null,
+  opts: { body: string; metadata: InjectedBriefMetadata; sourcePoolHash: string; allowBriefOverwrite?: boolean },
+  sbClient?: SupabaseClient,
+): Promise<StepResult> {
+  const sb = sbClient ?? svc();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, item_grade").eq("id", itemId).single();
+  if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  if (it.item_grade !== "record" && !opts.allowBriefOverwrite) {
+    return { ok: false, detail: `refused: item ${itemId} is item_grade='${it.item_grade ?? "brief"}', not 'record' -- pass allowBriefOverwrite to regenerate an existing brief` };
+  }
+  const { data: poolRows, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_content, result_index").eq("intelligence_item_id", itemId);
+  if (poolErr) console.warn(`[canonical] injected-synthesis pool read failed for ${itemId}: ${poolErr.message}`);
+  const pool = usableCapturesOrdered(poolRows ?? [])
+    .filter((r: { result_url: unknown }) => typeof r.result_url === "string")
+    .map((r: { result_url: string; result_content: string }) => ({ url: r.result_url, text: r.result_content }));
+  const currentHash = hashSourcePool(pool);
+  if (currentHash !== opts.sourcePoolHash) {
+    return { ok: false, detail: `stale pool: injected sourcePoolHash (${opts.sourcePoolHash}) does not match the current stored pool hash (${currentHash}) for item ${itemId} -- the lane read text that no longer matches what is stored` };
+  }
+  const r = await synthesiseAndWriteBrief(sb, it, pool, [], { injected: { body: opts.body, metadata: opts.metadata } });
+  if (!r.ok) return r;
+  return { ok: true, detail: `${r.detail} (FROM INJECTED lane synthesis, sourcePoolHash verified, ${pool.length} pool sources)` };
 }
 
 /** REFRESH-PRIMARY-INTO-POOL — re-fetch ONLY the full enacted text (the #155 direct-HTTP transport, FREE

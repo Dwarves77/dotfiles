@@ -20,9 +20,29 @@ the comment itself, at the site, forever, not in a separate expiring file).
 only two added comment lines (no code, no logic, no control flow touched). Byte-identical output for any
 given input versus the pre-lane code.
 
-**harness_version at write time:** `sha256:4dd5b697820c0069`
+**harness_version at INCLAUSE-CLASS's write time (superseded below, see task 3.4):** `sha256:4dd5b697820c0069`
 
-**The planned run that supersedes this marker:** the next `.github/workflows/corpus-turn.yml` dispatch
-will land `corpus-turn-run-003.json` with `harness_version: sha256:4dd5b697820c0069`, and this marker is
-deleted the moment that artifact lands (or updated to a new hash, per rule (c), if the governing files
-change again before that run lands).
+**The planned run that would have superseded THAT marker:** the next `.github/workflows/corpus-turn.yml`
+dispatch would have landed `corpus-turn-run-003.json` with `harness_version: sha256:4dd5b697820c0069`; no
+such run landed before task 3.4's own edit moved the hash again (see the re-pin below).
+
+---
+
+## Re-pin (task 3.4, brief-chain build plan Part 3, 2026-09-11)
+
+**[CONFIRMED]** (method: `git stash` the whole task-3.4 working tree and re-ran
+`node --test .discipline/fitness/functions/F28-harness-run-integrity.test.mjs` against the committed
+branch tip before this task's own edits: the identical STALE PENDING-RUN.md finding was already present).
+This drift is PRE-EXISTING, inherited from task 3.3 fix round 1's own edit to
+`export-corpus-for-extraction.mjs` (one of `corpus-turn`'s two governing files, stamping
+`hashSourcePool(pool)` onto each exported item): that edit moved `corpus-turn`'s own hash without this
+marker being re-pinned at the time. Fixed in the same motion per CLAUDE.md rule 13 (a flag is a
+commitment), not left as a second flagged item for a later lane: this task made no further edits of its
+own to either `corpus-turn` governing file (`consume-turn-requests.mjs`, `export-corpus-for-extraction.mjs`).
+
+**harness_version at write time:** `sha256:c6d5cb842b67944a` (recomputed via `hashHarnessVersion` against
+`governing-files.mjs`'s own `GOVERNING_FILES['corpus-turn']` array; supersedes `sha256:4dd5b697820c0069`
+outright).
+
+**The planned run that supersedes this marker:** unchanged in kind, the next
+`.github/workflows/corpus-turn.yml` dispatch, landing the next `corpus-turn-run-NNN.json` under this hash.

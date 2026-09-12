@@ -82,6 +82,19 @@
 //                                  re-spend fetch/discovery effort on) items this flywheel already
 //                                  covered (apply mode only, same as corpus-turn.yml's own "apply mode
 //                                  only" marker-write rule)
+//  12. brief-export              task 3.5 (W9 brief-chain plan Part 3, "every new item is queued for a
+//                                  brief automatically"): export-corpus-for-extraction.mjs --ids <this
+//                                  batch's minted item ids> --with-pool-text --char-budget, landing the
+//                                  numbered parts under a TRACKED repo path,
+//                                  scripts/turns/brief-export/pending/<mint-run-id>.json (never
+//                                  scripts/_snapshots/, which is gitignored), so a session lane can
+//                                  author a brief from stored source text (task 3.2, then 3.4) without
+//                                  re-fetching. A local file write only, both dry and apply, never a DB
+//                                  write, the same "local file only" posture as corpus-export above; this
+//                                  driver runs no git command of its own, ever. The parts land where the
+//                                  SAME artifact-branch commit step that already commits the mint and
+//                                  forward-events harness-run artifacts picks them up: no second
+//                                  transport (see buildBriefExportArgs below).
 //
 // SCOPING HONESTY. Steps 1-4 and 7 are scoped to EXACTLY this batch's minted item ids (extracted from the
 // mint-run artifact's own per_item, see extractMintedItemIds below) and are cleanly SKIPPED — never
@@ -228,8 +241,40 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_MINT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
 const SNAPSHOTS_ROOT = resolve(FSI_ROOT, "scripts", "_snapshots");
 
+// Task 3.5 (W9 brief-chain plan Part 3): the TRACKED (never gitignored, unlike SNAPSHOTS_ROOT above) queue
+// directory a session lane drains via record-briefs (task 3.2) then apply-record-briefs.mjs (task 3.4).
+// See buildBriefExportArgs below and this module header's step 12 for why a tracked path, not a snapshot.
+const BRIEF_EXPORT_PENDING_DIR = resolve(FSI_ROOT, "scripts", "turns", "brief-export", "pending");
+
+// Mirrors export-corpus-for-extraction.mjs's own DEFAULT_CHAR_BUDGET (3,000,000) so this step's own
+// char-budget choice is visible here without opening that file; not imported directly (that file exports
+// no such constant, only the functions this file already reuses: buildCorpusItems, chunk).
+export const DEFAULT_BRIEF_EXPORT_CHAR_BUDGET = 3_000_000;
+
 // See the module header's "COST PROJECTION" paragraph for the full [INFERRED] reasoning behind 2.
 export const DEFAULT_BACKLOG_MAX_ARTIFACTS = 2;
+
+/**
+ * Task 3.5, PURE: the exact export-corpus-for-extraction.mjs invocation the brief-export step (12) runs
+ * for one batch, and the repo-tracked path its numbered parts land under
+ * (scripts/turns/brief-export/pending/<mintRunId>.json, exported as <mintRunId>-part<N>.json by that
+ * script's own --with-pool-text numbering; see its header, "WITH-POOL-TEXT + CHAR-BUDGET"). Landing under
+ * a TRACKED path (never scripts/_snapshots/, which root .gitignore excludes) is deliberate: the SAME
+ * artifact-branch commit step population-turn.yml already runs for the mint + forward-events harness-run
+ * families can pick this directory up too, once that workflow's own commit step names it. This function
+ * only decides WHAT to write and WHERE; it runs no git command itself, exactly like every other step in
+ * this file (runChild below spawns export-corpus-for-extraction.mjs, never `git`).
+ * @param {string|null} mintRunId
+ * @param {string[]} batchIds
+ * @param {number} [charBudget]
+ * @returns {{outPath:string, args:string[]}}
+ */
+export function buildBriefExportArgs(mintRunId, batchIds, charBudget = DEFAULT_BRIEF_EXPORT_CHAR_BUDGET) {
+  const ids = Array.isArray(batchIds) ? batchIds : [];
+  const outPath = join(BRIEF_EXPORT_PENDING_DIR, `${mintRunId ?? "unknown"}.json`);
+  const args = ["--out", outPath, "--ids", ids.join(","), "--with-pool-text", "--char-budget", String(charBudget)];
+  return { outPath, args };
+}
 
 function usage() {
   return [
@@ -796,6 +841,17 @@ export function buildFlywheelPlan(mode, batchIds) {
       skipReason: apply ? null : "dry mode — scripts/turns/LAST-TURN.json is advanced only on a successful apply run.",
       willWrite: apply,
     },
+    {
+      // Task 3.5, step 12 (module header). A local file write only (export-corpus-for-extraction.mjs is
+      // read-only by construction, see that script's own header): runs in EITHER mode whenever this
+      // batch minted anything, the same "local file only, both dry and apply" posture corpus-export
+      // already has above (skip only gates on batch size, never on mode).
+      name: "brief-export",
+      scoped: true,
+      skip: !hasItems,
+      skipReason: hasItems ? null : noItemsReason,
+      willWrite: false,
+    },
   ];
 }
 
@@ -1361,6 +1417,13 @@ async function stepRecordLastTurn(ctx) {
   return { since: ctx.startedAt };
 }
 
+async function stepBriefExport(ctx) {
+  const { outPath, args } = buildBriefExportArgs(ctx.mintRunId, ctx.batchIds);
+  mkdirSync(dirname(outPath), { recursive: true });
+  runChild("scripts/turns/export-corpus-for-extraction.mjs", args);
+  return { outPath, ids: ctx.batchIds.length };
+}
+
 const STEP_HANDLERS = Object.freeze({
   discovery: stepDiscovery,
   "corpus-export": stepCorpusExport,
@@ -1373,7 +1436,59 @@ const STEP_HANDLERS = Object.freeze({
   "compute-outcomes": stepComputeOutcomes,
   "write-outcomes": stepWriteOutcomes,
   "record-last-turn": stepRecordLastTurn,
+  "brief-export": stepBriefExport,
 });
+
+// ── an ids-only entry point for the four UNSCOPED-by-buildFlywheelPlan steps (task 3.4, brief-chain build
+// plan Part 3, 2026-09-11) ──────────────────────────────────────────────────────────────────────────────
+//
+// runFlywheelForOneArtifact (below) is mint-run-shaped: it takes a mint-run artifact + its own harness-run
+// directory and ends by writing that artifact's S9 outcomes back via run-mint-batch.mjs --outcomes. A
+// brief-apply batch (scripts/turns/apply-record-briefs.mjs) has no mint-run artifact of its own: its own
+// items came from a record-briefs file, not a mint, so it cannot supply what runFlywheelForOneArtifact
+// requires, and none of runFlywheelForOneArtifact's own write-outcomes/record-last-turn machinery applies
+// to it (brief-apply writes its OWN harness-run artifact directly via writeRunArtifact, never through
+// run-mint-batch.mjs). This entry point runs ONLY the four steps buildFlywheelPlan calls "the unscoped
+// steps" in this task's own brief (analyze-corpus, derive-obligations, tag-proposals, tag-ratification)
+// against a bare `batchIds` array, reusing the SAME per-step handlers (stepAnalyzeCorpus/
+// stepDeriveObligations/stepTagProposals/stepTagRatification) defined above: the analyze-corpus.mjs/
+// derive-obligations.mjs/tag-proposals.mjs/tag-ratification.mjs invocations themselves are UNCHANGED,
+// never re-implemented a second time for this caller. buildFlywheelPlan's own skip/skipReason decisions
+// (tag-proposals and tag-ratification skip when `batchIds` is empty; analyze-corpus and derive-obligations
+// never skip) are honored here too, so this entry point and the mint-run path can never disagree about
+// which of the four actually runs for a given batch.
+/**
+ * @param {"dry"|"apply"} mode
+ * @param {string[]} batchIds
+ * @param {object} db the scripts/lib/db.mjs module (readAll/guardedInsertMany/guardedUpdateByIds/readClient)
+ * @returns {Promise<{analyzeCorpus: object|{skipped:true,reason:string}, deriveObligations: object|{skipped:true,reason:string}, tagProposals: object|{skipped:true,reason:string}, tagRatification: object|{skipped:true,reason:string}}>}
+ */
+export async function runUnscopedFlywheelSteps(mode, batchIds, db) {
+  const ids = Array.isArray(batchIds) ? batchIds : [];
+  const ctx = { mode, apply: mode === "apply", batchIds: ids, db, state: {} };
+  const plan = buildFlywheelPlan(mode, ids);
+  const byName = new Map(plan.map((s) => [s.name, s]));
+  const handlerByName = {
+    "analyze-corpus": stepAnalyzeCorpus,
+    "derive-obligations": stepDeriveObligations,
+    "tag-proposals": stepTagProposals,
+    "tag-ratification": stepTagRatification,
+  };
+  const results = {};
+  for (const name of ["analyze-corpus", "derive-obligations", "tag-proposals", "tag-ratification"]) {
+    const step = byName.get(name);
+    if (step?.skip) {
+      results[toCamel(name)] = { skipped: true, reason: step.skipReason };
+      continue;
+    }
+    results[toCamel(name)] = await handlerByName[name](ctx);
+  }
+  return results;
+}
+
+function toCamel(kebab) {
+  return kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
 
 // ── the shared per-artifact executor — the ONE code path that runs §8/§9 over one mint-run artifact,
 // used by BOTH the normal --mint-run apply/dry path AND every artifact a --backlog apply run processes

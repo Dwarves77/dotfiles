@@ -83,19 +83,22 @@ edit only: the guard still calls `main()` under the identical condition, now cor
 instead of only on POSIX; no mint-kit VALIDATION behavior changed. This moves the file's bytes and
 therefore the family's hash again.
 
-**harness_version at write time (superseded below, see task 5.5):** `sha256:0cc65f2728f2af1a` (recomputed
+**harness_version at write time (superseded below, task 3.5):** `sha256:0cc65f2728f2af1a` (recomputed
 task 0.3b, `node -e` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and
 `run-artifact.mjs`'s `hashHarnessVersion`, the same 8 files, unreordered; supersedes
 `sha256:eb6c6027081dcd54` outright).
 
-**RE-PINNED (task 5.5, brief-chain build plan 2026-09-11, lane eudecision):** `src/lib/intake/record-facts.mjs`
-(one of the 8 files `GOVERNING_FILES.mint` names) gained one export: `buildRecordSlotClaim` (previously a
-private, unexported function) is now `export function buildRecordSlotClaim`: the per-slot routing a
-fresh mint's `buildRecordFacts` already used internally, needed by
-`scripts/maintenance/retype-eu-decisions.mjs` to add required-slot claims to an EXISTING item outside a
-fresh mint. No behavior change to any existing caller (the function's body and every internal call site
-are byte-identical); only its export surface widened. No mint-kit VALIDATION behavior changed.
+**RE-PINNED (task 3.5, W9 brief-chain plan Part 3, 2026-09-11, lane part3):** `scripts/mint/MINT-RUNBOOK.md`
+(one of the 8 files `GOVERNING_FILES.mint` names) section 8 gained a fourth numbered step, "Brief queuing"
+(task 3.5, "every new item is queued for a brief automatically"): documents `run-population-flywheel.mjs`'s
+own new step 12, `brief-export` (that file is NOT itself in `GOVERNING_FILES.mint`, so its own edit does
+not move this hash on its own; only the MINT-RUNBOOK.md documentation edit does). No mint-kit VALIDATION
+behavior changed (`validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`,
+`gate-a-scan.mjs`/`gate-a-match.mjs`, `canonicalize-citation-url.mjs`, `record-facts.mjs` are all
+untouched by this lane).
 
-**harness_version at write time:** `sha256:a4771a1955310523` (recomputed this lane, `node -e` against
+**harness_version at write time:** `sha256:2bd2db89b5cc2973` (recomputed this lane, `node -e` against
 `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion`,
 the same 8 files, unreordered; supersedes `sha256:0cc65f2728f2af1a` outright).
+
+**Re-pin note (W9 Part 3 rebase, 2026-09-12):** `sha256:213617fb97ab8dc4` -> `sha256:2bd2db89b5cc2973`. Tasks 5.5 (merged in #638) and 3.5 both moved mint governing files; this re-pin is computed on the merged tree with the fixed hasher. No governing file changed in this commit.

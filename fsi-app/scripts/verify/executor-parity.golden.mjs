@@ -102,5 +102,96 @@ check("gate verdict is a function of the CLAIM, not the driver: clean floor FACT
 check("gate verdict is a function of the CLAIM, not the driver: sub-floor FACT holds either way",
   perFactWouldHold(subFloor, ctx) === true);
 
+// ── 8. THE SYNTHESIS SEAM (task 3.3, brief-chain-build-plan-2026-09-11 Part 3, fix round 1): a SECOND,
+// independent allowlisted divergence point inside synthesiseAndWriteBrief (not groundBriefImpl's grounding
+// call above, a different chokepoint, same RD-47 posture: skip the paid step, never the judgment). Fix
+// round 1 (coordinator ruling): the injected branch no longer returns through its own early write -- it
+// CONVERGES with the metered (model-driven) branch on ONE SHARED TAIL that runs the 600-char floor,
+// checkBriefContent, and the single write call for BOTH drivers, so a lane-authored brief is judged exactly
+// like a model-authored one. The proof below is structural, not a regex over a specific early-return shape:
+// it walks BALANCED BRACES to isolate the `if (injected) { ... } else { ... }` branches from the code that
+// follows them, then asserts the paid call is confined to the else branch, the two content gates and the
+// ONE write call exist exactly once each and live strictly AFTER both branches close (the shared tail), and
+// neither branch carries its own copy of any of the three. ──────────────────────────────────────────────
+const synthStart = full.indexOf("async function synthesiseAndWriteBrief(");
+const synthEnd = full.indexOf("export async function writeSynthesizedBrief(", synthStart);
+check("synthesiseAndWriteBrief located (the synthesis chokepoint)", synthStart > 0 && synthEnd > synthStart);
+const synthBody = full.slice(synthStart, synthEnd);
+const synthCodeOnly = synthBody
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .split("\n")
+  .map((l) => l.replace(/\/\/.*$/, ""))
+  .join("\n");
+
+const WRITE_CALL_RE = /writeSynthesizedBrief\(sb,\s*it,\s*body,\s*parsed\.metadata,\s*fmtSpec,\s*fetched\.length\)/;
+const FLOOR_RE = /body\.length\s*<\s*600/;
+
+/** Slice the balanced `{ ... }` body starting at the `{` found at or after `openSearchFrom`, returning the
+ *  INNER content (braces excluded) and the index one past the matching closing `}`. Handles nesting; does
+ *  not need to understand strings/regex literals because comments are already stripped and this file's own
+ *  code has no `{`/`}` inside a string or template literal on the lines this walks. */
+function balancedBlock(text, openSearchFrom) {
+  const openIdx = text.indexOf("{", openSearchFrom);
+  if (openIdx < 0) return null;
+  let depth = 0;
+  for (let i = openIdx; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}") {
+      depth--;
+      if (depth === 0) return { content: text.slice(openIdx + 1, i), endIndex: i + 1 };
+    }
+  }
+  return null;
+}
+
+const ifIdx = synthCodeOnly.indexOf("if (injected) {");
+check("the `if (injected) { ... }` branch is found", ifIdx >= 0);
+const ifBlock = ifIdx >= 0 ? balancedBlock(synthCodeOnly, ifIdx) : null;
+check("the injected branch is located as a balanced brace block", !!ifBlock);
+
+const afterIf = ifBlock ? synthCodeOnly.slice(ifBlock.endIndex) : "";
+const elseHeaderMatch = afterIf.match(/^\s*else\s*\{/);
+check("the injected branch is paired with an `else { ... }` (the metered driver's own branch)", !!elseHeaderMatch);
+const elseBlock = ifBlock && elseHeaderMatch
+  ? balancedBlock(synthCodeOnly, ifBlock.endIndex + elseHeaderMatch[0].indexOf("{"))
+  : null;
+check("the else branch is located as a balanced brace block", !!elseBlock);
+
+check("the injected branch contains ZERO references to the paid model call (generateBriefText): structurally unreachable, not merely untaken",
+  !!ifBlock && !ifBlock.content.includes("generateBriefText("));
+check("the else branch (metered driver) still contains the paid model call: proves the live path was preserved, not deleted",
+  !!elseBlock && elseBlock.content.includes("generateBriefText("));
+
+// SHARED TAIL: everything in the function AFTER both branches close.
+const tailText = elseBlock ? synthCodeOnly.slice(elseBlock.endIndex) : "";
+check("a non-empty shared tail exists after both branches close", tailText.trim().length > 0);
+check("the 600-char floor lives in the shared tail (fix round 1): reached by BOTH drivers, not only the metered one",
+  FLOOR_RE.test(tailText));
+check("checkBriefContent lives in the shared tail (fix round 1): reached by BOTH drivers, not only the metered one",
+  tailText.includes("checkBriefContent("));
+check("the ONE writeSynthesizedBrief(...) call lives in the shared tail, reached by BOTH drivers",
+  WRITE_CALL_RE.test(tailText));
+
+// NO PER-BRANCH DUPLICATION: neither branch carries its own copy of the floor, checkBriefContent, or a
+// write call -- if it did, the branches would NOT be converging on one shared judgment, they would each be
+// running (or skipping) their own.
+check("the injected branch itself contains NO copy of the 600-char floor, checkBriefContent, or a write call",
+  !!ifBlock && !FLOOR_RE.test(ifBlock.content) && !ifBlock.content.includes("checkBriefContent(") && !ifBlock.content.includes("writeSynthesizedBrief("));
+check("the else branch itself contains NO copy of the 600-char floor, checkBriefContent, or a write call",
+  !!elseBlock && !FLOOR_RE.test(elseBlock.content) && !elseBlock.content.includes("checkBriefContent(") && !elseBlock.content.includes("writeSynthesizedBrief("));
+
+// EXACTLY ONE of each in the WHOLE function (the shared-tail checks above plus the no-duplication checks
+// already imply this, but assert the count directly too -- the hard structural gate, mirroring section 7's
+// "referenced EXACTLY 4x" style above).
+const writeCallCount = (synthCodeOnly.match(new RegExp(WRITE_CALL_RE.source, "g")) || []).length;
+check(`exactly ONE writeSynthesizedBrief(...) call site in the whole function (found ${writeCallCount}): both drivers converge on the SAME write, never a second one`,
+  writeCallCount === 1);
+const floorCount = (synthCodeOnly.match(new RegExp(FLOOR_RE.source, "g")) || []).length;
+check(`exactly ONE 600-char floor check in the whole function (found ${floorCount}): the injected branch has no bypass of its own`,
+  floorCount === 1);
+const checkBriefContentCount = (synthCodeOnly.match(/checkBriefContent\(/g) || []).length;
+check(`exactly ONE checkBriefContent(...) call in the whole function (found ${checkBriefContentCount})`,
+  checkBriefContentCount === 1);
+
 console.log(failed ? `\nGOLDEN FAILED (${failed})` : "\nGOLDEN PASSED");
 process.exit(failed ? 1 : 0);

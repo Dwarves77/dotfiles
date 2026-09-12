@@ -947,6 +947,12 @@ export const LEGACY_ALLOWLIST = [
     ];
   })(),
 
+  // W9-PART3 task 3.2's record-briefs/schema.mjs allowlist entry REMOVED here (task 3.4, 2026-09-11): the
+  // module now HAS a production importer: scripts/turns/apply-record-briefs.mjs imports
+  // validateRecordBriefsFile directly, exactly the "remove this entry the moment task 3.4 imports
+  // validateRecordBriefsFile" condition the entry itself named as its own removal trigger. The
+  // stale-allowlist condition this gate checks for, not a defect to paper over.
+
   // lane NOTICES's notices-rail-smoke.mjs allowlist entry REMOVED here (ASSEMBLE-47 coordinator lane,
   // 2026-09-05): registered in ux-smoke-specs.mjs and given its F35 ROW_COMPONENTS entry in this same
   // commit, exactly the landing action the entry itself named as its own removal condition.

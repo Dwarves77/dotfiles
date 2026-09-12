@@ -24,7 +24,10 @@ import {
   formatBacklogReport,
   runFlywheelForOneArtifact,
   DEFAULT_BACKLOG_MAX_ARTIFACTS,
+  buildBriefExportArgs,
+  DEFAULT_BRIEF_EXPORT_CHAR_BUDGET,
 } from "./run-population-flywheel.mjs";
+import { join } from "node:path";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -385,6 +388,7 @@ const STEP_ORDER = [
   "compute-outcomes",
   "write-outcomes",
   "record-last-turn",
+  "brief-export",
 ];
 
 test("buildFlywheelPlan: step order is fixed and MINT-RUNBOOK §8-shaped, in apply mode", () => {
@@ -417,6 +421,8 @@ test("buildFlywheelPlan: apply mode with items — every scoped step runs and wr
   assert.equal(byName["write-outcomes"].willWrite, true);
   assert.equal(byName["record-last-turn"].skip, false);
   assert.equal(byName["record-last-turn"].willWrite, true);
+  assert.equal(byName["brief-export"].skip, false, "brief-export should not be skipped when the batch minted items");
+  assert.equal(byName["brief-export"].willWrite, false, "brief-export only ever writes local files, never the DB");
 });
 
 test("buildFlywheelPlan: dry mode with items — scoped steps run previews, nothing writes", () => {
@@ -451,6 +457,11 @@ test("buildFlywheelPlan: dry mode with items — scoped steps run previews, noth
   assert.match(byName["write-outcomes"].skipReason, /no dry\/preview path/);
 
   assert.equal(byName["record-last-turn"].skip, true);
+
+  // brief-export runs in EITHER mode whenever the batch minted anything (a local file write, never a DB
+  // write, the same posture corpus-export already has): dry mode does not skip it.
+  assert.equal(byName["brief-export"].skip, false);
+  assert.equal(byName["brief-export"].willWrite, false);
 });
 
 // ── buildFlywheelPlan: zero minted items (a dry population-turn dispatch, or an all-blocked apply) ────
@@ -459,7 +470,7 @@ test("buildFlywheelPlan: apply mode with ZERO items — item-scoped steps skip c
   const plan = buildFlywheelPlan("apply", []);
   const byName = Object.fromEntries(plan.map((s) => [s.name, s]));
 
-  for (const name of ["discovery", "corpus-export", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification"]) {
+  for (const name of ["discovery", "corpus-export", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification", "brief-export"]) {
     assert.equal(byName[name].skip, true, `${name} should skip with 0 items`);
     assert.match(byName[name].skipReason, /0 minted item/);
   }
@@ -477,6 +488,58 @@ test("buildFlywheelPlan: every scoped step's skip flag agrees with `scoped` — 
   for (const step of plan) {
     if (!step.scoped) assert.equal(step.skip, false, `${step.name} is unscoped and must never skip on batch size`);
   }
+});
+
+// ── task 3.5: a minted batch yields the brief-export step; a zero-minted batch yields none ─────────────
+
+test("buildFlywheelPlan: a minted batch yields the brief-export step, in both dry and apply mode", () => {
+  for (const mode of ["dry", "apply"]) {
+    const plan = buildFlywheelPlan(mode, ["item-1", "item-2"]);
+    const step = plan.find((s) => s.name === "brief-export");
+    assert.ok(step, `brief-export must be present in the ${mode}-mode plan`);
+    assert.equal(step.skip, false);
+    assert.equal(step.scoped, true);
+  }
+});
+
+test("buildFlywheelPlan: a batch with zero minted ids yields NO real export step (skipped, named reason)", () => {
+  for (const mode of ["dry", "apply"]) {
+    const plan = buildFlywheelPlan(mode, []);
+    const step = plan.find((s) => s.name === "brief-export");
+    assert.ok(step, "brief-export is still present in the plan (as a skipped entry), never silently absent");
+    assert.equal(step.skip, true);
+    assert.match(step.skipReason, /0 minted item/);
+  }
+});
+
+test("buildBriefExportArgs: the right ids and out path for a minted batch", () => {
+  const { outPath, args } = buildBriefExportArgs("mint-run-042", ["item-1", "item-2"]);
+  assert.ok(outPath.endsWith(join("scripts", "turns", "brief-export", "pending", "mint-run-042.json")));
+  assert.deepEqual(args, [
+    "--out",
+    outPath,
+    "--ids",
+    "item-1,item-2",
+    "--with-pool-text",
+    "--char-budget",
+    String(DEFAULT_BRIEF_EXPORT_CHAR_BUDGET),
+  ]);
+});
+
+test("buildBriefExportArgs: a custom char budget is threaded through verbatim", () => {
+  const { args } = buildBriefExportArgs("mint-run-001", ["item-1"], 500_000);
+  assert.ok(args.includes("--char-budget"));
+  assert.equal(args[args.indexOf("--char-budget") + 1], "500000");
+});
+
+test("buildBriefExportArgs: a null mint run id (defensive) names 'unknown' rather than throwing", () => {
+  const { outPath } = buildBriefExportArgs(null, ["item-1"]);
+  assert.match(outPath, /unknown\.json$/);
+});
+
+test("buildBriefExportArgs: an empty batch still returns a valid (empty --ids) invocation, never guessed ids", () => {
+  const { args } = buildBriefExportArgs("mint-run-001", []);
+  assert.equal(args[args.indexOf("--ids") + 1], "");
 });
 
 // ── computeCorpusOutcomes (fake edge rows — the §9 metrics shape) ──────────────────────────────────────
