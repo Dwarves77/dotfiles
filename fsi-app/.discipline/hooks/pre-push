@@ -112,6 +112,27 @@ rm -f /tmp/discipline-prepush-c.log
 echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
 
 # ---------------------------------------------------------------------------
+# Step 2b: memory gate, CI parity (task 7.8, 2026-09-12)
+# ---------------------------------------------------------------------------
+# PR #647 (task 6.2b) went red in CI's "Memory gate, code must not outrun the vault" step although this
+# hook and the coordinator's own pre-push run were green, because this hook had NO memory-gate step: a
+# range that touches code without a docs/ops/session-log.md or docs/PROGRAM-BOARD.md change passed the
+# hook and failed CI [CONFIRMED, both the 6.2b and 7.4e ranges had an empty `git diff --stat -- docs/ops/
+# session-log.md`]. fsi-app/.discipline/governance/memory-gate.mjs is the SAME script the CI workflow now
+# calls (discipline.yml's memory-gate step), so the two surfaces cannot drift again. Blocking here (no
+# --warn-only): the range being pushed is the whole logical unit, unlike CI's per-push-event partial view.
+if ! node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD >/tmp/discipline-prepush-mem.log 2>&1; then
+  echo "[discipline pre-push] STEP 2b FAIL: memory gate (code must not outrun the vault):" >&2
+  cat /tmp/discipline-prepush-mem.log >&2
+  echo "[discipline pre-push] append a docs/ops/session-log.md addendum (or update docs/PROGRAM-BOARD.md), and a UX compliance block if a .tsx/.css was touched, then re-push." >&2
+  rm -f /tmp/discipline-prepush-mem.log
+  exit 1
+fi
+cat /tmp/discipline-prepush-mem.log
+rm -f /tmp/discipline-prepush-mem.log
+echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
+
+# ---------------------------------------------------------------------------
 # Step 3: discipline + fitness tests — the SAME canonical suite CI runs
 # ---------------------------------------------------------------------------
 # PARITY BY CONSTRUCTION (operator ruling 2026-07-04): pre-push and the CI "Discipline engine unit tests"

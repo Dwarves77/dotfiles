@@ -109,11 +109,14 @@ fsi-app/.discipline/
 
 ## Pre-push hook (CI-parity gate)
 
-Source: `fsi-app/.discipline/hooks/pre-push`. Installed by `install-hooks.mjs`. Runs on `git push`, BEFORE the push leaves the machine. Four steps mirror the CI workflow:
+Source: `fsi-app/.discipline/hooks/pre-push`. Installed by `install-hooks.mjs`. Runs on `git push`, BEFORE the push leaves the machine. Several steps mirror the CI workflow (numbering below matches the hook's own step comments, including the lettered steps added after the original four):
 
 1. **Untracked critical-surface gate**: `git ls-files --others --exclude-standard` against critical paths (migrations, routes, ADRs, inventories, discipline). Catches the migration-067 class (file on disk locally, missing in CI checkout).
-2. **Consistency runner**: `node fsi-app/.discipline/consistency/runner.mjs --quiet`. Catches C3/C4 drift.
-3. **Discipline + fitness tests**: `node --test` on every test file in the engine. Catches rule/fitness regressions.
+2. **Consistency runner**: `node fsi-app/.discipline/consistency/override-check.mjs --prepush`. Catches C3/C4 drift, override-aware.
+2b. **Memory gate, CI parity** (task 7.8, 2026-09-12): `node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD`. Fails a range that touches code (`fsi-app/(src|supabase/migrations|scripts|.discipline)/`) without a `docs/ops/session-log.md` or `docs/PROGRAM-BOARD.md` change in the same range, or a `.tsx`/`.css` change without an added "UX compliance" line in the session-log diff. The SAME script also runs as the CI workflow's "Memory gate" step (`.github/workflows/discipline.yml`), so the two surfaces cannot silently disagree the way they did for PR #647 (task 6.2b): CI's inline shell duplicate had this check and pre-push did not.
+3. **Discipline + fitness tests**: `node --test` on every test file in the engine (`run-test-suite.sh`, the same entrypoint CI's discipline-engine job uses). Catches rule/fitness regressions.
+3b. **Invariant-coverage meta-gate**: `node fsi-app/.discipline/governance/invariant-coverage.mjs`. Fails a push if any skill invariant is neither mechanically enforced nor explicitly exempted.
+3c. **Action-time skill-gate wiring**: `node fsi-app/.discipline/governance/check-pretooluse-wired.mjs`. Proves the out-of-repo PreToolUse gate (`~/.claude/settings.json`) is fully wired on the operator's own machine; skips cleanly when that file is absent.
 4. **TypeScript compile**: `(cd fsi-app && npx tsc --noEmit)`. Catches F9/Vercel break class.
 
 Bypass (use sparingly): `git push --no-verify`. Hook is fail-closed on missing-node (unlike commit-msg which is fail-open) since the whole point is to prevent the push-fail-fix loop.
