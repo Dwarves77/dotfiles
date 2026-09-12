@@ -18320,3 +18320,10 @@ to mount (AskAssistant panel, sidebar, and whatever else might sit between a rea
 this component in production) remains an open question if the operator reproduces the failure again
 after this lane ships the visible controls; the fix in that case is that the controls now give a
 deterministic path regardless of where the click-outside edge case comes from.
+## POPREPORT hotfix, 2026-09-12: the entity_refs coverage entry paginated on a column that does not exist
+
+Maintenance run 34670770742 (the first format_type backfill dry run) failed at "Population BEFORE" [CONFIRMED from the job log]: `population-report.mjs`'s entity_refs entry (task 1.4, PR #633) called `readAll` without an order column, inherited the default `id`, and PostgREST answered "column entity_refs.id does not exist" (the table's primary key is ref_table, ref_id, entity_id, role; migration 283). The fixture-driven tests accepted any order column and could not see it. Fix: `readAll` accepts an array of order columns for composite-key tables (every column of the key, so offset pagination stays stable), the entry orders on ref_id, entity_id, role, and a new test binds the entry's order columns to entity_refs' real columns and forbids `id`. The backfill step itself never ran; the dry run is re-dispatched after this lands.
+
+### UX compliance
+
+Not applicable: no `.tsx` or `.css` touched.

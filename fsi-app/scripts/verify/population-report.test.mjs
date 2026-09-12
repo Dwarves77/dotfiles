@@ -165,29 +165,45 @@ test("brief coverage counts a real (non-stub) brief as filled", async () => {
 // the brief's Step 1 names and asserts classify() actually goes red for it, the same posture as the
 // DATECHAIN block above, applied to the wiring tasks 1.1-1.3 add rather than the four earlier stores.
 
-// readAll's contract (scripts/lib/db.mjs): sb.from(table).select(cols).order(col).range(from,to), then
-// `match(q)` appends the caller's own filter (here, .eq("ref_table", ...)) before the page is awaited.
+// readAll's contract (scripts/lib/db.mjs): sb.from(table).select(cols).order(col)[.order(col)...]
+// .range(from,to), then `match(q)` appends the caller's own filter (here, .eq("ref_table", ...))
+// before the page is awaited. The fake records every order column so the test can bind the entry
+// to columns entity_refs REALLY has: Maintenance run 34670770742 (2026-09-12) failed at "Population
+// BEFORE" because the entry inherited readAll's default order column `id`, which entity_refs does
+// not have (primary key ref_table, ref_id, entity_id, role; migration 283). A fake that accepted any
+// column let that through; this one exposes the columns for the assertion below.
+const ENTITY_REFS_COLUMNS = ["ref_table", "ref_id", "entity_id", "role", "asserted_by", "asserted_at"];
+
 function fakeEntityRefsClient({ totalCount, refRows }) {
+  const orderColumns = [];
+  const page = {
+    order(col) { orderColumns.push(col); return page; },
+    range: () => ({ eq: () => Promise.resolve({ data: refRows, error: null }) }),
+  };
   return {
+    orderColumns,
     from(table) {
       if (table === "intelligence_items") {
         return { select: () => ({ eq: () => Promise.resolve({ count: totalCount, error: null }) }) };
       }
       if (table === "entity_refs") {
-        return {
-          select: () => ({
-            order: () => ({
-              range: () => ({
-                eq: () => Promise.resolve({ data: refRows, error: null }),
-              }),
-            }),
-          }),
-        };
+        return { select: () => page };
       }
       throw new Error(`unexpected table ${table}`);
     },
   };
 }
+
+test("entity_refs coverage orders its paginated read on columns entity_refs actually has (never the default `id`)", async () => {
+  const entry = STORES.find((s) => s.table === "entity_refs");
+  const sb = fakeEntityRefsClient({ totalCount: 1, refRows: [] });
+  await countStore(sb, entry);
+  assert.ok(sb.orderColumns.length > 0, "the read must order on at least one column");
+  for (const col of sb.orderColumns) {
+    assert.ok(ENTITY_REFS_COLUMNS.includes(col), `order column ${col} is not a column of entity_refs (migration 283)`);
+  }
+  assert.ok(!sb.orderColumns.includes("id"), "entity_refs has no id column; the default must be overridden");
+});
 
 test("entity_refs coverage goes red (ROWS_NO_VALUES) when no live item has an entity_refs row", async () => {
   const entry = STORES.find((s) => s.table === "entity_refs");
