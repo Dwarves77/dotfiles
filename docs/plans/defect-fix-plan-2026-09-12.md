@@ -65,6 +65,12 @@ Evidence: #647 red at CI's memory gate; 7.4e and 7.5 ranges also lacked the entr
 
 Fix: task 7.8 (built on lane/w9-7.8-2026-09-12, commit 27ea8296, under review): one script both CI and the hook run. Lands after review under this plan's gate order; no new work.
 
+Review outcome (review-7.8.md, CONDITIONAL FAIL, two parity deviations) and the fix specification:
+- [CONFIRMED] on a pull_request event where the memory gate fails, the original shell exited before evaluating the UX-compliance check; the new script evaluates both and prints both errors, with the same exit code. Ruling: keep the new behaviour (a lane sees every failure at once); document it in the script header and in the discipline.yml comment above the step as a deliberate change from the inline shell. No code change.
+- [CONFIRMED] the UX-compliance message replaced the original single ellipsis glyph (U+2026) with three periods. Fix: restore the original glyph so the message is byte-identical (U+2026 is not in the banned set).
+- One commit, tests re-run, preflight re-run, report appended; then the review is re-run on that commit.
+
+
 ### D7. Lanes cannot see the live schema and copy conventions from code that is itself wrong (the D2 class) [CONFIRMED]
 
 Class fix, one discipline lane:
