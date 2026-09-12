@@ -79,6 +79,12 @@ on:
         required: false
         default: ''
         type: string
+      selection:
+        description: 'Auto-selection only (ids blank). hollow = record-grade items whose every FACT claim is the [title] one (the original stub definition; after the slot-claim mints and the 2026-09-12 retype almost none remain). record = every verified, live, record-grade item ordered by id (ADR-028: record grade is transit and every one of them needs a brief); this is the Part 6 batch population.'
+        required: false
+        default: 'record'
+        type: choice
+        options: [record, hollow]
       char_budget:
         description: 'Max characters per exported part file (passed as --char-budget). Default 3,000,000 matches the script''s own default.'
         required: false
@@ -125,7 +131,8 @@ jobs:
 
       - name: This run's gates
         run: |
-          echo "ids         = ${{ inputs.ids }} (blank = auto-select hollow record-grade stubs)"
+          echo "ids         = ${{ inputs.ids }} (blank = auto-select record-grade items per selection)"
+          echo "selection   = ${{ inputs.selection }} (auto-selection only: record = every verified live record-grade item; hollow = title-only stubs)"
           echo "limit       = ${{ inputs.limit }}"
           echo "after_id    = ${{ inputs.after_id }} (auto-selection only)"
           echo "char_budget = ${{ inputs.char_budget }}"
@@ -151,6 +158,11 @@ jobs:
 
           const limit = Number(process.env.SELECT_LIMIT || "50");
           const afterId = process.env.SELECT_AFTER_ID || "";
+          // selection=record (default since 2026-09-12): the whole verified live record-grade population,
+          // ordered by id, resumable with after_id. selection=hollow: the original title-only stub filter
+          // below. Batch 2's first export (run 34690918567) found only 6 hollow items because the mint
+          // now writes slot claims, while 1,091 record-grade items still need briefs (ADR-028).
+          const selection = process.env.SELECT_SELECTION === "hollow" ? "hollow" : "record";
 
           let items = await readAll("intelligence_items", "id", {
             match: (q) => {
@@ -180,15 +192,16 @@ jobs:
             }
           }
           const hollow = items.filter((it) => (factCounts.get(it.id) || 0) === (titleFactCounts.get(it.id) || 0));
-          const selected = hollow.slice(0, limit).map((it) => it.id);
-          console.log(`select-record-stub-ids: ${items.length} record-grade candidate(s), ${hollow.length} hollow, ${selected.length} selected (limit ${limit}).`);
+          const population = selection === "hollow" ? hollow : items;
+          const selected = population.slice(0, limit).map((it) => it.id);
+          console.log(`select-record-stub-ids: selection=${selection}; ${items.length} record-grade candidate(s), ${hollow.length} hollow, ${selected.length} selected (limit ${limit}); last selected id ${selected[selected.length - 1] || "(none)"} for the next after_id.`);
           process.stdout.write(`SELECTED_IDS=${selected.join(",")}\n`);
           EOF
-          SELECT_LIMIT="${{ inputs.limit }}" SELECT_AFTER_ID="${{ inputs.after_id }}" node scripts/tmp/select-record-stub-ids.mjs | tee /tmp/select.log
+          SELECT_LIMIT="${{ inputs.limit }}" SELECT_AFTER_ID="${{ inputs.after_id }}" SELECT_SELECTION="${{ inputs.selection }}" node scripts/tmp/select-record-stub-ids.mjs | tee /tmp/select.log
           selected="$(grep '^SELECTED_IDS=' /tmp/select.log | tail -1 | cut -d= -f2-)"
           echo "ids=$selected" >> "$GITHUB_OUTPUT"
           if [ -z "$selected" ]; then
-            echo "::warning::no hollow record-grade stub items matched this selection (after_id=${{ inputs.after_id }}): the export step below will honestly export 0 items."
+            echo "::warning::no record-grade items matched selection=${{ inputs.selection }} (after_id=${{ inputs.after_id }}): the export step below will honestly export 0 items."
           fi
 
       - name: Resolve this run's --ids
