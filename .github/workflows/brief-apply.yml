@@ -45,16 +45,29 @@ on:
         required: false
         default: ''
         type: string
+      allow_brief_overwrite:
+        description: 'Pass --allow-brief-overwrite: re-generate a non-record-grade item (an existing brief) rather than refusing per task 3.3''s own item_grade gate. Default false -- explicit opt-in only.'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: brief-apply
   cancel-in-progress: false
+
+# contents: write -- the run-artifact commit-back step (below) pushes directly to the dispatched ref, the
+# same permission population-turn.yml / brief-export.yml already declare for their own artifact-commit
+# steps (those push to a side branch and open a PR; this pushes straight to the checked-out ref, so
+# pull-requests/issues write are not needed here).
+permissions:
+  contents: write
 
 env:
   RUN_MODE: ${{ inputs.mode }}
   RUN_BRIEFS_FILE: ${{ inputs.briefs_file }}
   RUN_LIMIT: ${{ inputs.limit }}
   RUN_AFTER_ID: ${{ inputs.after_id }}
+  RUN_ALLOW_BRIEF_OVERWRITE: ${{ inputs.allow_brief_overwrite }}
 
 jobs:
   brief-apply:
@@ -87,11 +100,12 @@ jobs:
 
       - name: This run's gates
         run: |
-          echo "trigger     = ${{ github.event_name }}"
-          echo "mode        = $RUN_MODE"
-          echo "briefs_file = $RUN_BRIEFS_FILE"
-          echo "limit       = ${RUN_LIMIT:-(none, unbounded)}"
-          echo "after_id    = ${RUN_AFTER_ID:-(none, start from the beginning)}"
+          echo "trigger              = ${{ github.event_name }}"
+          echo "mode                 = $RUN_MODE"
+          echo "briefs_file          = $RUN_BRIEFS_FILE"
+          echo "limit                = ${RUN_LIMIT:-(none, unbounded)}"
+          echo "after_id             = ${RUN_AFTER_ID:-(none, start from the beginning)}"
+          echo "allow_brief_overwrite = $RUN_ALLOW_BRIEF_OVERWRITE"
           echo "mode=apply passes --execute and runs the full per-item pipeline; mode=dry never writes."
 
       - name: Build driver flags
@@ -100,6 +114,7 @@ jobs:
           if [ "$RUN_MODE" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
           if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
           if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
+          if [ "$RUN_ALLOW_BRIEF_OVERWRITE" = "true" ]; then FLAGS="$FLAGS --allow-brief-overwrite"; fi
           echo "DRIVER_FLAGS=$FLAGS" >> "$GITHUB_ENV"
 
       - name: apply-record-briefs
@@ -109,6 +124,42 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/brief-apply.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # Commit the run artifact back to the DISPATCHED ref (never a side branch): the NEXT dispatch of
+      # this same ref checks out this same tree and must see this run's own harness-run artifact, or run
+      # ids repeat -- CI claiming brief-apply-run-001 twice, fixed by this step, is F28's own reverse-audit
+      # PENDING-RUN.md marker (see that file's "Re-pin 3"). Runs in EVERY mode (dry writes an artifact too,
+      # per the driver's own header) and even when the driver step above failed (a thrown run still leaves
+      # a schema-valid artifact, per that driver's crash-safety `finally` block). git identity + `git pull
+      # --rebase` immediately before the push, retried once on a non-fast-forward race against a
+      # concurrent dispatch on the same ref -- population-turn.yml's own artifact-commit step (git config
+      # identity, rebase before push) is the template; this pushes to the CHECKED-OUT ref itself rather
+      # than a new side branch, because a side branch is invisible to the next run's own checkout of this
+      # same ref until a human merges it, which would defeat the entire point of "run ids increment across
+      # CI runs". Never `--no-verify`.
+      - name: Commit the run artifact back to the dispatched ref
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/brief-apply/
+          if git diff --cached --quiet; then
+            echo "No new brief-apply run artifact to commit."
+            exit 0
+          fi
+          git commit -m "brief-apply: run ${{ github.run_id }} artifact"
+          pushed=0
+          for attempt in 1 2; do
+            if git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              pushed=1
+              break
+            fi
+            echo "push attempt $attempt failed -- retrying after a rebase against the current ref."
+          done
+          if [ "$pushed" -ne 1 ]; then
+            echo "::error::could not push the brief-apply run artifact to ${GITHUB_REF_NAME} after 2 attempts."
+            exit 1
+          fi
 
       # ALWAYS last, in every mode: rule 17 says a run that ends without measuring its own effect is a
       # defect in the run, never a note for a coordinator. Runs even when the driver step above failed, so
