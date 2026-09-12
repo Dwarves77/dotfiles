@@ -1028,6 +1028,177 @@
           "section": "6"
         }
       ]
+    },
+    {
+      "item_id": "00a8c0d9-405a-48d9-a01b-9c14c4101155",
+      "source_pool_hash": "63b7a2b11493fb4da7b5fd92cbab146608e3fdde2cbabab606de258d896ce206",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes the Single Use Carrier Bags Charge (Wales) Regulations 2010 (Welsh Statutory Instrument 2010 No. 2880 (W.238)), made under the Climate Change Act 2008, as captured in its latest available (revised) consolidated form. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* This document is scoped to the provisions the captured consolidated text grounds: the minimum per-bag charge, the seller definition and its delivery-based territorial reach, the record-keeping and publication duties, the exemption from the charge and the Schedule 1 exemption list, and the civil-sanctions penalty regime. The source states, verbatim: \"These Regulations apply in relation to Wales and come into force on 1 October 2011.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Regulations, made by the Welsh Ministers, set a minimum charge that a \"seller\" must apply to every new single use carrier bag it supplies with goods sold from, or delivered to, Wales. \"Seller\" is defined by the destination of the goods, not only the seller's own location: the source states, verbatim, that a seller \"sells goods from a place in Wales; (b) sells goods which are delivered to persons in Wales.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* For workspaces operating or supporting e-commerce fulfilment, warehousing, or last-mile delivery into Wales on behalf of a client, this delivery-based scope means the charge duty can attach even when the point of sale is outside Wales. *Legal Confirmation Required:* whether the workspace, where it fulfils or delivers orders on a client's behalf rather than selling in its own right, is itself the \"seller,\" or whether that duty remains with the client on whose behalf the workspace is acting; the Regulations address a related structure directly, stating, verbatim: \"Where a person (A) sells goods in A's capacity as an officer or employee of another person (B), then for the purposes of these Regulations B is the seller in those circumstances, and not A.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* Whether a third-party fulfilment relationship falls within or outside that structure is not resolved by this document.\n\n# Issues Requiring Immediate Action\n\n**COST ALERT.** Confirm whether any workspace-supported delivery or fulfilment operation into Wales involves supplying new single use carrier bags with the goods, since a qualifying bag must carry the minimum charge and an unpaid or under-charged bag is a breach carrying a civil sanction. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* *Operational implication:* the specific per-shipment cost of applying the charge correctly depends on client-specific packaging practice and is not something this document can quantify without that data.\n\n**MONITORING.** Confirm whether any client the workspace fulfils for meets the reporting-year staff threshold that brings the record-keeping duty into play, and separately the volume and VAT-status thresholds that bring the publication duty into play. *Legal Confirmation Required:* whether the workspace's own fulfilment role could itself trigger these thresholds if it is found to be the \"seller\" for the relevant goods.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe duty to charge, keep records, and publish records falls on the \"seller\" as defined above; a workspace acting purely as carrier or freight forwarder, without selling the goods in its own right, sits outside that definition on its face. *Legal Confirmation Required:* whether a workspace providing fulfilment, pick-pack, or last-mile delivery services that itself selects and applies the carrier bag at the point of dispatch to a Welsh address could be treated as exercising the \"seller\" function, particularly where the workspace, rather than the retail client, controls bag selection and charging at the point of dispatch.\n\n# Substantive Requirements\n\n**Minimum charge.** \"The amount that a seller must charge is such amount as ensures that the consideration paid by a customer for each single use carrier bag is not less than 5 pence.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n**Record-keeping trigger and retention.** The record-keeping duty attaches once \"the seller employs ten or more full time equivalent members of staff\" on the first day of the reporting year, and once triggered, \"Records must be retained by a seller for a period of three years beginning on 31 May in the reporting year following that to which a record relates.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n**Publication conditions.** Publication of the record is required only once \"that the seller is a taxable person for the purposes of the Value Added Tax Act 1994\" and separately \"that the seller supplies 1000 or more single use carrier bags which attract the charge.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* *Analytical inference:* the qualification a headline \"sellers must publish records\" statement would omit is that publication is gated on both VAT-taxable status and the 1,000-bag volume test, so a smaller-volume seller keeps records but has no publication duty.\n\n**Publication deadline.** Where the conditions above are met, \"a seller must publish the record on or before 31 May in the reporting year following that to which the record relates.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n**Exemption from the requirement to charge.** \"Regulation 6 does not apply in relation to the supply of single use carrier bags of the kinds described in Schedule 1 and that Schedule has effect accordingly.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* Schedule 1's own list includes, among other categories, \"(i) mail order dispatch and courier bags;\" which is directly relevant to a freight or logistics workspace's own bag use (addressed further in Exemptions and Edge Cases below).\n\n**Civil sanctions.** A failure to comply with the core charging requirement carries a fixed monetary penalty per the Schedule 2 table row \"Failure to comply with the requirement to charge in accordance with regulation 6 (regulation 11(1) and (2)) £200 £100\" (fixed penalty amount, discounted specified sum), while a more serious category of breach carries a substantially higher exposure per the row \"Without reasonable cause, giving false or misleading information to an administrator (regulation 11(3)) £20,000\". *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n**Discharge and escalation.** A seller may discharge its liability early at a discount, or face an increase if it delays: \"A seller may discharge its liability to a fixed monetary penalty by paying 50% of the amount of the penalty within 28 days beginning with the day on which the final notice imposing it was received.\" \"If a fixed monetary penalty is not paid within the period allowed in accordance with paragraph 8 the amount of the penalty is increased by 50%.\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\nNo phase-in is stated in Sections 6 to 11 of these Regulations. No exceptions are stated in Sections 6 to 11 of these Regulations (the Schedule 1 exemption list is a separate, non-numbered carve-out addressed in Exemptions and Edge Cases below).\n\nObligations surveyed: 9; workspace-adjacent: 9; extracted as FACT: 9.\n\n# Registration and Reporting Obligations\n\nThere is no separate registration scheme; the operative obligations are the record-keeping duty (triggered by the ten-or-more-staff threshold) and the publication duty (triggered additionally by the 1,000-bag volume threshold and VAT-taxable status), both addressed in Substantive Requirements above. *Operational implication:* a seller below both thresholds carries no record-keeping or publication duty under this instrument, though the underlying minimum-charge duty still applies regardless of size.\n\n# Operational System Requirements\n\nFor workspaces supporting delivery or fulfilment of goods into Wales: (1) confirm with each client whether the workspace or the client is treated as the \"seller\" applying the charge, and (2) where the workspace's own operations meet the staff or volume thresholds in its own right, build the record-keeping and, where triggered, publication process described above. *Operational implication:* the courier-bag exemption addressed in Exemptions and Edge Cases below may remove the charge question entirely for pure delivery-packaging use, which is the scenario most relevant to a freight or logistics workspace's own bag use.\n\n# Exemptions and Edge Cases\n\nSchedule 1 exempts a defined list of bag types from the charge under regulation 6. One listed category is directly relevant to freight and logistics operations: the source states, verbatim, \"(i) mail order dispatch and courier bags;\" meaning a bag used purely for mail-order or courier dispatch, rather than a retail carrier bag handed to a shopper, falls outside the charge requirement entirely. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* A separate, later-added exemption for grocery-delivery and collection bags was time-limited rather than permanent: the source states, verbatim, that such bags \"are exempted from the charge under regulation 6 only until midnight on\" \"31 December 2020,\" after which grocery-delivery bags returned to being subject to the ordinary charge and record-keeping regime described above. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.* *Analytical inference:* the sunset on the grocery-delivery exemption is the qualification a headline \"delivery bags are exempt\" reading would omit; by the current (revised) text, that specific carve-out no longer applies.\n\n# Confirmed Regulatory Timeline\n\n- 30 November 2010: The Single Use Carrier Bags Charge (Wales) Regulations 2010 made by the Welsh Ministers. The source states, verbatim: \"Made 30 November 2010\" *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n- 1 October 2011: The Regulations come into force in relation to Wales, and the substituted charging and record-keeping provisions take effect. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n- 31 December 2020: The time-limited grocery-delivery and collection bag exemption ends. *Source: The Single Use Carrier Bags Charge (Wales) Regulations 2010, UK Government (legislation.gov.uk). https://www.legislation.gov.uk/wsi/2010/2880.*\n\n# Sources\n\n- The Single Use Carrier Bags Charge (Wales) Regulations 2010, S.I. 2010 No. 2880 (W.238), UK Government, legislation.gov.uk (Tier 1, primary binding text, latest available revised consolidated version). https://www.legislation.gov.uk/wsi/2010/2880\n",
+      "metadata": {
+        "severity": "COST ALERT",
+        "priority": "HIGH",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "packaging"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The Single Use Carrier Bags Charge (Wales) Regulations 2010 (S.I. 2010 No. 2880 (W.238)), UK Government legislation.gov.uk, made under the Climate Change Act 2008, requiring a minimum 5-pence charge on single use carrier bags supplied by a 'seller' selling from or delivering to Wales, with record-keeping, publication, and civil-sanctions duties, and a Schedule 1 exemption list including mail-order and courier bags.",
+        "why_matters": "Workspaces operating or supporting e-commerce fulfilment, warehousing, or last-mile delivery into Wales carry potential exposure to the charge, record-keeping, and publication duties if found to be the 'seller' rather than a pure carrier, since the duty attaches by delivery destination even when the point of sale is outside Wales. The Schedule 1 exemption for mail order dispatch and courier bags is directly relevant to freight and logistics bag use, while the time-limited grocery-delivery exemption has already sunset (31 December 2020), so that specific carve-out no longer applies under the current text.",
+        "key_data": [
+          "Minimum charge not less than 5 pence per single use carrier bag",
+          "Record-keeping duty triggered at ten or more full-time-equivalent staff on the first day of the reporting year",
+          "Publication duty triggered additionally by VAT-taxable status and 1000 or more chargeable bags supplied",
+          "Fixed monetary penalty £200 (charging breach) discounted to £100; up to £20000 for false or misleading information to an administrator"
+        ],
+        "cost_mechanism": "A seller charges a minimum 5-pence consideration per bag and faces a fixed monetary penalty, discounted for early payment or increased by 50% for late payment, on a charging, record-keeping, or reporting breach.",
+        "requirement_trajectory": null,
+        "penalty_range": "£100 to £200 fixed monetary penalty for charging/record-keeping breaches (discounted to 50% within 28 days, increased by 50% if unpaid); up to £20,000 for false or misleading information to an administrator",
+        "enforcement_body": "Local authority administrators designated under the Regulations",
+        "operational_scenario_tags": [
+          "wales-delivery-charge",
+          "ecommerce-fulfilment",
+          "courier-bag-exemption"
+        ],
+        "compliance_object_tags": [
+          "freight-forwarder",
+          "warehouse-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «These Regulations apply in relation to Wales and come into force on 1 October 2011.»",
+          "source_span": "These Regulations apply in relation to Wales and come into force on 1 October 2011.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "1"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim, the definition of \"seller\": «sells goods from a place in Wales; (b) sells goods which are delivered to persons in Wales.»",
+          "source_span": "sells goods from a place in Wales; (b) sells goods which are delivered to persons in Wales.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the officer/employee structure: «Where a person (A) sells goods in A's capacity as an officer or employee of another person (B), then for the purposes of these Regulations B is the seller in those circumstances, and not A.»",
+          "source_span": "Where a person (A) sells goods in A's capacity as an officer or employee of another person (B), then for the purposes of these Regulations B is the seller in those circumstances, and not A.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the minimum charge: «The amount that a seller must charge is such amount as ensures that the consideration paid by a customer for each single use carrier bag is not less than 5 pence.»",
+          "source_span": "The amount that a seller must charge is such amount as ensures that the consideration paid by a customer for each single use carrier bag is not less than 5 pence.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the record-keeping staff threshold: «the seller employs ten or more full time equivalent members of staff»",
+          "source_span": "the seller employs ten or more full time equivalent members of staff",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the records retention period: «Records must be retained by a seller for a period of three years beginning on 31 May in the reporting year following that to which a record relates.»",
+          "source_span": "Records must be retained by a seller for a period of three years beginning on 31 May in the reporting year following that to which a record relates.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «a seller must publish the record on or before 31 May in the reporting year following that to which the record relates.»",
+          "source_span": "a seller must publish the record on or before 31 May in the reporting year following that to which the record relates.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the exemption mechanism: «Regulation 6 does not apply in relation to the supply of single use carrier bags of the kinds described in Schedule 1 and that Schedule has effect accordingly.»",
+          "source_span": "Regulation 6 does not apply in relation to the supply of single use carrier bags of the kinds described in Schedule 1 and that Schedule has effect accordingly.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "claim_text": "[penalty_summary] The captured source states, verbatim, the Schedule 2 penalty table row: «Failure to comply with the requirement to charge in accordance with regulation 6 (regulation 11(1) and (2)) £200 £100»",
+          "source_span": "Failure to comply with the requirement to charge in accordance with regulation 6 (regulation 11(1) and (2)) £200 £100",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the false-or-misleading-information penalty row: «Without reasonable cause, giving false or misleading information to an administrator (regulation 11(3)) £20,000»",
+          "source_span": "Without reasonable cause, giving false or misleading information to an administrator (regulation 11(3)) £20,000",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the early-payment discount: «A seller may discharge its liability to a fixed monetary penalty by paying 50% of the amount of the penalty within 28 days beginning with the day on which the final notice imposing it was received.»",
+          "source_span": "A seller may discharge its liability to a fixed monetary penalty by paying 50% of the amount of the penalty within 28 days beginning with the day on which the final notice imposing it was received.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the late-payment escalation: «If a fixed monetary penalty is not paid within the period allowed in accordance with paragraph 8 the amount of the penalty is increased by 50%.»",
+          "source_span": "If a fixed monetary penalty is not paid within the period allowed in accordance with paragraph 8 the amount of the penalty is increased by 50%.",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "8"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the Schedule 1 courier-bag exemption: «(i) mail order dispatch and courier bags;»",
+          "source_span": "(i) mail order dispatch and courier bags;",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "12"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the grocery-delivery exemption sunset: «are exempted from the charge under regulation 6 only until midnight on»",
+          "source_span": "are exempted from the charge under regulation 6 only until midnight on",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "12"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the grocery-delivery exemption's sunset date: «31 December 2020»",
+          "source_span": "31 December 2020",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "12"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, its own commencement front matter: «Made 30 November 2010»",
+          "source_span": "Made 30 November 2010",
+          "source_url": "https://www.legislation.gov.uk/wsi/2010/2880",
+          "section": "14"
+        }
+      ]
     }
   ]
 }
