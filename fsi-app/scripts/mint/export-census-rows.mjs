@@ -213,6 +213,10 @@ import { fileURLToPath } from "node:url";
 import { deriveKey } from "../lib/canonical-key.mjs";
 import { screenVerdictFor, isMintable } from "./lib/screen-verdict.mjs";
 import { sameInstitution } from "../lib/institution-key.mjs";
+// Task 7.4e (2026-09-12, ADR-030-adjacent): the ONE UK legislation series-code vocabulary
+// (uksi/ukpga/wsi/ssi/nisr/...), reused here to derive a UK instrument_identifier from the URL's OWN path
+// segment rather than re-enumerating the set a second time -- see UK_TYPES's own export note.
+import { UK_TYPES } from "../../src/lib/coverage/identity.mjs";
 // THE M4 same-URL identity rule's ONE body (RD-M4b, 2026-09-04 — see this file's own "UPDATE 2026-09-04"
 // note near partitionExcludeHeld below, and lib/instrument-identity.mjs's own header): apply-mint-batch.mjs's
 // checkM4 already imports the SAME two functions from here — never a local re-derivation in either file.
@@ -303,6 +307,49 @@ export function classifyUkLegislationType(documentUrl) {
   return UK_LEGISLATION_TYPE_RE.test(String(documentUrl ?? "")) ? "regulation" : null;
 }
 
+// ── UK instrument_identifier, derived from the URL's own series-code segment (task 7.4e, 2026-09-12) ──
+//
+// THE DEFECT [CONFIRMED, coordinator's live SQL, 2026-09-12]: 19 of 268 live legislation.gov.uk items carry
+// an `instrument_identifier` of the shape "UK uksi <year>/<n>" while their own `document_url`/`source_url`
+// path is "/wsi/<year>/<n>" -- a Welsh Statutory Instrument, a DIFFERENT series from a UK-wide uksi at the
+// same year/number. Example: 00a8c0d9-405a-48d9-a01b-9c14c4101155, "The Single Use Carrier Bags Charge
+// (Wales) Regulations 2010", identifier "UK uksi 2010/2880", URL .../wsi/2010/2880. Nothing in THIS file
+// (prior to this fix) derived instrument_identifier for the uk_legislation family at all -- resolveIdentity
+// returned only item_type/jurisdiction for it, and buildExportRow carried censusRow.instrument_identifier
+// straight through unexamined (whatever the census/harvest step upstream had recorded, correct or not,
+// including a hand- or prose-derived guess that defaults to the most common series, uksi). The consequence:
+// `src/lib/sources/target-match.mjs`'s `identifierInUrl` (own-URL target match, task 6.1b) correctly
+// refuses a match for these rows -- uksi 2010/2880 and wsi 2010/2880 are different instruments, so the
+// pool's own-URL trust never fires, and the item quarantines at ground (brief-apply run 34712340105).
+//
+// THE FIX: for legislation.gov.uk, the URL's own path segment is the ONLY authoritative source for the
+// series code -- never the census row's pre-existing value, never a prose default. `deriveUkLegislationIdentifier`
+// parses "/<type>/<year>/<n>" straight out of the document_url against the SAME UK_TYPES vocabulary
+// classifyIdentifier/identifierInUrl already validate against (imported, not re-enumerated), and
+// `resolveIdentity`'s uk_legislation branch now returns this as `instrumentIdentifier` -- `buildExportRow`
+// prefers it over the census row's own value for this family (see the `row.instrument_identifier` site
+// below). A URL that carries no recognized series segment yields `null` -- reported/held upstream via
+// item_type_unmapped, never guessed.
+const UK_LEGISLATION_ID_RE = new RegExp(`/(${[...UK_TYPES].join("|")})/(\\d{4})/(\\d+)`, "i");
+
+/** The legislation.gov.uk series-type/year/number straight out of the URL's own path, or null when no
+ *  recognized UK_TYPES segment is present (never guessed). Pure.
+ *  @param {string} documentUrl @returns {{type:string, year:string, number:string}|null} */
+export function parseUkLegislationUrlId(documentUrl) {
+  const m = String(documentUrl ?? "").match(UK_LEGISLATION_ID_RE);
+  return m ? { type: m[1].toLowerCase(), year: m[2], number: m[3] } : null;
+}
+
+/** The item's `instrument_identifier` for a legislation.gov.uk row, "UK <type> <year>/<number>" -- the
+ *  shape `classifyIdentifier`'s uk-legislation scheme reads -- derived ONLY from the URL's own path
+ *  segment, never defaulted to "uksi" when the segment cannot be read. Returns null (never guessed) when
+ *  `parseUkLegislationUrlId` finds no recognized series segment. Pure.
+ *  @param {string} documentUrl @returns {string|null} */
+export function deriveUkLegislationIdentifier(documentUrl) {
+  const parsed = parseUkLegislationUrlId(documentUrl);
+  return parsed ? `UK ${parsed.type} ${parsed.year}/${parsed.number}` : null;
+}
+
 /** The federalregister.gov document number out of a `/documents/YYYY/MM/DD/<docnum>/...` URL path (the
  *  shape the census `document_url` carries). Pure. Returns null when the URL does not carry this shape
  *  (e.g. a `/d/<docnum>` short-link or a non-document federalregister.gov URL) -- held
@@ -381,6 +428,10 @@ export function resolveIdentity(censusRow, source, { frDocType } = {}) {
 
   if (family === "uk_legislation") {
     const itemType = classifyUkLegislationType(documentUrl);
+    // Task 7.4e (2026-09-12): the URL's own series-code segment is the ONLY authoritative
+    // instrument_identifier source for this family -- see deriveUkLegislationIdentifier's own header for
+    // the defect this closes (a stale/wrong census-row value silently carried through, e.g. a Welsh /wsi/
+    // instrument mislabeled "UK uksi"). null when the URL carries no recognized segment (never guessed).
     return {
       scheme: "uk_legislation",
       canonicalKey: null,
@@ -388,6 +439,7 @@ export function resolveIdentity(censusRow, source, { frDocType } = {}) {
       jurisdictionIso: "GB",
       hold: itemType ? null : "item_type_unmapped",
       host,
+      instrumentIdentifier: deriveUkLegislationIdentifier(documentUrl),
     };
   }
 
@@ -1070,7 +1122,9 @@ export function buildExportRow(censusRow, source, identity, capture) {
       hold: {
         row_id: rowId,
         document_url: documentUrl,
-        instrument_identifier: censusRow?.instrument_identifier ?? null,
+        // Task 7.4e: identity.instrumentIdentifier (currently only set for uk_legislation, derived from
+        // the URL's own series-code segment) is authoritative over the census row's own value when present.
+        instrument_identifier: identity.instrumentIdentifier ?? censusRow?.instrument_identifier ?? null,
         canonical_instrument_key: identity.canonicalKey ?? null,
         scheme: identity.scheme ?? null,
         host: identity.host ?? null,
@@ -1125,10 +1179,14 @@ export function buildExportRow(censusRow, source, identity, capture) {
     };
   }
 
+  // Task 7.4e: identity.instrumentIdentifier (uk_legislation only, derived from the URL's own series-code
+  // segment) is authoritative over the census row's own value when present -- see its own header.
+  const resolvedIdentifier = identity.instrumentIdentifier ?? censusRow?.instrument_identifier ?? null;
+
   const { title, titleOrigin } = buildTitleForRow({
     capture,
     source,
-    identifier: censusRow?.instrument_identifier ?? null,
+    identifier: resolvedIdentifier,
   });
 
   return {
@@ -1138,7 +1196,7 @@ export function buildExportRow(censusRow, source, identity, capture) {
       item_type: identity.itemType,
       title,
       title_origin: titleOrigin,
-      instrument_identifier: censusRow?.instrument_identifier ?? null,
+      instrument_identifier: resolvedIdentifier,
       canonical_instrument_key: identity.canonicalKey ?? null,
       jurisdiction_iso: identity.jurisdictionIso ?? null,
       priority: "MODERATE",

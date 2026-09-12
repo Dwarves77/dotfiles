@@ -20,6 +20,8 @@ import {
   getHostname,
   classifyHost,
   resolveIdentity,
+  parseUkLegislationUrlId,
+  deriveUkLegislationIdentifier,
   stripHtmlToText,
   extractTitleFromHtml,
   extractEurlexTitle,
@@ -133,18 +135,61 @@ test("resolveIdentity: EUR-Lex row with an undecodable CELEX -> canonical_key_un
   assert.equal(id.canonicalKey, null);
 });
 
-test("resolveIdentity: legislation.gov.uk -> canonicalKey ALWAYS null (no scheme exists, never invented), jurisdiction GB", () => {
+test("resolveIdentity: legislation.gov.uk -> canonicalKey ALWAYS null (no scheme exists, never invented), jurisdiction GB, instrumentIdentifier derived from the URL's own series-code segment (task 7.4e)", () => {
   const row = { document_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: "UK uksi 2021/1095" };
   assert.deepEqual(resolveIdentity(row, SOURCE_UK), {
     scheme: "uk_legislation", canonicalKey: null, itemType: "regulation", jurisdictionIso: "GB", hold: null, host: "www.legislation.gov.uk",
+    instrumentIdentifier: "UK uksi 2021/1095",
   });
 });
 
-test("resolveIdentity: legislation.gov.uk path with no mapped instrument-type segment -> item_type_unmapped", () => {
+test("resolveIdentity: legislation.gov.uk path with no mapped instrument-type segment -> item_type_unmapped, instrumentIdentifier also null (never guessed)", () => {
   const row = { document_url: "https://www.legislation.gov.uk/eur/2021/1/contents", instrument_identifier: null };
   const id = resolveIdentity(row, SOURCE_UK);
   assert.equal(id.hold, "item_type_unmapped");
   assert.equal(id.canonicalKey, null);
+  assert.equal(id.instrumentIdentifier, null);
+});
+
+// ── parseUkLegislationUrlId / deriveUkLegislationIdentifier (task 7.4e, 2026-09-12) ─────────────────────
+// THE DEFECT this closes: 19 live items carried "UK uksi <year>/<n>" against a /wsi/ URL (a Welsh
+// Statutory Instrument, a different series at the same year/number) -- the series code MUST come from the
+// URL's own path segment, never a pre-existing/defaulted value. See deriveUkLegislationIdentifier's header.
+
+test("parseUkLegislationUrlId: reads type/year/number straight off the URL path for every UK series code", () => {
+  assert.deepEqual(parseUkLegislationUrlId("https://www.legislation.gov.uk/wsi/2010/2880"), { type: "wsi", year: "2010", number: "2880" });
+  assert.deepEqual(parseUkLegislationUrlId("https://www.legislation.gov.uk/ssi/2024/1/contents"), { type: "ssi", year: "2024", number: "1" });
+  assert.deepEqual(parseUkLegislationUrlId("https://www.legislation.gov.uk/nisr/2024/7/made"), { type: "nisr", year: "2024", number: "7" });
+  assert.deepEqual(parseUkLegislationUrlId("https://www.legislation.gov.uk/ukpga/2023/52/contents"), { type: "ukpga", year: "2023", number: "52" });
+  assert.deepEqual(parseUkLegislationUrlId("https://www.legislation.gov.uk/uksi/2021/1095/made"), { type: "uksi", year: "2021", number: "1095" });
+});
+
+test("parseUkLegislationUrlId: no recognized series segment -> null, never guessed", () => {
+  assert.equal(parseUkLegislationUrlId("https://www.legislation.gov.uk/eur/2021/1/contents"), null);
+  assert.equal(parseUkLegislationUrlId("not a url"), null);
+  assert.equal(parseUkLegislationUrlId(null), null);
+});
+
+test("deriveUkLegislationIdentifier: 'UK <type> <year>/<number>' from the URL, one per series code -- THE FIX (never defaults to uksi)", () => {
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/wsi/2010/2880"), "UK wsi 2010/2880");
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/ssi/2024/1/contents"), "UK ssi 2024/1");
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/nisr/2024/7/made"), "UK nisr 2024/7");
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/ukpga/2023/52/contents"), "UK ukpga 2023/52");
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/uksi/2021/1095/made"), "UK uksi 2021/1095");
+});
+
+test("deriveUkLegislationIdentifier: no recognized series segment -> null, never defaulted to uksi", () => {
+  assert.equal(deriveUkLegislationIdentifier("https://www.legislation.gov.uk/eur/2021/1/contents"), null);
+  assert.equal(deriveUkLegislationIdentifier(""), null);
+});
+
+test("buildExportRow: legislation.gov.uk row's instrument_identifier is the URL-derived value, overriding a wrong census-row value (the 19-item live defect, task 7.4e)", () => {
+  const censusRow = {
+    id: "r-wales", document_url: "https://www.legislation.gov.uk/wsi/2010/2880", instrument_identifier: "UK uksi 2010/2880",
+  };
+  const identity = resolveIdentity(censusRow, SOURCE_UK);
+  const result = buildExportRow(censusRow, SOURCE_UK, identity, { text: "x".repeat(300) });
+  assert.equal(result.row.instrument_identifier, "UK wsi 2010/2880");
 });
 
 test("resolveIdentity: federalregister.gov with NO frDocType supplied yet -> needsFrLookup, not a guess; canonicalKey is already the FR's own document number (Lane HELD, 2026-09-02: a real, citation-shaped key, never fabricated)", () => {

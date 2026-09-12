@@ -67,7 +67,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/forward-events/dispatch-extraction.mjs",
       "src/lib/forward-events/compliance-deadline-sync.mjs",
       "src/lib/entities/link-item-entities.mjs",
-      "scripts/maintenance/retype-eu-decisions.mjs"
+      "scripts/maintenance/retype-eu-decisions.mjs",
+      "scripts/maintenance/uk-series-code-reconcile.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -230,6 +231,18 @@ own `record_facts` section in `intelligence_item_sections`, creating that sectio
 `scripts/maintenance/provenance-heal.mjs`'s own STEP 3 SLOTS already uses, reused rather than
 re-implemented (`bestCaptureText`/`findSearchIdForSpan`/`missingRequiredSlots`/`claimCoversSlot`,
 imported from `scripts/mint/heal-provenance.mjs`).
+
+Note (added by task 7.4e, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
+uk-series-code-reconcile.mjs` added to `intelligence_items` -- rewrites a live legislation.gov.uk row's
+`instrument_identifier` series code (e.g. "UK uksi" to "UK wsi") to match its own `source_url` path
+segment, one row at a time (each mismatch has its own new value, so `guardedUpdateByIds`'s one-shared-patch
+shape does not fit -- see `backfill-format-type.mjs`'s header for when that shape does apply), through
+`guardedUpdate` guarded on the row's OLD `instrument_identifier` (optimistic concurrency). Never touches
+year or number -- a year/number disagreement is a different, reported-only defect class (0 live rows as
+of 2026-09-12). Fixes the 19-item live defect that made `src/lib/sources/target-match.mjs`'s own-URL match
+(`identifierInUrl`) correctly refuse a Welsh Statutory Instrument capture whose item carried a wrongly
+`uksi`-labelled identifier. `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's
+own prior-state snapshot, same shape as `record-hollow-sweep.mjs`/`canonical-key-dedup.mjs` above.
 
 Note (added by Part 7 task 7.4, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
 resolve-cited-host-gate.mjs` added to `integrity_flags` -- resolves the `cited-host-gate` flag family
