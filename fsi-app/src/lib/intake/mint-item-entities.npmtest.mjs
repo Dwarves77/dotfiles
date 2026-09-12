@@ -116,6 +116,15 @@ function fakeClient({
     };
   }
 
+  // task 6.1c rule 16(f)'s own probes: no prior timeline row, no captures -- honest "nothing to derive
+  // from" (the hook's own npmtest covers the hit path).
+  const emptyReadChain = () => ({
+    select() { return this; },
+    eq() { return this; },
+    limit() { return Promise.resolve({ data: [], error: null }); },
+    then(res, rej) { return Promise.resolve({ data: [], error: null }).then(res, rej); },
+  });
+
   return {
     flagInserts: () => flagInserts,
     forwardEventInserts: () => forwardEventInserts,
@@ -127,6 +136,7 @@ function fakeClient({
       if (table === "item_forward_events") return itemForwardEventsChain();
       if (table === "integrity_flags") return integrityFlagsChain();
       if (table === "entities" || table === "entity_refs" || table === "entity_identifiers") return entitySpine.from(table);
+      if (table === "item_timelines" || table === "agent_run_searches") return emptyReadChain();
       throw new Error(`fakeClient: unexpected table ${table}`);
     },
   };
