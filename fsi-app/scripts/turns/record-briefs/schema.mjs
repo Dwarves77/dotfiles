@@ -77,7 +77,34 @@ import { extractSectionByHeading, extractSectionByNumber } from "../../../src/li
 import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.2";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.3";
+// 2026-09-12.3 (task 6.2b fix round 1, review-6.2b.md): five findings closed.
+//   Finding 1 (critical) -- every claim now carries `section` (the canonical section key of the entry's
+//     format_type), validated against the format's own section list and against the claim's own
+//     source_span actually appearing in that section's extracted text. This replaces the prior
+//     text-containment "attachment" heuristic (factClaimsAttachedTo), which had NO correspondent in the
+//     live write path: canonical-pipeline.ts:1889 attaches a claim to a section via this SAME explicit
+//     `.section` field (`sectionMap[String(c2.section)] || secs[0].id`), a field the record-briefs claim
+//     shape never defined until now -- every lane claim landed under section 1, never the section its
+//     content described. `factClaimsInSection` (below) replaces `factClaimsAttachedTo` everywhere.
+//   Finding 2 (critical) -- the qualification-accounting mirror (MIRROR (e)) was nested inside the
+//     depth-accounting line's own success branch, so it never ran when the accounting line was missing --
+//     the state of every currently-applied batch. Un-nested: both mirrors now run independently whenever
+//     "Substantive Requirements" is present, and both sets of refusals are reported together.
+//   Finding 3 (important) -- the accounting line must be the LAST content in the section (a Shortfall
+//     line may follow it; nothing else may). Enforced by checking the section's own trailing content after
+//     the matched accounting line.
+//   Finding 4 (important) -- the qualification "capture" check now matches the keyword in the claim's own
+//     `source_span` (never free-form `claim_text`) with a negation guard (a span reading "No party is
+//     exempt..." no longer satisfies "exception captured"), and the "absence" sentences now require a
+//     named article/section citation ("No exceptions are stated in Articles 1 to 12.") rather than a fixed
+//     phrase satisfiable regardless of the source.
+//   Finding 5 (minor) -- a regulatory_fact_document entry whose "Substantive Requirements" section cannot
+//     be extracted at all is now refused outright (a regulatory brief without that section is not
+//     complete) instead of silently skipped; the misleading "same attachment test MIRROR (a) above already
+//     uses" comment is corrected (Gate A has no per-section concept at all); RECORD_BRIEFS_SCHEMA_VERSION
+//     gains a reader (`apply-record-briefs.mjs` stamps it into the run artifact's own `config`).
+//
 // 2026-09-12.2 (task 6.2b, brief-chain-build-plan-2026-09-11): two more pre-write refusals, added from
 // task-6.1-audit.md's ranked fixes 1 and 2 -- a depth-accounting mirror ("Substantive Requirements" must
 // end with an "Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K." line, K bounded by
@@ -135,33 +162,50 @@ const OBLIGATIONS_ACCOUNTING_RE =
 const SHORTFALL_LINE_RE = /^Shortfall:\s*\S.*$/im;
 const LARGE_POOL_CHAR_THRESHOLD = 200_000;
 
-// The three qualification-accounting absence sentences the README prescribes (task-6.1-audit.md fix 2's
-// own worked phrase, "no phase-in stated in the source," extended to the other two categories the
-// validator checks). A lane states ONE of these verbatim when the source genuinely carries nothing of that
-// kind, so silence and a thin source stop being indistinguishable from the outside.
-const TRAJECTORY_ABSENCE_RE = /No phase-in stated in the source\.?/i;
-const EXCEPTIONS_ABSENCE_RE = /No exceptions stated in the source\.?/i;
-const SCOPE_ABSENCE_RE = /No scope limits stated in the source\.?/i;
+// Fix round 1, finding 4 (polarity + source blindness): the qualification "capture" check now reads the
+// claim's own verbatim `source_span` (never free-form `claim_text` the lane writes itself) and refuses a
+// NEGATED span ("No party is exempt from this requirement" asserts the ABSENCE of an exception, not its
+// presence). `NEGATION_WINDOW_CHARS` is a short word-count window immediately BEFORE the keyword match --
+// it never inspects the match's own text, so "does not apply" (a genuine, correctly-polarized scope
+// restriction) is never itself misread as negated by the word "not" it happens to contain.
+const NEGATION_TOKEN_RE = /\b(no|not|none|never|nor)\b/i;
+const NEGATION_WINDOW_CHARS = 24;
+const EXCEPTION_KEYWORD_RE = /\b(except|exempt|carve-?out)\b/i;
+const SCOPE_KEYWORD_RE = /\b(scope|does not apply|applies only|limited to)\b/i;
 
-// "Captured" heuristics: a FACT claim ATTACHED to the Substantive Requirements section (its claim_text or
-// source_span appears verbatim inside that section's own text -- the same attachment test MIRROR (a)
-// above already uses for Gate A coverage) whose own text carries the category's keyword vocabulary.
-// Deliberately keyword-based, not semantic -- the same posture ANALYSIS_LABEL_RE/UNLABELED_MODAL_RE above
-// already take: a named, documented heuristic a lane can read and match, not a hidden judgment call.
-const EXCEPTION_CLAIM_RE = /\b(except|exempt|carve-?out)\b/i;
-const SCOPE_CLAIM_RE = /\b(scope|does not apply|applies only|limited to)\b/i;
+/** True when some claim in `claims` has a `source_span` containing `keywordRe`, with no negation token
+ *  (no/not/none/never/nor) in the `NEGATION_WINDOW_CHARS` immediately before the match.
+ *  @param {object[]} claims @param {RegExp} keywordRe @returns {boolean} */
+function hasUnnegatedKeywordInSpan(claims, keywordRe) {
+  for (const c of claims ?? []) {
+    const span = String(c?.source_span ?? "");
+    const m = keywordRe.exec(span);
+    if (!m) continue;
+    const before = span.slice(Math.max(0, m.index - NEGATION_WINDOW_CHARS), m.index);
+    if (!NEGATION_TOKEN_RE.test(before)) return true;
+  }
+  return false;
+}
 
-/** FACT claims (from an entry's `claims[]`) whose own `claim_text` or `source_span` appears verbatim
- *  (case-insensitively) inside `sectionText` -- the section-attachment heuristic every mirror below shares.
- *  @param {string} sectionText @param {object[]} claims @returns {object[]} */
-function factClaimsAttachedTo(sectionText, claims) {
-  return (claims ?? []).filter(
-    (c) =>
-      c &&
-      typeof c === "object" &&
-      c.claim_kind === "FACT" &&
-      ((isNonEmptyString(c.claim_text) && ilikeIncludes(sectionText, c.claim_text)) ||
-        (isNonEmptyString(c.source_span) && ilikeIncludes(sectionText, c.source_span))),
+// Fix round 1, finding 4: a fixed sentence with zero reference to the source is gameable regardless of
+// what the source actually states -- these three now require a named article/section citation ("No
+// exceptions are stated in Articles 1 to 12."), so a lane cannot paste the same three sentences into every
+// brief unconditionally; the citation is exactly what a lane checking the real text would be able to name.
+const ARTICLE_OR_SECTION_CITE = "(?:articles?|sections?)\\s+[^.\\n]+";
+const TRAJECTORY_ABSENCE_RE = new RegExp(`\\bno phase-in (?:is|are) stated in ${ARTICLE_OR_SECTION_CITE}\\.`, "i");
+const EXCEPTIONS_ABSENCE_RE = new RegExp(`\\bno exceptions? (?:is|are) stated in ${ARTICLE_OR_SECTION_CITE}\\.`, "i");
+const SCOPE_ABSENCE_RE = new RegExp(`\\bno scope limits? (?:is|are) stated in ${ARTICLE_OR_SECTION_CITE}\\.`, "i");
+
+/** FACT claims (from an entry's `claims[]`) whose explicit `.section` field equals `sectionKey` (fix round
+ *  1, finding 1: replaces the prior text-containment "attachment" heuristic, which had no correspondent in
+ *  the live write path -- canonical-pipeline.ts's own claim-to-section attachment keys off this SAME
+ *  per-claim `.section` field). NEVER the Gate A mechanism (fix round 1, finding 7: Gate A/`scanBrief` is
+ *  a whole-body scan with no section concept at all -- this is an unrelated, section-scoped filter).
+ *  @param {object[]} claims @param {string} sectionKey @returns {object[]} */
+function factClaimsInSection(claims, sectionKey) {
+  if (!Array.isArray(claims)) return [];
+  return claims.filter(
+    (c) => c && typeof c === "object" && c.claim_kind === "FACT" && String(c.section) === String(sectionKey),
   );
 }
 
@@ -253,6 +297,15 @@ export const SECTION_DEFS_BY_FORMAT_TYPE = Object.freeze({
     { key: "8", heading: "Sources" },
   ],
 });
+
+// The canonical section key for "Substantive Requirements" in the regulatory_fact_document format --
+// derived from the registry above rather than hand-typed, so a future registry edit that ever renumbered
+// this section breaks this lookup LOUDLY (reading `.key` off `undefined`) instead of silently keeping a
+// stale "8" the section-list-drift test would not itself catch (that test proves the registry MATCHES the
+// real one, not that every literal elsewhere still points at the right entry within it).
+const SUBSTANTIVE_REQUIREMENTS_KEY = SECTION_DEFS_BY_FORMAT_TYPE.regulatory_fact_document.find(
+  (d) => d.heading === "Substantive Requirements",
+).key;
 
 /**
  * Extract the section bodies a real `sectionBrief` write would persist to `intelligence_item_sections`
@@ -439,6 +492,14 @@ export function validateRecordBriefsClaim(claim, i, itemId, poolText) {
   if (!("slot_key" in claim) || (claim.slot_key !== null && typeof claim.slot_key !== "string")) {
     at("slot_key must be a string or null");
   }
+  // Fix round 1, finding 1: every claim carries the canonical section key it attaches to (the SAME
+  // per-claim field canonical-pipeline.ts's own write path keys off, `sectionMap[String(c2.section)]`) --
+  // required here as a bare non-empty string; membership in the entry's own format_type section list, and
+  // presence of this claim's source_span inside that section's own text, are checked at the entry level
+  // (validateRecordBriefsEntry), which is where format_type and body are both known.
+  if (!isNonEmptyString(claim.section)) {
+    at('section must be a non-empty string (the canonical section key of the entry\'s format_type, e.g. "8" for Substantive Requirements)');
+  }
   if (!CLAIM_KIND_VALUES.includes(claim.claim_kind)) {
     at(`claim_kind must be one of ${JSON.stringify(CLAIM_KIND_VALUES)} (got ${JSON.stringify(claim.claim_kind)})`);
   }
@@ -521,6 +582,49 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
   }
 
   const hasBody = typeof entry.body === "string" && entry.body.trim() !== "";
+  const formatType = entry.metadata && typeof entry.metadata === "object" ? entry.metadata.format_type : null;
+
+  // ── MIRROR (f): claim section attachment -- fix round 1, finding 1. The real write path attaches a
+  // claim to a section via an explicit per-claim `.section` field (canonical-pipeline.ts:1889,
+  // `sectionMap[String(c2.section)] || secs[0].id`), which the record-briefs claim shape never defined
+  // until this task -- every lane claim silently attached to whatever section a live item's row at
+  // section_order=1 happens to be, never the section its content actually describes. Requires (per claim,
+  // once the basic non-empty-string check in validateRecordBriefsClaim already passed): the section key is
+  // a member of the entry's own format_type's canonical section list, AND -- when the claim carries a
+  // source_span -- that span is a verbatim (case-insensitive) substring of THAT section's own extracted
+  // text (the SAME real extraction MIRRORs (b)/(d)/(e) use), so a claim cannot declare a section its own
+  // evidence never actually appears in. Skipped entirely for an unrecognised/missing format_type (the
+  // metadata vocabulary check above already refuses that entry on its own terms).
+  if (Array.isArray(entry.claims)) {
+    const claimSectionDefs = SECTION_DEFS_BY_FORMAT_TYPE[formatType];
+    if (claimSectionDefs) {
+      const validKeys = new Set(claimSectionDefs.map((d) => d.key));
+      const sectionsForClaims = hasBody ? extractCanonicalSections(entry.body, formatType) ?? [] : [];
+      const textByKey = new Map(
+        claimSectionDefs.map((d) => [d.key, sectionsForClaims.find((s) => s.heading === d.heading)?.text ?? null]),
+      );
+      entry.claims.forEach((claim, ci) => {
+        if (!claim || typeof claim !== "object" || !isNonEmptyString(claim.section)) return; // already refused above
+        const atClaim = (msg) => errors.push(`item ${itemId} claims[${ci}]: ${msg}`);
+        if (!validKeys.has(claim.section)) {
+          atClaim(
+            `section ${JSON.stringify(claim.section)} is not a canonical section key for format_type ` +
+              `${JSON.stringify(formatType)} (valid: ${JSON.stringify([...validKeys])})`,
+          );
+          return;
+        }
+        if (isNonEmptyString(claim.source_span)) {
+          const sectionText = textByKey.get(claim.section);
+          if (!isNonEmptyString(sectionText) || !ilikeIncludes(sectionText, claim.source_span)) {
+            atClaim(
+              `source_span is not present in section ${JSON.stringify(claim.section)}'s own extracted text -- ` +
+                "a claim's declared section must contain the sentence its source_span comes from",
+            );
+          }
+        }
+      });
+    }
+  }
 
   // ── MIRROR (a): Gate A -- every figure/date token scanBrief harvests from the body must be covered by
   // some FACT claim's own claim_text or source_span (see gate-a-scan.mjs). No `derivedCovered` set is
@@ -579,7 +683,6 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
   // against; the metadata vocabulary check elsewhere in this function already refuses such an entry on
   // its own terms, so criterion 4 is silently skipped here rather than guessing a section list.
   if (hasBody) {
-    const formatType = entry.metadata && typeof entry.metadata === "object" ? entry.metadata.format_type : null;
     const sections = extractCanonicalSections(entry.body, formatType);
     for (const section of sections ?? []) {
       if (
@@ -622,18 +725,26 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
   // ── MIRROR (d): depth accounting -- task-6.1-audit.md fix 1. "Substantive Requirements" must end with
   // an accounting line ("Obligations surveyed: N; workspace-adjacent: M; extracted as FACT: K.") so a
   // reader can tell "the source genuinely states little" apart from "the lane did not look far enough."
-  // Applies only when format_type is regulatory_fact_document and the section is present with content --
-  // see this block's own vocabulary comment above for why an absent section is out of this fix's scope.
+  // Applies only to regulatory_fact_document entries. Fix round 1, finding 5: a reg-doc entry whose
+  // "Substantive Requirements" section cannot be extracted at all is now refused outright (a regulatory
+  // brief without that section is not complete), not silently skipped as before.
+  const isRegDoc = formatType === "regulatory_fact_document";
   let reqSectionText = null;
-  if (hasBody) {
-    const formatType = entry.metadata && typeof entry.metadata === "object" ? entry.metadata.format_type : null;
-    if (formatType === "regulatory_fact_document") {
-      const sections = extractCanonicalSections(entry.body, formatType) ?? [];
-      const reqSection = sections.find((s) => s.heading === "Substantive Requirements");
-      if (reqSection) reqSectionText = reqSection.text;
-    }
+  if (isRegDoc && hasBody) {
+    const sections = extractCanonicalSections(entry.body, formatType) ?? [];
+    const reqSection = sections.find((s) => s.heading === "Substantive Requirements");
+    if (reqSection) reqSectionText = reqSection.text;
+  }
+  if (isRegDoc && hasBody && reqSectionText === null) {
+    at(
+      'depth accounting: "Substantive Requirements" is not present (or has no extractable content) -- ' +
+        "required for every regulatory_fact_document entry; a regulatory brief without this section is not complete.",
+    );
   }
   if (reqSectionText !== null) {
+    // Fix round 1, finding 1: K is counted against claims whose explicit `.section` field equals the
+    // Substantive Requirements canonical key -- never the prior text-containment heuristic.
+    const attached = factClaimsInSection(entry.claims, SUBSTANTIVE_REQUIREMENTS_KEY);
     const m = OBLIGATIONS_ACCOUNTING_RE.exec(reqSectionText);
     if (!m) {
       at(
@@ -644,13 +755,12 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
       const surveyed = Number(m[1]);
       const workspaceAdjacent = Number(m[2]);
       const extractedAsFact = Number(m[3]);
-      const attached = factClaimsAttachedTo(reqSectionText, entry.claims);
       const hasShortfallLine = SHORTFALL_LINE_RE.test(reqSectionText);
       if (extractedAsFact > attached.length) {
         at(
           `depth accounting: "extracted as FACT: ${extractedAsFact}" overstates the ${attached.length} FACT ` +
-            'claim(s) this entry actually attaches to "Substantive Requirements" (by claim_text or ' +
-            "source_span) -- K must not exceed the claims the section actually carries.",
+            `claim(s) this entry attaches to section ${JSON.stringify(SUBSTANTIVE_REQUIREMENTS_KEY)} ` +
+            "(Substantive Requirements) -- K must not exceed the claims the section actually carries.",
         );
       }
       if (extractedAsFact < workspaceAdjacent && !hasShortfallLine) {
@@ -676,35 +786,58 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
       void surveyed; // N is never fixed by the rule (task-6.1-audit.md fix 1); parsed only so the regex
       // captures it and a caller reading this function's behaviour sees it is read, not silently discarded.
 
-      // ── MIRROR (e): qualification accounting -- task-6.1-audit.md fix 2. Each of per-year trajectory,
-      // exceptions/carve-outs, and scope limits is either captured (a FACT claim attached to this section
-      // carries the category's language) or explicitly recorded absent with the README's prescribed
-      // sentence -- zero captures indistinguishable from an unmined source was the audit's own finding.
-      const trajectoryCaptured =
-        entry.metadata &&
-        typeof entry.metadata === "object" &&
-        entry.metadata.requirement_trajectory !== null &&
-        entry.metadata.requirement_trajectory !== undefined;
-      if (!trajectoryCaptured && !TRAJECTORY_ABSENCE_RE.test(reqSectionText)) {
+      // Fix round 1, finding 3: the accounting line must be the LAST content in the section -- a
+      // Shortfall line (or several) may follow it, nothing else may. A lane that tallies honestly and then
+      // keeps writing past the tally (a new, uncounted obligation) is refused here rather than silently
+      // accepted, which is what an un-anchored presence check (the prior version of this mirror) allowed.
+      const tail = reqSectionText.slice(m.index + m[0].length);
+      const tailLines = tail.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+      const extraneousTail = tailLines.filter((l) => !SHORTFALL_LINE_RE.test(l));
+      if (extraneousTail.length > 0) {
         at(
-          'qualification accounting: no per-year trajectory captured (metadata.requirement_trajectory) and no ' +
-            '"No phase-in stated in the source." note in "Substantive Requirements" -- state the trajectory or ' +
-            "the honest absence.",
+          "depth accounting: content follows the accounting line inside \"Substantive Requirements\" " +
+            `(${JSON.stringify(extraneousTail[0])}${extraneousTail.length > 1 ? ", ..." : ""}) -- the ` +
+            "accounting line (and any Shortfall line) must be the end of the section; move the accounting " +
+            "line to the end, or remove the trailing content.",
         );
       }
-      const attachedCategoryText = attached.map((c) => `${c.claim_text ?? ""} ${c.source_span ?? ""}`).join(" \n ");
-      if (!EXCEPTION_CLAIM_RE.test(attachedCategoryText) && !EXCEPTIONS_ABSENCE_RE.test(reqSectionText)) {
-        at(
-          'qualification accounting: no exception/carve-out FACT claim attached to "Substantive Requirements" ' +
-            'and no "No exceptions stated in the source." note -- state the exception or the honest absence.',
-        );
-      }
-      if (!SCOPE_CLAIM_RE.test(attachedCategoryText) && !SCOPE_ABSENCE_RE.test(reqSectionText)) {
-        at(
-          'qualification accounting: no scope-limit FACT claim attached to "Substantive Requirements" and no ' +
-            '"No scope limits stated in the source." note -- state the scope limit or the honest absence.',
-        );
-      }
+    }
+
+    // ── MIRROR (e): qualification accounting -- task-6.1-audit.md fix 2. Fix round 1, finding 2: this
+    // mirror now runs UNCONDITIONALLY whenever "Substantive Requirements" is present (previously nested
+    // inside the depth-accounting line's own success branch above, so it never fired when that line was
+    // missing -- the state of every currently-applied batch). Each of per-year trajectory, exceptions/
+    // carve-outs, and scope limits is either captured or explicitly recorded absent with an article/
+    // section-citing sentence (fix round 1, finding 4: a fixed sentence with no source reference, and a
+    // polarity-blind keyword match against free-form claim_text, were both gameable regardless of the
+    // source -- see the vocabulary comments above for the tightened forms).
+    const trajectoryCaptured =
+      entry.metadata &&
+      typeof entry.metadata === "object" &&
+      entry.metadata.requirement_trajectory !== null &&
+      entry.metadata.requirement_trajectory !== undefined;
+    if (!trajectoryCaptured && !TRAJECTORY_ABSENCE_RE.test(reqSectionText)) {
+      at(
+        'qualification accounting: no per-year trajectory captured (metadata.requirement_trajectory) and no ' +
+          '"No phase-in is stated in Article(s)/Section(s) <range>." note in "Substantive Requirements" -- ' +
+          "state the trajectory or the honest, article-citing absence.",
+      );
+    }
+    if (!hasUnnegatedKeywordInSpan(attached, EXCEPTION_KEYWORD_RE) && !EXCEPTIONS_ABSENCE_RE.test(reqSectionText)) {
+      at(
+        `qualification accounting: no unnegated exception/carve-out keyword in the source_span of a FACT ` +
+          `claim attached to section ${JSON.stringify(SUBSTANTIVE_REQUIREMENTS_KEY)} (Substantive ` +
+          'Requirements), and no "No exceptions are stated in Article(s)/Section(s) <range>." note -- state ' +
+          "the exception or the honest, article-citing absence.",
+      );
+    }
+    if (!hasUnnegatedKeywordInSpan(attached, SCOPE_KEYWORD_RE) && !SCOPE_ABSENCE_RE.test(reqSectionText)) {
+      at(
+        `qualification accounting: no unnegated scope-limit keyword in the source_span of a FACT claim ` +
+          `attached to section ${JSON.stringify(SUBSTANTIVE_REQUIREMENTS_KEY)} (Substantive Requirements), ` +
+          'and no "No scope limits are stated in Article(s)/Section(s) <range>." note -- state the scope ' +
+          "limit or the honest, article-citing absence.",
+      );
     }
   }
 
