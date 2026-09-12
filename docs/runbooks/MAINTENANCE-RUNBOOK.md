@@ -3021,20 +3021,30 @@ dispatch of `scripts/backfill-item-timelines.mjs` (a different script, run by ha
 dedicated step) over the reg-family briefs carrying a timeline section, so this step's own undated count
 reflects what genuinely remains.
 ## 40. `close-run-logs`
+## 41. `close-run-logs`
 
 **Purpose**: close informational `integrity_flags` run-log rows -- Part 7 task 7.1 of the brief-chain
 build plan (2026-09-11), ADR-030's rider ("no queue on the admin page may require a human click to
-resolve; a run log is closed by the runtime that recognizes it as one"). Three named families: `created_by`
-starting `authorship-shard-` (the pre-consolidation 12-shard fleet charter's own CLOSE-step write, about
-370 rows), `created_by = 'legacy-remediation'` whose `description` opens with `RUN SUMMARY` (never the
-per-item PARKED rows from the same `created_by`, which task 7.3 resolves separately), and `created_by`
-starting `citation-harvest` (per-batch summary rows; the backlog counts they name are re-derived live
-elsewhere, never carried forward by this close). A universal guard applies first: a `description` ending
-in `?` is a per-item question and is never closed, regardless of which family its `created_by` matches.
+resolve; a run log is closed by the runtime that recognizes it as one"). Three named families, ALL THREE
+an ALLOWLIST (fix round 1, 2026-09-12 -- the first version denylisted `authorship-shard-*`/
+`citation-harvest*` on "not a question," which closed a genuine per-item blocker/park/novel-finding
+notice as if it were a log; every family now requires a positive match): `created_by` starting
+`authorship-shard-` closes only when `description` matches the charter's own CLOSE-step vocabulary
+(`docs/runbooks/fleet-charters/authorship-worker.md`: all four of attempted/completed/parked/flagged
+together, or an explicit run-summary marker -- about 370 rows at authoring); `created_by =
+'legacy-remediation'` closes only when `description` opens with `RUN SUMMARY` (never the per-item PARKED
+rows from the same `created_by`, which task 7.3 resolves separately); `created_by` starting
+`citation-harvest` closes only when `description` matches that charter's own CLOSE-step vocabulary
+(`docs/runbooks/fleet-charters/citation-harvest.md`: `considered` + `backlog` + a disposition word
+together, or an explicit run-summary marker; the backlog counts a genuine batch summary names are
+re-derived live elsewhere, never carried forward by this close). A universal guard applies first: a
+`description` ending in `?` is a per-item question and is never closed, regardless of which family its
+`created_by` matches.
 
 **Upstream**: `scripts/maintenance/close-run-logs.mjs` -- self-contained, no upstream script. The
-selection is pure and tested (`decideRunLogClosure`/`planClosure`), so the dry report lists every KEPT
-row by reason, not just a count.
+selection is pure and tested (`decideRunLogClosure`/`planClosure`/`isAuthorshipRunSummary`/
+`isCitationHarvestRunSummary`/`isLegacyRemediationRunSummary`), so the dry report lists every KEPT row by
+reason, not just a count.
 
 **Ruling**: ADR-030 rider (2026-09-12). Not gated by a separate `arg` token.
 
@@ -3052,7 +3062,7 @@ non-zero remainder is expected only for kept-per-item-question rows and legacy-r
 
 ---
 
-## 41. `resolve-error-body-gate`
+## 42. `resolve-error-body-gate`
 
 **Purpose**: resolve the `error-body-gate` `integrity_flags` family -- Part 7 task 7.4 (34 open rows at
 authoring, no resolver anywhere in the codebase before this step). Written by
@@ -3071,26 +3081,43 @@ heal uses") and `makePoliteFetch` (`scripts/mint/export-census-rows.mjs`).
 intended action; never fetches. `mode=apply` (hold lifted) re-fetches each URL through the free capture
 path: a `"captured"` outcome stores a fresh `agent_run_searches` row via the guarded insert and the flag
 resolves noting the recapture; a still-`"held"` outcome routes the URL's host to the attach-found-sources
-worklist (`scripts/_worklists/attach-found-sources.seed.json`, `class: "error_body_refetch"` -- a
-DISTINCT row shape from that file's Gate-A-orphan-figure rows, see the script's own header for why a bare
-host is never consumed by `heal-provenance.mjs`'s own token-matching) and the flag still resolves (a
-decision either way, per ADR-030).
+worklist (`scripts/_worklists/attach-found-sources.seed.json`) and the flag still resolves (a decision
+either way, per ADR-030).
 
-**Residual, named honestly**: the worklist-file append is a local filesystem write with no snapshot/revert
-path through `db.mjs`'s guarded writes (git is the revert path), and it is NOT durable across a GitHub
-Actions dispatch on its own -- no step in `maintenance.yml` commits a working-tree change back to the
-branch, so a real `apply` dispatch needs a follow-up commit of the modified seed file to persist the
-append past that job's own runner. Not fixed here (a bot-commit step is its own decision with its own
-authorship/race questions, out of this small-mechanical task's scope).
+**Worklist row shape (fix round 1, review-7.1-7.4.md finding C -- Important)**. The row carries all four
+of `item_id`/`token`/`url`/`quote` -- `token` is the failing URL's HOST (still never a Gate-A orphan
+FIGURE, so `heal-provenance.mjs`'s own `foundSourcesForItem` token-matching still never consumes it --
+see the script's own header); `url` is the failed-fetch URL itself; `quote` is an excerpt of the
+error-body-gate flag's OWN `description` (which already names the failure class at its write site, e.g.
+"stored capture(s) excluded from grounding as failed fetches (bot wall / 403 / 404 / nav shell)"), never
+a fetched page's own text (there is none). This makes every appended row PASS
+`attach-found-sources.mjs`'s own `isWorklistRowReady` gate (all four fields required) instead of being
+filed `notReady` PERMANENTLY, which the first version of this file did -- cross-checked directly against
+that gate in `resolve-error-body-gate.test.mjs`. `class: "error_body_refetch"` still distinguishes these
+rows from that file's Gate-A-orphan-figure rows.
+
+**Durability (fix round 1, same finding)**. The `maintenance.yml` step immediately after this one --
+"Commit the attach-found-sources worklist (resolve-error-body-gate apply only)" -- runs
+`scripts/maintenance/commit-worklist-artifact.sh` (a generalized sibling of task 6.1b's
+`commit-brief-apply-artifact.sh`, modeled on it) to commit
+`scripts/_worklists/attach-found-sources.seed.json` back to the dispatched ref whenever this step ran in
+apply mode. A rejected push on a protected ref (`master`) degrades to a `::warning::` and never fails the
+job; only a git error before any push attempt is a genuine tooling failure (`exit 1`). Read
+`attach-found-sources.mjs`'s own consumer contract before changing this: it takes its worklist ONLY via
+`--arg <path>` on disk, never from `integrity_flags` -- committing the FILE is the only architecturally
+consistent fix.
 
 **Artifact / read back**: `summary.json`'s `counts` (`recaptured`/`still_failing`/`hold_engaged`) and
 `read_back.remaining_open` -- confirm against `SELECT count(*) FROM integrity_flags WHERE status='open'
-AND created_by='error-body-gate'` (0 expected after a clean apply with the hold lifted) and the modified
-`attach-found-sources.seed.json` diff for the new `error_body_refetch` rows.
+AND created_by='error-body-gate'` (0 expected after a clean apply with the hold lifted); the modified
+`attach-found-sources.seed.json` diff for the new `error_body_refetch` rows (each carrying `url`/`quote`
+now); and the "Commit the attach-found-sources worklist" step's own log line (pushed, or a named
+`::warning::` on a protected ref / persistent rejection) for whether the append actually landed on the
+ref.
 
 ---
 
-## 42. `resolve-cited-host-gate`
+## 43. `resolve-cited-host-gate`
 
 **Purpose**: resolve the `cited-host-gate` `integrity_flags` family -- Part 7 task 7.4 (25 open rows at
 authoring, no resolver anywhere in the codebase before this step). Written by

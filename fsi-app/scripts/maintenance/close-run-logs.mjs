@@ -25,11 +25,18 @@
 // "run log, informational; closed under ADR-030 rider (Part 7.1)"; resolved_by is "close-run-logs". The
 // row is RESOLVED, never deleted or archived -- "the record stays; the queue empties" (spec 7.1).
 //
-// NEVER a per-item question. `isPerItemQuestion` is a universal guard applied BEFORE any family match: a
-// description ending in "?" is a question about a SPECIFIC item awaiting a SPECIFIC answer, never a run
-// log, regardless of which created_by wrote it. This is deliberately checked first and applies to all
-// three families equally -- a false-positive family match (e.g. a citation-harvest row that happens to ask
-// a question) must never be silently closed.
+// ALL THREE FAMILIES ARE NOW ALLOWLISTS (fix round 1, reviewer finding A -- CRITICAL, reproduced live).
+// The FIRST version of this file protected `authorship-shard-*`/`citation-harvest*` with a DENYLIST
+// ("close unless the description ends in '?'"), which closed a genuine per-item flag phrased as a
+// declarative blocker/park/novel-finding notice (the reviewer's own live repro:
+// `{created_by:'authorship-shard-8', description:'AUTHORSHIP-SHARD-8 BLOCKER: item needs operator
+// decision on role placement, novel case'}` closed under that code). Both families now use the SAME
+// allowlist posture `legacy-remediation` already had: close ONLY on a positive match against the
+// family's own fleet charter's documented CLOSE-step vocabulary (`isAuthorshipRunSummary` /
+// `isCitationHarvestRunSummary`, each reading `docs/runbooks/fleet-charters/{authorship-worker,
+// citation-harvest}.md`'s own CLOSE line verbatim) or an explicit "run summary"/"run-summary" marker --
+// never on the absence of a question mark. `isPerItemQuestion` stays as an additional guard, checked
+// first, for legacy-remediation and any future family.
 //
 // THE SELECTION IS PURE AND TESTED. `decideRunLogClosure({created_by, description})` is a pure function
 // over exactly the two fields the rule needs, returning close/keep + the reason either way -- so the dry
@@ -87,6 +94,67 @@ export function isLegacyRemediationRunSummary(description) {
   return /^run\s+summary\b/i.test(String(description ?? "").trim());
 }
 
+// Fix round 1 (reviewer, review-7.1-7.4.md finding A -- CRITICAL, reproduced live): authorship-shard-*
+// and citation-harvest* were closed by a DENYLIST ("close unless the description ends in '?'"), so a
+// genuine per-item flag phrased as a declarative blocker/park/novel-finding notice -- never punctuated
+// as a question -- was indistinguishable from a run log and closed as one. Reproduced verbatim by the
+// reviewer: `{created_by:'authorship-shard-8', description:'AUTHORSHIP-SHARD-8 BLOCKER: item needs
+// operator decision on role placement, novel case'}` closed under the pre-fix code. Both families now
+// use the SAME allowlist posture `legacy-remediation` already had (`isLegacyRemediationRunSummary`
+// above): close ONLY on a positive match against the charter's own documented CLOSE-step vocabulary,
+// never on the absence of a question mark. `isPerItemQuestion` stays as an additional (now redundant
+// for these two, still load-bearing for legacy-remediation and any future family) defense-in-depth
+// guard, checked first.
+
+/** True when `description` opens with (or otherwise carries) an explicit "run summary" / "run-summary"
+ *  marker, case-insensitive, anywhere the two words appear adjacently -- the shape a CLOSE step would
+ *  plausibly literally write. Shared by both allowlist checks below (this is the one place either
+ *  family's positive match can succeed WITHOUT the full charter vocabulary also being present). Pure. */
+export function hasRunSummaryMarker(description) {
+  return /run[\s-]?summary/i.test(String(description ?? ""));
+}
+
+/** True when `text` (case-insensitively) contains every word in `words`. Pure, tiny helper shared by
+ *  both charter-vocabulary allowlists below -- never a loose "any of" match, since a single shared word
+ *  (e.g. "flagged") legitimately appears in a per-item notice too and must not qualify alone. */
+export function hasAllWords(text, words) {
+  const d = String(text ?? "").toLowerCase();
+  return words.every((w) => d.includes(w));
+}
+
+// authorship-worker.md CLOSE (read in full for this fix): "run-summary row in integrity_flags tagged
+// created_by='authorship-worker' (attempted / completed-verified / parked / flagged, plus KPI verified
+// AND NOT is_archived, plus the metering totals)." All four outcome-category words together are the
+// charter's own enumerated CLOSE shape; no single word among them (a per-item row may legitimately say
+// "flagged for verifier judgment" or be "parked" on its own) is sufficient alone.
+export const AUTHORSHIP_RUN_SUMMARY_WORDS = Object.freeze(["attempted", "completed", "parked", "flagged"]);
+
+/** True when `description` matches the authorship-shard/authorship-worker CLOSE-step run-summary shape:
+ *  an explicit run-summary marker, OR all four of the charter's own enumerated outcome-category words
+ *  together (attempted/completed/parked/flagged). Pure. */
+export function isAuthorshipRunSummary(description) {
+  return hasRunSummaryMarker(description) || hasAllWords(description, AUTHORSHIP_RUN_SUMMARY_WORDS);
+}
+
+// citation-harvest.md CLOSE (read in full for this fix): "run-summary integrity_flag tagged
+// 'citation-harvest' (urls considered / skipped as junk / registered / captured / failed, plus
+// remaining backlog count from the STEP 1 query)." `backlog` is the most distinctive single word (it
+// names the STEP 1 query's own remaining-count, never plausible in a per-item miss/blocker notice);
+// paired with `considered` + at least one real disposition word so a bare "backlog" mention elsewhere
+// cannot qualify alone.
+export const CITATION_HARVEST_RUN_SUMMARY_WORDS = Object.freeze(["considered", "backlog"]);
+
+/** True when `description` matches the citation-harvest CLOSE-step run-summary shape: an explicit
+ *  run-summary marker, OR the charter's own distinctive "considered ... backlog" pairing together with
+ *  at least one real disposition word (registered/captured/failed/skipped) -- never "backlog" alone.
+ *  Pure. */
+export function isCitationHarvestRunSummary(description) {
+  if (hasRunSummaryMarker(description)) return true;
+  if (!hasAllWords(description, CITATION_HARVEST_RUN_SUMMARY_WORDS)) return false;
+  const d = String(description ?? "").toLowerCase();
+  return ["registered", "captured", "failed", "skipped"].some((w) => d.includes(w));
+}
+
 /**
  * The single decision for one row: close (with which family) or keep (with why). Pure, no I/O.
  * @param {{ created_by?: string|null, description?: string|null }} row
@@ -106,10 +174,17 @@ export function decideRunLogClosure({ created_by, description } = {}) {
   }
 
   if (cb.startsWith("authorship-shard-")) {
+    if (isAuthorshipRunSummary(desc)) {
+      return {
+        close: true,
+        family: "authorship-shard",
+        reason: "authorship-shard run-summary write (pre-consolidation shard charter CLOSE step)",
+      };
+    }
     return {
-      close: true,
-      family: "authorship-shard",
-      reason: "authorship-shard run-summary write (pre-consolidation shard charter CLOSE step)",
+      close: false,
+      family: null,
+      reason: "authorship-shard row does not match the charter's own CLOSE-step run-summary vocabulary (attempted/completed/parked/flagged together, or an explicit run-summary marker) -- treated as a per-item flag (blocker/novel-finding/verifier-judgment), task 7.3's scope, not this step's",
     };
   }
 
@@ -129,10 +204,17 @@ export function decideRunLogClosure({ created_by, description } = {}) {
   }
 
   if (cb.startsWith("citation-harvest")) {
+    if (isCitationHarvestRunSummary(desc)) {
+      return {
+        close: true,
+        family: "citation-harvest-batch-summary",
+        reason: "citation-harvest batch summary row (its backlog counts are re-derived live elsewhere, never carried forward by this close)",
+      };
+    }
     return {
-      close: true,
-      family: "citation-harvest-batch-summary",
-      reason: "citation-harvest batch summary row (its backlog counts are re-derived live elsewhere, never carried forward by this close)",
+      close: false,
+      family: null,
+      reason: "citation-harvest row does not match the charter's own CLOSE-step run-summary vocabulary (considered/backlog plus a disposition word together, or an explicit run-summary marker) -- treated as a per-item flag, task 7.3's scope, not this step's",
     };
   }
 
