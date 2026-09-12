@@ -89,13 +89,43 @@ test("planTitleUpdate: applies a re-extracted title only when it is verbatim in 
   const p3 = planTitleUpdate({ oldTitle: "Placeholder", capturedText: "", sourceUrl: "https://eur-lex.europa.eu/x" });
   assert.equal(p3.newTitle, null);
 
-  // A fallback (source_name_fallback) extraction is NEVER applied, even though buildTitleForRow would
-  // technically return something -- fallback text is not a re-extraction of the source's own words.
+  // Task 5.5b (2026-09-12): a bodyLeadTitle-tier extraction (buildTitleForRow's raw, un-extracted page-lead
+  // slice, origin "captured_body_lead") is NEVER applied either, even though it is text-derived and passes
+  // the verbatim check -- it is page boilerplate, not the act's own title (this is the exact defect the
+  // retype-eu-decisions dry run's 369-item artifact surfaced: every one of its proposed titles came from
+  // this exact tier). planTitleUpdate now calls buildTitleForRow with allowBodyLeadFallback: false, so a
+  // text with no real OJ-act-heading shape never reaches that tier at all -- the item keeps its old title.
   const p4 = planTitleUpdate({ oldTitle: "Placeholder", capturedText: "short body with no act-title shape at all but over two hundred characters long so it clears the usability floor and reaches the fallback branch of buildTitleForRow for this exact test case here", sourceUrl: null });
-  // (this text has no OJ act-title shape, so buildTitleForRow falls to bodyLeadTitle/captured_body_lead,
-  // which IS text-derived, not the source_name_fallback branch -- assert it still passes the verbatim
-  // check honestly, proving this function does not special-case away a real, if plain, extraction)
-  assert.equal(typeof p4.newTitle, "string");
+  assert.equal(p4.newTitle, null);
+  assert.equal(p4.extractedTitle, null);
+});
+
+test("planTitleUpdate: an item whose captured text has no act heading keeps its old title (task 5.5b -- never retitles from bodyLeadTitle's raw page-lead slice)", () => {
+  // Real shape (b) OJ-header lead, shortened to omit the act heading entirely -- exactly the page chrome
+  // the pre-5.5b bug turned into a title.
+  const p = planTitleUpdate({
+    oldTitle: "EUR-Lex - 32024D0837",
+    capturedText:
+      "Official Journal of the European Union EN Series L 2024/837 7.3.2024 no recognisable act heading " +
+      "appears anywhere in this particular lead, only the page's own masthead and citation furniture here",
+    sourceUrl: "https://eur-lex.europa.eu/x",
+  });
+  assert.equal(p.newTitle, null);
+  assert.equal(p.titleOrigin, "source_name_fallback");
+});
+
+test("applyOneItem: an item whose captured text has no act heading is applied (retyped) but its title is kept, listed with title_changed false (task 5.5b)", async () => {
+  const noHeadingText =
+    "Official Journal of the European Union EN Series L 2024/837 7.3.2024 no recognisable act heading " +
+    "appears anywhere in this particular lead, only the page's own masthead and citation furniture, and " +
+    "this decision shall enter into force on the day of its notification and is addressed to the Member " +
+    "States of the European Union.";
+  const deps = fakeApplyDeps({ captures: [{ id: "cap-1", result_content: noHeadingText }] });
+  const r = await applyOneItem(makeItem({ title: "EUR-Lex - 32020D1043" }), { apply: true, deps, requiredSlotsMap: REQUIRED_SLOTS });
+  assert.equal(r.title_changed, false);
+  assert.equal(r.new_title, "EUR-Lex - 32020D1043");
+  const updateCall = deps.calls.find((c) => c.op === "updateItem");
+  assert.ok(!("title" in updateCall.patch), "no title key is even sent when the item is kept");
 });
 
 test("planItemRetype: three slots claimed (FACT where the source states it, honest GAP where silent); predicts verified once all four regulation slots are covered", () => {

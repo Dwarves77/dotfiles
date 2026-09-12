@@ -193,10 +193,18 @@ export function planTitleUpdate({ oldTitle, capturedText, sourceUrl }) {
   if (typeof capturedText !== "string" || !capturedText.trim()) {
     return { newTitle: null, extractedTitle: null, titleOrigin: null, verbatim: false };
   }
+  // allowBodyLeadFallback: false (task 5.5b) -- this is a RETITLE of a row that already has a title, never
+  // a brand-new mint. buildTitleForRow's own bodyLeadTitle tier is an honest "best we have" for a title-less
+  // new row, not an honest re-title here: it is a raw, un-extracted slice of the page lead, which task
+  // 5.5b's own evidence shows is frequently page chrome (the old EUR-Lex breadcrumb, the new OJ header) --
+  // exactly what produced all 369 wrong titles the pre-fix dry run proposed. With the flag false, this
+  // returns a title only when extractOjActTitle itself found a real act heading (titleOrigin
+  // "captured_body_act_title"), or falls straight to "source_name_fallback", already excluded below.
   const { title: extractedTitle, titleOrigin } = buildTitleForRow({
     capture: { text: capturedText, html: null, title: null, titleOrigin: null },
     source: { name: null, url: sourceUrl },
     identifier: null,
+    allowBodyLeadFallback: false,
   });
   if (!extractedTitle || titleOrigin === "source_name_fallback") {
     return { newTitle: null, extractedTitle: extractedTitle ?? null, titleOrigin, verbatim: false };

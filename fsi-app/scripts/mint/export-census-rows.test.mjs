@@ -333,7 +333,11 @@ test("extractEurlexTitle: prefers <title>/<h1> when present, else the first ~300
   });
   const bodyOnly = "<html><body><p>COUNCIL DECISION of 14 October 2004 concerning the position to be taken.</p></body></html>";
   const t = extractEurlexTitle(bodyOnly);
-  assert.equal(t.origin, "captured_body_lead");
+  // Task 5.5b (2026-09-12): this IS a real "Council Decision" act heading, so extractOjActTitle's own
+  // heading-based tier now recognises it directly (origin captured_body_act_title) instead of only
+  // accidentally reproducing the same text via the raw body-lead slice -- same title text, a genuine
+  // extraction now, not a coincidence of the fallback tier.
+  assert.equal(t.origin, "captured_body_act_title");
   assert.match(t.title, /^COUNCIL DECISION of 14 October 2004/);
   assert.equal(extractEurlexTitle(""), null);
 });
@@ -1451,6 +1455,127 @@ test("extractOjActTitle: the act title from an OJ body lead, ending at its OJ re
     "COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC)",
   );
   assert.equal(extractOjActTitle("no act here at all"), null);
+});
+
+// ── extractOjActTitle: task 5.5b fixtures, mined from the retype-eu-decisions dry run's own artifact
+//    (fsi-app/scripts/tmp/retype-dry-34674936206.summary.json, key per_item, 369 EU-Decision candidates).
+//    Every one of the 369 new_title values there is real raw source-page lead text (some the old EUR-Lex
+//    breadcrumb page, some the new EUR-Lex/OJ header, some a bare act heading, some the EEA form) that the
+//    PRE-5.5b extractOjActTitle (the narrower "keyword ... trailing (YYYY/NNN/EC) reference" regex alone)
+//    failed on, so buildTitleForRow fell to bodyLeadTitle's raw first-300-char slice -- page boilerplate,
+//    not the act's title. These fixtures are that real text, shortened only where the test does not need
+//    the tail. One per shape named in the task brief, plus the edges the brief's own rules require. ─────
+
+test("extractOjActTitle: shape (a) old EUR-Lex breadcrumb, 'YYYY/N/EC: <Body> Decision' form -- title starts at the numeric reference, not at the EUR-Lex chrome (celex 32003D0278)", () => {
+  const lead =
+    "EUR-Lex - 32003D0278 - EN Avis juridique important | 32003D0278 2003/278/EC: Council Decision of 14 " +
+    "April 2003 concerning the conclusion of an Agreement in the form of an Exchange of Letters between the " +
+    "European Community and the former Yugoslav Republic of Macedonia concerning the system of ecopoin";
+  assert.equal(
+    extractOjActTitle(lead),
+    "2003/278/EC: Council Decision of 14 April 2003 concerning the conclusion of an Agreement in the form " +
+      "of an Exchange of Letters between the European Community and the former Yugoslav Republic of " +
+      "Macedonia concerning the system of ecopoin",
+  );
+});
+
+test("extractOjActTitle: shape (a) EEA form -- title ends before the trailing 'Official Journal' citation and before the repeated heading fragment (celex 22003D0015)", () => {
+  const lead =
+    "EUR-Lex - 22003D0015 - EN Avis juridique important | 22003D0015 Decision of the EEA Joint Committee No " +
+    "15/2003 of 31 January 2003 amending Annex XX (Environment) to the EEA Agreement Official Journal L 094 " +
+    ", 10/04/2003 P. 0071 - 0072 Decision of the EEA Joint Committee No 15/2003 of 31 January 2003";
+  assert.equal(
+    extractOjActTitle(lead),
+    "Decision of the EEA Joint Committee No 15/2003 of 31 January 2003 amending Annex XX (Environment) to the EEA Agreement",
+  );
+});
+
+test("extractOjActTitle: shape (c) bare act heading with the old trailing '(YYYY/NNN/EC)' reference -- the pre-existing with-reference match still wins, unchanged (celex 31999D0652)", () => {
+  const lead =
+    "COMMISSION DECISION of 15 September 1999 confirming the measures notified by Belgium pursuant to " +
+    "Article 6(6) of Directive 94/62/EC of the European Parliament and the Council on packaging and " +
+    "packaging waste (notified under document number C(1999) 2919) (Only the Dutch text is authentic) " +
+    "(Text with EEA relevance) (1999/652/EC)";
+  assert.equal(extractOjActTitle(lead), lead); // the whole lead IS the title here, ref included
+});
+
+test("extractOjActTitle: shape (b) new OJ header, 'Official Journal ... EN L series ... COUNCIL DECISION' order -- title starts at COUNCIL DECISION, never at 'Official Journal' (celex 32024D1005)", () => {
+  const lead =
+    "Official Journal of the European Union EN L series 2024/1005 2.4.2024 COUNCIL DECISION (EU) 2024/1005 " +
+    "of 25 March 2024 on the position to be taken on behalf of the European Union within the European " +
+    "Committee for drawing up standards in the field of inland navigation and within the Central Commissio";
+  assert.equal(
+    extractOjActTitle(lead),
+    "COUNCIL DECISION (EU) 2024/1005 of 25 March 2024 on the position to be taken on behalf of the European " +
+      "Union within the European Committee for drawing up standards in the field of inland navigation and " +
+      "within the Central Commissio",
+  );
+});
+
+test("extractOjActTitle: shape (b) variant, date-then-'Official Journal' order, Council Implementing Decision -- ends at the enacting formula terminator (celex 32021D0922)", () => {
+  const lead =
+    "9.6.2021 EN Official Journal of the European Union LI 203/3 COUNCIL IMPLEMENTING DECISION (EU) " +
+    "2021/922 of 7 June 2021 authorising Denmark to apply a reduced rate of taxation to electricity " +
+    "supplied directly to vessels at berth in a port THE COUNCIL OF THE EUROPEAN UNION, Having regard to the Treaty";
+  assert.equal(
+    extractOjActTitle(lead),
+    "COUNCIL IMPLEMENTING DECISION (EU) 2021/922 of 7 June 2021 authorising Denmark to apply a reduced rate " +
+      "of taxation to electricity supplied directly to vessels at berth in a port",
+  );
+});
+
+test("extractOjActTitle: shape (b) Commission Implementing Decision variant (celex 32018D1906)", () => {
+  const lead =
+    "6.12.2018 EN Official Journal of the European Union L 310/29 COMMISSION IMPLEMENTING DECISION (EU) " +
+    "2018/1906 of 30 November 2018 amending Implementing Decision (EU) 2016/2323 to update the European " +
+    "List of ship recycling facilities established pursuant to Regulation (EU) No 1257/2013 of the European";
+  assert.equal(
+    extractOjActTitle(lead),
+    "COMMISSION IMPLEMENTING DECISION (EU) 2018/1906 of 30 November 2018 amending Implementing Decision " +
+      "(EU) 2016/2323 to update the European List of ship recycling facilities established pursuant to " +
+      "Regulation (EU) No 1257/2013 of the European",
+  );
+});
+
+test("extractOjActTitle: bare 'DECISION (EU) N OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL' heading, no Commission/Council prefix word (celex 32023D0852)", () => {
+  const lead =
+    "25.4.2023 EN Official Journal of the European Union L 110/21 DECISION (EU) 2023/852 OF THE EUROPEAN " +
+    "PARLIAMENT AND OF THE COUNCIL of 19 April 2023 amending Decision (EU) 2015/1814 as regards the number " +
+    "of allowances to be placed in the market stability reserve for the Union greenhouse gas emission t";
+  assert.equal(
+    extractOjActTitle(lead),
+    "DECISION (EU) 2023/852 OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL of 19 April 2023 amending " +
+      "Decision (EU) 2015/1814 as regards the number of allowances to be placed in the market stability " +
+      "reserve for the Union greenhouse gas emission t",
+  );
+});
+
+test("extractOjActTitle: edge -- no terminator reachable before the hard cap (a long country list) is truncated at 400 chars, never over, never mid-reference garbage (celex 32022D1130(01))", () => {
+  const lead =
+    "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
+    "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+    "Denmark, Germany, Estonia, Greece, Spain, France, Italy, Latvia, Lithuania, Hungary, the Netherlands, " +
+    "Austria, Poland, Portugal, Romania, Slovakia, Finland and Sweden into the European Union Transaction " +
+    "Log (2022/C 454/01)";
+  const title = extractOjActTitle(lead);
+  assert.equal(title.length, 400);
+  assert.ok(!title.startsWith("EUR-Lex"));
+  assert.ok(!title.startsWith("Official Journal"));
+  assert.equal(
+    title,
+    "COMMISSION DECISION of 26 July 2022 instructing the Central Administrator of the European Union " +
+      "Transaction Log to enter changes to the national allocation tables of Belgium, Bulgaria, Czechia, " +
+      "Denmark, Germany, Estonia, Greece, Spain, France, Italy, Latvia, Lithuania, Hungary, the Netherlands, " +
+      "Austria, Poland, Portugal, Romania, Slovakia, Finland and Sweden into the European Union Transaction Log",
+  );
+});
+
+test("extractOjActTitle: edge -- an act heading immediately followed by a terminator, under the 20-char floor, is rejected (never a fragment)", () => {
+  assert.equal(extractOjActTitle("COUNCIL DECISION Official Journal of nothing else here"), null);
+});
+
+test("extractOjActTitle: edge -- pure EUR-Lex breadcrumb chrome with no act heading anywhere never returns the chrome itself as a title", () => {
+  assert.equal(extractOjActTitle("EUR-Lex - 32001D0573 - EN Avis juridique important | 32001D0573"), null);
 });
 
 test("extractEurlexTitle / extractCellarTitle: an OJ file name in <title> is skipped and the act title is taken from the body", () => {
