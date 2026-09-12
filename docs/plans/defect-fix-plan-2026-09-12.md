@@ -108,6 +108,14 @@ Root cause: shared fixed temp paths in a hook that is run concurrently by design
 
 Fix at the source: the hook creates one per-run directory with `mktemp -d` (fallback to `$TMPDIR` or `/tmp` with the pid in the name when mktemp is unavailable), writes every step log inside it, prints the directory on failure, and removes it on success with a trap on exit; no fixed path remains. A test in `.discipline/hooks/` (or the hook's existing test file if one exists) runs two hook invocations concurrently against a fixture and asserts both logs survive. Lane: L3 (the discipline lane), added to its scope by the coordinator; if L3 has already reported, a follow-on lane L7.
 
+### D12. Harness run artifacts are numbered per checkout, so parallel lane branches produce colliding artifact names [CONFIRMED]
+
+Evidence (coordinator, 2026-09-12): `brief-lane/001-2026-09-12` carries `brief-apply-run-003.json` and `brief-apply-run-004.json` from GitHub runs 34708781168 and 34709053690; `brief-lane/002-2026-09-12` carries files of the same two names from runs 34712217771 and 34712340105. Both sets stamp the same harness version. The earlier proposer pass on master already recorded the same class as finding F ("CI claimed run-001 twice in fresh checkouts"). Landing both branches' artifacts on master is impossible without renaming, and F28's staleness logic keys on these numbers.
+
+Root cause: `scripts/turns/commit-brief-apply-artifact.sh` (and the run-artifact writer in `run-artifact.mjs`) allocate the next number from the files present in the checkout that runs the workflow, which for a lane branch is that branch's own view, never the family's global sequence.
+
+Fix at the source: the artifact file name carries the GitHub run id as the identity (`brief-apply-run-<github_run_id>.json`) and the sequence number becomes a field inside the artifact allocated at landing time on master by the proposer pass, not by CI; F28 and `parsePendingRunHash`'s consumers, the proposer-pass attestation check and the runbook sections that name `run-NNN` adapt (an attestation names the run id); the two colliding pairs on the batch branches are renamed by the coordinator when their proposer passes land on master. Tests: two artifacts written from two branches for the same family never share a name; F28's latest-artifact selection orders by the artifact's recorded timestamp, not the file name. Lane: L8, one Sonnet lane after L6, on a freed worktree; the same fix applies to every harness family that uses the shared writer (date-chain, propagation, mint, source-sweep), which the lane enumerates from `run-artifact.mjs`'s family registry before changing anything.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -118,6 +126,8 @@ Fix at the source: the hook creates one per-run directory with `mktemp -d` (fall
 | L3 discipline | D5 rule 022, D7 inventory step, test and verifier | a freed worktree | none; lands before L1 and L2 push so their ranges are checked by the rule |
 | L4 7.8 | D6, review then push | wt-eudecision-0911 | review PASS |
 | L5 investigation | D8 finding | read-only | none |
+| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
+| L8 harness numbering | D12 run-id artifact names across every harness family | a freed worktree | after L6 |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
