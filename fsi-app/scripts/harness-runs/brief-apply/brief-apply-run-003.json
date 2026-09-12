@@ -1,0 +1,84 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:6f48801e6631548a",
+  "run_id": "brief-apply-run-003",
+  "started_at": "2026-09-12T18:47:12.276Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-002.json",
+    "execute": false,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "per_item": [
+    {
+      "id": "0053d552-1856-4796-8873-968894400956",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00874650-0212-4f29-a0ee-e9078832ff12",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00a2452a-677e-4556-9ef2-c5749ab5f005",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00a8c0d9-405a-48d9-a01b-9c14c4101155",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00d1a570-d3f9-43be-a292-44c90384b669",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00dda469-8ba6-40e2-9eaf-73af397b95e8",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "00f06e5b-3bae-4ca3-af43-70b09e485f71",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "016abf00-7c1d-43f5-a917-a9a90c811f9a",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "018dcbf1-42e3-49f5-8029-01804818b3f8",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "01936f81-7f2f-419a-af3c-681c1d577b6a",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 10,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "proposer_notes": ""
+}
