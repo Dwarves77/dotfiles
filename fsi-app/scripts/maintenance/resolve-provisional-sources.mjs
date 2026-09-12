@@ -1,15 +1,35 @@
 #!/usr/bin/env node
 // resolve-provisional-sources.mjs: MAINT step for task 7.5 item 1 of the W9 brief-chain build plan,
-// Part 7 (ADR-030 rider, 2026-09-12), fixed per docs/plans/defect-fix-plan-2026-09-12.md (D2, D3, D4).
-// Live facts named in the dispatch [CONFIRMED by the coordinator, 2026-09-12]: `provisional_sources`
+// Part 7 (ADR-030 rider, 2026-09-12), fixed per docs/plans/defect-fix-plan-2026-09-12.md (D2, D3, D4,
+// D13). Live facts named in the dispatch [CONFIRMED by the coordinator, 2026-09-12]: `provisional_sources`
 // has 489 rows with status pending_review since April; `sources` has 563 rows with status provisional.
 //
-// THE RULE (task 7.5, verbatim), for every such row: "(a) the host's registrable domain matches an
-// existing active institution in `sources` -> inherit its canonical tier, promote/activate (the same
-// write /api/admin/sources/promote's promote arm makes; reuse its logic through a shared module,
-// never a second copy); (b) the SC-13 class table (classTierForHost / decidePoolHostRegistration)
-// resolves a tier -> promote/activate at that tier; (c) the URL is dead or the row's accessibility
-// check failed -> reject with the reason; (d) otherwise the host is unclassifiable -> ONE
+// D13 FIX (2026-09-12), SUPERSEDING THE ORIGINAL RULE (c) BELOW: the dry run 34724257806 rejected 248
+// rows on rule (c) alone -- real institutions (irishstatutebook.ie, transport.gov.scot, theccc.org.uk,
+// dma.dk, cre.fr, belastingdienst.nl, bmluk.gv.at, mindop.sk) -- because EVERY `provisional_sources` row,
+// all 497 of them, has `accessibility_verified=false` (the column's own INSERT DEFAULT; no accessibility
+// check has ever actually run against any of them). Rule (c) was reading an absent check as a negative
+// result and rejecting a real institution on that absence -- under standing rules 16/18 and ADR-030, an
+// unreachable URL on a real institution is a STATUS, never a rejection, and an unknown host is a
+// QUESTION (the worklist), never a rejection. Rule (c) is REMOVED. THE RULE is now two-way, not
+// three-way: (a) or (b) promotes/activates; otherwise (d) worklists. Accessibility never decides
+// promote vs. worklist. What accessibility DOES do: the PROMOTED `sources` row's own `status` carries
+// the accessibility fact it already has on record -- `active` when `fetch_status` is ok or null,
+// `inaccessible` when `fetch_status='error'` (both live values in `sources_status_check`, migration
+// 004/147) -- so a promoted real institution that happens to be down right now is visible as
+// inaccessible, never silently rejected. `accessibility_verified` (the `provisional_sources`-only
+// column) is never read as evidence of anything until a check has actually run and stamped it; today
+// that is never, so this step reads it nowhere. A decline is still possible for a `provisional_sources`
+// row, but only from the vertical-fit gate the promote arm already runs (an off-vertical retired host),
+// never from rule (c).
+//
+// THE RULE (task 7.5, verbatim, HISTORICAL -- rule (c) below is REMOVED per D13 above, kept verbatim so
+// the fix is legible against what it replaced), for every such row: "(a) the host's registrable domain
+// matches an existing active institution in `sources` -> inherit its canonical tier, promote/activate
+// (the same write /api/admin/sources/promote's promote arm makes; reuse its logic through a shared
+// module, never a second copy); (b) the SC-13 class table (classTierForHost / decidePoolHostRegistration)
+// resolves a tier -> promote/activate at that tier; (c) [REMOVED, D13] the URL is dead or the row's
+// accessibility check failed -> reject with the reason; (d) otherwise the host is unclassifiable -> ONE
 // integrity_flags worklist row per run in the null-tier-host shape listing the hosts (a batched
 // question for the class table, never a per-row click), and the row's status set to the existing
 // vocabulary's value for 'awaiting class-table ruling'. Every decision writes reviewer_notes and
@@ -26,35 +46,34 @@
 //     (src/lib/sources/promote-provisional.ts's buildPromotedSourceRow + the SAME Q10 canonical-URL
 //     dedup guard + the SAME checkVerticalFitGate off-vertical block, reused, not re-copied, per the
 //     task's own instruction), mark the provisional row status=PROVISIONAL_SOURCES_PROMOTED_STATUS
-//     (that module's own exported constant, "promoted", never a bare literal here). Rule (c) REJECT:
-//     status=PROVISIONAL_SOURCES_REJECTED_STATUS ("rejected"). Rule (d) WORKLIST:
-//     status='needs_more_data', the one CHECK-legal value that semantically fits "awaiting
-//     class-table ruling" (no dedicated value exists in the tracked CHECK list; this is a documented
-//     judgment call, not a schema fact; see the constant PROVISIONAL_WORKLIST_STATUS below for where
-//     to change it if the coordinator rules otherwise). reviewer_notes + reviewed_at are stamped on
-//     every one of the three outcomes.
+//     (that module's own exported constant, "promoted", never a bare literal here). Rule (c) [REMOVED,
+//     D13] no longer exists for this table; a decline is possible only from the vertical-fit gate the
+//     promote arm already runs, via rejectProvisional/PROVISIONAL_SOURCES_REJECTED_STATUS ("rejected").
+//     Rule (d) WORKLIST: status='needs_more_data', the one CHECK-legal value that semantically fits
+//     "awaiting class-table ruling" (no dedicated value exists in the tracked CHECK list; this is a
+//     documented judgment call, not a schema fact; see the constant PROVISIONAL_WORKLIST_STATUS below
+//     for where to change it if the coordinator rules otherwise). reviewer_notes + reviewed_at are
+//     stamped on every outcome.
 //   - `sources` WHERE status='provisional' (migration 004: status IN
 //     ('active','stale','inaccessible','provisional','suspended')). The row ALREADY EXISTS, so
-//     promote/reject/worklist are UPDATEs, never a second INSERT. Rule (a)/(b) PROMOTE: status='active',
-//     base_tier/effective_tier stamped to the resolved tier (never tier_override, SC-13's own escape
-//     hatch stays reserved for an explicit operator act, not an automatic resolver). Rule (c) REJECT
-//     (defect D4 fix): status='suspended' (the vocabulary value this codebase already uses for
-//     "unselectable by the grounding resolver", RD-39/40, institution.ts's own resolver-status
-//     filter) WITH the decline reason appended to `notes` in the same form `worklistSourcesRow`
-//     already uses (rule name, evidence, date) -- review-7.5.md finding 3, CONFIRMED: the pre-fix
-//     version threaded the reason only into `guardedUpdate`'s `cite` argument, which db.mjs writes to
-//     a write-audit snapshot file, never a row column, so a suspended row carried no on-row
-//     explanation. There is no live signal this step checks to decide "dead" for a `sources` row (no
-//     accessibility_verified column exists on `sources`; `fetch_status` per migration 147 is the
-//     nearest analog and is consulted when present: fetch_status='error' counts as dead,
-//     'cdn_block'/'blocked' do NOT, "a wall is not a dead link", the SAME posture
-//     canonical-autoverify.mjs's own authority-downgrade rule already takes). Rule (d) WORKLIST:
-//     status stays 'provisional' (there is no dedicated "awaiting ruling" value in the tracked CHECK
-//     list, and 'provisional' already IS the awaiting-decision resting state for this table, no
-//     status change is invented). `sources` has no `reviewer_notes`/`reviewed_at` columns (migration
-//     004 has neither; migration 007 adds only `notes`); promote/reject/worklist all record their
-//     outcome in `notes` for this table, a disclosed schema-driven substitution for the "every
-//     decision writes reviewer_notes and reviewed_at" instruction, not a silent gap.
+//     promote/worklist are UPDATEs, never a second INSERT. Rule (a)/(b) PROMOTE (D13 fix): status is
+//     `sourcesStatusForPromote(row)` -- 'active' when `fetch_status` (migration 147) is ok or null,
+//     'inaccessible' when `fetch_status='error'` -- never a reject; base_tier/effective_tier stamped to
+//     the resolved tier (never tier_override, SC-13's own escape hatch stays reserved for an explicit
+//     operator act, not an automatic resolver). 'cdn_block'/'blocked' are a WALL, not dead, "a wall is
+//     not a dead link", the SAME posture canonical-autoverify.mjs's own authority-downgrade rule
+//     already takes -- a wall-fetch_status row still promotes to 'active', its reachability is a
+//     separate, already-run signal this step only consumes, never re-probes. Rule (c) [REMOVED, D13]:
+//     there is no decline path for this table any more (no vertical-fit gate runs on `sources`-table
+//     rows; `rejectSourcesRow`/`SOURCES_REJECT_STATUS` remain as the D4 on-row-reason mechanism for a
+//     future decline path, currently unreachable from this step's own decision space, which is now
+//     promote-or-worklist only for this table). Rule (d) WORKLIST: status stays 'provisional' (there is
+//     no dedicated "awaiting ruling" value in the tracked CHECK list, and 'provisional' already IS the
+//     awaiting-decision resting state for this table, no status change is invented). `sources` has no
+//     `reviewer_notes`/`reviewed_at` columns (migration 004 has neither; migration 007 adds only
+//     `notes`); promote/worklist record their outcome in `notes` for this table, a disclosed
+//     schema-driven substitution for the "every decision writes reviewer_notes and reviewed_at"
+//     instruction, not a silent gap.
 //
 // REUSE, NEVER A SECOND COPY (per the task's own instruction and CLAUDE.md's Reuse-before-construction
 // doctrine):
@@ -90,9 +109,10 @@
 //     still-unclassifiable input inserts 0 new flag rows and updates the existing per-host row's
 //     contribution list instead).
 //
-// $0, NO LLM CALL. Every check is the deterministic host-authority class table, the live-registry
-// lookup, and the stored accessibility_verified/fetch_status columns, never a model guess, per SC-13
-// (source-credibility-model skill Section 3): "no LLM tier guesses and no default tier."
+// $0, NO LLM CALL. Every check is the deterministic host-authority class table and the live-registry
+// lookup, never a model guess, per SC-13 (source-credibility-model skill Section 3): "no LLM tier
+// guesses and no default tier." `fetch_status` (never `accessibility_verified`, defect D13 fix) is
+// consulted only to stamp the promoted `sources` row's own status, never to gate promote vs. worklist.
 //
 // DRY BY DEFAULT. `main(opts, deps)` never writes without `mode: "apply"`; `--mode apply` is required
 // to touch the database, matching every other MAINT wrapper in this family (backfill-format-type.mjs /
@@ -123,13 +143,15 @@ import { isMainModule } from "../lib/is-main.mjs";
 // glob) never needs jiti.
 
 export const CITE = Object.freeze({
-  skill: "brief-chain-build-plan-2026-09-11 Part 7 task 7.5 item 1 / defect-fix-plan-2026-09-12 D2/D3/D4",
+  skill: "brief-chain-build-plan-2026-09-11 Part 7 task 7.5 item 1 / defect-fix-plan-2026-09-12 D2/D3/D4/D13",
   reason:
     "Resolve pending provisional_sources rows and status='provisional' sources rows by the deterministic " +
-    "SC-13 rules: an institution-match or a class-table tier promotes/activates; a dead/inaccessible URL " +
-    "rejects with the reason on the row; an unclassifiable host merges into the SAME per-host " +
-    "null-tier-host integrity_flags worklist the platform already reviews, never a guessed tier and " +
-    "never a second worklist mechanism.",
+    "SC-13 rules: an institution-match or a class-table tier promotes/activates, with the promoted " +
+    "sources row's own status carrying the accessibility fact it already has on record (active when " +
+    "fetch_status is ok or null, inaccessible when fetch_status='error'); accessibility never decides " +
+    "promote vs. worklist (defect D13 fix, rule c removed). An unclassifiable host merges into the SAME " +
+    "per-host null-tier-host integrity_flags worklist the platform already reviews, never a guessed tier " +
+    "and never a second worklist mechanism.",
 });
 
 export const PROVISIONAL_WORKLIST_STATUS = "needs_more_data";
@@ -140,23 +162,26 @@ export const SOURCES_REJECT_STATUS = "suspended";
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * THE rule, table-agnostic: given a host's resolved signals, which of the four outcomes fires.
- * Pure, no I/O, no DB, no fetch.
+ * THE rule, table-agnostic: given a host's resolved signals, which of the two outcomes fires.
+ * Rule (c) (dead/inaccessible -> reject) is REMOVED (defect D13 fix, docs/plans/defect-fix-plan-2026-09-12.md):
+ * accessibility never decides promote vs. worklist. An absent check (provisional_sources.accessibility_verified's
+ * own INSERT default, `false` on every one of the 497 live rows -- no check has ever actually run) read as a
+ * "dead" verdict rejected 248 real institutions (irishstatutebook.ie, transport.gov.scot, theccc.org.uk, and
+ * others) on that absence alone; under standing rules 16/18 and ADR-030 an unreachable URL on a real
+ * institution is a STATUS, never a rejection, and an unknown host is a QUESTION (the worklist), never a
+ * rejection. Pure, no I/O, no DB, no fetch.
  * @param {string} host
- * @param {{ existingTier: number|null, classTier: number|null, deadOrInaccessible: boolean }} signals
- * @returns {{ action: "promote"|"reject"|"worklist", tier: number|null, rule: "a"|"b"|"c"|"d", reason: string }}
+ * @param {{ existingTier: number|null, classTier: number|null }} signals
+ * @returns {{ action: "promote"|"worklist", tier: number|null, rule: "a"|"b"|"d", reason: string }}
  */
-export function decideHost(host, { existingTier, classTier, deadOrInaccessible }) {
+export function decideHost(host, { existingTier, classTier }) {
   if (existingTier != null) {
     return { action: "promote", tier: existingTier, rule: "a", reason: `host ${host} matches an existing active institution at tier ${existingTier}` };
   }
   if (classTier != null) {
     return { action: "promote", tier: classTier, rule: "b", reason: `SC-13 class table resolves ${host} to tier ${classTier}` };
   }
-  if (deadOrInaccessible) {
-    return { action: "reject", tier: null, rule: "c", reason: `URL dead or accessibility check failed for host ${host}` };
-  }
-  return { action: "worklist", tier: null, rule: "d", reason: `host ${host} is unclassifiable, no institution match, no class-table rule, not confirmed dead` };
+  return { action: "worklist", tier: null, rule: "d", reason: `host ${host} is unclassifiable, no institution match, no class-table rule` };
 }
 
 /**
@@ -171,23 +196,13 @@ export function hostForRow(row) {
 }
 
 /**
- * The `provisional_sources`-specific "dead or inaccessible" signal (rule c): the stored
- * `accessibility_verified` column is the ONE prior-check result this step reads; an explicit
- * `false` is the row's own accessibility probe having already failed; `true` or unset is NOT treated
- * as dead (this step performs no NEW fetch of its own; the accessibility probe is a separate,
- * already-run mechanism this step only consumes).
- * @param {{ accessibility_verified?: boolean|null }} row
- */
-export function provisionalDeadSignal(row) {
-  return row?.accessibility_verified === false;
-}
-
-/**
- * The `sources`-specific "dead" signal (rule c): `fetch_status='error'` (migration 147) is the one
- * stored transport-failure verdict this step treats as dead; `cdn_block`/`blocked`/`soft_404` are a
- * WALL, not a dead link (canonical-autoverify.mjs's own "a wall is not a dead link" posture; a wall
- * means the current row is reachable, so worklisting a legitimately-unclassifiable-but-alive host is
- * the honest outcome, not a reject). A row with no `fetch_status` at all (never probed) is not dead.
+ * The `sources`-specific "dead" signal: `fetch_status='error'` (migration 147) is the one stored
+ * transport-failure verdict this step treats as dead; `cdn_block`/`blocked`/`soft_404` are a WALL, not
+ * a dead link (canonical-autoverify.mjs's own "a wall is not a dead link" posture; a wall means the
+ * current row is reachable). A row with no `fetch_status` at all (never probed) is not dead. Defect
+ * D13 fix: this signal no longer decides promote vs. reject (rule c is removed) -- it only decides
+ * which `sources` STATUS a promote writes (see sourcesStatusForPromote below): a dead host is still
+ * promoted/activated when rule (a) or (b) resolves a tier, its status simply records the fact.
  * @param {{ fetch_status?: string|null }} row
  */
 export function sourcesDeadSignal(row) {
@@ -195,31 +210,46 @@ export function sourcesDeadSignal(row) {
 }
 
 /**
+ * The `sources` row STATUS a promote/activate writes (defect D13 fix): carries the accessibility fact
+ * already on record rather than letting it decide promote vs. reject. `inaccessible` when
+ * `sourcesDeadSignal` is true (`fetch_status='error'`), `active` otherwise (fetch_status ok/null, or a
+ * wall such as cdn_block/blocked -- a wall means the host is reachable). Both are live values in
+ * `sources_status_check` (migration 004/147). A `provisional_sources` row being promoted via a NEW
+ * `sources` INSERT (buildPromotedSourceRow) has no `fetch_status` of its own (the column does not
+ * exist on that table), so it always resolves to `active` here -- consistent with "fetch_status is ok
+ * or null -> active", never a silently different rule for the two tables.
+ * @param {{ fetch_status?: string|null }} row
+ * @returns {"active"|"inaccessible"}
+ */
+export function sourcesStatusForPromote(row) {
+  return sourcesDeadSignal(row) ? "inaccessible" : "active";
+}
+
+/**
  * Pure per-row plan for a `provisional_sources` row (no I/O; `existingTier`/`classTier` are
- * pre-resolved by the caller against the live registry/class table).
- * @param {{ id: string, url: string, accessibility_verified?: boolean|null }} row
+ * pre-resolved by the caller against the live registry/class table). Defect D13 fix: this row's
+ * `accessibility_verified` is never consulted here -- rule (c) is removed, accessibility never decides
+ * promote vs. worklist for this table.
+ * @param {{ id: string, url: string }} row
  * @param {{ existingTier: number|null, classTier: number|null }} resolved
  */
 export function planProvisionalSourceRow(row, resolved) {
   const host = hostForRow(row);
   if (!host) return { id: row.id, host: null, decision: { action: "worklist", tier: null, rule: "d", reason: "URL has no parsable host" } };
-  const decision = decideHost(host, {
-    existingTier: resolved.existingTier,
-    classTier: resolved.classTier,
-    deadOrInaccessible: provisionalDeadSignal(row),
-  });
+  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier });
   return { id: row.id, host, decision };
 }
 
-/** Same shape, for a `sources` row (status='provisional'). @param {{ id: string, url: string, fetch_status?: string|null }} row */
+/**
+ * Same shape, for a `sources` row (status='provisional'). Defect D13 fix: `fetch_status` is no longer
+ * passed into decideHost (rule c removed); it is read separately, at apply time, only to decide the
+ * promoted row's STATUS (see sourcesStatusForPromote), never to decide promote vs. worklist.
+ * @param {{ id: string, url: string }} row
+ */
 export function planSourcesProvisionalRow(row, resolved) {
   const host = hostForRow(row);
   if (!host) return { id: row.id, host: null, decision: { action: "worklist", tier: null, rule: "d", reason: "URL has no parsable host" } };
-  const decision = decideHost(host, {
-    existingTier: resolved.existingTier,
-    classTier: resolved.classTier,
-    deadOrInaccessible: sourcesDeadSignal(row),
-  });
+  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier });
   return { id: row.id, host, decision };
 }
 
@@ -249,7 +279,7 @@ export function syntheticItemIdFor(table, id) {
  *   promoteProvisional: (row:object, tier:number, rule:string) => Promise<{sourceId:string, reused:boolean}>,
  *   rejectProvisional: (id:string, reason:string) => Promise<void>,
  *   worklistProvisional: (id:string, flagNote:string) => Promise<void>,
- *   activateSourcesRow: (id:string, tier:number) => Promise<void>,
+ *   activateSourcesRow: (id:string, tier:number, status:"active"|"inaccessible") => Promise<void>,
  *   rejectSourcesRow: (id:string, reason:string) => Promise<void>,
  *   worklistSourcesRow: (id:string, flagNote:string) => Promise<void>,
  *   checkVerticalFitGate: (row:{name:string,url:string}) => Promise<{allow:boolean, reason?:string}>,
@@ -301,10 +331,16 @@ export async function main({ mode = "dry" } = {}, deps) {
   summary.worklist_flag_writes = worklistFlagOps;
 
   if (!apply) {
+    // Defect D13 fix, dry-output vocabulary: `reject` in dry mode reflects only what decideHost itself
+    // can determine (rule c is removed, so this is always 0 for both tables); the vertical-fit gate,
+    // the only remaining source of a decline, runs only on `apply` (its own outcome is not knowable
+    // without touching the live registry it checks against), so a dry run never predicts a reject.
     summary.note =
       `DRY: ${pendingProvisional.length} pending provisional_sources row(s), ${sourcesProvisional.length} ` +
       `sources row(s) with status='provisional'. Would promote ${summary.counts.promote}, reject ` +
-      `${summary.counts.reject}, worklist ${summary.counts.worklist}. Nothing written.`;
+      `${summary.counts.reject}, worklist ${summary.counts.worklist}. Reject is decided only at apply ` +
+      `time, by the vertical-fit gate on a would-be provisional_sources promote (rule c is removed, ` +
+      `defect D13); accessibility never rejects. Nothing written.`;
     return summary;
   }
 
@@ -331,28 +367,26 @@ async function applyProvisionalDecision(row, plan, { apply, deps, summary, workl
     summary.samples.promote.push({ table: "provisional_sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule });
     if (!apply) return;
     // vertical-fit gate reused from the promote route (see this file's header); a host the operator
-    // deliberately retired as off-vertical is not re-added by an automatic resolver.
+    // deliberately retired as off-vertical is not re-added by an automatic resolver. Defect D13 fix:
+    // this gate is now the ONLY source of a decline for this table -- decideHost's rule (c) is removed,
+    // so `decision.action` can never itself be "reject" any more.
     const gate = await deps.checkVerticalFitGate({ name: row.name, url: row.url });
     if (!gate.allow) {
       summary.counts.promote -= 1;
       summary.counts.reject += 1;
+      summary.samples.reject.push({ table: "provisional_sources", id: row.id, host: plan.host, reason: `vertical-fit gate: ${gate.reason}` });
       await deps.rejectProvisional(row.id, `vertical-fit gate: ${gate.reason}`);
       return;
     }
     await deps.promoteProvisional(row, decision.tier, decision.reason);
     return;
   }
-  if (decision.action === "reject") {
-    summary.counts.reject += 1;
-    summary.samples.reject.push({ table: "provisional_sources", id: row.id, host: plan.host, reason: decision.reason });
-    if (apply) await deps.rejectProvisional(row.id, decision.reason);
-    return;
-  }
-  // worklist (rule d): the row's own terminal write ALWAYS happens (defect fix D3, fix round 2,
-  // review-7.5.md re-review, CONFIRMED regression) -- a row whose URL has no parsable host still
-  // reaches a terminal state, with `decision.reason` ("URL has no parsable host") recorded on it. Only
-  // the per-host null-tier-host flag merge is conditional on having a real host to merge under; a null
-  // host has no flag to merge into.
+  // worklist (rule d): decideHost's action space is promote|worklist only (defect D13 fix: rule c
+  // removed). The row's own terminal write ALWAYS happens (defect fix D3, fix round 2, review-7.5.md
+  // re-review, CONFIRMED regression) -- a row whose URL has no parsable host still reaches a terminal
+  // state, with `decision.reason` ("URL has no parsable host") recorded on it. Only the per-host
+  // null-tier-host flag merge is conditional on having a real host to merge under; a null host has no
+  // flag to merge into.
   summary.counts.worklist += 1;
   summary.samples.worklist.push({ table: "provisional_sources", id: row.id, host: plan.host });
   if (apply) {
@@ -366,18 +400,20 @@ async function applySourcesDecision(row, plan, { apply, deps, summary, worklistF
   const { decision } = plan;
   if (decision.action === "promote") {
     summary.counts.promote += 1;
-    summary.samples.promote.push({ table: "sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule });
-    if (apply) await deps.activateSourcesRow(row.id, decision.tier);
+    // Defect D13 fix: the status this promote writes carries the accessibility fact already on record
+    // (active/inaccessible from fetch_status) rather than letting it decide promote vs. reject -- rule
+    // (c) is removed, so this branch is the ONLY outcome for a resolved tier, dead host or not.
+    const status = sourcesStatusForPromote(row);
+    summary.samples.promote.push({ table: "sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule, status });
+    if (apply) await deps.activateSourcesRow(row.id, decision.tier, status);
     return;
   }
-  if (decision.action === "reject") {
-    summary.counts.reject += 1;
-    summary.samples.reject.push({ table: "sources", id: row.id, host: plan.host, reason: decision.reason });
-    if (apply) await deps.rejectSourcesRow(row.id, decision.reason);
-    return;
-  }
-  // worklist (rule d): same fix round 2 correction as applyProvisionalDecision above -- the row's own
-  // terminal write always happens; only the per-host flag merge is conditional on a real host.
+  // worklist (rule d): decideHost's action space is promote|worklist only (defect D13 fix: rule c
+  // removed; there is no vertical-fit gate on this table's promote path, so a `sources` row can no
+  // longer decline at all through this step -- `rejectSourcesRow`/`SOURCES_REJECT_STATUS` (D4's on-row
+  // reason mechanism) stay defined for a future decline path but are unreached from here today). Same
+  // fix round 2 correction as applyProvisionalDecision above -- the row's own terminal write always
+  // happens; only the per-host flag merge is conditional on a real host.
   summary.counts.worklist += 1;
   summary.samples.worklist.push({ table: "sources", id: row.id, host: plan.host });
   if (apply) {
@@ -473,15 +509,20 @@ if (IS_MAIN) {
             { status: PROVISIONAL_WORKLIST_STATUS, reviewed_at: now(), reviewer_notes: `${reason}: awaiting an SC-13 class-table rule; see the null-tier-host integrity_flags queue` },
             { cite: CITE },
           ),
-        activateSourcesRow: (id, tier) =>
-          guardedUpdate("sources", (q) => q.eq("id", id), { status: "active", base_tier: tier, effective_tier: tier }, { cite: CITE }),
+        // Defect D13 fix: `status` is caller-supplied (sourcesStatusForPromote(row), computed from the
+        // row's own fetch_status), never hardcoded "active" -- a promoted row that is currently
+        // inaccessible says so on the row rather than masquerading as active.
+        activateSourcesRow: (id, tier, status) =>
+          guardedUpdate("sources", (q) => q.eq("id", id), { status, base_tier: tier, effective_tier: tier }, { cite: CITE }),
         // defect D4 fix (review-7.5.md finding 3): the decline reason is now written INTO `notes`, the
         // same on-row form worklistSourcesRow already uses, not only into guardedUpdate's `cite`
-        // (which db.mjs writes to an off-row audit snapshot file, never a column).
+        // (which db.mjs writes to an off-row audit snapshot file, never a column). Defect D13 fix: rule
+        // c itself is removed, so this dep is currently unreached from main() for the `sources` table
+        // (kept as the on-row-reason mechanism for a future decline path on this table).
         rejectSourcesRow: async (id, reason) => {
           const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
           const priorNotes = rows[0]?.notes ?? "";
-          const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] rule c reject: ${reason}.`;
+          const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] reject: ${reason}.`;
           await guardedUpdate(
             "sources",
             (q) => q.eq("id", id),

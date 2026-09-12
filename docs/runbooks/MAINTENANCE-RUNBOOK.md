@@ -3293,36 +3293,51 @@ the SC-13 class table, rule b), `buildPromotedSourceRow`/`findExistingSourceByCa
 shape -- the route now calls the same module), and `checkVerticalFitGate`
 (`src/lib/sources/vertical-fit-gate.ts`, the same off-vertical block the route runs).
 
-**The rule, per row**: (a) the host's registrable domain matches an existing ACTIVE institution in
+**The rule, per row** (defect fix D13, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12 -- rule (c)
+below is REMOVED): (a) the host's registrable domain matches an existing ACTIVE institution in
 `sources` -> promote/activate at the institution's canonical tier; (b) no institution match, but the
-SC-13 class table resolves a tier -> promote/activate at that tier; (c) neither (a) nor (b) resolved a
-tier AND the URL is confirmed dead (`provisional_sources.accessibility_verified=false`, or
-`sources.fetch_status='error'` -- a WALL such as `cdn_block`/`blocked` is NOT dead, "a wall is not a
-dead link", the same posture `canonical-autoverify.mjs` already takes) -> reject with the reason; (d)
-otherwise (alive or unprobed, still unclassifiable) -> worklist. Rule (a)/(b) always wins over a dead
-signal -- a resolvable tier is never rejected. The vertical-fit gate runs on every `provisional_sources`
-promote-arm candidate; a gate refusal downgrades a would-be promote to a reject, citing the gate's
-reason.
+SC-13 class table resolves a tier -> promote/activate at that tier; (d) otherwise (no institution/class
+match) -> worklist. Accessibility never decides promote vs. worklist. What accessibility DOES do: the
+PROMOTED `sources` row's own `status` carries the fact already on record -- `active` when
+`sources.fetch_status` is ok or null, `inaccessible` when `fetch_status='error'` (a WALL such as
+`cdn_block`/`blocked` is NOT dead, "a wall is not a dead link", the same posture
+`canonical-autoverify.mjs` already takes, so a wall-fetch_status row still promotes to `active`). A
+`provisional_sources` row promoted via a NEW `sources` INSERT has no `fetch_status` of its own (the
+column does not exist on that table) and so always resolves to `active`.
+`provisional_sources.accessibility_verified` is never read as evidence of anything -- its INSERT
+default is `false` on every one of the 497 live rows, meaning no accessibility check has ever actually
+run against any of them; reading that default as "dead" was rule (c)'s own defect (dry run 34724257806
+rejected 248 real institutions -- irishstatutebook.ie, transport.gov.scot, theccc.org.uk, dma.dk, cre.fr,
+belastingdienst.nl, bmluk.gv.at, mindop.sk -- on that absence alone). Under standing rules 16/18 and
+ADR-030 an unreachable URL on a real institution is a STATUS, never a rejection, and an unknown host is
+a QUESTION (the worklist), never a rejection. The vertical-fit gate still runs on every
+`provisional_sources` promote-arm candidate; a gate refusal downgrades a would-be promote to a reject,
+citing the gate's reason -- this is now the ONLY decline path this step has, for either table (there is
+no vertical-fit gate on the `sources`-table promote path, so a `sources` row can no longer decline
+through this step at all).
 
-**Write shapes differ by table** (the row already exists for `sources`, so promote/reject/worklist are
+**Write shapes differ by table** (the row already exists for `sources`, so promote/worklist are
 UPDATEs there, never a second INSERT):
 - `provisional_sources` promote -> INSERT a new `sources` row (via `buildPromotedSourceRow`, with the
   SAME Q10 canonical-URL dedup guard the promote route runs -- a match reuses the existing row instead
   of minting a duplicate) + `status=PROVISIONAL_SOURCES_PROMOTED_STATUS` ("promoted", exported from
   `promote-provisional.ts`), `promoted_to_source_id`, `reviewed_at`, `reviewer_notes`.
-- `provisional_sources` reject -> `status=PROVISIONAL_SOURCES_REJECTED_STATUS` ("rejected", same
-  module), `reviewed_at`, `reviewer_notes`.
+- `provisional_sources` reject -> ONLY from the vertical-fit gate downgrading a would-be promote
+  (defect D13: rule c itself no longer produces a reject) -> `status=PROVISIONAL_SOURCES_REJECTED_STATUS`
+  ("rejected", same module), `reviewed_at`, `reviewer_notes` naming the gate's reason.
 - `provisional_sources` worklist -> `status='needs_more_data'` (the one CHECK-legal value judged closest
   to "awaiting a class-table ruling"; no dedicated value exists in the tracked vocabulary, a documented
   judgment call; change `PROVISIONAL_WORKLIST_STATUS` in the script if the coordinator rules otherwise),
   `reviewed_at`, `reviewer_notes`.
-- `sources` (status='provisional') promote -> `status='active'`, `base_tier`/`effective_tier` stamped to
-  the resolved tier (never `tier_override`, which stays reserved for an explicit operator act).
-- `sources` reject -> `status='suspended'` (this codebase's existing "unselectable by the grounding
-  resolver" vocabulary value, RD-39/40) WITH the decline reason appended to `notes` (defect fix D4,
-  docs/plans/defect-fix-plan-2026-09-12.md, review-7.5.md finding 3: the pre-fix version threaded the
-  reason only into the guarded-write `cite` argument, which lands in an off-row audit snapshot file,
-  never a column, so a suspended `sources` row carried no on-row explanation of why).
+- `sources` (status='provisional') promote (defect D13 fix) -> `status=sourcesStatusForPromote(row)`
+  ("active" when `fetch_status` is ok or null, "inaccessible" when `fetch_status='error'`, never a
+  reject), `base_tier`/`effective_tier` stamped to the resolved tier (never `tier_override`, which stays
+  reserved for an explicit operator act).
+- `sources` reject -> REMOVED (defect D13): there is no vertical-fit gate on this table's promote path,
+  so a `sources` row can no longer decline through this step at all. `rejectSourcesRow`/
+  `SOURCES_REJECT_STATUS` (`status='suspended'` WITH the decline reason appended to `notes`, defect fix
+  D4, review-7.5.md finding 3) remain defined as the on-row-reason mechanism for a future decline path
+  on this table, currently unreached from `main()`.
 - `sources` worklist -> status stays `'provisional'` (already the awaiting-decision resting state for
   this table, no value is invented); the equivalent record is appended to `notes` instead of
   `reviewer_notes`/`reviewed_at`, which this table does not have.
@@ -3343,9 +3358,10 @@ SAME row contributes to the aggregate exactly once. Idempotent by construction a
 second `main({mode:"apply"})` run over the same still-unclassifiable input inserts 0 new flag rows and
 updates the existing per-host row's contribution list instead).
 
-**Ruling**: ADR-030 rider / defect-fix-plan-2026-09-12.md D2/D3/D4. Not gated by a separate `arg`
-token. $0, no LLM, no fetch -- every check is the deterministic class table, the live-registry lookup,
-and the STORED `accessibility_verified`/`fetch_status` columns.
+**Ruling**: ADR-030 rider / defect-fix-plan-2026-09-12.md D2/D3/D4/D13. Not gated by a separate `arg`
+token. $0, no LLM, no fetch -- every check is the deterministic class table and the live-registry
+lookup; the STORED `fetch_status` column (never `accessibility_verified`, defect D13) is consulted only
+to stamp the promoted `sources` row's own status, never to gate promote vs. worklist.
 
 **Status vocabulary is now CHECK-legal, live** (defect fix D2): migration 317
 (`317_provisional_sources_status_promoted.sql`, applied live by the coordinator before this code
@@ -3358,9 +3374,12 @@ promote route) now reference the SAME exported constants
 rather than independent literals, and a test in that module's own test file pins all five CHECK values
 as the contract (`promote-provisional.test.mjs`, with a comment naming the constraint).
 
-**Dispatch**: `mode=dry` classifies every row (rule a/b/c/d) and reports counts + a 20-row sample per
-outcome; writes nothing. `mode=apply` performs the promote/reject/worklist write per row, merging any
-worklisted host into its per-host `null-tier-host` flag.
+**Dispatch**: `mode=dry` classifies every row (rule a/b/d; rule c is removed, D13) and reports counts + a
+20-row sample per outcome; writes nothing. Dry mode's `reject` count is always 0 for both tables --
+the vertical-fit gate, the only remaining decline path, runs only on `apply` (against the live
+registry), so a dry run cannot predict it. `mode=apply` performs the promote/worklist write per row
+(plus the occasional gate-downgraded reject on `provisional_sources`), merging any worklisted host into
+its per-host `null-tier-host` flag.
 
 **Artifact / read back**: `summary.json`'s `counts.{promote,reject,worklist}`, `samples`, and
 `read_back.{provisional_sources_pending_review_remaining,sources_provisional_remaining}`, plus
