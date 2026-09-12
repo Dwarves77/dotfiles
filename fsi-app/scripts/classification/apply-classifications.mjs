@@ -286,7 +286,7 @@ export function evaluateAutoAdoption(flag) {
   }
   const parsed = extractProposalsFromDescription(flag.description);
   if (!parsed.ok) return parsed;
-  if (!parsed.value.length) return { ok: false, error: "flag carries zero proposals -- nothing to decide." };
+  if (!parsed.value.length) return { ok: false, error: "flag carries zero proposals; nothing to decide." };
   const sourceId = String(flag.subject_ref || "").trim();
   if (!sourceId) return { ok: false, error: "flag has no subject_ref (source id)." };
   return { ok: true, sourceId, proposals: parsed.value };
@@ -337,8 +337,8 @@ export function decideClassificationProposal(proposal, source) {
     return {
       ...proposal, label, decision: already ? "decline" : "adopt",
       reason: already
-        ? "expected_output already set -- a classifier re-run never overwrites an existing distribution (framework: refined by observed history)."
-        : "closed role->default Axis-5 lookup -- deterministic, always adopted when unset.",
+        ? "expected_output already set; a classifier re-run never overwrites an existing distribution (framework: refined by observed history)."
+        : "closed role->default Axis-5 lookup, deterministic; always adopted when unset.",
     };
   }
 
@@ -347,15 +347,19 @@ export function decideClassificationProposal(proposal, source) {
     return {
       ...proposal, label, decision: decisive ? "adopt" : "decline",
       reason: decisive
-        ? `confidence 'high' -- decisive single/exact name-keyword match for ${field}.`
-        : `confidence '${proposal.confidence ?? "unknown"}' does not meet the decisive 'high' bar for ${field} (only an exact name-keyword match auto-adopts without operator ratification).`,
+        ? `confidence 'high': decisive single/exact name-keyword match for ${field}.`
+        : `confidence '${proposal.confidence ?? "unknown"}' does not meet the decisive 'high' bar for ${field}; only an exact name-keyword match auto-adopts without operator ratification.`,
     };
   }
 
   if (field === "jurisdictions") {
+    // Coordinator ruling (review-7.2.md, accepted, no code change to the rule): the resolution_note
+    // names the architectural gate explicitly, per ADR-030's rider that "a decision of 'no action, and
+    // why' is a valid close" -- there is no ADR-authorized column to adopt this proposal INTO, so the
+    // decline itself, with this reason, is the close.
     return {
       ...proposal, label, decision: "decline",
-      reason: "no safe write target: sources.jurisdictions holds the live region-bucket vocabulary (eu|us|uk|latam|asia|hk|meaf|global), not this framework's ISO-3166 Axis-3 values (classify-source.mjs) -- a dedicated column needs an ADR before this proposal can adopt.",
+      reason: "no safe write target: sources.jurisdictions carries the live region-bucket vocabulary (eu, us, uk, latam, asia, hk, meaf, global) that AffectedLanesCard, MapPageView and the workspace RPCs already read; this framework's ISO-3166 Axis-3 values have no column of their own, and no ADR authorizes one. Per the ADR-030 rider, this decline with its reason is a valid close, not a pending action.",
     };
   }
 
@@ -454,7 +458,7 @@ export async function autoAdoptClassification(deps, flagId, { execute } = {}) {
   const mergeProposals = buildAdoptedProposalsForMerge(decisions);
   const merge = buildMergePatch(source, mergeProposals);
   const hasWrite = Object.keys(merge.patch).length > 0;
-  const note = buildDecisionNote("apply-classifications decided", decisions);
+  const note = buildDecisionNote("apply-classifications", decisions);
 
   if (!execute) return { status: "dry_run", sourceId: decision.sourceId, merge, decisions, hasWrite };
 

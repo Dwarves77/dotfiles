@@ -50,22 +50,22 @@ export const CITE = Object.freeze({
   skill: "brief-chain-build-plan-2026-09-11 Part 7 task 7.2 / ADR-030 rider",
   reason:
     "Drains the flywheel-signal:* backlog: every open flag reaches a terminal disposition this run " +
-    "(decisive -- edge written, auto-adopted note; undecided -- closes as a non-edge decision with the " +
-    "score; stale -- pair no longer reproduces), and a brand-new candidate with no flag row yet is " +
+    "(decisive: edge written, auto-adopted note; undecided: closes as a non-edge decision with the " +
+    "score; stale: pair no longer reproduces), and a brand-new candidate with no flag row yet is " +
     "inserted already resolved. Reuses analyze-corpus.mjs's own pure decision path " +
-    "(signal-candidates.mjs / signal-confidence.mjs) unmodified -- no second copy of the write logic.",
+    "(signal-candidates.mjs / signal-confidence.mjs) unmodified, never a second copy of the write logic.",
 });
 
 const ITEM_SIG = "id, title";
 const EDGE_SIG = "source_item_id, target_item_id";
-const FLAG_SIG = "id, subject_ref, created_by";
+const FLAG_SIG = "id, subject_ref, created_by, status";
 
 /**
  * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{
  *   readItems: () => Promise<Array<{id:string, title:string|null}>>,
  *   readEdges: () => Promise<Array<{source_item_id:string, target_item_id:string}>>,
- *   readOpenFlags: () => Promise<Array<{id:string, subject_ref:string, created_by:string}>>,
+ *   readAllFlags: () => Promise<Array<{id:string, subject_ref:string, created_by:string, status:string}>>,
  *   writeEdges: (edges:Array) => Promise<{written:number, inserted:number, refreshed:number}>,
  *   resolveFlag: (id:string, note:string) => Promise<{updated:number}>,
  *   insertResolvedFlags: (rows:Array) => Promise<{inserted:number}>,
@@ -77,17 +77,25 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   const items = await deps.readItems();
   const edgeRows = await deps.readEdges();
-  const openFlags = await deps.readOpenFlags();
+  // ALL flywheel-signal:* flags, any status -- not just open ones. Bug fix (review-7.2.md finding 2,
+  // reviewer-confirmed with a repro): a candidate this pass ALREADY resolved (or that a prior run
+  // already inserted pre-resolved) still classifies the SAME way every subsequent run -- signal
+  // candidates are recomputed fresh, not read from a "settled" store. Deduping the "brand new insert"
+  // check against OPEN flags only meant a resolved row fell out of `existingKeys` the very next run,
+  // so this step re-inserted a DUPLICATE already-resolved row for the same (subject_ref, created_by)
+  // on every single re-run. Dedup must be status-agnostic: has ANY row (open or resolved) ever been
+  // written for this exact candidate.
+  const allFlags = await deps.readAllFlags();
+  const openFlags = allFlags.filter((r) => r.status === "open");
 
   const candidates = detectSignalCandidates(items, edgeRows);
   const plan = planSignalAdoption(candidates);
   const dispositions = planSignalFlagResolutions(openFlags, plan.classified, SIGNAL_NAMESPACE);
 
-  // Brand-new candidates with no existing flag row at all (never seen before, or the OLD open flag was
-  // already resolved above under a different disposition this same pass would also match -- the
-  // existingKeys set is built from the OPEN flags read at the top, so a candidate already covered by a
-  // disposition above is correctly excluded here).
-  const existingKeys = new Set(openFlags.map((r) => `${r.subject_ref}|${r.created_by}`));
+  // Brand-new candidates with NO flag row at all (open OR resolved) -- existingKeys is built from
+  // EVERY flag this namespace has ever written, so a candidate a prior run already closed (or this
+  // same run's `dispositions` loop is about to resolve) is correctly excluded here, never re-inserted.
+  const existingKeys = new Set(allFlags.map((r) => `${r.subject_ref}|${r.created_by}`));
   const seen = new Set();
   const newRows = [];
   for (const c of plan.classified) {
@@ -115,7 +123,7 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   if (!apply) {
     summary.note =
-      `DRY -- ${openFlags.length} open flywheel-signal flag(s) would resolve ` +
+      `DRY: ${openFlags.length} open flywheel-signal flag(s) would resolve ` +
       `(decisive=${summary.counts.dispositions.decisive}, undecided=${summary.counts.dispositions.undecided}, ` +
       `stale=${summary.counts.dispositions.stale}); ${plan.edges.length} edge row(s) would write; ` +
       `${newRows.length} brand-new candidate(s) would insert already-resolved. Nothing written.`;
@@ -145,8 +153,8 @@ export async function main({ mode = "dry" } = {}, deps) {
     `wrote ${insertedCount} brand-new pre-resolved row(s); ${edgesWritten.written ?? 0} edge row(s) written. ` +
     "No flywheel-signal flag left open.";
 
-  const remaining = await deps.readOpenFlags();
-  summary.read_back = { remaining_open: remaining.length };
+  const remaining = await deps.readAllFlags();
+  summary.read_back = { remaining_open: remaining.filter((r) => r.status === "open").length };
 
   return summary;
 }
@@ -167,8 +175,10 @@ if (IS_MAIN) {
         readItems: () =>
           readAll("intelligence_items", ITEM_SIG, { match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false) }),
         readEdges: () => readAll("item_cross_references", EDGE_SIG),
-        readOpenFlags: () =>
-          readAll("integrity_flags", FLAG_SIG, { match: (q) => q.eq("status", "open").like("created_by", `${SIGNAL_NAMESPACE}%`) }),
+        // ANY status (open or resolved) -- see main()'s own header note on the duplicate-insert bug
+        // this fixes. Never filter to .eq("status", "open") here.
+        readAllFlags: () =>
+          readAll("integrity_flags", FLAG_SIG, { match: (q) => q.like("created_by", `${SIGNAL_NAMESPACE}%`) }),
         writeEdges: (edges) => writeDiscoveredEdges(sb, edges, { snapshot: { dir: SNAP_DIR, cite: CITE } }),
         resolveFlag: async (id, note) => {
           const res = await guardedUpdate(

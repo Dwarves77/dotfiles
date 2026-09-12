@@ -247,7 +247,12 @@ export function buildSignalResolutionNote(classifiedRow) {
   if (confidence === CONFIDENCE.DECISIVE) {
     return `auto-adopted:signal:${signalKind}:${AUTO_ADOPT_WEIGHT[signalKind] ?? "unknown"}`;
   }
-  return `below the decisive threshold, no edge; score=${confidenceWeight} (${confidenceReason}).`;
+  // classifySignalGroup's own `reason` strings predate this function and are never rewritten here (they
+  // also drive internal decisions, not just this note) -- but this IS the first place that text becomes
+  // USER-READ (a resolution_note an admin view renders), so any em/en dash it carries is normalized to a
+  // comma at the embedding point, never left to reach a customer/admin-visible field.
+  const safeReason = String(confidenceReason || "").replace(/\s*[–—]\s*/g, ", ");
+  return `below the decisive threshold, no edge; score=${confidenceWeight} (${safeReason}).`;
 }
 
 /**
@@ -299,7 +304,7 @@ export function buildPreResolvedSignalFlagRow(classifiedRow, namespace, resolved
   const note = buildSignalResolutionNote(classifiedRow);
   const description = classifiedRow.confidence === CONFIDENCE.DECISIVE
     ? `signal-candidates.mjs: ${classifiedRow.signalKind} match "${classifiedRow.value}" between ${classifiedRow.itemA} and ${classifiedRow.itemB} classified decisive and was written as an item_cross_references edge.`
-    : `signal-candidates.mjs: ${classifiedRow.signalKind} match "${classifiedRow.value}" between ${classifiedRow.itemA} and ${classifiedRow.itemB} did not reach the decisive threshold -- no edge written.`;
+    : `signal-candidates.mjs: ${classifiedRow.signalKind} match "${classifiedRow.value}" between ${classifiedRow.itemA} and ${classifiedRow.itemB} did not reach the decisive threshold; no edge written.`;
   const nowIso = new Date().toISOString();
   return {
     category: "data_quality",

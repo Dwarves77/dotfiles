@@ -29,9 +29,9 @@ function baseDeps(overrides = {}) {
     calls,
     readItems: async () => ITEMS,
     readEdges: async () => [],
-    readOpenFlags: async () => [
-      { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier") },
-      { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") },
+    readAllFlags: async () => [
+      { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), status: "open" },
+      { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity"), status: "open" },
     ],
     writeEdges: async (edges) => { calls.push(["writeEdges", edges.length]); return { written: edges.length, inserted: edges.length, refreshed: 0 }; },
     resolveFlag: async (id, note) => { calls.push(["resolveFlag", id, note]); return { updated: 1 }; },
@@ -72,8 +72,8 @@ test("apply: writes the decisive edge via writeEdges", async () => {
 
 test("apply: a flag whose pair no longer reproduces resolves 'stale'", async () => {
   const d = baseDeps({
-    readOpenFlags: async () => [
-      { id: "flag-gone", subject_ref: buildSubjectRef("item-x", "item-y", "shared_title_entity", "Vanished Programme"), created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") },
+    readAllFlags: async () => [
+      { id: "flag-gone", subject_ref: buildSubjectRef("item-x", "item-y", "shared_title_entity", "Vanished Programme"), created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity"), status: "open" },
     ],
   });
   const r = await main({ mode: "apply" }, d);
@@ -84,7 +84,7 @@ test("apply: a flag whose pair no longer reproduces resolves 'stale'", async () 
 });
 
 test("apply: a brand-new candidate with no existing flag row inserts already-resolved", async () => {
-  const d = baseDeps({ readOpenFlags: async () => [] });
+  const d = baseDeps({ readAllFlags: async () => [] });
   const r = await main({ mode: "apply" }, d);
   assert.equal(r.counts.new_pre_resolved, 2); // one decisive candidate row + one undecided candidate row
   assert.ok(d.calls.some((c) => c[0] === "insertResolvedFlags" && c[1] === 2));
@@ -92,22 +92,46 @@ test("apply: a brand-new candidate with no existing flag row inserts already-res
 
 test("apply: read-back reports remaining_open (proves the drain on every run, not by claim)", async () => {
   const d = baseDeps({
-    readOpenFlags: (() => {
+    readAllFlags: (() => {
       let call = 0;
       return async () => {
         call += 1;
         if (call === 1) {
           return [
-            { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier") },
-            { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity") },
+            { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), status: "open" },
+            { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity"), status: "open" },
           ];
         }
-        return []; // second call: post-resolve read-back
+        // second call (post-resolve read-back): both flags now resolved -- none open.
+        return [
+          { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), status: "resolved" },
+          { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity"), status: "resolved" },
+        ];
       };
     })(),
   });
   const r = await main({ mode: "apply" }, d);
   assert.equal(r.read_back.remaining_open, 0);
+});
+
+// Regression test (reviewer-confirmed with a repro, review-7.2.md finding 2): existingKeys was built
+// from OPEN flags only, so a candidate this pass just resolved (or a prior run already closed) fell
+// OUT of existingKeys on the very next run and was re-inserted as a DUPLICATE already-resolved row,
+// forever, on every re-run. Dedup must be status-agnostic.
+test("IDEMPOTENCY: a second run against a corpus whose flags are now ALL resolved inserts ZERO new rows (regression, review-7.2.md finding 2)", async () => {
+  // Simulates the state immediately after a first successful apply: every candidate this pass would
+  // recompute already has a RESOLVED row (open flags now empty, but the resolved rows persist).
+  const d = baseDeps({
+    readAllFlags: async () => [
+      { id: "flag-decisive", subject_ref: DECISIVE_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), status: "resolved" },
+      { id: "flag-undecided", subject_ref: UNDECIDED_SUBJECT_REF, created_by: createdBy(SIGNAL_NAMESPACE, "shared_title_entity"), status: "resolved" },
+    ],
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.open_flags, 0, "no open flags left to resolve");
+  assert.equal(r.counts.new_pre_resolved, 0, "the still-reproducing candidates already have a resolved row -- must not re-insert");
+  assert.ok(!d.calls.some((c) => c[0] === "insertResolvedFlags"), "insertResolvedFlags must not be called with zero new rows");
+  assert.ok(!d.calls.some((c) => c[0] === "resolveFlag"), "no open flag to resolve either");
 });
 
 // ── INVARIANT: no residue stays open ────────────────────────────────────────────────────────────

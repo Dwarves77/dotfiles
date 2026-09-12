@@ -321,7 +321,7 @@ export async function main({ mode = "dry" } = {}, deps) {
       `DRY -- proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new ` +
       `flag(s) (${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length + anomalyResult.plan.staleIds.length} stale resolved). ` +
       `${eligible.length} OPEN source-classification flag(s) eligible for auto-adoption (` +
-      `${eligible.reduce((n, e) => n + e.decision.autoAdoptable.length, 0)} proposals). Nothing written. ` +
+      `${eligible.reduce((n, e) => n + e.decision.proposals.length, 0)} proposals). Nothing written. ` +
       `Apply with: node scripts/maintenance/apply-classifications.mjs --mode apply`;
     return summary;
   }

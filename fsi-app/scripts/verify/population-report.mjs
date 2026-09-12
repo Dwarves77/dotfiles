@@ -315,7 +315,7 @@ export async function countOpenFlagsByFamily(sb, family) {
 export function describeOpenFlagsByFamilyState(label, dispatchStep) {
   return (state, counts) => [
     `${counts.rows} open ${label} flag(s) still require a decision.`,
-    `Dispatch (mode=apply): ${dispatchStep} -- decides (adopts or declines) every proposal it reads and closes the flag; no residue stays open.`,
+    `Dispatch (mode=apply): ${dispatchStep}: decides (adopts or declines) every proposal it reads and closes the flag; no residue stays open.`,
   ];
 }
 
@@ -478,19 +478,19 @@ export const STORES = Object.freeze([
   // analyze-corpus.mjs+resolve-signals.mjs) now decides every proposal it reads, so a nonzero count here
   // after a clean apply dispatch is a regression, not an expected mid-build gap.
   { table: "integrity_flags", fill: "open flywheel-tag:* flags (defect count itself, see below)",
-    reader: "population-report.mjs's own CLI output -- the flywheel-tag: queue task 7.2's tag-ratification step drains",
+    reader: "population-report.mjs's own CLI output; the flywheel-tag: queue task 7.2's tag-ratification step drains",
     producer: "scripts/maintenance/tag-ratification.mjs --arg auto --mode apply",
     totalQuery: (sb) => countOpenFlagsByFamily(sb, "tag"),
     filledQuery: async () => ({ count: 0, error: null }),
     describeState: describeOpenFlagsByFamilyState("flywheel-tag:*", "tag-ratification.mjs --arg auto") },
   { table: "integrity_flags", fill: `open ${AXIS_CLASSIFICATION_CREATED_BY} flags (defect count itself, see below)`,
-    reader: "population-report.mjs's own CLI output -- the source-classification queue task 7.2's apply-classifications step drains",
+    reader: "population-report.mjs's own CLI output; the source-classification queue task 7.2's apply-classifications step drains",
     producer: "scripts/maintenance/apply-classifications.mjs --mode apply",
     totalQuery: (sb) => countOpenFlagsByFamily(sb, "axisSourceClassification"),
     filledQuery: async () => ({ count: 0, error: null }),
     describeState: describeOpenFlagsByFamilyState(AXIS_CLASSIFICATION_CREATED_BY, "apply-classifications.mjs") },
   { table: "integrity_flags", fill: "open flywheel-signal:* flags (defect count itself, see below)",
-    reader: "population-report.mjs's own CLI output -- the signal-candidate queue task 7.2's resolve-signals step drains",
+    reader: "population-report.mjs's own CLI output; the signal-candidate queue task 7.2's resolve-signals step drains",
     producer: "scripts/maintenance/resolve-signals.mjs --mode apply",
     totalQuery: (sb) => countOpenFlagsByFamily(sb, "signal"),
     filledQuery: async () => ({ count: 0, error: null }),

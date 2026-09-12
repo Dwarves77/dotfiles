@@ -206,12 +206,18 @@ console.log(
 // edges the decisive set implies — see this file's header and that module's own for the evidence rule. ----
 const signalCandidates = RUN_SIGNALS ? detectSignalCandidates(items, edgeRows) : [];
 const signalPlan = RUN_SIGNALS ? planSignalAdoption(signalCandidates) : { classified: [], decisive: [], undecided: [], edges: [] };
-// Existing OPEN L4 flags -- read unconditionally under --signals (both --dry, to preview every
+// ALL L4 flags, any status -- read unconditionally under --signals (both --dry, to preview every
 // disposition, and apply, to actually resolve them). Task 7.2 (2026-09-12): EVERY open flag closes this
 // run (decisive/undecided/stale -- see planSignalFlagResolutions), never just the newly-decisive subset.
-const existingOpenSignalFlags = RUN_SIGNALS
-  ? await readAll("integrity_flags", "id, subject_ref, created_by", { match: (q) => q.eq("status", "open").like("created_by", `${SIGNAL_NAMESPACE}%`) })
+// Bug fix (review-7.2.md finding 2, reviewer-confirmed with a repro): reading OPEN rows only, here,
+// made the "brand-new candidate" dedup below fall out of sync the run right after a candidate closed --
+// a still-reproducing candidate whose flag just moved to 'resolved' no longer showed up in an open-only
+// read, so it looked "brand new" again and was re-inserted as a DUPLICATE resolved row every re-run.
+// Dedup must be status-agnostic: has ANY row (open or resolved) ever been written for this candidate.
+const allSignalFlags = RUN_SIGNALS
+  ? await readAll("integrity_flags", "id, subject_ref, created_by, status", { match: (q) => q.like("created_by", `${SIGNAL_NAMESPACE}%`) })
   : [];
+const existingOpenSignalFlags = allSignalFlags.filter((r) => r.status === "open");
 const previewDispositions = RUN_SIGNALS ? planSignalFlagResolutions(existingOpenSignalFlags, signalPlan.classified, SIGNAL_NAMESPACE) : [];
 if (RUN_SIGNALS) {
   console.log(
@@ -222,7 +228,7 @@ if (RUN_SIGNALS) {
     `${existingOpenSignalFlags.length} existing open flag(s) would resolve: ` +
     `decisive=${previewDispositions.filter((d) => d.disposition === "decisive").length}, ` +
     `undecided=${previewDispositions.filter((d) => d.disposition === "undecided").length}, ` +
-    `stale=${previewDispositions.filter((d) => d.disposition === "stale").length} (task 7.2 -- no residue stays open).`,
+    `stale=${previewDispositions.filter((d) => d.disposition === "stale").length} (task 7.2: no residue stays open).`,
   );
 }
 
@@ -340,11 +346,11 @@ try {
       signalDispositionCounts[d.disposition] = (signalDispositionCounts[d.disposition] ?? 0) + 1;
     }
     console.log(
-      `SIGNALS RESOLVED (existing): ${dispositions.length} flag(s) -- decisive=${signalDispositionCounts.decisive}, ` +
+      `SIGNALS RESOLVED (existing): ${dispositions.length} flag(s); decisive=${signalDispositionCounts.decisive}, ` +
       `undecided=${signalDispositionCounts.undecided}, stale=${signalDispositionCounts.stale}.`,
     );
 
-    const existingKeys = new Set(existingOpenSignalFlags.map((r) => `${r.subject_ref}|${r.created_by}`));
+    const existingKeys = new Set(allSignalFlags.map((r) => `${r.subject_ref}|${r.created_by}`));
     const seenFresh = new Set();
     const newPreResolvedRows = [];
     for (const c of signalPlan.classified) {

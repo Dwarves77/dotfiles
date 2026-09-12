@@ -33,7 +33,7 @@ export function buildDecisionNote(summaryPrefix, decisions) {
   const list = Array.isArray(decisions) ? decisions : [];
   const adopted = list.filter((d) => d.decision === "adopt");
   const declined = list.filter((d) => d.decision === "decline");
-  const summary = `${summaryPrefix} -- decided ${list.length} (adopted ${adopted.length}, declined ${declined.length}).`;
+  const summary = `${summaryPrefix}: decided ${list.length} (adopted ${adopted.length}, declined ${declined.length}).`;
   const json = list.map((d) => ({ label: d.label, decision: d.decision, reason: d.reason }));
   return `${summary}\n\nDECISIONS_JSON: ${JSON.stringify(json)}`;
 }

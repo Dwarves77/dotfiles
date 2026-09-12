@@ -168,6 +168,23 @@ test("buildSignalResolutionNote: undecided candidate closes with the score and t
   assert.match(note, /single unregistered capitalized-phrase token/);
 });
 
+// Coordinator ruling (review-7.2.md finding 4): resolution_note is user-read text, never an em/en dash.
+// classifySignalGroup's own `reason` (this file, unchanged by task 7.2 -- it also drives internal
+// decisions) predates this rule and carries a real em dash for the shared_title_entity single-token
+// case; buildSignalResolutionNote is the FIRST place that text lands in a written resolution_note, so
+// the sanitize happens there, at the embedding point.
+test("buildSignalResolutionNote: normalizes an em/en dash inside the embedded reason to a comma (resolution_note is user-read text)", () => {
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: "undecided", confidenceWeight: 0, confidenceReason: "single unregistered capitalized-phrase token — not independently corroborated" });
+  assert.doesNotMatch(note, /[–—]/);
+  assert.match(note, /single unregistered capitalized-phrase token, not independently corroborated/);
+});
+
+test("buildSignalResolutionNote: the REAL classifySignalGroup reason for a single title-entity token round-trips clean through the note", () => {
+  const verdict = classifySignalGroup("shared_title_entity", new Set(["Solo Phrase"]));
+  const note = buildSignalResolutionNote({ signalKind: "shared_title_entity", confidence: verdict.confidence, confidenceWeight: verdict.weight, confidenceReason: verdict.reason });
+  assert.doesNotMatch(note, /[–—]/, "the live reason text (with its own em dash) must never reach resolution_note un-sanitized");
+});
+
 test("planSignalFlagResolutions: an existing open flag whose candidate is now decisive disposes 'decisive'", () => {
   const classified = classifySignalCandidates([
     { itemA: "a", itemB: "b", signalKind: "shared_regulation_identifier", value: "2023/1805", subject_ref: "a:b:shared_regulation_identifier:2023/1805" },

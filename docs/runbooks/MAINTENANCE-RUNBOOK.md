@@ -468,7 +468,7 @@ decided -- no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`de
   every proposal decides (adopt or decline -- see the ruling above), the merge writes only the adopted
   subset (merge-only, never removes an existing tag), and the flag ALWAYS closes with the shared
   `decision-note.mjs` `DECISIONS_JSON` grammar recording each proposal's outcome and reason
-  (`resolution_note` starts with a human summary line, e.g. "tag-ratification (auto, threshold=high) --
+  (`resolution_note` starts with a human summary line, e.g. "tag-ratification (auto, threshold=high):
   decided 2 (adopted 1, declined 1)."). Idempotent -- safe to re-dispatch; an already-resolved flag is
   skipped by `evaluateAutoAdoption`'s own `status==='open'` requirement.
 
@@ -2059,9 +2059,20 @@ ADR yet authorizes a dedicated Axis-3 column. `scope_modes`/`scope_verticals`/`e
 existing write rule exactly ("as today") -- what changes is that a non-writing residue (e.g. a
 medium-confidence `scope_modes` proposal) now DECLINES with a reason instead of leaving the flag open.
 **Every proposal on a flag is now decided -- the flag ALWAYS closes**, via the shared `decision-note.mjs`
-`DECISIONS_JSON` grammar (`resolution_note` = a human summary line, e.g. "apply-classifications decided --
+`DECISIONS_JSON` grammar (`resolution_note` = a human summary line, e.g. "apply-classifications:
 decided 3 (adopted 2, declined 1)."). See `apply-classifications.mjs`'s `decideClassificationProposal`/
 `decideScopeTopicsProposal`/`decideClassificationProposals`.
+
+**Coordinator ruling on two disclosed divergences (review-7.2.md, both accepted, no code change to the
+rule itself)**: a jurisdiction proposal closes as declined with the architectural gate named in
+`resolution_note` itself (`sources.jurisdictions` carries the region-bucket vocabulary three live
+surfaces read; the ISO values have no column of their own); per the ADR-030 rider, "a decision of 'no
+action, and why' is a valid close", so this decline IS the close, not a deferral. `scope_topics`
+re-checks the classifier's OWN evidence basis -- the source's name and role, the same two fields
+`classify-source.mjs`'s `classifyScopeTopics` itself derives a proposal from -- which is what the task
+7.2 brief's phrase "the source's stored capture" meant here: this framework has no fetched-page-text
+store for a source (see `classify-source.mjs`'s header: "Deterministic name/role keyword matching only
+-- no content fetch, no LLM"), so the source's own registry name/role fields ARE its stored evidence.
 
 **Dispatch**: no `arg`. `mode=dry` reports the fresh proposal counts and the decision split
 (`counts.auto_adopt.eligible`/`decidable_count`/`not_eligible_count`). `mode=apply` writes through the

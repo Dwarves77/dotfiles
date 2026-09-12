@@ -588,12 +588,12 @@ function report(flagId, result) {
         console.log(
           `apply-tags: flag ${flagId} -> item ${result.itemId} would decide ${result.decisions.length} proposal(s) ` +
           `(adopt ${adopted}, decline ${declined}); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
-          `(DRY RUN -- nothing written. Re-run with --execute to apply.)`,
+          `(DRY RUN: nothing written. Re-run with --execute to apply.)`,
         );
       } else {
         console.log(
           `apply-tags: flag ${flagId} applicable -> item ${result.itemId} patch: ` +
-          `${JSON.stringify(result.merge.patch)} (DRY RUN -- nothing written. Re-run with --execute to apply.)`,
+          `${JSON.stringify(result.merge.patch)} (DRY RUN: nothing written. Re-run with --execute to apply.)`,
         );
       }
       return true;
@@ -604,7 +604,7 @@ function report(flagId, result) {
       console.log(`WROTE + RESOLVED: item ${result.itemId} updated with ${JSON.stringify(result.merge.patch)}; flag ${flagId} closed (${result.decisions.length} proposal(s) decided).`);
       return true;
     case "decided_no_change":
-      console.log(`RESOLVED: flag ${flagId} closed with no item write needed (every proposal declined, or already present) -- ${result.decisions.length} proposal(s) decided.`);
+      console.log(`RESOLVED: flag ${flagId} closed with no item write needed (every proposal declined, or already present); ${result.decisions.length} proposal(s) decided.`);
       return true;
     default:
       return false;

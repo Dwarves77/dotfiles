@@ -193,9 +193,9 @@ async function runAutoAdopt(apply, deps) {
   summary.counts.apply_results = results;
   const touchedItemIds = [...new Set(results.filter((r) => r.status === "decided").map((r) => r.item_id))];
   summary.note =
-    `Decided ${applied}/${decidable.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}" -- every flag ` +
+    `Decided ${applied}/${decidable.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}"; every flag ` +
     `closed (no residue stays open, task 7.2). Discovery NOT re-run by this step (orchestration only, per ` +
-    "this file's header) -- fallback: node scripts/connections/" +
+    "this file's header); fallback: node scripts/connections/" +
     `discover-for-items.mjs --ids ${touchedItemIds.join(",") || "<item id(s)>"} --execute.`;
 
   const readBack = {};
