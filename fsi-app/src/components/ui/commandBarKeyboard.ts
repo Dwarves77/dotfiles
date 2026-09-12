@@ -53,6 +53,32 @@ export function isOutsidePointerDown(withinBar: boolean, withinListbox: boolean)
   return !withinBar && !withinListbox;
 }
 
+/**
+ * VISIBLE CLOSE CONTROLS (lane SEARCHKEYS-B, task 4.1b, 2026-09-11). Operator report closed:
+ * "When you click off the search bar it needs to close or there needs to be a way to click it
+ * shut", ruled the same day to apply to desktop too: "I want it fixed for desktop as well.
+ * Hitting esc is not a clear fix." Task 4.1's Escape/click-outside handling gave every user a way
+ * to DISMISS the dropdown, but none of it is a control the reader can SEE; this pair of pure
+ * decisions drives the trailing icon button CommandBar.tsx renders inside the bar. Kept here
+ * (not inlined) for the same reason `isOutsidePointerDown` is: a plain boolean/string decision,
+ * independently testable with no DOM.
+ */
+
+/** True once there is something to clear or close: either the input holds text, or the listbox is
+ *  open (only reachable today with text present too, since MIN_QUERY_LEN gates the dropdown, but
+ *  the two conditions are kept separate rather than collapsed into one so the button's visibility
+ *  stays correct if that gate ever changes). False (hidden) only when both are false, matching the
+ *  brief's own wording verbatim: "hidden when the input is empty and the listbox is closed". */
+export function clearButtonVisible(hasQueryText: boolean, dropdownOpen: boolean): boolean {
+  return hasQueryText || dropdownOpen;
+}
+
+/** "Clear search" when there is text to wipe; "Close search" when the button's only job left is
+ *  dismissing an open listbox over an already-empty input (the brief's own two named states). */
+export function clearButtonLabel(hasQueryText: boolean): "Clear search" | "Close search" {
+  return hasQueryText ? "Clear search" : "Close search";
+}
+
 /** The DOM id one listbox option gets, derived from the listbox's own id + its index. */
 export function optionId(listboxId: string, index: number): string {
   return `${listboxId}-option-${index}`;

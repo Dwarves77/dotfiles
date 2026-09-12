@@ -285,3 +285,22 @@ doubly-nested flex context. Fixed by adding `flex-shrink: 0 !important` and `max
 fixture confirmed the max-width cap still lets the element's own `overflow: hidden; text-overflow:
 ellipsis` do its job instead of being clipped raw by the parent. Locked in by a new structural test in
 `ListRow.npmtest.mjs`, driven red against the original two-line rule, green against the fix.
+
+**Follow-up ruling (task 4.1b, SEARCHKEYS-B lane, 2026-09-11); click-outside-to-close was NOT a
+sufficient fix on its own.** Operator report, same day: "When you click off the search bar it needs
+to close or there needs to be a way to click it shut... On mobile you can't hit esc." Ruled further:
+"I want it fixed for desktop as well. Hitting esc is not a clear fix." Two findings:
+- `[CONFIRMED]`, via the smoke harness (`command-bar-search-portal-smoke.mjs`), reproducing the
+  operator's own three-point repro (page-body click, a click on the Masthead title outside the bar,
+  both at 1280px and 375px): the click-outside mechanism this entry marks RESOLVED above closes the
+  dropdown correctly in the isolated Masthead/CommandBar mount, at both widths. The operator's
+  reported desktop failure does not reproduce there; a full production route (AskAssistant panel,
+  sidebar, other document-level listeners this harness does not mount) was not available to test
+  against in this session. The click-outside code itself was left unchanged.
+- The real defect this entry's RESOLVED note missed: Escape and click-outside give every user a way
+  to DISMISS the dropdown, but neither gives anyone a VISIBLE control to do it with, exactly what
+  the operator's ruling names ("hitting esc is not a clear fix"). Task 4.1b added a trailing
+  clear/close icon button inside the bar (44x44, "Clear search"/"Close search") and a visible "Close"
+  row at the top of the portaled results panel, on every viewport including desktop, so the reader
+  never has to guess where to click. See `docs/ops/session-log.md`'s SEARCHKEYS-B entry for the full
+  build.

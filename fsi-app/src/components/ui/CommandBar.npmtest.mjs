@@ -114,7 +114,12 @@ test("Search mode's submit control is never disabled — askDisabled is scoped t
 // every test above; these assert the code SHAPE that produces the required behaviour.
 
 test("keyboard/dismissal helpers come from the one sibling module commandBarKeyboard.ts, never a second implementation inline", () => {
-  assert.match(SOURCE, /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/);
+  // Task 4.1b (SEARCHKEYS-B) added two more named imports (clearButtonVisible/clearButtonLabel)
+  // from the SAME sibling module to the same import statement, still the one and only import site.
+  assert.match(
+    SOURCE,
+    /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*clearButtonVisible,\s*\n\s*clearButtonLabel,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/
+  );
 });
 
 test("Escape closes the dropdown via a `dismissed` flag, not by clearing `results`; the typed query and fetched rows survive", () => {
@@ -174,4 +179,60 @@ test("the listbox id is instance-scoped via React's useId(), not a fixed module-
   assert.match(SOURCE, /const listboxId = `cl-command-bar-listbox-\$\{useId\(\)\}`;/);
   assert.doesNotMatch(SOURCE, /const LISTBOX_ID = "cl-command-bar-listbox";/, "the old fixed-id constant must be gone, not merely unused");
   assert.match(SOURCE, /\bimport \{[\s\S]{0,120}useId,/, "useId must be imported from react");
+});
+
+// ── SEARCHKEYS-B (task 4.1b, 2026-09-11): visible close controls on every viewport ───────────────
+//
+// Operator report closed: "there needs to be a way to click it shut", ruled to cover desktop too:
+// "I want it fixed for desktop as well. Hitting esc is not a clear fix." Task 4.1 gave every
+// viewport Escape + click-outside dismissal but no VISIBLE control; this lane adds two: a trailing
+// clear/close icon button inside the bar, and a "Close" row at the top of the portaled panel.
+
+// (The import-shape assertion for clearButtonVisible/clearButtonLabel lives in the pre-existing
+// "keyboard/dismissal helpers come from the one sibling module" test above, updated for this lane
+// rather than duplicated here.)
+
+test("lucide's X icon is reused for the close affordance, matching AskAssistant/ArchiveDialog/GroupModals' existing close-icon convention rather than a new glyph", () => {
+  assert.match(SOURCE, /import \{ X \} from "lucide-react";/);
+});
+
+test("a trailing clear/close button sits in the bar, 44x44 CSS px (law 2), hidden unless there is text or the dropdown is open", () => {
+  assert.match(SOURCE, /className="cl-command-bar-clear"/);
+  assert.match(SOURCE, /width:\s*44,\s*\n\s*height:\s*44,/);
+  assert.match(SOURCE, /showClearButton\s*&&/);
+  assert.match(SOURCE, /const showClearButton = clearButtonVisible\(hasQueryText, showDropdown\) && mode === "search";/);
+});
+
+test("the clear/close button's accessible name switches between the two named states, never a fixed label", () => {
+  assert.match(SOURCE, /const clearLabel = clearButtonLabel\(hasQueryText\);/);
+  assert.match(SOURCE, /aria-label=\{clearLabel\}/);
+});
+
+test("activating the clear/close button focuses the input BEFORE dismissing (not after); the input's own onFocus un-dismisses, so focusing after setDismissed(true) would silently reopen what this button just closed", () => {
+  assert.match(SOURCE, /const handleClearOrClose = \(\) => \{\s*\n\s*inputRef\.current\?\.focus\(\);/);
+  assert.match(SOURCE, /if \(hasQueryText\) \{\s*\n\s*setValue\(""\);/);
+  assert.match(SOURCE, /inputRef\.current\?\.focus\(\);\s*\n\s*if \(hasQueryText\)[\s\S]{0,120}setDismissed\(true\);\s*\n\s*\};/);
+});
+
+test("the portaled panel carries a visible Close row at its top, 44px tall, same accessible name convention (its own visible text IS its accessible name)", () => {
+  assert.match(SOURCE, /className="cl-command-bar-panel-close"/);
+  assert.match(SOURCE, /height:\s*44,/);
+  assert.match(SOURCE, />\s*\n\s*Close\s*\n\s*<\/button>/);
+});
+
+test("the panel's Close row also focuses the input BEFORE dismissing, same ordering fix as the trailing button", () => {
+  assert.match(SOURCE, /inputRef\.current\?\.focus\(\);\s*\n\s*setDismissed\(true\);\s*\n\s*\}\}\s*\n\s*className="cl-command-bar-panel-close"/);
+});
+
+test("the Close row is NOT role=option and is not counted by moveActiveIndex/searchRows; it must not break aria-activedescendant", () => {
+  // The close row's own JSX lives OUTSIDE the searchRows.map that produces role="option" rows; use
+  // the LAST role="option" occurrence, since the file's own header prose mentions the phrase twice
+  // before any JSX at all.
+  const closeRowIdx = SOURCE.indexOf('className="cl-command-bar-panel-close"');
+  const roleOptionIdx = SOURCE.lastIndexOf('role="option"');
+  assert.ok(closeRowIdx > -1 && roleOptionIdx > -1 && closeRowIdx < roleOptionIdx, "the close row must render before (outside) the role=option row map");
+});
+
+test("the listbox id/role stay on the actual options container, not the outer panel, so aria-controls still points at the right element", () => {
+  assert.match(SOURCE, /id=\{listboxId\}\s*\n\s*role="listbox"/);
 });

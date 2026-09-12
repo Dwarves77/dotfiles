@@ -144,6 +144,133 @@ function commandBarApi(rows = searchResults()) {
   ];
 }
 
+// SEARCHKEYS-B (task 4.1b, 2026-09-11), step 2's required live proofs: the trailing clear/close
+// button meets the law-2 44x44 floor and, when tapped, clears the text and closes the listbox; the
+// panel's Close row meets the 44px floor and closes the panel; a click/tap outside the bar and the
+// panel closes it too. All four run at BOTH 1280px (desktop, the width the operator's report named)
+// and 375px (RD-60's mobile-class viewport), per the brief's own step 2 instruction. Mouse clicks
+// are used throughout, not a separate touch-specific API: CommandBar.tsx's own header explains why
+// its outside-dismissal listener is `pointerdown` rather than `click`/`touchstart`; the Pointer
+// Events spec unifies mouse, pen and touch into the one event type a real tap also dispatches, so a
+// synthetic mouse click exercises the identical code path a touch tap would.
+async function runVisibleCloseControlsChecks(browser, bundleJs, width, height) {
+  const failures = [];
+  let checks = 0;
+  const tag = `${width}px`;
+
+  const page = await newSmokePage(browser, { apiRoutes: commandBarApi() });
+  await page.setViewportSize({ width, height });
+  await mountBundle(page, bundleJs, "__mount", null);
+  await page.waitForTimeout(200);
+
+  const openDropdown = async () => {
+    await page.click(".cl-command-bar input");
+    await page.type(".cl-command-bar input", "ppwr", { delay: 20 });
+    await page.waitForTimeout(600);
+  };
+  await openDropdown();
+
+  // (a) the trailing clear/close button meets the law-2 44x44 floor
+  checks++;
+  const clearBox = await page.evaluate(() => {
+    const el = document.querySelector(".cl-command-bar-clear");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  });
+  if (!clearBox) {
+    failures.push(`command-bar-search-portal (${tag}): no .cl-command-bar-clear button rendered while the dropdown is open.`);
+  } else if (!(clearBox.width >= 44 && clearBox.height >= 44)) {
+    failures.push(`command-bar-search-portal (${tag}): clear button ${JSON.stringify(clearBox)}, expected >= 44x44 (law 2).`);
+  }
+
+  // (b) tapping it closes the listbox AND clears the text
+  checks++;
+  await page.click(".cl-command-bar-clear");
+  await page.waitForTimeout(100);
+  const afterClear = await page.evaluate(() => ({
+    listboxGone: !document.querySelector('[role="listbox"]'),
+    inputValue: document.querySelector(".cl-command-bar input").value,
+  }));
+  if (!afterClear.listboxGone) {
+    failures.push(`command-bar-search-portal (${tag}): tapping the clear button did not close the listbox.`);
+  }
+  if (afterClear.inputValue !== "") {
+    failures.push(`command-bar-search-portal (${tag}): tapping the clear button did not clear the text (value: ${JSON.stringify(afterClear.inputValue)}).`);
+  }
+
+  // (c) the panel's Close row exists, meets the 44px floor, and closes the panel; reopen first,
+  // since (b) above already closed it.
+  await openDropdown();
+  checks++;
+  const closeRowBox = await page.evaluate(() => {
+    const el = document.querySelector(".cl-command-bar-panel-close");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  });
+  if (!closeRowBox) {
+    failures.push(`command-bar-search-portal (${tag}): no .cl-command-bar-panel-close row in the open panel.`);
+  } else if (!(closeRowBox.height >= 44)) {
+    failures.push(`command-bar-search-portal (${tag}): panel Close row height ${closeRowBox.height}px, expected >= 44px (law 2).`);
+  }
+  checks++;
+  await page.click(".cl-command-bar-panel-close");
+  await page.waitForTimeout(100);
+  const closedByPanelRow = !(await page.$('[role="listbox"]'));
+  if (!closedByPanelRow) {
+    failures.push(`command-bar-search-portal (${tag}): clicking the panel's Close row did not close it.`);
+  }
+
+  // (d) a click/tap outside both the bar and the panel closes it; reproduces the operator's own
+  // three-point repro (step 1): the page body, and the Masthead outside the bar. Reopen first.
+  await openDropdown();
+  const outsidePoint = await page.evaluate(
+    ({ w, h }) => {
+      const bar = document.querySelector(".cl-command-bar").getBoundingClientRect();
+      const panel = document.querySelector(".cl-command-bar-panel").getBoundingClientRect();
+      const inside = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      for (let x = 4; x < w; x += 12) {
+        for (let y = 4; y < h; y += 12) {
+          if (!inside(x, y, bar) && !inside(x, y, panel)) return { x, y };
+        }
+      }
+      return null;
+    },
+    { w: width, h: height },
+  );
+  checks++;
+  if (!outsidePoint) {
+    failures.push(`command-bar-search-portal (${tag}): no point outside both the bar and the panel exists at this viewport (the panel fills it); the visible Close row (c above) is the only dismissal path here, and it already passed.`);
+  } else {
+    await page.mouse.click(outsidePoint.x, outsidePoint.y);
+    await page.waitForTimeout(100);
+    const closedByOutsideClick = !(await page.$('[role="listbox"]'));
+    if (!closedByOutsideClick) {
+      failures.push(`command-bar-search-portal (${tag}): clicking outside the bar and panel at ${JSON.stringify(outsidePoint)} did not close it.`);
+    }
+  }
+
+  // (e) the Masthead outside the bar, specifically (operator's own named repro point); reopen,
+  // click the title text (inside the card, outside both the bar and the panel).
+  await openDropdown();
+  checks++;
+  const titlePoint = await page.evaluate(() => {
+    const t = document.querySelector(".cl-masthead-title");
+    const r = t.getBoundingClientRect();
+    return { x: r.left + Math.min(10, r.width / 2), y: r.top + r.height / 2 };
+  });
+  await page.mouse.click(titlePoint.x, titlePoint.y);
+  await page.waitForTimeout(100);
+  const closedByMastheadClick = !(await page.$('[role="listbox"]'));
+  if (!closedByMastheadClick) {
+    failures.push(`command-bar-search-portal (${tag}): clicking the Masthead title (outside the bar and the panel) did not close it.`);
+  }
+
+  await page.close();
+  return { checks, failures };
+}
+
 export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
@@ -170,9 +297,12 @@ export async function runSmoke(browser) {
     return { checks, failures };
   }
 
-  // ── the listbox's own box is fully inside the viewport ─────────────────────────────────────
+  // ── the PANEL's own box (SEARCHKEYS-B, task 4.1b: the panel is now the Close row + the
+  // role="listbox" options container stacked inside one outer box; the viewport/clipping/gap
+  // checks below care about the whole visible panel, not just the options sub-box) is fully
+  // inside the viewport ──────────────────────────────────────────────────────────────────────
   const box = await page.evaluate(() => {
-    const el = document.querySelector('[role="listbox"]');
+    const el = document.querySelector(".cl-command-bar-panel");
     const r = el.getBoundingClientRect();
     return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
   });
@@ -182,13 +312,13 @@ export async function runSmoke(browser) {
     box.top >= 0 && box.left >= 0 && box.right <= viewport.width && box.bottom <= viewport.height;
   if (!insideViewport) {
     failures.push(
-      `command-bar-search-portal: listbox box ${JSON.stringify(box)} is not fully inside the ${viewport.width}x${viewport.height} viewport (SectionCard's overflow:hidden is clipping it).`,
+      `command-bar-search-portal: panel box ${JSON.stringify(box)} is not fully inside the ${viewport.width}x${viewport.height} viewport (SectionCard's overflow:hidden is clipping it).`,
     );
   }
 
-  // ── elementFromPoint at the listbox centre resolves INSIDE the listbox, not the card underneath
+  // ── elementFromPoint at the panel centre resolves INSIDE the panel, not the card underneath ──
   const centreHit = await page.evaluate(() => {
-    const el = document.querySelector('[role="listbox"]');
+    const el = document.querySelector(".cl-command-bar-panel");
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
@@ -201,23 +331,37 @@ export async function runSmoke(browser) {
   checks++;
   if (!centreHit.insideListbox) {
     failures.push(
-      `command-bar-search-portal: document.elementFromPoint at the listbox centre hit ${JSON.stringify(centreHit.hitSelector)}, not the listbox — the reader cannot see or click search results (this is the exact production symptom: "there's no way to search").`,
+      `command-bar-search-portal: document.elementFromPoint at the panel centre hit ${JSON.stringify(centreHit.hitSelector)}, not the panel; the reader cannot see or click search results (this is the exact production symptom: "there's no way to search").`,
     );
   }
 
-  // ── listbox top sits within 12px of the command bar's own bottom edge ──────────────────────
+  // ── panel top sits within 12px of the command bar's own bottom edge ────────────────────────
   const gap = await page.evaluate(() => {
     const bar = document.querySelector(".cl-command-bar");
-    const list = document.querySelector('[role="listbox"]');
+    const panel = document.querySelector(".cl-command-bar-panel");
     const barRect = bar.getBoundingClientRect();
-    const listRect = list.getBoundingClientRect();
-    return listRect.top - barRect.bottom;
+    const panelRect = panel.getBoundingClientRect();
+    return panelRect.top - barRect.bottom;
   });
   checks++;
   if (!(gap >= 0 && gap <= 12)) {
-    failures.push(`command-bar-search-portal: listbox top is ${gap}px from the command bar's bottom edge, expected 0-12px.`);
+    failures.push(`command-bar-search-portal: panel top is ${gap}px from the command bar's bottom edge, expected 0-12px.`);
   }
 
+  // ── SEARCHKEYS-B (task 4.1b): the panel's visible Close row exists, meets the law-2 44px floor
+  // on both axes, and clicking it closes the panel ───────────────────────────────────────────
+  const closeRowBox = await page.evaluate(() => {
+    const el = document.querySelector(".cl-command-bar-panel-close");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  });
+  checks++;
+  if (!closeRowBox) {
+    failures.push("command-bar-search-portal: no .cl-command-bar-panel-close row rendered in the open panel.");
+  } else if (!(closeRowBox.height >= 44)) {
+    failures.push(`command-bar-search-portal: panel Close row height ${closeRowBox.height}px, expected >= 44px (law 2).`);
+  }
   // ── EU PPWR 2025/40 is the first row (search worked end to end, only rendering was broken) ──
   const firstRowText = await page.evaluate(() => {
     const list = document.querySelector('[role="listbox"]');
@@ -227,6 +371,16 @@ export async function runSmoke(browser) {
   checks++;
   if (!firstRowText.includes("EU PPWR 2025/40")) {
     failures.push(`command-bar-search-portal: listbox text did not include "EU PPWR 2025/40" (text: ${JSON.stringify(firstRowText.slice(0, 200))}).`);
+  }
+
+  // ── clicking the panel's Close row closes the listbox (this check runs LAST at 1440px, after
+  // the content checks above, since it tears the panel down) ────────────────────────────────
+  checks++;
+  await page.click(".cl-command-bar-panel-close");
+  await page.waitForTimeout(100);
+  const closedAfterPanelClose = !(await page.$('[role="listbox"]'));
+  if (!closedAfterPanelClose) {
+    failures.push("command-bar-search-portal: clicking the panel's Close row did not close the listbox.");
   }
 
   await page.close();
@@ -294,6 +448,15 @@ export async function runSmoke(browser) {
     }
   }
   await twoPage.close();
+
+  // ── SEARCHKEYS-B (task 4.1b): visible close controls, at 1280px (the operator's own named
+  // desktop width) and 375px (RD-60's mobile-class viewport) ─────────────────────────────────
+  const at1280 = await runVisibleCloseControlsChecks(browser, bundleJs, 1280, 800);
+  checks += at1280.checks;
+  failures.push(...at1280.failures);
+  const at375 = await runVisibleCloseControlsChecks(browser, bundleJs, 375, 812);
+  checks += at375.checks;
+  failures.push(...at375.failures);
 
   return { checks, failures };
 }

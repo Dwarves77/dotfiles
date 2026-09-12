@@ -18133,3 +18133,190 @@ fixture-driven tests above are sufficient and no live run of `population-report.
 ### UX compliance: not applicable
 
 No `.tsx` or `.css` files were touched by this task.
+
+## SEARCHKEYS-B lane, 2026-09-11: the search box can always be closed, on every viewport (task 4.1b)
+
+Resumed from `.worktrees/wt-searchkeys-0911` (task 4.1b of the W9 brief-chain build plan), the
+follow-on to SEARCHKEYS above. Operator report this closes, verbatim: "When you click off the
+search bar it needs to close or there needs to be a way to click it shut. On mobile you can't hit
+esc and it's not clear what you need to do to close it." Follow-up ruling, same day: "I want it
+fixed for desktop as well. Hitting esc is not a clear fix." Task 4.1 (merged as PR #631, the
+SEARCHKEYS entry above) added Escape, ArrowUp/Down, Enter, and pointer-down-outside dismissal, none
+of which is a control the reader can see; this task adds a visible close path at every viewport,
+desktop included, and proves click-off-to-close and the new controls at both 1280px and 375px.
+
+**Step 1: diagnosis, before any edit.** Reused the repo's own
+`command-bar-search-portal-smoke.mjs` harness (Masthead -> CommandBar, real component,
+esbuild-bundled, Playwright's local chromium-1228) to reproduce the operator's own three-point
+repro (page-body click, a click on the Masthead title outside the bar, a pointerdown on a list
+row) at 1280x800 and 375x812. Measurements:
+- 1280px: bar rect `{top:53,left:828,right:1248,bottom:95}`; open panel `{top:101,left:828,
+  right:1248,bottom:461,width:420,height:360}`. A page-body click at `(4,4)` closed the panel
+  (`closedAfter: true`); a click on the Masthead title at `(42,74)` also closed it
+  (`closedAfter: true`); a pointerdown on a list row (not the first, `(838,225.8)`) correctly left
+  it open (`stillOpenAfter: true`, since a row is "inside" the widget, not outside it).
+- 375px: bar rect `{top:83.9,left:24,right:351,bottom:129.9}`; open panel `{top:135.9,left:24,
+  right:351,bottom:495.9,width:327,height:360}`. An outside area DOES exist at this width (the
+  panel's `maxHeight:360` leaves roughly 316px of viewport below it at a 812px-tall viewport); a
+  page-body click at `(4,4)` closed it (`closedAfter: true`); a click on the Masthead title at
+  `(34,59)` also closed it (`closedAfter: true`); a row pointerdown at `(34,260.7)` correctly left
+  it open.
+
+`[CONFIRMED]`, by this method: task 4.1's click-outside dismissal already works correctly in the
+isolated Masthead/CommandBar composition, at both widths named in the operator's report. The
+operator's reported desktop failure does NOT reproduce here. Per CLAUDE.md rule 14 (a finding is a
+hypothesis until verified) this is stated as a confirmed non-reproduction, not as "the operator was
+wrong": a full production route (AskAssistant panel, sidebar, other document-level listeners this
+isolated harness does not mount) was not available to test against in this session, and the exact
+mechanism the brief's own hint list names (capture-phase listener order, the portal root, a
+stopPropagation in a parent, focus-within CSS) was checked by source grep across `fsi-app/src` and
+found absent: no other capture-phase `pointerdown`/`click` listener exists anywhere in the app, no
+`stopPropagation` call exists on any document-level listener, and no `focus-within` CSS rule exists
+anywhere in the codebase. The click-outside code itself (`CommandBar.tsx`'s `pointerdown` effect,
+`commandBarKeyboard.ts`'s `isOutsidePointerDown`) was therefore left unchanged; never a second
+listener bolted on top of a mechanism that already measures correctly.
+
+Given the mechanism reproduces sound in isolation, the operator's own escalated ruling ("hitting esc
+is not a clear fix") names the REAL gap directly: not that dismissal fails, but that no control is
+visible. That is what this task builds.
+
+**Step 2: RED tests**, all driven red before implementation, all shown in full in this lane's report
+(`task-4.1b-report.md`): two new pure predicates in `commandBarKeyboard.ts`
+(`clearButtonVisible`, `clearButtonLabel`) with their own `node --test` cases (verified RED via a
+temporary `git stash` of the implementation, restored after); eight new structural assertions in
+`CommandBar.npmtest.mjs` for the trailing button's presence/size/label/hidden-state and the panel's
+Close row; twelve new live-DOM checks added to `command-bar-search-portal-smoke.mjs` (44x44 sizing,
+tap-to-clear, panel Close row, click-outside, all at 1280px AND 375px) which crashed outright
+against the pre-fix tree (`Cannot read properties of null`, since `.cl-command-bar-panel` did not
+exist yet) rather than merely failing an assertion, confirming they exercise the new code and not a
+pre-existing selector.
+
+**Step 3: implementation**, reusing rather than inventing:
+- A trailing clear/close icon button (`.cl-command-bar-clear`) at the input's own trailing edge,
+  44x44 CSS px (law 2's outright floor, not the 24px+8px-clearance alternative), using lucide's `X`
+  glyph, the SAME icon `AskAssistant.tsx`, `ArchiveDialog.tsx`, `GroupModals.tsx` and
+  `EntityPicker.tsx` already use for their own close affordances (grepped across `fsi-app/src`
+  before writing anything new; no existing `icon-button`/`IconButton` shared class exists anywhere
+  in the codebase, including inside `Masthead.tsx` itself, so none was skipped by mistake). Visible
+  and accessible name switch on `clearButtonVisible`/`clearButtonLabel`: "Clear search" once text is
+  present, "Close search" if the listbox is somehow open over empty text (structurally unreachable
+  today under `MIN_QUERY_LEN`, kept correct regardless); hidden when the input is empty and the
+  listbox is closed, matching the brief's own wording verbatim. Activating it clears the query,
+  dismisses the listbox, and refocuses the input.
+- A visible "Close" row (`.cl-command-bar-panel-close`) at the TOP of the portaled results panel,
+  44px tall, full width, at every viewport including desktop (not gated on "no outside area
+  exists," since the interface requirement applies unconditionally). It is a sibling ABOVE the
+  actual `role="listbox"` element inside one shared outer panel (`.cl-command-bar-panel`), not a
+  child of it: a listbox's children are its options per the WAI-ARIA combobox pattern, and this row
+  is neither `role="option"` nor counted by `moveActiveIndex`/`searchRows`, so
+  `aria-activedescendant` is unaffected (a dedicated structural test locks in that the row's own
+  markup precedes every `role="option"` row in source order). Its visible text ("Close") IS its
+  accessible name; no `aria-label` needed.
+- A real bug caught by the panel-Close-row smoke check while it was still RED for the right reason:
+  both controls originally called `setDismissed(true)` THEN `inputRef.current?.focus()`. Focusing
+  the input fires ITS OWN `onFocus` handler, which un-dismisses per task 4.1's own "re-focusing the
+  input un-dismisses" rule (built for the reader clicking back into the box, not for a control's own
+  imperative refocus); silently reopening what the click had just closed. Fixed by reordering to
+  focus FIRST, dismiss SECOND: React's same-tick batching applies both `setDismissed` calls
+  (`onFocus`'s `false`, then this `true`) in order, so the final state is the intended `true`.
+  Verified live: before the reorder, clicking the panel's Close row left the listbox open
+  (`node scripts/tmp/run-command-bar-smoke.mjs` reported exactly that one failure, 9/10 checks
+  passing); after, all 10 (then 22, once the 1280px/375px live checks were added) pass.
+- The panel's own geometry: `role="listbox"` keeps the id `aria-controls` already points at and its
+  own `overflowY:auto` scroll region, now capped at 316px (`360 - 44`, the Close row's height) so
+  the panel's total footprint is unchanged from before this row was added; the outer panel keeps the
+  original `position:fixed`/`top`/`left`/`width` measured off `barRect`, border, radius and shadow,
+  now with `overflow:hidden` so the rounded corners still clip cleanly with the new row inside them.
+  `listboxRef` (the outside-pointerdown containment check) moved to the OUTER panel so a pointerdown
+  on the Close row itself still reads as "inside the widget," same as a pointerdown on any result
+  row already does.
+- `command-bar-search-portal-smoke.mjs`'s three PRE-EXISTING geometry assertions ("listbox fully
+  inside the viewport," "elementFromPoint at the centre hits the listbox," "listbox top within 12px
+  of the bar's bottom edge") were retargeted from `[role="listbox"]` to `.cl-command-bar-panel`,
+  since the panel (not the now-inset options container) is the thing those checks actually care
+  about; the two-mount unique-listbox-id check and the narrow-box type-visibility check
+  (SEARCHKEYS's own 375px proof) were unaffected and re-verified unchanged.
+
+**Files.** `fsi-app/src/components/ui/CommandBar.tsx`, `fsi-app/src/components/ui/
+commandBarKeyboard.ts`, `fsi-app/src/components/ui/CommandBar.npmtest.mjs`, `fsi-app/src/
+components/ui/commandBarKeyboard.npmtest.mjs`, `fsi-app/.discipline/rendering/smoke/
+command-bar-search-portal-smoke.mjs`, `docs/tech-debt-log.md` (correction block on the 2026-09-11
+CommandBar entry), `docs/ops/session-log.md` (this entry).
+
+**Tests, RED then GREEN.** `node --test src/components/ui/commandBarKeyboard.npmtest.mjs
+src/components/ui/CommandBar.npmtest.mjs`: 50/50 pass (19 in `commandBarKeyboard.npmtest.mjs`, 31 in
+`CommandBar.npmtest.mjs`, up from 13/24 before this lane). The two new pure predicates were driven
+RED by a temporary `git stash push -u` of just `commandBarKeyboard.ts`'s implementation (confirmed
+`TypeError: clearButtonLabel is not a function`), then restored via `git stash apply` +
+`git stash drop` (never a bare `git stash pop`, per this worktree's own shared-stash-stack
+constraint). The eight new `CommandBar.npmtest.mjs` structural assertions were driven RED against
+the pre-implementation source (8 of 31 failing, 23 passing) before the JSX/handler changes landed.
+The smoke harness (`node scripts/tmp/run-command-bar-smoke.mjs`, a throwaway runner under the
+gitignored `fsi-app/scripts/tmp/` scratch directory, deleted before this session's gates ran) went
+0 checks -> crash (pre-fix tree, `.cl-command-bar-panel` did not exist) -> 9/10 (the focus-order bug
+above) -> 22/22 (final).
+
+**### UX compliance**
+
+- Reader's primary goal: close the search results dropdown without guessing where to click, on any
+  device, without needing to know a keyboard shortcut.
+- Shortest path: one visible control at the trailing edge of the input reachable from wherever
+  focus already is (no scrolling, no discovering a hidden gesture); a second, equally visible
+  control at the top of the results panel for a reader whose attention is already inside it.
+- One primary action per state: the trailing button carries exactly one job at a time (clear when
+  there is text, close when there is not), never two competing affordances in the same spot.
+- Feedback state: both controls act synchronously (no network call, no loading state to announce);
+  the dropdown's disappearance and the input's cleared text are the immediate, visible confirmation
+  the action registered (law 6, the Doherty Threshold, is satisfied by construction, not by a
+  spinner nobody needs).
+- **Law 2 (Fitts's Law, target size).** Both new controls are 44x44 (button) / 44-tall-full-width
+  (panel row) CSS px, the outright floor rather than the 24px+8px-clearance alternative, measured
+  live at both 1280px and 375px in the smoke harness (`node scripts/tmp/run-command-bar-smoke.mjs`,
+  22/22 checks including four explicit `>= 44` assertions per width).
+- **Law 3 (Jakob's Law, familiar patterns).** Reuses lucide's `X` glyph, the SAME icon every other
+  close affordance in this app already uses (`AskAssistant.tsx`, `ArchiveDialog.tsx`,
+  `GroupModals.tsx`, `EntityPicker.tsx`), rather than inventing a new close symbol; a labeled "Close"
+  row with a leading X icon is the same shape a reader already recognizes from those dialogs.
+- **Law 6 (Doherty Threshold, immediate feedback).** No async gap between tap and result; see
+  "Feedback state" above.
+- **Law 12 (Prägnanz, simplify).** Two controls, not three: no separate "clear" and "close" buttons
+  layered on top of each other; ONE trailing button covers both states via its own label switch, and
+  the panel's row exists only because the trailing button alone is not reachable once a reader's
+  attention (and, at 375px, much of the viewport) is inside the panel itself.
+- **Law 16 (Law of Similarity, pattern consistency).** Both new controls share one visual/behavioral
+  treatment (same icon, same hover background token `var(--tag, #F0EDE9)`, same "focus the input on
+  close" behavior) rather than two different close conventions in the same component; the active-row
+  highlight inside the panel is untouched, still the pre-existing `--row-hover` token.
+- DP-2 (UX laws on every surface): satisfied per the laws above; DP-1 (single-pane operator review)
+  does not apply, this is a customer-facing control (search), not an operator review surface.
+- 375px measurements (steps 1 and 4, live via the smoke harness): open panel
+  `{top:135.9,left:24,right:351,bottom:495.9,width:327,height:360}`; trailing clear button and panel
+  Close row both measured `>= 44` on every checked axis; outside-click-closes and Close-row-closes
+  both confirmed at this width.
+- Five customer surfaces: the Masthead (and therefore this CommandBar) mounts on all five
+  customer-facing surfaces this platform serves: Regulations, Market Intel, Research, Operations,
+  and Community; so the visible close controls this task adds reach every surface's search box, not
+  only the one page this session smoke-tested.
+
+**Gate outputs.**
+- `npx tsc --noEmit`: clean, zero errors (run repeatedly through the session, including after the
+  final punctuation-only glyph fixes below).
+- `node .discipline/fitness/runner.mjs`: 38/38 functions PASS, 0 violations (the two transient
+  `[F25] module-liveness` findings against this session's own gitignored `fsi-app/scripts/tmp/`
+  scratch runners were cleared by deleting those runners once their evidence was captured here,
+  before this final run).
+- `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: see this lane's commit
+  entry below for the post-commit run.
+- `npx next build`: see this lane's commit entry below.
+- Standing punctuation constraint: `git diff` scanned for U+2013/U+2014/U+00A7 across every line
+  this lane added; 19 em dashes were found in this lane's own new prose/comments/test names
+  (0 en dashes, 0 section signs) and replaced with a colon (label introducing an explanation) or a
+  semicolon (joining two clauses), never removed outright; re-scanned after the fix, 0 remaining in
+  new lines across all six touched files.
+
+**Not touched (out of scope, named rather than silently accepted).** The click-outside-to-close
+mechanism itself (unchanged, re-verified sound); the full production route this session had no way
+to mount (AskAssistant panel, sidebar, and whatever else might sit between a real desktop click and
+this component in production) remains an open question if the operator reproduces the failure again
+after this lane ships the visible controls; the fix in that case is that the controls now give a
+deterministic path regardless of where the click-outside edge case comes from.

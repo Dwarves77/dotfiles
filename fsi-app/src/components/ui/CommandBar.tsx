@@ -76,6 +76,33 @@
  *     SAME href a click on that row would follow; taking precedence over the mode's normal
  *     submit() action; Enter with no active option (activeIndex -1, the initial state, or after the
  *     result set changes and resets it) still submits normally.
+ *
+ * VISIBLE CLOSE CONTROLS (lane SEARCHKEYS-B, task 4.1b, 2026-09-11). Operator report, verbatim:
+ * "When you click off the search bar it needs to close or there needs to be a way to click it
+ * shut. On mobile you can't hit esc and it's not clear what you need to do to close it." Ruled the
+ * same day to cover desktop too: "I want it fixed for desktop as well. Hitting esc is not a clear
+ * fix." Task 4.1's Escape/click-outside dismissal gives every user a way to CLOSE the dropdown but
+ * gives no one a VISIBLE control to close it with; this lane adds two, on every viewport (desktop
+ * included), reusing the existing lucide `X` glyph every other close affordance in this app already
+ * uses (AskAssistant.tsx, ArchiveDialog.tsx, GroupModals.tsx, EntityPicker.tsx):
+ *   - A trailing icon button inside the bar, at the input's own trailing edge, 44x44 CSS px (law 2);
+ *     `clearButtonVisible`/`clearButtonLabel` (commandBarKeyboard.ts) decide its visibility and
+ *     accessible name ("Clear search" with text present, "Close search" otherwise); activating it
+ *     clears the query, dismisses the dropdown, and returns focus to the input.
+ *   - A "Close" row at the TOP of the portaled results panel (`.cl-command-bar-panel-close`, 44px
+ *     tall), so a reader who cannot see anything outside the panel still has a control to dismiss
+ *     it with. It lives OUTSIDE the `role="listbox"` element (a sibling above it inside the same
+ *     panel), not inside it: a listbox's children are options per the WAI-ARIA combobox pattern,
+ *     and this row is neither role="option" nor counted by `moveActiveIndex`/`searchRows`, so
+ *     `aria-activedescendant` is unaffected.
+ * Click-outside-to-close itself (task 4.1) was re-verified, not changed: a scripted repro against
+ * this exact Masthead/CommandBar composition (page-body click, a click on the Masthead title
+ * outside the bar, both at 1280px and 375px) closes the dropdown correctly in both cases; seeing
+ * the operator's reported desktop failure would need the full production route (AskAssistant panel,
+ * sidebar, other document-level listeners) this isolated harness does not mount; see this lane's
+ * REPORT for the full transcript. The visible controls below are the fix either way: they give a
+ * deterministic, discoverable close path that never depends on where else on the page a click
+ * lands.
  */
 
 import {
@@ -89,6 +116,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { formatNumber } from "@/lib/format";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
@@ -103,6 +131,8 @@ import {
   isOutsidePointerDown,
   optionId,
   activeDescendantId,
+  clearButtonVisible,
+  clearButtonLabel,
 } from "@/components/ui/commandBarKeyboard";
 
 type CommandBarMode = "search" | "ask";
@@ -228,6 +258,30 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // results rather than re-fetching.
   const showDropdown =
     mode === "search" && !dismissed && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
+
+  // Visible close controls (SEARCHKEYS-B, task 4.1b): `hasQueryText` reads the RAW value (not
+  // trimmed) so the button's hidden/visible state matches the brief's own wording literally
+  // ("hidden when the input is empty") rather than the trimmed length MIN_QUERY_LEN gates search
+  // on. Scoped to Search mode only: Ask mode has no listbox and no persisted-query concept this
+  // control manages; widening it to Ask mode is a separate decision, not this task's scope.
+  const hasQueryText = value.length > 0;
+  const showClearButton = clearButtonVisible(hasQueryText, showDropdown) && mode === "search";
+  const clearLabel = clearButtonLabel(hasQueryText);
+  // Focus BEFORE dismissing, not after (caught by the panel-Close-row smoke check while diagnosing
+  // this task: refocusing the input fires its OWN onFocus handler, which un-dismisses per task 4.1's
+  // "re-focusing the input un-dismisses" rule, set up for the reader clicking back into the box, not
+  // for THIS control's own imperative refocus. Calling `setDismissed(true)` AFTER `.focus()` means
+  // React's same-tick batching applies both `setDismissed` calls (onFocus's `false`, then this `true`)
+  // in order, so the final state is the intended `true`; reversing the order would let onFocus's
+  // `false` land last and silently reopen what this button just closed.
+  const handleClearOrClose = () => {
+    inputRef.current?.focus();
+    if (hasQueryText) {
+      setValue("");
+      onSearch?.("");
+    }
+    setDismissed(true);
+  };
 
   // A fresh result set invalidates any previously active option; reset to "none active" rather
   // than carry an index that may now point at a different row or past the new end. Not reset on
@@ -435,6 +489,9 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           .cl-command-bar .cl-cmdk-hint { display: none; }
           .cl-command-bar .cl-search-glyph { font-size: 15px !important; }
         }
+        .cl-command-bar-clear:hover, .cl-command-bar-panel-close:hover {
+          background: var(--tag, #F0EDE9);
+        }
       `}</style>
       <span aria-hidden="true" className="cl-search-glyph" style={{ fontSize: 14, color: "var(--ink-3)" }}>
         ⌕
@@ -545,6 +602,36 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           textOverflow: "ellipsis",
         }}
       />
+      {/* Trailing clear/close button (SEARCHKEYS-B, task 4.1b): the visible control the operator's
+          report asked for, at the input's own trailing edge, on every viewport including desktop.
+          44x44 CSS px meets the law-2 floor outright rather than the 24px+8px-clearance alternative;
+          the bar's own row is 40px tall on desktop (44px below 768 via the existing mobile media
+          query above), so this button is centered on that row and can overflow it by up to 2px on
+          desktop; harmless, since neither the form nor its parent clips (SectionCard's own
+          overflow:hidden, per this file's header, is far outside this box). */}
+      {showClearButton && (
+        <button
+          type="button"
+          onClick={handleClearOrClose}
+          aria-label={clearLabel}
+          className="cl-command-bar-clear"
+          style={{
+            flexShrink: 0,
+            width: 44,
+            height: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+            color: "var(--ink-3)",
+          }}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      )}
       <span
         aria-hidden="true"
         className="cl-cmdk-hint"
@@ -611,78 +698,135 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         portalTarget &&
         barRect &&
         createPortal(
+          // SEARCHKEYS-B (task 4.1b): the panel is now a two-part box: a visible "Close" row on
+          // top, then the actual `role="listbox"` options container below it. The row lives OUTSIDE
+          // role="listbox" (a sibling, not a child) because a listbox's children are its options per
+          // the WAI-ARIA combobox pattern; nesting a plain button inside it would be a non-option
+          // child of a listbox, which is exactly what this file avoids everywhere else (see the
+          // per-row comment below on why each result is its own thin option wrapper rather than a
+          // prop bolted onto ListRow). `listboxRef` moves to this OUTER div so a pointerdown on the
+          // Close row itself still reads as "inside the widget" for the outside-click check, same as
+          // a pointerdown on any result row already does.
           <div
-            id={listboxId}
             ref={listboxRef}
-            role="listbox"
-            aria-label="Search results"
+            className="cl-command-bar-panel"
             style={{
               position: "fixed",
               top: barRect.top,
               left: barRect.left,
               width: barRect.width,
-              // Lane searchrow, 2026-09-11, operator screenshot: rows rendered jurisdiction-code-
-              // then-dashes with no title and no type. [CONFIRMED, .discipline/rendering harness,
-              // real ListRow mounted at this exact 330px-in-1175px box]: ListRow's shared grid
-              // (ListRow.tsx GRID) needs 489px of fixed columns before its 1fr title column gets
-              // any width, and its only narrow-reflow rule was a viewport `@media (max-width:
-              // 767px)` query, which never fires here because the VIEWPORT stays wide even though
-              // this BOX is ~330px, so the title column collapsed to 0 and painted nothing. This
-              // listbox is the first ListRow caller whose box is narrow independent of the
-              // viewport, so it now opts into CSS containment; ListRow.tsx's RESPONSIVE_CSS gained
-              // an unnamed `@container (max-width: 489px)` query that reuses the exact same
-              // reflow rules the mobile `@media` block already applies (LIST_ROW_NARROW_REFLOW_CSS,
-              // one template, two triggers) rather than a second row anatomy. No other ListRow
-              // caller sets `containerType`, so none of them are affected.
-              containerType: "inline-size",
               background: "var(--card)",
               border: "1px solid var(--line-1)",
               borderRadius: 8,
               boxShadow: "var(--shadow-card-hover, 0 8px 24px rgba(0,0,0,.12))",
               maxHeight: 360,
-              overflowY: "auto",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
               zIndex: 600,
             }}
           >
-            {searching && results === null ? (
-              <>
-                <SkeletonListRow />
-                <SkeletonListRow />
-                <SkeletonListRow />
-              </>
-            ) : searchRows.length === 0 ? (
-              <div style={{ padding: 16 }}>
-                <StateNote>No results for “{value.trim()}”.</StateNote>
-              </div>
-            ) : (
-              searchRows.map((row, index) => {
-                const { key, ...rowProps } = row;
-                const active = index === activeIndex;
-                return (
-                  // WAI-ARIA combobox pattern: each row is the "option", a thin wrapper around the
-                  // shared ListRow rather than adding role/id props to ListRow itself (which is a
-                  // shared part with unrelated callers; see this file's own header on reuse). The
-                  // active highlight reuses `--row-hover`, the SAME token `.cl-list-row:hover`
-                  // already paints, so keyboard-active and mouse-hover read as one visual state
-                  // (law 16, pattern consistency), not two different treatments for "selected".
-                  // `onMouseMove` keeps the roving index in sync with the pointer so the two
-                  // selection mechanisms (keyboard, mouse) never show two different rows
-                  // highlighted at once.
-                  <div
-                    key={key}
-                    id={optionId(listboxId, index)}
-                    role="option"
-                    aria-selected={active}
-                    onMouseMove={() => {
-                      if (activeIndex !== index) setActiveIndex(index);
-                    }}
-                    style={{ background: active ? "var(--row-hover)" : undefined }}
-                  >
-                    <ListRow {...rowProps} />
-                  </div>
-                );
-              })
-            )}
+            {/* Visible "Close" row (task 4.1b interface 2): so a reader who cannot see anything
+                "outside" the panel (the panel can fill most of a narrow viewport) still has a
+                control that dismisses it. Its own visible text IS its accessible name (no aria-label
+                needed); refocuses the input, same as the trailing clear/close button above, so
+                closing the search results always returns focus to the control that opened them. */}
+            <button
+              type="button"
+              onClick={() => {
+                // Focus before setDismissed(true), same ordering fix as handleClearOrClose above
+                // and for the same reason: the input's own onFocus handler un-dismisses, so
+                // refocusing AFTER would silently reopen what this click just closed.
+                inputRef.current?.focus();
+                setDismissed(true);
+              }}
+              className="cl-command-bar-panel-close"
+              style={{
+                flexShrink: 0,
+                height: 44,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "0 14px",
+                border: "none",
+                borderBottom: "1px solid var(--line-1)",
+                background: "transparent",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: "var(--fs-13)",
+                fontWeight: 600,
+                color: "var(--ink-2)",
+              }}
+            >
+              <X size={16} aria-hidden="true" />
+              Close
+            </button>
+            <div
+              id={listboxId}
+              role="listbox"
+              aria-label="Search results"
+              style={{
+                // Lane searchrow, 2026-09-11, operator screenshot: rows rendered jurisdiction-code-
+                // then-dashes with no title and no type. [CONFIRMED, .discipline/rendering harness,
+                // real ListRow mounted at this exact 330px-in-1175px box]: ListRow's shared grid
+                // (ListRow.tsx GRID) needs 489px of fixed columns before its 1fr title column gets
+                // any width, and its only narrow-reflow rule was a viewport `@media (max-width:
+                // 767px)` query, which never fires here because the VIEWPORT stays wide even though
+                // this BOX is ~330px, so the title column collapsed to 0 and painted nothing. This
+                // listbox is the first ListRow caller whose box is narrow independent of the
+                // viewport, so it now opts into CSS containment; ListRow.tsx's RESPONSIVE_CSS gained
+                // an unnamed `@container (max-width: 489px)` query that reuses the exact same
+                // reflow rules the mobile `@media` block already applies (LIST_ROW_NARROW_REFLOW_CSS,
+                // one template, two triggers) rather than a second row anatomy. No other ListRow
+                // caller sets `containerType`, so none of them are affected.
+                containerType: "inline-size",
+                // 316 = the panel's own 360 maxHeight minus the 44px Close row above it (task
+                // 4.1b), so the total footprint is unchanged from before this row was added.
+                maxHeight: 316,
+                overflowY: "auto",
+              }}
+            >
+              {searching && results === null ? (
+                <>
+                  <SkeletonListRow />
+                  <SkeletonListRow />
+                  <SkeletonListRow />
+                </>
+              ) : searchRows.length === 0 ? (
+                <div style={{ padding: 16 }}>
+                  <StateNote>No results for “{value.trim()}”.</StateNote>
+                </div>
+              ) : (
+                searchRows.map((row, index) => {
+                  const { key, ...rowProps } = row;
+                  const active = index === activeIndex;
+                  return (
+                    // WAI-ARIA combobox pattern: each row is the "option", a thin wrapper around the
+                    // shared ListRow rather than adding role/id props to ListRow itself (which is a
+                    // shared part with unrelated callers; see this file's own header on reuse). The
+                    // active highlight reuses `--row-hover`, the SAME token `.cl-list-row:hover`
+                    // already paints, so keyboard-active and mouse-hover read as one visual state
+                    // (law 16, pattern consistency), not two different treatments for "selected".
+                    // `onMouseMove` keeps the roving index in sync with the pointer so the two
+                    // selection mechanisms (keyboard, mouse) never show two different rows
+                    // highlighted at once.
+                    <div
+                      key={key}
+                      id={optionId(listboxId, index)}
+                      role="option"
+                      aria-selected={active}
+                      onMouseMove={() => {
+                        if (activeIndex !== index) setActiveIndex(index);
+                      }}
+                      style={{ background: active ? "var(--row-hover)" : undefined }}
+                    >
+                      <ListRow {...rowProps} />
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>,
           portalTarget,
         )}
