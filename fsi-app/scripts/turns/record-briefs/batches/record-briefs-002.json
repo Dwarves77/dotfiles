@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:17:53.485Z",
+  "generated_at": "2026-09-12T18:20:19.615Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -199,6 +199,114 @@
           "claim_text": "The captured source states, verbatim: «Made 19th December 1997»",
           "source_span": "Made 19th December 1997",
           "source_url": "https://www.legislation.gov.uk/uksi/1997/3058"
+        }
+      ]
+    },
+    {
+      "item_id": "00a2452a-677e-4556-9ef2-c5749ab5f005",
+      "source_pool_hash": "e0fa904215dd0ccf4f45947b309d4eb0c63f3eee5f49b283286fb5e6bfc3bb2f",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes Council Regulation (EC) No 1420/1999 of 29 April 1999 establishing common rules and procedures to apply to shipments to certain non-OECD countries of certain types of waste, Official Journal L 166, 01/07/1999. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.* This document is scoped to the provisions the captured text grounds: the country-by-country export prohibition and control-procedure regime for waste destined for recovery in non-OECD countries, and the review mechanism. The full country lists in Annex A and Annex B (over 100 countries and territories each) are addressed illustratively, not exhaustively, in this document; the workspace should confirm any specific destination against the current Annex A/B listing directly.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Regulation, adopted by the Council of the European Union, sets export controls, additional to Council Regulation (EEC) No 259/93 on waste shipments, for exports of recovery-destined waste (Annex II to Regulation (EEC) No 259/93) from the Community to non-OECD countries that either objected to receiving such waste or never responded to the Commission's inquiry. Countries objecting are listed in this Regulation's own Annex A, where export \"shall be prohibited\"; countries that did not respond are listed in Annex B, where the Article 15 (Regulation (EEC) No 259/93) prior-notification control procedure applies instead of an outright ban. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.* For workspaces arranging export shipments of recovery-destined waste, scrap metal, or similar recyclable materials to any of the listed non-OECD destinations, this Regulation determines whether that shipment is banned outright or merely subject to a prior-notification procedure. *Operational implication:* the Regulation's own recitals note certain non-EU obligations layer on top of this list; recital 10 records that Article 39 of the Fourth ACP-EC Convention already bars export of Basel Convention Annex I and II waste to ACP countries, and this Regulation excludes those items from its own scope because they are already covered by that separate prohibition.\n\n# Issues Requiring Immediate Action\n\n**ACTION REQUIRED.** Screen the destination country of any recovery-destined waste export against this Regulation's Annex A before accepting the booking: an Annex A-listed country and waste type combination is an outright export ban, not a documentation matter. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.* *Legal Confirmation Required:* whether the workspace, acting as freight forwarder rather than the waste exporter of record, carries any liability exposure under the Member State's national implementing penalty regime for facilitating a prohibited export; the captured text specifies no penalty provision of its own.\n\n**MONITORING.** For an Annex B-listed destination, confirm the Article 15 (Regulation (EEC) No 259/93) prior-notification control procedure has been completed before shipment; the specific notification and consent documentation mechanics are defined in that separate Regulation, not in this captured text. *Operational implication:* Annex A and Annex B are subject to the Commission's own periodic review, so a destination's status can change between shipments.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe Regulation's own operative articles address exports \"from the Community\"; the party arranging or effecting the export (the waste exporter of record) is the party the underlying control and prohibition regime targets. *Legal Confirmation Required:* whether the workspace, in a freight-forwarding or customs-broker capacity rather than as the waste exporter itself, falls within the scope of any Member State penalty provision implementing this Regulation and Regulation (EEC) No 259/93; the captured text names no penalty mechanism of its own for this document to ground a role determination against.\n\n# Substantive Requirements\n\n**Annex A prohibition.** \"The export of waste listed in Annex II to Regulation (EEC) No 259/93 and mentioned in Annex A to this Regulation to countries listed in said Annex A shall be prohibited.\" *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.*\n\n**Annex B control procedure.** \"The control procedure laid down in Article 15 of Regulation (EEC) No 259/93 shall apply to exports to the countries listed in Annex B to this Regulation with respect to those categories of waste destined for recovery only and listed in Annex II to Regulation (EEC) No 259/93.\" *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.*\n\n**Country-requested change of procedure.** A destination country may ask the Commission to change which control procedure applies to it; the Commission then notifies Member States \"within 21 days of receipt of the request\" and submits a proposed determination to the relevant committee \"within three months of receipt of the request.\" *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.* *Analytical inference:* the qualification a headline \"control procedure applies per Annex\" statement would omit is that the specific procedure for an Annex B country can be reassigned mid-cycle at that country's own request, on this 21-day/three-month administrative timeline.\n\n**ACP country exclusion.** Waste items already covered by the Fourth ACP-EC Convention's own export prohibition (Basel Convention Annex I and II waste to ACP countries) are excluded from this Regulation's own scope, since that separate international obligation already bars the shipment. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.*\n\n**Illustrative country entries.** Annex A country entries are typically drawn narrowly by waste sub-category rather than blanket bans: for example, the Annex A entry for \"ALBANIA\" reads \"All types except:\" a list of specific ferrous and non-ferrous metal scrap and other sub-categories carved out from the prohibition, and the Annex B entry for \"ANGOLA\" similarly reads \"All types except:\" a shorter list of carved-out sub-categories. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.* *Analytical inference:* a workspace cannot rely on a country's presence on Annex A or Annex B alone; the specific waste sub-category carve-outs for that country determine whether a given shipment is banned, controlled, or unrestricted.\n\n# Registration and Reporting Obligations\n\nThe Annex B control procedure incorporates Article 15 of Regulation (EEC) No 259/93 by reference; the specific notification form and consent documentation for that procedure are set out in that separate Regulation, not in the captured text of this instrument. *Specific notification-form details not available from primary sources as of the export date.*\n\n# Operational System Requirements\n\nFor workspaces arranging recovery-destined waste exports: (1) build a destination-country screening step against the current Annex A and Annex B listings before booking, and (2) track the Commission's periodic review of those Annexes, since a country's status is not fixed. *Operational implication:* the specific waste sub-category carve-outs mean this cannot be a single country-level yes/no gate; the screening step needs waste-category granularity to match Annex A and Annex B's own structure.\n\n# Exemptions and Edge Cases\n\nMost Annex A and Annex B country entries carry sub-category carve-outs rather than a blanket ban or blanket control procedure: the source text's own qualifying language is \"All types except:\" followed by the specific waste sections excluded from the country's general prohibition or control status. Some countries (for example ANDORRA, GHANA, or CAPE VERDE in Annex A) carry no carve-out at all, so \"All types\" of the covered Annex II waste is banned for that destination. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.*\n\n# Confirmed Regulatory Timeline\n\n- 29 April 1999: Council Regulation (EC) No 1420/1999 adopted at Luxembourg; the Regulation enters into force on the 90th day following its publication in the Official Journal of the European Communities, and is binding in its entirety and directly applicable in all Member States. *Source: Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420.*\n\n# Sources\n\n- Council Regulation (EC) No 1420/1999 of 29 April 1999, Official Journal L 166, 01/07/1999, Council of the European Union, EUR-Lex (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420\n",
+      "metadata": {
+        "severity": "ACTION REQUIRED",
+        "priority": "CRITICAL",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "reporting"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Council Regulation (EC) No 1420/1999, Council of the European Union, EUR-Lex (Official Journal L 166, 01/07/1999), establishing a country-by-country export prohibition (Annex A) or Article 15 control procedure (Annex B) for shipments of recovery-destined waste from the EU to non-OECD countries.",
+        "why_matters": "Workspaces arranging export shipments of recovery-destined waste, scrap metal, or similar recyclable materials to a non-OECD destination must screen that country and waste sub-category against Annex A (outright ban) or Annex B (prior-notification control procedure) before booking, since an Annex A match is a legal export ban with no documentation workaround. Annex A and Annex B are subject to periodic Commission review, so a country's status is not fixed over time, and most country entries carry sub-category carve-outs rather than a blanket rule.",
+        "key_data": [
+          "Annex A countries: export of listed Annex II waste is prohibited outright",
+          "Annex B countries: the Article 15 (Regulation (EEC) No 259/93) control procedure applies instead of a ban",
+          "Country-requested procedure change: Commission notifies Member States within 21 days and submits a proposed determination within three months",
+          "Regulation entered into force on the 90th day following publication in the Official Journal"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "exporter",
+          "freight-forwarder",
+          "customs-broker"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «This Regulation shall enter into force on the 90th day following that of its publication in the Official Journal of the European Communities.»",
+          "source_span": "This Regulation shall enter into force on the 90th day following that of its publication in the Official Journal of the European Communities.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: «The control procedures established by this Regulation shall be subject to periodic review by the Commission and for the first time no later than nine months following its publication in the Official Journal, taking into account the experience gained.»",
+          "source_span": "The control procedures established by this Regulation shall be subject to periodic review by the Commission and for the first time no later than nine months following its publication in the Official Journal, taking into account the experience gained.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim, its own title: «Council Regulation (EC) No 1420/1999 of 29 April 1999 establishing common rules and procedures to apply to shipments to certain non-OECD countries of certain types of waste».",
+          "source_span": "Council Regulation (EC) No 1420/1999 of 29 April 1999 establishing common rules and procedures to apply to shipments to certain non-OECD countries of certain types of waste",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] Specific penalty provision not available from primary sources as of the export date; the captured text creates the prohibition and control-procedure regime but names no penalty or enforcement mechanism of its own."
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Done at Luxembourg, 29 April 1999.»",
+          "source_span": "Done at Luxembourg, 29 April 1999.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «The export of waste listed in Annex II to Regulation (EEC) No 259/93 and mentioned in Annex A to this Regulation to countries listed in said Annex A shall be prohibited.»",
+          "source_span": "The export of waste listed in Annex II to Regulation (EEC) No 259/93 and mentioned in Annex A to this Regulation to countries listed in said Annex A shall be prohibited.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «The control procedure laid down in Article 15 of Regulation (EEC) No 259/93 shall apply to exports to the countries listed in Annex B to this Regulation with respect to those categories of waste destined for recovery only and listed in Annex II to Regulation (EEC) No 259/93.»",
+          "source_span": "The control procedure laid down in Article 15 of Regulation (EEC) No 259/93 shall apply to exports to the countries listed in Annex B to this Regulation with respect to those categories of waste destined for recovery only and listed in Annex II to Regulation (EEC) No 259/93.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, that the Commission shall inform Member States of a country's change of position within a fixed window: «The Commission shall inform the Member States of the change of position of a country of destination within 21 days of receipt of the request from that country and shall submit its proposed determination to the Committee established under said Article 18 of Directive 75/442/EEC as soon as possible within three months of receipt of the request.»",
+          "source_span": "The Commission shall inform the Member States of the change of position of a country of destination within 21 days of receipt of the request from that country and shall submit its proposed determination to the Committee established under said Article 18 of Directive 75/442/EEC as soon as possible within three months of receipt of the request.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the Albania Annex A entry: «ALBANIA All types except:»",
+          "source_span": "ALBANIA All types except:",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim, the Angola Annex B entry: «ANGOLA All types except:»",
+          "source_span": "ANGOLA All types except:",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999R1420"
         }
       ]
     }
