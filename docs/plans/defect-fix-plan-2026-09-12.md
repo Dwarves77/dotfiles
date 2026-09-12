@@ -100,6 +100,14 @@ Fix at the source: the section extractor refuses a candidate whose span is only 
 
 Class fix: a forward event must be verbatim in its source (the same rule as a FACT claim); add an assertion to the forward-events write path that the span is present in the pool or section text it cites, refusing otherwise with a run-log line. Lane: L6, one Sonnet lane after L1 to L5, on a freed worktree.
 
+### D11. The pre-push hook writes every step log to a fixed path under /tmp, so concurrent hook runs clobber each other [CONFIRMED]
+
+Evidence: `fsi-app/.discipline/hooks/pre-push` lines 102 to 178 redirect each step to `/tmp/discipline-prepush-{c,t,inv,gate,tsc}.log` and `rm -f` the file when the step ends. On 2026-09-12 the batch-001 push ran while two lane gates were running; its step 3 failed and printed `tail: cannot open '/tmp/discipline-prepush-t.log'` instead of the failing tests, because another run had already deleted the file. The exit status is the suite's own, so a fail is real, but its diagnosis is lost and a passing run can also delete the log a failing run needs.
+
+Root cause: shared fixed temp paths in a hook that is run concurrently by design (one push per lane, lane preflights, the coordinator's gate runs).
+
+Fix at the source: the hook creates one per-run directory with `mktemp -d` (fallback to `$TMPDIR` or `/tmp` with the pid in the name when mktemp is unavailable), writes every step log inside it, prints the directory on failure, and removes it on success with a trap on exit; no fixed path remains. A test in `.discipline/hooks/` (or the hook's existing test file if one exists) runs two hook invocations concurrently against a fixture and asserts both logs survive. Lane: L3 (the discipline lane), added to its scope by the coordinator; if L3 has already reported, a follow-on lane L7.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -110,6 +118,8 @@ Class fix: a forward event must be verbatim in its source (the same rule as a FA
 | L3 discipline | D5 rule 022, D7 inventory step, test and verifier | a freed worktree | none; lands before L1 and L2 push so their ranges are checked by the rule |
 | L4 7.8 | D6, review then push | wt-eudecision-0911 | review PASS |
 | L5 investigation | D8 finding | read-only | none |
+| L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
+| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 
 Order of pushes (serial, each through the hook): L4, L3, L2, L1. Then: brief-export for 00a8c0d9 alone, the batch-002 lane writes its tenth brief, brief-apply with `allow_brief_overwrite` for batches 001 and 002, the three 7.2 dry runs one at a time, then their applies, then the 7.5 dry runs and applies.
