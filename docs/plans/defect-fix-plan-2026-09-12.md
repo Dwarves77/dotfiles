@@ -34,7 +34,7 @@ Evidence (coordinator, live SQL): `provisional_sources_status_check` allows only
 Root cause: the migration that added `promoted_to_source_id` did not widen the status CHECK, and nothing checks the vocabulary a writer uses against the vocabulary the database accepts. Task 7.5 copied the route's convention and would have failed on its first apply row.
 
 Fix at the source, two tracks (standing rule 3):
-- DDL, coordinator applies before the code merges: migration `<next number>_provisional_sources_status_promoted.sql`: drop and re-add `provisional_sources_status_check` with `promoted` added to the list. Nothing else changes; `rejected` stays the decline value.
+- DDL, coordinator applies before the code merges: migration `317_provisional_sources_status_promoted.sql` (315 and 316 are the last tracked): drop and re-add `provisional_sources_status_check` with `promoted` added to the list. Nothing else changes; `rejected` stays the decline value.
 - Code (task 7.5 fix round, in the same lane): `resolve-provisional-sources.mjs` and the shared `promote-provisional.ts` write `promoted` for an activated source (with `promoted_to_source_id`) and `rejected` for a declined one, with the reason in `reviewer_note`. A test asserts that every status literal the module can write is in the set the migration declares (the four existing values plus `promoted`), with a comment naming the constraint.
 
 Class fix (D7 below): a tracked inventory of CHECK vocabularies with a drift verifier, so a writer that uses a value the database refuses fails a unit test before it fails in production.
@@ -43,13 +43,13 @@ Class fix (D7 below): a tracked inventory of CHECK vocabularies with a drift ver
 
 Evidence: review-7.5.md; `resolve-provisional-sources.mjs` re-reads its own worklisted rows and inserts a new `integrity_flags` row per run instead of merging into the per-host `null-tier-host` flag.
 
-Fix at the source: extract the pure merge plan that `resolve-cited-host-gate.mjs` already carries (its "null-tier-host flag write plan for one (host, item, url) contribution", about line 99) into `src/lib/sources/null-tier-host-worklist.mjs` with the same function names and tests moved with it; both maintenance scripts import it; `resolve-provisional-sources.mjs` uses it for every unclassifiable host. Test: a second run over the same input inserts 0 flag rows and updates the existing per-host row's contribution list.
+Fix at the source: extract `planHostDecision(url, classTierForHostFn)`, `buildNullTierHostWrite(existingFlag, host, itemId, url, permanentClass)` and the constant `NULL_TIER_CREATED_BY = "null-tier-host"` from `resolve-cited-host-gate.mjs` (lines 69, 92 and 107 on master) into `src/lib/sources/null-tier-host-worklist.mjs`, names and signatures unchanged, their tests moved with them; `resolve-cited-host-gate.mjs` re-exports them so its callers do not change; both maintenance scripts import it; `resolve-provisional-sources.mjs` uses it for every unclassifiable host. Test: a second run over the same input inserts 0 flag rows and updates the existing per-host row's contribution list.
 
 Class fix: one worklist mechanism, one module. The shared-writer ownership row for `integrity_flags` names the module.
 
 ### D4. The `sources` row reject path records no reason on the row [CONFIRMED by review]
 
-Fix: `rejectSourcesRow` writes the decline reason into `notes` in the same form the other outcomes use (rule name, evidence, date); test asserts the note is present after a decline.
+Fix: `rejectSourcesRow` writes the decline reason into `notes` in the same form the other outcomes use (rule name, evidence, date); test asserts the note is present after a decline. The live `sources_status_check` allows only active, stale, inaccessible, provisional, suspended (no decline value), so a declined provisional `sources` row is set to `suspended` with the reason in `notes`; no DDL. The runbook section states this.
 
 ### D5. Dash and section-sign glyphs keep entering new prose [CONFIRMED]
 
@@ -74,7 +74,7 @@ Review outcome (review-7.8.md, CONDITIONAL FAIL, two parity deviations) and the 
 ### D7. Lanes cannot see the live schema and copy conventions from code that is itself wrong (the D2 class) [CONFIRMED]
 
 Class fix, one discipline lane:
-- A read-only maintenance step `schema-vocabulary-inventory` (maintenance.yml, dry only) dumps every CHECK constraint on public tables (`pg_get_constraintdef`) to `fsi-app/docs/inventories/db-check-constraints.json` and commits it back on its own branch the way run artifacts are committed.
+- A read-only maintenance step `schema-vocabulary-inventory` (maintenance.yml, dry only) dumps every list-valued CHECK constraint on public tables (`select conrelid::regclass, conname, pg_get_constraintdef(oid) from pg_constraint where contype = 'c' and connamespace = 'public'::regnamespace and pg_get_constraintdef(oid) ~ 'ANY \(ARRAY'`; about 200 constraints across about 90 tables on 2026-09-12, the coordinator holds the first dump) to `fsi-app/docs/inventories/db-check-constraints.json` and commits it back on its own branch the way run artifacts are committed.
 - A unit test `check-vocabulary.test.mjs` scans `scripts/maintenance/*.mjs`, `scripts/turns/*.mjs`, `src/app/api/**/route.ts` and `src/lib/**/*.{ts,mjs}` for object literals that set a column carrying a CHECK in the inventory (`status`, `provenance_status`, `discovered_via`, `archive_reason`, and every other column the inventory names) and fails when a literal value is not in that column's allowed set. Dynamic values are skipped, never guessed.
 - A data-audit-lane verifier compares the tracked inventory with the live constraints and reports drift (exit 2 without credentials).
 
