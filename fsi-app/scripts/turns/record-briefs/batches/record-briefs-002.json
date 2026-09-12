@@ -1,6 +1,6 @@
 {
   "batch": "record-briefs-002",
-  "generated_at": "2026-09-12T18:27:54.820Z",
+  "generated_at": "2026-09-12T18:29:17.305Z",
   "entries": [
     {
       "item_id": "0053d552-1856-4796-8873-968894400956",
@@ -618,6 +618,92 @@
           "claim_text": "The captured source states, verbatim: «Commission Decision 2002/151/EC of 19 February 2002 on minimum requirements for the certificate of destruction issued in accordance with Article 5(3) of Directive 2000/53/EC of the European Parliament and of the Council on end-of-life vehicles(3) is to be incorporated into the Agreement,»",
           "source_span": "Commission Decision 2002/151/EC of 19 February 2002 on minimum requirements for the certificate of destruction issued in accordance with Article 5(3) of Directive 2000/53/EC of the European Parliament and of the Council on end-of-life vehicles(3) is to be incorporated into the Agreement,",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22003D0015"
+        }
+      ]
+    },
+    {
+      "item_id": "00f06e5b-3bae-4ca3-af43-70b09e485f71",
+      "source_pool_hash": "bddc8f5190b125cbac7a0bc7cfe0ba297692a50f56d4e6f3031f4555453b8e29",
+      "body": "# Purpose and Scope of This Document\n\nThis document analyzes Council Decision 2003/278/EC of 14 April 2003 concerning the conclusion of an Agreement, in the form of an Exchange of Letters between the European Community and the former Yugoslav Republic of Macedonia, on the system of ecopoints applied to that country's transit traffic through Austria, Official Journal L 101, 23/04/2003. *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.* This is a short approval instrument: it approves, on behalf of the Community, an Agreement that applies the Alpine transit \"ecopoints\" mechanism to road haulage transiting Austria under the former Yugoslav Republic of Macedonia's flag. The captured text does not itself set out the ecopoints calculation method or the day-to-day management rules; it references the Agreement it approves for those details.\n\n# What This Regulation Is and Why It Applies to the Workspace\n\nThe Council approved an Agreement extending the ecopoints system, already applied within the Community's own Alpine transit framework, to transit traffic of the former Yugoslav Republic of Macedonia through Austria: \"The Agreement between the European Community and the former Yugoslav Republic of Macedonia in the field of transport(3), and in particular Article 12(3)(b) thereof, establishes that a system of ecopoints equivalent to that laid down by Article 11 of Protocol 9 to the Act of Accession of Austria, Finland and Sweden to the European Union shall apply.\" *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.* For workspaces routing road freight through the Austrian Alpine transit corridor on vehicles registered in, or operating under transit rights tied to, the former Yugoslav Republic of Macedonia (now North Macedonia), this ecopoints mechanism is an environmental transit-quota system that can gate or condition passage through Austria. *Operational implication:* the specific ecopoint allocation, consumption rate per vehicle emissions class, and administrative procedure are set out in the Agreement this Decision approves, which this captured text does not reproduce; a workspace with exposure here needs that separate Agreement text, not this approval Decision alone, to plan compliant transits.\n\n# Issues Requiring Immediate Action\n\n**MONITORING.** Confirm whether any road-freight routing the workspace arranges through Austria involves a carrier operating under former Yugoslav Republic of Macedonia transit rights, since that traffic is the specific population this ecopoints extension addresses. *Legal Confirmation Required:* whether a specific carrier or vehicle in the workspace's transit routing falls within the Agreement's own scope as a matter of that carrier's registration and transit-rights status.\n\n# How the Workspace Sits in the Compliance Chain\n\nThe Agreement's ecopoints mechanism runs between the Community, Austria, and the former Yugoslav Republic of Macedonia at a state and administrative level; the carriers actually transiting Austria are the operational population the mechanism is designed to meter, while a freight forwarder arranging that carriage is not itself a party to the Agreement. *Legal Confirmation Required:* whether the workspace, where it selects or instructs a specific carrier for an Austria transit leg, has any obligation to confirm that carrier's ecopoints standing before booking the movement.\n\n# Substantive Requirements\n\n**Ecopoints extension approved.** \"The Agreement in the form of an Exchange of Letters between the European Community and the former Yugoslav Republic of Macedonia concerning the system of ecopoints to be applied to transit traffic of the former Yugoslav Republic of Macedonia through Austria is hereby approved on behalf of the Community.\" *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.*\n\n**Agreement signature.** \"This Agreement was signed on behalf of the Community on 29 October 2002, subject to its possible conclusion at a later date in accordance with Council Decision 2003/197/EC.\" *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.* *Analytical inference:* the qualification a bare \"Agreement approved 2003\" reading would omit is that the Agreement was already signed in October 2002 and only formally concluded, via this Decision, roughly a year and a half later.\n\n# Registration and Reporting Obligations\n\nThis Decision itself creates no registration or reporting duty; \"the method of calculation and the detailed rules and procedures for the management and control of the ecopoints\" are set by the Agreement it approves, not restated here. *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.* *Specific ecopoints administration procedure not available from primary sources as of the export date; the source document (the approved Exchange of Letters) is not in this captured pool.*\n\n# Operational System Requirements\n\nFor workspaces routing road freight through Austria on carriage tied to the former Yugoslav Republic of Macedonia's transit rights: track the carrier's ecopoints standing as part of route planning for that corridor, and retrieve the underlying Agreement text (referenced but not reproduced by this Decision) before relying on this document for the mechanism's operational detail. *Operational implication:* this is a narrow, bilateral extension of an existing Alpine transit mechanism, not a general EU-wide rule; its relevance is limited to the specific transit-rights population it names.\n\n# Confirmed Regulatory Timeline\n\n- 29 October 2002: The Agreement in the form of an Exchange of Letters was signed on behalf of the Community, subject to its later conclusion. *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.*\n- 14 April 2003: Council Decision 2003/278/EC adopted at Luxembourg, approving the Agreement on behalf of the Community. *Source: Council Decision 2003/278/EC, Council of the European Union, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278.*\n\n# Sources\n\n- Council Decision 2003/278/EC of 14 April 2003, Official Journal L 101, 23/04/2003, Council of the European Union, EUR-Lex (Tier 1, primary binding text). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "transport",
+          "corridors"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "Council Decision 2003/278/EC, Council of the European Union, EUR-Lex (Official Journal L 101, 23/04/2003), approving an Agreement extending the Austria Alpine-transit \"ecopoints\" environmental transit-quota system to road transit traffic of the former Yugoslav Republic of Macedonia through Austria.",
+        "why_matters": "Workspaces routing road freight through the Austrian Alpine transit corridor on carriage tied to the former Yugoslav Republic of Macedonia's (now North Macedonia's) transit rights are the specific population this ecopoints extension governs; a carrier's ecopoints standing can gate or condition its passage through Austria. This Decision approves the mechanism but does not restate its calculation method or administration; the underlying Agreement carries that operational detail.",
+        "key_data": [
+          "Agreement signed 29 October 2002; Council Decision approving it adopted 14 April 2003",
+          "Ecopoints mechanism equivalent to Article 11 of Protocol 9 to the Austria/Finland/Sweden Act of Accession",
+          "Applies specifically to former Yugoslav Republic of Macedonia transit traffic through Austria"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [
+          "road-cabotage"
+        ],
+        "compliance_object_tags": [
+          "carrier-road",
+          "road-fleet-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-11"
+      },
+      "claims": [
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "claim_text": "[effective_date] The captured source states, verbatim: «This Decision shall be published in the Official Journal of the European Union.»",
+          "source_span": "This Decision shall be published in the Official Journal of the European Union.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "GAP",
+          "claim_text": "[primary_deadline] Specific compliance deadline not available from primary sources as of the export date; this Decision approves the Agreement but states no deadline of its own for carriers or Member States."
+        },
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim, its own title: «2003/278/EC: Council Decision of 14 April 2003 concerning the conclusion of an Agreement in the form of an Exchange of Letters between the European Community and the former Yugoslav Republic of Macedonia concerning the system of ecopoints to be applied to transit traffic of the former Yugoslav Republic of Macedonia through Austria».",
+          "source_span": "2003/278/EC: Council Decision of 14 April 2003 concerning the conclusion of an Agreement in the form of an Exchange of Letters between the European Community and the former Yugoslav Republic of Macedonia concerning the system of ecopoints to be applied to transit traffic of the former Yugoslav Republic of Macedonia through Austria",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "GAP",
+          "claim_text": "[penalty_summary] Specific penalty provision not available from primary sources as of the export date; this approval Decision names no penalty of its own."
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «The Agreement between the European Community and the former Yugoslav Republic of Macedonia in the field of transport(3), and in particular Article 12(3)(b) thereof, establishes that a system of ecopoints equivalent to that laid down by Article 11 of Protocol 9 to the Act of Accession of Austria, Finland and Sweden to the European Union shall apply.»",
+          "source_span": "The Agreement between the European Community and the former Yugoslav Republic of Macedonia in the field of transport(3), and in particular Article 12(3)(b) thereof, establishes that a system of ecopoints equivalent to that laid down by Article 11 of Protocol 9 to the Act of Accession of Austria, Finland and Sweden to the European Union shall apply.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «This Agreement was signed on behalf of the Community on 29 October 2002, subject to its possible conclusion at a later date in accordance with Council Decision 2003/197/EC(4).»",
+          "source_span": "This Agreement was signed on behalf of the Community on 29 October 2002, subject to its possible conclusion at a later date in accordance with Council Decision 2003/197/EC(4).",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The captured source states, verbatim: «Done at Luxembourg, 14 April 2003.»",
+          "source_span": "Done at Luxembourg, 14 April 2003.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003D0278"
         }
       ]
     }
