@@ -37,9 +37,9 @@ crash-safety `finally`-block rewrite of `main()`, and the dry-mode wording corre
 happened yet (dry-mode-only per instruction, and no committed `record-briefs-NNN.json` batch exists for a
 session lane to have authored) — still zero artifacts, the same posture as the original pin.
 
-**harness_version at write time:** `sha256:ca5d7b8b2da57a61` (recomputed via `hashHarnessVersion` against
-`governing-files.mjs`'s own `GOVERNING_FILES['brief-apply']` array, the same 4 files, unreordered;
-supersedes `sha256:d1ea74924de7d828` outright).
+**harness_version at Fix round 1's write time (superseded below, see Re-pin 2):** `sha256:ca5d7b8b2da57a61`
+(recomputed via `hashHarnessVersion` against `governing-files.mjs`'s own `GOVERNING_FILES['brief-apply']`
+array, the same 4 files, unreordered; superseded `sha256:d1ea74924de7d828` outright).
 
 **The planned run that supersedes this marker:** the first `brief-apply-run-001.json`, from the first
 `.github/workflows/brief-apply.yml` dispatch (dry or apply - either mode writes a run artifact; see that
