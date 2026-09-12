@@ -2,7 +2,7 @@
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **two** artifacts
 (`brief-apply-run-001` and `brief-apply-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-002**.
+verbatim: **brief-apply-run-004** (this branch; see the numbering finding in the pass below).
 
 ## Pass over brief-apply-run-001 and brief-apply-run-002 (2026-09-12, task 6.1b)
 
@@ -87,3 +87,38 @@ exists (the pilot re-apply against the fixed code): validation-refusal rate at t
 rise, catching what the ground step used to quarantine) versus ground-step quarantine rate (should fall
 correspondingly) -- a future proposer pass over run-003 is where this metric gets its first real
 measurement, not asserted here in advance of that run landing.
+
+## Pass over brief-apply-run-003 and brief-apply-run-004 on brief-lane/002-2026-09-12 (2026-09-12, coordinator)
+
+**Artifacts read:** brief-apply-run-003 (dry, started_at 2026-09-12T18:47:12.276Z, config.execute=false,
+allowBriefOverwrite=false, record-briefs-002.json, 10 entries selected, 10 "would_apply", zero
+defects_found) and brief-apply-run-004 (apply, started_at 2026-09-12T18:50:07.231Z, config.execute=true,
+metrics applied=9, quarantined=1, generate_failed=0; per-item trace: 10 generated, 10 sectioned, 9 grounded,
+9 verified, 1 ground_failed and quarantined, discovery 12 refs each, forward-events 0 on 7 items, 1 on two,
+2 on one, compliance-deadline unchanged on all 10, entities 0+instrument on 7). This is batch 2 chunk 1
+(items 11 to 20 of export 34691560057).
+
+**Live read-back (coordinator SQL, 2026-09-12):** 9 verified; the one quarantined item, 00a8c0d9, failed the
+own-URL target match because its identifier read "UK uksi 2010/2880" while the source URL path is
+/wsi/2010/2880 [CONFIRMED]; 19 live rows shared the defect. Fixed at the source by task 7.4e (#648) and
+reconciled live (19 rows rewritten, read-back confirmed; 00a8c0d9 now "UK wsi 2010/2880").
+
+**Hypotheses (verified, with basis):**
+- [CONFIRMED] the quarantine was a data defect in the item, not a brief defect: the deriver never read the
+  series code from the item's own URL (export-census-rows.mjs); the identifier passed through from
+  census_worklist unexamined. Resolved, never left quarantined (ADR-030).
+- [CONFIRMED] the brief export refuses a quarantined item even when named by id (export-corpus-for-extraction
+  ANDs --ids with provenance_status = verified), so the 6.2c regeneration of this batch exported 19 of 20
+  ids and this branch's regenerated file (e4c87ec9) holds 9 entries. Defect D1 of
+  docs/plans/defect-fix-plan-2026-09-12.md (task 6.2d) fixes the export; 00a8c0d9 is re-exported and its
+  brief written afterwards.
+- [CONFIRMED] numbering collision: this branch's run-003 and run-004 (GitHub runs 34712217771 and
+  34712340105) share their file names with brief-lane/001-2026-09-12's run-003 and run-004 (GitHub runs
+  34708781168 and 34709053690); defect D12 in the same plan (artifact identity by run id). Until it lands,
+  the coordinator lands these artifacts on master with the run id in the name.
+
+**Proposal:** none beyond D1 and D12, both planned. The next apply on this branch is the 6.2c regeneration
+(9 entries, allow_brief_overwrite) once the batch pushes land; its artifacts get their own pass.
+
+**Family gates status:** GREEN on the 6.2b contract (record-briefs.test.mjs 60/60). This attestation names
+brief-apply-run-004 as this branch's latest artifact.
