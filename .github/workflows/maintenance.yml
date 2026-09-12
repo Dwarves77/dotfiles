@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, finish-staged-updates]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -958,17 +958,35 @@ jobs:
           mkdir -p "$OUT_ROOT/resolve-signals"
           node scripts/maintenance/resolve-signals.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/resolve-signals"
       - name: resolve-provisional-sources
-        # Part 7 task 7.5 item 1, brief-chain build plan 2026-09-11 / ADR-030 rider: resolves pending
-        # provisional_sources rows (489, since April) and status='provisional' sources rows (563) by the
-        # deterministic SC-13 rules -- an institution-match or a class-table tier promotes/activates; a
-        # dead/inaccessible URL rejects with the reason; an unclassifiable host lands in ONE batched
-        # integrity_flags worklist row per run (never a guessed tier, never a per-row click). Reuses the
-        # promote route's own row-shape builder (src/lib/sources/promote-provisional.ts, extracted this
-        # task) and its vertical-fit gate, never a second copy. Not ruling-gated; apply needs no --arg.
+        # Part 7 task 7.5 item 1, brief-chain build plan 2026-09-11 / ADR-030 rider, fixed per defect
+        # D13 (docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12): resolves pending provisional_sources
+        # rows (489, since April) and status='provisional' sources rows (563) by the deterministic SC-13
+        # rules -- an institution-match or a class-table tier promotes/activates, with the promoted
+        # sources row's own status carrying the accessibility fact (active/inaccessible from
+        # fetch_status); accessibility never rejects (rule c is removed -- an absent accessibility check
+        # is not a "dead" verdict). An unclassifiable host lands in the per-host null-tier-host
+        # integrity_flags worklist (never a guessed tier, never a per-row click). Reuses the promote
+        # route's own row-shape builder (src/lib/sources/promote-provisional.ts, extracted this task) and
+        # its vertical-fit gate, never a second copy. Not ruling-gated; apply needs no --arg.
         if: env.RUN_STEP == 'resolve-provisional-sources' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/resolve-provisional-sources"
           node scripts/maintenance/resolve-provisional-sources.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/resolve-provisional-sources"
+
+      - name: enumerate-unclassified-hosts
+        # Defect D14 item 2 (docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12). READ-ONLY: this step
+        # has no apply branch and writes NOTHING to the database regardless of the mode input -- it lists
+        # every host of the pending provisional_sources rows and the status='provisional' sources rows
+        # that rule (a) (existing institution) and rule (b) (the SC-13 class table, including D14's own
+        # government-label / legal-publisher extension landed alongside this step) still do not resolve.
+        # Per host: stored name, discovered_via, the citing item's title where the search log names one,
+        # and the row count. Writes unclassified-hosts.json + unclassified-hosts.md to this run's OWN
+        # $OUT_ROOT (an artifact, never the repo) for the coordinator to rule host classes from -- never a
+        # model guess, never an auto-registration (SC-13). Not ruling-gated; no --arg.
+        if: env.RUN_STEP == 'enumerate-unclassified-hosts' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/enumerate-unclassified-hosts"
+          node scripts/maintenance/enumerate-unclassified-hosts.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/enumerate-unclassified-hosts"
 
       - name: finish-staged-updates
         # Part 7 task 7.5 item 2, brief-chain build plan 2026-09-11 / ADR-030 rider / RD-20: runs every

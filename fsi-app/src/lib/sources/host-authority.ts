@@ -14,15 +14,57 @@
 
 // Enacted primary legal text / official journals (binding law) -> T1.
 const LEGAL_PRIMARY = /(^|\.)(eur-lex\.europa\.eu|federalregister\.gov|ecfr\.gov|govinfo\.gov|legislation\.gov\.uk)$/;
+// Curated legal-publisher allowlist (defect D14, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12):
+// each host IS the official publisher of that jurisdiction's enacted law / official gazette -- the SAME
+// "enacted primary legal text" class LEGAL_PRIMARY above already codifies for
+// legislation.gov.uk/eur-lex.europa.eu/federalregister.gov/ecfr.gov/govinfo.gov -> T1. Curated, never a
+// fuzzy country-TLD or gov-label rule: a jurisdiction's LAW PORTAL is a distinct institution from its
+// ministries (T2, GOV_TLD below), a distinction that matters here because several of these hosts sit on a
+// hostname the GOV_TLD label rule below would otherwise also match (legifrance.gouv.fr has a "gouv" label,
+// wetten.overheid.nl has an "overheid" label) -- checked FIRST in codifiedTierForHost, same "legal beats
+// gov" order as the standing legislation.gov.uk-vs-gov.uk precedent, so the more specific T1 institution
+// always wins over the coarser T2 stem.
+const LEGAL_PUBLISHER_ALLOW = new Set([
+  "irishstatutebook.ie",     // Irish Statute Book, Office of the Attorney General
+  "legifrance.gouv.fr",      // Legifrance
+  "gesetze-im-internet.de",  // German federal law, Federal Ministry of Justice
+  "retsinformation.dk",      // Danish legal information
+  "wetten.overheid.nl",      // Dutch legislation
+  "boe.es",                  // Spanish official gazette
+  "normattiva.it",           // Italian legislation
+  "lovdata.no",              // Norwegian legislation
+  "finlex.fi",               // Finnish legislation
+  "legislation.gov.au",      // Australian federal legislation
+  "laws-lois.justice.gc.ca", // Canadian federal legislation
+  "fedlex.admin.ch",         // Swiss federal law
+  "ris.bka.gv.at",           // Austrian legal information system
+]);
 // Intergovernmental / official bodies acting in an authoritative capacity -> T2.
 // `unesco.org` added 2026-08-11 (UN specialised agency — the same class as un.org, already listed).
 const GOV_INTERGOV = /(^|\.)(europa\.eu|un\.org|unesco\.org|oecd\.org|imo\.org|icao\.int|iea\.org|who\.int|wto\.org|unfccc\.int|worldbank\.org|ipcc\.ch)$/;
-// Government / regulator TLD stems -> T2 (regulator-guidance authority). `(^|\.)` so both the bare
-// registrable domain (gov.uk) and a subdomain (service.gov.uk) match.
-// `canada.ca` added 2026-08-11: it is the Government of Canada's SINGLE official web presence (the GoC
-// consolidated its departments onto it), so it is a government stem in fact though it carries no gov label —
-// exactly the standing `.gc.ca` already has here.
-const GOV_TLD = /(^|\.)gov$|(^|\.)gov\.[a-z]{2,3}$|(^|\.)gob\.[a-z]{2,3}$|(^|\.)gouv\.[a-z]{2,3}$|(^|\.)govt\.[a-z]{2,3}$|(^|\.)go\.[a-z]{2}$|(^|\.)gc\.ca$|(^|\.)canada\.ca$/;
+// Government second-level label list (defect D14, docs/plans/defect-fix-plan-2026-09-12.md): a
+// government stem registrable AS the label directly under a two-letter country-code TLD (gov.uk) or as
+// the label a subdomain registers under (service.gov.uk) -> T2. The list started at
+// gov/gob/gouv/govt/go/gc (2026-07-13 SC-13 extension) and is widened here with the labels the 489-row
+// pending-provisional audit surfaced (2026-09-12): `gv` (Austria, bmluk.gv.at -- one of the D13-evidence
+// hosts rule c wrongly rejected), `admin` (Switzerland), `bund` (Germany), `overheid` (Netherlands),
+// `gouvernement` (France), `regeringen` (Sweden/Denmark/Norway), `riksdagen` (Sweden). The suffix is
+// EXACTLY two letters, never 2-3: every real ISO 3166-1 alpha-2 ccTLD is exactly two letters, so widening
+// to three would only ever admit a commercial gTLD lookalike (gov.com, admin.info), never a real country
+// -- this closes the exact hole the pre-D14 `[a-z]{2,3}` width left open (a `gov` label ending in a
+// 3-letter TLD would have matched a lookalike). `(^|\.)` so both the bare registrable domain (gov.uk) and
+// a subdomain (service.gov.uk, assets.publishing.service.gov.uk) match; a lookalike like
+// `gov.example.com` never matches either form, since "example.com" is not itself a two-letter suffix.
+const GOV_LABELS = ["gov", "gouv", "gob", "gc", "go", "gv", "govt", "admin", "bund", "overheid", "gouvernement", "regeringen", "riksdagen"];
+const GOV_LABEL_UNDER_CC_TLD = new RegExp(`(^|\\.)(${GOV_LABELS.join("|")})\\.[a-z]{2}$`);
+// Government / regulator TLD stems -> T2 (regulator-guidance authority): the bare US-style `.gov` TLD
+// (no country suffix), the generalized government-label-under-country-TLD rule above (subsumes the prior
+// explicit `gc\.ca$`/`go\.[a-z]{2}$` special cases -- `gc` and `go` are now list entries), plus
+// `canada.ca` (added 2026-08-11: the Government of Canada's SINGLE official web presence (the GoC
+// consolidated its departments onto it), so it is a government stem in fact though it carries no gov
+// label under it, a full-domain exception, not a label-under-TLD pattern, so it stays a separate
+// alternative rather than a GOV_LABELS entry).
+const GOV_TLD = new RegExp(`(^|\\.)gov$|${GOV_LABEL_UNDER_CC_TLD.source}|(^|\\.)canada\\.ca$`);
 
 /** Sub-floor for reg-family (<=T2) AND research_finding (<=T4). Used only as the NON-grounding
  *  creation-time fallback (defaultTierForHost) — NEVER as a register-at-grounding tier (SC-13). */
@@ -39,7 +81,10 @@ export const PROVISIONAL_DEFAULT_TIER = 5;
 export function codifiedTierForHost(host: string | null | undefined): number | null {
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
   if (!h) return null;
-  if (LEGAL_PRIMARY.test(h)) return 1;
+  // Defect D14: LEGAL_PUBLISHER_ALLOW is checked in the SAME branch as LEGAL_PRIMARY, before GOV_TLD --
+  // several of its hosts (legifrance.gouv.fr, wetten.overheid.nl) also carry a GOV_LABEL_UNDER_CC_TLD
+  // label, so T1 must win here, the same "legal beats gov" order legislation.gov.uk already relies on.
+  if (LEGAL_PRIMARY.test(h) || LEGAL_PUBLISHER_ALLOW.has(h)) return 1;
   if (GOV_INTERGOV.test(h) || GOV_TLD.test(h)) return 2;
   return null;
 }
