@@ -12,7 +12,7 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { moveActiveIndex, isOutsidePointerDown, optionId, activeDescendantId } =
+const { moveActiveIndex, isOutsidePointerDown, optionId, activeDescendantId, clearButtonVisible, clearButtonLabel } =
   await jiti.import("./commandBarKeyboard.ts");
 
 // ── clamp, not wrap (dispatch brief, verbatim: "ArrowUp/Down clamp (not wrap)") ──
@@ -60,4 +60,24 @@ test("activeDescendantId: -1 (nothing active) → undefined, never a dangling id
 });
 test("activeDescendantId: an active index → that option's id", () => {
   assert.equal(activeDescendantId("cl-command-bar-listbox", 2), "cl-command-bar-listbox-option-2");
+});
+
+// ── visible close/clear control (task 4.1b, 2026-09-11) ──
+test("clearButtonVisible: hidden when the input is empty and the listbox is closed (brief's own wording)", () => {
+  assert.equal(clearButtonVisible(false, false), false);
+});
+test("clearButtonVisible: visible once there is text to clear, even with the listbox closed", () => {
+  assert.equal(clearButtonVisible(true, false), true);
+});
+test("clearButtonVisible: visible while the listbox is open, even with no text (defensive; unreachable today under MIN_QUERY_LEN but kept correct)", () => {
+  assert.equal(clearButtonVisible(false, true), true);
+});
+test("clearButtonVisible: visible when both are true", () => {
+  assert.equal(clearButtonVisible(true, true), true);
+});
+test("clearButtonLabel: text present → \"Clear search\"", () => {
+  assert.equal(clearButtonLabel(true), "Clear search");
+});
+test("clearButtonLabel: no text (dismissing an open listbox over an empty input) → \"Close search\"", () => {
+  assert.equal(clearButtonLabel(false), "Close search");
 });
