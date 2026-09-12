@@ -2,7 +2,7 @@
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **two** artifacts
 (`brief-apply-run-001` and `brief-apply-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-002**.
+verbatim: **brief-apply-run-004** (this branch; see the numbering finding in the pass below).
 
 ## Pass over brief-apply-run-001 and brief-apply-run-002 (2026-09-12, task 6.1b)
 
@@ -87,3 +87,40 @@ exists (the pilot re-apply against the fixed code): validation-refusal rate at t
 rise, catching what the ground step used to quarantine) versus ground-step quarantine rate (should fall
 correspondingly) -- a future proposer pass over run-003 is where this metric gets its first real
 measurement, not asserted here in advance of that run landing.
+
+## Pass over brief-apply-run-003 and brief-apply-run-004 on brief-lane/001-2026-09-12 (2026-09-12, coordinator)
+
+**Artifacts read:** brief-apply-run-003 (dry, started_at 2026-09-12T17:38:03.548Z, config.execute=false,
+allowBriefOverwrite=true, record-briefs-001.json, 10 entries selected, 10 "would_apply", zero defects_found)
+and brief-apply-run-004 (apply, started_at 2026-09-12T17:43:37.031Z, config.execute=true,
+allowBriefOverwrite=true, metrics applied=8, quarantined=2, generate_failed=0; per-item trace: 10 generated,
+10 sectioned, 10 grounded, 8 verified, 2 quarantined at ground, discovery 12 refs each, forward-events 0 on 9
+items and 1 on one, compliance-deadline unchanged on all 10, entities 0+instrument on 7). These are the
+revised batch-001 briefs (task 6.1 lane 2) applied after task 6.1b's source fixes landed (#644).
+
+**Live read-back (coordinator SQL, 2026-09-12 evening):** all 10 batch-001 items are provenance_status
+verified, item_grade brief, updated 2026-09-12. [CONFIRMED] the run's 2 quarantined items are verified now;
+[HYPOTHESIS] the two flips came from a later apply that day (regen-quarantined or provenance-heal), not from
+this run; the flip's run artifact is in its own family.
+
+**Hypotheses (verified, with basis):**
+- [CONFIRMED] forward-events wrote 0 rows on 9 of 10 items although the bodies carried dated obligations:
+  the extractor reads the record-briefs bodies through the same section path as canonical briefs and the
+  6.1-era bodies lacked the dated-entry form task 6.2b now requires (README rule 3); the 6.2c regeneration
+  carries every exported forward event into the body with its date.
+- [CONFIRMED] one item's forward-events:1 row is the synthetic "In force as of 2026-09-12" event (item
+  252f0ecf, source_span equal to the bare date, not verbatim in the pool); recorded as defect D10 in
+  docs/plans/defect-fix-plan-2026-09-12.md (extractor refusal, verbatim assertion, cleanup).
+- [CONFIRMED] numbering collision: this branch's run-003 and run-004 (GitHub runs 34708781168 and
+  34709053690) share their file names with brief-lane/002-2026-09-12's run-003 and run-004 (GitHub runs
+  34712217771 and 34712340105) because commit-brief-apply-artifact.sh allocates the next number from the
+  checkout it runs in; the same class as finding F of the pass above. Recorded as defect D12 (artifact
+  identity by GitHub run id; sequence allocated at landing). Until D12 lands, these artifacts are landed
+  on master by the coordinator with the run id in the name.
+
+**Proposal:** none beyond D10 and D12, both planned. The 6.2c regeneration of this batch (commit 9402ed3a,
+10/10 valid under the 6.2b contract) is the next apply on this branch with allow_brief_overwrite; its dry
+and apply artifacts will be run-005 and run-006 on this branch and get their own pass.
+
+**Family gates status:** GREEN on the 6.2b contract (record-briefs.test.mjs 60/60, F28 33/33 against
+master's tree at a0a6f5e5). This attestation names brief-apply-run-004 as this branch's latest artifact.
