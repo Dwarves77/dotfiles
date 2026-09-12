@@ -19537,3 +19537,7 @@ never pushed. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1 <noreply@a
 LAST-PROPOSER-PASS.md}`. Docs: `scripts/turns/record-briefs/README.md`,
 `.discipline/fitness/functions/F25-module-liveness.mjs`, `docs/ops/session-log.md` (this entry). Full
 per-fix proof: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-6.1b-report.md`.
+
+## 2026-09-12, lane contract: the wiring preflight
+
+Operator, verbatim: "These type of issues keep happening. Why can't we make sure all of the items are wired properly before we start the work and fail." The day's refusals (shared-writer registry at push, a no-npm import in CI, a stale F28 marker, an apply-only crash in a live run, a worklist a CI job wrote and lost) were all existing gates firing after the work. docs/dispatches/lane-common-contract.md gains a "Wiring preflight" section: the lane runs the push gate itself without pushing (`sh fsi-app/.discipline/hooks/pre-push < /dev/null`) before it reports, serialised by the coordinator, and walks a list of the wiring rules that have refused lanes. The coordinator's briefs may shorten the tests run during the work; they never waive the preflight at the end. This corrects the coordinator's own 2026-09-12 instruction to lanes not to run the full suite, which removed the gate that would have caught four of the five.

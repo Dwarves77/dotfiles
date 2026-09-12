@@ -67,6 +67,22 @@ From the worktree root (`cd <worktree>`):
 6. If you changed a rendering-facing component, also `cd fsi-app && node .discipline/rendering/run-rendering-guard.mjs` (Playwright chromium is preinstalled; do not run `playwright install`).
 The CI memory gate (code without a session-log/board change) is satisfied by the coordinator at landing; do not try to satisfy it yourself.
 
+## Wiring preflight (added 2026-09-12; binding before you report done)
+
+Operator, 2026-09-12: "These type of issues keep happening. Why can't we make sure all of the items are wired properly before we start the work and fail." Five refusals that day fired at push or in CI on work that was already "done": a new writer missing from the shared-dataset registry, a discipline-glob test importing an npm package, a stale harness marker, an apply-only crash no dry test could reach, and a worklist a CI job wrote to disk and lost. Every one is a gate the repo already had. So the gates run BEFORE the report, not after the push:
+
+1. Run the push gate itself, without pushing, from the worktree root: `sh fsi-app/.discipline/hooks/pre-push < /dev/null`. It is the same four-step CI-parity check the push runs (untracked critical files, consistency runner, the full discipline and fitness suite, tsc). Paste its step lines in the report. Run it once, at the end, and never while another lane is running its own (the coordinator serialises handoffs; ask if unsure).
+2. Before that run, walk this list against your diff; each line is a gate that has refused a lane:
+   - A new or changed script or module that writes a shared table (`intelligence_items`, `integrity_flags`, `section_claim_provenance`, `item_forward_events`, `census_worklist`, the rest of `docs/inventories/shared-dataset-ownership.md`'s set) has its path in that file's allowlist AND a justification row (`.discipline/shared-writer-registry.test.mjs`).
+   - A change to any file in `scripts/harness-runs/governing-files.mjs`'s lists re-pins that family's `PENDING-RUN.md` (F28; `parsePendingRunHash` reads the FIRST "harness_version at write time" line) or lands the run that supersedes it.
+   - A test in the no-npm discipline glob (`fsi-app/.discipline/run-test-suite.sh`) reaches only `node:` builtins and relative imports through its whole import graph (`.discipline/glob-portability.test.mjs`, transitive since 2026-09-12); anything that needs jiti or an npm package is a `*.npmtest.mjs` named in `.github/workflows/discipline.yml`'s npm-deps step instead.
+   - A code-touching range carries a dated `docs/ops/session-log.md` entry; a new living doc carries its `docs/INDEX.md` line; a `.tsx`/`.css` change carries the UX compliance block.
+   - A write path reachable only in apply mode (a `--mode apply` branch, an `--execute` arm) is exercised by a test through a fake db, so a missing import cannot pass dry and fail live (the apply-classifications class, 2026-09-12).
+   - Anything a GitHub Actions job writes to the working tree (a worklist, a run artifact, an export) is committed back to the dispatched ref by a step in that workflow, or it does not exist after the job ends (the brief-apply and error-body-gate class, 2026-09-12). A protected ref degrades to a warning, never a failed run.
+   - A maintenance step is in `maintenance.yml`'s `step` choice list, uses the composite action like its siblings, and has its runbook section; a new fitness function or verifier is execution-wired (`.discipline/governance/execution-wiring.mjs`).
+   - No em dashes, en dashes or the section-sign glyph in added prose (`git diff origin/master..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` prints 0; verbatim data is disclosed, never edited); no user-home paths even in comments (pre-commit rule 012).
+3. The coordinator's brief may shorten the test list you run DURING the work; it never waives this preflight at the end.
+
 ## Commit
 One or a few coherent commits on your branch, named-file staging only (`git add <paths>`; never `git add -A`/`.`). Commit with:
 `git -c user.name="Claude (lane <NAME>)" -c user.email="noreply@anthropic.com" commit -F <msgfile>`
