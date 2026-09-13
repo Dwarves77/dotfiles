@@ -71,6 +71,10 @@ import { deriveTags } from "../../src/lib/connections/derive-tags.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 import { assembleTagInput } from "../../src/lib/connections/tag-input.mjs";
 import { deriveAliasTags, mergeTagProposals } from "../../src/lib/connections/tag-aliases.mjs";
+// buildNoDerivableTagsNote imported unmodified from apply-tags.mjs (D15 part 2, defect-fix-plan-2026-09-12)
+// so the decider's zero-proposal re-derivation (D15 part 1) and this proposer's zero-derivation write use
+// byte-identical resolution_note wording -- one place, never a second hand-typed copy.
+import { buildNoDerivableTagsNote } from "./apply-tags.mjs";
 
 // @supabase/supabase-js reaches this file only THROUGH scripts/lib/db.mjs's own lazy-require (see that
 // file's top-of-file note) — nothing here imports it directly, so this module stays importable without
@@ -150,36 +154,73 @@ export function selectTargets(corpus, { mode, ids, since }) {
 
 const APPLY_COMMAND_TEMPLATE = "node scripts/connections/apply-tags.mjs --flag <this flag's id> --execute";
 
+// D15 part 2 (defect-fix-plan-2026-09-12): a distinct subtype for the "derive-tags.mjs found nothing"
+// finding, separate from the proposal-bearing "empty-signature" subtype above. Deliberately DIFFERENT
+// created_by (not just a different status on the same key): a later run for the SAME item that now DOES
+// derive proposals must insert a fresh, normal, open "empty-signature" flag rather than being silently
+// blocked by dedup against this already-resolved row's identical (subject_ref, created_by) key.
+export const NO_DERIVABLE_SUBTYPE = "empty-signature-no-derivable";
+
 /**
- * Build the integrity_flags insert payload for one item's derive-tags result. PURE.
- * `description` carries a human summary FIRST, then a compact (single-line) JSON block of the raw
- * proposals — machine-parseable by apply-tags.mjs's own flag reader without a second data path.
+ * The integrity_flags row for an item whose derive-tags.mjs pass found ZERO candidate tags. Born ALREADY
+ * RESOLVED -- never an open "ask a human" flag (D15: the defect this closes is exactly 1,034 open flags
+ * whose only proposal was a request for manual tagging that no human ever actioned, described in this
+ * file's OLD "needs manual operator tagging" phrase, now removed). Uses apply-tags.mjs's OWN
+ * buildNoDerivableTagsNote (imported, not duplicated) so the decider's D15-part-1 zero-proposal
+ * re-derivation and this proposer-side write share byte-identical wording. PURE except for the date
+ * stamp. One row per item; merged on re-run via planReflect's ordinary dedup, scoped to this subtype's
+ * own existing rows (see proposeTags()'s `readExistingNoDerivable` read).
+ * @param {{id:string}} item
+ * @param {Date} [today]
+ * @returns {object} integrity_flags row (status:'resolved', no id, assigned at insert)
+ */
+export function buildNoDerivableFlagRow(item, today = new Date()) {
+  const description =
+    `Item ${item.id} has empty operational_scenario_tags/compliance_object_tags/topic_tags (0 ` +
+    "discover.mjs edges) and derive-tags.mjs found no candidate tags from its title/instrument key/brief " +
+    "text.\n\nPROPOSALS_JSON: []";
+  return {
+    category: "data_quality",
+    subject_type: "item",
+    subject_ref: buildSubjectRef(item.id),
+    description,
+    recommended_actions: [],
+    status: "resolved",
+    resolved_at: today.toISOString(),
+    resolved_by: "propose-tags.mjs",
+    resolution_note: buildNoDerivableTagsNote(today),
+    created_by: createdBy(TAG_NAMESPACE, NO_DERIVABLE_SUBTYPE),
+  };
+}
+
+/**
+ * Build the integrity_flags insert payload for one item's derive-tags result. PURE. A proposal-bearing
+ * result opens a normal review flag (`description` carries a human summary FIRST, then a compact
+ * single-line JSON block of the raw proposals, machine-parseable by apply-tags.mjs's own flag reader
+ * without a second data path); a ZERO-proposal result delegates to buildNoDerivableFlagRow (D15 part 2)
+ * so there is exactly one implementation of that shape, never a second hand-copy.
  * @param {{id:string}} item
  * @param {{itemId:string, proposals:Array<{field:string, tag:string, evidence:string, confidence:string}>}} derived
- * @returns {object} integrity_flags row (status:'open', no id — assigned at insert)
+ * @returns {object} integrity_flags row
  */
 export function buildFlagRow(item, derived) {
   const proposals = derived?.proposals ?? [];
+  if (!proposals.length) return buildNoDerivableFlagRow(item);
+
   const proposalsJson = JSON.stringify(proposals);
   const byField = proposals.reduce((acc, p) => {
     (acc[p.field] ||= []).push(p.tag);
     return acc;
   }, {});
-  const summary = proposals.length
-    ? `derive-tags.mjs proposes ${proposals.length} tag(s) for item ${item.id} (currently empty operational_scenario_tags/compliance_object_tags/topic_tags -> discover.mjs scores 0 edges for it): ` +
-      Object.entries(byField).map(([f, tags]) => `${f}=[${tags.join(", ")}]`).join("; ") + "."
-    : `Item ${item.id} has empty operational_scenario_tags/compliance_object_tags/topic_tags (0 discover.mjs edges) and derive-tags.mjs found no candidate tags from its title/instrument key/brief text -- needs manual operator tagging (or a KEYWORD_MAP extension) before it can join the connection graph.`;
+  const summary =
+    `derive-tags.mjs proposes ${proposals.length} tag(s) for item ${item.id} (currently empty operational_scenario_tags/compliance_object_tags/topic_tags -> discover.mjs scores 0 edges for it): ` +
+    Object.entries(byField).map(([f, tags]) => `${f}=[${tags.join(", ")}]`).join("; ") + ".";
   const description = `${summary}\n\nPROPOSALS_JSON: ${proposalsJson}`;
 
-  const recommended_actions = proposals.length
-    ? [
-        "Review the proposals above against the item's own content.",
-        `If correct, resolve this flag with resolution_note containing the token "ratify:tags", then run: ${APPLY_COMMAND_TEMPLATE}`,
-      ]
-    : [
-        "No candidate tags were derivable from this item's title/instrument key/brief text.",
-        "Add operational_scenario_tags/compliance_object_tags/topic_tags manually via the admin item editor, or extend derive-tags.mjs's KEYWORD_MAP if a real, recurring keyword was missed.",
-      ];
+  const recommended_actions = [
+    "Review the proposals above against the item's own content.",
+    `If correct, resolve this flag with resolution_note containing the token "ratify:tags", then run: ${APPLY_COMMAND_TEMPLATE}`,
+  ];
 
   return {
     category: "data_quality",
@@ -229,9 +270,12 @@ export function planReflect(existingOpen, fresh, { scopeSubjectRefs = null } = {
  * @param {{
  *   readCorpus: () => Promise<Array<object>>,
  *   readExistingOpen: () => Promise<Array<{id:string, subject_ref:string, created_by:string}>>,
+ *   readExistingNoDerivable: () => Promise<Array<{id:string, subject_ref:string, created_by:string}>>,
  *   insertMany: (rows:object[]) => Promise<{inserted:number, snapshot:string|null}>,
  *   updateStale: (ids:string[]) => Promise<{updated:number, snapshot:string|null}>,
- * }} deps
+ * }} deps - `readExistingNoDerivable` (D15 part 2) reads ANY-status rows under the
+ *   `empty-signature-no-derivable` subtype (never open-only; those rows are born resolved), so a
+ *   zero-derivation finding dedups against its own prior write instead of being re-inserted every run.
  * @param {{mode:"ids"|"since"|"untagged", ids?:string[]|null, since?:string|null, execute?:boolean}} opts
  * @returns {Promise<{
  *   corpusCount:number, targetsCount:number, missingIds:string[], flagCandidatesCount:number,
@@ -279,11 +323,27 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
   console.log(`propose-tags: ${withProposals}/${fresh.length} flag-worthy item(s) have at least one derive-tags.mjs candidate.`);
 
   const existingOpen = await deps.readExistingOpen();
+  // D15 part 2: the no-derivable subtype is born resolved, so its own dedup read is any-status, separate
+  // from the open-only scan above (an already-resolved row would be invisible to that scan otherwise).
+  const existingNoDerivable = await deps.readExistingNoDerivable();
 
   // Only the full default (--untagged, i.e. no --ids/--since narrowing) resolves globally — see file
   // header. A narrow run scopes stale-resolution to exactly the subject_refs it selected this run.
   const scopeSubjectRefs = mode === "untagged" ? null : new Set(targets.map((it) => buildSubjectRef(it.id)));
-  const plan = planReflect(existingOpen, fresh, { scopeSubjectRefs });
+
+  // Two subtype-scoped reflect passes (D15 part 2): proposal-bearing findings (open, "empty-signature")
+  // and zero-derivation findings (resolved, "empty-signature-no-derivable") never share a dedup key, so a
+  // later run that DOES derive proposals for a previously-zero-derivable item opens a fresh normal flag
+  // rather than being blocked by the old resolved row's identical key.
+  const freshWithProposals = fresh.filter((f) => f.proposalCount > 0);
+  const freshNoDerivable = fresh.filter((f) => f.proposalCount === 0);
+  const proposalPlan = planReflect(existingOpen, freshWithProposals, { scopeSubjectRefs });
+  const noDerivablePlan = planReflect(existingNoDerivable, freshNoDerivable, { scopeSubjectRefs });
+  const plan = {
+    newRows: [...proposalPlan.newRows, ...noDerivablePlan.newRows],
+    staleIds: [...proposalPlan.staleIds, ...noDerivablePlan.staleIds],
+    unchanged: proposalPlan.unchanged + noDerivablePlan.unchanged,
+  };
 
   console.log(`propose-tags: plan = ${plan.newRows.length} new flag(s), ${plan.staleIds.length} stale flag(s) to resolve, ${plan.unchanged} unchanged.`);
 
@@ -383,6 +443,10 @@ const deps = {
   },
   readExistingOpen: () => readAll("integrity_flags", "id, subject_ref, created_by", {
     match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
+  }),
+  // D15 part 2: any-status read, scoped to the no-derivable subtype only (those rows are born resolved).
+  readExistingNoDerivable: () => readAll("integrity_flags", "id, subject_ref, created_by", {
+    match: (q) => q.eq("created_by", createdBy(TAG_NAMESPACE, NO_DERIVABLE_SUBTYPE)),
   }),
   insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
   // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.

@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseArgs, isEmptySignature, selectTargets, buildFlagRow, planReflect, proposeTags,
+  parseArgs, isEmptySignature, selectTargets, buildFlagRow, buildNoDerivableFlagRow, planReflect, proposeTags,
 } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 
@@ -119,14 +119,28 @@ test("buildFlagRow: with proposals — category/subject_type/subject_ref/created
   assert.ok(row.recommended_actions.some((a) => a.includes("scripts/connections/apply-tags.mjs")));
 });
 
-test("buildFlagRow: zero proposals — description says so plainly, recommended_actions asks for manual tagging (no apply command)", () => {
+test("buildFlagRow: zero proposals: D15 part 2: delegates to buildNoDerivableFlagRow (born resolved, no 'needs manual' phrase, no apply command)", () => {
   const item = { id: "item-2" };
   const derived = { itemId: "item-2", proposals: [] };
   const row = buildFlagRow(item, derived);
+  assert.equal(row.status, "resolved");
   assert.match(row.description, /found no candidate tags/);
   assert.match(row.description, /PROPOSALS_JSON: \[\]/);
-  assert.ok(row.recommended_actions.some((a) => /manually/.test(a)));
-  assert.ok(!row.recommended_actions.some((a) => a.includes("apply-tags.mjs")), "no apply command should be recommended when there is nothing to apply");
+  assert.ok(!row.description.includes("needs manual operator tagging"), "the D15 phrase must be removed");
+  assert.deepEqual(row.recommended_actions, []);
+  assert.match(row.resolution_note, /no derivable tags from the item's own text/);
+});
+
+// ── buildNoDerivableFlagRow (D15 part 2) ────────────────────────────────────────────────────────
+
+test("buildNoDerivableFlagRow: born already-resolved, distinct subtype from the proposal-bearing flag", () => {
+  const row = buildNoDerivableFlagRow({ id: "item-9" }, new Date("2026-09-12T00:00:00Z"));
+  assert.equal(row.status, "resolved");
+  assert.equal(row.resolved_by, "propose-tags.mjs");
+  assert.notEqual(row.created_by, createdBy(TAG_NAMESPACE, "empty-signature"));
+  assert.equal(row.created_by, createdBy(TAG_NAMESPACE, "empty-signature-no-derivable"));
+  assert.match(row.resolution_note, /2026-09-12/);
+  assert.match(row.resolution_note, /ADR-030/);
 });
 
 test("buildFlagRow: PROPOSALS_JSON round-trips the exact proposals array", () => {
@@ -205,12 +219,13 @@ test("planReflect: namespace isolation is the CALLER's responsibility (readAll's
 // plan (fresh/plan.newRows/plan.staleIds) the CLI's pre-refactor inline main() body produced, now
 // callable by a second caller (the tag-proposals MAINT step) without a DB.
 
-function fakeDeps({ corpus = [], existingOpen = [] } = {}) {
+function fakeDeps({ corpus = [], existingOpen = [], existingNoDerivable = [] } = {}) {
   const calls = [];
   return {
     calls,
     readCorpus: async () => corpus,
     readExistingOpen: async () => existingOpen,
+    readExistingNoDerivable: async () => existingNoDerivable,
     insertMany: async (rows) => { calls.push(["insertMany", rows]); return { inserted: rows.length, snapshot: "snap-ins" }; },
     updateStale: async (ids) => { calls.push(["updateStale", ids]); return { updated: ids.length, snapshot: "snap-upd" }; },
   };
@@ -260,4 +275,45 @@ test("proposeTags: mode 'ids' selects regardless of tag state, narrows to isEmpt
   assert.equal(r.targetsCount, 2);
   assert.equal(r.flagCandidatesCount, 1, "TAGGED_ITEM is selected but not flag-worthy");
   assert.deepEqual(r.missingIds, ["does-not-exist"]);
+});
+
+// ── D15 part 2: zero-derivation flags are born resolved, distinct subtype, merged on re-run ───────
+
+test("proposeTags: apply: a zero-derivation item's row is inserted ALREADY RESOLVED (D15 part 2)", async () => {
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  assert.equal(r.wrote.inserted, 1);
+  const inserted = deps.calls.find((c) => c[0] === "insertMany")[1][0];
+  assert.equal(inserted.status, "resolved");
+  assert.equal(inserted.created_by, createdBy(TAG_NAMESPACE, "empty-signature-no-derivable"));
+});
+
+test("proposeTags: apply: a second run inserts nothing for the SAME zero-derivation item (merged on re-run)", async () => {
+  const priorNoDerivableRow = {
+    id: "flag-no-derivable-1",
+    subject_ref: buildSubjectRef("item-untagged"),
+    created_by: createdBy(TAG_NAMESPACE, "empty-signature-no-derivable"),
+  };
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM], existingNoDerivable: [priorNoDerivableRow] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  assert.equal(r.plan.newRows.length, 0, "the no-derivable finding already exists for this item -- dedup, not a duplicate insert");
+  assert.equal(r.wrote, null);
+});
+
+test("proposeTags: apply: an item that now DOES derive proposals opens a normal flag even though an old no-derivable row exists for it (no key collision)", async () => {
+  const priorNoDerivableRow = {
+    id: "flag-no-derivable-2",
+    subject_ref: buildSubjectRef("item-now-tagged"),
+    created_by: createdBy(TAG_NAMESPACE, "empty-signature-no-derivable"),
+  };
+  const itemNowDerivable = {
+    id: "item-now-tagged", title: "CBAM carbon border adjustment mechanism", canonical_instrument_key: null,
+    operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [],
+  };
+  const deps = fakeDeps({ corpus: [itemNowDerivable], existingNoDerivable: [priorNoDerivableRow] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  const inserted = deps.calls.find((c) => c[0] === "insertMany")[1];
+  assert.equal(inserted.length, 1);
+  assert.equal(inserted[0].status, "open");
+  assert.equal(inserted[0].created_by, createdBy(TAG_NAMESPACE, "empty-signature"));
 });

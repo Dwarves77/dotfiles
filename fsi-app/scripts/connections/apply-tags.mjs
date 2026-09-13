@@ -86,6 +86,18 @@
 //   Does NOT re-run discovery (same as the ratify path's own `--skip-discovery`) when driven through
 //   tag-ratification.mjs's bulk orchestration — see that file's own note for the fallback command.
 //
+// ZERO-PROPOSAL FLAGS (D15 part 1, defect-fix-plan-2026-09-12): a flag whose PROPOSALS_JSON parses to an
+// empty array used to fall out of step 2 above as `not_adoptable` ("flag carries zero proposals") and sit
+// open forever -- 1,034 of 1,105 open flywheel-tag flags, most opened on 2026-09-03 against record-grade
+// stubs that carry real brief text today. autoAdoptTags now detects this case (`isZeroProposalFlag`) and
+// re-derives from the item's CURRENT title/canonical_instrument_key/what_is_it/summary/full_brief through
+// derive-tags.mjs's own pure `deriveTags()` (imported, not copied; see reDeriveZeroProposalTags), decides
+// each candidate via the SAME decideTagProposal every other proposal goes through, and resolves the flag
+// either way: with the adopted tags (buildDecisionNote), or, when nothing decides at all, with
+// buildNoDerivableTagsNote's fixed wording. Every existing caller (this file's own `--flag <id> --auto`
+// CLI and tag-ratification.mjs's `--arg auto`) gets this for free through autoAdoptTags, no separate
+// entry point.
+//
 // Usage:
 //   node scripts/connections/apply-tags.mjs --flag <integrity_flags-id> [--dry|--execute]
 //   node scripts/connections/apply-tags.mjs --flag <integrity_flags-id> --auto [--dry|--execute]
@@ -103,7 +115,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
 import {
-  FIELD_CAPS, meetsConfidence, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES,
+  deriveTags, FIELD_CAPS, meetsConfidence, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES,
 } from "../../src/lib/connections/derive-tags.mjs";
 import { TAG_NAMESPACE, isInNamespace } from "../../src/lib/connections/flag-namespaces.mjs";
 import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
@@ -414,6 +426,107 @@ export async function applyTags(deps, flagId, { execute } = {}) {
   return { status: "applied", itemId: decision.itemId, merge, updated: upd.updated, snapshot: upd.snapshot };
 }
 
+// ─────────────────────── ZERO-PROPOSAL RE-DERIVATION (D15 part 1, defect-fix-plan-2026-09-12) ──────────
+// "1,034 tag flags carry zero proposals and ask for manual tagging, and the decider leaves them open."
+// Root cause: most of these items were record-grade stubs on 2026-09-03 with a title and no brief text;
+// hundreds now carry briefs (batches 001/002, the timeline and forward-event backfills), so the
+// derivation that found nothing THEN may find tags NOW. Fix: a zero-proposal flag is decided, never
+// skipped -- re-derive candidates for the flag's item from its CURRENT title/instrument-key/what_is_it/
+// summary/full_brief through derive-tags.mjs's OWN pure deriveTags() (imported, not copied), decide each
+// via decideTagProposal (unchanged), adopt what passes, and resolve the flag either way. Wired into
+// autoAdoptTags() below so every existing caller (tag-ratification.mjs's `--arg auto`, this file's own
+// `--flag <id> --auto` CLI) gets the fix with no call-site change beyond routing zero-proposal flags
+// through the SAME function (see tag-ratification.mjs's own `isZeroProposalFlag` use for why the caller
+// still must SELECT which flags to pass here -- evaluateAutoAdoption's `status='open'` gate is what a
+// caller lists from, and a truly foreign/malformed flag must still refuse, never silently "re-derive").
+
+/**
+ * True when a TAG_NAMESPACE flag's stored PROPOSALS_JSON parses to an empty array -- the D15 defect class
+ * (a proposer that found nothing at derivation time, back when the item's own text was thinner than it is
+ * now). PURE.
+ * @param {{description?:string}} flag
+ * @returns {boolean}
+ */
+export function isZeroProposalFlag(flag) {
+  const parsed = extractProposalsFromDescription(flag?.description);
+  return parsed.ok && parsed.value.length === 0;
+}
+
+/**
+ * The fixed resolution_note for "re-derivation found nothing to decide" (decisions.length === 0 -- see
+ * reDeriveZeroProposalTags below). ONE wording, shared by the decider (this module) and the proposer
+ * (propose-tags.mjs's own zero-derivation write imports this unmodified, D15 part 2), so the two can never
+ * drift apart. PURE except for the date stamp.
+ * @param {Date} [today]
+ * @returns {string}
+ */
+export function buildNoDerivableTagsNote(today = new Date()) {
+  const dateStr = today.toISOString().slice(0, 10);
+  return (
+    `no derivable tags from the item's own text on ${dateStr} (derive-tags KEYWORD_MAP); the item joins ` +
+    "the connection graph through its entity refs; no manual tagging (ADR-030)"
+  );
+}
+
+/**
+ * Reshape an intelligence_items row into derive-tags.mjs's own input contract, covering exactly the five
+ * fields D15 part 1 names (title, instrument key, what_is_it, summary, full_brief) -- deriveTags() ITSELF
+ * is never modified or copied: it already reads `title`/`canonical_instrument_key` at "high" confidence
+ * and `full_brief` at "medium"; what_is_it/summary are folded into that same medium-confidence body-text
+ * scan (real, grounded item text derive-tags.mjs's own body-match tier already exists to read). PURE.
+ * @param {{id?:string, title?:string|null, canonical_instrument_key?:string|null, what_is_it?:string|null,
+ *   summary?:string|null, full_brief?:string|null}} item
+ * @returns {{id:string|undefined, title:string|null, canonical_instrument_key:string|null, full_brief:string}}
+ */
+export function buildReDeriveInput(item) {
+  return {
+    id: item?.id,
+    title: item?.title ?? null,
+    canonical_instrument_key: item?.canonical_instrument_key ?? null,
+    full_brief: [item?.full_brief, item?.what_is_it, item?.summary]
+      .filter((s) => typeof s === "string" && s.trim())
+      .join("\n\n"),
+  };
+}
+
+/**
+ * D15 part 1 core: re-derive + decide + (in execute mode) write/resolve for ONE zero-proposal flag whose
+ * item may now carry derivable text it didn't at proposal time. Internal (called from autoAdoptTags below,
+ * never a second public entry point) so every caller of autoAdoptTags gets this fix automatically.
+ * @param {{readItem:Function, updateItem:Function, resolveFlag:Function}} deps
+ * @param {{id:string, subject_ref?:string}} flag - already read and confirmed zero-proposal by the caller
+ * @param {{execute:boolean, today?:Date}} opts
+ * @returns {Promise<object>} status one of not_adoptable/item_read_error/item_not_found/dry_run_rederive/
+ *   re_derived_adopted/re_derived_no_change; `outcome` one of "adopted"/"declined"/"no_derivable"
+ */
+async function reDeriveZeroProposalTags(deps, flag, { execute, today = new Date() } = {}) {
+  const itemId = String(flag.subject_ref || "").trim();
+  if (!itemId) return { status: "not_adoptable", error: "flag has no subject_ref (item id)." };
+
+  const { data: item, error: itemErr } = await deps.readItem(itemId);
+  if (itemErr) return { status: "item_read_error", error: itemErr.message };
+  if (!item) return { status: "item_not_found", error: `no intelligence_items row with id ${itemId}.` };
+
+  const derived = deriveTags(buildReDeriveInput(item));
+  const decisions = decideTagProposals(derived.proposals, item);
+  const adopted = decisions.filter((d) => d.decision === "adopt");
+  const merge = buildMergePatch(item, adopted);
+  const hasWrite = Object.keys(merge.patch).length > 0;
+  const note = decisions.length
+    ? buildDecisionNote("tag-ratification (re-derive, zero-proposal)", decisions)
+    : buildNoDerivableTagsNote(today);
+  const outcome = decisions.length === 0 ? "no_derivable" : hasWrite ? "adopted" : "declined";
+
+  if (!execute) return { status: "dry_run_rederive", itemId, merge, decisions, hasWrite, outcome, note };
+
+  if (hasWrite) await deps.updateItem(itemId, merge.patch);
+  await deps.resolveFlag(flag.id, note);
+  return {
+    status: hasWrite ? "re_derived_adopted" : "re_derived_no_change",
+    itemId, merge, decisions, outcome, flagId: flag.id, resolvedNote: note,
+  };
+}
+
 /**
  * The AUTO-ADOPTION decide-and-apply core (2026-09-03 ruling — file header), same injected-deps shape
  * applyTags() uses, plus one new dep (`resolveFlag`) because this path — unlike the ratify path, where a
@@ -437,13 +550,23 @@ export async function applyTags(deps, flagId, { execute } = {}) {
  *   {status:'auto_adopted', itemId:string, merge:object, updated:number, snapshot:string|null, flagId:string, resolvedNote:string}
  * >}
  */
-export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_ADOPT_THRESHOLD } = {}) {
+export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_ADOPT_THRESHOLD, today = new Date() } = {}) {
   const { data: flag, error } = await deps.readFlag(flagId);
   if (error) return { status: "read_error", error: error.message };
   if (!flag) return { status: "not_found", error: `no integrity_flags row with id ${flagId}.` };
 
   const decision = evaluateAutoAdoption(flag);
-  if (!decision.ok) return { status: "not_adoptable", error: decision.error };
+  if (!decision.ok) {
+    // D15 part 1: a zero-proposal flag is decided, never skipped -- re-derive from the item's CURRENT
+    // text (see reDeriveZeroProposalTags above) instead of returning not_adoptable. Guarded on
+    // status==='open' (not just zero-proposal) so an ALREADY-resolved flag -- including one this same
+    // re-derivation path just closed -- is never re-derived a second time (its description still parses
+    // to PROPOSALS_JSON: [] after resolution, since resolveFlag never rewrites `description`).
+    if (flag.status === "open" && isZeroProposalFlag(flag)) {
+      return reDeriveZeroProposalTags(deps, flag, { execute, today });
+    }
+    return { status: "not_adoptable", error: decision.error };
+  }
 
   const { data: item, error: itemErr } = await deps.readItem(decision.itemId);
   if (itemErr) return { status: "item_read_error", error: itemErr.message };
@@ -520,7 +643,9 @@ const deps = {
   readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
   // Widened 2026-09-12 (task 7.2): decideTagProposal re-checks a medium-confidence proposal's keyword
   // evidence against the item's OWN title/what_is_it/summary/full_brief, not just its tag arrays.
-  readItem: (id) => sb.from("intelligence_items").select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, what_is_it, summary, full_brief").eq("id", id).maybeSingle(),
+  // Widened again 2026-09-12 (D15 part 1): canonical_instrument_key added so reDeriveZeroProposalTags'
+  // re-derivation input carries the same "high"-confidence identity field deriveTags() reads.
+  readItem: (id) => sb.from("intelligence_items").select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, canonical_instrument_key, what_is_it, summary, full_brief").eq("id", id).maybeSingle(),
   updateItem: async (id, patch) => {
     const res = await guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE });
     return { updated: res.updated, snapshot: res.snapshot };

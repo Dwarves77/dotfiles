@@ -15,6 +15,7 @@ function baseDeps(overrides = {}) {
     calls,
     readCorpus: async () => { calls.push(["readCorpus"]); return [UNTAGGED_ITEM, TAGGED_ITEM]; },
     readExistingOpen: async () => { calls.push(["readExistingOpen"]); return []; },
+    readExistingNoDerivable: async () => { calls.push(["readExistingNoDerivable"]); return []; },
     insertMany: async (rows) => { calls.push(["insertMany", rows]); return { inserted: rows.length, snapshot: "snap-ins" }; },
     updateStale: async (ids) => { calls.push(["updateStale", ids]); return { updated: ids.length, snapshot: "snap-upd" }; },
     ...overrides,

@@ -11,6 +11,7 @@ import {
   buildMergePatch, planDiscoveryForItem, applyTags,
   AUTO_ADOPT_THRESHOLD, evaluateAutoAdoption, partitionByConfidence, buildAutoAdoptionNote, autoAdoptTags,
   decideTagProposal, decideTagProposals, evidencePresentInItemText, itemOwnText,
+  isZeroProposalFlag, buildNoDerivableTagsNote,
 } from "./apply-tags.mjs";
 import { buildFlagRow } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
@@ -544,6 +545,90 @@ test("autoAdoptTags: idempotent — a second run against the now-resolved flag r
   const d2 = autoDeps({ flag: { ...flag, status: "resolved", resolved_by: "apply-tags.mjs", resolution_note: r1.resolvedNote } });
   const r2 = await autoAdoptTags(d2, "flag-1", { execute: true });
   assert.equal(r2.status, "not_adoptable");
+  assert.ok(!d2.calls.length);
+});
+
+// ── D15 part 1: zero-proposal flags are re-derived from the item's CURRENT text, never skipped ────
+// defect-fix-plan-2026-09-12: "a zero-proposal flag is decided, never skipped -- re-derive candidates
+// for the flag's item from its current title, instrument key, what_is_it, summary and full_brief through
+// derive-tags.mjs's own pure derivation (imported, not copied); ... adopt what passes; and resolve the
+// flag either with the adopted tags, or, when nothing derives, with resolution_note '...'."
+
+function zeroProposalFlag(overrides = {}) {
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [] });
+  return {
+    id: "flag-1",
+    created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
+    status: "open",
+    description: row.description,
+    subject_ref: row.subject_ref,
+    ...overrides,
+  };
+}
+
+test("isZeroProposalFlag: true for an empty PROPOSALS_JSON array, false when proposals exist or the flag is malformed", () => {
+  assert.equal(isZeroProposalFlag(zeroProposalFlag()), true);
+  assert.equal(isZeroProposalFlag(openFlag()), false);
+  assert.equal(isZeroProposalFlag({ description: "no json block here" }), false);
+});
+
+test("buildNoDerivableTagsNote: carries the date, the KEYWORD_MAP citation, and the ADR-030 reference, byte-stable shape", () => {
+  const note = buildNoDerivableTagsNote(new Date("2026-09-12T00:00:00Z"));
+  assert.match(note, /^no derivable tags from the item's own text on 2026-09-12/);
+  assert.match(note, /derive-tags KEYWORD_MAP/);
+  assert.match(note, /ADR-030/);
+});
+
+test("autoAdoptTags (D15 part 1): a zero-proposal flag whose item NOW carries brief text with a vocabulary keyword is re-derived, adopted, and resolved", async () => {
+  const flag = zeroProposalFlag();
+  // The item was a title-only stub when the flag opened; it now carries a real brief mentioning CBAM.
+  const item = {
+    id: "item-1", title: "Untitled record", canonical_instrument_key: null,
+    operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [],
+    full_brief: "This instrument establishes new CBAM reporting duties for importers.",
+  };
+  const d = autoDeps({ flag, item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "re_derived_adopted");
+  assert.equal(r.outcome, "adopted");
+  assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["CBAM-declaration"] });
+  assert.ok(d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-1"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1"));
+});
+
+test("autoAdoptTags (D15 part 1): a zero-proposal flag whose item STILL has no derivable text is resolved with the no-derivable-tags note, no item write", async () => {
+  const flag = zeroProposalFlag();
+  const item = { id: "item-1", title: "Untitled record", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: null };
+  const d = autoDeps({ flag, item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "re_derived_no_change");
+  assert.equal(r.outcome, "no_derivable");
+  assert.match(r.resolvedNote, /no derivable tags from the item's own text/);
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1"));
+});
+
+test("autoAdoptTags (D15 part 1): dry run computes the re-derivation but writes nothing", async () => {
+  const flag = zeroProposalFlag();
+  const item = {
+    id: "item-1", title: "CBAM regulation", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: null,
+  };
+  const d = autoDeps({ flag, item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: false });
+  assert.equal(r.status, "dry_run_rederive");
+  assert.equal(r.outcome, "adopted");
+  assert.equal(d.calls.length, 0);
+});
+
+test("autoAdoptTags (D15 part 1): a second run against the now-resolved flag inserts nothing and reopens nothing", async () => {
+  const flag = zeroProposalFlag();
+  const item = { id: "item-1", title: "Untitled record", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: null };
+  const d1 = autoDeps({ flag, item });
+  const r1 = await autoAdoptTags(d1, "flag-1", { execute: true });
+  assert.equal(r1.status, "re_derived_no_change");
+  const d2 = autoDeps({ flag: { ...flag, status: "resolved", resolved_by: "apply-tags.mjs", resolution_note: r1.resolvedNote }, item });
+  const r2 = await autoAdoptTags(d2, "flag-1", { execute: true });
+  assert.equal(r2.status, "not_adoptable", "an already-resolved flag is never re-derived a second time");
   assert.ok(!d2.calls.length);
 });
 

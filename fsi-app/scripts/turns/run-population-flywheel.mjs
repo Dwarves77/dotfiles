@@ -233,8 +233,9 @@ import { buildCorpusItems, chunk } from "./export-corpus-for-extraction.mjs";
 import { writeLastTurnDate } from "./last-turn-date.mjs";
 import { main as deriveObligationsMain } from "../maintenance/derive-obligations.mjs";
 import { main as tagProposalsMain, CITE as TAG_PROPOSALS_CITE } from "../maintenance/tag-proposals.mjs";
+import { NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { main as tagRatificationMain, CITE as TAG_RATIFICATION_CITE } from "../maintenance/tag-ratification.mjs";
-import { TAG_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
+import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1254,6 +1255,12 @@ function buildTagProposalsDeps(db) {
     readExistingOpen: () =>
       db.readAll("integrity_flags", "id, subject_ref, created_by", {
         match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
+      }),
+    // D15 part 2 (defect-fix-plan-2026-09-12): any-status read, scoped to the no-derivable subtype
+    // (those rows are born resolved, so the open-only scan above would never see them for dedup).
+    readExistingNoDerivable: () =>
+      db.readAll("integrity_flags", "id, subject_ref, created_by", {
+        match: (q) => q.eq("created_by", createdBy(TAG_NAMESPACE, NO_DERIVABLE_SUBTYPE)),
       }),
     insertMany: (rows) => db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" }),
     // IN-CHUNK (2026-09-04): chunked by id (100 per request, ~4 KB URL); one `.in("id", <all>)` GET
