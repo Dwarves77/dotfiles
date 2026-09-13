@@ -114,7 +114,7 @@ export function versionPayload(existing, itemId, versionNumber, supersedeReason,
     version_number: versionNumber,
     supersede_reason: supersedeReason,
     inaccuracy_proof: proof ?? null,
-    // `note` (migration 318, D29): free-text context for a version row -- the record-briefs batch id for
+    // `note` (migration 321, D29): free-text context for a version row -- the record-briefs batch id for
     // supersede_reason='superseded_by_record_briefs'. Null for every other reason (unused).
     note: note ?? null,
     superseded_at: nowIso ?? null,

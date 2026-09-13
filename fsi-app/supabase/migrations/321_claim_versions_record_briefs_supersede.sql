@@ -1,4 +1,4 @@
--- 318_claim_versions_record_briefs_supersede.sql
+-- 321_claim_versions_record_briefs_supersede.sql
 -- D29 (defect-fix-plan-2026-09-12, lane L19). Overwriting an existing brief with a record-briefs entry
 -- (--allow-brief-overwrite) delivers a COMPLETE, author-checked ledger -- unlike a paid re-ground (a partial
 -- re-extract, re-grounds-never-destroy doctrine, migration 208), a prior claim the entry does not reproduce
@@ -23,7 +23,7 @@
 alter table public.claim_versions add column if not exists note text;
 
 comment on column public.claim_versions.note is
-  'Free-text context for a version row -- e.g. the record-briefs batch id for supersede_reason=''superseded_by_record_briefs'' (migration 318, D29). Null for every other reason.';
+  'Free-text context for a version row -- e.g. the record-briefs batch id for supersede_reason=''superseded_by_record_briefs'' (migration 321, D29). Null for every other reason.';
 
 alter table public.claim_versions drop constraint if exists claim_versions_supersede_reason_chk;
 alter table public.claim_versions add constraint claim_versions_supersede_reason_chk

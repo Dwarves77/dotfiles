@@ -86,7 +86,7 @@ and committed the whole lane.
 **D29 (`src/lib/agent/ledger-apply.mjs`, `src/lib/agent/canonical-pipeline.ts`,
 `scripts/turns/apply-record-briefs.mjs`).** `applyLedgerDiff`'s new `opts.replaceLedger` (default `false`,
 byte-for-byte today's behaviour) archives a NOT-REPRODUCED prior claim to `claim_versions`
-(`supersede_reason='superseded_by_record_briefs'`, the batch id in the new `note` column, migration 318 --
+(`supersede_reason='superseded_by_record_briefs'`, the batch id in the new `note` column, migration 321 --
 authored, NOT YET APPLIED, no DB access in this worktree) instead of keeping it current, then deletes the
 current `section_claim_provenance` row; fail-closed on an archive-write failure (the claim falls back to
 kept-not-reproduced, never dropped without a durable prior-state record). `groundBriefImpl` threads
@@ -148,7 +148,7 @@ and complete on resume, verified by reading the diffs against the plan text and 
 test file green. [CONFIRMED] the D30 golden was already execution-wired via `run-goldens.mjs`'s glob (no
 hand list to update) and that runner's own CI step, contrary to the possibility the dispatch brief raised
 ("if the golden file is meant as a proof, it must be execution-wired ... or converted into a node --test
-file") -- no conversion was needed. [CONFIRMED] migration 318 (`claim_versions.note` +
+file") -- no conversion was needed. [CONFIRMED] migration 321 (`claim_versions.note` +
 `supersede_reason` CHECK widened to include `'superseded_by_record_briefs'`) is authored and idempotent but
 NOT applied in this worktree (no DB access here per the migration two-track policy); it must land via
 Supabase CLI before any `--allow-brief-overwrite` batch runs live.

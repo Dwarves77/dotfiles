@@ -428,7 +428,7 @@ does with a verdict file" section documents `run-ledger-consume.mjs`'s side of t
   COMPLETE, author-checked ledger, not a partial re-extract, so a prior claim the entry does not reproduce
   was deliberately left out by the author (below the floor / not verbatim) and is ARCHIVED to
   `claim_versions` (`supersede_reason='superseded_by_record_briefs'`, the batch id in `note` -- migration
-  318) rather than kept current, per `ledger-apply.mjs`'s own "REPLACE-LEDGER EXCEPTION" header. A
+  321) rather than kept current, per `ledger-apply.mjs`'s own "REPLACE-LEDGER EXCEPTION" header. A
   reproduced prior claim is unchanged either way. Without `--allow-brief-overwrite`, `replaceLedger` is
   `false` and the call is byte-for-byte the paid re-ground's own non-destructive apply (every not-reproduced
   claim kept, re-grounds-never-destroy doctrine, migration 208).
