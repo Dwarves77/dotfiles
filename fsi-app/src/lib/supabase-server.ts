@@ -2406,9 +2406,22 @@ export interface RecentChangeRow {
    *  pre-fix /regulations destination in itemDetailHref). */
   itemType?: string | null;
   domain?: number | null;
+  /**
+   * D23 (migration 319, defect-fix-plan-2026-09-12.md): 'new' for an item first added in the
+   * window, 'updated' for one that changed without being newly added (a regenerated brief, a
+   * backfilled timeline). Optional so a stale cross-deployment cache entry (see
+   * DASHBOARD_DATA_CACHE_KEY's own limit note) reads as 'new' rather than crashing.
+   */
+  changeKind?: "new" | "updated";
+  /**
+   * D23 (migration 319): the date of the underlying change - added_date for a 'new' row, the
+   * newest in-window item_changelog.change_date for an 'updated' one. computeAuditDate below
+   * prefers this over `added` when present.
+   */
+  changeDate?: string;
 }
 
-/** Raw payload shape of the get_workspace_recent_changes RPC (migration 232). */
+/** Raw payload shape of the get_workspace_recent_changes RPC (migration 232, widened by 319). */
 interface RecentChangeRpcRow {
   id: string;
   legacy_id: string | null;
@@ -2416,6 +2429,10 @@ interface RecentChangeRpcRow {
   priority: string | null;
   effective_priority: string | null;
   added_date: string;
+  /** Migration 319's two trailing columns - absent on a pre-319 database (additive/backward
+   *  compatible by design), in which case every row reads as 'new' with change_date = added_date. */
+  change_kind?: "new" | "updated" | null;
+  change_date?: string | null;
 }
 
 // ── Cache key for the cached dashboard payload (consumed by lib/data.ts) ──
@@ -2783,6 +2800,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       title: r.title,
       priority: r.effective_priority || r.priority || "LOW",
       added: r.added_date,
+      // D23 (migration 319): a pre-319 database (or a row the migration itself never labelled)
+      // reads as 'new' - the ORIGINAL, only meaning this feed ever carried, so nothing regresses.
+      changeKind: r.change_kind === "updated" ? "updated" : "new",
+      changeDate: r.change_date || r.added_date,
       itemType: recentTypeById.get(r.id)?.item_type ?? null,
       domain: recentTypeById.get(r.id)?.domain ?? null,
     }));

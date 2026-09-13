@@ -28,7 +28,7 @@ import { StatBlock } from "@/components/ui/StatBlock";
 import { countNoun, formatNumber } from "@/lib/format";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
-import { briefCardState, type BriefRow } from "@/lib/dashboard/brief-rows";
+import { briefCardState, changeRowPrefix, type BriefRow } from "@/lib/dashboard/brief-rows";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
@@ -283,14 +283,20 @@ export function DashboardBrief({
                     route now merges a bounded by-id backfill into the corpus before selecting
                     (see page.tsx); the degrade branch remains as the last resort for an id the
                     corpus genuinely cannot resolve, and still invents nothing. */}
-                {changedRows.map((row) => (
+                {changedRows.map((row) => {
+                  // D23 (defect-fix-plan-2026-09-12.md part (b)): an updated item is labelled
+                  // UPDATED, never NEW - an honest distinct fact, not a second coat of the same
+                  // badge (CLAUDE.md rule 2, "every UI string is honest").
+                  const prefix = changeRowPrefix(row);
+                  const meta = prefix ? `${prefix}${row.meta ? ` · ${row.meta}` : ""}` : row.meta;
+                  return (
                   <ListRow
                     key={row.id}
                     href={row.href}
                     band={bandFromPriority(row.priority)}
                     jurisdiction={row.jurisdiction}
                     title={row.title}
-                    meta={row.isNew ? `NEW · first seen this pass${row.meta ? ` · ${row.meta}` : ""}` : row.meta}
+                    meta={meta}
                     impact={row.impact}
                     due={row.due}
                     timeline={row.timeline}
@@ -314,7 +320,8 @@ export function DashboardBrief({
                       />
                     }
                   />
-                ))}
+                  );
+                })}
                 <CardFoot
                   // DEFECT 5 (lane opsclip, train 61, 2026-09-08): this shipped as a bare <span>
                   // while its counterpart on the Due Next card above was an anchor, and the
@@ -324,7 +331,9 @@ export function DashboardBrief({
                   // unordered list that happens to navigate.
                   left={<>All {formatNumber(totalChanges)} changes in the last 7 days</>}
                   leftHref={`/regulations?${SORT_FACET_PARAM}=newest`}
-                  right="old band → new band · NEW = first seen this pass"
+                  // D23 (defect-fix-plan-2026-09-12.md part (b)): the feed now carries updated
+                  // items too, so the legend names both kinds this card can show.
+                  right="old band → new band · NEW = first seen this pass · UPDATED = brief or timeline changed"
                 />
               </>
             )}

@@ -42,7 +42,7 @@
  *      which corpus it looked at (`briefCardState` -> "empty").
  */
 
-import type { Resource } from "@/types/resource";
+import type { Resource, ChangeLogEntry } from "@/types/resource";
 import type { RecentChangeRow } from "@/lib/supabase-server";
 import { toListRowFields, watchTypeForItem, type ListRowFields } from "@/lib/list-row-fields";
 import { dueInfo } from "@/lib/dashboard/row-fields";
@@ -59,6 +59,18 @@ export const DUE_NEXT_STATED_WINDOW_DAYS = 7;
 export interface BriefRow extends ListRowFields {
   /** "What changed" only: first seen in this detection pass. */
   isNew?: boolean;
+  /** "What changed" only (D23, migration 319): the item changed without being newly added - a
+   *  regenerated brief or a newly recorded timeline, never a fresh mint. Mutually exclusive with
+   *  `isNew` (a row is exactly one of the two, per computeChangeLabel's own precedence). */
+  isUpdated?: boolean;
+  /** "What changed"/updated rows only: the item_changelog `field` that produced the update
+   *  ("full_brief" | "timeline"), read from the SAME changelog map fetchChangelog already builds
+   *  for the item (its newest entry, since that read is ordered change_date DESC) - chooses
+   *  "brief regenerated" vs "timeline added" in the row label without a second query. */
+  updatedField?: string;
+  /** "What changed" only: the date of the underlying change (change_date for an updated row,
+   *  added_date for a new one) - carried so the row label can show it without a second lookup. */
+  changeDate?: string;
   /** Due-next only: whole days from the render instant to this row's binding date. Carried so the
    *  card's window label is computed from the SELECTED ROWS rather than re-derived from a second
    *  pass over the corpus (which could disagree with what is on screen). */
@@ -99,12 +111,21 @@ export function buildDueNextRows(resources: Resource[], now: Date, cap = DUE_NEX
  * shared derivation — so a changed item shows the same score, meta line and tier the list shows.
  * Where it is not (an item outside the loaded slice), the row degrades to what the change feed
  * actually carries and the absent cells render the Absence convention. Nothing is invented.
+ *
+ * D23 (migration 319, defect-fix-plan-2026-09-12.md): the feed now also carries UPDATED items (a
+ * regenerated brief, a backfilled timeline), never only newly minted ones. `c.changeKind` decides
+ * `isNew` vs `isUpdated`; a row absent `changeKind` (a pre-319 database, or an older cached
+ * payload) reads as `isNew`, the only meaning this feed carried before, so nothing regresses.
+ * `changelogByItemId` (fetchChangelog's own map, already built for the item detail rail) supplies
+ * the updated field ("full_brief" or "timeline") for the row's label; its own read is ordered
+ * change_date DESC, so index 0 is the item's newest change.
  */
 export function buildChangedRows(
   recentChanges: RecentChangeRow[],
   resources: Resource[],
   now: Date,
   cap = CHANGED_CAP,
+  changelogByItemId: Record<string, ChangeLogEntry[]> = {},
 ): BriefRow[] {
   const byId = new Map(resources.map((r) => [r.id, r]));
   const seen = new Set<string>();
@@ -112,9 +133,12 @@ export function buildChangedRows(
   for (const c of recentChanges) {
     if (seen.has(c.id)) continue;
     seen.add(c.id);
+    const isUpdated = c.changeKind === "updated";
+    const changeDate = c.changeDate ?? c.added ?? undefined;
+    const updatedField = isUpdated ? changelogByItemId[c.id]?.[0]?.fields?.[0] : undefined;
     const r = byId.get(c.id);
     if (r) {
-      rows.push({ ...toListRowFields(r, now), isNew: true });
+      rows.push({ ...toListRowFields(r, now), isNew: !isUpdated, isUpdated, changeDate, updatedField });
     } else {
       rows.push({
         id: c.id,
@@ -131,12 +155,33 @@ export function buildChangedRows(
         // change feed carries the same (itemType, domain) pair the href above is built from, so it
         // goes through the SAME classifier rather than defaulting to "reg".
         watchType: watchTypeForItem({ type: c.itemType, domain: c.domain }),
-        isNew: true,
+        isNew: !isUpdated,
+        isUpdated,
+        changeDate,
+        updatedField,
       });
     }
     if (rows.length >= cap) break;
   }
   return rows;
+}
+
+/**
+ * The "What changed" row's own kind + date prefix, computed once here so DashboardBrief.tsx never
+ * re-derives the D23 label vocabulary inline (defect-fix-plan-2026-09-12.md part (b)): "NEW · first
+ * seen this pass" for a new row, "UPDATED · brief regenerated <date>" for a regenerated brief,
+ * "UPDATED · timeline added <date>" for a backfilled timeline. Null for a row that is neither (the
+ * Due-next rows this same module builds never carry isNew/isUpdated).
+ */
+export function changeRowPrefix(
+  row: Pick<BriefRow, "isNew" | "isUpdated" | "updatedField" | "changeDate">,
+): string | null {
+  if (row.isNew) return "NEW · first seen this pass";
+  if (row.isUpdated) {
+    const what = row.updatedField === "timeline" ? "timeline added" : "brief regenerated";
+    return row.changeDate ? `UPDATED · ${what} ${row.changeDate}` : `UPDATED · ${what}`;
+  }
+  return null;
 }
 
 /**
@@ -231,14 +276,19 @@ export function briefCardState(rowCount: number, fetchError?: string): BriefCard
  * now only the fallback for the honest case where the workspace has no recent changes at all but
  * does carry an older changelog entry. Nothing is invented; the empty-string "No detection pass
  * on record" case is unchanged.
+ *
+ * D23 (migration 319): a row's `changeDate` (added_date for a new item, item_changelog.change_date
+ * for an updated one) is the more precise fact and wins when present; `added` stays the fallback
+ * for a row built before 319 shipped (or a stale cached payload), so no existing caller regresses.
  */
 export function computeAuditDate(
-  recentChanges: Array<{ added?: string | null }>,
+  recentChanges: Array<{ added?: string | null; changeDate?: string | null }>,
   changelogDates: Array<string | null | undefined>,
 ): string {
   let auditDate = "";
   for (const c of recentChanges) {
-    if (c.added && c.added > auditDate) auditDate = c.added;
+    const d = c.changeDate ?? c.added;
+    if (d && d > auditDate) auditDate = d;
   }
   if (auditDate) return auditDate;
   for (const d of changelogDates) {
