@@ -224,6 +224,15 @@ Fix at the source (`fsi-app/.discipline/governance/memory-gate.mjs`, the CODE ex
 
 
 
+
+### D21. The tag derivation's keyword map is too narrow to answer the question it now decides [CONFIRMED]
+
+Evidence (coordinator, 2026-09-13): the tag-ratification dry run on the L10 decider (run 34731073435) reports open 1,104: 81 adopts from the 71 proposal-bearing flags, 14 re-derived adopts, 0 re-derived declines, and 1,019 flags to be resolved as "no derivable tags". The sample includes "The Emissions Performance Standard (Enforcement) (Wales) Regulations" and Commission decisions on emissions trading; `derive-tags.mjs`'s KEYWORD_MAP carries phrases such as "greenhouse gas emissions" and "Emissions Trading" but not the bare vocabulary terms, so an item whose title says "Emissions" derives nothing. Resolving 1,019 flags with "no derivable tags" on that map would close the queue without the answer, the failure the operator named ("it couldn't answer questions or capture data in a way to categorize so it quarantined"). The apply is held.
+
+Root cause: the map was written as a proposer's hint list, not as the decider's complete evidence rule; D15 promoted it to the decider without widening it.
+
+Fix at the source (`derive-tags.mjs`, KEYWORD_MAP and its derivation): the map covers every tag in the three closed vocabularies (topic_tags, compliance_object_tags, operational_scenario_tags) with at least the tag's own name and its plain inflections as keywords (emissions: emission, emissions, emitting; aircraft-operator: aircraft operator, air carrier, airline; and so on for every tag, a table-driven list reviewed against the vocabulary in `src/lib/classification` or wherever the vocabularies live), plus the existing phrases; matching stays word-boundary, case-insensitive, over title, what_is_it, summary and full_brief; the evidence recorded is the matched phrase. A test asserts that every vocabulary tag has at least one keyword and that a title carrying a tag's own name derives that tag. The record-briefs README does not change. After it lands the dry run is repeated; the no-derivable count is expected to fall to items whose text genuinely carries none of the vocabulary, and those close honestly. Lane: L13, one Sonnet lane on the freed L10 worktree from master, before the tag-ratification apply.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -242,6 +251,7 @@ Fix at the source (`fsi-app/.discipline/governance/memory-gate.mjs`, the CODE ex
 | L8 harness numbering | D12 run-id artifact names across every harness family | a freed worktree | after L6 |
 | L11 quarantine and human-flag writers | D17 enumeration (read-only) then per-site specification and lanes | a freed worktree, read-only first | enumeration now; lanes after L9 and L10 |
 | L12 record-briefs validator | D18 qualification stems | a freed worktree | after L9 and L10 |
+| L13 tag keyword map | D21 vocabulary-complete keyword map | wt-finishcode-0911 from master | before the tag-ratification apply |
 | L10 tag decider | D15 zero-proposal flags re-derived and decided; proposer stops asking for a human | a freed worktree from master | before the tag-ratification apply |
 | L9 provisional resolver | D13 reject rule removed, accessibility as status; D14 class-table extension and residue enumeration | wt-brieffields-0911 from master after #652 | before the resolve-provisional-sources apply |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
