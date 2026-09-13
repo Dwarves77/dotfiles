@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { main } from "./tag-ratification.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
+import { deriveTags as realDeriveTags } from "../../src/lib/connections/derive-tags.mjs";
 
 const RATIFIED_FLAG = {
   id: "flag-1",
@@ -202,4 +203,122 @@ test("auto is case-insensitive and trims whitespace", async () => {
   const d = autoDeps();
   const r = await main({ mode: "dry", arg: "  AUTO  " }, d);
   assert.equal(r.counts.open_candidates, 3);
+});
+
+// ── D15 part 1: zero-proposal bucketing + 20-row sampling (fix round 1, review-l10.md) ─────────────
+// "tag-ratification.mjs's D15 dry and apply outcome bucketing (re-derived-and-adopted,
+// re-derived-and-declined, no-derivable-tags) and its 20-row sampling gain tests mirroring the
+// classification side's."
+
+function zeroProposalFlag(n, overrides = {}) {
+  return {
+    id: `flag-zero-${n}`,
+    subject_ref: buildSubjectRef(`item-zero-${n}`),
+    created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
+    status: "open",
+    resolved_by: null,
+    resolution_note: null,
+    description: `summary\n\nPROPOSALS_JSON: []`,
+    ...overrides,
+  };
+}
+
+/**
+ * Deps for the D15 zero-proposal bucket tests. `itemsByFlagId` maps each zero-proposal flag's item id
+ * to the item shape (some derivable -> "adopted", some not -> "no_derivable"); `deriveTagsOverride`
+ * (optional) is threaded onto every item read so a "declined" bucket is constructable too (see
+ * apply-tags.mjs's deps.deriveTags test seam and its own header comment for why a real KEYWORD_MAP
+ * candidate can never decline naturally).
+ */
+function zeroProposalDeps({ flags, items, declinedItemIds = new Set() } = {}) {
+  const calls = [];
+  const flagMap = new Map(flags.map((f) => [f.id, f]));
+  const itemMap = new Map(items.map((it) => [it.id, it]));
+  return {
+    calls,
+    listOpenCandidates: async () => [...flagMap.values()],
+    readFlag: async (id) => { calls.push(["readFlag", id]); return { data: flagMap.get(id) ?? null, error: null }; },
+    readItem: async (id) => { calls.push(["readItem", id]); return { data: itemMap.get(id) ?? null, error: null }; },
+    updateItem: async (id, patch) => { calls.push(["updateItem", id, patch]); itemMap.set(id, { ...itemMap.get(id), ...patch }); return { updated: 1, snapshot: "snap" }; },
+    resolveFlag: async (id, note) => { calls.push(["resolveFlag", id, note]); flagMap.set(id, { ...flagMap.get(id), status: "resolved", resolved_by: "apply-tags.mjs", resolution_note: note }); return { updated: 1, snapshot: "flag-snap" }; },
+    // deps.deriveTags is the SAME optional test seam autoAdoptTags/reDeriveZeroProposalTags reads
+    // (apply-tags.mjs); this wrapper routes it per-item so a mixed batch can include a real-adopting
+    // item, a real-no-derivable item, and a seam-supplied declining item in the SAME run.
+    deriveTags: declinedItemIds.size
+      ? (input) => (declinedItemIds.has(input.id)
+        ? { itemId: input.id, proposals: [{ field: "operational_scenario_tags", tag: "ocean-bunkering", evidence: "bunkering surcharge schedule", confidence: "medium" }] }
+        : realDeriveTags(input))
+      : undefined,
+  };
+}
+
+test("auto, dry: D15 zero-proposal buckets -- re-derived-and-adopted / no-derivable-tags counts and samples", async () => {
+  const adoptedFlag = zeroProposalFlag("adopt");
+  const noDerivableFlag = zeroProposalFlag("bare");
+  const items = [
+    { id: "item-zero-adopt", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: "New CBAM reporting duties apply." },
+    { id: "item-zero-bare", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: null },
+  ];
+  const d = zeroProposalDeps({ flags: [adoptedFlag, noDerivableFlag], items });
+  const r = await main({ mode: "dry", arg: "auto" }, d);
+  assert.equal(r.counts.zero_proposal_count, 2);
+  assert.equal(r.counts.re_derived_and_adopted_count, 1);
+  assert.equal(r.counts.no_derivable_tags_count, 1);
+  assert.equal(r.counts.re_derived_and_declined_count, 0);
+  assert.ok(Array.isArray(r.counts.re_derived_and_adopted_sample));
+  assert.ok(Array.isArray(r.counts.re_derived_and_declined_sample));
+  assert.ok(Array.isArray(r.counts.no_derivable_tags_sample));
+  assert.equal(r.counts.re_derived_and_adopted_sample[0].flag_id, "flag-zero-adopt");
+  assert.equal(r.counts.no_derivable_tags_sample[0].flag_id, "flag-zero-bare");
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem" || c[0] === "resolveFlag"), "dry writes nothing");
+});
+
+test("auto, dry: D15 zero-proposal declined bucket, via the deriveTags test seam", async () => {
+  const declinedFlag = zeroProposalFlag("decline");
+  const items = [
+    { id: "item-zero-decline", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: "Nothing about maritime fuel logistics is discussed here." },
+  ];
+  const d = zeroProposalDeps({ flags: [declinedFlag], items, declinedItemIds: new Set(["item-zero-decline"]) });
+  const r = await main({ mode: "dry", arg: "auto" }, d);
+  assert.equal(r.counts.re_derived_and_declined_count, 1);
+  assert.equal(r.counts.re_derived_and_adopted_count, 0);
+  assert.equal(r.counts.no_derivable_tags_count, 0);
+  assert.equal(r.counts.re_derived_and_declined_sample[0].flag_id, "flag-zero-decline");
+});
+
+test("auto, apply: D15 zero-proposal buckets resolve every flag -- adopted writes + resolves, no-derivable resolves only, declined resolves only", async () => {
+  const adoptedFlag = zeroProposalFlag("adopt2");
+  const noDerivableFlag = zeroProposalFlag("bare2");
+  const declinedFlag = zeroProposalFlag("decline2");
+  const items = [
+    { id: "item-zero-adopt2", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: "New CBAM reporting duties apply." },
+    { id: "item-zero-bare2", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: null },
+    { id: "item-zero-decline2", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: "Nothing about maritime fuel logistics is discussed here." },
+  ];
+  const d = zeroProposalDeps({ flags: [adoptedFlag, noDerivableFlag, declinedFlag], items, declinedItemIds: new Set(["item-zero-decline2"]) });
+  const r = await main({ mode: "apply", arg: "auto" }, d);
+  assert.equal(r.applied, 3, "every zero-proposal flag counts as decided, whichever way it decides");
+  const byFlag = Object.fromEntries(r.counts.rederive_apply_results.map((x) => [x.flag_id, x]));
+  assert.equal(byFlag["flag-zero-adopt2"].status, "re_derived_adopted");
+  assert.equal(byFlag["flag-zero-bare2"].status, "re_derived_no_change");
+  assert.equal(byFlag["flag-zero-decline2"].status, "re_derived_no_change");
+  assert.ok(d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-zero-adopt2"));
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-zero-bare2"));
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-zero-decline2"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-zero-adopt2"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-zero-bare2"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-zero-decline2"));
+});
+
+test("auto, dry: D15 20-row sample cap -- more than 20 in one bucket still counts fully but samples at 20", async () => {
+  const flags = [];
+  const items = [];
+  for (let i = 0; i < 25; i++) {
+    flags.push(zeroProposalFlag(`bulk-${i}`));
+    items.push({ id: `item-zero-bulk-${i}`, operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], title: "Untitled", full_brief: null });
+  }
+  const d = zeroProposalDeps({ flags, items });
+  const r = await main({ mode: "dry", arg: "auto" }, d);
+  assert.equal(r.counts.no_derivable_tags_count, 25, "the full count is never truncated");
+  assert.equal(r.counts.no_derivable_tags_sample.length, 20, "the sample caps at 20 rows");
 });

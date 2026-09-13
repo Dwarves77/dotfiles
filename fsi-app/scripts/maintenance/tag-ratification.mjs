@@ -37,7 +37,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   applyTags, evaluateApplication,
-  evaluateAutoAdoption, autoAdoptTags, AUTO_ADOPT_THRESHOLD,
+  evaluateAutoAdoption, autoAdoptTags, AUTO_ADOPT_THRESHOLD, isZeroProposalFlag,
 } from "../connections/apply-tags.mjs";
 import { TAG_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
 import { runCli } from "./lib/cli.mjs";
@@ -145,17 +145,20 @@ async function runAutoAdopt(apply, deps) {
 
   // Task 7.2 / ADR-030 rider (2026-09-12): every flywheel-tag proposal is DECIDED (adopt or decline),
   // never left as "below threshold" residue on an open flag -- see apply-tags.mjs's decideTagProposal.
-  // Every open flag with >=1 parseable proposal is now decidable; "not adoptable" is limited to a
-  // malformed/foreign-namespace/zero-proposal row.
+  // D15 (2026-09-12, defect-fix-plan): a ZERO-proposal flag is decided too, never skipped -- routed
+  // through the SAME autoAdoptTags() (it internally re-derives via reDeriveZeroProposalTags), so
+  // "not adoptable" is limited to a genuinely malformed/foreign-namespace row.
   const openFlags = await deps.listOpenCandidates();
-  const evaluated = openFlags.map((f) => ({ flag: f, decision: evaluateAutoAdoption(f) }));
+  const evaluated = openFlags.map((f) => ({ flag: f, decision: evaluateAutoAdoption(f), zeroProposal: isZeroProposalFlag(f) }));
   const decidable = evaluated.filter((e) => e.decision.ok);
-  const notAdoptable = evaluated.filter((e) => !e.decision.ok);
+  const zeroProposal = evaluated.filter((e) => !e.decision.ok && e.zeroProposal);
+  const notAdoptable = evaluated.filter((e) => !e.decision.ok && !e.zeroProposal);
 
   summary.counts = {
     open_candidates: openFlags.length,
     threshold: AUTO_ADOPT_THRESHOLD,
     decidable_count: decidable.length,
+    zero_proposal_count: zeroProposal.length,
     not_adoptable_count: notAdoptable.length,
   };
 
@@ -176,6 +179,23 @@ async function runAutoAdopt(apply, deps) {
   summary.counts.adopted_sample = adoptedSample.slice(0, 20);
   summary.counts.declined_sample = declinedSample.slice(0, 20);
 
+  // D15 part 1 dry output (spec: "per outcome, re-derived-and-adopted, re-derived-and-declined, and
+  // no-derivable-tags counts with a 20-row sample each").
+  const rederivePreview = [];
+  for (const { flag } of zeroProposal) {
+    const r = await autoAdoptTags(deps, flag.id, { execute: false });
+    rederivePreview.push({ flag_id: flag.id, item_id: r.itemId ?? null, outcome: r.outcome ?? "no_derivable" });
+  }
+  const rederivedAdopted = rederivePreview.filter((r) => r.outcome === "adopted");
+  const rederivedDeclined = rederivePreview.filter((r) => r.outcome === "declined");
+  const noDerivable = rederivePreview.filter((r) => r.outcome === "no_derivable");
+  summary.counts.re_derived_and_adopted_count = rederivedAdopted.length;
+  summary.counts.re_derived_and_declined_count = rederivedDeclined.length;
+  summary.counts.no_derivable_tags_count = noDerivable.length;
+  summary.counts.re_derived_and_adopted_sample = rederivedAdopted.slice(0, 20);
+  summary.counts.re_derived_and_declined_sample = rederivedDeclined.slice(0, 20);
+  summary.counts.no_derivable_tags_sample = noDerivable.slice(0, 20);
+
   if (!apply) return summary;
 
   let applied = 0;
@@ -189,14 +209,29 @@ async function runAutoAdopt(apply, deps) {
     });
     if (r.status === "decided" || r.status === "decided_no_change") applied += 1;
   }
+
+  // D15 part 1 apply: re-derive + decide + resolve every zero-proposal flag, same loop shape.
+  const rederiveResults = [];
+  for (const { flag } of zeroProposal) {
+    const r = await autoAdoptTags(deps, flag.id, { execute: true });
+    rederiveResults.push({ flag_id: flag.id, status: r.status, item_id: r.itemId ?? null, outcome: r.outcome ?? null });
+    if (r.status === "re_derived_adopted" || r.status === "re_derived_no_change") applied += 1;
+  }
+
   summary.applied = applied;
   summary.counts.apply_results = results;
-  const touchedItemIds = [...new Set(results.filter((r) => r.status === "decided").map((r) => r.item_id))];
+  summary.counts.rederive_apply_results = rederiveResults;
+  const touchedItemIds = [
+    ...new Set([
+      ...results.filter((r) => r.status === "decided").map((r) => r.item_id),
+      ...rederiveResults.filter((r) => r.status === "re_derived_adopted").map((r) => r.item_id),
+    ]),
+  ];
   summary.note =
-    `Decided ${applied}/${decidable.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}"; every flag ` +
-    `closed (no residue stays open, task 7.2). Discovery NOT re-run by this step (orchestration only, per ` +
-    "this file's header); fallback: node scripts/connections/" +
-    `discover-for-items.mjs --ids ${touchedItemIds.join(",") || "<item id(s)>"} --execute.`;
+    `Decided ${applied}/${decidable.length + zeroProposal.length} open flag(s) at threshold "${AUTO_ADOPT_THRESHOLD}" ` +
+    `(${zeroProposal.length} of them zero-proposal, re-derived per D15); every flag closed (no residue stays ` +
+    "open, task 7.2 / D15). Discovery NOT re-run by this step (orchestration only, per this file's header); " +
+    `fallback: node scripts/connections/discover-for-items.mjs --ids ${touchedItemIds.join(",") || "<item id(s)>"} --execute.`;
 
   const readBack = {};
   for (const itemId of touchedItemIds) {
@@ -260,10 +295,13 @@ if (IS_MAIN) {
         // Widened 2026-09-12 (task 7.2): the auto path re-checks a medium-confidence proposal's keyword
         // evidence against the item's own title/what_is_it/summary/full_brief (apply-tags.mjs's
         // decideTagProposal), not just its tag arrays.
+        // Widened again 2026-09-12 (D15 part 1): canonical_instrument_key added so a zero-proposal flag's
+        // re-derivation (reDeriveZeroProposalTags) sees the same "high"-confidence identity field
+        // deriveTags() reads.
         readItem: (id) =>
           sb
             .from("intelligence_items")
-            .select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, what_is_it, summary, full_brief")
+            .select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, canonical_instrument_key, what_is_it, summary, full_brief")
             .eq("id", id)
             .maybeSingle(),
         updateItem: async (id, patch) => {

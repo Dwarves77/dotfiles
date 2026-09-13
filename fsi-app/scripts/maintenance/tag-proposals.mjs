@@ -40,8 +40,8 @@
 // an item tag) is not the irreversible/high-blast-radius action a blanket apply-and-ratify would be.
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { proposeTags } from "../connections/propose-tags.mjs";
-import { TAG_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
+import { proposeTags, NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
+import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { runCli } from "./lib/cli.mjs";
 
 export const CITE = Object.freeze({
@@ -169,6 +169,11 @@ if (IS_MAIN) {
         }),
         readExistingOpen: () => readAll("integrity_flags", "id, subject_ref, created_by", {
           match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
+        }),
+        // D15 part 2 (defect-fix-plan-2026-09-12): any-status read, scoped to the no-derivable subtype
+        // (those rows are born resolved, so an open-only scan would never see them for dedup).
+        readExistingNoDerivable: () => readAll("integrity_flags", "id, subject_ref, created_by", {
+          match: (q) => q.eq("created_by", createdBy(TAG_NAMESPACE, NO_DERIVABLE_SUBTYPE)),
         }),
         insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
         // ids is runtime-scaled (every stale integrity_flags row this tag-proposal pass found) with no

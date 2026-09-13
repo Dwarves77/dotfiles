@@ -8,13 +8,19 @@ import {
   evaluateApplication, buildMergePatch, applyClassification,
   AUTO_ADOPT_FIELDS, isAutoAdoptableProposal, partitionProposals, evaluateAutoAdoption, autoAdoptClassification,
   decideClassificationProposal, decideScopeTopicsProposal, decideClassificationProposals, buildAdoptedProposalsForMerge,
+  isZeroProposalClassificationFlag, buildNoDerivableClassificationNote, deriveClassTableCandidates,
+  countDistinctDates, decideDriftResolution, autoResolveDriftFlag, retireAnomalyFlag,
+  DRIFT_MIN_ITEMS, DRIFT_MIN_DISTINCT_DATES, ANOMALY_RETIRED_NOTE,
 } from "./apply-classifications.mjs";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
-import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE } from "../../src/lib/classification/flags.mjs";
+import {
+  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE, ITEM_ANOMALY_SUBTYPE,
+} from "../../src/lib/classification/flags.mjs";
 import { createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
 const CLASSIFY_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
 const DRIFT_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_DRIFT_SUBTYPE);
+const ANOMALY_CREATED_BY = createdBy(AXIS_NAMESPACE, ITEM_ANOMALY_SUBTYPE);
 
 // ── hasRatifyClassificationToken ─────────────────────────────────────────────────────────────────
 
@@ -517,4 +523,242 @@ test("INVARIANT: autoAdoptClassification always resolves a decidable flag (never
     assert.equal(r.resolved, true, `proposals ${JSON.stringify(proposals)} must still resolve the flag`);
     assert.equal(deps.resolveCalls.length, 1);
   }
+});
+
+// ── D17 family 4: classification zero-proposal re-derivation (defect-fix-plan-2026-09-12) ─────────
+
+function zeroProposalClassificationFlag(overrides = {}) {
+  return {
+    id: "flag-1",
+    created_by: CLASSIFY_CREATED_BY,
+    status: "open",
+    description: "summary\n\nPROPOSALS_JSON: []",
+    subject_ref: "source-1",
+    ...overrides,
+  };
+}
+
+test("isZeroProposalClassificationFlag: true for an empty PROPOSALS_JSON array, false when proposals exist or malformed", () => {
+  assert.equal(isZeroProposalClassificationFlag(zeroProposalClassificationFlag()), true);
+  assert.equal(isZeroProposalClassificationFlag(openFlag()), false);
+  assert.equal(isZeroProposalClassificationFlag({ description: "no json here" }), false);
+});
+
+test("buildNoDerivableClassificationNote: carries the date and 're-evaluated on the next classify run'", () => {
+  const note = buildNoDerivableClassificationNote(new Date("2026-09-12T00:00:00Z"));
+  assert.match(note, /^no derivable classification from the class table or the observed output on 2026-09-12/);
+  assert.match(note, /re-evaluated on the next classify run/);
+});
+
+// deriveClassTableCandidates: pure, no I/O.
+
+test("deriveClassTableCandidates: a tier-1 legal-primary host derives scope_topics, scope_verticals, and a role-default expected_output when unset", () => {
+  const source = { url: "https://eur-lex.europa.eu/some-path" };
+  const gaps = { scope_topics: true, scope_verticals: true, expected_output: true };
+  const candidates = deriveClassTableCandidates(source, gaps, null);
+  const byField = Object.fromEntries(candidates.map((c) => [c.field, c]));
+  assert.deepEqual(byField.scope_topics.value, ["regulatory"]);
+  assert.deepEqual(byField.scope_verticals.value, ["freight_general"]);
+  assert.ok(byField.expected_output, "expected_output derives from the primary_legal_authority role default");
+  assert.match(byField.expected_output.basis, /tier 1/);
+});
+
+test("deriveClassTableCandidates: a sufficient observed distribution is preferred over the tier-1 role default for expected_output", () => {
+  const source = { url: "https://eur-lex.europa.eu/some-path" };
+  const gaps = { scope_topics: false, scope_verticals: false, expected_output: true };
+  const observed = { regulations: 0.7, research: 0.1, market: 0.1, operations: 0.05, out_of_scope: 0.05 };
+  const candidates = deriveClassTableCandidates(source, gaps, observed);
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].field, "expected_output");
+  assert.deepEqual(candidates[0].value, observed);
+  assert.match(candidates[0].basis, /observed item-category distribution/);
+});
+
+test("deriveClassTableCandidates: a tier-2 (gov/intergov) host derives ONLY scope_topics, never scope_verticals or a role-default expected_output", () => {
+  const source = { url: "https://www.imo.org/some-path" };
+  const gaps = { scope_topics: true, scope_verticals: true, expected_output: true };
+  const candidates = deriveClassTableCandidates(source, gaps, null);
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].field, "scope_topics");
+});
+
+test("deriveClassTableCandidates: an unclassifiable host derives nothing (never guesses)", () => {
+  const source = { url: "https://some-random-blog.example/post" };
+  const gaps = { scope_topics: true, scope_verticals: true, expected_output: true };
+  assert.deepEqual(deriveClassTableCandidates(source, gaps, null), []);
+});
+
+test("deriveClassTableCandidates: a malformed/missing url never throws", () => {
+  assert.deepEqual(deriveClassTableCandidates({ url: null }, { scope_topics: true, scope_verticals: true, expected_output: true }, null), []);
+  assert.deepEqual(deriveClassTableCandidates({ url: "not a url" }, { scope_topics: true, scope_verticals: true, expected_output: true }, null), []);
+});
+
+// reDeriveZeroProposalClassification, via autoAdoptClassification (fake deps).
+
+function fakeZeroProposalDeps({ flag, source, items = [], updateResult = { updated: 1, snapshot: "s.jsonl" }, resolveResult = { updated: 1, snapshot: "s2.jsonl" } } = {}) {
+  const updateCalls = [], resolveCalls = [];
+  return {
+    updateCalls, resolveCalls,
+    readFlag: async (id) => (flag && flag.id === id ? { data: flag, error: null } : { data: null, error: null }),
+    readSource: async (id) => (source && source.id === id ? { data: source, error: null } : { data: null, error: null }),
+    readSourceItems: async () => items,
+    updateSource: async (id, patch) => { updateCalls.push({ id, patch }); return updateResult; },
+    resolveFlag: async (id, note) => { resolveCalls.push({ id, note }); return resolveResult; },
+  };
+}
+
+test("autoAdoptClassification (D17 family 4): a zero-proposal flag whose host resolves to the SC-13 class table is re-derived, adopted, and resolved", async () => {
+  const flag = zeroProposalClassificationFlag();
+  const source = { id: "source-1", name: "EUR-Lex", url: "https://eur-lex.europa.eu/x", scope_topics: [], scope_modes: [], scope_verticals: [], expected_output: null };
+  const deps = fakeZeroProposalDeps({ flag, source });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "re_derived_adopted");
+  assert.ok(deps.updateCalls.some((c) => c.id === "source-1" && Array.isArray(c.patch.scope_topics)));
+  assert.equal(deps.resolveCalls.length, 1);
+});
+
+test("autoAdoptClassification (D17 family 4): a zero-proposal flag whose host is unclassifiable and has no observed sample is resolved with the no-derivable note, no source write", async () => {
+  const flag = zeroProposalClassificationFlag();
+  const source = { id: "source-1", name: "Some Blog", url: "https://some-random-blog.example/", scope_topics: [], scope_modes: [], scope_verticals: [], expected_output: null };
+  const deps = fakeZeroProposalDeps({ flag, source, items: [] });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "re_derived_no_change");
+  assert.equal(deps.updateCalls.length, 0);
+  assert.match(deps.resolveCalls[0].note, /no derivable classification/);
+});
+
+test("autoAdoptClassification (D17 family 4): a second run against the now-resolved flag is refused, never re-derived", async () => {
+  const flag = zeroProposalClassificationFlag();
+  const source = { id: "source-1", name: "Some Blog", url: "https://some-random-blog.example/", scope_topics: [], scope_modes: [], scope_verticals: [], expected_output: null };
+  const d1 = fakeZeroProposalDeps({ flag, source });
+  const r1 = await autoAdoptClassification(d1, "flag-1", { execute: true });
+  assert.equal(r1.status, "re_derived_no_change");
+  const d2 = fakeZeroProposalDeps({ flag: { ...flag, status: "resolved" }, source });
+  const r2 = await autoAdoptClassification(d2, "flag-1", { execute: true });
+  assert.equal(r2.status, "not_auto_adoptable");
+  assert.equal(d2.updateCalls.length, 0);
+  assert.equal(d2.resolveCalls.length, 0);
+});
+
+// ── D17 family 5: drift auto-resolution + anomaly retirement (defect-fix-plan-2026-09-12) ─────────
+
+test("countDistinctDates: counts distinct calendar (UTC) dates, ignoring missing/null created_at", () => {
+  assert.equal(countDistinctDates([
+    { created_at: "2026-09-01T00:00:00Z" }, { created_at: "2026-09-01T12:00:00Z" },
+    { created_at: "2026-09-02T00:00:00Z" }, { created_at: null }, {},
+  ]), 2);
+  assert.equal(countDistinctDates([]), 0);
+});
+
+test("decideDriftResolution: adopts the observed distribution once the sample clears the item/date floor", () => {
+  const observed = { regulations: 0.6, research: 0.2, market: 0.1, operations: 0.05, out_of_scope: 0.05 };
+  const items = Array.from({ length: DRIFT_MIN_ITEMS }, (_, i) => ({ created_at: i % 2 === 0 ? "2026-09-01T00:00:00Z" : "2026-09-02T00:00:00Z" }));
+  const r = decideDriftResolution(observed, { regulations: 0.1 }, items);
+  assert.equal(r.adopt, true);
+  assert.deepEqual(r.patch, { expected_output: observed });
+  assert.match(r.note, /drift resolved/);
+  assert.match(r.note, /before=/);
+  assert.match(r.note, /after=/);
+});
+
+test("decideDriftResolution: below the item floor resolves 'insufficient sample', never adopts", () => {
+  const observed = { regulations: 0.6, research: 0.2, market: 0.1, operations: 0.05, out_of_scope: 0.05 };
+  const items = Array.from({ length: DRIFT_MIN_ITEMS - 1 }, () => ({ created_at: "2026-09-01T00:00:00Z" }));
+  const r = decideDriftResolution(observed, null, items);
+  assert.equal(r.adopt, false);
+  assert.equal(r.patch, null);
+  assert.match(r.note, /insufficient sample, re-evaluated next run/);
+});
+
+test("decideDriftResolution: enough items but only ONE distinct date still resolves 'insufficient sample'", () => {
+  const observed = { regulations: 0.6, research: 0.2, market: 0.1, operations: 0.05, out_of_scope: 0.05 };
+  const items = Array.from({ length: DRIFT_MIN_ITEMS + 5 }, () => ({ created_at: "2026-09-01T00:00:00Z" }));
+  assert.equal(countDistinctDates(items), 1);
+  assert.ok(countDistinctDates(items) < DRIFT_MIN_DISTINCT_DATES);
+  const r = decideDriftResolution(observed, null, items);
+  assert.equal(r.adopt, false);
+});
+
+function fakeFamily5Deps({ flag, source, items = [] } = {}) {
+  const updateCalls = [], resolveCalls = [];
+  return {
+    updateCalls, resolveCalls,
+    readFlag: async (id) => (flag && flag.id === id ? { data: flag, error: null } : { data: null, error: null }),
+    readSource: async (id) => (source && source.id === id ? { data: source, error: null } : { data: null, error: null }),
+    readSourceItems: async () => items,
+    updateSource: async (id, patch) => { updateCalls.push({ id, patch }); return { updated: 1, snapshot: "s.jsonl" }; },
+    resolveFlag: async (id, note) => { resolveCalls.push({ id, note }); return { updated: 1, snapshot: "s2.jsonl" }; },
+  };
+}
+
+function driftFlag(overrides = {}) {
+  return { id: "drift-1", created_by: DRIFT_CREATED_BY, status: "open", subject_ref: "source-1", ...overrides };
+}
+
+test("autoResolveDriftFlag: refuses a flag from the wrong namespace or the wrong status", async () => {
+  const deps = fakeFamily5Deps({ flag: driftFlag({ created_by: CLASSIFY_CREATED_BY }) });
+  assert.equal((await autoResolveDriftFlag(deps, "drift-1", { execute: true })).status, "not_applicable");
+  const deps2 = fakeFamily5Deps({ flag: driftFlag({ status: "resolved" }) });
+  assert.equal((await autoResolveDriftFlag(deps2, "drift-1", { execute: true })).status, "not_applicable");
+});
+
+test("autoResolveDriftFlag: adopts and writes source.expected_output when the sample is sufficient, then resolves", async () => {
+  const items = Array.from({ length: DRIFT_MIN_ITEMS }, (_, i) => ({
+    item_type: "regulation", domain: 1, created_at: i % 2 === 0 ? "2026-09-01T00:00:00Z" : "2026-09-02T00:00:00Z",
+  }));
+  const source = { id: "source-1", expected_output: { regulations: 0.1, research: 0.1, market: 0.7, operations: 0.05, out_of_scope: 0.05 } };
+  const deps = fakeFamily5Deps({ flag: driftFlag(), source, items });
+  const r = await autoResolveDriftFlag(deps, "drift-1", { execute: true });
+  assert.equal(r.status, "resolved");
+  assert.equal(r.adopted, true);
+  assert.equal(deps.updateCalls.length, 1);
+  assert.equal(deps.updateCalls[0].id, "source-1");
+  assert.equal(deps.resolveCalls.length, 1);
+});
+
+test("autoResolveDriftFlag: insufficient sample resolves without writing the source", async () => {
+  const source = { id: "source-1", expected_output: { regulations: 1, research: 0, market: 0, operations: 0, out_of_scope: 0 } };
+  const deps = fakeFamily5Deps({ flag: driftFlag(), source, items: [] });
+  const r = await autoResolveDriftFlag(deps, "drift-1", { execute: true });
+  assert.equal(r.status, "resolved");
+  assert.equal(r.adopted, false);
+  assert.equal(deps.updateCalls.length, 0);
+  assert.equal(deps.resolveCalls.length, 1);
+  assert.match(deps.resolveCalls[0].note, /insufficient sample/);
+});
+
+test("autoResolveDriftFlag: dry run computes the decision but writes nothing", async () => {
+  const source = { id: "source-1", expected_output: null };
+  const deps = fakeFamily5Deps({ flag: driftFlag(), source, items: [] });
+  const r = await autoResolveDriftFlag(deps, "drift-1", { execute: false });
+  assert.equal(r.status, "dry_run");
+  assert.equal(deps.updateCalls.length, 0);
+  assert.equal(deps.resolveCalls.length, 0);
+});
+
+function anomalyFlag(overrides = {}) {
+  return { id: "anomaly-1", created_by: ANOMALY_CREATED_BY, status: "open", subject_ref: "item-1", ...overrides };
+}
+
+test("retireAnomalyFlag: refuses a flag from the wrong namespace or the wrong status", async () => {
+  const deps = fakeFamily5Deps({ flag: anomalyFlag({ created_by: CLASSIFY_CREATED_BY }) });
+  assert.equal((await retireAnomalyFlag(deps, "anomaly-1", { execute: true })).status, "not_applicable");
+  const deps2 = fakeFamily5Deps({ flag: anomalyFlag({ status: "resolved" }) });
+  assert.equal((await retireAnomalyFlag(deps2, "anomaly-1", { execute: true })).status, "not_applicable");
+});
+
+test("retireAnomalyFlag: resolves an open anomaly flag unconditionally with the fixed retirement note", async () => {
+  const deps = fakeFamily5Deps({ flag: anomalyFlag() });
+  const r = await retireAnomalyFlag(deps, "anomaly-1", { execute: true });
+  assert.equal(r.status, "resolved");
+  assert.equal(r.resolvedNote, ANOMALY_RETIRED_NOTE);
+  assert.equal(deps.resolveCalls.length, 1);
+  assert.equal(deps.resolveCalls[0].note, ANOMALY_RETIRED_NOTE);
+});
+
+test("retireAnomalyFlag: dry run reports the note but writes nothing", async () => {
+  const deps = fakeFamily5Deps({ flag: anomalyFlag() });
+  const r = await retireAnomalyFlag(deps, "anomaly-1", { execute: false });
+  assert.equal(r.status, "dry_run");
+  assert.equal(deps.resolveCalls.length, 0);
 });

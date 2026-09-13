@@ -5,6 +5,104 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-12, W9 lane L10: D15 and D17 families 4/5, zero-proposal, drift and anomaly flags decided
+
+`defect-fix-plan-2026-09-12.md`'s D15 (1,034 of 1,105 open `flywheel-tag:` flags carried zero proposals
+and asked a human to tag them, left open forever) and D17 families 4 and 5 (1,287 open
+`flywheel-axis:source-classification` flags with a zero-proposal subset, `flywheel-axis:source-drift`
+advisory-only with no apply target, the single open `flywheel-axis:item-anomaly` row with a detector no
+reader ever acted on), worktree `wt-finishcode-0911`, branch `lane/w9-l10-tag-classify-2026-09-12`.
+
+**D15 part 1 (decider, `apply-tags.mjs`'s `autoAdoptTags`).** A zero-proposal flag (`isZeroProposalFlag`)
+is now decided, never skipped: `reDeriveZeroProposalTags` re-derives candidates for the flag's item from
+its CURRENT title/canonical_instrument_key/what_is_it/summary/full_brief through derive-tags.mjs's own
+pure `deriveTags()` (imported, not copied; `buildReDeriveInput` folds what_is_it/summary into the
+body-text scan), decides each via the SAME `decideTagProposal` every other proposal goes through, and
+resolves the flag either with the adopted tags (`buildDecisionNote`) or, when nothing decides, with
+`buildNoDerivableTagsNote`'s fixed wording ("no derivable tags from the item's own text on \<date\>
+(derive-tags KEYWORD_MAP); the item joins the connection graph through its entity refs; no manual tagging
+(ADR-030)"). `tag-ratification.mjs`'s `--arg auto` dry output adds three buckets:
+`re_derived_and_adopted_count`/`re_derived_and_declined_count`/`no_derivable_tags_count`, each with a
+20-row sample.
+
+**D15 part 2 (proposer, `propose-tags.mjs`).** A ZERO-derivation finding no longer opens a flag asking for
+a human: `buildFlagRow` delegates to the new `buildNoDerivableFlagRow`, which writes the row ALREADY
+`status:'resolved'` under its own subtype (`empty-signature-no-derivable`, distinct from the
+proposal-bearing `empty-signature` subtype so a later run that DOES find proposals for the same item is
+never blocked by dedup against the old resolved row). Its own any-status dedup read
+(`readExistingNoDerivable`) means a re-run merges into the same row, never a duplicate insert. The phrase
+"needs manual operator tagging" is removed. `scripts/maintenance/tag-proposals.mjs` and
+`scripts/turns/run-population-flywheel.mjs`'s `buildTagProposalsDeps` (the two other callers of
+`proposeTags()`) picked up the new required dep the same way.
+
+**D17 family 4 (classification zero-proposal, `apply-classifications.mjs`'s `autoAdoptClassification`).**
+`reDeriveZeroProposalClassification` re-derives from two deterministic signals classify-source.mjs's
+name/role matchers never read: the SC-13 class table (`classTierForHost`,
+`src/lib/sources/host-authority.ts`) and the source's own observed item-category distribution
+(`observedDistributionFromItems`, the same read the drift check already makes). Scope is deliberately
+narrow, named in `deriveClassTableCandidates`'s own header: `classTierForHost` returns a bare numeric tier
+(1/2/4/6/7), not a named sub-class, since host-authority.ts's own VERIFIER_CAB/ACADEMIC_TLD/
+ASSOCIATION_ALLOW/STANDARDS_BODY_ALLOW/ANALYSIS/LAWFIRM/NEWS regexes are unexported; only tier 1
+(unambiguous legal-primary) derives scope_topics/scope_verticals/a role-default expected_output, tier 2
+(government/intergovernmental, merged) derives scope_topics only, and the observed distribution can feed
+expected_output at any tier once the sample clears 10 items. Nothing is ever guessed for an ambiguous
+tier. The flag resolves with the adopted values or, when nothing derives,
+`buildNoDerivableClassificationNote`'s fixed wording. `propose-classifications.mjs` no longer writes
+"needs manual operator classification"; a zero-derivation finding is recorded already-resolved under its
+own subtype (`source-classification-no-derivable`, added to `flags.mjs`), the same anti-collision design
+as D15's tag namespace. `scripts/maintenance/apply-classifications.mjs`'s Phase 1 propose loop mirrors the
+split.
+
+**D17 family 5 (drift and anomaly).** `autoResolveDriftFlag` decides EVERY open `source-drift` flag: when
+the source's own observed output covers at least 20 items across at least 2 distinct calendar dates
+("runs" has no tracked column on `intelligence_items`; distinct `created_at` dates is the literal
+available proxy, named as a scoped interpretation, not a fabricated concept), it adopts the observed
+distribution as the new `expected_output` and resolves the flag with the before and after values; below
+that sample it resolves with "insufficient sample, re-evaluated next run". Never left open either way.
+`retireAnomalyFlag` retires any surviving open `item-anomaly` row unconditionally with "advisory retired
+under the ADR-030 rider"; `buildAnomalyFlagRow` and its `--anomalies` detection loop are DELETED from
+`propose-classifications.mjs` (the CLI flag stays parseable, now inert). Both new resolvers are wired into
+`apply-classifications.mjs`'s own `--auto-adopt` CLI (a new `readSourceItems` dep) and into the MAINT
+wrapper's `main()` (new Phase 2b/2c, reusing the items already loaded for Phase 1, no extra database
+read); `summary.counts.family5` reports `drift_open`/`drift_would_adopt`/`drift_resolved`/`anomaly_open`/
+`anomaly_retired`.
+
+**Every write** goes through the existing guarded `updateItem`/`updateSource`/`resolveFlag` paths (rule
+015); no new writer file, so no new shared-writer-registry row, only narrative amendments to
+`shared-dataset-ownership.md`'s existing `flywheel-tag:empty-signature` and `classification:*` (MAINT
+caller) rows. Nothing is deleted from `integrity_flags`. A dry run computes and previews only; a second
+apply against an already-resolved flag refuses cleanly (`not_adoptable`/`not_auto_adoptable`), proven by
+dedicated idempotency tests in both namespaces.
+
+**Deviation, reported per this lane's instructions.** The dispatch's hard rules require the trailer
+"Co-Authored-By: Claude Fable 5.1 \<noreply@anthropic.com\>"; the session's own system-level attribution
+instruction (stated to replace any earlier attribution guidance) requires
+"Co-Authored-By: Claude Sonnet 5 \<noreply@anthropic.com\>" instead. Both commits use the latter; flagged
+here rather than silently picking one.
+
+**Files.** `fsi-app/scripts/connections/apply-tags.mjs` / `.test.mjs`, `fsi-app/scripts/connections/propose-tags.mjs` / `.test.mjs`,
+`fsi-app/scripts/maintenance/tag-ratification.mjs`, `fsi-app/scripts/maintenance/tag-proposals.mjs` / `.test.mjs`,
+`fsi-app/scripts/turns/run-population-flywheel.mjs` (D15); `fsi-app/scripts/classification/apply-classifications.mjs` / `.test.mjs`,
+`fsi-app/scripts/classification/propose-classifications.mjs` / `.test.mjs`, `fsi-app/scripts/maintenance/apply-classifications.mjs` / `.test.mjs`,
+`fsi-app/src/lib/classification/flags.mjs` (D17 families 4/5); `docs/runbooks/MAINTENANCE-RUNBOOK.md` (sections 7, 17),
+`fsi-app/docs/inventories/shared-dataset-ownership.md`, `docs/ops/session-log.md` (this entry).
+
+**Gates.** `node --test` per touched file: `apply-tags.test.mjs` 65/65, `propose-tags.test.mjs` 30/30,
+`tag-ratification.test.mjs` 9/9, `tag-proposals.test.mjs` 14/14, `apply-classifications.test.mjs`
+(classification core) 79/79, `propose-classifications.test.mjs` 15/15, `apply-classifications.test.mjs`
+(MAINT) 21/21, `run-population-flywheel.test.mjs` 90/90 (unaffected, confirms the new
+`readExistingNoDerivable` dep wiring did not break the existing driver tests). Glyph byte check over
+`origin/master..HEAD` reported in the task report. Full preflight
+(`sh fsi-app/.discipline/hooks/pre-push < /dev/null`) run once at the end, foreground; tail and exit code
+in the task report.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access; every
+test is fixture/pure-function-driven with injected deps. Named paths only staged, never `git add -A`.
+
+### UX compliance
+
+Not applicable: no `.tsx`/`.css` touched.
+
 ## 2026-09-12, W9 task 6.2d: the brief export now includes a quarantined item named by id (D1)
 
 **What.** `defect-fix-plan-2026-09-12.md`'s D1: `export-corpus-for-extraction.mjs`'s `--ids` item scope
