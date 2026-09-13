@@ -23,7 +23,8 @@ import { readFileSync } from "node:fs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { classTierForHost, classifyResidueRuling, permanentlyUnregisteredClass } = await jiti.import("./host-authority.ts");
+const { classTierForHost, classTierForHostAcrossNames, classifyResidueRuling, permanentlyUnregisteredClass } =
+  await jiti.import("./host-authority.ts");
 
 const FIXTURE = JSON.parse(readFileSync(resolve(HERE, "fixtures", "d14-residue-unclassified-hosts.json"), "utf8"));
 function namesFor(host) {
@@ -74,6 +75,41 @@ test("rule 3's council carve-out yields to rule 4 when the SAME name also carrie
   const r = classifyResidueRuling("example-county-body.test", "Example County Council");
   assert.equal(r.tier, 2);
   assert.equal(r.rule, "government");
+});
+
+// ── fix round 1 for L9b (review-l9b.md finding F2, defect-fix-plan-2026-09-12.md D14) ────────────────
+// "city council" and its kin (borough/town/regional/district/municipal) were not in the government
+// noun list, although the code's own comment named that exact case as intended government; a bare
+// "council" carve-out check also mis-fired on a think-tank name whose OWN think-tank phrase happens to
+// contain the word "council" (e.g. "Council on Foreign Relations"), since residueGovernmentTier's null
+// there is for the WRONG reason (its own think-tank exclusion, not "not a government host").
+test("F2: 'Philadelphia City Council' resolves T2 (a real city government's legislative body)", () => {
+  const r = classifyResidueRuling("phlcouncil.com", firstName("phlcouncil.com"));
+  assert.equal(r.tier, 2);
+  assert.equal(r.rule, "government");
+});
+test("F2: 'Council on Foreign Relations' resolves T6 (a think tank), never T2 or T4", () => {
+  const r = classifyResidueRuling("example-think-tank-council.test", "Council on Foreign Relations");
+  assert.equal(r.tier, 6);
+  assert.equal(r.rule, "analysis");
+});
+test("F2: the new '<noun> council' phrases each resolve T2", () => {
+  for (const name of [
+    "Example Borough Council", "Example Town Council", "Example Regional Council",
+    "Example District Council", "Example Municipal Council",
+  ]) {
+    const r = classifyResidueRuling("example-council-body.test", name);
+    assert.equal(r.tier, 2, name);
+    assert.equal(r.rule, "government", name);
+  }
+});
+test("F2 regression: the existing council carve-out tests above are unaffected by the noun-list and think-tank-guard additions", () => {
+  assert.deepEqual(classifyResidueRuling("example-maritime-body.test", "International Maritime Council"), { tier: 4, rule: "association" });
+  assert.deepEqual(classifyResidueRuling("example-county-body.test", "Example County Council"), { tier: 2, rule: "government" });
+  // bimco.org's second recorded name is its own ("... Baltic and International Maritime Council"); its
+  // first name ("BIMCO Standard ETS Mandate 2024") carries no rule keyword at all and correctly falls
+  // through to company (T7) alone -- namesFor(...)[1] is deliberate here, matching the rule 3 test above.
+  assert.equal(classTierForHost("bimco.org", namesFor("bimco.org")[1]), 4);
 });
 
 // ── rule 4: government (T2) ───────────────────────────────────────────────────────────────────────────
@@ -157,27 +193,29 @@ test("existing curated allowlists and patterns resolve exactly as before the res
 });
 
 // ── table-driven sweep over the full enumeration artifact ───────────────────────────────────────────
-// classTierForHost also returns null for a host permanentlyUnregisteredClass rules an aggregator or a
-// hosting platform (LEGAL_AGGREGATOR/HOSTING_PLATFORM above) -- a PRE-EXISTING, correct exclusion,
-// checked before ANY of the 8 D14 residue rules run, unrelated to whether the host has a stored name (a
-// republisher does not become the publisher by having a name on file). The artifact's own 628 hosts
-// include 8 such hosts (the justia/legiscan/Cornell-LII/mondaq/npcobserver/legalclarity aggregator family
-// and one Citizen Space hosting-platform host), every one of them WITH a stored name. Rule 8's own
-// invariant -- "worklist stays only for hosts with no stored name at all" -- is about the 8 D14 rules
-// specifically, so the sweep below counts the two null-producing reasons SEPARATELY and asserts the
-// invariant against the genuine rule-8 residue only, never conflating it with the pre-existing aggregator
-// class (a mis-count here would be a false report, not a bug in the ruling).
-test("table-driven: every host in the enumerate-unclassified-hosts artifact classifies; the rule-8 (worklist) residue equals the empty-name count", () => {
+// Fix round 1 for L9b (review-l9b.md finding F1): this sweep now uses `classTierForHostAcrossNames`
+// over EVERY name the artifact recorded for a host, the SAME order-independent decision resolve-
+// provisional-sources.mjs itself now makes (it previously used the single-name `classTierForHost` on
+// just one row's name, mirroring the pre-fix per-row behaviour, which is no longer what production does).
+//
+// classTierForHostAcrossNames also returns null for a host permanentlyUnregisteredClass rules an
+// aggregator or a hosting platform (LEGAL_AGGREGATOR/HOSTING_PLATFORM above) -- a PRE-EXISTING, correct
+// exclusion, checked before ANY of the 8 D14 residue rules run, unrelated to whether the host has a
+// stored name (a republisher does not become the publisher by having a name on file). The artifact's own
+// 628 hosts include 8 such hosts (the justia/legiscan/Cornell-LII/mondaq/npcobserver/legalclarity
+// aggregator family and one Citizen Space hosting-platform host), every one of them WITH a stored name.
+// Rule 8's own invariant -- "worklist stays only for hosts with no stored name at all" -- is about the 8
+// D14 rules specifically, so the sweep below counts the two null-producing reasons SEPARATELY and asserts
+// the invariant against the genuine rule-8 residue only, never conflating it with the pre-existing
+// aggregator class (a mis-count here would be a false report, not a bug in the ruling).
+test("table-driven: every host in the enumerate-unclassified-hosts artifact classifies (across all its recorded names); the rule-8 (worklist) residue equals the empty-name count", () => {
   const perClass = new Map();
   let genuineWorklist = 0;
   let permanentlyUnregistered = 0;
   let emptyName = 0;
   for (const row of FIXTURE.hosts) {
-    // One row's own name, the SAME shape resolve-provisional-sources.mjs and enumerate-unclassified-
-    // hosts.mjs thread (a single row at a time); a host's OTHER recorded names are not consulted here.
-    const name = row.names[0] ?? null;
     if (row.names.length === 0) emptyName += 1;
-    const tier = classTierForHost(row.host, name);
+    const tier = classTierForHostAcrossNames(row.host, row.names);
     const key = tier == null ? "worklist" : `T${tier}`;
     perClass.set(key, (perClass.get(key) ?? 0) + 1);
     if (tier == null) {
@@ -185,7 +223,7 @@ test("table-driven: every host in the enumerate-unclassified-hosts artifact clas
       else genuineWorklist += 1;
     }
   }
-  console.log(`D14 residue ruling table-driven sweep: ${FIXTURE.hosts.length} hosts (artifact run ${FIXTURE.source_run_id})`);
+  console.log(`D14 residue ruling table-driven sweep (fix round 1, across-names): ${FIXTURE.hosts.length} hosts (artifact run ${FIXTURE.source_run_id})`);
   for (const [key, count] of [...perClass.entries()].sort()) console.log(`  ${key}: ${count}`);
   console.log(`  of which pre-existing permanently-unregistered (aggregator/platform, unrelated to D14): ${permanentlyUnregistered}`);
   console.log(`  genuine rule-8 worklist residue (no rule 1-7 match): ${genuineWorklist}`);

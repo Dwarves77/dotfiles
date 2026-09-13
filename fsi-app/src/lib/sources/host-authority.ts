@@ -332,6 +332,13 @@ const RESIDUE_GOV_NOUN_WORDS: readonly string[] = [
   "legislature", "assembly", "senate", "regulator", "inspectorate", "directorate", "secretariat",
   "municipality", "county", "city of", "port authority", "customs", "revenue", "treasury", "central bank",
   "environment agency", "emissions authority", "environment corporation",
+  // Fix round 1 for L9b (review-l9b.md finding F2, defect-fix-plan-2026-09-12.md D14): the "council"
+  // carve-out below already routes "county council" to government via the bare "county" noun, but a
+  // "city council" (a real city government's legislative body, e.g. Philadelphia's) had no matching noun
+  // -- "city of" is a different phrase. These seven explicit "<noun> council" phrases close that gap;
+  // "council on" (a think tank, e.g. "Council on Foreign Relations") stays excluded below.
+  "city council", "county council", "borough council", "town council", "regional council",
+  "district council", "municipal council",
 ];
 // "A think tank is not a government body": these words route to rule 6 (analysis) BEFORE rule 4 fires,
 // for both the host-label and the name-noun branch.
@@ -346,10 +353,19 @@ function residueGovernmentTier(host: string, normName: string): number | null {
 }
 
 // Rule 3's "council" carve-out lives here (needs residueGovernmentTier, defined just above): "council"
-// counts as an association word only when the host is NOT a government host by rule 4.
+// counts as an association word only when the host is NOT a government host by rule 4 AND the name is
+// not itself a think-tank name. The second guard is fix round 1 for L9b (review-l9b.md finding F2): a
+// bare `residueGovernmentTier(...) == null` is ALSO true for "Council on Foreign Relations" (its "council
+// on" phrase is itself a think-tank word, so residueGovernmentTier returns null via ITS OWN think-tank
+// exclusion) -- without checking the think-tank words directly here too, that name would wrongly resolve
+// association (T4) via the "council" carve-out instead of falling through to analysis (T6), where the
+// SAME "council on" phrase is also listed in RESIDUE_ANALYSIS_WORDS.
 function residueAssociationTier(normName: string, host: string): number | null {
   if (nameHasAnyWord(normName, RESIDUE_ASSOCIATION_WORDS)) return 4;
-  if (nameHasWord(normName, "council") && residueGovernmentTier(host, normName) == null) return 4;
+  if (nameHasWord(normName, "council")) {
+    if (nameHasAnyWord(normName, RESIDUE_THINK_TANK_WORDS)) return null;
+    if (residueGovernmentTier(host, normName) == null) return 4;
+  }
   return null;
 }
 
@@ -416,16 +432,25 @@ export function classifyResidueRuling(host: string | null | undefined, name?: st
   return { tier: null, rule: "worklist" };
 }
 
-/** THE register-at-grounding class tier for a host -- the SC-13 codified rule EXTENDED with the ruled class
- *  table and, as a final fallback, the D14 residue ruling over the stored registry NAME (2026-09-13) -- or
- *  NULL (worklist) for a host none of them resolve. Deterministic, pattern-based, no guess/default.
- *  `name` is optional and additive: every existing caller that does not pass one keeps its exact prior
- *  behaviour, since the residue-ruling fallback only ever WIDENS what resolves, never narrows it. */
-export function classTierForHost(host: string | null | undefined, name?: string | null): number | null {
+/** Every curated allowlist / pattern check that is HOST-ONLY (no stored NAME involved), in their fixed
+ *  precedence, shared by `classTierForHost` (single name) and `classTierForHostAcrossNames` (F1 fix,
+ *  below) so the two never drift out of sync with each other. Returns the tier these host-only rules
+ *  resolve, or null when none of them fire (the residue ruling, over the NAME(S), decides from there).
+ *  These checks are already order-independent with respect to any stored name, by construction -- they
+ *  never read `name` at all -- so F1's "same host, name order should not matter" fix only ever needs to
+ *  apply to the residue-ruling fallback underneath this. */
+function preResidueTierForHost(host: string | null | undefined): number | null {
   // PERMANENT WORKLIST FIRST — before the codified legal/gov rule, not after it. A republisher does not
   // acquire the publisher's authority by sitting on an authoritative TLD, so the never-register ruling has to
   // outrank every tier rule below it, not merely the academic one.
-  if (permanentlyUnregisteredClass(host) != null) return null;
+  // PERMANENT WORKLIST is intentionally NOT checked here (moved to a separate, explicit check in
+  // classTierForHost/classTierForHostAcrossNames below) -- this function's `null` return means "no
+  // host-only rule resolved a tier, the residue ruling over the NAME(S) may still decide", a DIFFERENT
+  // meaning from "permanently blocked, never resolve at all regardless of name". Folding the two into
+  // one null very nearly shipped a real regression during the F1 fix round: a permanently-unregistered
+  // aggregator/hosting-platform host WITH a stored name would incorrectly fall through to rule 7
+  // (company) instead of staying null, since company fires for "any host with a stored name and no rule
+  // 1-6 match" -- caught by re-running the fixture table-driven test before committing, never shipped.
   const codified = codifiedTierForHost(host);
   if (codified != null) return codified; // legal 1 / gov 2 (conservative, unchanged)
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
@@ -438,9 +463,82 @@ export function classTierForHost(host: string | null | undefined, name?: string 
   if (STANDARDS_BODY_ALLOW.has(h)) return 4;
   if (ANALYSIS.test(h) || BIG4_ADVISORY_HOST.test(h)) return 6;
   if (LAWFIRM.test(h) || NEWS.test(h)) return 7;
+  return null;
+}
+
+/** THE register-at-grounding class tier for a host -- the SC-13 codified rule EXTENDED with the ruled class
+ *  table and, as a final fallback, the D14 residue ruling over the stored registry NAME (2026-09-13) -- or
+ *  NULL (worklist) for a host none of them resolve. Deterministic, pattern-based, no guess/default.
+ *  `name` is optional and additive: every existing caller that does not pass one keeps its exact prior
+ *  behaviour, since the residue-ruling fallback only ever WIDENS what resolves, never narrows it.
+ *  Single-name form: a caller with only ONE name in scope (or none) for this host and this decision. A
+ *  caller that sees MULTIPLE stored names for the SAME host in one run (e.g. resolve-provisional-
+ *  sources.mjs, several provisional_sources/sources rows citing the same institution under different
+ *  names) should use `classTierForHostAcrossNames` instead (fix round 1 for L9b, finding F1) so the
+ *  decision does not depend on which row happens to be processed first. */
+export function classTierForHost(host: string | null | undefined, name?: string | null): number | null {
+  // PERMANENT WORKLIST FIRST, and an unconditional early return -- before even the residue ruling's own
+  // rule 7 (company), which would otherwise mint a republisher/hosting-platform host a tier just because
+  // it happens to carry a stored name (a name does not make a republisher the publisher).
+  if (permanentlyUnregisteredClass(host) != null) return null;
+  const pre = preResidueTierForHost(host);
+  if (pre != null) return pre;
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
   // D14 residue ruling (2026-09-13): the 8-rule fallback over the stored registry NAME + host, reached
   // only when every curated allowlist/pattern above already declined to classify this host.
   return classifyResidueRuling(h, name).tier;
+}
+
+/** The D14 residue ruling's 8 rules, ordered by precedence (1 = most authoritative). Used only to
+ *  compare outcomes ACROSS several names for the SAME host (F1 fix); the single-name path
+ *  (`classTierForHost`/`classifyResidueRuling`) never needs this, since its own if/else chain already
+ *  IS the precedence for one name. */
+const RESIDUE_RULE_PRECEDENCE: Readonly<Record<ResidueRuleId, number>> = {
+  legal: 1,
+  academic: 2,
+  association: 3,
+  government: 4,
+  news: 5,
+  analysis: 6,
+  company: 7,
+  worklist: 8,
+};
+
+/** Fix round 1 for L9b (review-l9b.md finding F1, defect-fix-plan-2026-09-12.md D14): the class decision
+ *  for a host is computed ONCE PER RUN over the union of every stored name the run sees for that host,
+ *  taking the rule with the LOWEST number (most authoritative) among the rules any of its names
+ *  satisfies -- never the first-processed row's name alone, which made `resolve-provisional-
+ *  sources.mjs`'s per-row loop order-dependent (the SAME host could permanently register at T7/company
+ *  or T2/government depending purely on which of its several recorded citation names was processed
+ *  first). Host-only checks (`preResidueTierForHost`) are unaffected by this fix by construction -- they
+ *  never read a name at all, so they are already order-independent -- and are checked first, exactly as
+ *  in `classTierForHost`. `names` may be empty, one, or many; an empty/absent list degrades to the
+ *  single "no name" residue decision, the same as `classTierForHost(host)`. */
+export function classTierForHostAcrossNames(
+  host: string | null | undefined,
+  names?: ReadonlyArray<string | null | undefined> | null,
+): number | null {
+  // PERMANENT WORKLIST FIRST, and an unconditional early return -- see the identical guard and comment
+  // in classTierForHost above (the same regression this fix pre-empts: a republisher/hosting-platform
+  // host must stay null regardless of ANY of its names, not just the first one checked).
+  if (permanentlyUnregisteredClass(host) != null) return null;
+  const pre = preResidueTierForHost(host);
+  if (pre != null) return pre;
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  const candidates = names && names.length ? names : [undefined];
+  let bestTier: number | null = null;
+  let bestRank = Infinity;
+  for (const name of candidates) {
+    const { tier, rule } = classifyResidueRuling(h, name);
+    const rank = RESIDUE_RULE_PRECEDENCE[rule];
+    if (rank < bestRank) {
+      bestRank = rank;
+      bestTier = tier;
+    }
+  }
+  return bestTier;
 }
 
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";

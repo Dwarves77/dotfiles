@@ -65,18 +65,31 @@ test("classTierForHost: every ruled never-register host worklists, whatever tier
     assert.equal(classTierForHost(h), null, `${h} is ruled never-registerable`);
 });
 
-test("classTierForHost STRUCTURE: the never-register check runs BEFORE the codified legal/gov rule", () => {
+test("classTierForHost STRUCTURE: the never-register check runs BEFORE any host-only tier resolution (codified or the shared pre-residue helper)", () => {
   // No host in today's ruling is BOTH a republisher and on an authoritative TLD, so this ordering has no
   // behavioural witness yet — and an ordering with no witness is exactly the kind that gets refactored away.
   // Pin it structurally instead: a republisher must not acquire the publisher's authority by sitting on a
-  // .gov/.eu tomorrow. (Ordering changed 2026-08-11; before that, codified ran first.)
+  // .gov/.eu tomorrow, or (fix round 1 for L9b, F1) by carrying a stored name that would otherwise mint it
+  // rule 7 (company). (Ordering changed 2026-08-11; before that, codified ran first. Restructured
+  // 2026-09-13 for the F1 fix: classTierForHost's own host-only checks -- codifiedTierForHost, the ruled
+  // map, VERIFIER_CAB, etc. -- moved into a shared `preResidueTierForHost` helper so classTierForHostAcrossNames
+  // can reuse them without duplication; the never-register check itself did NOT move into that shared
+  // helper -- it stays an unconditional, separate, first line in EACH of classTierForHost and
+  // classTierForHostAcrossNames, so this test now looks for it ahead of the call into the shared helper,
+  // not ahead of a specific host-only check's own call site, which the refactor moved to a different
+  // function entirely.)
   const src = stripComments(read("./host-authority.ts"));
-  const body = src.slice(src.indexOf("export function classTierForHost"));
+  const startIdx = src.indexOf("export function classTierForHost(");
+  assert.ok(startIdx > -1, "classTierForHost must exist");
+  // Bound the slice to THIS function's own body (up to the next top-level export), so a match inside a
+  // later function (classTierForHostAcrossNames, which repeats the same two calls) cannot false-pass this.
+  const nextExportIdx = src.indexOf("\nexport ", startIdx + 1);
+  const body = src.slice(startIdx, nextExportIdx > -1 ? nextExportIdx : undefined);
   const permIdx = body.indexOf("permanentlyUnregisteredClass(");
-  const codIdx = body.indexOf("codifiedTierForHost(");
-  assert.ok(permIdx > -1 && codIdx > -1, "classTierForHost must consult both checks");
-  assert.ok(permIdx < codIdx,
-    "permanentlyUnregisteredClass must be checked BEFORE codifiedTierForHost inside classTierForHost");
+  const preResidueIdx = body.indexOf("preResidueTierForHost(");
+  assert.ok(permIdx > -1 && preResidueIdx > -1, "classTierForHost must consult both checks");
+  assert.ok(permIdx < preResidueIdx,
+    "permanentlyUnregisteredClass must be checked BEFORE preResidueTierForHost (which reaches codifiedTierForHost) inside classTierForHost");
 });
 
 test("classTierForHost: a codified host returns its DETERMINISTIC tier (the auto-approve path)", () => {

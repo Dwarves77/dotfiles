@@ -20659,3 +20659,139 @@ tests). Named paths only staged, never `git add -A`. Trailer
 **Not in this entry's scope**: every other defect in the parent plan, the L10/L11/L12 lanes, and
 re-running the live `resolve-provisional-sources` dry run against this code (no DB credentials in this
 worktree).
+
+---
+
+## 2026-09-13, W9 Part 7 lane L9b, fix round 1: order-independent multi-name classification (F1), "city council" and kin (F2)
+
+**What.** Fixes the two Important findings from review-l9b.md (CONDITIONAL FAIL), per the coordinator's
+specification in defect-fix-plan-2026-09-12.md D14, "Fix round 1 for L9b".
+
+**F1 (order-dependent multi-name classification).** The reviewer proved by direct execution that a real
+host with several stored citation names (Dutch Emissions Authority, the Walloon climate agency, a New
+Brunswick provincial department) could permanently register at T7 (company) or T2 (government) depending
+purely on which of its recorded `provisional_sources`/`sources` rows happened to be processed first,
+because `resolve-provisional-sources.mjs` computed the residue-ruling class decision per row, from that
+row's own single name. Fixed at the source:
+- `src/lib/sources/host-authority.ts` gains `classTierForHostAcrossNames(host, names[])`: computes the
+  host-only (`preResidueTierForHost`, extracted as a shared helper from `classTierForHost`'s own body,
+  never duplicated) decision first, then, if none of those resolve, runs `classifyResidueRuling` once
+  per stored name and keeps the result whose rule number is LOWEST (most authoritative) -- legal(1) beats
+  academic(2) beats association(3) beats government(4) beats news(5) beats analysis(6) beats company(7)
+  beats worklist(8). `classTierForHost` (single name) is unchanged in its own observable behaviour and
+  now delegates its host-only checks to the same shared helper.
+- `resolve-provisional-sources.mjs`'s `main()` now groups every row's own name by host, across BOTH
+  tables' rows the run sees, BEFORE deciding any row (`groupUnresolvedHosts`, reused from
+  `enumerate-unclassified-hosts.mjs`, never a second copy, fed empty search-log/item-title maps since
+  only the per-host `names` list is needed here), then calls `classTierForHostAcrossNames` once per host
+  and uses that single decision for every row citing it. The unused single-name `classTierForHost`
+  import and its now-vestigial `deps.classTierForHost` JSDoc entry were removed (dead after this change,
+  nothing else read them).
+- Test: `resolve-provisional-sources.test.mjs` gains a `main()`-level test that feeds the SAME host two
+  rows with the SAME two names in OPPOSITE orders and asserts BOTH rows promote at the SAME (most
+  authoritative) tier in both runs, plus a single-name regression test proving the unchanged behaviour
+  for the common case (one row, one name).
+- `host-authority-d14-residue-ruling.npmtest.mjs`'s table-driven sweep now uses
+  `classTierForHostAcrossNames(host, names)` over EVERY recorded name per host, matching what
+  `resolve-provisional-sources.mjs` actually decides post-fix, rather than the single first-name
+  approximation the pre-fix-round version used (that approximation is no longer what production does,
+  so testing it would no longer prove anything about the real decision path).
+
+**Self-caught regression during the F1 fix, before it ever reached a commit.** The extraction of
+`preResidueTierForHost` initially folded the PRE-EXISTING "permanently unregistered" check
+(`permanentlyUnregisteredClass` -- aggregators like justia/legiscan/Cornell-LII, and the Citizen Space
+hosting platform) into that shared helper's own `null` return, which ALSO means "no host-only rule
+matched, the residue ruling may still decide." Since rule 7 (company) resolves ANY host with a stored
+name, this conflation meant a permanently-unregistered host WITH a stored name incorrectly fell through
+to company (T7) instead of staying null -- caught by re-running the fixture table-driven test (its own
+"of which pre-existing permanently-unregistered" count read 0 instead of the expected 8) before this fix
+round was ever committed, never shipped. Fixed: the permanently-unregistered check stays a separate,
+unconditional, first line in BOTH `classTierForHost` and `classTierForHostAcrossNames`, never folded into
+the shared "no positive host-only match yet" helper. `tier-discipline-no-guess.test.mjs`'s own structural
+proof (`classTierForHost STRUCTURE: the never-register check runs BEFORE ...`) needed updating to match
+the new call graph (it previously text-searched for `codifiedTierForHost(` directly inside
+`classTierForHost`'s own body, which moved into the new shared helper during the extraction); rewritten
+to search for the call into the shared helper instead, keeping the same behavioural guarantee.
+
+**F2 ("city council" and kin; think-tank "council" mis-fire).** `RESIDUE_GOV_NOUN_WORDS` gains "city
+council", "county council", "borough council", "town council", "regional council", "district council"
+and "municipal council" (the same think-tank exclusion still applies via `RESIDUE_THINK_TANK_WORDS`,
+unchanged). Investigating the required test ("Council on Foreign Relations" resolves T6) surfaced a
+SECOND, related defect the reviewer had not named but the same code path produces: the association
+rule's "council" carve-out (`residueAssociationTier`) deferred to `residueGovernmentTier(...) == null` to
+decide whether "council" counts as an association word -- but `residueGovernmentTier` ALSO returns null
+for a think-tank name (its OWN think-tank exclusion), for an entirely different reason than "not a
+government host". Since "Council on Foreign Relations" contains BOTH the bare word "council" and the
+think-tank phrase "council on", the carve-out's `== null` check could not distinguish "not government"
+from "is a think tank" and wrongly resolved association (T4) instead of analysis (T6). Fixed: the
+carve-out now checks `RESIDUE_THINK_TANK_WORDS` directly, first, before ever asking
+`residueGovernmentTier`. [CONFIRMED by running the required test before AND after this second fix: it
+failed with the noun-list addition alone, passed only once the carve-out was also corrected.]
+
+**Tests.** `host-authority-d14-residue-ruling.npmtest.mjs` gains: "Philadelphia City Council" (a real
+fixture host, `phlcouncil.com`) resolves T2; "Council on Foreign Relations" resolves T6, never T2 or T4;
+each of the five other new noun phrases resolves T2 on a synthetic name; a regression check that the
+pre-existing council-carve-out tests (`International Maritime Council` -> T4, `Example County Council` ->
+T2, `bimco.org`'s own name) are unaffected.
+
+**Per-class counts over the 628-host artifact, re-printed after the fix** (table-driven test's own
+console output, now via `classTierForHostAcrossNames` over every recorded name per host):
+
+```
+T1: 19
+T2: 147
+T4: 49
+T6: 33
+T7: 372
+worklist: 8
+  of which pre-existing permanently-unregistered (aggregator/platform): 8
+  genuine rule-8 worklist residue (no rule 1-7 match): 0
+  hosts with an empty names array: 0
+```
+
+(T2 rose from 143 to 147 across the two fixes combined: `phlcouncil.com` and a handful of hosts whose
+across-names decision now correctly picks government over a co-occurring ambiguous name on a sibling
+row. T4 unchanged at 49; T6 33 vs 32 before, T7 372 vs 377 before -- the multi-name fix moved a small
+number of hosts that a single-first-name read had under-classified as company into their correct,
+more-authoritative class once their OTHER recorded name was considered.)
+
+**Gates.** `node --test` on every touched file green:
+`host-authority-d14-residue-ruling.npmtest.mjs` 27/27 (4 new F2 tests, the table-driven test rewritten
+for across-names), `resolve-provisional-sources.test.mjs` 28/28 (2 new F1 tests),
+`tier-discipline-no-guess.test.mjs` 9/9 (1 test rewritten for the new call graph),
+`host-authority-gov-label-and-legal-publisher.npmtest.mjs` 35/35,
+`host-authority.npmtest.mjs` 8/8, `register-step.test.mjs` 13/13, `standards-body-class.test.mjs` 9/9,
+`host-authority-ruling-conformance.test.mjs` 4/4, `enumerate-unclassified-hosts.test.mjs` 14/14,
+`scripts/spec09/lib/rows-file.test.mjs` 20/20 -- all unchanged and re-run for regression, 167/167 total
+across this combined run. `npx tsc --noEmit`: clean. `node .discipline/fitness/runner.mjs`: 38 functions,
+0 violations. `.discipline/glob-portability.test.mjs`: 3/3 (the new `resolve-provisional-sources.mjs` ->
+`enumerate-unclassified-hosts.mjs` import edge stays portable to the no-npm CI job). The npm-deps glob
+(140 files): 1234/1237, the SAME 3 pre-existing Windows-environment failures already reported and
+investigated in the original lane report, unrelated to this fix round, no new failures. Full preflight
+(`sh fsi-app/.discipline/hooks/pre-push < /dev/null`, foreground, run once at the end): see the report
+addendum for the exact tail and exit code.
+
+**Glyph check.** `git diff df85087a..HEAD | grep '^+' | grep -c` for the em-dash/en-dash/section-sign
+byte sequences: 0, over this lane's own full commit range (the original commit plus this fix round).
+One em-dash was caught and fixed in this fix round's own new prose (`tier-discipline-no-guess.test.mjs`,
+3 lines) before commit, by the same method as the original lane report (grep the added-lines-only diff).
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access.
+Named-path staging only. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+**Files.**
+- `fsi-app/src/lib/sources/host-authority.ts` (modified: `preResidueTierForHost` extracted,
+  `classTierForHostAcrossNames` added, F2's noun-list + council-carve-out fix)
+- `fsi-app/scripts/maintenance/resolve-provisional-sources.mjs` (modified: F1, per-host name grouping
+  before deciding any row)
+- `fsi-app/scripts/maintenance/resolve-provisional-sources.test.mjs` (modified: 2 new F1 tests)
+- `fsi-app/src/lib/sources/host-authority-d14-residue-ruling.npmtest.mjs` (modified: 4 new F2 tests, the
+  table-driven test rewritten for across-names)
+- `fsi-app/src/lib/sources/tier-discipline-no-guess.test.mjs` (modified: 1 structural test rewritten for
+  the new call graph)
+- `docs/ops/session-log.md` (this entry)
+
+**Not in this entry's scope**: the reviewer's noted-but-not-required `metrocouncil.org`/`mwcog.org`
+misclassifications (a "Metropolitan Council" without a "city/county/etc." qualifier, and "Council of
+Governments" whose plural "governments" fails the singular whole-word match) -- outside the coordinator's
+named word-list additions, left as a possible future follow-on rather than a scope excursion.
