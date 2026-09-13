@@ -73,7 +73,11 @@ function claimPayload(row, itemId) {
 function factTicket(id, row) {
   return { id, claim_kind: "FACT", claim_text: row.claim_text ?? null, source_span: row.source_span ?? null, source_id: row.source_id ?? null, source_tier_at_grounding: row.source_tier_at_grounding ?? null };
 }
-function versionPayload(existing, itemId, versionNumber, supersedeReason, proof, nowIso) {
+// Exported (D17 family 11, defect-fix-plan-2026-09-12): resolve-refetch-holds.mjs reuses this EXACT row
+// shape to archive a claim's prior state as supersede_reason 'changed' when a fresh capture no longer
+// verifies its span and there is no new grounding to replace it with -- never a second, divergent
+// claim_versions row shape.
+export function versionPayload(existing, itemId, versionNumber, supersedeReason, proof, nowIso) {
   return {
     // soft reference (NOT an FK) so erasing/deleting the current row or item never cascade-deletes this history
     current_claim_id: supersedeReason === "proven_inaccurate" ? null : (existing.id ?? null),
