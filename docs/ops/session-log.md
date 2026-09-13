@@ -153,6 +153,68 @@ file") -- no conversion was needed. [CONFIRMED] migration 321 (`claim_versions.n
 NOT applied in this worktree (no DB access here per the migration two-track policy); it must land via
 Supabase CLI before any `--allow-brief-overwrite` batch runs live.
 
+**Fix round 1 (2026-09-13, review verdict CONDITIONAL FAIL: C1, C2, I1, I2 addressed here; I3 is the
+coordinator's own push/rebase step, not this lane's).**
+
+- **C1** (`scripts/verify/executor-parity.golden.mjs`). D29's `doReplaceLedger` guard and D30's
+  `if (!injected)` synthesis-window skip are two more reads of the `injected` driver-identity variable that
+  the golden's allowlist never accounted for, so `run-goldens.mjs` failed on this branch
+  (`driver-identity referenced EXACTLY 4x ... found 6`) though neither addition changes the paid path.
+  Enumerated both as sanctioned divergences (d) and (e) in the same style as (a)/(b)/(c), and raised the
+  expected count from 4 to 6. Ran `node scripts/verify/run-goldens.mjs` from `fsi-app`: `passed: 14 | failed:
+  0 | skipped (no creds): 2 | total: 16`, "GOLDENS GREEN". Proved the guard by attack, not presence: added a
+  stray 7th `injected` reference to `canonical-pipeline.ts` in the working tree, reran
+  `executor-parity.golden.mjs` alone (`GOLDEN FAILED (1)`, the exact reference-count check), then restored
+  with `git checkout -- src/lib/agent/canonical-pipeline.ts` and reran (`GOLDEN PASSED`).
+- **C2** (`supabase/migrations/321_claim_versions_record_briefs_supersede.sql`,
+  `docs/inventories/migrations.md`). Migration 321 widened `claim_versions_supersede_reason_chk` but left
+  the sibling `claim_versions_proof_required` constraint (migration 210: `supersede_reason = 'changed' or
+  inaccuracy_proof is not null`) untouched -- `ledger-apply.mjs`'s replace-ledger archive writes
+  `supersede_reason='superseded_by_record_briefs'` with `inaccuracy_proof=null` (a deliberately-dropped
+  claim, not a proven-wrong one), which that constraint would reject on every real archive once applied
+  live, silently defeating D29 end to end (fail-closed catch keeps the claim current, reproducing the exact
+  quarantine symptom D29 exists to fix). Widened the constraint to
+  `check (supersede_reason in ('changed', 'superseded_by_record_briefs') or inaccuracy_proof is not null)`,
+  updated the migration header and the `docs/inventories/migrations.md` row for 321. Added
+  `src/lib/agent/claim-versions-321.test.mjs` (same text-based structural-SQL style as
+  `src/lib/supabase-server-recent-changes-319.test.mjs`, lane L15's migration-319 test): asserts both
+  constraints are drop-if-exists-then-re-add, asserts the widened membership set on each, and asserts the
+  two predicates together accept the exact payload `versionPayload` produces for a replace-ledger archive.
+  3/3 pass.
+- **I1** (`scripts/verify/injected-no-synthesis-window.golden.mjs`). The `doReplaceLedger` guard
+  (`!!injected && opts?.replaceLedger === true`) had zero mechanical coverage of its own two-condition
+  requirement -- `apply-record-briefs.test.mjs` proves what IT passes to `groundBrief`, never `groundBrief`'s
+  internal guard, and `groundBriefImpl` needs a live Supabase client to run so it cannot be driven by a
+  plain unit test. Added an attack-based structural check (rule 15: "a guard is proven by attack, not by
+  presence") to the D30 golden: extracts the guard's right-hand-side expression as source text and evaluates
+  it via `new Function` against every combination of `injected`/`opts.replaceLedger`, proving bare
+  `replaceLedger:true` with no injected ledger is refused, an injected ledger alone (no `replaceLedger`) stays
+  false, and only the conjunction of both is true. 6 new checks, all PASS inside
+  `node scripts/verify/injected-no-synthesis-window.golden.mjs` (23 checks total, "GOLDEN PASSED").
+- **I2** (`scripts/turns/record-briefs/schema.mjs`,
+  `scripts/turns/record-briefs/record-briefs.test.mjs`). The numeric-figure mirror's
+  `spanCore.includes(normalizeFigure(figure))` was a raw substring test against the whole (comma/whitespace-
+  stripped) span, so a claim citing "35" passed against a span carrying "3,500" (`normalizeFigure` collapses
+  "3,500" to "3500", and `"3500".includes("35")` is `true`) -- the reviewer's own repro. Fixed by extracting
+  every COMPLETE numeric-figure token from the span with the same `numericFiguresIn` extractor used on
+  `claim_text`, normalizing each, and requiring the claim's figure to equal one of the span's own complete
+  figures (a set-membership test) rather than merely appear as a substring of the concatenated span text.
+  Added both of the reviewer's repro cases to `record-briefs.test.mjs`: `claim_text` "35 EUR" against span
+  "the premium is EUR 3,500 per shipment" is refused, naming "35"; `claim_text` "3,500 EUR" against the same
+  span passes. All four pre-existing numeric-figure-mirror tests (mismatch, present, ISO-date, decimal) still
+  pass unchanged. `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: 66/66 pass.
+- **Verification run (this fix round).** `node --test src/lib/agent/ledger-apply.test.mjs
+  scripts/turns/apply-record-briefs.test.mjs scripts/turns/record-briefs/record-briefs.test.mjs
+  src/lib/agent/claim-versions-321.test.mjs`: 114/114 pass. `node scripts/verify/run-goldens.mjs`: 14 passed,
+  0 failed, 2 skipped (no creds), "GOLDENS GREEN". `npx tsc --noEmit` from `fsi-app`: clean. `node
+  .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`: "memory gate OK". Glyph check (em
+  dash/en dash/section-sign) restricted to lines added by this fix round's commits: 0 violations.
+  `git status --short`: clean except untracked `.superpowers/`.
+- **Not done in this fix round**: I3 (the branch's divergence from `origin/master`'s `session-log.md`, a
+  later `#671` merge this branch never rebased onto) is explicitly the coordinator's push-step reconciliation
+  per this dispatch, not reopened here. M1 and M2 were reviewed as "not a defect" / "intentional" findings
+  and carry no fix.
+
 ---
 
 ## 2026-09-12, W9 lane L10: D15 and D17 families 4/5, zero-proposal, drift and anomaly flags decided
