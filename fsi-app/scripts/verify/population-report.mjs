@@ -319,6 +319,58 @@ export function describeOpenFlagsByFamilyState(label, dispatchStep) {
   ];
 }
 
+// ── "legal-confirmation" line (D17 family 14, defect-fix-plan-2026-09-12) ─────────────────────────────
+// authorship-shard-* BLOCKER rows are entity-to-DEFINED-ROLE legal determinations the platform never
+// makes (CLAUDE.md's "no legal role determination" standing rule); close-legal-confirmation-rows.mjs
+// resolves each with "Legal Confirmation Required ... recorded for counsel". This is an INFORMATIONAL
+// count, never a defect: growing is expected and healthy (every BLOCKER row correctly routed to a human
+// disposition, not left open), so `total`/`filled` are the SAME count -- classify() reads it as FILLED
+// (green) once any exist, never ROWS_NO_VALUES, the same "growing-good-count" shape format_type/
+// compliance_deadline already use above.
+
+export const LEGAL_CONFIRMATION_RESOLVED_BY = "close-legal-confirmation-rows";
+
+/** Pure: count integrity_flags rows this run's caller already narrowed to authorship-shard-*, resolved
+ *  BY close-legal-confirmation-rows.mjs specifically (never a row close-run-logs.mjs itself resolved).
+ * @param {Array<{resolved_by?:string|null}>} flagRows
+ * @returns {number}
+ */
+export function computeLegalConfirmationCount(flagRows) {
+  const rows = Array.isArray(flagRows) ? flagRows : [];
+  return rows.filter((r) => r?.resolved_by === LEGAL_CONFIRMATION_RESOLVED_BY).length;
+}
+
+/**
+ * @param {object} sb
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countLegalConfirmationRows(sb) {
+  try {
+    const rows = await readAll("integrity_flags", "resolved_by", {
+      match: (q) => q.ilike("created_by", "authorship-shard-%"),
+      client: sb,
+    });
+    return { count: computeLegalConfirmationCount(rows), error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/** describeState for the "legal-confirmation" line -- informational, never a defect. */
+export function describeLegalConfirmationState(state, counts) {
+  if (state === "EMPTY") {
+    return [
+      "0 authorship-shard row(s) recorded for counsel yet -- dispatch close-legal-confirmation-rows.mjs " +
+        "(D17 family 14) once an authorship-shard BLOCKER row is open.",
+    ];
+  }
+  return [
+    `${counts.rows} authorship-shard BLOCKER row(s) resolved "Legal Confirmation Required; no platform ` +
+      'determination (environmental-policy skill); recorded for counsel" -- entity-to-role matching is a ' +
+      "legal determination the platform never makes (D17 family 14); informational, not a defect.",
+  ];
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -495,6 +547,14 @@ export const STORES = Object.freeze([
     totalQuery: (sb) => countOpenFlagsByFamily(sb, "signal"),
     filledQuery: async () => ({ count: 0, error: null }),
     describeState: describeOpenFlagsByFamilyState("flywheel-signal:*", "resolve-signals.mjs") },
+  // -- D17 family 14, defect-fix-plan-2026-09-12: the "legal-confirmation" line. Informational count, not
+  // a defect gate -- total===filled always, so this entry reads FILLED (green) the moment any row exists.
+  { table: "integrity_flags", fill: "authorship-shard-* rows resolved Legal Confirmation Required (informational, see below)",
+    reader: "population-report.mjs's own CLI output; the counsel-facing authorship-role backlog",
+    producer: "scripts/maintenance/close-legal-confirmation-rows.mjs --mode apply",
+    totalQuery: (sb) => countLegalConfirmationRows(sb),
+    filledQuery: (sb) => countLegalConfirmationRows(sb),
+    describeState: describeLegalConfirmationState },
 ]);
 
 /**
