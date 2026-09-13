@@ -36,6 +36,8 @@
  */
 
 import { useMemo, useState } from "react";
+import { nowFrom } from "@/lib/render-now";
+import { recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
@@ -117,6 +119,10 @@ interface Props {
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this surface's
+   *  page.tsx so the "Brief regenerated <date>" header line (D23 part (d)) comes from ONE instant
+   *  the server chose, never `new Date()` in this "use client" component (the #418 class). */
+  nowIso?: string;
 }
 
 /** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT). */
@@ -149,6 +155,7 @@ export function RegulationDetailSurface({
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
+  nowIso,
 }: Props) {
   const userRole = useWorkspaceStore((s) => s.userRole);
   const isAdminViewer = userRole === "owner" || userRole === "admin";
@@ -156,6 +163,9 @@ export function RegulationDetailSurface({
 
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);
+  // D23 part (d) (defect-fix-plan-2026-09-12.md): "Brief regenerated <date>" beside the tier chip,
+  // within 30 days of render time.
+  const regen = useMemo(() => recentRegenInfo(r.lastRegeneratedAt, nowFrom(nowIso)), [r.lastRegeneratedAt, nowIso]);
 
   const jurisdictionLabels =
     r.jurisdictionIso && r.jurisdictionIso.length > 0
@@ -213,6 +223,10 @@ export function RegulationDetailSurface({
               <TagChip>Regulation</TagChip>
               {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.replace(/^./, (c) => c.toUpperCase())}</TagChip>)}
               {r.topic && <TagChip>{r.topic}</TagChip>}
+              {/* D23 part (d) (defect-fix-plan-2026-09-12.md): last in the chip row, immediately
+                  beside the tier chip DetailHeader renders right after extraChips - "a regenerated
+                  brief becomes a customer-visible change" applies to the detail surface too. */}
+              {regen && <TagChip>{`Brief regenerated ${regen.label}`}</TagChip>}
             </>
           }
           headerStat={

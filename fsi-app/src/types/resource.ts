@@ -202,6 +202,13 @@ export interface Resource {
   sourceUrl?: string;          // Direct URL to primary source document
   sourceName?: string;         // Name of the publishing body
   sourceTier?: number;         // Tier 1-5 from skill source hierarchy
+  // D23 part (d) (defect-fix-plan-2026-09-12.md): when this item's brief was last regenerated
+  // (intelligence_items.last_regenerated_at). Dormant-passthrough on the RPC-backed list mappers
+  // (real once a given RPC's RETURNS TABLE projects it - migration 316 already added it to
+  // get_workspace_intelligence_listings); real on the select("*") detail fetcher. Feeds
+  // src/lib/dashboard/row-fields.ts's recentRegenInfo (the ledger's "Updated <date>" chip, the
+  // detail header's "Brief regenerated <date>" line).
+  lastRegeneratedAt?: string | null;
   // Item tier (Lane POP, 2026-09-01; migration 278 intelligence_items.item_grade). "record" = extracted
   // FACT/GAP spans only, no synthesized brief yet — surfaces label these via RecordGradeBadge. Absent
   // (undefined) on any mapper the owning RPC doesn't yet project this column through — dormant

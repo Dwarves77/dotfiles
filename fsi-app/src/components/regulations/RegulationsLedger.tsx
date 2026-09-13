@@ -57,7 +57,7 @@ import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
-import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
+import { dueInfo, jurisdictionCode, metaLine, recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { StateNote } from "@/components/ui/StateNote";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
@@ -125,6 +125,10 @@ export interface RegulationsLedgerProps {
 
 export function RegulationsLedger({ initialResources, aggregates, hasMore, initialSort = null, nowIso }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
+  // D23 part (d) (defect-fix-plan-2026-09-12.md): ONE server instant for the whole row set (the
+  // "Updated <date>" chip below, plus the masthead date this file already computed inline) - never
+  // Date.now() in a rendered component (render-now.ts's own #418 rule).
+  const now = useMemo(() => nowFrom(nowIso), [nowIso]);
   // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
   // bookmarked and reloaded. `?band=` is read by this hook rather than resolved server-side and
   // passed down, so there is exactly one copy of the facet state and no second one to drift.
@@ -216,6 +220,14 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         rows: bandRows.map((r, i) => {
           const due = dueInfo(r);
           const baseHref = itemDetailHref(r);
+          // D23 part (d) (defect-fix-plan-2026-09-12.md): a regenerated brief becomes a
+          // customer-visible "Updated <date>" chip, within 30 days of render time (never
+          // Date.now()). Rendered via ListRow's own `kind` slot (the flexible title column, not the
+          // fixed 40px tier cell the TierChip sits in) - the 8-column row grid has no room to widen
+          // the tier cell for a text chip without a logged grid change (see this file's own header
+          // note on the ⋯ cell for the same constraint), and `kind` is exactly the extension point
+          // ListRow already built for a small row-level badge that wraps rather than overflows.
+          const regen = recentRegenInfo(r.lastRegeneratedAt, now);
           return {
             key: r.id,
             href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length, {
@@ -225,6 +237,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
             band,
             jurisdiction: jurisdictionCode(r),
             title: r.title,
+            kind: regen ? `Updated ${regen.label}` : undefined,
             meta: metaLine(r),
             impact: r.impactScores ?? scoreResource(r),
             due: due ? { label: due.label, days: `${due.days}` } : null,
@@ -244,7 +257,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         }),
       };
     });
-  }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem]);
+  }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem, now]);
 
   // COUNTS-61: the surface total is the same figure the facets are counted against — the corpus at
   // rest, the current selection under a filter. It used to be `aggregates.totalItems` unconditionally,
@@ -283,7 +296,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     <ListSurfaceShell
       title="Regulations"
       scopeLine={scopeLineParts.join(" · ")}
-      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
       nowIso={nowIso}
       itemCount={total}
       scope="regulations"

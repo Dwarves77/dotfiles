@@ -985,6 +985,12 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
       // an unprojected column must read as unknown, not as a claim about the item's grade.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
+      // reads this. Migration 316 already added `last_regenerated_at` to this function's own
+      // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
+      // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
+      // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
+      lastRegeneratedAt: row.last_regenerated_at || undefined,
       // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
       // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
       // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
@@ -1761,6 +1767,10 @@ function rpcRowToResource(row: any): Resource {
     // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
     // none of these RPCs project `ii.item_grade` yet.
     itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+    // D23 part (d): dormant for the same reason as jurisdictionIso above, none of
+    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
+    // project `ii.last_regenerated_at` in their RETURNS TABLE.
+    lastRegeneratedAt: row.last_regenerated_at || undefined,
     // Lane SURF (2026-09-02): dormant for the same reason as jurisdictionIso above — none of
     // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
     // (migration 269, last redefined in 272) project `ii.origin_class` in their RETURNS TABLE.
@@ -3864,6 +3874,9 @@ async function fetchIntelligenceItemUncached(
       // above — `row.item_grade` IS present here once the migration applies (this fetcher is not
       // RPC-projected), unlike the two dormant RPC-backed mapper sites.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // D23 part (d): REAL, not dormant, same `select("*")` situation as jurisdictionIso above.
+      // Feeds the detail header's "Brief regenerated <date>" line (recentRegenInfo).
+      lastRegeneratedAt: row.last_regenerated_at || undefined,
       // Lane SURF (2026-09-02): REAL, not dormant — same `select("*")` situation as jurisdictionIso
       // and itemGrade above. `row.origin_class` (migration 267) IS present on this fetcher's row, so
       // this is a live mapping, even though migration 267's own verification block notes zero rows
