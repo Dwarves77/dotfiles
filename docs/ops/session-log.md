@@ -20238,3 +20238,17 @@ tests, never a live call). Named paths only staged, never `git add -A`. Trailer
 **Not in this entry's scope** (separate lanes per the defect-fix plan): every other defect (D1 through
 D12 except D13/D14), the batch-001/002 brief-writing lanes, and the 7.2 dry runs/applies named in the
 plan's push order.
+## 2026-09-13, brief-lane 002 (batch branch): regenerated under the 6.2b contract and applied
+
+**What.** Batch 002 (batch 2 chunk 1, items 11 to 20 of export 34691560057) regenerated under the 6.2b
+contract by task 6.2c (9 entries, commit e4c87ec9) and completed with the tenth entry 00a8c0d9 after task
+6.2d made the export include quarantined items (commit 3271d444). Applied with allow_brief_overwrite:
+run-006 (9 applied, 9 verified) and run-010 (1 applied, 00a8c0d9 verified, 16 FACT claims). The
+attestation LAST-PROPOSER-PASS.md on this branch names run-010; PENDING-RUN.md discharged when run-006
+landed at the pinned harness version. This branch is an apply target and is never merged; its memory on
+master is the coordinator's proposer pass (defect fix plan D12 renames the artifacts by run id when they
+land). This entry exists because the memory gate counts the batch file as code (plan D20 fixes that).
+
+### UX compliance (batch 002)
+
+Not applicable: no `.tsx`/`.css` touched.
