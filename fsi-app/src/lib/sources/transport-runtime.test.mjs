@@ -125,3 +125,53 @@ test("LIVE: a fresh cache hit short-circuits the ladder (no transport fetch)", a
   assert.equal(r.text, REAL_LAW);
   assert.equal(directCalls, 0);
 });
+
+// ── renderAllowed:false (D25, lane L16, 2026-09-13 coordinator correction) ────────────────────────────────────
+// capture-static-primaries.mjs must be able to run this SAME tested ladder with the paid tier structurally
+// unreachable, never a second divergent transport chooser. These prove browserlessRender is NEVER called
+// with renderAllowed:false, even on the two verdict shapes that would otherwise escalate to it.
+test("renderAllowed:false: a JS shell on direct does NOT escalate to render -- holds NO_REACHABLE_SOURCE", async () => {
+  const r = await escalateToFetchResult("https://customs.go.jp/tariff", MAX, {
+    directFetch: async () => ({ status: 200, text: CUSTOMS_JS_SHELL }),
+    browserlessRender: async () => { throw new Error("browserlessRender must NEVER be called when renderAllowed is false"); },
+    renderAllowed: false,
+  });
+  assert.equal(r.outcome, "no_reachable_source");
+  assert.equal(r.holdReason, "NO_REACHABLE_SOURCE");
+  assert.equal(r.text, "");
+});
+
+test("renderAllowed:false: a 403 block on direct does NOT escalate to render -- holds NO_REACHABLE_SOURCE (no try-both)", async () => {
+  let directCalls = 0;
+  const r = await escalateToFetchResult("https://smartfreightcentre.org/report", MAX, { // render-first host by default
+    directFetch: async () => { directCalls++; return { status: 403, text: SFC_403 }; },
+    browserlessRender: async () => { throw new Error("browserlessRender must NEVER be called when renderAllowed is false"); },
+    seekMore: async () => { throw new Error("a block is not a not-found -- do NOT seek-more"); },
+    renderAllowed: false,
+  });
+  assert.equal(r.outcome, "no_reachable_source");
+  assert.equal(r.holdReason, "NO_REACHABLE_SOURCE");
+  assert.equal(directCalls, 1, "the direct transport is still tried -- only render is structurally removed");
+});
+
+test("renderAllowed:false: a genuine 404 on direct alone still emits seek-more (not-found handling is unaffected)", async () => {
+  const r = await escalateToFetchResult("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:99999", MAX, {
+    directFetch: async () => ({ status: 404, text: EURLEX_404 }),
+    browserlessRender: async () => { throw new Error("browserlessRender must NEVER be called when renderAllowed is false"); },
+    seekMore: async (u) => ({ kind: "seek_more_alternate_url", url: u }),
+    renderAllowed: false,
+  });
+  assert.equal(r.outcome, "seek_more");
+  assert.equal(r.text, "");
+});
+
+test("renderAllowed default (omitted) still escalates to render -- backward-compatible with every existing caller", async () => {
+  let renderCalls = 0;
+  const r = await escalateToFetchResult("https://customs.go.jp/tariff", MAX, {
+    directFetch: async () => ({ status: 200, text: CUSTOMS_JS_SHELL }),
+    browserlessRender: async () => { renderCalls++; return { status: 200, text: REAL_LAW }; },
+  });
+  assert.equal(r.outcome, "content");
+  assert.equal(r.transport, "render");
+  assert.equal(renderCalls, 1);
+});

@@ -21241,3 +21241,146 @@ by reading code/migrations.
 - `fsi-app/supabase/migrations/318_forward_events_delete_document_date_rows.sql` (new: Part 3)
 - `docs/inventories/migrations.md` (modified: migration-318 row)
 - `docs/ops/session-log.md` (this entry)
+## 2026-09-13, W9 lane L16: D25 free static-host capture transport and capture-static-primaries (parts a-d)
+
+131 live verified brief-grade regulation-family items have a `source_url` but no stored source capture
+(no `agent_run_searches` row over 200 chars) -- 130 on `eur-lex.europa.eu`, 1 on `www.legislation.gov.uk`.
+Operator rulings verbatim, 2026-09-13: "You do NOT need browserless. Use the browser to look for free."
+and "We are NOT spending money on populating the site."
+
+**Coordinator correction to D25 part (a), before any code was written for it.** The original plan asked
+for a brand-new `plainFetch`/`fetchCanonical` chooser inside `src/lib/sources/canonical-fetch.mjs`. The
+coordinator corrected this mid-lane: a free direct-HTTP transport already exists and is already first in
+line -- `src/lib/sources/transport-runtime.mjs`'s `escalateToFetchResult` wires the per-failure-class
+escalation ladder (`src/lib/sources/transport-escalation.mjs`, invariant RD-14), and `selectTransportOrder`
+already returns `["direct","render"]` for `eur-lex.europa.eu` and every host outside its small
+render-first list. Building a second, parallel chooser would have been exactly the duplicated-and-diverged
+defect class (D1/D3) `canonical-fetch.mjs`'s own header exists to kill. Revised scope: (a)
+`transport-runtime.mjs` gains one option, `renderAllowed` (default `true`, every existing caller
+byte-for-byte unaffected) -- `false` removes "render" from the ladder structurally (escalateFetch is never
+handed a `browserlessRender` closure), so a JS-shell or block verdict on the direct transport falls
+straight to the ladder's own exhaustion path (`NO_REACHABLE_SOURCE`) instead of escalating to Browserless.
+(b) spend-lock scoping stated against the real gate. (c) the new maintenance step runs each item's
+`source_url` through the ladder with `renderAllowed:false`. (d) tests adjusted to stub the injected
+transports, never global fetch (one narrow, disclosed exception below).
+
+**(a) Transport.** `escalateToFetchResult(url, max, deps)` reads `deps.renderAllowed` (default `true`) and,
+when `false`, never binds a `browserlessRender` closure into the ladder -- `escalateFetch`'s own queue loop
+already skips any transport whose `impl` is falsy, and its JS-shell escalation push is already gated on
+`impl.render` being truthy, so no change to `transport-escalation.mjs` itself was needed. Four new tests in
+`transport-runtime.test.mjs`: a JS-shell on direct with `renderAllowed:false` holds `NO_REACHABLE_SOURCE`
+(render never called, would throw if it were); a 403 block on a render-first host with `renderAllowed:false`
+does the same (no try-both); a genuine 404 with `renderAllowed:false` still emits seek-more (not-found
+handling is unaffected); the default (omitted `renderAllowed`) still escalates to render, proving every
+existing caller (`canonical-pipeline.ts`'s `buildLiveTransports`) is unaffected.
+
+**(b) Spend-lock scoping, against the real gate.** `src/lib/sources/acquire-lock.mjs`'s `ACQUIRE_FLAG`
+(`GROUNDING_ACQUIRE_ENABLED`) has exactly two call sites in this repo: `canonical-pipeline.ts`'s
+`groundBrief` (the paid Sonnet ledger-extraction call) and `verify-item.mjs`'s `act()` paid-acquire branch
+[CONFIRMED by grep, `assertAcquireAllowed` appears nowhere else]. Neither `capture-static-primaries.mjs`
+nor `transport-runtime.mjs`/`transport-escalation.mjs` imports `acquire-lock.mjs` or calls
+`assertAcquireAllowed`. The variable: `GROUNDING_ACQUIRE_ENABLED` gates paid model-grounding entry points
+only; this step's direct transport is gated by `SCRAPE_HOLD` alone.
+
+**(c) Capture step.** New file `scripts/maintenance/capture-static-primaries.mjs`, wired into
+`.github/workflows/maintenance.yml` (new `capture-static-primaries` option + step) and
+`docs/runbooks/MAINTENANCE-RUNBOOK.md` (new section 56). Selection: `ids:<uuid,...>` or unscoped live
+regulation-family items whose `source_url` host is in `STATIC_TEXT_HOSTS` (`eur-lex.europa.eu`,
+`legislation.gov.uk`, `federalregister.gov`, `ecfr.gov`, `govinfo.gov` -- `hostOf` strips `www.`, so one
+entry matches both spellings), excluding items already carrying a pool row over 200 chars (idempotent by
+construction). Apply: `escalateToFetchResult(url, max, { directFetch, renderAllowed: false })`; on
+`eur-lex.europa.eu`, a non-content first attempt derives the CELEX clean-text URL
+(`.../legal-content/EN/TXT/HTML/?uri=CELEX:<id>`, via `scripts/lib/canonical-key.mjs`'s `deriveKey`,
+mirrored verbatim rather than re-derived) and retries once. A content result writes ONE
+`agent_run_searches` row (the pool row shape the export and the driver read) through `guardedInsert`
+(rule 015); a roadblock writes no row and is listed with its reason (the ladder's own tested classifier --
+`STUB_MIN_CHARS` is already 200, the pool's own floor, so the under-200-chars/non-2xx/CDN-block/challenge
+contract needed no re-implementation); the run writes AT MOST ONE `integrity_flags` row summarising every
+roadblocked item (never one per item). Rate limit: one request per second per host (`paceHost`).
+`SCRAPE_HOLD` is checked once per run before any per-item work, mirroring `resolve-error-body-gate.mjs`'s
+own posture; `buildDeps` is exported for the D22 real-wiring pattern.
+
+**(d) Tests.** `capture-static-primaries.test.mjs`, 46 tests: pure-function coverage for host matching,
+HTML-to-text, CELEX-URL derivation, outcome classification, pool-length reduction/idempotency partition,
+row/flag builders, host-pacing arithmetic, id-arg parsing; `makeDirectFetch` against a stubbed
+`fetchImpl` (HTML in/text out, over-cap truncation reported not silent, a network error and an aborted
+timeout both return a low-status result rather than throwing, and a static-source-text assertion that the
+file's own text never names `BROWSERLESS_API_KEY`); `main()` orchestration against fake `deps` (hold
+engaged refuses the whole run, dry lists and writes nothing, idempotent skip even in apply mode, a
+successful capture writes exactly one row, a roadblock writes no row and exactly one summary flag, the
+CELEX retry path on both success and double-failure, `ids:` scoping still filtered to a static-text host,
+host-pacing called before every attempt including the retry); `buildDeps()` real-wiring tests (the D22
+pattern -- `apply-classifications.test.mjs`'s own `buildRealDeps` section is the template) using
+`__setWriteClientForTest` to swap `db.mjs`'s write client for a fake Supabase query-builder, proving every
+closure (`readUnscopedCandidates`, `readPoolRows` incl. the empty-id-list no-DB-call case, `insertRow`,
+`insertRoadblockFlag`, `fetchViaLadder`) is actually wired rather than only present by name; a static
+import-graph assertion (over the file's own source text) that it never imports `canonical-fetch.mjs` or
+calls `browserlessFetch`. **Disclosed, narrow exception to "stub the injected transports, never global
+fetch"**: two `buildDeps().fetchViaLadder` tests stub `globalThis.fetch` (restored in a `finally`) rather
+than an injected transport, because `makeDirectFetch`'s own `fetchImpl = fetch` default binds to the
+global at construction time and `buildDeps()`'s public contract exposes no injection seam for it (by
+design -- production `buildDeps()` should use the real `fetch`); no other test in this suite touches the
+network, and `transport-runtime.test.mjs`'s own tests (including the four new `renderAllowed` ones) inject
+fake transports throughout, never global fetch.
+
+**Import-graph proof (no Browserless anywhere in the new step's reach).** A small script walked this
+file's own relative-import closure (16 files: `transport-runtime.mjs` -> `transport-escalation.mjs` ->
+`entity-gate.mjs`/`holdings-audit.mjs`/`primary-fallback.mjs`; `fetch-hold.mjs` -> `url-canon.mjs`;
+`canonical-key.mjs`; `institution-key.mjs`; `db.mjs` -> `classify-source-role.ts`/`paginate.mjs`; the
+step's own `cli.mjs`/`is-main.mjs`) and grepped every file's text for `canonical-fetch.mjs`. CORRECTED
+(fix round 1, review-l16.md M1): six hits, all prose comments (five inside `capture-static-primaries.mjs`'s
+own header explaining what it does NOT import; one inside `fetch-hold.mjs`'s existing header, unrelated to
+this lane) -- not the "two hits" this entry originally stated; the reviewer's own re-grep of the same
+claimed graph found the six. The substantive conclusion is unchanged either way: zero actual `import`
+statements referencing `canonical-fetch.mjs`, zero `browserlessFetch(` calls, anywhere in the graph
+[CONFIRMED by the reviewer, independently, before this fix round; also covered mechanically now by
+`capture-static-primaries.test.mjs`'s own transitive-closure test, see Fix round 1 below].
+
+**Gates.** `transport-runtime.test.mjs`: 12/12 (4 new). `capture-static-primaries.test.mjs`: 46/46 at the
+time this entry was first written (48/48 after fix round 1's two additions). `npx tsc --noEmit` from
+`fsi-app`: clean. Memory gate (`node .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`):
+OK. Glyph check: no em dash, en dash, or section-sign glyph in any line this lane added (checked with a
+UTF-8-safe Node scan over every touched/added file, not a shell grep -- see the lane's own
+`task-l16-report.md` for the exact command and result). CORRECTED (fix round 1, review-l16.md C2): this
+entry originally stated "Full preflight (`sh fsi-app/.discipline/hooks/pre-push`) run once at the end; see
+the report for its tail and exit code." That was false -- no such run happened and no report existed. What
+this lane actually ran before the original three commits: unit tests (`transport-runtime.test.mjs`,
+`capture-static-primaries.test.mjs`), `tsc --noEmit`, the memory gate, and the glyph check, all listed
+above, each independently green. The full discipline suite (`sh fsi-app/.discipline/run-test-suite.sh`,
+the exact command pre-push step 3 and CI both run) was run by the reviewer, not this lane, and was RED on
+this branch (`shared-writer-registry.test.mjs`, 1 fail of 6941) until fix round 1 below closed the gap.
+The pre-push hook itself is run by the coordinator at push time, not by this lane.
+
+**Files.** `fsi-app/src/lib/sources/transport-runtime.mjs` (new `renderAllowed` option);
+`fsi-app/src/lib/sources/transport-runtime.test.mjs` (4 new tests); `fsi-app/scripts/maintenance/
+capture-static-primaries.mjs` (new); `fsi-app/scripts/maintenance/capture-static-primaries.test.mjs` (new,
+46 tests, 48 after fix round 1); `.github/workflows/maintenance.yml` (new `capture-static-primaries`
+option + step); `docs/runbooks/MAINTENANCE-RUNBOOK.md` (new section 56); `docs/ops/session-log.md` (this
+entry). No migration (D25 needs no schema change). Deliverables are D25 parts (a) to (d); part (e)
+(post-merge dry run, apply, export) is explicitly the coordinator's own follow-on, not this lane's.
+
+**Fix round 1 (2026-09-13, against review-l16.md, verdict CONDITIONAL FAIL).** Three findings closed:
+- **C1** [CONFIRMED, by review + by this fix]: `capture-static-primaries.mjs`'s two shared-table writes
+  (`agent_run_searches`, `integrity_flags`) were never registered in
+  `docs/inventories/shared-dataset-ownership.md`, so `shared-writer-registry.test.mjs` failed (2 unregistered
+  writers). Fixed by adding the file under both `sharedTables` entries in the fenced JSON block plus a
+  one-line justification note. `node --test .discipline/shared-writer-registry.test.mjs`: 1 fail -> green.
+- **I1** [CONFIRMED, by injected-bug test]: no `main()`-level test exercised the "one flag per run, never
+  one per item" invariant with more than one roadblocked item, so a regression to per-item flagging would
+  not have been caught. Added a test with THREE roadblocked items asserting the `insertRoadblockFlag`
+  call COUNT is exactly 1. Verified it catches the named regression: injected a per-item flag call into
+  `main()`'s roadblock branch, reran (new test failed, 4 calls not 1), restored with `git checkout --`.
+- **I2** [CONFIRMED, by review + by this fix]: the only automated import-graph guard checked
+  `capture-static-primaries.mjs`'s own one-hop source text, not the transitive closure the commit/session-log
+  describe manually walking. Added a script-driven test that walks the real relative-import closure from
+  `capture-static-primaries.mjs` and asserts, over each file's CONTENT (comments stripped), that none
+  imports `canonical-fetch.mjs` and none calls `browserlessFetch(`. Also corrects M1 and the preflight
+  claim above (C2).
+
+`capture-static-primaries.test.mjs`: 48/48 green (up from 46/46). `.discipline/shared-writer-registry.
+test.mjs`: green (up from 1 fail). `npx tsc --noEmit`: clean. Memory gate: OK. Glyph check over fix round
+1's added lines: 0 matches.
+
+### UX compliance (L16)
+
+Not applicable: no `.tsx`/`.css` touched.

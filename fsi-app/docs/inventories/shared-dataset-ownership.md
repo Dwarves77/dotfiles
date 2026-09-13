@@ -121,7 +121,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/resolve-refetch-holds.mjs",
       "scripts/maintenance/close-coverage-reflections.mjs",
       "scripts/maintenance/close-legal-confirmation-rows.mjs",
-      "scripts/maintenance/close-flags-for-verified-items.mjs"
+      "scripts/maintenance/close-flags-for-verified-items.mjs",
+      "scripts/maintenance/capture-static-primaries.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -163,7 +164,8 @@ who may write a shared table; the test enforces it on every future PR.
       "supabase/functions/capture-worker/index.ts",
       "scripts/remediation/refetch-capped-worklist.mjs",
       "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/resolve-error-body-gate.mjs"
+      "scripts/maintenance/resolve-error-body-gate.mjs",
+      "scripts/maintenance/capture-static-primaries.mjs"
     ],
     "intelligence_item_sections": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -239,6 +241,18 @@ own `record_facts` section in `intelligence_item_sections`, creating that sectio
 `scripts/maintenance/provenance-heal.mjs`'s own STEP 3 SLOTS already uses, reused rather than
 re-implemented (`bestCaptureText`/`findSearchIdForSpan`/`missingRequiredSlots`/`claimCoversSlot`,
 imported from `scripts/mint/heal-provenance.mjs`).
+
+Note (added by lane L16, brief-chain build plan 2026-09-11, D25, 2026-09-13): `scripts/maintenance/
+capture-static-primaries.mjs` added to `agent_run_searches` and `integrity_flags` above -- the free
+direct-HTTP MAINT step that captures full text for the 131 live verified brief-grade regulation-family
+items that have a source_url but no stored capture over 200 characters, per the operator's ruling that no
+paid Browserless call is needed or wanted for this population. `agent_run_searches`: writes ONE
+generate-pool row per successfully captured item (the same pool row shape `provenance-heal.mjs`/
+`resolve-error-body-gate.mjs` above already write), through `guardedInsert`. `integrity_flags`: writes AT
+MOST ONE summary flag per run, folding every roadblocked item from that run into a single row (never one
+flag per item), through `guardedInsert`. Found by review-l16.md C1: `.discipline/shared-writer-registry.
+test.mjs` failed with these two writers unregistered; this note and the two JSON entries above close that
+gap.
 
 Note (added by task 7.4e, brief-chain build plan 2026-09-11 / ADR-030 rider): `scripts/maintenance/
 uk-series-code-reconcile.mjs` added to `intelligence_items` -- rewrites a live legislation.gov.uk row's
