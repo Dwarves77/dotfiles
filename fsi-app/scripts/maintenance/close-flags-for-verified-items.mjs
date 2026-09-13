@@ -23,6 +23,17 @@
 //
 // Guarded writes; idempotent (a resolved row drops out of the next run's own candidate read, so a second
 // run with no newly-verified items changes nothing).
+//
+// D17 FAMILY 14 ADDENDUM (2026-09-13, lane L11b): the first apply left 30 gate-a-verifier-sweep rows open;
+// the batch-003 export showed 24 of those items are ARCHIVED, not still quarantined -- the finding's own
+// premise ("this item is quarantined") is equally moot for an archived item, just for a different reason
+// than "verified". A SECOND closing rule: a per-item flag whose subject item has is_archived=true resolves
+// with "item archived on <date>; finding moot", counted in its own dry-output bucket (still_open now names
+// only genuinely LIVE quarantined items). Deviation disclosed: the plan's own wording is "<archived_at or
+// updated_at>" -- [CONFIRMED, migration 001_schema.sql / 004_source_trust_framework.sql] intelligence_items
+// carries no archived_at column at all (only is_archived boolean + archive_reason text); this resolver
+// therefore always falls through to updated_at for the dated per-item note. The read/compute stays generic
+// (prefers archived_at when present) so a future migration adding that column needs no change here.
 import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
@@ -50,29 +61,61 @@ const FLAG_COLUMNS = "id, created_by, description, status, subject_ref, category
 // Pure planning (unit-tested with no I/O).
 // ---------------------------------------------------------------------------------------------------
 
-/** Pure: the fixed resolution_note for a resolved row, dated. */
+/** Pure: the fixed resolution_note for a resolved-because-verified row, dated. */
 export function buildResolutionNote(todayIso) {
   return `item verified on ${todayIso}; finding superseded`;
 }
 
+/** Pure: the resolution_note for a resolved-because-archived row (D17 family 14 addendum). */
+export function buildArchivedResolutionNote(dateIso) {
+  return `item archived on ${dateIso}; finding moot`;
+}
+
 /**
- * Partition candidate rows into resolve-now (subject item is verified) vs stay-open (anything else --
- * still quarantined, or a provenance_status this step does not recognize as a resolution). Pure.
- * @param {Array<{id:string, subject_ref?:string|null, created_by?:string|null}>} rows
- * @param {Record<string, string|null>} provenanceStatusByItem - item id -> provenance_status
- * @returns {{toResolve: Array<object>, stillOpen: Array<object>}}
+ * Pure: the day-precision ISO date to name in an archived row's resolution note. Prefers `archived_at`
+ * when the caller's state carries one (a future schema could add it); intelligence_items today does not,
+ * so this falls through to `updated_at` -- [CONFIRMED] no archived_at column exists on that table
+ * (migration 001_schema.sql / 004_source_trust_framework.sql). Never invents a date: an unparseable or
+ * absent value returns null and the caller names it explicitly rather than guessing.
+ * @param {{archived_at?:string|null, updated_at?:string|null}|null} state
+ * @returns {string|null}
  */
-export function planClosure(rows, provenanceStatusByItem) {
+export function archivedDateIso(state) {
+  const raw = state?.archived_at ?? state?.updated_at ?? null;
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+/**
+ * Partition candidate rows into resolve-now-verified (subject item is verified), resolve-now-archived
+ * (subject item is is_archived=true -- D17 family 14 addendum), or stay-open (anything else -- still
+ * live-quarantined, or a state this step does not recognize as a resolution). Pure. `itemStateByItem`'s
+ * values may be a bare provenance_status string (back-compat with the pre-addendum call shape, used
+ * unchanged by the tests written against family 14's first pass) or a
+ * `{provenance_status, is_archived, archived_at, updated_at}` object.
+ * @param {Array<{id:string, subject_ref?:string|null, created_by?:string|null}>} rows
+ * @param {Record<string, string|object|null>} itemStateByItem - item id -> provenance_status | state object
+ * @returns {{toResolve: Array<object>, toResolveArchived: Array<object>, stillOpen: Array<object>}}
+ */
+export function planClosure(rows, itemStateByItem) {
   const toResolve = [];
+  const toResolveArchived = [];
   const stillOpen = [];
   for (const row of rows ?? []) {
     const itemId = row.subject_ref;
-    const status = itemId ? (provenanceStatusByItem?.[itemId] ?? null) : null;
-    const entry = { id: row.id, item_id: itemId, created_by: row.created_by, provenance_status: status };
-    if (status === "verified") toResolve.push(entry);
-    else stillOpen.push(entry);
+    const raw = itemId ? itemStateByItem?.[itemId] : undefined;
+    const state = typeof raw === "string" ? { provenance_status: raw } : raw ?? null;
+    const entry = { id: row.id, item_id: itemId, created_by: row.created_by, provenance_status: state?.provenance_status ?? null };
+    if (state?.provenance_status === "verified") {
+      toResolve.push(entry);
+    } else if (state?.is_archived === true) {
+      toResolveArchived.push({ ...entry, archived_date: archivedDateIso(state) });
+    } else {
+      stillOpen.push(entry);
+    }
   }
-  return { toResolve, stillOpen };
+  return { toResolve, toResolveArchived, stillOpen };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -86,37 +129,62 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   const rows = await deps.readCandidates();
   const itemIds = [...new Set(rows.map((r) => r.subject_ref).filter(Boolean))];
-  const provenanceStatusByItem = {};
-  for (const id of itemIds) provenanceStatusByItem[id] = await deps.readItemProvenanceStatus(id);
+  const itemStateByItem = {};
+  for (const id of itemIds) itemStateByItem[id] = await deps.readItemState(id);
 
-  const { toResolve, stillOpen } = planClosure(rows, provenanceStatusByItem);
+  const { toResolve, toResolveArchived, stillOpen } = planClosure(rows, itemStateByItem);
   const stillOpenItemIds = [...new Set(stillOpen.map((r) => r.item_id).filter(Boolean))];
 
   summary.counts = {
     candidates_scanned: rows.length,
     distinct_items: itemIds.length,
     would_resolve: toResolve.length,
+    // D17 family 14 addendum: its own dry-output bucket, distinct from the verified-item count above.
+    would_resolve_archived: toResolveArchived.length,
     still_open: stillOpen.length,
     still_open_distinct_items: stillOpenItemIds.length,
   };
   summary.resolve_sample = toResolve.slice(0, 20);
+  summary.resolve_archived_sample = toResolveArchived.slice(0, 20);
   summary.still_open_sample = stillOpen.slice(0, 20);
   // The full still-open item id list, every run (dry AND apply) -- this is the "feed to the next
   // brief-export batch" artifact the correction's own ruling names, never truncated to the 20-row sample.
+  // After the family 14 addendum this list names only genuinely LIVE quarantined items (archived items no
+  // longer appear here -- their flags resolve as moot instead).
   summary.still_open_item_ids = stillOpenItemIds;
 
   if (!apply) {
     summary.note =
-      `DRY -- ${toResolve.length} row(s) would resolve (item verified); ${stillOpen.length} row(s) stay ` +
-      `open across ${stillOpenItemIds.length} item id(s) (still quarantined). Nothing written.`;
+      `DRY -- ${toResolve.length} row(s) would resolve (item verified); ${toResolveArchived.length} row(s) ` +
+      `would resolve (item archived, finding moot); ${stillOpen.length} row(s) stay open across ` +
+      `${stillOpenItemIds.length} item id(s) (still live-quarantined). Nothing written.`;
     return summary;
   }
 
   const note = buildResolutionNote(todayIso);
   const ids = toResolve.map((r) => r.id);
   const res = ids.length ? await deps.resolveIds(ids, note) : { updated: 0, snapshot: null };
-  summary.applied = res.updated;
+
+  // D17 family 14 addendum: each archived item can carry its OWN archived/updated date, so ids are
+  // grouped by the note text their own date produces (same date -> same note -> one batched write) rather
+  // than sharing a single note across every row the way the verified-item write above does.
+  const archivedGroups = new Map();
+  for (const entry of toResolveArchived) {
+    const archivedNote = buildArchivedResolutionNote(entry.archived_date ?? "an unrecorded date");
+    if (!archivedGroups.has(archivedNote)) archivedGroups.set(archivedNote, []);
+    archivedGroups.get(archivedNote).push(entry.id);
+  }
+  let archivedUpdated = 0;
+  const archivedWrites = [];
+  for (const [archivedNote, groupIds] of archivedGroups) {
+    const r = await deps.resolveIds(groupIds, archivedNote);
+    archivedUpdated += r.updated;
+    archivedWrites.push({ ids: groupIds, note: archivedNote, updated: r.updated, snapshot: r.snapshot });
+  }
+
+  summary.applied = res.updated + archivedUpdated;
   summary.counts.write = { attempted: ids.length, updated: res.updated, snapshot: res.snapshot };
+  summary.counts.write_archived = { attempted: toResolveArchived.length, updated: archivedUpdated, groups: archivedWrites.length };
 
   const remaining = await deps.readRemainingOpen();
   summary.read_back = {
@@ -124,9 +192,10 @@ export async function main({ mode = "dry" } = {}, deps) {
     remaining_sample: remaining.slice(0, 20).map((r) => ({ id: r.id, subject_ref: r.subject_ref })),
   };
   summary.note =
-    `Resolved ${res.updated}/${ids.length} row(s) (item verified; finding superseded). ${stillOpen.length} ` +
-    `row(s) remain open across ${stillOpenItemIds.length} item id(s) -- feed still_open_item_ids to the ` +
-    "next brief-export batch.";
+    `Resolved ${res.updated}/${ids.length} row(s) (item verified; finding superseded) and ` +
+    `${archivedUpdated}/${toResolveArchived.length} row(s) (item archived; finding moot). ` +
+    `${stillOpen.length} row(s) remain open across ${stillOpenItemIds.length} item id(s) -- feed ` +
+    "still_open_item_ids to the next brief-export batch.";
 
   return summary;
 }
@@ -146,9 +215,18 @@ if (IS_MAIN) {
               .in("created_by", PER_ITEM_VERIFIED_SUPERSEDE_FAMILIES)
               .in("status", ["open", "in_review"]),
         }),
-      readItemProvenanceStatus: async (itemId) => {
-        const rows = await readAll("intelligence_items", "provenance_status", { match: (q) => q.eq("id", itemId) });
-        return rows[0]?.provenance_status ?? null;
+      // D17 family 14 addendum: reads is_archived + updated_at alongside provenance_status so planClosure
+      // can resolve an archived item's finding as moot, not just a verified item's as superseded.
+      // intelligence_items carries no archived_at column [CONFIRMED against the migrations] -- see this
+      // file's header for the disclosed fallback to updated_at.
+      readItemState: async (itemId) => {
+        const rows = await readAll("intelligence_items", "provenance_status, is_archived, updated_at", {
+          match: (q) => q.eq("id", itemId),
+        });
+        const row = rows[0] ?? null;
+        return row
+          ? { provenance_status: row.provenance_status ?? null, is_archived: row.is_archived === true, updated_at: row.updated_at ?? null }
+          : null;
       },
       resolveIds: (ids, note) =>
         guardedUpdateByIds(

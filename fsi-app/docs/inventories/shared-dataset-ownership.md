@@ -323,6 +323,13 @@ verification) writes the SAME tables its original entry above already registers 
 `section_claim_provenance`) -- no new allowlist row needed, only the script's own header comment and this
 doc's runbook section 52 changed to describe the corrected behavior.
 
+Note (added by lane L11b, 2026-09-13, family 14 addendum): `scripts/maintenance/
+close-flags-for-verified-items.mjs` (an `is_archived=true` subject item now resolves its finding as moot,
+alongside the original verified-item rule) writes the SAME `integrity_flags` table its original entry
+above already registers, and only READS `intelligence_items.is_archived` / `updated_at` (no new writer) --
+no new allowlist row needed, only the script's own header comment and this doc's runbook section 55
+changed to describe the added rule.
+
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
 `run-mint-batch.mjs`, `run-extraction.mjs`) are now present in this tree. `src/lib/connections/write-edges.mjs`
