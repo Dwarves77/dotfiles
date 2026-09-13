@@ -12,11 +12,20 @@
  *
  *  Read-only (pg-direct via scripts/lib/pg-conn.mjs's shared resolver, the same one schema-drift-audit.mjs
  *  and vocab-sync-audit.mjs use). Never writes the database or the tracked JSON: a drift is REPORTED for
- *  a human/lane to re-run the inventory step, never auto-corrected here. */
+ *  a human/lane to re-run the inventory step, never auto-corrected here.
+ *
+ *  CREDENTIALS CHECKED BEFORE THE CLIENT IS EVEN IMPORTED (D7 Fix round 3, PR #660 red): pg-conn.mjs
+ *  statically imports the "pg" npm package, so a bare `import { connectPg } from "../lib/pg-conn.mjs"` at
+ *  this file's own top level pulls "pg" in at MODULE LOAD, before any code runs. This script's own test
+ *  (check-vocabulary-drift.test.mjs) spawns it as a subprocess to prove the exit-2 self-skip, and CI's
+ *  no-npm "Discipline engine unit tests" job has no node_modules at all -- the spawned process died with
+ *  ERR_MODULE_NOT_FOUND instead of the documented exit 2, because the import happened unconditionally
+ *  regardless of whether credentials existed to use it. hasPlausibleCredentials() (a cheap process.env
+ *  read, no import) now runs FIRST; pg-conn.mjs is imported dynamically, only on the branch that already
+ *  knows it has something to try connecting with. */
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { connectPg } from "../lib/pg-conn.mjs";
 import { buildLiveInventoryEntry } from "../maintenance/lib/vocab-inventory.mjs";
 import { QUERY, OUTPUT_PATH } from "../maintenance/schema-vocabulary-inventory.mjs";
 import { diffVocabulary } from "./lib/vocab-drift.mjs";
@@ -24,7 +33,23 @@ import { diffVocabulary } from "./lib/vocab-drift.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
 
+/** Mirrors pg-conn.mjs's own candidateConnStrings() gate: the local-link and NEXT_PUBLIC_SUPABASE_URL-
+ *  derived pooler candidates both still require SUPABASE_DB_PASSWORD, so these three names cover every
+ *  branch that could ever produce a real connection string. Pure (env in, boolean out); exported for the
+ *  test. */
+export function hasPlausibleCredentials(env = process.env) {
+  return Boolean(env.SUPABASE_DB_URL || env.DATABASE_URL || env.SUPABASE_DB_PASSWORD);
+}
+
 async function main() {
+  if (!hasPlausibleCredentials()) {
+    console.error("check-vocabulary-drift: no working Postgres connection, cannot verify here (exit 2).");
+    process.exit(2);
+  }
+
+  // Dynamic, and only reached past the check above: a credential-less run (this exact no-npm simulation
+  // included) never touches pg-conn.mjs, so it never touches the "pg" package either.
+  const { connectPg } = await import("../lib/pg-conn.mjs");
   const client = await connectPg();
   if (!client) {
     console.error("check-vocabulary-drift: no working Postgres connection, cannot verify here (exit 2).");
