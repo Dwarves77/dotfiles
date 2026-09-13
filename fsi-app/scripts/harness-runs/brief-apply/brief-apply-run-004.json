@@ -1,0 +1,33 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:70029202bae4a9a6",
+  "run_id": "brief-apply-run-004",
+  "started_at": "2026-09-13T08:09:23.731Z",
+  "config": {
+    "briefs": "fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": true,
+    "recordBriefsSchemaVersion": "rb1-2026-09-12.3"
+  },
+  "inputs_ref": [
+    "fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json"
+  ],
+  "per_item": [],
+  "metrics": {
+    "applied_item_ids": [],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [
+    {
+      "description": "apply-record-briefs.mjs threw during a run: failed to read/parse --briefs: ENOENT: no such file or directory, open '/home/runner/work/dotfiles/dotfiles/fsi-app/fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json'",
+      "root_cause": "Error: failed to read/parse --briefs: ENOENT: no such file or directory, open '/home/runner/work/dotfiles/dotfiles/fsi-app/fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json'\n    at main (file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/apply-record-briefs.mjs:538:13)\n    at file:///home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/apply-record-briefs.mjs:475:42\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json"
+  ],
+  "proposer_notes": ""
+}
