@@ -476,7 +476,9 @@ decided -- no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`de
 zero proposals and asked for manual tagging; the auto path left every one of them open forever
 (`evaluateAutoAdoption` refused them as "flag carries zero proposals"). Most were record-grade stubs from
 2026-09-03 that now carry real brief text (batches 001/002, the timeline and forward-event backfills), so
-the derivation that found nothing then may find tags now. Two-part fix:
+the derivation that found nothing then may find tags now -- though, per D21 below, a thin-text stub was
+only half the cause: some of the 1,034 carried plenty of real text whose only fault was that
+`derive-tags.mjs`'s own `KEYWORD_MAP` had no keyword for the vocabulary term that text used. Two-part fix:
 - **Decider** (`apply-tags.mjs`'s `autoAdoptTags`): a zero-proposal flag (`isZeroProposalFlag`) is decided,
   never skipped, it re-derives candidates for the flag's item from its CURRENT title/
   canonical_instrument_key/what_is_it/summary/full_brief through derive-tags.mjs's own pure `deriveTags()`
@@ -493,6 +495,38 @@ the derivation that found nothing then may find tags now. Two-part fix:
   derive proposals still opens a fresh normal flag). Dedup against a prior no-derivable write uses its own
   any-status read (`readExistingNoDerivable`), so a re-run merges into the same row rather than inserting a
   duplicate. The phrase "needs manual operator tagging" is removed.
+
+**Ruling (D21, defect-fix-plan-2026-09-12, lane L13)**: even with D15's re-derivation live, the L10 dry
+run still resolved 1,019 flags "no derivable tags" -- including items whose own title said "Emissions"
+(e.g. "The Emissions Performance Standard (Enforcement) (Wales) Regulations 2015") -- because
+`derive-tags.mjs`'s `KEYWORD_MAP` was written as a proposer's hint list of narrow synonym phrases
+("emissions trading", "carbon pricing", ...), never widened when D15 promoted it into the decider's
+complete evidence rule. Fix at the source: `KEYWORD_MAP` is now GENERATED (`buildKeywordMap()`) from the
+three live vocabularies (`TOPIC_TAG_VALUES`/`COMPLIANCE_OBJECT_VALUES`/`SCENARIO_TAG_VALUES`) plus a
+curated synonym table, so every tag carries at least its own name (and, for a hyphenated tag, both the
+hyphen and space forms) as a keyword -- a tag added to a vocabulary tomorrow is covered automatically,
+with no `KEYWORD_MAP` edit required. Matching stays word-boundary, case-insensitive, over
+title/instrument-key/`what_is_it`/summary/`full_brief`; evidence recorded is always the matched phrase.
+
+**Fix round 1 for D21 (review-l13.md, CONDITIONAL FAIL)**: the corpus-fixture rule is now explicit -- a
+tag's own name may be suppressed only when a suppression never removes a tag's ONLY coverage; a real
+corpus item, "The Packaging (Essential Requirements) (Amendment) Regulations 2009", carried bare
+"packaging" in its own title and derived NOTHING at all pre-fix (the same "no derivable tags on an
+obviously on-topic item" failure D21 exists to close), so `topic_tags:packaging` left the suppression
+list. Re-checking the remaining nine against the same snapshot for this fix round found
+`compliance_object_tags:exporter` (zero real corpus hits at all -- no measurement had ever supported it)
+and `compliance_object_tags:shipper`/`distributor` (real hits, but overwhelmingly genuine on-topic uses --
+e.g. RoHS Directive 2011/65/EU's own "distributor" definition) carrying the same unevidenced-suppression
+defect; all three left the list too. A fourth pass, closing the one remaining title-level zero-tag gap the
+new corpus-fixture test found ("The Motor Fuel (Composition and Content) (Amendment) Regulations 2001"),
+added the specific phrase "motor fuel" to `topic_tags:fuels`' curated synonyms. Six suppressions remain,
+each with per-tag measured evidence in `derive-tags.mjs`'s `SUPPRESS_OWN_NAME`:
+`topic_tags:fuels`/`transport`/`corridors`/`reporting`/`research`, `compliance_object_tags:importer`
+(`reporting` and `importer` are evidenced differently -- a synthetic apply-tags.mjs D15 fixture, reviewed
+and accepted, not a corpus false positive; the other four each carry a named real-corpus item and phrase).
+A new test (`tag-yield.fixture.test.mjs`) enforces the rule going forward: no real corpus item whose title
+carries a suppressed tag's own bare name may derive zero tags total. No behaviour change outside
+`KEYWORD_MAP`'s own coverage.
 
 **Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
 summary's `note` carries the documented fallback:

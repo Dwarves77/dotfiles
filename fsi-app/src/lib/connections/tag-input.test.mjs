@@ -45,12 +45,19 @@ test("boundedSourceWindow: a real KEYWORD_MAP phrase beyond the prefix is still 
 });
 
 test("boundedSourceWindow: caller-supplied vocabTerms widen what counts as a matchable section", () => {
+  // Fix round 1 (review-l13.md, D21): "packaging waste" stopped proving "not a KEYWORD_MAP phrase" once
+  // topic_tags:packaging's own bare name left SUPPRESS_OWN_NAME (derive-tags.mjs) -- defaultVocabTerms()
+  // now includes bare "packaging", which is itself a substring of "packaging waste", so the window would
+  // include it by default. "bioliquid" is still ALIAS_MAP-only (topic_tags:fuels' own bare name stays
+  // suppressed, and boundedSourceWindow's matching is a raw substring search -- see defaultVocabTerms's
+  // own tests -- so a candidate must not accidentally contain, or be contained by, any real KEYWORD_MAP
+  // phrase; "bioliquid" is verified clean against the live term list), so it still proves the same point.
   const filler = "x".repeat(DEFAULT_PREFIX_CHARS + 2000);
-  const text = `${filler} packaging waste appears only here ${"y".repeat(500)}`;
+  const text = `${filler} bioliquid supply appears only here ${"y".repeat(500)}`;
   const withoutAlias = boundedSourceWindow(text, { contextChars: 50 });
-  assert.doesNotMatch(withoutAlias, /packaging waste/i, "not a KEYWORD_MAP phrase — should be dropped by default");
-  const withAlias = boundedSourceWindow(text, { contextChars: 50, vocabTerms: ["packaging waste"] });
-  assert.match(withAlias, /packaging waste/i);
+  assert.doesNotMatch(withoutAlias, /bioliquid/i, "not a KEYWORD_MAP phrase -- should be dropped by default");
+  const withAlias = boundedSourceWindow(text, { contextChars: 50, vocabTerms: ["bioliquid"] });
+  assert.match(withAlias, /bioliquid/i);
 });
 
 test("boundedSourceWindow: overlapping match windows are merged, not duplicated", () => {
