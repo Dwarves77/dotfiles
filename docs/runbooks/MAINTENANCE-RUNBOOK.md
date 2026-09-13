@@ -472,6 +472,28 @@ decided -- no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`de
   decided 2 (adopted 1, declined 1)."). Idempotent -- safe to re-dispatch; an already-resolved flag is
   skipped by `evaluateAutoAdoption`'s own `status==='open'` requirement.
 
+**Ruling (D15, defect-fix-plan-2026-09-12, lane L10)**: 1,034 of 1,105 open `flywheel-tag:` flags carried
+zero proposals and asked for manual tagging; the auto path left every one of them open forever
+(`evaluateAutoAdoption` refused them as "flag carries zero proposals"). Most were record-grade stubs from
+2026-09-03 that now carry real brief text (batches 001/002, the timeline and forward-event backfills), so
+the derivation that found nothing then may find tags now. Two-part fix:
+- **Decider** (`apply-tags.mjs`'s `autoAdoptTags`): a zero-proposal flag (`isZeroProposalFlag`) is decided,
+  never skipped, it re-derives candidates for the flag's item from its CURRENT title/
+  canonical_instrument_key/what_is_it/summary/full_brief through derive-tags.mjs's own pure `deriveTags()`
+  (imported, not copied; see `buildReDeriveInput`), decides each via the SAME `decideTagProposal` every
+  other proposal goes through, and resolves the flag either way: adopted tags (`buildDecisionNote`) or, if
+  nothing decides at all, the fixed `buildNoDerivableTagsNote` wording ("no derivable tags from the item's
+  own text on \<date\> (derive-tags KEYWORD_MAP); the item joins the connection graph through its entity
+  refs; no manual tagging (ADR-030)"). The `--arg auto` dry output adds three buckets:
+  `re_derived_and_adopted_count`/`_declined_count`/`no_derivable_tags_count`, each with a 20-row sample.
+- **Proposer** (`propose-tags.mjs`'s `proposeTags`): a ZERO-derivation finding no longer opens a flag
+  asking for a human, `buildFlagRow` delegates to `buildNoDerivableFlagRow`, which writes the row ALREADY
+  `status:'resolved'` under its own subtype (`empty-signature-no-derivable`, distinct from the
+  proposal-bearing `empty-signature` subtype so the two dedup keys never collide; an item that later DOES
+  derive proposals still opens a fresh normal flag). Dedup against a prior no-derivable write uses its own
+  any-status read (`readExistingNoDerivable`), so a re-run merges into the same row rather than inserting a
+  duplicate. The phrase "needs manual operator tagging" is removed.
+
 **Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
 summary's `note` carries the documented fallback:
 `node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
@@ -2081,6 +2103,44 @@ guarded path (rule 015) and closes every reached flag.
 **Artifact / read back**: `summary.json`'s counts for proposed/resolved/auto-adopted flags, per-source
 detail. Confirm against `SELECT resolution_note, count(*) FROM integrity_flags WHERE resolution_note LIKE
 'auto-adopted:%' GROUP BY 1` (the `auto-adopted:<kind>:<confidence>` format ADR-025 specifies).
+
+**Ruling (D17 families 4 and 5, defect-fix-plan-2026-09-12, lane L10)**: 1,287 open
+`flywheel-axis:source-classification` flags carried a zero-proposal subset that `evaluateAutoAdoption`
+refused and left open forever; `flywheel-axis:source-drift` stayed advisory-only with no apply target; the
+single open `flywheel-axis:item-anomaly` row had a detector with no reader that ever acted on it.
+
+- **Family 4 (classification zero-proposal)**: the decider (`apply-classifications.mjs`'s
+  `autoAdoptClassification`) re-derives an open, zero-proposal flag (`isZeroProposalClassificationFlag`)
+  from two deterministic signals classify-source.mjs's name/role matchers never read: the SC-13 class
+  table (`classTierForHost`, `src/lib/sources/host-authority.ts`) and the source's own observed
+  item-category distribution (`observedDistributionFromItems`, same read the drift check makes), via
+  `deriveClassTableCandidates`/`reDeriveZeroProposalClassification`. Scope is deliberately narrow (see that
+  function's own header comment): only tier 1 (`classTierForHost` = 1, unambiguous legal-primary) derives
+  scope_topics/scope_verticals/a role-default expected_output; tier 2 (gov/intergov, merged) derives
+  scope_topics only; the observed distribution can feed expected_output at ANY tier once the sample clears
+  the floor (10 items, `CLASS_TABLE_MIN_ITEMS_FOR_OBSERVED`), nothing is ever guessed for an ambiguous
+  tier. The flag resolves either with the adopted values (`buildDecisionNote`) or, when nothing derives,
+  with `buildNoDerivableClassificationNote`'s fixed wording ("no derivable classification from the class
+  table or the observed output on \<date\>; re-evaluated on the next classify run"). The proposer
+  (`propose-classifications.mjs`) no longer writes "needs manual operator classification"; a
+  zero-derivation finding is recorded already-resolved under its own subtype
+  (`source-classification-no-derivable`, `flags.mjs`), same anti-collision design as D15's TAG namespace.
+- **Family 5 (drift and anomaly)**: `autoResolveDriftFlag` decides EVERY open source-drift flag: when the
+  source's own observed output covers at least 20 items across at least 2 distinct calendar dates
+  (`DRIFT_MIN_ITEMS`/`DRIFT_MIN_DISTINCT_DATES`; "runs" has no tracked column on `intelligence_items`, so
+  distinct `created_at` dates is the literal available proxy, named as a scoped interpretation), it adopts
+  the observed distribution as the new `expected_output` (guarded update) and resolves the flag with the
+  before/after values; below that sample it resolves with "insufficient sample, re-evaluated next run".
+  Never left open either way; the proposer's own drift-proposing loop is unchanged (still opens the flag,
+  never writes `sources`). `retireAnomalyFlag` closes any surviving open item-anomaly flag unconditionally
+  with "advisory retired under the ADR-030 rider"; `propose-classifications.mjs`'s `buildAnomalyFlagRow` and
+  its `--anomalies` detection loop are deleted (the CLI flag is still accepted, parse-compatible, but is now
+  always a no-op).
+- Both families are wired into `apply-classifications.mjs`'s own `--auto-adopt` CLI (reads the source's own
+  items via a new `readSourceItems` dep) and into the MAINT wrapper's `main()` (Phase 2 extended for
+  zero-proposal re-derivation; new Phase 2b/2c for drift/anomaly, reusing the items already loaded for
+  Phase 1's proposing pass, no extra DB read). `summary.counts.family5` reports `drift_open`/
+  `drift_would_adopt`/`drift_resolved`/`anomaly_open`/`anomaly_retired`.
 
 ---
 
