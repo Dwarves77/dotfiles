@@ -272,6 +272,24 @@ export function ownNameForms(tag) {
 // never checked item-by-item. Both leave the list for the same reason packaging does. The remaining six
 // each carry per-tag, item-and-phrase evidence below; "no other change" beyond these four removals plus
 // the required evidence comments and the corpus-fixture test (see tag-yield.fixture.test.mjs) is made.
+//
+// Fix round 2 (review-l13.md, "2026-09-13: Re-review, fix round 1", CONDITIONAL FAIL). The fix-round-1
+// corpus-fixture test enforced a WEAKER rule than the coordinator's own: it required only that a
+// title-level hit on a suppressed tag's bare name derive SOME tag, not the specific suppressed tag the
+// title names. Five real corpus items met that weaker bar while missing the tag their own title is
+// actually about: "The Packaging Waste (Data Reporting) (England) Regulations 2023 (revoked)" and its
+// 2024 amendment (title names topic_tags:reporting, derived only topic_tags:packaging); "The Sulphur
+// Content of Liquid Fuels (England and Wales) (Amendment) Regulations 2014" (title names
+// topic_tags:fuels, derived only emissions/reporting); "The Renewable Transport Fuel Obligations
+// (Amendment) Order 2009" and its 2011 sibling (title names topic_tags:transport, derived only
+// fuels/emissions/reporting). Three curated, title-scoped phrases close all five (see CURATED_SYNONYMS
+// below for the per-tag comment and evidence on each): "data reporting" (topic_tags:reporting), "liquid
+// fuels" (topic_tags:fuels), and "transport fuel" (added to BOTH topic_tags:fuels and
+// topic_tags:transport, per the coordinator's own spec that this phrase derives both tags together).
+// Checked directly against all 178 real corpus titles AND full_brief bodies this fix round: none of the
+// three phrases matches any OTHER fixture item, so no tag needed to leave SUPPRESS_OWN_NAME this round
+// (unlike fix round 1, where packaging/exporter/shipper/distributor did leave it). See
+// tag-yield.fixture.test.mjs for the tightened per-tag version of the corpus-fixture test this closes.
 export const SUPPRESS_OWN_NAME = new Set([
   // apply-tags.test.mjs's D15 re-derivation fixture ("This instrument establishes new CBAM reporting
   // duties for importers.") is written to derive ONLY operational_scenario_tags:CBAM-declaration from
@@ -300,22 +318,23 @@ export const SUPPRESS_OWN_NAME = new Set([
   // "transport" is also the platform's own domain word, appearing incidentally in most freight-adjacent
   // documents (measured: 69/178 items). topic_tags:transport keeps its pre-D21 curated phrases only.
   "topic_tags|transport",
-  // MEASURED (fix round 1): 51 of 52 real bare-"corridor" hits in the snapshot are the SAME platform-
-  // generated GAP note ("No verbatim UN/LOCODE port-pair and mode were located together in the captured
-  // source text for this record-grade item -- corridor identity is only stated when both ends are named
-  // together"), e.g. on "Minor New Source Review Program Air Permitting Public Participation
-  // Requirements" -- boilerplate the mint pipeline itself writes on any record-grade item lacking a
-  // resolved corridor, not real source content. topic_tags:corridors keeps its pre-D21 curated phrases
-  // only.
+  // MEASURED (fix round 1); RE-MEASURED (fix round 2, review-l13.md, 2026-09-13, wide-input method):
+  // bare "corridor" hits 51 of 178 items in the snapshot, 50 of them the SAME platform-generated GAP note
+  // ("No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for
+  // this record-grade item -- corridor identity is only stated when both ends are named together"), e.g.
+  // on "Minor New Source Review Program Air Permitting Public Participation Requirements" -- boilerplate
+  // the mint pipeline itself writes on any record-grade item lacking a resolved corridor, not real source
+  // content. topic_tags:corridors keeps its pre-D21 curated phrases only.
   "topic_tags|corridors",
-  // "research" previously had ZERO keywords (D21's evidenced gap). MEASURED (fix round 1): bare
-  // "research" hits 96 of 178 items (54%) in the snapshot -- e.g. item "Minor New Source Review Program
-  // Air Permitting Public Participation Requirements" carries "...U.S. EPA, Office of State Air
-  // Partnerships, Permitting & Program Support Division, ... Research Triangle Park, NC 27711..." -- an
-  // EPA office's postal address (a place name in North Carolina), zero connection to research-finding
-  // content. CURATED_SYNONYMS gives topic_tags:research the specific two-word phrase "research finding"
-  // instead (system-prompt.ts's own term for this item type), which still satisfies "every vocabulary
-  // tag has at least one keyword" without the bare word's corpus noise.
+  // "research" previously had ZERO keywords (D21's evidenced gap). MEASURED (fix round 1); RE-MEASURED
+  // (fix round 2, review-l13.md, 2026-09-13, wide-input method): bare "research" hits 85 of 178 items
+  // (48%) in the snapshot -- e.g. item "Minor New Source Review Program Air Permitting Public
+  // Participation Requirements" carries "...U.S. EPA, Office of State Air Partnerships, Permitting &
+  // Program Support Division, ... Research Triangle Park, NC 27711..." -- an EPA office's postal address
+  // (a place name in North Carolina), zero connection to research-finding content. CURATED_SYNONYMS gives
+  // topic_tags:research the specific two-word phrase "research finding" instead (system-prompt.ts's own
+  // term for this item type), which still satisfies "every vocabulary tag has at least one keyword"
+  // without the bare word's corpus noise.
   "topic_tags|research",
 ]);
 
@@ -375,13 +394,29 @@ const CURATED_SYNONYMS = {
   // Content) (Amendment) Regulations 2001" carries bare "fuel" in its own title and, pre-fix, derived
   // ZERO tags at all through the full production pipeline -- the same defect class as packaging (D21's
   // own evidenced failure), found while writing the corpus-fixture test below. "motor fuel" is a
-  // specific, corpus-verified phrase (not the noisy bare word) that closes this exact gap.
-  "topic_tags|fuels": ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia", "motor fuel"],
-  // own name "transport" SUPPRESSED (see SUPPRESS_OWN_NAME) -- pre-D21 phrases only.
-  "topic_tags|transport": ["vehicle emission standard", "fleet mandate", "zero emission vehicle"],
+  // specific, corpus-verified phrase (not the noisy bare word) that closes this exact gap. Fix round 2
+  // (review-l13.md, 2026-09-13): "liquid fuels" added -- the exact title phrase on "The Sulphur Content
+  // of Liquid Fuels (England and Wales) (Amendment) Regulations 2014", which previously derived only
+  // emissions/reporting despite its own title naming fuels as the subject; "transport fuel" added -- the
+  // exact title phrase on both "The Renewable Transport Fuel Obligations (Amendment) Order 2009" and its
+  // 2011 sibling (the coordinator's fix-round-2 spec states "transport fuel" derives both fuels and
+  // transport, so this same phrase is also added to topic_tags:transport below). Checked against all 178
+  // real corpus titles and full_brief bodies: both phrases match only their named items, no misfire.
+  "topic_tags|fuels": ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia", "motor fuel", "liquid fuels", "transport fuel"],
+  // own name "transport" SUPPRESSED (see SUPPRESS_OWN_NAME) -- pre-D21 phrases plus "transport fuel"
+  // (fix round 2, review-l13.md, 2026-09-13): the exact title phrase on both "The Renewable Transport
+  // Fuel Obligations (Amendment) Order 2009" and its 2011 sibling, which previously derived only
+  // fuels/emissions/reporting despite their own title naming transport as the subject. Checked against
+  // all 178 real corpus titles and full_brief bodies: matches only these two items, no misfire.
+  "topic_tags|transport": ["vehicle emission standard", "fleet mandate", "zero emission vehicle", "transport fuel"],
   // own name "reporting" SUPPRESSED (see SUPPRESS_OWN_NAME) -- plain inflections still covered, and do
-  // not themselves match the word "reporting" (different word under word-boundary matching).
-  "topic_tags|reporting": ["disclosure framework", "emissions accounting standard", "report", "reports", "reported"],
+  // not themselves match the word "reporting" (different word under word-boundary matching). Fix round 2
+  // (review-l13.md, 2026-09-13): "data reporting" added -- the exact title phrase on "The Packaging
+  // Waste (Data Reporting) (England) Regulations 2023 (revoked)" and its 2024 amendment, both of which
+  // previously derived topic_tags:packaging only despite their own title naming reporting as the
+  // subject. Checked against all 178 real corpus titles and full_brief bodies: matches only these two
+  // items, no misfire.
+  "topic_tags|reporting": ["disclosure framework", "emissions accounting standard", "report", "reports", "reported", "data reporting"],
   // own name "packaging" SUPPRESSED (see SUPPRESS_OWN_NAME) -- plain inflections still covered.
   "topic_tags|packaging": ["PPWR", "circular economy packaging", "package", "packages", "packaged"],
   // own name "corridors" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases only.

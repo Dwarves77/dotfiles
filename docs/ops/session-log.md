@@ -21066,3 +21066,84 @@ paths only staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1
 
 **Not in this entry's scope**: the tag-ratification apply this fix unblocks; every other defect in the
 plan not named D21.
+
+## 2026-09-13, W9 Part 7 lane L13 fix round 2: D21, per-tag title-coverage test and three curated phrases
+
+Per review-l13.md's "2026-09-13: Re-review, fix round 1" entry (CONDITIONAL FAIL) and the coordinator's
+"Fix round 2 for D21" spec. Worktree `wt-finishcode-0911`, branch `lane/w9-l13-tag-keywords-2026-09-13`.
+
+**Finding [CONFIRMED]**: fix round 1's new corpus-fixture test guarded "the item derives SOME tag" where
+the coordinator's rule said "the item derives THE suppressed tag." Five real corpus title-level items
+passed the weaker test while missing the tag their title names: two "The Packaging Waste (Data
+Reporting)..." items (title names `topic_tags:reporting`, derived only `topic_tags:packaging`); "The
+Sulphur Content of Liquid Fuels..." (title names `topic_tags:fuels`, derived only emissions/reporting);
+two "The Renewable Transport Fuel Obligations..." items (title names `topic_tags:transport`, derived only
+fuels/emissions/reporting). Independently re-verified against the live 178-item snapshot before any fix:
+15 real title-level hits across the six remaining `SUPPRESS_OWN_NAME` entries, exactly 5 failing the
+per-tag rule, matching review-l13.md's table.
+
+**Ruling applied (one correction to the round-1 rule, per the coordinator's spec)**: the rule is scoped to
+TITLES. A title carrying a tag's bare name names the item's subject, so the tag must derive; a body-text
+hit is exactly the false-positive population `SUPPRESS_OWN_NAME` exists to guard against, so body text
+stays out of the rule (unchanged from round 1's own scoping choice, now stated as the binding reason
+rather than an assumption).
+
+**Fix (`derive-tags.mjs`, `CURATED_SYNONYMS`)**: three curated, title-scoped phrases, each checked against
+all 178 real corpus titles AND full_brief bodies for a misfire before being added (none found, so no tag
+left `SUPPRESS_OWN_NAME` this round):
+- `"data reporting"` -> `topic_tags:reporting` (closes both Packaging Waste items; matches only them)
+- `"liquid fuels"` -> `topic_tags:fuels` (closes the Sulphur Content item; matches only it)
+- `"transport fuel"` -> BOTH `topic_tags:fuels` AND `topic_tags:transport` (closes both Renewable
+  Transport Fuel Obligations items; the coordinator's spec states this phrase derives both tags together;
+  matches only those two items)
+
+**Test (`tag-yield.fixture.test.mjs`)**: the corpus-fixture test is tightened from "the item derives some
+tag" to, for every `SUPPRESS_OWN_NAME` entry, "every real corpus item whose TITLE carries that tag's bare
+name derives THE SAME TAG through another keyword" -- table-driven over `SUPPRESS_OWN_NAME` and the live
+178-item snapshot, same title-level scoping as round 1. Attack-verified: temporarily removing the "data
+reporting" phrase reproduces exactly the two Packaging Waste failures the test now catches; restored and
+re-confirmed green.
+
+**Evidence-comment corrections (per the coordinator's spec (c))**: `research`'s and `corridors`'
+`SUPPRESS_OWN_NAME` comments stated round-1 figures ("96 of 178", "51 of 52") that this review's
+re-review found did not reproduce under its own measurement (85/178, 51/178 with 50 boilerplate).
+Re-measured directly (wide-input method, matching the review's own): `research` bare-word hits are 85 of
+178 (48%); `corridors` bare-word hits are 51 of 178, 50 of them the same platform GAP-note boilerplate --
+matching the review's re-measured figures exactly. Both comments corrected in place.
+
+**Yield fixture re-measured** (`tag-yield.fixture.test.mjs`'s own documented procedure, per the
+coordinator's requirement that no count may fall): corpus-wide BEFORE 65->67, WIDE 142->143, AFTER
+143->143 (held, not fallen -- every one of the five title-fixed items already carried >=1 tag before this
+round, so AFTER's item-count doesn't change, only which tag(s) each carries). The 10-fixture sample table
+is unchanged row-for-row (none of the five fixed items falls in the sampled set). One comparative
+assertion changed from strict `>` to `>=` (`afterHit >= wideHit`): one of the five items --
+"Renewable Transport Fuel Obligations (Amendment) Order 2009" -- was the population's only item whose sole
+tag came from `deriveAliasTags()` alone; the new "transport fuel" keyword now also derives a tag for it at
+the KEYWORD_MAP/wide stage, tying `wideHit` and `afterHit` at 143. Verified this is not a silent
+alias-vocabulary regression: `deriveAliasTags()`/`ALIAS_MAP` are untouched this round and
+`tag-aliases.test.mjs` (unmodified, out of this round's write set) is still 14/14 green.
+
+**Gates**. `node --test` on `tag-yield.fixture.test.mjs` (6/6), `tag-aliases.test.mjs` (14/14),
+`tag-input.test.mjs` (14/14): all green, 34/34 combined. Also re-run for regression:
+`derive-tags.test.mjs` (26/26), `apply-tags.test.mjs` (66/66), `tag-ratification.test.mjs` (13/13),
+`propose-tags.test.mjs` (30/30) -- 135/135. Full `bash .discipline/run-test-suite.sh` and the full
+preflight (`sh fsi-app/.discipline/hooks/pre-push < /dev/null`, foreground, run once at the end): see the
+lane report's fix-round-2 addendum for the tail and exit code. Glyph check,
+`git diff 1e88b492..HEAD | grep -P '\x{2014}|\x{2013}|\x{00A7}'`: 0.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access. Named
+paths only staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+**Files (this fix round).**
+- `fsi-app/src/lib/connections/derive-tags.mjs` (modified: three curated phrases added; fix-round-2
+  rationale comment added above `SUPPRESS_OWN_NAME`; `research`/`corridors` evidence comments corrected
+  to the re-measured figures)
+- `fsi-app/src/lib/connections/tag-yield.fixture.test.mjs` (modified: `SUPPRESS_OWN_NAME` test tightened
+  to per-tag coverage; corpus-wide counts re-measured; one comparative assertion relaxed from `>` to `>=`
+  with the reason documented inline)
+- `docs/ops/session-log.md` (this entry)
+- `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-l13-report.md` (in the `wt-datechain-0911`
+  worktree, per the coordinator's report path: "Fix round 2" addendum appended)
+
+**Not in this entry's scope**: `docs/runbooks/MAINTENANCE-RUNBOOK.md` (not in this round's write set,
+untouched); the tag-ratification apply this fix unblocks; every other defect in the plan not named D21.
