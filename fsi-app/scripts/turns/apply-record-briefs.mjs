@@ -69,7 +69,7 @@
 //   2 no DB creds.
 
 import { parseArgs as nodeParseArgs } from "node:util";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 // @supabase/supabase-js is loaded lazily inside main() (see there): a top-level import made this
@@ -183,6 +183,66 @@ export function parseArgs(argv) {
     allowBriefOverwrite: values["allow-brief-overwrite"] === true,
     harnessRunsDir: values["harness-runs-dir"] || null,
   };
+}
+
+// ── D27 (defect-fix-plan-2026-09-12.md, W9 lane L18): a --briefs path that does not resolve to an
+// existing file, or that resolves to a file parsing to ZERO entries, must be a fatal, named refusal
+// BEFORE any DB client is built - in both dry and apply mode. Evidence: batch 003 was dispatched with a
+// briefs_file value that did not resolve from the workflow's own working directory (fsi-app), so the
+// driver read zero entries, planned zero items, and both the dry and the apply run completed GREEN with
+// nothing written - the failure was found only by reading the run artifact after the fact. This function
+// is PURE (fs access is injected via `deps`, the same injected-fake pattern this module already uses for
+// `sb`/`deps` elsewhere), so the refusal is unit-tested directly without a subprocess.
+/**
+ * Resolve and read a --briefs file, refusing (never guessing) when the path does not exist or the file
+ * parses to zero entries. Every refusal message names BOTH the path as given on the command line AND the
+ * fully resolved absolute path, so a workflow-relative-path mistake (the D27 evidence: a value that only
+ * resolves from the repo root, dispatched from a workflow whose working-directory is fsi-app) is
+ * diagnosable from the message alone, with no need to re-derive what the driver actually looked at.
+ * @param {string} briefsPathGiven the raw --briefs value, exactly as passed on the command line
+ * @param {{existsFn?: (p: string) => boolean, readFileFn?: (p: string, enc: string) => string}} [deps]
+ * @returns {{ok: true, resolvedPath: string, raw: object, entries: object[]} | {ok: false, error: string, resolvedPath: string}}
+ */
+export function resolveBriefsInput(briefsPathGiven, deps = {}) {
+  const existsFn = deps.existsFn ?? existsSync;
+  const readFileFn = deps.readFileFn ?? readFileSync;
+  const resolvedPath = resolve(briefsPathGiven);
+
+  if (!existsFn(resolvedPath)) {
+    return {
+      ok: false,
+      resolvedPath,
+      error:
+        `--briefs file does not exist. Path as given: ${JSON.stringify(briefsPathGiven)} ; resolved ` +
+        `absolute path: ${resolvedPath}`,
+    };
+  }
+
+  let raw;
+  try {
+    raw = JSON.parse(readFileFn(resolvedPath, "utf8"));
+  } catch (err) {
+    return {
+      ok: false,
+      resolvedPath,
+      error:
+        `failed to read/parse --briefs. Path as given: ${JSON.stringify(briefsPathGiven)} ; resolved ` +
+        `absolute path: ${resolvedPath} ; ${err.message}`,
+    };
+  }
+
+  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  if (entries.length === 0) {
+    return {
+      ok: false,
+      resolvedPath,
+      error:
+        `--briefs file parses to ZERO entries - refusing (an empty file would silently apply nothing). ` +
+        `Path as given: ${JSON.stringify(briefsPathGiven)} ; resolved absolute path: ${resolvedPath}`,
+    };
+  }
+
+  return { ok: true, resolvedPath, raw, entries };
 }
 
 // ── the ordered per-item step plan (pure, no I/O) ───────────────────────────────────────────────────────
@@ -531,22 +591,25 @@ async function main() {
   try {
     runId = claimRunId(runsDir, "brief-apply");
 
-    let raw;
-    try {
-      raw = JSON.parse(readFileSync(resolve(parsed.briefs), "utf8"));
-    } catch (err) {
-      throw new Error(`failed to read/parse --briefs: ${err.message}`);
+    // D27: refuse a missing/unresolvable path or a zero-entry file HERE, before rawItemIds/sb are ever
+    // computed - the same posture in both dry and apply mode, since parsed.execute has not been branched
+    // on yet at this point in the function.
+    const resolvedInput = resolveBriefsInput(parsed.briefs);
+    if (!resolvedInput.ok) {
+      throw new Error(resolvedInput.error);
     }
+    const raw = resolvedInput.raw;
 
-    const rawItemIds = Array.isArray(raw?.entries)
-      ? [...new Set(raw.entries.map((e) => e?.item_id).filter((id) => typeof id === "string"))]
-      : [];
+    const rawItemIds = [...new Set(resolvedInput.entries.map((e) => e?.item_id).filter((id) => typeof id === "string"))];
 
     // The client is built only when the file names at least one item (lazy: see the import note above).
-    // A file with no entries needs no database at all: its refusal, and the artifact that records it, are
-    // proven by the no-npm discipline job where @supabase/supabase-js is not installed (the PR #640 red).
-    // Every later use of `sb` (buildPoolContext's reads, applyOneEntry) is reached only through an entry
-    // that carries an item_id, so `sb` is never null where it is used.
+    // resolveBriefsInput (D27) already refused a zero-entry file above, before this line is ever reached;
+    // rawItemIds can still be empty here only when every entry lacks a string item_id, itself a
+    // validateRecordBriefsFile refusal a few lines down - so this branch stays defensive, not the primary
+    // no-DB-needed path. The no-npm discipline job (where @supabase/supabase-js is not installed, PR #640)
+    // still proves this lazy-import path never runs when it need not. Every later use of `sb`
+    // (buildPoolContext's reads, applyOneEntry) is reached only through an entry that carries an item_id,
+    // so `sb` is never null where it is used.
     let sb = null;
     if (rawItemIds.length > 0) {
       const { createClient } = await import("@supabase/supabase-js");

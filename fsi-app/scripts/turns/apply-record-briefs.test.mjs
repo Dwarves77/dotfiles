@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   parseArgs,
@@ -21,6 +21,7 @@ import {
   ENTITIES_MODULE_NOT_PRESENT,
   DEFAULT_HARNESS_RUNS_DIR,
   importLinkItemEntities,
+  resolveBriefsInput,
 } from "./apply-record-briefs.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
@@ -89,6 +90,119 @@ test("parseArgs: --help short-circuits without requiring --briefs", () => {
 test("parseArgs: an unknown flag is a hard error (strict:true)", () => {
   const r = parseArgs(["--briefs", "x.json", "--bogus"]);
   assert.equal(r.ok, false);
+});
+
+// ── resolveBriefsInput (D27, defect-fix-plan-2026-09-12.md, W9 lane L18) ───────────────────────────────
+// The batch-003 defect: a --briefs path that did not resolve from the driver's own cwd parsed to zero
+// entries and both the dry and the apply run completed GREEN with nothing written. These three cases are
+// the exact ones the brief names: missing path refused, empty entries refused, a real fixture proceeds.
+
+function briefsTmpDir() {
+  return mkdtempSync(join(tmpdir(), "resolve-briefs-input-test-"));
+}
+
+test("resolveBriefsInput: a path that does not resolve to an existing file is refused, naming BOTH the given path and the resolved absolute path", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "does-not-exist.json");
+    const r = resolveBriefsInput(givenPath);
+    assert.equal(r.ok, false);
+    assert.match(r.error, /does not exist/);
+    assert.ok(r.error.includes(givenPath), "error must include the path as given");
+    assert.ok(r.error.includes(r.resolvedPath), "error must include the resolved absolute path");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: a file that parses to zero entries is refused, naming BOTH the given path and the resolved absolute path", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "empty-entries.json");
+    writeFileSync(givenPath, JSON.stringify({ batch: "b1", generated_at: new Date().toISOString(), entries: [] }));
+    const r = resolveBriefsInput(givenPath);
+    assert.equal(r.ok, false);
+    assert.match(r.error, /ZERO entries/);
+    assert.ok(r.error.includes(givenPath));
+    assert.ok(r.error.includes(r.resolvedPath));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: a file whose entries key is absent entirely is also refused as zero entries (never guesses a non-array into an entry count)", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "no-entries-key.json");
+    writeFileSync(givenPath, JSON.stringify({ batch: "b1", generated_at: new Date().toISOString() }));
+    const r = resolveBriefsInput(givenPath);
+    assert.equal(r.ok, false);
+    assert.match(r.error, /ZERO entries/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: a real fixture path with at least one entry proceeds (ok:true, entries carried through)", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "record-briefs-fixture.json");
+    const entries = [{ item_id: "11111111-1111-1111-1111-111111111111", source_pool_hash: "h", body: "b", metadata: {}, claims: [] }];
+    writeFileSync(givenPath, JSON.stringify({ batch: "b1", generated_at: new Date().toISOString(), entries }));
+    const r = resolveBriefsInput(givenPath);
+    assert.equal(r.ok, true);
+    assert.equal(r.entries.length, 1);
+    assert.equal(r.entries[0].item_id, entries[0].item_id);
+    assert.equal(r.resolvedPath, resolve(givenPath));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: a malformed (non-JSON) file is refused with both paths named, distinct from the zero-entries message", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "not-json.json");
+    writeFileSync(givenPath, "{ this is not valid json");
+    const r = resolveBriefsInput(givenPath);
+    assert.equal(r.ok, false);
+    assert.match(r.error, /failed to read\/parse/);
+    assert.ok(r.error.includes(givenPath));
+    assert.ok(r.error.includes(r.resolvedPath));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: CLI end-to-end - a missing --briefs path exits 1 and prints both paths, before any DB client is built (dry mode, the default)", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "missing.json");
+    const harnessRunsDir = join(dir, "harness-runs", "brief-apply");
+    const res = run(["--briefs", givenPath, "--harness-runs-dir", harnessRunsDir]);
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /does not exist/);
+    assert.ok(res.stderr.includes(givenPath));
+    assert.ok(res.stderr.includes(resolve(givenPath)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveBriefsInput: CLI end-to-end - a zero-entry --briefs file exits 1 and prints both paths, in apply mode too", () => {
+  const dir = briefsTmpDir();
+  try {
+    const givenPath = join(dir, "empty.json");
+    writeFileSync(givenPath, JSON.stringify({ batch: "b1", generated_at: new Date().toISOString(), entries: [] }));
+    const harnessRunsDir = join(dir, "harness-runs", "brief-apply");
+    const res = run(["--briefs", givenPath, "--execute", "--harness-runs-dir", harnessRunsDir]);
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /ZERO entries/);
+    assert.ok(res.stderr.includes(givenPath));
+    assert.ok(res.stderr.includes(resolve(givenPath)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // ── APPLY_STEP_ORDER - the per-item outcome vocabulary's own step namespace ─────────────────────────────
@@ -328,9 +442,16 @@ test("CLI: artifact written on a VALIDATION REFUSAL - a well-formed but schema-i
   const dir = tmpDir();
   try {
     const briefsPath = join(dir, "briefs.json");
-    // Structurally an object, but `entries` is missing entirely - a validateRecordBriefsFile refusal, not
-    // a JSON.parse failure, exercising the OTHER throw site inside the same try block.
-    writeFileSync(briefsPath, JSON.stringify({ batch: "b1", generated_at: new Date().toISOString() }));
+    // Structurally an object with ONE (invalid) entry - a validateRecordBriefsFile refusal, not a
+    // JSON.parse failure, exercising the OTHER throw site inside the same try block. A missing/empty
+    // `entries` array is no longer usable as this fixture (D27, W9 lane L18): resolveBriefsInput now
+    // refuses a zero-entry file BEFORE validateRecordBriefsFile ever runs, so this fixture carries a
+    // non-empty entries array whose one entry is itself malformed (no item_id) - covered on its own terms
+    // by the resolveBriefsInput tests above.
+    writeFileSync(
+      briefsPath,
+      JSON.stringify({ batch: "b1", generated_at: new Date().toISOString(), entries: [{}] }),
+    );
     const harnessRunsDir = join(dir, "harness-runs", "brief-apply");
 
     const res = run(["--briefs", briefsPath, "--harness-runs-dir", harnessRunsDir]);
