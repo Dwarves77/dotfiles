@@ -13,11 +13,12 @@
 //
 //   --classify   Axis 3/4/5 field proposals for one source with an unset field (classify-source.mjs).
 //                subject_type 'source'. The ONLY subtype apply-classifications.mjs's ratify/auto-adopt
-//                paths ever apply, and even then only its APPLICABLE_FIELDS (scope_topics/scope_modes/
-//                scope_verticals/expected_output); a jurisdiction proposal in the same flag is
-//                advisory-only, by construction (classify-source.mjs's header explains why
-//                sources.jurisdictions has no safe write target today). A ZERO-proposal finding (D17
-//                family 4, defect-fix-plan-2026-09-12) no longer opens a flag asking a human -- it is
+//                paths ever apply, and even then only its APPLICABLE_FIELDS (jurisdiction_iso/
+//                scope_topics/scope_modes/scope_verticals/expected_output) -- jurisdiction_iso joined
+//                this list D9, lane L14, 2026-09-13 (migration 033 gives Axis 3 a safe, ISO-shaped home;
+//                see classify-source.mjs's header). The legacy `sources.jurisdictions` region-bucket
+//                column is never proposed or written by this path, by construction. A ZERO-proposal
+//                finding (D17 family 4, defect-fix-plan-2026-09-12) no longer opens a flag asking a human -- it is
 //                recorded as an ALREADY-RESOLVED row (buildClassificationFlagRow, "no candidate value was
 //                derivable" branch), since apply-classifications.mjs's decider now re-derives from the
 //                SC-13 class table + the source's observed output for the true residue.
@@ -45,13 +46,13 @@
 // the `confidence` field (classify-source.mjs's own shape) that decision needs. What changed is what
 // happens to that flag AFTER this script writes it: apply-classifications.mjs's `--auto-adopt` mode now
 // evaluates OPEN `--classify` flags directly (no `ratify:classification` marker required) and writes the
-// scope_modes/scope_verticals proposals whose confidence is "high", and the expected_output proposal
-// always (a closed role->default lookup, not a judgment call) — resolving the flag once nothing
-// APPLICABLE remains unresolved. scope_topics proposals (always "medium" by this script's own design —
-// see classifyScopeTopics's "regular and material coverage needs operator confirmation" comment) and
-// jurisdiction proposals (never applicable — no safe write target, see classify-source.mjs) stay
-// review-only exactly as before, so a flag carrying only those never auto-adopts and keeps needing the
-// ratify marker this script's `recommended_actions` already point to.
+// scope_modes/scope_verticals/jurisdiction_iso proposals whose confidence is "high" (jurisdiction_iso
+// additionally declines a value outside vocab.mjs's shape, regardless of confidence -- D9, lane L14,
+// 2026-09-13), and the expected_output proposal always (a closed role->default lookup, not a judgment
+// call), resolving the flag once nothing APPLICABLE remains unresolved. scope_topics proposals (always
+// "medium" by this script's own design, see classifyScopeTopics's "regular and material coverage needs
+// operator confirmation" comment) stay review-only exactly as before, so a flag carrying only that never
+// auto-adopts and keeps needing the ratify marker this script's `recommended_actions` already point to.
 //
 // EXACT-MATCH DEDUP, NOT A PREFIX SCAN (deliberate deviation from propose-tags.mjs's TAG_NAMESPACE
 // `.like(ns + '%')` scan, named here because it is the one place this script's design differs from its
@@ -188,9 +189,11 @@ export function buildClassificationFlagRow(source, computed) {
     recommended_actions.push(`If correct, resolve this flag with resolution_note containing the token "ratify:classification", then run: ${CLASSIFY_APPLY_COMMAND}`);
   }
   if (advisory.length) {
+    // As of D9 (lane L14, 2026-09-13) every APPLICABLE_FIELDS axis, including jurisdiction_iso, has a
+    // safe write target, so this branch is not expected to fire for the current axis set; kept generic
+    // for any future axis that genuinely has no column of its own yet.
     recommended_actions.push(
-      "Advisory-only proposal(s) (e.g. jurisdiction) have no safe apply target -- apply-classifications.mjs will never write them. " +
-      "Assign sources.jurisdictions manually (its live vocabulary is region buckets, not ISO codes -- see classify-source.mjs's header) or via an ADR-ruled new column.",
+      "Advisory-only proposal(s) have no safe apply target -- apply-classifications.mjs will never write them. Assign the field manually or via an ADR-ruled new column.",
     );
   }
 
@@ -318,7 +321,9 @@ async function runSubtype(createdByValue, freshList, { anyStatus = false } = {})
   }
 }
 
-const SOURCE_SIG = "id, name, url, source_role, secondary_roles, status, jurisdictions, scope_topics, scope_modes, scope_verticals, expected_output";
+// jurisdiction_iso added (D9, lane L14, 2026-09-13) alongside the legacy jurisdictions column (kept for
+// any other reader of this select list; classify-source.mjs itself only ever reads jurisdiction_iso).
+const SOURCE_SIG = "id, name, url, source_role, secondary_roles, status, jurisdictions, jurisdiction_iso, scope_topics, scope_modes, scope_verticals, expected_output";
 const sources = await readAll("sources", SOURCE_SIG, { match: (q) => q.eq("status", "active") });
 console.log(`propose-classifications: ${sources.length} active source(s) loaded.`);
 

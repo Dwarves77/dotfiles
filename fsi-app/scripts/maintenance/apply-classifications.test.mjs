@@ -249,9 +249,9 @@ test("dry: sources with no derivable name/role signal are proposed as zero-deriv
   const r = await main({ mode: "dry" }, d);
   assert.ok(r.counts.propose.classify_no_derivable, "a classify_no_derivable bucket must exist in the summary");
   // Both fixture sources end up zero-derivation here: UNCLASSIFIED_SOURCE has no name/role signal at
-  // all, and CLASSIFIED_SOURCE's only gap (jurisdictions -- absent from the fixture) has no derivable
-  // value either (classifySourceJurisdiction finds nothing from a bare example.com host) -- neither
-  // produces a normal open proposal.
+  // all, and CLASSIFIED_SOURCE's only gap (jurisdiction_iso -- absent from the fixture) has no
+  // derivable value either (classifySourceJurisdiction finds nothing from a bare example.com host) --
+  // neither produces a normal open proposal.
   assert.equal(r.counts.propose.classify_no_derivable.plan.new, 2);
   assert.equal(r.counts.propose.classify.plan.new, 0, "nothing derives a normal open proposal in this fixture");
 });

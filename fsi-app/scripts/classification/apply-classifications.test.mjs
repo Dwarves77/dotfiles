@@ -183,6 +183,24 @@ test("buildMergePatch: a jurisdictions proposal (should never reach here from ev
   assert.deepEqual(patch, {});
 });
 
+// ── D9, lane L14, 2026-09-13: jurisdiction_iso is an ARRAY_FIELDS member (merge, never overwrite) ───
+
+test("buildMergePatch: jurisdiction_iso merges -- preserves an existing value and appends a novel one", () => {
+  const current = { jurisdiction_iso: ["GB"] };
+  const proposals = [{ field: "jurisdiction_iso", value: ["FR"] }];
+  const { patch, applied } = buildMergePatch(current, proposals);
+  assert.deepEqual(patch.jurisdiction_iso, ["GB", "FR"]);
+  assert.deepEqual(applied.jurisdiction_iso, ["FR"]);
+});
+
+test("buildMergePatch: jurisdiction_iso -- a duplicate proposed value is a no-op, reported as skipped", () => {
+  const current = { jurisdiction_iso: ["GB"] };
+  const proposals = [{ field: "jurisdiction_iso", value: ["GB"] }];
+  const { patch, skipped } = buildMergePatch(current, proposals);
+  assert.equal(patch.jurisdiction_iso, undefined);
+  assert.match(skipped.jurisdiction_iso, /already present/);
+});
+
 test("buildMergePatch: zero proposals -> empty patch", () => {
   assert.deepEqual(buildMergePatch({}, []).patch, {});
 });
@@ -260,9 +278,15 @@ test("isAutoAdoptableProposal: scope_topics NEVER auto-adopts, at any confidence
   assert.equal(isAutoAdoptableProposal({ field: "scope_topics", confidence: "medium" }), false);
 });
 
-test("isAutoAdoptableProposal: jurisdictions never auto-adopts (not in AUTO_ADOPT_FIELDS)", () => {
+test("isAutoAdoptableProposal: the legacy jurisdictions column never auto-adopts (not in AUTO_ADOPT_FIELDS)", () => {
   assert.equal(isAutoAdoptableProposal({ field: "jurisdictions", confidence: "high" }), false);
   assert.ok(!AUTO_ADOPT_FIELDS.includes("jurisdictions"));
+});
+
+test("isAutoAdoptableProposal: jurisdiction_iso auto-adopts only at 'high' confidence (D9, lane L14, 2026-09-13 -- the scope_modes rule)", () => {
+  assert.ok(AUTO_ADOPT_FIELDS.includes("jurisdiction_iso"));
+  assert.equal(isAutoAdoptableProposal({ field: "jurisdiction_iso", confidence: "high" }), true);
+  assert.equal(isAutoAdoptableProposal({ field: "jurisdiction_iso", confidence: "medium" }), false);
 });
 
 test("isAutoAdoptableProposal: malformed input never throws", () => {
@@ -351,10 +375,36 @@ test("decideClassificationProposal: scope_modes/scope_verticals adopt only at hi
   assert.match(medium.reason, /does not meet the decisive 'high' bar/);
 });
 
-test("decideClassificationProposal: jurisdictions ALWAYS declines (no safe write target -- architectural gate, not evidence-based)", () => {
+test("decideClassificationProposal: the legacy jurisdictions column has no decision rule (never proposed by classify-source.mjs, so this is unreachable in practice)", () => {
   const r = decideClassificationProposal({ field: "jurisdictions", value: ["GB"], confidence: "high" }, {});
   assert.equal(r.decision, "decline");
-  assert.match(r.reason, /no safe write target/);
+  assert.match(r.reason, /has no decision rule/);
+});
+
+// ── D9, lane L14, 2026-09-13: jurisdiction_iso adopts into migration 033's column ───────────────────
+
+test("decideClassificationProposal: jurisdiction_iso adopts at high confidence with a vocab-valid value", () => {
+  const r = decideClassificationProposal({ field: "jurisdiction_iso", value: ["GB"], confidence: "high" }, {});
+  assert.equal(r.decision, "adopt");
+  assert.match(r.reason, /decisive host-identity match/);
+});
+
+test("decideClassificationProposal: jurisdiction_iso declines at medium confidence, same rule as scope_modes/scope_verticals", () => {
+  const r = decideClassificationProposal({ field: "jurisdiction_iso", value: ["GB"], confidence: "medium" }, {});
+  assert.equal(r.decision, "decline");
+  assert.match(r.reason, /does not meet the decisive 'high' bar/);
+});
+
+test("decideClassificationProposal: jurisdiction_iso declines a value outside vocab.mjs's shape, regardless of confidence", () => {
+  const r = decideClassificationProposal({ field: "jurisdiction_iso", value: ["not-a-code"], confidence: "high" }, {});
+  assert.equal(r.decision, "decline");
+  assert.equal(r.reason, "jurisdiction_iso value not-a-code is not in the framework vocabulary.");
+});
+
+test("decideClassificationProposal: jurisdiction_iso vocab check runs before the confidence check (an invalid value at medium confidence still names the vocab reason)", () => {
+  const r = decideClassificationProposal({ field: "jurisdiction_iso", value: ["zzz"], confidence: "medium" }, {});
+  assert.equal(r.decision, "decline");
+  assert.match(r.reason, /not in the framework vocabulary/);
 });
 
 test("decideScopeTopicsProposal: adopts a topic whose keyword still matches the source's own name", () => {
@@ -493,7 +543,7 @@ test("autoAdoptClassification: a scope_topics-only flag with no re-confirmable e
   assert.equal(deps.resolveCalls.length, 1);
 });
 
-test("autoAdoptClassification: a jurisdiction-only flag DECLINES (no safe write target) and still resolves", async () => {
+test("autoAdoptClassification: a legacy jurisdictions-field-only flag DECLINES (no decision rule for that field) and still resolves", async () => {
   const proposals = [{ field: "jurisdictions", value: ["GB"], confidence: "high", basis: "x", applicable: false }];
   const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
   const deps = fakeAutoDeps({ flag, source: { id: "source-1" } });
@@ -502,7 +552,43 @@ test("autoAdoptClassification: a jurisdiction-only flag DECLINES (no safe write 
   assert.equal(r.written, false);
   assert.equal(r.resolved, true);
   assert.equal(r.decisions[0].decision, "decline");
-  assert.match(r.decisions[0].reason, /no safe write target/);
+  assert.match(r.decisions[0].reason, /has no decision rule/);
+});
+
+// ── D9, lane L14, 2026-09-13: a jurisdiction_iso-only flag now ADOPTS at high confidence ────────────
+
+test("autoAdoptClassification: a high-confidence jurisdiction_iso-only flag ADOPTS, writes the patch, and resolves", async () => {
+  const proposals = [{ field: "jurisdiction_iso", value: ["GB"], confidence: "high", basis: "x", applicable: true }];
+  const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1", jurisdiction_iso: [] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, true);
+  assert.equal(r.resolved, true);
+  assert.deepEqual(deps.updateCalls[0].patch.jurisdiction_iso, ["GB"]);
+  assert.equal(r.decisions[0].decision, "adopt");
+});
+
+test("autoAdoptClassification: a medium-confidence jurisdiction_iso-only flag is NOT auto-adopted, but decides (declines) and closes -- still ratifiable through the ratified path", async () => {
+  const proposals = [{ field: "jurisdiction_iso", value: ["GB"], confidence: "medium", basis: "x", applicable: true }];
+  const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1", jurisdiction_iso: [] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.written, false, "medium confidence never auto-adopts (isAutoAdoptableProposal / decideClassificationProposal agree)");
+  assert.equal(r.decisions[0].decision, "decline");
+  // The RATIFIED path (evaluateApplication/applyClassification) is a SEPARATE, confidence-blind gate:
+  // once an operator ratifies the SAME proposal (resolution_note carries ratify:classification), it
+  // writes regardless of confidence -- proving the medium-confidence proposal is not stuck, just not
+  // auto-adopted.
+  const ratifiedFlag = {
+    id: "flag-2", created_by: CLASSIFY_CREATED_BY, status: "resolved", resolved_by: "operator-1",
+    resolution_note: "ratify:classification", subject_ref: "source-1",
+    description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}`,
+  };
+  const ratifyDeps = fakeDeps({ flag: ratifiedFlag, source: { id: "source-1", jurisdiction_iso: [] } });
+  const ratified = await applyClassification(ratifyDeps, "flag-2", { execute: true });
+  assert.equal(ratified.status, "applied");
+  assert.deepEqual(ratifyDeps.calls[0].patch.jurisdiction_iso, ["GB"]);
 });
 
 // ── INVARIANT: no residue stays open ────────────────────────────────────────────────────────────
@@ -512,7 +598,9 @@ test("INVARIANT: autoAdoptClassification always resolves a decidable flag (never
     [{ field: "scope_modes", value: ["ocean"], confidence: "high" }],
     [{ field: "scope_modes", value: ["ocean"], confidence: "medium" }],
     [{ field: "scope_topics", value: ["environmental"], confidence: "medium" }],
-    [{ field: "jurisdictions", value: ["GB"], confidence: "high" }],
+    [{ field: "jurisdictions", value: ["GB"], confidence: "high" }], // legacy field, no decision rule
+    [{ field: "jurisdiction_iso", value: ["GB"], confidence: "high" }],
+    [{ field: "jurisdiction_iso", value: ["not-a-code"], confidence: "high" }], // vocab-invalid
     [{ field: "expected_output", value: { regulations: 1 }, confidence: "medium" }],
   ];
   for (const proposals of cases) {

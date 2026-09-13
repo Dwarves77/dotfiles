@@ -88,10 +88,13 @@ test("buildNoDerivableClassificationFlagRow: born already-resolved, distinct sub
 });
 
 test("buildClassificationFlagRow: PROPOSALS_JSON round-trips the exact proposals array, including advisory-only entries", () => {
+  // "some_future_axis" stands in for a hypothetical axis with no safe write target yet -- as of D9
+  // (lane L14, 2026-09-13) every current APPLICABLE_FIELDS axis, jurisdiction_iso included, IS
+  // applicable, so this is no longer jurisdiction's own example (see classify-source.mjs's header).
   const source = { id: "src-3" };
   const proposals = [
     { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
-    { field: "jurisdictions", value: ["GB"], confidence: "high", basis: "y", applicable: false },
+    { field: "some_future_axis", value: ["x"], confidence: "high", basis: "y", applicable: false },
   ];
   const row = buildClassificationFlagRow(source, { proposals });
   const m = /PROPOSALS_JSON: (\[.*\])$/s.exec(row.description);
@@ -101,7 +104,7 @@ test("buildClassificationFlagRow: PROPOSALS_JSON round-trips the exact proposals
 
 test("buildClassificationFlagRow: an advisory-only-proposal flag explains why apply-classifications.mjs will never write it, with no --execute apply command offered", () => {
   const source = { id: "src-4" };
-  const proposals = [{ field: "jurisdictions", value: ["GB"], confidence: "high", basis: "x", applicable: false }];
+  const proposals = [{ field: "some_future_axis", value: ["x"], confidence: "high", basis: "x", applicable: false }];
   const row = buildClassificationFlagRow(source, { proposals });
   assert.ok(row.recommended_actions.some((a) => a.includes("no safe apply target")));
   assert.ok(!row.recommended_actions.some((a) => a.includes("--execute")), "no runnable apply command should be offered when nothing is applicable");
