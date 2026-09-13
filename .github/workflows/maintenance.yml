@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -1084,6 +1084,30 @@ jobs:
             "${{ github.run_id }}" \
             "docs/inventories/db-check-constraints.json" \
             "schema-vocabulary-inventory"
+
+      - name: capture-static-primaries
+        # D25, defect-fix-plan-2026-09-12.md (lane L16, 2026-09-13). 131 live verified brief-grade
+        # regulation-family items have a source_url but no stored source capture (agent_run_searches row
+        # over 200 chars) -- 130 on eur-lex.europa.eu, 1 on www.legislation.gov.uk. Operator rulings
+        # verbatim, 2026-09-13: "You do NOT need browserless. Use the browser to look for free." / "We are
+        # NOT spending money on populating the site." This step fetches each selected item's source_url
+        # through src/lib/sources/transport-runtime.mjs's escalation ladder with ONLY a direct-HTTP
+        # transport and renderAllowed:false, so Browserless is structurally unreachable from this step's
+        # own call graph (not merely unconfigured) -- see the script's own header for the coordinator
+        # correction that replaced the original plan's new-transport-in-canonical-fetch.mjs design with
+        # this reuse of the already-live free-transport-first ladder. A response under 200 chars, a
+        # non-2xx status, or a Cloudflare/CAPTCHA/"Just a moment" interstitial is a roadblock (the ladder's
+        # own tested classifier, not a re-implementation here): no row is written, the item is listed with
+        # its reason, and the run writes AT MOST ONE integrity_flags row summarising every roadblocked item
+        # (never one per item). Idempotent: an item already carrying a pool row over 200 chars is skipped
+        # every run. Respects SCRAPE_HOLD (fetch-hold.mjs): while engaged, nothing is fetched or written.
+        # `arg` optionally scopes to `ids:<uuid,uuid,...>` (still filtered to a STATIC_TEXT_HOSTS host);
+        # blank runs the unscoped selection. Not ruling-gated; apply needs no --arg beyond an optional id
+        # scope.
+        if: env.RUN_STEP == 'capture-static-primaries' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/capture-static-primaries"
+          node scripts/maintenance/capture-static-primaries.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/capture-static-primaries"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
