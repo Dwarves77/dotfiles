@@ -5,6 +5,75 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-13, W9 coordinator session close (/done): defect plan D21 to D30, batch 003 applied, all lanes PAUSED
+
+Coordinator (Fable) entry for the 2026-09-12/13 session on the W9 brief chain. Written at 05:05 EDT
+2026-09-13 with every lane paused on the operator's "Pause all items" and a GitHub hold until 06:52 EDT.
+Ledger: `.superpowers/sdd/brief-chain-build-plan-2026-09-11/progress.md` (wt-datechain-0911). Plan:
+`docs/plans/defect-fix-plan-2026-09-12.md`, branch `plan/defect-fix-2026-09-12` (local commits ahead of
+the pushed c082d15a; PR not yet opened because GitHub GraphQL returned 502s).
+
+**Accomplished.**
+- Merged: #665 (plan increment 7), #666 (plan 8), #667 (L11b), #668 (L13, D21 tag yield). L6 PR #669 is
+  open but DIRTY (needs a union rebase of the session log).
+- Applied to the corpus: resolve-refetch-holds (8 holds, 15 claims superseded), timeline-backfill (82),
+  close-flags-for-verified-items (24), record-briefs batch 003 (run 34747318946: 4a108d70 verified;
+  87ed781c, bec305e1, fabda0e7 quarantined; 120529b8 generated=false). The batch apply also ran
+  apply-tags/tag-proposals and analyze-corpus: open `integrity_flags` 4,697 to 2,468 (1,266 empty-signature
+  and 2,335 shared_title_entity resolved). Remaining bulk: 1,287 `flywheel-axis:source-classification`.
+- Briefs authored (free path, 10 parallel Sonnet authors, validator green): batch 004 (49 entries,
+  wt-part3, commit 17b2056f) and batch 005 (26 entries, wt-renorm, commit c1644169), both unpushed.
+- Plan grew D21 fix round 2, D9 correction, D22, D10 addendum, D23 (regenerated briefs invisible on the
+  dashboard: changelog record, migration 319 feed union, revalidate after apply, Updated chip, migration
+  320 backfill), D24 (mobile drawer hides Admin: 100dvh), D25 (131 zero-capture briefs: reuse the direct
+  transport, capture-static-primaries), D26 (candidate drain: record-only intake, apply armed only on a
+  session verdict file, free verdict fleet, dwell invariant, no-empty-runs), D27 (apply driver planned zero
+  entries silently on an fsi-app-prefixed path), D28 (per-lane `docs/ops/session-log.d/` files), D29
+  (overwrite kept the prior ledger: replaceLedger archives absent prior claims to claim_versions),
+  D30 (no synthesis cap on injected-ledger ground; numeric mirror in the validator).
+- Lanes at PASS awaiting push: L18 (D27/D28, wt-part1, 4 commits), L12 (wt-searchkeys), L9c
+  (wt-brieffields), L14 (wt-eudecision). L15 (wt-facetfix, 8 commits) review interrupted. L16 (wt-adr029)
+  fix round 1 incomplete with one new C1: the capture-static-primaries writes to `agent_run_searches` and
+  `integrity_flags` must be registered in `docs/inventories/shared-dataset-ownership.md`. L17 (D26) and L19
+  (D29/D30) interrupted mid-edit; check `git status` in wt-hashsep and wt-finishcode before resuming.
+
+**Decisions and rulings (operator, this session).**
+- Standing rule added to the plan (section 5): every defect closes with a MECHANICAL guard and tests; a
+  lane without it is CONDITIONAL FAIL. "Fix them all."
+- Lanes never run the pre-push hook themselves (four implementers stalled on it); they run unit tests,
+  tsc, the memory gate and the glyph check, then report. The coordinator runs the hook once at push,
+  serially, and a push chain stops on any rebase conflict.
+- No exploratory workflow dispatches; state questions are answered with SELECT-only SQL and file reads.
+  Two chained ledger-consume plan runs spawned by an exploratory sweep were cancelled (no spend).
+- Everything free: no LLM or API calls in runtimes, no crons, no Browserless. The record-briefs author
+  path (export, Sonnet authors, validator, brief-apply) is the population lane.
+- The 53,718 `portal_link_candidates` rejections of 2026-09-06 were audited twice and stand.
+- Status messages per notification stop ("Don't waste tokens"); no "privately" phrasing.
+
+**Blockers and open questions.**
+- GitHub hold until 06:52 EDT 2026-09-13 and "Pause all items"; resume only on operator go.
+- Operator owes repo secrets APP_URL and WORKER_SECRET (D23c revalidate after apply, lane L15).
+- Migration 318 (L6 cleanup, expect 2 rows) applies after L6 merges; 319 before L15 merges, 320 after.
+- Batch 005 apply waits on L19 (D29/D30) so overwrite does not keep the prior ledger.
+- GitHub GraphQL 502s blocked PR creation for the plan branch and the ready lanes.
+
+**Next steps (in order, on resume).**
+1. Read the ledger tail and the memory PAUSED section; `git status` in wt-adr029, wt-hashsep,
+   wt-finishcode, wt-facetfix.
+2. Serial pushes with the conflict-stopping chain: batch 004, L12, L9c, L14, L18, L6 union-rebase and
+   re-push, plan branch (ninth increment). Open PRs, merge on green.
+3. After L14: apply-classifications dry then apply (1,287 flags). After L6: migration 318. After L9c:
+   resolve-provisional-sources apply (489 pending_review).
+4. Finish L15 review, apply 319, merge, apply 320. Finish L16 (C1 registry fix, session-log correction, two
+   tests), review, push, merge, then capture-static-primaries dry and apply over the 131 zero-capture
+   briefs.
+5. Resume L17 and L19; after L19 push and apply batch 005; next exports (record after 16432987, existing
+   briefs next 50 ids). After L17: verdict fleet and ledger-consume apply.
+6. Not yet dispatched: L8 (D12), 7.6, 7.4d, 7.3 residue, ADR-030 rider, 6.3 re-measure, data_quality
+   flag for the mistitled item 355af9e8.
+
+---
+
 ## 2026-09-12, W9 lane L10: D15 and D17 families 4/5, zero-proposal, drift and anomaly flags decided
 
 `defect-fix-plan-2026-09-12.md`'s D15 (1,034 of 1,105 open `flywheel-tag:` flags carried zero proposals
