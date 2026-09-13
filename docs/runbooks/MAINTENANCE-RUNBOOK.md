@@ -3638,7 +3638,7 @@ re-grounds-never-destroy dominance guard, fix round 2 for L11 family 11 (lane L1
 refetch-capped-worklist.mjs`'s own EXECUTE mode writes when a legacy-capped row's fresh re-capture no
 longer verifies a previously grounded FACT span (a real ADR-016 provenance question, not a proposer
 asking a human for nothing -- the enumeration, Family 11, found no dedicated resolver). Per held item:
-re-check every FACT claim's verbatim `source_span` against the item's newest stored capture, ZERO fetch
+re-check every FACT claim's verbatim `source_span` against every stored capture in the item's pool, ZERO fetch
 (`cheapVerifyClaims`'s own primitives, `src/lib/sources/cheap-verify.mjs` -- the SAME zero-fetch,
 snapshot-first entry point `verify-item.mjs`/`regen-quarantined.mjs` already use; see this script's own
 header for why the plan's literal "groundBrief" text is not the mechanism this reuses -- a paid Sonnet
