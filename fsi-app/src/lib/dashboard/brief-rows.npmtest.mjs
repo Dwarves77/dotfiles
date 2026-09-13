@@ -38,6 +38,7 @@ const {
   dueNextWindowLabel,
   briefCardState,
   computeAuditDate,
+  changeRowPrefix,
   DUE_NEXT_CAP,
 } = await jiti.import("./brief-rows.ts");
 
@@ -296,4 +297,90 @@ test("BRIEFDATA/4: the merged corpus is de-duplicated, payload first", () => {
   const merged = mergeBriefCorpus(payload, backfill);
   assert.deepEqual(merged.map((r) => r.id), ["a", "b"]);
   assert.equal(merged[0].title, "payload copy");
+});
+
+// ── D23 (migration 319, defect-fix-plan-2026-09-12.md part (b)): an updated item is labelled
+// UPDATED, never NEW: the feed now carries regenerated briefs and backfilled timelines, not only
+// newly minted items. ──────────────────────────────────────────────────────────────────────────
+
+test("D23/1: an updated row (changeKind 'updated') is isUpdated, not isNew", () => {
+  const res = resource("a", { sourceTier: 1 });
+  const changed = buildChangedRows(
+    [{ id: "a", title: "Item a", priority: "HIGH", added: "2026-09-05", changeKind: "updated", changeDate: "2026-09-06" }],
+    [res],
+    NOW,
+  );
+  assert.equal(changed.length, 1);
+  assert.equal(changed[0].isNew, false);
+  assert.equal(changed[0].isUpdated, true);
+  assert.equal(changed[0].changeDate, "2026-09-06");
+});
+
+test("D23/2: a new row (changeKind 'new', or absent, pre-319/stale cache) stays isNew, not isUpdated (no regression)", () => {
+  const res = resource("a", { sourceTier: 1 });
+  const withKind = buildChangedRows([{ id: "a", title: "Item a", priority: "HIGH", added: "2026-09-05", changeKind: "new" }], [res], NOW);
+  assert.equal(withKind[0].isNew, true);
+  assert.equal(withKind[0].isUpdated, false);
+
+  const withoutKind = buildChangedRows([{ id: "a", title: "Item a", priority: "HIGH", added: "2026-09-05" }], [res], NOW);
+  assert.equal(withoutKind[0].isNew, true, "absent changeKind must read as new, the only meaning this feed carried before 319");
+  assert.equal(withoutKind[0].isUpdated, false);
+});
+
+test("D23/3: an updated row degrading (item not in the loaded corpus) still carries isUpdated/changeDate honestly", () => {
+  const rows = buildChangedRows(
+    [{ id: "ghost", title: "Ghost", priority: "HIGH", added: "2026-09-05", changeKind: "updated", changeDate: "2026-09-06" }],
+    [],
+    NOW,
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].isNew, false);
+  assert.equal(rows[0].isUpdated, true);
+  assert.equal(rows[0].changeDate, "2026-09-06");
+  assert.equal(rows[0].impact, null, "the degrade branch still invents nothing for the other cells");
+});
+
+test("D23/4: updatedField is read from changelogByItemId's newest entry, choosing the row's label vocabulary", () => {
+  const res = resource("a", { sourceTier: 1 });
+  const changelogByItemId = {
+    a: [{ id: "a", date: "2026-09-06", type: "UPDATED", fields: ["timeline"] }],
+  };
+  const rows = buildChangedRows(
+    [{ id: "a", title: "Item a", priority: "HIGH", changeKind: "updated", changeDate: "2026-09-06" }],
+    [res],
+    NOW,
+    undefined,
+    changelogByItemId,
+  );
+  assert.equal(rows[0].updatedField, "timeline");
+  assert.equal(changeRowPrefix(rows[0]), "UPDATED · timeline added 2026-09-06");
+});
+
+test("D23/5: updatedField defaults to a brief-regenerated label when the changelog map has no entry for the item", () => {
+  const res = resource("a", { sourceTier: 1 });
+  const rows = buildChangedRows(
+    [{ id: "a", title: "Item a", priority: "HIGH", changeKind: "updated", changeDate: "2026-09-06" }],
+    [res],
+    NOW,
+  );
+  assert.equal(rows[0].updatedField, undefined);
+  assert.equal(changeRowPrefix(rows[0]), "UPDATED · brief regenerated 2026-09-06");
+});
+
+test("D23/6: changeRowPrefix, the exact three-way label vocabulary part (b) specifies", () => {
+  assert.equal(changeRowPrefix({ isNew: true, isUpdated: false }), "NEW · first seen this pass");
+  assert.equal(changeRowPrefix({ isNew: false, isUpdated: true, updatedField: "full_brief", changeDate: "2026-09-06" }), "UPDATED · brief regenerated 2026-09-06");
+  assert.equal(changeRowPrefix({ isNew: false, isUpdated: true, updatedField: "timeline", changeDate: "2026-09-06" }), "UPDATED · timeline added 2026-09-06");
+  assert.equal(changeRowPrefix({ isNew: false, isUpdated: false }), null, "a Due-next row (neither) gets no prefix");
+});
+
+test("D23/7: computeAuditDate prefers change_date over added when both are present, and still falls back honestly", () => {
+  // change_date is the newer, more precise fact (an item added long ago but regenerated today).
+  const rows = [
+    { added: "2026-01-01", changeDate: "2026-09-08" },
+    { added: "2026-09-04" }, // no changeDate, falls back to `added` for this row only
+  ];
+  assert.equal(computeAuditDate(rows, []), "2026-09-08", "the newest change_date across all rows wins");
+  assert.equal(computeAuditDate([], []), "");
+  assert.equal(computeAuditDate([{ added: null, changeDate: null }], []), "");
 });

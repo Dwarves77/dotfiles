@@ -86,6 +86,13 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # D23(c), defect-fix-plan-2026-09-12.md: the driver flushes the public listing cache and every
+      # applied item's own detail cache after a successful apply (scripts/lib/revalidate.mjs). NOT
+      # added to "Verify required secrets" below - these two are best-effort (the driver's own
+      # revalidateTags never fails the apply when they are absent; it logs "no APP_URL/WORKER_SECRET"
+      # and moves on, per that helper's own header), unlike the two Supabase secrets above.
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -114,6 +121,11 @@ jobs:
           echo "after_id             = ${RUN_AFTER_ID:-(none, start from the beginning)}"
           echo "allow_brief_overwrite = $RUN_ALLOW_BRIEF_OVERWRITE"
           echo "mode=apply passes --execute and runs the full per-item pipeline; mode=dry never writes."
+          if [ -n "$APP_URL" ] && [ -n "$WORKER_SECRET" ]; then
+            echo "revalidate      = APP_URL/WORKER_SECRET set - a successful apply flushes the public listing and detail caches"
+          else
+            echo "revalidate      = APP_URL/WORKER_SECRET NOT set - the apply still succeeds; caches fall back to their own revalidate backstop"
+          fi
 
       - name: Build driver flags
         run: |

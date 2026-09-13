@@ -80,6 +80,7 @@ node --test \
   fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
   fsi-app/scripts/lib/assemble-train.test.mjs \
   fsi-app/scripts/lib/canonical-key.selftest.mjs \
+  fsi-app/scripts/lib/changelog.test.mjs \
   fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
   fsi-app/scripts/lib/db-register-source-role.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
@@ -129,12 +130,14 @@ node --test \
   fsi-app/src/lib/list-pagination.test.mjs \
   fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \
   fsi-app/src/lib/supabase-server-category-rpc-paging.test.mjs \
+  fsi-app/src/lib/supabase-server-recent-changes-319.test.mjs \
   fsi-app/src/lib/data-public-surface-slugs.test.mjs \
   fsi-app/src/lib/db/*.test.mjs \
   fsi-app/src/lib/perf/*.test.mjs \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \
   fsi-app/src/lib/detail/*.test.mjs \
+  fsi-app/src/lib/dashboard/*.test.mjs \
   fsi-app/src/lib/url-params/*.test.mjs \
   fsi-app/src/components/community/*.test.mjs \
   fsi-app/src/components/shell/*.test.mjs \

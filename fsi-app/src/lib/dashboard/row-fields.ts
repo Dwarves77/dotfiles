@@ -53,6 +53,37 @@ export function dueInfo(r: Resource, now: Date = new Date()): DueInfo | null {
   return { label, days: `${diff} day${diff === 1 ? "" : "s"}`, daysNum: diff };
 }
 
+export interface RecentRegenInfo {
+  /** Short formatted date for display, e.g. "Sep 12" (UTC, matching dueInfo's own formatting). */
+  label: string;
+  /** The raw date portion (YYYY-MM-DD), for callers that want the unformatted fact. */
+  iso: string;
+}
+
+/**
+ * D23 part (d) (defect-fix-plan-2026-09-12.md): whether an item's brief was regenerated within
+ * `days` (default 30) of `now`. The Regulations ledger row's "Updated <date>" chip and the detail
+ * header's "Brief regenerated <date>" line share this so the two surfaces never disagree about the
+ * same item. UTC day math, the same convention `dueInfo` above uses; `now` is REQUIRED (render-now.ts,
+ * no `Date.now()`/`new Date()` in a rendered component). Returns null when there is no
+ * last_regenerated_at at all, it is outside the window, or it is in the future (a clock skew or bad
+ * write, never presented as a recent change).
+ */
+export function recentRegenInfo(
+  lastRegeneratedAt: string | null | undefined,
+  now: Date,
+  days = 30,
+): RecentRegenInfo | null {
+  if (!lastRegeneratedAt) return null;
+  const ts = new Date(lastRegeneratedAt).getTime();
+  if (Number.isNaN(ts)) return null;
+  const diffDays = (now.getTime() - ts) / 86400000;
+  if (diffDays < 0 || diffDays > days) return null;
+  const iso = lastRegeneratedAt.slice(0, 10);
+  const label = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(ts);
+  return { label, iso };
+}
+
 /** Meta line for a ListRow: "<type> · <modes> · <topic>" from whatever the
  *  item actually carries — never a fabricated category. Widened parameter, see jurisdictionCode's
  *  header above (same lane, same reason). */

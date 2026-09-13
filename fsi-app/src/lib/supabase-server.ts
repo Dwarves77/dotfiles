@@ -17,6 +17,8 @@ import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
 import { normalizeJurisdictionIsoColumn } from "@/lib/jurisdictions/iso";
 import { computeAuditDate } from "@/lib/dashboard/brief-rows";
+import { recentChangesWindowDays } from "@/lib/dashboard/recent-changes-window.mjs";
+import { readScrapeState } from "@/lib/api/pause";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -985,6 +987,12 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
       // an unprojected column must read as unknown, not as a claim about the item's grade.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
+      // reads this. Migration 316 already added `last_regenerated_at` to this function's own
+      // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
+      // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
+      // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
+      lastRegeneratedAt: row.last_regenerated_at || undefined,
       // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
       // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
       // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
@@ -1761,6 +1769,10 @@ function rpcRowToResource(row: any): Resource {
     // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
     // none of these RPCs project `ii.item_grade` yet.
     itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+    // D23 part (d): dormant for the same reason as jurisdictionIso above, none of
+    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
+    // project `ii.last_regenerated_at` in their RETURNS TABLE.
+    lastRegeneratedAt: row.last_regenerated_at || undefined,
     // Lane SURF (2026-09-02): dormant for the same reason as jurisdictionIso above — none of
     // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
     // (migration 269, last redefined in 272) project `ii.origin_class` in their RETURNS TABLE.
@@ -2406,9 +2418,22 @@ export interface RecentChangeRow {
    *  pre-fix /regulations destination in itemDetailHref). */
   itemType?: string | null;
   domain?: number | null;
+  /**
+   * D23 (migration 319, defect-fix-plan-2026-09-12.md): 'new' for an item first added in the
+   * window, 'updated' for one that changed without being newly added (a regenerated brief, a
+   * backfilled timeline). Optional so a stale cross-deployment cache entry (see
+   * DASHBOARD_DATA_CACHE_KEY's own limit note) reads as 'new' rather than crashing.
+   */
+  changeKind?: "new" | "updated";
+  /**
+   * D23 (migration 319): the date of the underlying change - added_date for a 'new' row, the
+   * newest in-window item_changelog.change_date for an 'updated' one. computeAuditDate below
+   * prefers this over `added` when present.
+   */
+  changeDate?: string;
 }
 
-/** Raw payload shape of the get_workspace_recent_changes RPC (migration 232). */
+/** Raw payload shape of the get_workspace_recent_changes RPC (migration 232, widened by 319). */
 interface RecentChangeRpcRow {
   id: string;
   legacy_id: string | null;
@@ -2416,6 +2441,10 @@ interface RecentChangeRpcRow {
   priority: string | null;
   effective_priority: string | null;
   added_date: string;
+  /** Migration 319's two trailing columns - absent on a pre-319 database (additive/backward
+   *  compatible by design), in which case every row reads as 'new' with change_date = added_date. */
+  change_kind?: "new" | "updated" | null;
+  change_date?: string | null;
 }
 
 // ── Cache key for the cached dashboard payload (consumed by lib/data.ts) ──
@@ -2678,6 +2707,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
 
     // PERF-5: overridesRaw was already fetched above, alongside fetchWorkspaceResources — only
     // the translation to UI ids (mapOverrideRows, pure/synchronous) happens here.
+    // What-changed window: 90 days while the scrape cadence is off (build mode, CLAUDE.md rule 16; the
+    // operator wants this week's regenerations held visible until regular updates start), 7 days once a
+    // cadence is set. Decided by recentChangesWindowDays; a failed state read falls back to build mode.
+    const scrapeState = await readScrapeState(getServiceSupabase()).catch(() => ({ cadence: "off" as const }));
     const [changesResult, sectorsResult, recentResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
@@ -2689,7 +2722,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .select("sector, display_name"),
       // Window-scoped What-changed feed (see RecentChangeRow). Service client:
       // orgId authenticated upstream, same idiom as the dashboard RPC call.
-      getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: 7 }),
+      getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: recentChangesWindowDays(scrapeState.cadence) }),
     ]);
     const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
 
@@ -2783,6 +2816,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       title: r.title,
       priority: r.effective_priority || r.priority || "LOW",
       added: r.added_date,
+      // D23 (migration 319): a pre-319 database (or a row the migration itself never labelled)
+      // reads as 'new' - the ORIGINAL, only meaning this feed ever carried, so nothing regresses.
+      changeKind: r.change_kind === "updated" ? "updated" : "new",
+      changeDate: r.change_date || r.added_date,
       itemType: recentTypeById.get(r.id)?.item_type ?? null,
       domain: recentTypeById.get(r.id)?.domain ?? null,
     }));
@@ -3843,6 +3880,9 @@ async function fetchIntelligenceItemUncached(
       // above — `row.item_grade` IS present here once the migration applies (this fetcher is not
       // RPC-projected), unlike the two dormant RPC-backed mapper sites.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // D23 part (d): REAL, not dormant, same `select("*")` situation as jurisdictionIso above.
+      // Feeds the detail header's "Brief regenerated <date>" line (recentRegenInfo).
+      lastRegeneratedAt: row.last_regenerated_at || undefined,
       // Lane SURF (2026-09-02): REAL, not dormant — same `select("*")` situation as jurisdictionIso
       // and itemGrade above. `row.origin_class` (migration 267) IS present on this fetcher's row, so
       // this is a live mapping, even though migration 267's own verification block notes zero rows

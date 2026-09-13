@@ -54,6 +54,7 @@
 import { readAll, guardedInsert, guardedUpdate, hostOf } from "../lib/db.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
+import { recordItemChange as recordItemChangeCore } from "../lib/changelog.mjs";
 import {
   deriveTimelineFromMetadata,
   finalizeTimelineRow,
@@ -71,6 +72,13 @@ export const CITE = Object.freeze({
     "never fabricating a day/month a source did not state. Writes at most one item_timelines row per " +
     "undated item and never touches an item that already has one; an item nothing dates is reported, " +
     "never given an invented date or the ledger's own added_date.",
+});
+
+export const CHANGELOG_CITE = Object.freeze({
+  skill: "defect-fix-plan-2026-09-12.md D23(a)",
+  reason:
+    "A backfilled timeline is a customer-visible change (D23) - recorded via the shared " +
+    "scripts/lib/changelog.mjs helper, idempotent per (item, field, batch='timeline-backfill').",
 });
 
 export const UNDATEABLE_FLAG_CITE = Object.freeze({
@@ -314,7 +322,23 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
     }
     written += 1;
     writtenIds.push(item.id);
-    if (apply) await deps.insertTimelineRow({ ...plan.row, item_id: item.id });
+    if (apply) {
+      await deps.insertTimelineRow({ ...plan.row, item_id: item.id });
+      // D23(a) (defect-fix-plan-2026-09-12.md): a backfilled timeline is also a customer-visible
+      // change - recorded the same way a regenerated brief is, through the shared
+      // scripts/lib/changelog.mjs helper (wired in deps.recordItemChange, below). Best-effort: a
+      // changelog failure must never cost the item its real, already-written timeline row.
+      try {
+        await deps.recordItemChange({
+          itemId: item.id,
+          field: "timeline",
+          batch: "timeline-backfill",
+          note: `Timeline entry added via timeline-backfill (${plan.step}) dated ${plan.row.milestone_date}.`,
+        });
+      } catch {
+        /* best-effort, same posture as every other non-gating write in this run */
+      }
+    }
   }
 
   let flagWritten = null;
@@ -383,6 +407,27 @@ if (IS_MAIN) {
         match: (q) => q.eq("intelligence_item_id", itemId),
       }),
       insertTimelineRow: (row) => guardedInsert("item_timelines", row, { cite: CITE, select: "id" }),
+      // D23(a): the real changelog write, routed through the shared helper's {findExisting, insert}
+      // adapter (changelog.mjs's own header explains why not a raw client) - reads go through
+      // db.mjs's readAll (unguarded, routine), writes through guardedInsert (cite + snapshot).
+      recordItemChange: (opts) =>
+        recordItemChangeCore(
+          {
+            findExisting: async ({ itemId, field, batch }) => {
+              const rows = await readAll("item_changelog", "id", {
+                match: (q) => q.eq("item_id", itemId).eq("field", field).eq("new_value", batch),
+              });
+              return Array.isArray(rows) && rows.length > 0;
+            },
+            insert: async (row) => {
+              // guardedInsert throws on failure (db.mjs's own contract) rather than returning
+              // {error} - recordItemChange's own try/catch around `client.insert()` handles that.
+              await guardedInsert("item_changelog", row, { cite: CHANGELOG_CITE, select: "id" });
+              return { error: null };
+            },
+          },
+          { ...opts, apply: true },
+        ),
       writeUndateableFlag: (items) => guardedInsert("integrity_flags", buildUndateableFlagRow(items), { cite: CITE, select: "id" }),
       readOpenUndateableFlags: () =>
         readAll("integrity_flags", "id, recommended_actions", {

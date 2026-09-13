@@ -34,6 +34,7 @@ import {
   selectBriefResources,
   mergeBriefCorpus,
   dueNextWindowLabel,
+  CHANGED_CAP,
 } from "@/lib/dashboard/brief-rows";
 import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
 
@@ -106,7 +107,10 @@ export default async function Home() {
   );
   await enrichRowSourceChips(selectBriefResources(corpus, data.recentChanges, now));
   const dueNextRows = buildDueNextRows(corpus, now);
-  const changedRows = buildChangedRows(data.recentChanges, corpus, now);
+  // D23 (migration 319): data.changelog (fetchChangelog's own map, already read for the item
+  // detail rail) supplies the "brief regenerated" / "timeline added" field for an UPDATED row's
+  // label - see buildChangedRows' own header.
+  const changedRows = buildChangedRows(data.recentChanges, corpus, now, CHANGED_CAP, data.changelog);
   // The card's own aside, extended when the selected rows run past the week it names: the widened
   // window, said out loud rather than left implied (brief-rows.ts, cause 2).
   const dueNextWindow = dueNextWindowLabel(

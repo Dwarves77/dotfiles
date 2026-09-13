@@ -21828,3 +21828,228 @@ that file, which was widened for the same reason. Widened the select lists in
 merge-check select list would silently re-gap an already-classified source every run (a correctness bug,
 not an optional widening) [CONFIRMED by reading the call graph: `sourceClassificationGaps` and
 `buildMergePatch` both read the field directly from the row the select list fetched].
+## 2026-09-13, W9 lane L15: D23 (a-e) a regenerated brief becomes a customer-visible change, plus D24 mobile Admin nav fix
+
+**What.** defect-fix-plan-2026-09-12.md's D23 ("the operator sees NO changes to the site" / "What's
+changed is empty again" after batches 001/002 applied 21 briefs live) and the coordinator's mid-lane
+addendum D24 (the operator cannot reach Admin on mobile). Branch
+`lane/w9-l15-visible-regeneration-2026-09-13`, off `origin/master` at `3de8266d`, worktree
+`wt-facetfix-0911`. Six commits, one per part.
+
+**Part (a), the write side.** `fsi-app/scripts/lib/changelog.mjs` (new): `recordItemChange`, the one
+write site for `item_changelog` outside a migration -- idempotent per `(item_id, field, batch)` (the
+table carries no batch column of its own, so `new_value` is repurposed to carry the batch identifier
+for this change shape), dry by default. The `client` parameter is a small `{findExisting, insert}`
+adapter, not a raw Supabase client: `apply-record-briefs.mjs` holds a raw client, while
+`timeline-backfill.mjs` (scripts/maintenance/*) is walled off from raw writes by `db.mjs`'s
+`readClient()` proxy (rule-015: `.insert()` on the read client throws) and must route through
+`guardedInsert`; asking for the two operations this module needs rather than one literal chain shape
+lets each caller supply the adapter that matches how it already talks to the database. Wired into
+`apply-record-briefs.mjs` (field `full_brief`, only when `provenanceStatus === "verified"`, batch =
+the `--briefs` file's own basename so a resumed run over the same file never double-records) and
+`timeline-backfill.mjs` (field `timeline`, batch `"timeline-backfill"`, every dateable item, apply
+mode only).
+
+**Part (b), the read side.** Migration `319_recent_changes_include_updates.sql`: DROPs and recreates
+`get_workspace_recent_changes` (RETURNS TABLE cannot widen under CREATE OR REPLACE) unioning the
+original newly-added branch with an UPDATED branch sourced from `item_changelog`, two trailing
+columns (`change_kind`, `change_date`); an item both new and updated in the window reads `'new'` (the
+updated branch excludes ids the new branch already selected). Additive and backward compatible: old
+code reading only the six original columns is unaffected. `RecentChangeRow`/`RecentChangeRpcRow`
+(supabase-server.ts) gain `changeKind`/`changeDate`, defaulting to `'new'` when absent (a pre-319
+database or a stale cached payload never regresses). `buildChangedRows` (brief-rows.ts) sets
+`isUpdated` (never `isNew`) for an updated row and reads `updatedField` from `fetchChangelog`'s own
+map (already read for the item detail rail; its newest entry, since that read is ordered
+`change_date DESC`) to choose "brief regenerated" vs "timeline added". `computeAuditDate` now prefers
+`change_date` over `added` when both are present. New `changeRowPrefix` (brief-rows.ts) computes the
+"NEW middot first seen this pass" / "UPDATED middot brief regenerated <date>" / "UPDATED middot
+timeline added <date>" label once (middot = U+00B7, the row meta separator already used everywhere on
+these surfaces); `DashboardBrief.tsx` calls it instead of re-deriving inline; the
+card's footer legend now names both kinds. `page.tsx` threads `data.changelog` into
+`buildChangedRows`.
+
+**Part (c), the flush.** `apply-record-briefs.mjs` calls `revalidateTags([PUBLIC_ITEMS_TAG,
+...appliedItemIds.map(itemTag)], {apply:true})` after the batch's unscoped flywheel steps complete,
+logs the result, threads it into the run artifact's own metrics. `revalidateTags` never throws (its
+own existing contract), so a flush failure never fails the apply. `brief-apply.yml` passes `APP_URL`
+and `WORKER_SECRET` from repository secrets, kept OUT of the "Verify required secrets" gate (these two
+are best-effort by the helper's own design, unlike the two Supabase secrets).
+
+**Part (d), the markers.** `src/lib/dashboard/row-fields.ts` gains `recentRegenInfo` (pure,
+clock-injected, 30-day default window, future dates never read as recent) -- the one function both
+surfaces share. `Resource.lastRegeneratedAt` (dormant passthrough on the RPC-backed mappers, real on
+the `select("*")` detail fetcher and on `get_workspace_intelligence_listings`, which migration 316
+already projects the column for). `RegulationsLedger.tsx` renders "Updated <date>" via `ListRow`'s own
+`kind` slot -- the flexible title column, NOT the fixed 40px tier cell the TierChip sits in (the
+8-column grid has no room to widen that cell for a text chip without a logged grid change, the same
+constraint this file's own header already documents for the `⋯` action cell). `RegulationDetailSurface.tsx`
+renders "Brief regenerated <date>" as the last `extraChips` entry, immediately before `TierChip` in
+DetailHeader's own render order -- genuinely beside the tier chip there, since `extraChips` renders
+first. Both surfaces read `renderNowIso()` threaded from their own `page.tsx`, never `Date.now()`.
+
+**Part (e), the backfill.** Migration `320_changelog_backfill_regenerated_briefs.sql`: backfills ONLY
+brief regenerations (field `full_brief`, `detected_by = 'record-briefs backfill'`) for every verified
+non-archived item with `last_regenerated_at >= '2026-09-11'`, idempotent on
+`(item_id, field, detected_by)`. Per the coordinator's binding mid-lane correction, timeline rows are
+deliberately NOT backfilled: `item_timelines` carries no writer column, and live SQL showed 1,471
+distinct items dated since 2026-09-12 by several different writers (the maintenance backfill, the
+batch applies, the section-14 sync) -- a retroactive row could not be honestly attributed to one
+cause, and would have flooded the What-changed card with mechanical noise. Timeline changes are
+recorded going forward only (part (a)'s helper call from `timeline-backfill.mjs`). The migration's own
+count is stated as INFORMATIONAL only, never a hard assertion: two independent read-only counts taken
+minutes apart during this lane (via Supabase MCP `execute_sql`) returned 20 then 21 -- [CONFIRMED] a
+genuinely live-moving number under concurrent regeneration activity elsewhere, exactly why the
+coordinator re-reads it immediately before applying rather than this migration asserting a fixed
+count.
+
+**Part (f), D24.** `src/components/Sidebar.tsx`'s mobile drawer `<aside>` used Tailwind's `h-screen`
+(100vh), iOS Safari's LAYOUT viewport (as if the toolbar were hidden) -- once the toolbar shows, the
+panel's own box is taller than the visible screen and the footer's Admin row (below Account) sits
+under the toolbar, unreachable (operator screenshot: Account was the last VISIBLE row; the panel's own
+content fits inside its declared height, so `overflow-y-auto` had nothing to scroll -- the box itself
+was just taller than the screen). Fixed via a new `.cl-mobile-drawer-panel` CSS rule: `height: 100vh`
+declared first (fallback), `height: 100dvh` declared last (wins where supported, tracks the real
+visible viewport), plus `padding-bottom: env(safe-area-inset-bottom)` for the home-indicator gesture
+bar. No row reordering: Account then Admin, via the same shared `footer()` function both the desktop
+card and the drawer already render.
+
+**Tests, all green, `node --test` per file.** `scripts/lib/changelog.test.mjs` 10/10 (new);
+`scripts/turns/apply-record-briefs.test.mjs` 44/44 (14 new D23(a)/(c) tests, one pre-existing exact-match
+assertion updated for the new `changelog` step); `scripts/turns/apply-record-briefs.npmtest.mjs` 4/4
+(unchanged, re-run for regression); `scripts/maintenance/timeline-backfill.test.mjs` 27/27 (4 new
+D23(a) tests); `src/lib/dashboard/brief-rows.npmtest.mjs` 26/26 (7 new D23(b) tests);
+`src/lib/supabase-server-recent-changes-319.test.mjs` 6/6 (new, structural SQL contract test for
+migration 319, the same text-based precedent `supabase-server-category-rpc-paging.test.mjs` already
+uses for migration 306); `src/components/dashboard/DashboardBrief.npmtest.mjs` 5/5 (unchanged, re-run);
+`src/lib/dashboard/row-fields.npmtest.mjs` 8/8 (new, `recentRegenInfo`); `src/components/Sidebar.npmtest.mjs`
+19/19 (4 new D24 tests); `src/components/detail/DetailShell.npmtest.mjs`,
+`src/components/detail/SourcesGrid.npmtest.mjs`, `src/lib/list-pagination.test.mjs`,
+`src/lib/supabase-server-rpc-scope.test.mjs`, `src/lib/supabase-server-category-rpc-paging.test.mjs`
+51/51 combined (unchanged, re-run for regression against the `Resource`/`supabase-server.ts` edits).
+`npx tsc --noEmit` from `fsi-app`: clean throughout the lane, re-checked after every part.
+
+**Migration 319/320 verification (read-only, Supabase MCP `execute_sql`, project `kwrsbpiseruzbfwjpvsp`,
+this lane, 2026-09-13).** Live `get_workspace_recent_changes` body confirmed BYTE-IDENTICAL to the
+repo's tracked 232 copy before writing 319 (`pg_get_functiondef`, md5 `01669d7b1a24d39665011c832a32260f`).
+The 319 CTE logic run directly as a read-only SELECT against live `intelligence_items`/`item_changelog`
+(no function created) to prove the union/dedup/exclusion logic before committing it. Migration 320's
+own SELECT run read-only twice, minutes apart: 20 then 21 rows (see part (e) above); a third read
+confirmed 21 stable at write time. Zero DB writes by this agent at any point (standing rule).
+
+**Glyph check.** `git diff 3de8266d..HEAD | grep -c` for U+2014/U+2013/U+00A7 over every added line (the
+true isolated diff against this branch's own merge-base): 0, across 1,210 added lines. Note:
+`git diff origin/master..HEAD` (origin/master had already advanced to `b23dae11`/#668, D21, unrelated
+to this lane, by the time this check ran) surfaces 17 "added" lines with the banned glyphs -- all of
+them pre-existing prose in `derive-tags.mjs`/`derive-tags.test.mjs`/`tag-yield.fixture.test.mjs` that
+this lane never touched, an artifact of diffing against a moved-forward, unrebased master rather than
+this lane's own merge-base. [CONFIRMED] by inspecting every flagged line: none are in a file this
+lane's commits modify.
+
+**Push gate.** Not run here; the coordinator runs it at push, per the coordinator's own direction
+mid-lane (this lane's parts are committed on the branch, not pushed).
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase, no DB writes (two
+migrations, coordinator-applied per standing rule 3; every live-data statement above was a read-only
+SELECT). Named-path staging only, never `git add -A`. Trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` on every commit.
+
+**Files.**
+- `fsi-app/scripts/lib/changelog.mjs` (new), `.test.mjs` (new)
+- `fsi-app/scripts/turns/apply-record-briefs.mjs` / `.test.mjs` (modified: parts (a) and (c))
+- `fsi-app/scripts/maintenance/timeline-backfill.mjs` / `.test.mjs` (modified: part (a))
+- `fsi-app/supabase/migrations/319_recent_changes_include_updates.sql` (new, part (b))
+- `fsi-app/supabase/migrations/320_changelog_backfill_regenerated_briefs.sql` (new, part (e))
+- `fsi-app/src/lib/supabase-server.ts` (modified: parts (b) and (d))
+- `fsi-app/src/lib/supabase-server-recent-changes-319.test.mjs` (new, part (b) structural SQL test)
+- `fsi-app/src/lib/dashboard/brief-rows.ts` / `.npmtest.mjs` (modified: part (b))
+- `fsi-app/src/lib/dashboard/row-fields.ts` (modified) / `.npmtest.mjs` (new, part (d))
+- `fsi-app/src/components/dashboard/DashboardBrief.tsx` (modified: part (b))
+- `fsi-app/src/app/page.tsx` (modified: part (b))
+- `fsi-app/src/types/resource.ts` (modified: part (d))
+- `fsi-app/src/components/regulations/RegulationsLedger.tsx` (modified: part (d))
+- `fsi-app/src/components/regulations/RegulationDetailSurface.tsx` (modified: part (d))
+- `fsi-app/src/app/regulations/[slug]/page.tsx` (modified: part (d))
+- `.github/workflows/brief-apply.yml` (modified: part (c))
+- `fsi-app/.discipline/run-test-suite.sh` (modified: named-list additions for the two new test files)
+- `fsi-app/src/components/Sidebar.tsx` / `.npmtest.mjs` (modified: part (f), D24)
+- `docs/ops/session-log.md` (this entry)
+
+**Not in this entry's scope**: the operator action D23(c) itself names -- adding `WORKER_SECRET` and
+`APP_URL` as repository Actions secrets -- is owed to the operator, not something this lane can do.
+Migration application order (319 before the code merges, 320 after 319, both per standing rule 3) is
+the coordinator's own step, not run here.
+
+### UX compliance (D23 part (d): ledger "Updated" chip + detail "Brief regenerated" marker; D24: mobile drawer footer reachability)
+
+Per `docs/design/ux-laws.md` and `docs/design/design-principles.md` DP-1/DP-2, read before the `.tsx`
+edits in `RegulationsLedger.tsx`, `RegulationDetailSurface.tsx`, and `Sidebar.tsx`.
+
+- **Screen**: `/regulations` (ledger rows and the detail page's header chip row); the mobile
+  navigation drawer (below 768px, every route).
+- **Reader's primary goal (D23d)**: notice, at a glance, that an item's brief changed since they last
+  looked, without a second click or a separate "what changed" lookup. **Reader's primary goal (D24)**:
+  reach the Admin panel from a phone.
+- **Path to it**: the chip is part of the row/header the reader already reads for every other signal
+  (title, tier, meta); no new affordance to discover, no click required to see it. The drawer fix
+  needs no new interaction either: the same Account-then-Admin tap sequence, just no longer clipped by
+  the toolbar.
+- **One primary action per row/chip**: the chip is informational only (no click target of its own),
+  consistent with the existing tier/kind chips on the same row; it does not compete with the row's own
+  navigation.
+- **No layout shift / wraps rather than overflows (D23d)**: the chip lives in `ListRow`'s `kind` slot,
+  the flexible title column that already wraps at narrow widths (the component's own documented mobile
+  reflow), never the fixed 40px tier cell -- placing it there would either overflow or require
+  widening the shared 8-column grid, a change this lane deliberately did not make (matching the
+  existing logged precedent for the same grid's `⋯` action cell). The detail header's chip is a
+  standard `TagChip` in the existing wrapping chip row.
+- **Feedback state**: none needed; both markers are static facts derived from a stored timestamp, not
+  an in-flight action.
+- **Laws applied**: law 8 (Fitts, D24) -- the Admin row's 44px hit target is unchanged; the fix is
+  purely that it is now inside the visible viewport instead of relocating or resizing it. Law 4
+  (Proximity, D23d) -- the "Updated"/"Brief regenerated" markers sit beside the existing tier/kind
+  signals they are conceptually related to (both are provenance/freshness facts about the same item),
+  never a separate, disconnected badge. Law 12 (Prägnanz, D23d) -- reuses the existing chip visual
+  language (`TagChip`/`ListRow`'s own `kind` rendering) rather than introducing a new chip style.
+- **Measurements**: no browser-based rendering-guard capture was run in this session (no live dev
+  server / browser harness available here); the placement choices above are argued from the shared
+  components' own documented, already-guarded layout rules (`ListRow.tsx`'s fixed-width column
+  comments, the mobile reflow notes) rather than a fresh capture. `.discipline/rendering/audit/spec/
+  mobile-18-drawer.json`, `sidebar.json`, `compose-02-regulations-list.json` and
+  `mobile-02-regulations-list.json` already exist as this repo's own browser-capture specs for these
+  two surfaces; the dedicated rendering-guard CI job is the honest verification path for the visual
+  claims above, not run standalone in this session. `[HYPOTHESIS]`, not `[CONFIRMED]`, pending that
+  run.
+
+**Fix round 1 (review-l15.md, CONDITIONAL FAIL: C1, C2).** Two commits.
+
+C1: this lane's own migrations 319 and 320 were never added to `docs/inventories/migrations.md`,
+leaving the mechanically enforced C3 consistency check RED on this branch (the pre-push hook's step 2
+and CI's `consistency-backstop` job both run it unconditionally, no override trailer was in force).
+Added rows for 319 and 320 immediately after row 317, in the established row shape, naming defect D23
+parts (b) and (e), lane L15, what each migration's SQL does, its idempotency, and the two-track split
+(the coordinator applies 319 before this lane's code merges, 320 after). `node
+.discipline/consistency/runner.mjs` now reports `PASS [C3]` and `0 drift record(s)` for all three
+checks.
+
+C2: `apply-record-briefs.mjs`'s D23(a) changelog write gated only on the read-back
+`provenance_status === "verified"`, never on whether THIS run's own generate/section/ground steps
+succeeded. An item already verified in the database from an earlier, unrelated success could get a
+false "brief regenerated" `item_changelog` row on a run whose own three steps all failed this time --
+confirmed live by the reviewer with a standalone probe. `applyOneEntry` now also tracks `sectioned`
+and `grounded` (each step's own `r.ok`, mirroring the existing `generated`) and the changelog write is
+gated on `generated && sectioned && grounded && provenanceStatus === "verified"` -- this run's own
+outcome first, the read-back status second, never the read-back status alone. Added to
+`apply-record-briefs.test.mjs`: the reviewer's exact repro (verified read-back, all three steps fail
+this run -- asserts no changelog row and no changelog step at all), a fully successful run (asserts
+`recordItemChange` called exactly once and exactly one `changelog:written` step), and a
+partial-failure variant (ground alone fails -- still refused).
+
+Verification performed this round: `node --test scripts/turns/apply-record-briefs.test.mjs` 47/47
+green. Revert-test-restore on the gate itself: reverted the condition back to
+`provenanceStatus === "verified"` alone in the working tree, re-ran the same test file -- 45/47, the
+two new C2-specific tests failing exactly as expected (the reviewer's repro and the partial-ground-
+failure variant); restored via `git checkout --` against the committed fix, re-ran -- 47/47 green
+again, `git status --short` clean apart from the pre-existing untracked `.superpowers/`. `npx tsc
+--noEmit` from `fsi-app`: clean. `node .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`
+from `fsi-app`: OK. Push gate (`.discipline/hooks/pre-push`, `run-test-suite.sh`): not run here; the
+coordinator runs it at push, per this lane's own scope.

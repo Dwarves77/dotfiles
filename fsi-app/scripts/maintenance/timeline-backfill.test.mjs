@@ -190,6 +190,7 @@ function fakeDeps({
   const inserted = [];
   const flagsWritten = [];
   const flagsResolved = [];
+  const changelogCalls = [];
   return {
     todayIso,
     hostOf: (url) => {
@@ -207,9 +208,13 @@ function fakeDeps({
     writeUndateableFlag: async (items) => { flagsWritten.push(items); return { inserted: { id: "flag-1" } }; },
     readOpenUndateableFlags: async () => openPriorFlags,
     resolveUndateableFlag: async (id, note) => { flagsResolved.push({ id, note }); return { updated: 1 }; },
+    // D23(a): the changelog dep is a no-op fake by default, matching insertTimelineRow's own shape
+    // (main() never learns changelog.mjs's own {client, opts} contract -- see that module's header).
+    recordItemChange: async (opts) => { changelogCalls.push(opts); return { written: true, reason: "inserted", row: null }; },
     _inserted: () => inserted,
     _flagsWritten: () => flagsWritten,
     _flagsResolved: () => flagsResolved,
+    _changelogCalls: () => changelogCalls,
   };
 }
 
@@ -360,6 +365,7 @@ test("idempotent (fix round 1, review-l11.md): a second apply over the SAME unde
     writeUndateableFlag: async () => ({ inserted: { id: "flag-1" } }),
     readOpenUndateableFlags: async () => [],
     resolveUndateableFlag: async () => ({ updated: 1 }),
+    recordItemChange: async () => ({ written: true, reason: "inserted", row: null }),
   };
   const first = await main({ mode: "apply" }, deps);
   assert.equal(first.counts.written, 1);
@@ -369,4 +375,55 @@ test("idempotent (fix round 1, review-l11.md): a second apply over the SAME unde
   assert.equal(second.counts.written, 0);
   assert.equal(second.counts.undated_total, 0);
   assert.equal(second.counts.page_size, 0);
+});
+
+// ── D23(a): a backfilled timeline is also a customer-visible change (defect-fix-plan-2026-09-12.md) ──
+
+test("D23(a): apply mode calls recordItemChange for each dateable item, field 'timeline', batch 'timeline-backfill', naming the derivation step and date", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }],
+    timelineItemIds: [],
+    capturesByItem: { a: ["REGULATION (EU) 2020/852 ... of 18 June 2020 on taxonomy ...".repeat(4)] },
+  });
+  await main({ mode: "apply" }, deps);
+  const calls = deps._changelogCalls();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].itemId, "a");
+  assert.equal(calls[0].field, "timeline");
+  assert.equal(calls[0].batch, "timeline-backfill");
+  assert.match(calls[0].note, /title/);
+  assert.match(calls[0].note, /2019-06-20|dated/);
+});
+
+test("D23(a): dry mode never calls recordItemChange (no DB write of any kind in dry mode)", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }],
+    timelineItemIds: [],
+    capturesByItem: { a: ["REGULATION (EU) 2020/852 ... of 18 June 2020 on taxonomy ...".repeat(4)] },
+  });
+  await main({ mode: "dry" }, deps);
+  assert.equal(deps._changelogCalls().length, 0);
+});
+
+test("D23(a): an undateable item (no row written) never calls recordItemChange", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "b", title: "Untitled portal page", source_url: "https://iea.org/policies" }],
+    timelineItemIds: [],
+  });
+  await main({ mode: "apply" }, deps);
+  assert.equal(deps._changelogCalls().length, 0);
+});
+
+test("D23(a): a thrown recordItemChange does not stop the run or cost the item its already-written timeline row", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }],
+    timelineItemIds: [],
+    capturesByItem: { a: ["REGULATION (EU) 2020/852 ... of 18 June 2020 on taxonomy ...".repeat(4)] },
+  });
+  deps.recordItemChange = async () => {
+    throw new Error("db unreachable");
+  };
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(summary.counts.written, 1, "the timeline row itself must still be written");
+  assert.equal(deps._inserted().length, 1);
 });

@@ -488,6 +488,64 @@ test("CLI: two consecutive thrown-failure runs claim distinct, incrementing run 
   }
 });
 
+// ── D23(c): revalidate after a successful apply (defect-fix-plan-2026-09-12.md) ─────────────────────
+//
+// Not CLI-driven: --execute unconditionally runs the four UNSCOPED (corpus-wide, not batch-scoped)
+// flywheel steps (analyze-corpus first) before the revalidate call site is ever reached, and those
+// steps need a real database connection regardless of how many items this run itself applied -
+// exactly the same "not unit-tested directly" posture this file's own header already documents for
+// the unscoped-flywheel call site immediately above the revalidate one. These are structural proofs
+// of the SAME kind the "unscoped flywheel steps" test above already uses for that adjacent call site
+// (a scan of the driver's own source, confirming the exact shape a CLI-subprocess test cannot reach
+// without a live database) - never a substitute for scripts/lib/revalidate.test.mjs's own full
+// behavioural proof of what revalidateTags itself does with the tags it receives.
+
+test("D23(c): the revalidate call site is reached only inside the --execute branch, after appliedItemIds is fully populated and the unscoped flywheel steps have run", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  const executeBlockMatch = src.match(/if \(parsed\.execute\) \{[\s\S]*?\n {4}\}\n {2}\} catch \(err\) \{/);
+  assert.ok(executeBlockMatch, "expected exactly one `if (parsed.execute) { ... }` block directly before the outer catch");
+  const block = executeBlockMatch[0];
+  assert.match(block, /const db = await import\("\.\.\/lib\/db\.mjs"\);/, "the unscoped flywheel steps must run before revalidate");
+  assert.match(block, /unscoped = await runUnscopedFlywheelSteps\("apply", appliedItemIds, db\);/);
+  const revalidateIdx = block.indexOf("revalidateResult = await revalidateTags(");
+  const unscopedIdx = block.indexOf("unscoped = await runUnscopedFlywheelSteps(");
+  assert.ok(revalidateIdx > unscopedIdx, "revalidate must run AFTER the unscoped flywheel steps, not before or in parallel");
+});
+
+test("D23(c): the revalidate call unions PUBLIC_ITEMS_TAG with itemTag(id) for every id in appliedItemIds, and passes apply:true", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  assert.match(
+    src,
+    /revalidateResult = await revalidateTags\(\[PUBLIC_ITEMS_TAG, \.\.\.appliedItemIds\.map\(\(id\) => itemTag\(id\)\)\], \{\s*\n\s*apply: true,\s*\n\s*\}\);/,
+    "the revalidate call must union PUBLIC_ITEMS_TAG with itemTag(id) for every id in appliedItemIds, always with apply:true",
+  );
+});
+
+test("D23(c): the revalidate result is logged and threaded into the run artifact's own metrics, never swallowed", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  assert.match(src, /console\.log\(`apply-record-briefs: revalidate: \$\{JSON\.stringify\(revalidateResult\)\}`\);/);
+  assert.match(src, /metrics: \{ \.\.\.metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped, revalidate: revalidateResult \}/);
+  // `revalidateResult` is declared beside the other run-scoped mutables (module header's own "declared
+  // here so `finally` can see it however far the run got" rule), so a thrown failure BEFORE the
+  // --execute branch is reached still writes a schema-valid artifact with revalidate: null, never a
+  // missing field.
+  assert.match(src, /let revalidateResult = null;/);
+});
+
+test("D23(c): revalidateTags itself never throws (a flush failure can never fail the apply) - see scripts/lib/revalidate.mjs's own test file for the full behavioural proof", async () => {
+  const { revalidateTags } = await import("../lib/revalidate.mjs");
+  const result = await revalidateTags(["public-items"], {
+    apply: true,
+    appUrl: "https://example.invalid",
+    workerSecret: "s3cret",
+    fetchImpl: async () => {
+      throw new Error("ECONNREFUSED");
+    },
+  });
+  assert.equal(result.applied, false);
+  assert.match(result.reason, /ECONNREFUSED/);
+});
+
 // ── applyOneEntry via dependency injection: fix round 1 (coordinator, 2026-09-11) - "the jiti production
 // path is exercised by no test." `applyOneEntry` now accepts an overridable `deps` bag (the same injected-
 // fake pattern this module already uses for `sb`); these tests drive the FULL 8-step order and outcome
@@ -536,6 +594,9 @@ function successfulDeps(overrides = {}) {
     runForwardEventsStep: async () => ({ attempted: 1, insertedCount: 1, collision: false, staleRows: [] }),
     syncComplianceDeadlineForItem: async () => ({ changed: true, value: "2026-01-01" }),
     importLinkItemEntities: async () => async () => ({ refs: 1, instrumentEntityId: "cl:instrument:abc" }),
+    // D23(a): the default fake never touches `sb` (see fakeSb's own header - it throws on any table
+    // but intelligence_items), matching every other step's injectable-dep posture in this file.
+    recordItemChange: async () => ({ written: true, reason: "inserted", row: null }),
     ...overrides,
   };
 }
@@ -556,6 +617,7 @@ test("applyOneEntry: step order and outcome vocabulary, all 8 steps + provenance
       { id: "item-1#section", outcome: "sectioned" },
       { id: "item-1#ground", outcome: "grounded" },
       { id: "item-1#provenance-status", outcome: "verified" },
+      { id: "item-1#changelog", outcome: "changelog:written" },
       { id: "item-1#grow", outcome: "grown" },
       { id: "item-1#discovery", outcome: "discovery:2" },
       { id: "item-1#forward-events", outcome: "forward-events:1" },
@@ -656,4 +718,195 @@ test("applyOneEntry: provenance_status is read back and reported even when groun
   assert.equal(byId["item-5#ground"].outcome, "ground_failed");
   assert.equal(result.provenanceStatus, "quarantined");
   assert.equal(byId["item-5#provenance-status"].outcome, "quarantined");
+});
+
+// ── D23(a): the changelog step (defect-fix-plan-2026-09-12.md, "a regenerated brief is invisible to
+// the customer") ────────────────────────────────────────────────────────────────────────────────────
+
+test("D23(a): the changelog step passes the batch, the claim count, and the item's severity through to recordItemChange", async () => {
+  const itemId = "item-6";
+  let captured = null;
+  const deps = successfulDeps({
+    recordItemChange: async (client, opts) => {
+      captured = opts;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const claims = [{ slot_key: "a" }, { slot_key: "b" }, { slot_key: "c" }];
+  await applyOneEntry(
+    { itemId, entry: { ...baseEntry(itemId), claims, metadata: { severity: "action_required" } } },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "record-briefs-002", deps },
+  );
+  assert.equal(captured.itemId, itemId);
+  assert.equal(captured.field, "full_brief");
+  assert.equal(captured.batch, "record-briefs-002");
+  assert.equal(captured.severity, "action_required");
+  assert.equal(captured.apply, true);
+  assert.match(captured.note, /record-briefs-002/);
+  assert.match(captured.note, /3 claim/);
+});
+
+test("D23(a): a non-verified item (quarantined) never reaches the changelog step at all", async () => {
+  const itemId = "item-7";
+  let called = false;
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "quarantined" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(called, false, "a quarantined item has nothing new to show a customer yet - no changelog row");
+  assert.equal(result.steps.some((s) => s.id === "item-7#changelog"), false);
+});
+
+test("D23(a): recordItemChange reporting 'already recorded' (idempotent re-run) is a non-failing outcome", async () => {
+  const itemId = "item-8";
+  const deps = successfulDeps({
+    recordItemChange: async () => ({ written: false, reason: "already recorded for this item and batch", row: null }),
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-8#changelog"].outcome, "changelog:skipped");
+  assert.match(byId["item-8#changelog"].error, /already recorded/);
+});
+
+test("D23(a): a thrown recordItemChange is caught and does not stop the item's other steps", async () => {
+  const itemId = "item-9";
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      throw new Error("db unreachable");
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-9#changelog"].outcome, "changelog_failed");
+  assert.match(byId["item-9#changelog"].error, /db unreachable/);
+  assert.equal(byId["item-9#grow"].outcome, "grown", "a thrown changelog step must not stop later steps");
+});
+
+test("D23(a): the real changelogClient adapter (built from `sb`) is only reached when deps.recordItemChange is NOT overridden", async () => {
+  // fakeSb() throws on any table other than intelligence_items (see its own header) - so if the
+  // production changelogClient were ever invoked against it (i.e. doRecordItemChange fell through to
+  // the real module-level recordItemChange instead of the test's override), this test would throw
+  // instead of asserting. Proven here by NOT overriding recordItemChange and using a `sb` that also
+  // answers item_changelog, confirming the adapter shape (findExisting -> boolean, insert -> {error}).
+  const itemId = "item-10";
+  let inserted = null;
+  const itemsChain = {
+    select() { return itemsChain; },
+    eq() { return itemsChain; },
+    async single() { return { data: { provenance_status: "verified" }, error: null }; },
+  };
+  const changelogChain = {
+    select() { return changelogChain; },
+    eq() { return changelogChain; },
+    async limit() { return { data: [], error: null }; },
+    async insert(row) {
+      inserted = row;
+      return { error: null };
+    },
+  };
+  const sb = {
+    from(table) {
+      if (table === "intelligence_items") return itemsChain;
+      if (table === "item_changelog") return changelogChain;
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb, allowBriefOverwrite: false, batch: "record-briefs-real", deps: successfulDeps({ recordItemChange: undefined }) },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-10#changelog"].outcome, "changelog:written");
+  assert.ok(inserted, "the real recordItemChange must have inserted through the sb-backed adapter");
+  assert.equal(inserted.item_id, itemId);
+  assert.equal(inserted.field, "full_brief");
+  assert.equal(inserted.new_value, "record-briefs-real");
+  assert.equal(inserted.detected_by, "record-briefs");
+});
+
+// Fix round 1 (review-l15.md, C2): the changelog write must never be decided from the read-back
+// provenance_status alone. An item can already be "verified" in the database from an earlier,
+// unrelated success while THIS run's own generate/section/ground steps all fail - that must never
+// record a false "brief regenerated" change.
+test("Fix round 1 (C2): item already verified in the DB, but this run's generate/section/ground all fail - NO changelog row is written", async () => {
+  const itemId = "item-11";
+  let called = false;
+  const deps = successfulDeps({
+    generateBriefFromInjected: async () => ({ ok: false, detail: "generate failed" }),
+    sectionBrief: async () => ({ ok: false, detail: "section failed" }),
+    groundBrief: async () => ({ ok: false, detail: "ground failed" }),
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    // fakeSb reports "verified" regardless of this run's own outcome - reproducing the reviewer's
+    // repro: the item was verified by an EARLIER, unrelated success, not by this run.
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(result.generated, false);
+  assert.equal(result.provenanceStatus, "verified");
+  assert.equal(
+    called,
+    false,
+    "recordItemChange must not be called when this run's own generate/section/ground all failed",
+  );
+  assert.equal(
+    result.steps.some((s) => s.id === "item-11#changelog"),
+    false,
+    "no changelog step should even be attempted",
+  );
+});
+
+test("Fix round 1 (C2): a fully successful run (generate, section and ground all ok this run, verified read-back) writes exactly one changelog row", async () => {
+  const itemId = "item-12";
+  let callCount = 0;
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      callCount += 1;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(callCount, 1, "recordItemChange must be called exactly once");
+  const changelogSteps = result.steps.filter((s) => s.id === "item-12#changelog");
+  assert.equal(changelogSteps.length, 1, "exactly one changelog step outcome is recorded");
+  assert.equal(changelogSteps[0].outcome, "changelog:written");
+});
+
+// Partial-success variants: only ONE of generate/section/ground failing this run must also refuse
+// the changelog write, since the plan text requires ALL THREE to have succeeded this run.
+test("Fix round 1 (C2): generate succeeds but ground fails this run - NO changelog row, even though provenance_status reads verified", async () => {
+  const itemId = "item-13";
+  let called = false;
+  const deps = successfulDeps({
+    groundBrief: async () => ({ ok: false, detail: "dominance guard refused" }),
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(called, false, "a ground failure this run must refuse the changelog write");
+  assert.equal(result.steps.some((s) => s.id === "item-13#changelog"), false);
 });

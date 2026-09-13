@@ -81,6 +81,7 @@
  */
 
 import { formatDate } from "@/lib/format";
+import { renderNowIso } from "@/lib/render-now";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
@@ -301,6 +302,7 @@ export default async function RegulationDetailPage({
         groupLabel={groupLabel}
         deck={deck}
         upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
+        nowIso={renderNowIso()}
       />
       {/* Lane OBLIG (2026-09-02) / PERF-10 (2026-09-04): this item's own obligation-register rows
           (migration 290 `obligations`, denormalized jurisdiction/mode/binding_position) — rendered as
