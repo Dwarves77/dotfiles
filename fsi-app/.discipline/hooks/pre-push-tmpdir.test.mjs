@@ -68,3 +68,43 @@ test("pre_push_make_log_dir: a single invocation creates a real, writable direct
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+// D19 (defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13): the tracked pre-push hook's own step 0 --
+// drives the REAL tracked file directly (never an installed copy), with DISCIPLINE_HOOK_TRAMPOLINE
+// deliberately absent from the child's environment, proving the hook refuses BEFORE doing anything else
+// (before reading stdin, before resolving REPO_ROOT, before any of the four numbered steps). Forward-slash
+// form for the same reason FRAGMENT above uses it: this path is interpolated into a POSIX `sh` argv.
+const PRE_PUSH_PATH = resolve(HERE, "pre-push").replaceAll("\\", "/");
+
+function runPrePushWithoutTrampoline() {
+  return new Promise((resolvePromise, reject) => {
+    // Start from the real process env, then delete the marker var explicitly -- setting it to undefined
+    // in the env object would otherwise be passed through as the literal string "undefined" by
+    // node:child_process on some platforms, which is not the same as the variable being unset.
+    const env = { ...process.env };
+    delete env.DISCIPLINE_HOOK_TRAMPOLINE;
+    const child = spawn("sh", [PRE_PUSH_PATH], { env, stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    child.on("error", reject);
+    child.on("close", (code) => resolvePromise({ code, stdout, stderr }));
+    // Close stdin immediately -- step 0 must refuse before the hook ever tries to read git's ref-update
+    // lines from it (a `git push` always provides a pipe here; an empty pipe proves step 0 runs first).
+    child.stdin.end();
+  });
+}
+
+test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE unset, exits 1 with the stale-copy message before doing anything else", async () => {
+  const { code, stderr, stdout } = await runPrePushWithoutTrampoline();
+  assert.equal(code, 1, `expected exit 1, got ${code}. stdout: ${stdout} stderr: ${stderr}`);
+  assert.match(
+    stderr,
+    /\[discipline pre-push\] STEP 0 FAIL: stale hook copy; run node fsi-app\/\.discipline\/install-hooks\.mjs/,
+  );
+  // "before doing anything else": none of the numbered steps' own OK lines may appear -- step 0 must be
+  // the only thing that ran.
+  assert.doesNotMatch(stdout, /step 1 \(untracked critical files\)/);
+  assert.doesNotMatch(stdout, /running 4-step CI-parity check/);
+});

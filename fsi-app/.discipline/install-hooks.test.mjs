@@ -14,11 +14,19 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { installHooks } from './install-hooks.mjs';
+import { installHooks, buildTrampoline } from './install-hooks.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// D19 (lane L12, defect-fix-plan-2026-09-12.md, 2026-09-13): the installer now writes a TRAMPOLINE for
+// each hook name, never a byte-for-byte copy of the tracked hook's own content -- every assertion below
+// that used to compare the installed file against the tracked hook's own source text now compares against
+// buildTrampoline(name) instead. SOURCE_HOOK_CONTENT (the tracked commit-msg hook's own text) is kept only
+// for the one test that still needs it: proving the installer never writes the RAW hook content anymore.
 const SOURCE_HOOK_PATH = join(__dirname, 'hooks', 'commit-msg');
 const SOURCE_HOOK_CONTENT = readFileSync(SOURCE_HOOK_PATH, 'utf-8');
+const COMMIT_MSG_TRAMPOLINE = buildTrampoline('commit-msg');
+const PRE_PUSH_TRAMPOLINE = buildTrampoline('pre-push');
 
 function makeTempHooksDir() {
   return mkdtempSync(join(tmpdir(), 'discipline-hooks-test-'));
@@ -32,14 +40,15 @@ function cleanup(dir) {
   }
 }
 
-test('installHooks: creates commit-msg hook in target dir on first run', () => {
+test('installHooks: creates commit-msg hook in target dir on first run, as a trampoline (not a copy)', () => {
   const dir = makeTempHooksDir();
   try {
     const report = installHooks({ hooksDir: dir, log: () => {} });
     const target = join(dir, 'commit-msg');
     assert.ok(existsSync(target), 'commit-msg should exist in target dir');
     const written = readFileSync(target, 'utf-8');
-    assert.equal(written, SOURCE_HOOK_CONTENT, 'written content must match source byte-for-byte');
+    assert.equal(written, COMMIT_MSG_TRAMPOLINE, 'written content must be the trampoline shape');
+    assert.notEqual(written, SOURCE_HOOK_CONTENT, 'D19: the installer must never write the raw hook content anymore');
     const commitMsg = report.find((r) => r.name === 'commit-msg');
     assert.ok(commitMsg, 'report should include commit-msg entry');
     assert.equal(commitMsg.action, 'created');
@@ -73,7 +82,7 @@ test('installHooks: backs up existing divergent hook and writes new one', () => 
     writeFileSync(target, stale, 'utf-8');
     const report = installHooks({ hooksDir: dir, log: () => {} });
     const written = readFileSync(target, 'utf-8');
-    assert.equal(written, SOURCE_HOOK_CONTENT, 'target should now hold discipline hook');
+    assert.equal(written, COMMIT_MSG_TRAMPOLINE, 'target should now hold the trampoline');
     const commitMsg = report.find((r) => r.name === 'commit-msg');
     assert.equal(commitMsg.action, 'replaced-with-backup');
     assert.ok(commitMsg.backupPath, 'a backup path should be reported');
@@ -125,7 +134,7 @@ test('installHooks: creates target directory if missing', () => {
   }
 });
 
-test('installHooks: installs pre-push hook alongside commit-msg', () => {
+test('installHooks: installs pre-push hook alongside commit-msg, as a trampoline that execs the tracked file', () => {
   const dir = makeTempHooksDir();
   try {
     const report = installHooks({ hooksDir: dir, log: () => {} });
@@ -135,11 +144,48 @@ test('installHooks: installs pre-push hook alongside commit-msg', () => {
     const targetPath = join(dir, 'pre-push');
     assert.ok(existsSync(targetPath), 'pre-push hook should be on disk after install');
     const content = readFileSync(targetPath, 'utf-8');
-    assert.match(content, /CI-parity gate/, 'pre-push hook content must be the discipline-engine version');
-    assert.match(content, /tsc --noEmit/, 'pre-push hook must include the tsc step');
+    assert.equal(content, PRE_PUSH_TRAMPOLINE, 'installed pre-push must be the trampoline, not the tracked hook itself');
+    // D19: the raw discipline-engine content (CI-parity gate steps) must NOT be present in the installed
+    // file anymore -- that content lives only in the tracked fsi-app/.discipline/hooks/pre-push, which the
+    // trampoline execs at run time.
+    assert.doesNotMatch(content, /CI-parity gate/);
+    assert.doesNotMatch(content, /tsc --noEmit/);
+    assert.match(content, /discipline trampoline/, 'installed content must be self-identifying as the trampoline');
+    assert.match(content, /DISCIPLINE_HOOK_TRAMPOLINE/, 'trampoline must set the marker variable step 0 checks for');
+    assert.match(content, /git rev-parse --show-toplevel/, 'trampoline must resolve the pushing worktree\'s own top level');
+    assert.match(content, /exec sh "\$top\/fsi-app\/\.discipline\/hooks\/pre-push" "\$@"/, 'trampoline must exec the TRACKED hook with args/stdin passed through');
   } finally {
     cleanup(dir);
   }
+});
+
+// D19's own explicit test: a *.test.mjs file sitting in the hooks dir alongside a real hook name must
+// never be installed -- the prior "copy every file" behaviour is what let L3's own
+// pre-push-tmpdir.test.mjs get copied into .git/hooks/pre-push-tmpdir.test.mjs.
+test("installHooks --dry-run: a source dir with pre-push plus a *.test.mjs file plans exactly one target, and its content is the trampoline shape", () => {
+  const sourceDir = makeTempHooksDir();
+  const targetDir = makeTempHooksDir();
+  try {
+    writeFileSync(join(sourceDir, 'pre-push'), '#!/bin/sh\necho real hook\n', 'utf-8');
+    writeFileSync(join(sourceDir, 'pre-push-tmpdir.test.mjs'), 'import test from "node:test";\n', 'utf-8');
+    const report = installHooks({ hooksDir: targetDir, sourceHooksDir: sourceDir, dryRun: true, log: () => {} });
+    assert.equal(report.length, 1, `expected exactly one planned target, got: ${JSON.stringify(report)}`);
+    assert.equal(report[0].name, 'pre-push');
+    assert.equal(report[0].action, 'would-create');
+    assert.equal(report[0].content, buildTrampoline('pre-push'), "the planned content must be the trampoline shape, not the source file's own content");
+    assert.equal(readdirSync(targetDir).length, 0, 'dry-run must write nothing to disk');
+  } finally {
+    cleanup(sourceDir);
+    cleanup(targetDir);
+  }
+});
+
+test('buildTrampoline: shape is a POSIX sh script that resolves the worktree top and execs the named tracked hook, passing stdin/args through', () => {
+  const content = buildTrampoline('pre-commit');
+  assert.match(content, /^#!\/bin\/sh\n/);
+  assert.match(content, /top=\$\(git rev-parse --show-toplevel\) \|\| exit 1/);
+  assert.match(content, /export DISCIPLINE_HOOK_TRAMPOLINE/);
+  assert.match(content, /exec sh "\$top\/fsi-app\/\.discipline\/hooks\/pre-commit" "\$@"/);
 });
 
 // task 0.3b fix round 1, 2026-09-11 ([CONFIRMED] by the coordinator with a throwaway repo): a hook
