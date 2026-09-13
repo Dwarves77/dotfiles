@@ -20,8 +20,18 @@
 // future (re-)generation regardless of provenance_status (see that function's own header); THIS
 // script is the one-time sweep that catches the corpus up for items that won't regenerate on their
 // own. Both use the exact same parser/normalizer pair, so neither can drift from the other:
-//   extractRegulationSections (§14 display parser, reused) → buildTimelineRows (precision-honest:
-//   a non-day token keeps its ORIGINAL form in the label; unparseable tokens are reported).
+//   extractRegulationSections (section 14 display parser, reused for regulatory_fact_document) OR
+//   findTimelineSectionFor + parseTimeline (the other four formats, D31) → buildTimelineRows
+//   (precision-honest: a non-day token keeps its ORIGINAL form in the label; unparseable tokens are
+//   reported).
+//
+// ALL FIVE FORMATS (D31, lane L20, defect-fix-plan-2026-09-12). Before D31 this sweep was scoped to
+// REG_FAMILY only (regulationSpec.itemTypes), so a market/research/operations/technology item could
+// never get a backfilled timeline from its own body. It now sweeps every item_type any FormatSpec
+// owns and locates each item's timeline section through the SAME per-format table the live harvest
+// and the record-briefs validator both import (src/lib/agent/formats/timeline-section.mjs's
+// TIMELINE_SECTION_BY_FORMAT / findTimelineSectionFor) -- one table, three callers, never a fourth
+// copy of "which section is the timeline."
 //
 // REPLACE RULE: an item's rows are replaced ONLY when the fresh parse yields ≥1 row (guarded
 // delete-then-insert, snapshots + read-back via scripts/lib/db.mjs). When the parse yields 0 rows,
@@ -29,11 +39,11 @@
 // reproduce. Wrong stored dates (DD-02) are corrected by the replace because the prose is the
 // audited source of truth.
 //
-// SAFETY: DRY-RUN by default; --execute writes. Scope: reg-family items with a full_brief
-// (any provenance — the timeline is display data derived from the brief; quarantined items get
-// correct timelines for when they recover). PURE PARSE — extractRegulationSections and
-// buildTimelineRows are zero-I/O string parsers over content already stored in full_brief; this
-// script calls no LLM and no external fetch. $0 at any scale.
+// SAFETY: DRY-RUN by default; --execute writes. Scope: any item_type a FormatSpec owns, with a
+// full_brief (any provenance -- the timeline is display data derived from the brief; quarantined
+// items get correct timelines for when they recover). PURE PARSE -- extractRegulationSections,
+// findTimelineSectionFor and buildTimelineRows are zero-I/O string parsers over content already
+// stored in full_brief; this script calls no LLM and no external fetch. $0 at any scale.
 //
 // BOUNDED AND RESUMABLE: --limit caps how many items get processed this run (order is by id, so a
 // second run continues where a first stopped via --after-id); --after-id resumes past the last id
@@ -59,10 +69,23 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { extractRegulationSections } = await jiti.import("../src/lib/agent/extract-regulation-sections.ts");
 const { buildTimelineRows } = await jiti.import("../src/lib/agent/timeline-harvest.mjs");
-// itemTypes sourced from the format registry itself (regulationSpec.itemTypes), never a second
-// hand-typed list that could drift from what sectionBrief actually treats as regulatory_fact_document.
+const { parseTimeline } = await jiti.import("../src/lib/agent/timeline-parse.mjs");
+const { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } = await jiti.import(
+  "../src/lib/agent/formats/timeline-section.mjs",
+);
+// The format registry itself (extract-registry.ts's specForItemType), never a second hand-typed
+// item_type list that could drift from what sectionBrief actually dispatches on. D31: every item_type
+// ANY FormatSpec owns is in scope now, not just the regulatory family -- TIMELINE_SECTION_BY_FORMAT
+// decides per-item whether a mapped timeline section exists.
+const { specForItemType } = await jiti.import("../src/lib/agent/extract-registry.ts");
 const { regulationSpec } = await jiti.import("../src/lib/agent/formats/regulation.ts");
-const REG_FAMILY = regulationSpec.itemTypes;
+const { researchSpec } = await jiti.import("../src/lib/agent/formats/research.ts");
+const { marketSpec } = await jiti.import("../src/lib/agent/formats/market.ts");
+const { technologySpec } = await jiti.import("../src/lib/agent/formats/technology.ts");
+const { operationsSpec } = await jiti.import("../src/lib/agent/formats/operations.ts");
+const ALL_TIMELINE_ITEM_TYPES = [regulationSpec, researchSpec, marketSpec, technologySpec, operationsSpec]
+  .filter((spec) => TIMELINE_SECTION_BY_FORMAT[spec.formatType])
+  .flatMap((spec) => spec.itemTypes);
 
 const EXECUTE = process.argv.includes("--execute");
 const itemFlag = process.argv.indexOf("--item");
@@ -84,14 +107,14 @@ async function main() {
 
   let items = await readAll("intelligence_items", "id, legacy_id, title, item_type, provenance_status, full_brief", {
     match: (q) => {
-      let qq = q.in("item_type", REG_FAMILY).not("full_brief", "is", null);
+      let qq = q.in("item_type", ALL_TIMELINE_ITEM_TYPES).not("full_brief", "is", null);
       if (ONLY_ITEM) qq = qq.eq("id", ONLY_ITEM);
       if (AFTER_ID) qq = qq.gt("id", AFTER_ID);
       return qq;
     },
   });
   if (LIMIT) items = items.slice(0, LIMIT);
-  console.log(`scope: ${items.length} reg-family items with a full_brief${LIMIT || AFTER_ID ? " (bounded)" : ""}\n`);
+  console.log(`scope: ${items.length} items (all 5 formats) with a full_brief${LIMIT || AFTER_ID ? " (bounded)" : ""}\n`);
 
   const existing = await readAll("item_timelines", "id, item_id");
   const existingByItem = new Map();
@@ -106,8 +129,21 @@ async function main() {
   for (const it of items) {
     let entries = [];
     try {
-      const sec = extractRegulationSections(it.full_brief)["14"];
-      entries = sec && sec.kind === "timeline" ? sec.entries : [];
+      // D31: locate through the same per-format table the live harvest and the record-briefs
+      // validator both read. regulatory_fact_document keeps its byte-for-byte pre-D31 path
+      // (extractRegulationSections's heading-only section-14 walk); the other four formats resolve their
+      // own mapped section via findTimelineSectionFor, then run the SAME parseTimeline the display
+      // parser uses internally.
+      const spec = specForItemType(it.item_type);
+      if (spec?.formatType === "regulatory_fact_document") {
+        const sec = extractRegulationSections(it.full_brief)["14"];
+        entries = sec && sec.kind === "timeline" ? sec.entries : [];
+      } else if (spec && TIMELINE_SECTION_BY_FORMAT[spec.formatType]) {
+        const section = findTimelineSectionFor(it.full_brief, spec.formatType);
+        entries = section ? parseTimeline(section.contentMarkdown) : [];
+      } else {
+        entries = [];
+      }
     } catch (e) {
       console.warn(`  PARSE-ERR ${it.id} (${(it.title || "").slice(0, 50)}): ${e.message}`);
       continue;
@@ -139,7 +175,7 @@ async function main() {
 
   console.log(`\n=== ${EXECUTE ? "DONE" : "DRY-RUN"} ===`);
   console.log(`filled (was empty): ${filled} · replaced (had rows): ${replaced} · timeline rows written: ${EXECUTE ? totalRows : `${totalRows} (would)`}`);
-  console.log(`date-free briefs (no §14 rows, none stored): ${empty} · unparseable tokens skipped: ${totalSkipped}`);
+  console.log(`date-free briefs (no timeline rows, none stored): ${empty} · unparseable tokens skipped: ${totalSkipped}`);
   if (items.length) console.log(`last id processed this run (for --after-id resume): ${items[items.length - 1].id}`);
   if (heldItems.length) {
     console.log(`\nHELD (stored rows kept — fresh parse produced 0; investigate, never silently destroy): ${heldItems.length}`);
