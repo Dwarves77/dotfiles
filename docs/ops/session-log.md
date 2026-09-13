@@ -71,6 +71,149 @@ the pushed c082d15a; PR not yet opened because GitHub GraphQL returned 502s).
    briefs next 50 ids). After L17: verdict fleet and ledger-consume apply.
 6. Not yet dispatched: L8 (D12), 7.6, 7.4d, 7.3 residue, ADR-030 rider, 6.3 re-measure, data_quality
    flag for the mistitled item 355af9e8.
+## 2026-09-13, W9 lane L19: overwrite replaces the prior ledger (D29); no synthesis cap on mechanical grounding (D30)
+
+`defect-fix-plan-2026-09-12.md`'s D29 (a record-briefs overwrite kept every prior claim the new,
+author-checked ledger did not reproduce, quarantining a regenerated item for claims its own new authoring
+had deliberately rejected) and D30 (the synthesis context cap quarantined a mechanically grounded brief
+whose span check never reads the synthesis window at all), worktree `wt-finishcode-0911`, branch
+`lane/w9-l19-overwrite-ledger-cap-2026-09-13`. This lane resumed an interrupted prior run: the ground and
+driver code, the D29 unit tests, the D30 ground skip, the D30 validator, and an authored (not-applied)
+migration were already uncommitted in the tree; this session verified each against the plan text and the
+dispatch brief, then closed the remaining deliverables (execution-wiring the D30 golden proof, the docs)
+and committed the whole lane.
+
+**D29 (`src/lib/agent/ledger-apply.mjs`, `src/lib/agent/canonical-pipeline.ts`,
+`scripts/turns/apply-record-briefs.mjs`).** `applyLedgerDiff`'s new `opts.replaceLedger` (default `false`,
+byte-for-byte today's behaviour) archives a NOT-REPRODUCED prior claim to `claim_versions`
+(`supersede_reason='superseded_by_record_briefs'`, the batch id in the new `note` column, migration 321 --
+authored, NOT YET APPLIED, no DB access in this worktree) instead of keeping it current, then deletes the
+current `section_claim_provenance` row; fail-closed on an archive-write failure (the claim falls back to
+kept-not-reproduced, never dropped without a durable prior-state record). `groundBriefImpl` threads
+`opts.replaceLedger`/`opts.batchId` into `applyLedgerDiff` only when BOTH `injected` and
+`opts.replaceLedger===true` are true (`doReplaceLedger`), so a bare `replaceLedger` on the metered path is
+a no-op, never a live hazard. `applyOneEntry` passes `replaceLedger: allowBriefOverwrite` and `batchId:
+raw.batch` (the file's own required `batch` field, `schema.mjs` line 933) to `groundBrief`. The run log now
+names the archived count in the existing non-destructive-ground line (`archived N prior claim(s)
+(superseded_by_record_briefs)`), folded into the existing gain/no-gain lines rather than a third one.
+
+**D30 (`canonical-pipeline.ts`, `scripts/turns/record-briefs/schema.mjs`).** `groundBriefImpl` now builds
+`groundSrc`/`preparedSecs`/`user` (the synthesis window feeding the paid Sonnet ledger-extraction call)
+only `if (!injected)`; on the injected path they keep safe empty defaults, no `buildSourceBlocks` call, no
+`recordTruncation` call, no ceiling wall, no truncation-guard flag -- the `??` at
+`claims = injected ?? extractClaimLedgerLenient(...)` already short-circuited the Sonnet call on this path,
+so the paid path's own inputs are unchanged. The validator's new numeric-figure mirror
+(`NUMERIC_FIGURE_RE`/`normalizeFigure`/`numericFiguresIn` in `schema.mjs`, `RECORD_BRIEFS_SCHEMA_VERSION`
+bumped to `rb1-2026-09-13.1`) refuses a FACT claim whose `claim_text` states a >=2-digit figure (currency/
+percent/thousands-separator/decimal tolerant) absent from that claim's own `source_span`, naming the
+figure -- a NAMED DIVERGENCE from `defect-signatures.mjs`'s own `extractNumbers`/`detectNumeric` (that pair
+strips the decimal point before comparing digits, which is fine for a mint-time SOFT hold but would
+false-positive a correctly cited decimal at this validator's hard pre-write refusal; this mirror's own
+`normalizeFigure` keeps the decimal point through the comparison).
+
+**Execution-wiring (rule 15).** The prior run's untracked `scripts/verify/injected-no-synthesis-window.
+golden.mjs` proves the `if (!injected)` guard structurally (balanced-brace isolation over
+`canonical-pipeline.ts` as text, comments stripped) and behaviorally (a real 2.3M-char
+`buildSourceBlocks` call over a floor-qualifying pool DOES raise `context-ceiling-wall(floor)`, confirming
+the guard removes a real would-fire flag, matching bec305e1's own 2,265,617-char primary). Verified this
+was ALREADY execution-wired, not merely tracked: `run-goldens.mjs` glob-discovers every `*.golden.mjs`
+under `scripts/verify/` by construction and is itself run by `.github/workflows/discipline.yml` -- no
+further wiring needed; ran it standalone (`node scripts/verify/injected-no-synthesis-window.golden.mjs`),
+16/16 checks PASS.
+
+**Tests.** `src/lib/agent/ledger-apply.test.mjs` (8 tests, D29's 5 new: default-keeps, replace-archives,
+replace-leaves-unchanged-claims-alone, fail-closed-on-archive-failure, plus a setup-sanity test), 8/8 pass.
+`scripts/turns/apply-record-briefs.test.mjs` (37 tests, D29's 2 new: `allowBriefOverwrite=true` threads
+`replaceLedger:true` + `batchId` into `groundBrief`'s opts, `allowBriefOverwrite=false` threads
+`replaceLedger:false`), 37/37 pass. `scripts/turns/record-briefs/record-briefs.test.mjs` (64 tests, D30's 4
+new: figure-absent-from-span refused naming the figure, figure-present passes, ISO-date component digits
+pass with no special case, decimal-point-preserved figure passes), 64/64 pass. `npx tsc --noEmit` from
+`fsi-app`: clean, zero errors.
+
+**Docs.** `scripts/turns/record-briefs/README.md`: "The six pre-write refusals" -> "The seven pre-write
+refusals", numeric-figure mirror added as refusal 7; the driver-behavior section ("What task 3.4's driver
+does with a validated file") gained a `replaceLedger` bullet naming the archive-not-keep behaviour, the
+`note`/batch-id write, and the fail-closed posture. This session-log entry is D29/D30's own closure record
+per the standing rule ("every defect closes with a mechanical guard and tests").
+
+**Deviation, reported per this lane's instructions (same class as L10's own entry above).** The dispatch's
+hard rule requires the trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`; this session's
+own system-level attribution instruction (stated to replace any earlier attribution guidance) requires
+`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` instead. Every commit in this lane uses the
+latter, for the same reason L10 gave: the system-level instruction is explicit that it supersedes
+guidance stated earlier, including a dispatch's own trailer line.
+
+**Findings.** [CONFIRMED] both D29 and D30's ground/driver code, and D29's unit tests, were already correct
+and complete on resume, verified by reading the diffs against the plan text and by running every touched
+test file green. [CONFIRMED] the D30 golden was already execution-wired via `run-goldens.mjs`'s glob (no
+hand list to update) and that runner's own CI step, contrary to the possibility the dispatch brief raised
+("if the golden file is meant as a proof, it must be execution-wired ... or converted into a node --test
+file") -- no conversion was needed. [CONFIRMED] migration 321 (`claim_versions.note` +
+`supersede_reason` CHECK widened to include `'superseded_by_record_briefs'`) is authored and idempotent but
+NOT applied in this worktree (no DB access here per the migration two-track policy); it must land via
+Supabase CLI before any `--allow-brief-overwrite` batch runs live.
+
+**Fix round 1 (2026-09-13, review verdict CONDITIONAL FAIL: C1, C2, I1, I2 addressed here; I3 is the
+coordinator's own push/rebase step, not this lane's).**
+
+- **C1** (`scripts/verify/executor-parity.golden.mjs`). D29's `doReplaceLedger` guard and D30's
+  `if (!injected)` synthesis-window skip are two more reads of the `injected` driver-identity variable that
+  the golden's allowlist never accounted for, so `run-goldens.mjs` failed on this branch
+  (`driver-identity referenced EXACTLY 4x ... found 6`) though neither addition changes the paid path.
+  Enumerated both as sanctioned divergences (d) and (e) in the same style as (a)/(b)/(c), and raised the
+  expected count from 4 to 6. Ran `node scripts/verify/run-goldens.mjs` from `fsi-app`: `passed: 14 | failed:
+  0 | skipped (no creds): 2 | total: 16`, "GOLDENS GREEN". Proved the guard by attack, not presence: added a
+  stray 7th `injected` reference to `canonical-pipeline.ts` in the working tree, reran
+  `executor-parity.golden.mjs` alone (`GOLDEN FAILED (1)`, the exact reference-count check), then restored
+  with `git checkout -- src/lib/agent/canonical-pipeline.ts` and reran (`GOLDEN PASSED`).
+- **C2** (`supabase/migrations/321_claim_versions_record_briefs_supersede.sql`,
+  `docs/inventories/migrations.md`). Migration 321 widened `claim_versions_supersede_reason_chk` but left
+  the sibling `claim_versions_proof_required` constraint (migration 210: `supersede_reason = 'changed' or
+  inaccuracy_proof is not null`) untouched -- `ledger-apply.mjs`'s replace-ledger archive writes
+  `supersede_reason='superseded_by_record_briefs'` with `inaccuracy_proof=null` (a deliberately-dropped
+  claim, not a proven-wrong one), which that constraint would reject on every real archive once applied
+  live, silently defeating D29 end to end (fail-closed catch keeps the claim current, reproducing the exact
+  quarantine symptom D29 exists to fix). Widened the constraint to
+  `check (supersede_reason in ('changed', 'superseded_by_record_briefs') or inaccuracy_proof is not null)`,
+  updated the migration header and the `docs/inventories/migrations.md` row for 321. Added
+  `src/lib/agent/claim-versions-321.test.mjs` (same text-based structural-SQL style as
+  `src/lib/supabase-server-recent-changes-319.test.mjs`, lane L15's migration-319 test): asserts both
+  constraints are drop-if-exists-then-re-add, asserts the widened membership set on each, and asserts the
+  two predicates together accept the exact payload `versionPayload` produces for a replace-ledger archive.
+  3/3 pass.
+- **I1** (`scripts/verify/injected-no-synthesis-window.golden.mjs`). The `doReplaceLedger` guard
+  (`!!injected && opts?.replaceLedger === true`) had zero mechanical coverage of its own two-condition
+  requirement -- `apply-record-briefs.test.mjs` proves what IT passes to `groundBrief`, never `groundBrief`'s
+  internal guard, and `groundBriefImpl` needs a live Supabase client to run so it cannot be driven by a
+  plain unit test. Added an attack-based structural check (rule 15: "a guard is proven by attack, not by
+  presence") to the D30 golden: extracts the guard's right-hand-side expression as source text and evaluates
+  it via `new Function` against every combination of `injected`/`opts.replaceLedger`, proving bare
+  `replaceLedger:true` with no injected ledger is refused, an injected ledger alone (no `replaceLedger`) stays
+  false, and only the conjunction of both is true. 6 new checks, all PASS inside
+  `node scripts/verify/injected-no-synthesis-window.golden.mjs` (23 checks total, "GOLDEN PASSED").
+- **I2** (`scripts/turns/record-briefs/schema.mjs`,
+  `scripts/turns/record-briefs/record-briefs.test.mjs`). The numeric-figure mirror's
+  `spanCore.includes(normalizeFigure(figure))` was a raw substring test against the whole (comma/whitespace-
+  stripped) span, so a claim citing "35" passed against a span carrying "3,500" (`normalizeFigure` collapses
+  "3,500" to "3500", and `"3500".includes("35")` is `true`) -- the reviewer's own repro. Fixed by extracting
+  every COMPLETE numeric-figure token from the span with the same `numericFiguresIn` extractor used on
+  `claim_text`, normalizing each, and requiring the claim's figure to equal one of the span's own complete
+  figures (a set-membership test) rather than merely appear as a substring of the concatenated span text.
+  Added both of the reviewer's repro cases to `record-briefs.test.mjs`: `claim_text` "35 EUR" against span
+  "the premium is EUR 3,500 per shipment" is refused, naming "35"; `claim_text` "3,500 EUR" against the same
+  span passes. All four pre-existing numeric-figure-mirror tests (mismatch, present, ISO-date, decimal) still
+  pass unchanged. `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: 66/66 pass.
+- **Verification run (this fix round).** `node --test src/lib/agent/ledger-apply.test.mjs
+  scripts/turns/apply-record-briefs.test.mjs scripts/turns/record-briefs/record-briefs.test.mjs
+  src/lib/agent/claim-versions-321.test.mjs`: 114/114 pass. `node scripts/verify/run-goldens.mjs`: 14 passed,
+  0 failed, 2 skipped (no creds), "GOLDENS GREEN". `npx tsc --noEmit` from `fsi-app`: clean. `node
+  .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`: "memory gate OK". Glyph check (em
+  dash/en dash/section-sign) restricted to lines added by this fix round's commits: 0 violations.
+  `git status --short`: clean except untracked `.superpowers/`.
+- **Not done in this fix round**: I3 (the branch's divergence from `origin/master`'s `session-log.md`, a
+  later `#671` merge this branch never rebased onto) is explicitly the coordinator's push-step reconciliation
+  per this dispatch, not reopened here. M1 and M2 were reviewed as "not a defect" / "intentional" findings
+  and carry no fix.
 
 ---
 

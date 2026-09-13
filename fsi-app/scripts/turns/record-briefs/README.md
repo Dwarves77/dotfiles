@@ -127,7 +127,7 @@ validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, er
 - Per-entry AND per-claim violations are collected across the WHOLE file in one pass (not stopped at the
   first bad entry), so a producer sees every problem at once.
 
-## The six pre-write refusals (task 6.1b + task 6.2b, fix round 1)
+## The seven pre-write refusals (task 6.1b + task 6.2b, fix round 1; numeric-figure mirror added D30, lane L19)
 
 A 10-item pilot batch (brief-apply run 34688130473) generated and sectioned cleanly, then quarantined
 10/10 at the ground step for defects the validator now catches before any grounding cost is spent.
@@ -291,6 +291,24 @@ source rather than writing something the ground step will quarantine anyway.
    absence sentence naming the articles/sections you actually checked, when the source genuinely gives you
    none.
 
+7. **Numeric-figure mirror (D30, defect-fix-plan-2026-09-12, lane L19).** A FACT claim's `claim_text` can
+   restate a number the ground step's own S-NUMERIC gate (`mint-gates.mjs`'s `perFactGates` ->
+   `defect-signatures.mjs`'s `detectNumeric`) would only catch AFTER a paid ground call -- real evidence:
+   4a108d70's S-NUMERIC soft hold, named in this lane's own dispatch brief. This mirror refuses the SAME
+   class of defect HERE, at author time: a significant number in `claim_text` (a digit run of two or more
+   digits, optionally currency-prefixed, percent-suffixed, thousands-separated, or carrying a decimal
+   point) that does not also appear in THAT SAME claim's own `source_span`, named per figure in the
+   refusal. An ISO date such as `2026-09-13` needs no special case -- its component digit runs pass on
+   their own terms whenever the date literal is genuinely present in the span. This is a NAMED DIVERGENCE
+   from `defect-signatures.mjs`'s own `extractNumbers`/`detectNumeric` (see `NUMERIC_FIGURE_RE`'s own
+   header comment in `schema.mjs`): that pair strips the decimal point along with other punctuation before
+   comparing digits, which is tolerable for a mint-time SOFT hold but would false-positive a correctly
+   cited decimal (`"3.5%"`) at this validator's HARD pre-write refusal, so this mirror's own
+   `normalizeFigure` keeps the decimal point through the comparison instead. **Authoring rule this
+   implies:** cite every figure in `claim_text` exactly as it appears in the claim's own `source_span`
+   (currency marks, percent signs, and thousands separators may differ; the digits and any decimal point
+   may not), or drop the figure from `claim_text` and let the span alone carry it.
+
 **The `allow_brief_overwrite` flag.** Task 3.3's own write site refuses to re-generate a non-`record`-grade
 item (an existing brief) unless `--allow-brief-overwrite` is passed explicitly; `.github/workflows/brief-
 apply.yml` carries an `allow_brief_overwrite` boolean input (default `false`) mapped to that flag. This
@@ -404,6 +422,16 @@ does with a verdict file" section documents `run-ledger-consume.mjs`'s side of t
   contract" above for where a lane gets the value it echoes back in `entries[].source_pool_hash`.
 - **`item_grade` gate -> per task 3.3's own brief**: refuses a non-`record`-grade item unless
   `--allow-brief-overwrite` is passed explicitly (existing briefs are re-generated only by explicit order).
+- **`replaceLedger` (D29, defect-fix-plan-2026-09-12, lane L19).** When `--allow-brief-overwrite` is set,
+  `applyOneEntry` (`apply-record-briefs.mjs`) passes `groundBrief(itemId, "brief-apply", { injectedLedger:
+  entry.claims, replaceLedger: true, batchId: <the file's own `batch` field> })`. This entry's claims are a
+  COMPLETE, author-checked ledger, not a partial re-extract, so a prior claim the entry does not reproduce
+  was deliberately left out by the author (below the floor / not verbatim) and is ARCHIVED to
+  `claim_versions` (`supersede_reason='superseded_by_record_briefs'`, the batch id in `note` -- migration
+  321) rather than kept current, per `ledger-apply.mjs`'s own "REPLACE-LEDGER EXCEPTION" header. A
+  reproduced prior claim is unchanged either way. Without `--allow-brief-overwrite`, `replaceLedger` is
+  `false` and the call is byte-for-byte the paid re-ground's own non-destructive apply (every not-reproduced
+  claim kept, re-grounds-never-destroy doctrine, migration 208).
 - Every validated entry flows into `generateBriefFromInjected(itemId, caller, { body, metadata,
   sourcePoolHash })` (task 3.3), which re-parses `body + frontmatter` through the SAME `parseAgentOutput`
   this validator already proved it against -- so a file that passes `validateRecordBriefsFile` is not

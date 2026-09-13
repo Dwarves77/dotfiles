@@ -1514,10 +1514,10 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
+export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
   return withTelemetry(() => groundBriefImpl(itemId, caller, opts));
 }
-async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
   // MODEL-TIER: the grounding model is opts.model (the Segment-0 A/B override) ?? the GROUND_MODEL knob.
   const groundModel = opts?.model ?? GROUND_MODEL;
   const sb = svc();
@@ -1534,6 +1534,14 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // ledger exactly as it judges a Sonnet one. The metered path is untouched for callers that do not inject.
   const injected = opts?.injectedLedger ?? null;
   if (!injected) assertAcquireAllowed(`ground: ${itemId}`, process.env);
+  // D29 (defect-fix-plan-2026-09-12, lane L19). --allow-brief-overwrite delivers a COMPLETE, author-checked
+  // ledger, not a partial re-extract: a prior claim it does not reproduce was DELIBERATELY left out (below
+  // the floor / not verbatim), so keeping it (the default not-reproduced behaviour, right for a paid
+  // re-ground) quarantined a regenerated item for claims its own new authoring rejected (evidence: batch 003
+  // apply run 34747318946, items 87ed781c/bec305e1/fabda0e7). replaceLedger only ever applies TOGETHER WITH
+  // an injected ledger -- a bare opts.replaceLedger on the metered path (no injectedLedger) is a caller
+  // error this line refuses to act on, so the paid re-ground path is byte-for-byte unchanged.
+  const doReplaceLedger = !!injected && opts?.replaceLedger === true;
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief, title, instrument_type, instrument_identifier, canonical_instrument_key, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
@@ -1782,19 +1790,34 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
       return { ...s, text: off.cleanBody || s.text, officialnessPath: off.path };
     })
     .filter((s) => s.officialnessPath === "a");
-  const groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
-    floorTier: itemFloor,
-    hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
-  });
-  await recordTruncation(sb, itemId, [...groundSrc.trims, ...groundSrc.ceilingWalls]);
-  // CATEGORY-2 FIX (size-cap doctrine, 2026-07-06): the section reaches the grounder COMPLETE (the old
-  // GROUND_SECTION_MAX_CHARS=12000 SILENTLY hid the back of every long section — a binding fact past 12KB was
-  // invisible). A pathological section OVER the hard ceiling is SURFACED (coverage_gap flag), never silent.
-  const preparedSecs = secs.map((s) => ({ s, p: prepareSectionForGrounding(s.content_md) }));
-  await recordTruncation(sb, itemId, preparedSecs.filter((x) => x.p.truncated).map((x) => ({ url: `section:${x.s.section_key}`, collected: x.p.cap, fullLength: x.p.fullLength, cap: x.p.cap, transport: "section-ceiling" })));
-  // PROMPT-CACHE (Phase-3a): the source pool rides the cached first system block (callSonnet's third
-  // arg), not this user message — retries / re-grounds over the same pool read the prefix at 0.1×.
-  const user = `BRIEF SECTIONS:\n${preparedSecs.map(({ s, p }) => `### SECTION ${s.section_key}\n${p.text}`).join("\n\n")}\n\nCopy spans VERBATIM from the SOURCE CONTENT reference corpus in your system context.`;
+  // D30 (defect-fix-plan-2026-09-12, lane L19). groundSrc/preparedSecs/user exist ONLY to feed the paid
+  // Sonnet ledger-extraction call a few lines below (`claims = injected ?? extractClaimLedgerLenient(await
+  // callSonnet(system, user, groundSrc.blocks, groundModel))`) -- `??` short-circuits that whole call when
+  // `injected` is truthy, so on the injected path this build was PURE WASTE (a 2,265,617-char primary,
+  // bec305e1) that ALSO raised a truncation-guard integrity_flag + quarantine reason for a synthesis window
+  // this path never reads: SYNTH_INPUT_BUDGET_CHARS is a SYNTHESIS-window cap, and the injected path's own
+  // span check below (the `kept` filter's `excByUrl`/`allText`) reads `fetched` directly -- the FULL,
+  // untruncated stored capture (ADR-016), not this window. Skip the whole build when injected: no synthesis
+  // blocks, no ceiling wall, no truncation-guard flag on this path. The paid (non-injected) path computes
+  // exactly what it always did, unchanged.
+  let groundSrc: { blocks: string; trims: TruncEvent[]; ceilingWalls: TruncEvent[] } = { blocks: "", trims: [], ceilingWalls: [] };
+  let preparedSecs: Array<{ s: (typeof secs)[number]; p: ReturnType<typeof prepareSectionForGrounding> }> = [];
+  let user = "";
+  if (!injected) {
+    groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
+      floorTier: itemFloor,
+      hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
+    });
+    await recordTruncation(sb, itemId, [...groundSrc.trims, ...groundSrc.ceilingWalls]);
+    // CATEGORY-2 FIX (size-cap doctrine, 2026-07-06): the section reaches the grounder COMPLETE (the old
+    // GROUND_SECTION_MAX_CHARS=12000 SILENTLY hid the back of every long section -- a binding fact past 12KB was
+    // invisible). A pathological section OVER the hard ceiling is SURFACED (coverage_gap flag), never silent.
+    preparedSecs = secs.map((s) => ({ s, p: prepareSectionForGrounding(s.content_md) }));
+    await recordTruncation(sb, itemId, preparedSecs.filter((x) => x.p.truncated).map((x) => ({ url: `section:${x.s.section_key}`, collected: x.p.cap, fullLength: x.p.fullLength, cap: x.p.cap, transport: "section-ceiling" })));
+    // PROMPT-CACHE (Phase-3a): the source pool rides the cached first system block (callSonnet's third
+    // arg), not this user message -- retries / re-grounds over the same pool read the prefix at 0.1x.
+    user = `BRIEF SECTIONS:\n${preparedSecs.map(({ s, p }) => `### SECTION ${s.section_key}\n${p.text}`).join("\n\n")}\n\nCopy spans VERBATIM from the SOURCE CONTENT reference corpus in your system context.`;
+  }
   let claims;
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
   // the whole ledger (the 0-FACT quarantine on rich synthesised briefs). The kept-filter + the gate
@@ -2039,7 +2062,13 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     const { error: gaErr } = await sb.from("item_gate_a_state").upsert(gateARow, { onConflict: "intelligence_item_id" });
     if (gaErr) console.warn(`[gate-a] state upsert failed for ${itemId}: ${gaErr.message}`);
   }
-  const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), { nowIso: new Date().toISOString() });
+  const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), {
+    nowIso: new Date().toISOString(),
+    // D29: archive (never keep) a not-reproduced prior claim when this is a record-briefs overwrite -- see
+    // doReplaceLedger's own comment above and ledger-apply.mjs's "REPLACE-LEDGER EXCEPTION" header.
+    replaceLedger: doReplaceLedger,
+    batchId: opts?.batchId ?? null,
+  });
   // PHANTOM-COVERAGE RECONCILE (audit finding 16, CONFIRMED then fixed 2026-08-09).
   // The Gate-A upsert above is computed from the IN-MEMORY claim set and runs BEFORE these
   // writes — deliberately, so criterion 7 never sees missing state. But claim inserts are
@@ -2078,10 +2107,14 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   }
   const currentIds = applyRes.currentIds;
   gateFacts.push(...applyRes.touchedFacts);
-  if (applyRes.applied.added === 0 && applyRes.applied.changed === 0) {
+  // D29: name the archived-prior-claim count per item, always -- "the run log names the archived count per
+  // item" (dispatch brief). Folded into the existing NO-GAIN/gain lines rather than a third log line, so a
+  // replace-ledger apply that only archived (0 added, 0 changed) still reports LOUDLY, never as "NO GAIN".
+  const archivedNote = doReplaceLedger ? `; archived ${applyRes.applied.archived} prior claim(s) (superseded_by_record_briefs)` : "";
+  if (applyRes.applied.added === 0 && applyRes.applied.changed === 0 && applyRes.applied.archived === 0) {
     console.log(`[canonical] non-destructive ground ${itemId}: NO GAIN (${applyRes.applied.unchanged} unchanged, ${applyRes.applied.notReproduced} kept-not-reproduced); prior ledger untouched`);
   } else {
-    console.log(`[canonical] non-destructive ground ${itemId}: +${applyRes.applied.added} added, ${applyRes.applied.changed} versioned-changed, ${applyRes.applied.unchanged} unchanged, ${applyRes.applied.notReproduced} kept (${applyRes.applied.versioned} archived to claim_versions)`);
+    console.log(`[canonical] non-destructive ground ${itemId}: +${applyRes.applied.added} added, ${applyRes.applied.changed} versioned-changed, ${applyRes.applied.unchanged} unchanged, ${applyRes.applied.notReproduced} kept (${applyRes.applied.versioned} archived to claim_versions)${archivedNote}`);
   }
   // MINT-GATE LIVE HOLD (hardening A1 flip). The four gates run over the FACTs this ground ADDED or CHANGED
   // (touchedFacts; unchanged/not-reproduced FACTs were already gated on their prior ground). S-CONFLATE = HARD
