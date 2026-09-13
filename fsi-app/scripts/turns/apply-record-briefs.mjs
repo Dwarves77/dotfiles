@@ -379,14 +379,15 @@ export async function importLinkItemEntities(specifier = ENTITIES_MODULE_SPECIFI
  * vocabulary against pure fakes, deterministically and fast, while the real production call (from `main()`,
  * no `deps` passed) is byte-identical to before this round.
  * @param {{itemId:string, entry:object}} planned
- * @param {{sb:object, allowBriefOverwrite:boolean, batch?:string, deps?: Partial<{
+ * @param {{sb:object, allowBriefOverwrite:boolean, batch?:string, batchId?:string|null, deps?: Partial<{
  *   generateBriefFromInjected:Function, sectionBrief:Function, groundBrief:Function, growSources:Function,
  *   recordFlywheelDefect:Function, runDiscoveryStep:Function, runForwardEventsStep:Function,
  *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function, recordItemChange:Function
- * }>}} ctx
+ * }>}} ctx `batchId` (D29, defect-fix-plan-2026-09-12): the record-briefs file's own `batch` field,
+ *   threaded through to groundBrief's `opts.batchId` (recorded on every replace-ledger archive's `note`).
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
  */
-export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, batch = "unbatched", deps = {} }) {
+export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, batch = "unbatched", batchId = null, deps = {} }) {
   const needsPipeline = !(deps.generateBriefFromInjected && deps.sectionBrief && deps.groundBrief && deps.growSources);
   const pipeline = needsPipeline ? await loadPipeline() : null;
   const generateBriefFromInjected = deps.generateBriefFromInjected ?? pipeline.generateBriefFromInjected;
@@ -457,10 +458,15 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   }
 
   // 3. ground (injected ledger - the metered acquire-lock gate does not apply, see groundBrief's own
-  //    CC-GROUNDING-EXECUTOR SEAM header) ───────────────────────────────────────────────────────────────
+  //    CC-GROUNDING-EXECUTOR SEAM header). D29 (defect-fix-plan-2026-09-12): --allow-brief-overwrite means
+  //    this entry's claims ARE the complete, author-checked ledger for the item - replaceLedger:true tells
+  //    groundBrief to archive (not keep) a prior claim the entry does not reproduce, per its own
+  //    "REPLACE-LEDGER EXCEPTION" doctrine comment (canonical-pipeline.ts / ledger-apply.mjs); batchId
+  //    names the record-briefs batch on every archive this ground writes. Without allowBriefOverwrite this
+  //    is byte-for-byte today's call. ─────────────────────────────────────────────────────────────────
   let grounded = false;
   try {
-    const r = await groundBrief(itemId, "brief-apply", { injectedLedger: entry.claims });
+    const r = await groundBrief(itemId, "brief-apply", { injectedLedger: entry.claims, replaceLedger: allowBriefOverwrite, batchId });
     grounded = r.ok === true;
     record("ground", r.ok ? "grounded" : "ground_failed", r.ok ? null : r.detail);
   } catch (e) {
@@ -718,7 +724,8 @@ async function main() {
         console.log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
         continue;
       }
-      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch });
+      // batchId (D29): the record-briefs file's own  field, named on every replace-ledger archive.
+      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch, batchId: raw.batch ?? null });
       for (const step of result.steps) perItem.push(step);
       if (!result.generated) {
         metrics.generate_failed += 1;
