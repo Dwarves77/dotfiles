@@ -451,13 +451,31 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
           existing value per the spec. */}
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation">
+          {/* D24 (defect-fix-plan-2026-09-12.md, part (f)): iOS Safari's 100vh is the LAYOUT
+              viewport (as if the browser toolbar were hidden), taller than what is actually
+              visible once the toolbar is shown: a `position: fixed` panel sized to 100vh then has
+              its bottom rows (the footer's Account/Admin rows) sitting under the toolbar,
+              unreachable and unscrollable (the panel's OWN content fits inside its own declared
+              height, so overflow-y-auto has nothing to scroll, the box itself is just taller than
+              the screen). `100dvh` (dynamic viewport height) tracks the toolbar and fixes this;
+              `100vh` stays as the fallback for a browser with no `dvh` support, declared FIRST so
+              `dvh` (declared last) wins wherever it is understood. `env(safe-area-inset-bottom)`
+              keeps the footer clear of the home-indicator gesture bar on notched devices. No row
+              reordering (the mobile spec's DRAWER section binds): Account then Admin, unchanged. */}
+          <style>{`
+            .cl-mobile-drawer-panel {
+              height: 100vh;
+              height: 100dvh;
+              padding-bottom: env(safe-area-inset-bottom);
+            }
+          `}</style>
           <div
             className="fixed inset-0"
             style={{ backgroundColor: "rgba(26,26,26,.3)" }}
             onClick={onDrawerClose}
           />
           <aside
-            className="fixed top-0 left-0 flex flex-col h-screen overflow-y-auto"
+            className="cl-mobile-drawer-panel fixed top-0 left-0 flex flex-col overflow-y-auto"
             style={{ width: 288, background: "var(--card)", borderRight: "1px solid var(--line-1)" }}
           >
             <BandGradientRule counts={gradientCounts} />

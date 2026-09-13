@@ -138,3 +138,48 @@ test("the OWNER badge carries dc.html p1's own measures: 9.5px / 700 / .08em in 
   assert.match(SOURCE, /fontSize: 9\.5,\s*\n\s*fontWeight: 700,\s*\n\s*letterSpacing: "0\.08em",/);
   assert.match(SOURCE, /border: "1px solid rgba\(0,0,0,\.2\)",\s*\n\s*borderRadius: 4,/);
 });
+
+// ── D24 (defect-fix-plan-2026-09-12.md, part (f)): the operator cannot reach Admin on mobile ─────
+//
+// iOS Safari's 100vh is the LAYOUT viewport (as if the toolbar were hidden), taller than what is
+// actually visible once the toolbar shows: the drawer's footer (Account, then the Admin row for
+// owner/admin roles) sat under the toolbar, unreachable (operator screenshot: Account was the last
+// VISIBLE row). No JSX render harness exists in this repo (see this file's own header and
+// WatchButton.npmtest.mjs): these are source-text regression tests, the same discipline every
+// other test in this file already uses.
+
+test("D24: the mobile drawer panel declares BOTH 100vh and 100dvh (dvh declared last, so it wins where supported), plus a safe-area-inset-bottom", () => {
+  const styleBlockMatch = SOURCE.match(/\.cl-mobile-drawer-panel \{[\s\S]*?\}/);
+  assert.ok(styleBlockMatch, "expected a .cl-mobile-drawer-panel CSS rule");
+  const rule = styleBlockMatch[0];
+  const vhIndex = rule.indexOf("height: 100vh;");
+  const dvhIndex = rule.indexOf("height: 100dvh;");
+  assert.ok(vhIndex !== -1, "100vh fallback must be present");
+  assert.ok(dvhIndex !== -1, "100dvh must be present");
+  assert.ok(dvhIndex > vhIndex, "100dvh must be declared AFTER 100vh so it wins the cascade where supported");
+  assert.match(rule, /padding-bottom: env\(safe-area-inset-bottom\);/);
+});
+
+test("D24: the mobile drawer's <aside> uses the .cl-mobile-drawer-panel class and no longer carries the buggy vh-only h-screen class", () => {
+  const drawerAsideMatch = SOURCE.match(/<aside\s+className="[^"]*cl-mobile-drawer-panel[^"]*"/);
+  assert.ok(drawerAsideMatch, "the drawer <aside> must carry the cl-mobile-drawer-panel class");
+  assert.doesNotMatch(drawerAsideMatch[0], /h-screen/, "the old 100vh-only Tailwind class must be gone from this element");
+});
+
+test("D24: the desktop nav card's own h-screen-free layout (align-self: stretch) is untouched by this fix, only the mobile drawer's sizing changed", () => {
+  // Regression guard against the fix leaking into (or being scoped too broadly onto) the OTHER
+  // <aside> this file renders (the desktop nav card, item 4.2's own test above).
+  assert.doesNotMatch(SOURCE, /cl-mobile-drawer-panel[\s\S]{0,50}alignSelf: "stretch"/);
+});
+
+test("D24: no row reordering, the drawer's footer is the SAME shared footer() function the desktop card uses (Account, then the role-gated Admin row), proven by the pre-existing 'footer renders TWO rows' test above applying to both variants", () => {
+  // This is the existing cross-variant proof ("both rows apply to BOTH variants (one
+  // implementation)") restated by name for D24's own traceability: the fix changed the drawer
+  // <aside>'s CSS sizing only, never footer()'s own row order or content.
+  assert.match(SOURCE, /\{footer\("drawer"\)\}/);
+  const footerBlock = SOURCE.slice(SOURCE.indexOf("const footer = (variant"), SOURCE.indexOf("return (\n    <>"));
+  const accountIdx = footerBlock.indexOf(">Account<");
+  const adminIdx = footerBlock.indexOf(">Admin<");
+  assert.ok(accountIdx !== -1 && adminIdx !== -1);
+  assert.ok(adminIdx > accountIdx, "Admin must be defined after Account in the one shared footer() both variants render");
+});
