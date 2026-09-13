@@ -1,0 +1,58 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:3e2c4f2d0563eee1",
+  "run_id": "source-sweep-run-019",
+  "started_at": "2026-09-13T08:03:30.525Z",
+  "finished_at": "2026-09-13T08:03:31.936Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": false,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": true,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "walker=sitemap",
+    "check-coverage=true"
+  ],
+  "per_item": [],
+  "metrics": {
+    "mode": "dry",
+    "check_coverage": true,
+    "sources_total_all": 2571,
+    "sources_active_total": 1986,
+    "sitemap_walked_active": 371,
+    "sitemap_unwalked_active": 1615,
+    "walk_outcome_counts": {
+      "walked": 140,
+      "never_walked": 1615,
+      "feed_only": 120,
+      "no_sitemap": 90,
+      "bot_wall": 21
+    },
+    "feed_url_populated": 258
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-019.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}

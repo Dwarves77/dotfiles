@@ -1,0 +1,16 @@
+{
+  "coverageReport": {
+    "sourcesTotalAll": 2571,
+    "sourcesActiveTotal": 1986,
+    "sitemapWalkedActive": 371,
+    "sitemapUnwalkedActive": 1615,
+    "walkOutcomeCounts": {
+      "walked": 140,
+      "never_walked": 1615,
+      "feed_only": 120,
+      "no_sitemap": 90,
+      "bot_wall": 21
+    },
+    "feedUrlPopulated": 258
+  }
+}
