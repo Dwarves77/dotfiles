@@ -507,7 +507,18 @@ async function reDeriveZeroProposalTags(deps, flag, { execute, today = new Date(
   if (itemErr) return { status: "item_read_error", error: itemErr.message };
   if (!item) return { status: "item_not_found", error: `no intelligence_items row with id ${itemId}.` };
 
-  const derived = deriveTags(buildReDeriveInput(item));
+  // deps.deriveTags is an OPTIONAL test seam, defaulting to the real imported deriveTags for every
+  // production caller (CLI deps, tag-ratification.mjs's deps never set it, so live behavior is
+  // unchanged). Proof (fix round 1, review-l10.md): buildReDeriveInput's derivation-text set
+  // (full_brief + what_is_it + summary) is a literal SUBSET of itemOwnText's evidence-recheck set
+  // (title + what_is_it + summary + full_brief) -- a real KEYWORD_MAP-sourced medium candidate's
+  // evidence is therefore ALWAYS findable at decide time, and high-tier candidates bypass the evidence
+  // check entirely, so a "declined, evidence absent, tag in vocabulary" outcome cannot occur through
+  // the real deriveTags. The seam lets a test exercise the SAME decideTagProposals/buildMergePatch/
+  // buildDecisionNote aggregation this function runs, end to end through autoAdoptTags, for the
+  // declined-and-still-resolves branch, without weakening the real derivation for any real caller.
+  const derive = deps.deriveTags ?? deriveTags;
+  const derived = derive(buildReDeriveInput(item));
   const decisions = decideTagProposals(derived.proposals, item);
   const adopted = decisions.filter((d) => d.decision === "adopt");
   const merge = buildMergePatch(item, adopted);

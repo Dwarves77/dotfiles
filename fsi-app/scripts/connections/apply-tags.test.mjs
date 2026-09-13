@@ -632,6 +632,40 @@ test("autoAdoptTags (D15 part 1): a second run against the now-resolved flag ins
   assert.ok(!d2.calls.length);
 });
 
+test("autoAdoptTags (D15 part 1): the re-derivation's DECLINED branch, end to end -- a candidate in the vocabulary whose evidence is not in the item's own text declines and the flag still resolves, decision recorded in the note", async () => {
+  // PROOF (fix round 1, review-l10.md): buildReDeriveInput's derivation-text set is a literal SUBSET of
+  // itemOwnText's evidence-recheck set (see reDeriveZeroProposalTags's own comment), so a real
+  // KEYWORD_MAP-sourced medium candidate can never fail the evidence recheck -- empirically confirmed by
+  // running deriveTags/decideTagProposals over several real KEYWORD_MAP phrases, all of which adopt.
+  // This test therefore exercises the declined branch through the SAME decideTagProposals/
+  // buildMergePatch/buildDecisionNote aggregation reDeriveZeroProposalTags runs, end to end through the
+  // public autoAdoptTags entry point, using the deps.deriveTags test seam to supply a candidate whose
+  // tag ("ocean-bunkering") IS in the live closed vocabulary but whose evidence is NOT present in the
+  // item's own text -- the shape decideTagProposal's evidence check exists to catch.
+  const flag = zeroProposalFlag();
+  const item = {
+    id: "item-1", title: "Untitled record", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [],
+    full_brief: "Nothing about maritime fuel logistics is discussed here.",
+  };
+  const d = autoDeps({ flag, item });
+  d.deriveTags = () => ({
+    itemId: "item-1",
+    proposals: [{ field: "operational_scenario_tags", tag: "ocean-bunkering", evidence: "bunkering surcharge schedule", confidence: "medium" }],
+  });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "re_derived_no_change", "a fully-declined re-derivation writes nothing to the item but still resolves the flag");
+  assert.equal(r.outcome, "declined");
+  assert.equal(r.decisions.length, 1);
+  assert.equal(r.decisions[0].decision, "decline");
+  assert.match(r.decisions[0].reason, /not found/);
+  assert.deepEqual(r.merge.patch, {});
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem"), "a declined candidate is never written");
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1"));
+  const resolveCall = d.calls.find((c) => c[0] === "resolveFlag");
+  assert.match(resolveCall[2], /decided 1 \(adopted 0, declined 1\)/, "the declined decision is recorded in the resolution note");
+  assert.match(resolveCall[2], /DECISIONS_JSON/);
+});
+
 // ── Invariant: no residue stays open -- every combination of confidence/evidence decides and closes ────
 
 test("INVARIANT: autoAdoptTags never returns a status that leaves the flag open when the flag was decidable", async () => {

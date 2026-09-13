@@ -2128,7 +2128,9 @@ single open `flywheel-axis:item-anomaly` row had a detector with no reader that 
 - **Family 5 (drift and anomaly)**: `autoResolveDriftFlag` decides EVERY open source-drift flag: when the
   source's own observed output covers at least 20 items across at least 2 distinct calendar dates
   (`DRIFT_MIN_ITEMS`/`DRIFT_MIN_DISTINCT_DATES`; "runs" has no tracked column on `intelligence_items`, so
-  distinct `created_at` dates is the literal available proxy, named as a scoped interpretation), it adopts
+  distinct `created_at` dates is the literal available proxy, named as a scoped interpretation). Ruling
+  (fix round 1, review-l10.md): reading "runs" as distinct calendar dates of observation is accepted; no
+  behavior change. It adopts
   the observed distribution as the new `expected_output` (guarded update) and resolves the flag with the
   before/after values; below that sample it resolves with "insufficient sample, re-evaluated next run".
   Never left open either way; the proposer's own drift-proposing loop is unchanged (still opens the flag,
