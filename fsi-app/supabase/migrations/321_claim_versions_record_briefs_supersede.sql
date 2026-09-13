@@ -9,10 +9,19 @@
 -- groundBriefImpl's replaceLedger mode (src/lib/agent/canonical-pipeline.ts, via
 -- src/lib/agent/ledger-apply.mjs's applyLedgerDiff opts.replaceLedger) archives such a claim to
 -- claim_versions instead of leaving it current -- STILL NEVER A DELETE OF DATA: the archived row is the
--- claim's full prior state, exactly as retrievable as a 'changed' version. Two schema changes support it:
+-- claim's full prior state, exactly as retrievable as a 'changed' version. Three schema changes support it:
 --   (1) extend the supersede_reason vocabulary with 'superseded_by_record_briefs' (never remove a value);
 --   (2) add `note` (free text) for the record-briefs batch id apply-record-briefs.mjs stamps on every
---       archive it writes under this reason -- unused (null) for every other reason.
+--       archive it writes under this reason -- unused (null) for every other reason;
+--   (3) widen the sibling `claim_versions_proof_required` constraint (migration 210) so this new reason is
+--       exempt from carrying `inaccuracy_proof`, the same way 'changed' already is. Without this widening
+--       the constraint reads "any supersede_reason other than 'changed' requires inaccuracy_proof IS NOT
+--       NULL" -- ledger-apply.mjs's replace-ledger archive calls versionPayload(..., 'superseded_by_
+--       record_briefs', proof=null, ...) (a not-reproduced claim was DELIBERATELY dropped by the author,
+--       not proven wrong, so there is no "proof" object to carry), and every such insert would be rejected
+--       live -- exactly the symptom D29 exists to fix (batch 003 apply run 34747318946), because the
+--       fail-closed catch in ledger-apply.mjs keeps the claim current on any archive-write failure. Review
+--       finding C2 (2026-09-13), fix round 1.
 --
 -- Idempotent. AUTHORED, NOT YET APPLIED as of this lane (no DB access in this worktree; migration
 -- two-track policy, CLAUDE.md standing rule 3 -- schema DDL applies via Supabase CLI before the dependent
@@ -28,3 +37,10 @@ comment on column public.claim_versions.note is
 alter table public.claim_versions drop constraint if exists claim_versions_supersede_reason_chk;
 alter table public.claim_versions add constraint claim_versions_supersede_reason_chk
   check (supersede_reason in ('changed', 'proven_inaccurate', 'superseded_by_record_briefs'));
+
+-- Widen the proof-required sibling constraint (migration 210) so a replace-ledger archive is exempt from
+-- carrying inaccuracy_proof, the same way 'changed' already is -- a not-reproduced claim dropped by the
+-- author is deliberately-omitted, not proven-wrong, so there is no proof object to attach (review finding C2).
+alter table public.claim_versions drop constraint if exists claim_versions_proof_required;
+alter table public.claim_versions add constraint claim_versions_proof_required
+  check (supersede_reason in ('changed', 'superseded_by_record_briefs') or inaccuracy_proof is not null);
