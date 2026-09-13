@@ -353,6 +353,16 @@ jobs:
         # the glob) -- proves record-briefs/schema.mjs's mirrored per-format canonical section list stays
         # in exact sync with the real src/lib/agent/formats/*.ts registry, so that mirror's own drift
         # cannot go silent.
+        #
+        # scripts/maintenance/resolve-provisional-sources.npmtest.mjs and
+        # scripts/maintenance/backfill-format-type.npmtest.mjs ADDED 2026-09-13 (defect D22 fix + class
+        # fix, docs/plans/defect-fix-plan-2026-09-12.md, lane L9c): same reason as the two scripts/turns/
+        # entries above (fsi-app/scripts/** is outside the glob) -- these prove buildDeps() through the
+        # REAL import graph (real jiti load of a `@/lib/...`-aliased .ts module) with only db.mjs's
+        # write-client seam stubbed, the exact proof missing before D22: resolve-provisional-sources'
+        # own real buildDeps() had never executed against `main()`'s real orchestration in any test, so a
+        # wrapper arg-order bug (checkVerticalFitGate) and a `guardedInsert` return-shape bug
+        # (`inserted.id` vs `inserted.inserted.id`) both reached the first live apply run undetected.
         run: |
           set -u
           globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
@@ -366,7 +376,9 @@ jobs:
           fsi-app/scripts/lib/surface-registry.selftest.mjs
           fsi-app/src/lib/sources/reconcile.selftest.mjs
           fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs
-          fsi-app/scripts/turns/record-briefs/section-list-drift.npmtest.mjs"
+          fsi-app/scripts/turns/record-briefs/section-list-drift.npmtest.mjs
+          fsi-app/scripts/maintenance/resolve-provisional-sources.npmtest.mjs
+          fsi-app/scripts/maintenance/backfill-format-type.npmtest.mjs"
           files=$(printf '%s\n%s\n' "$globbed" "$named" | tr -s ' ' | sed '/^$/d')
           if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 

@@ -175,6 +175,31 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
   return summary;
 }
 
+/**
+ * Real DB + real extract-registry.ts wiring for `main()` -- EXPORTED (not left inline in the IS_MAIN
+ * block), the same 7.4c shape resolve-provisional-sources.mjs's own `buildDeps` and
+ * apply-classifications.mjs's own `buildRealDeps` use (D22 class fix, defect-fix-plan-2026-09-12.md,
+ * 2026-09-13: "every maintenance step that builds a deps object from real imports gets the same
+ * real-wiring test"). `specForItemType` here is a raw passthrough (never wrapped) because the real
+ * function's own one-argument contract (`specForItemType(itemType)`, src/lib/agent/extract-registry.ts)
+ * already matches the one-argument shape `planFormatTypeBackfill` calls it with -- unlike the D22 bug
+ * (checkVerticalFitGate's TWO-argument contract silently mismatched a ONE-argument call site), there is
+ * no argument-order gap here to wrap around. Prior to this lane, this function's real jiti-loaded import
+ * had never executed against `main()`'s real orchestration in any test (backfill-format-type.test.mjs's
+ * own header names this deliberately, to keep that file in the no-npm glob) -- see
+ * backfill-format-type.npmtest.mjs for the real-wiring proof.
+ */
+export async function buildDeps() {
+  const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
+  // Lazy, dynamic on purpose -- see this file's header for why a top-level jiti/.ts import would
+  // break the no-npm-ci discipline test job. Same alias shape scripts/verify/format-structure.mjs
+  // already uses against this exact module (extract-registry.ts).
+  const { createJiti } = await import("jiti");
+  const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
+  const { specForItemType } = await jiti.import("../../src/lib/agent/extract-registry.ts");
+  return { readAll, guardedUpdateByIds, specForItemType };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
   const { limit, afterId } = parseBatchArgs(process.argv.slice(2));
@@ -182,15 +207,6 @@ if (IS_MAIN) {
     step: "backfill-format-type",
     main: (opts, deps) => main({ ...opts, limit, afterId }, deps),
     needsDb: true,
-    buildDeps: async () => {
-      const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
-      // Lazy, dynamic on purpose -- see this file's header for why a top-level jiti/.ts import would
-      // break the no-npm-ci discipline test job. Same alias shape scripts/verify/format-structure.mjs
-      // already uses against this exact module (extract-registry.ts).
-      const { createJiti } = await import("jiti");
-      const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
-      const { specForItemType } = await jiti.import("../../src/lib/agent/extract-registry.ts");
-      return { readAll, guardedUpdateByIds, specForItemType };
-    },
+    buildDeps,
   });
 }

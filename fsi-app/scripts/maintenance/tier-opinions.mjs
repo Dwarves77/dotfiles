@@ -41,6 +41,8 @@
 // migration 309 extends the `opinion_source` CHECK constraint (091) to add the `'host_class_table'`
 // literal this step's writes use — `recordTierOpinion`'s `opinionSource` parameter (this lane) is the
 // only caller of that new literal.
+// REAL-DEPS GAP (D22 lane L9c, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): buildDeps builds a
+// raw supabase-js client outside db.mjs's seam; the test only fakes it -- apply arm untested against real deps.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hostOf } from "../lib/institution-key.mjs";

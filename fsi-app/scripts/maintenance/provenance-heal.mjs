@@ -69,6 +69,9 @@
 // posture (see this repo's other MAINT steps): a healing write is additive/reversible (nothing here
 // deletes or downgrades a row; the provenance-flip binding, ADR-017, only ever lets THIS path escalate
 // toward `verified`, never force it), not the single-named-id gate a blanket tag-apply needs.
+//
+// REAL-DEPS GAP (D22 lane L9c, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): buildHealDeps builds a
+// raw supabase-js client outside db.mjs's seam; no test exercises it -- apply arm untested against real deps.
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { main as healMain, parseSelection, loadRequiredSlots, computeItemTimeBudgetSeconds } from "../mint/heal-provenance.mjs";
