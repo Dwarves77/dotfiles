@@ -68,6 +68,7 @@ import { computeAnticipatedTargets } from "../../src/lib/connections/anticipate.
 import { diffThemes } from "../../src/lib/connections/theme-delta.mjs";
 import { detectSignalCandidates } from "../../src/lib/connections/signal-candidates.mjs";
 import { planSignalAdoption, planSignalFlagResolutions, buildPreResolvedSignalFlagRow } from "../../src/lib/connections/signal-confidence.mjs";
+import { buildResolvedReflectionRow, planResolvedReflectionInserts } from "../../src/lib/connections/coverage-reflection.mjs";
 import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
@@ -100,45 +101,38 @@ function writeClient() {
 }
 
 /**
- * Dedup-before-insert / resolve-if-stale integrity_flags reflection for ONE producer's namespace.
- * See file header — this is the U2 gap-reflection convention, generalized to gaps/anticipate/signals.
+ * D17 family 13 (defect-fix-plan-2026-09-12): coverage-gap (U2) and anticipated-coverage (U5) findings
+ * are product-scope reflections, not questions to a person -- every row this writes is born ALREADY
+ * RESOLVED (buildResolvedReflectionRow, src/lib/connections/coverage-reflection.mjs), so the dedup below
+ * is STATUS-AGNOSTIC (planResolvedReflectionInserts, same module): a still-reproducing finding whose row
+ * is already resolved must never be re-inserted as a duplicate on the next run. There is nothing to
+ * "resolve as stale" here (every row is resolved from birth). CORRECTED (fix round 1, review-l11.md):
+ * population-report.mjs carried NO entry for either namespace before this round -- it now has one (the
+ * "coverage-reflections" line, counting rows in both namespaces) added in the SAME commit as this
+ * correction, so these rows stay visible; see close-coverage-reflections.mjs for the one-time backlog
+ * this fix leaves behind (the rows opened before this fix landed).
  * @param {string} namespace - one of flag-namespaces.mjs's *_NAMESPACE constants
- * @param {Array<{subjectRef:string, row:object}>} fresh - `row` is the full integrity_flags insert
- *   payload for this finding (category, subject_type, subject_ref, description, recommended_actions,
- *   status:'open', created_by — created_by MUST be inside `namespace`, per the isolation contract).
- * @returns {Promise<{inserted:number, resolved:number, unchanged:number}>}
+ * @param {Array<{subjectRef:string, row:object}>} fresh - `row` is the finding shape
+ *   (category, subject_type, subject_ref, description, recommended_actions, created_by -- created_by
+ *   MUST be inside `namespace`, per the isolation contract); this function stamps status/resolved_*.
+ * @returns {Promise<{inserted:number, unchanged:number}>}
  */
-async function reflectFlags(namespace, fresh) {
-  const existingOpen = await readAll("integrity_flags", "id, subject_ref, created_by", {
-    match: (q) => q.eq("status", "open").like("created_by", `${namespace}%`),
+async function reflectResolvedFlags(namespace, fresh) {
+  const existingAny = await readAll("integrity_flags", "id, subject_ref, created_by", {
+    match: (q) => q.like("created_by", `${namespace}%`),
   });
-  const freshKeys = new Set(fresh.map((f) => `${f.subjectRef}|${f.row.created_by}`));
-  const existingKeys = new Set(existingOpen.map((r) => `${r.subject_ref}|${r.created_by}`));
-
-  const newRows = fresh.filter((f) => !existingKeys.has(`${f.subjectRef}|${f.row.created_by}`)).map((f) => f.row);
-  const staleIds = existingOpen.filter((r) => !freshKeys.has(`${r.subject_ref}|${r.created_by}`)).map((r) => r.id);
-
-  let inserted = 0, resolved = 0;
+  const nowIso = new Date().toISOString();
+  const resolvedFresh = fresh.map((f) => ({
+    subjectRef: f.subjectRef,
+    row: buildResolvedReflectionRow(f.row, "analyze-corpus.mjs", nowIso),
+  }));
+  const { newRows, unchanged } = planResolvedReflectionInserts(existingAny, resolvedFresh);
+  let inserted = 0;
   if (newRows.length) {
     const res = await guardedInsertMany("integrity_flags", newRows, { cite: CITE, select: "id" });
     inserted = res.inserted;
   }
-  if (staleIds.length) {
-    // IN-CHUNK (2026-09-04): chunked by id, never one `.in("id", <every id>)` GET. Backlog applies #24
-    // and #26 died here with `db.mjs snapshot read failed: TypeError: fetch failed` after the retry
-    // ladder: 1,317 open flywheel-signal flags live, and one unbounded id list puts every uuid in the
-    // request URL, past the gateway's header limit — not transient, so no retry can cure it. 100 ids
-    // is ~4 KB of URL; integrity_flags carries no per-row trigger cost, so the 10-row default tuned
-    // for intelligence_items is not needed here.
-    const res = await guardedUpdateByIds(
-      "integrity_flags",
-      staleIds,
-      { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: `${namespace} finding no longer detected in the latest analyze-corpus pass` },
-      { cite: CITE, select: "id", chunk: IN_CHUNK },
-    );
-    resolved = res.updated;
-  }
-  return { inserted, resolved, unchanged: fresh.length - newRows.length };
+  return { inserted, unchanged };
 }
 
 const startedAt = new Date().toISOString();
@@ -278,32 +272,38 @@ try {
     `dissolved=${themeDelta.summary.dissolved} appeared=${themeDelta.summary.appeared}.`,
   );
 
-  // Gap reflection (U2).
+  // Gap reflection (U2). D17 family 13 (defect-fix-plan-2026-09-12): a product-scope reflection, not a
+  // question to a person -- every row is born ALREADY RESOLVED (reflectResolvedFlags, above); the open
+  // backlog from before this fix is drained once, by close-coverage-reflections.mjs.
   const gapFindings = gaps.map((g) => ({
     subjectRef: g.subject_ref,
     row: {
       category: g.category, subject_type: g.subject_type, subject_ref: g.subject_ref,
       description: g.description, recommended_actions: g.recommended_actions,
-      status: "open", created_by: createdBy(GAP_NAMESPACE, g.type),
+      created_by: createdBy(GAP_NAMESPACE, g.type),
     },
   }));
-  const gapResult = await reflectFlags(GAP_NAMESPACE, gapFindings);
-  console.log(`GAPS REFLECTED: ${gapResult.inserted} opened, ${gapResult.resolved} resolved (${gapResult.unchanged} already open, unchanged).`);
+  const gapResult = await reflectResolvedFlags(GAP_NAMESPACE, gapFindings);
+  console.log(`GAPS REFLECTED: ${gapResult.inserted} new (already resolved) (${gapResult.unchanged} already on record, unchanged).`);
 
   // Anticipated-coverage reflection (U5). category reuses 'coverage_gap' — the closest existing legal
   // value (integrity_flags.category CHECK, migrations 048/050) — distinguished from U2's gaps by the
-  // ANTICIPATE_NAMESPACE created_by prefix, never by category.
+  // ANTICIPATE_NAMESPACE created_by prefix, never by category. D17 family 13: same already-resolved
+  // posture as the gap reflection above; the recommended_actions text no longer asks an operator to
+  // "confirm" anything (ADR-030 rider -- this is a visibility reflection, not a decision queue).
   const anticipateFindings = anticipated.map((t) => ({
     subjectRef: t.subject_ref,
     row: {
       category: "coverage_gap", subject_type: "system", subject_ref: t.subject_ref,
       description: t.description,
-      recommended_actions: ["Confirm whether dedicated coverage of this upcoming obligation is warranted before the date arrives."],
-      status: "open", created_by: createdBy(ANTICIPATE_NAMESPACE, t.reason),
+      recommended_actions: [
+        { action: "reflected_in_coverage_view", rationale: "anticipated coverage gap, surfaced for visibility; not an operator decision queue (ADR-030 rider, D17 family 13)" },
+      ],
+      created_by: createdBy(ANTICIPATE_NAMESPACE, t.reason),
     },
   }));
-  const anticipateResult = await reflectFlags(ANTICIPATE_NAMESPACE, anticipateFindings);
-  console.log(`ANTICIPATE REFLECTED: ${anticipateResult.inserted} opened, ${anticipateResult.resolved} resolved (${anticipateResult.unchanged} already open, unchanged).`);
+  const anticipateResult = await reflectResolvedFlags(ANTICIPATE_NAMESPACE, anticipateFindings);
+  console.log(`ANTICIPATE REFLECTED: ${anticipateResult.inserted} new (already resolved) (${anticipateResult.unchanged} already on record, unchanged).`);
 
   // Signal-candidate handling (L4) — only when --signals was passed; otherwise this namespace is left
   // untouched (no write call at all — a default run cannot resolve, insert into, or write edges from it).

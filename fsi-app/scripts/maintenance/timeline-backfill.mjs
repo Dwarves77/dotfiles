@@ -26,17 +26,28 @@
 // scripts/verify/population-report.mjs's own "timeline coverage" entry can read the reported/excluded set
 // back out).
 //
+// D17 FAMILY 12 (defect-fix-plan-2026-09-12, ruling table row 12, lane L11): step 1-6 above are now
+// followed by a SEVENTH, deterministic, last-resort step (timeline-backfill-derive.mjs's
+// extractCapturedDate): an item with no derivable instrument date carries a `captured` timeline row dated
+// at its stored capture's own searched_at (a real, dated event about the item -- when it was retrieved --
+// never presented as the instrument's own date; labelled and sort-ordered LAST via
+// CAPTURED_FALLBACK_SORT_ORDER). This step now REPORTS an undateable item only when it has NO usable
+// stored capture at all; that residual set is written ALREADY RESOLVED (informational, ADR-030 rider: no
+// open queue asks a person to act), and any PRIOR open "timeline-backfill" flag (from before this fix) is
+// resolved with the count of how many of its named ids now carry a timeline row.
+//
 // BOUNDED AND RESUMABLE: --limit / --after-id, the same idiom backfill-format-type.mjs and
 // retype-eu-decisions.mjs already use (parsed locally -- no other MAINT wrapper needs pagination flags of
 // its own, per backfill-format-type.mjs's own header note). Dry by default; --mode apply writes through
 // scripts/lib/db.mjs's guarded path (cite + snapshot + read-back).
-import { readAll, guardedInsert, hostOf } from "../lib/db.mjs";
+import { readAll, guardedInsert, guardedUpdate, hostOf } from "../lib/db.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 import {
   deriveTimelineFromMetadata,
   finalizeTimelineRow,
-  pickBestCaptureText,
+  pickBestCapture,
+  CAPTURED_FALLBACK_SORT_ORDER,
 } from "../../src/lib/agent/timeline-backfill-derive.mjs";
 
 export const CITE = Object.freeze({
@@ -66,21 +77,27 @@ const ITEM_COLUMNS = "id, title, item_type, source_url, instrument_identifier, c
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * @param {{ item: {id:string, title?:string|null, source_url?:string|null, instrument_identifier?:string|null, canonical_instrument_key?:string|null}, capturedText: string|null, forwardEvents: Array<object>, todayIso: string }} input
+ * @param {{ item: {id:string, title?:string|null, source_url?:string|null, instrument_identifier?:string|null, canonical_instrument_key?:string|null}, capturedText: string|null, bestCapture?: {searched_at?: string|null}|null, forwardEvents: Array<object>, todayIso: string }} input
  * @returns {{ id: string, step: string, row: object|null, attempts?: Array<object> }}
  */
-export function planTimelineBackfillItem({ item, capturedText, forwardEvents, todayIso }) {
+export function planTimelineBackfillItem({ item, capturedText, bestCapture, forwardEvents, todayIso }) {
   const { result, attempts } = deriveTimelineFromMetadata({
     title: item.title,
     sourceUrl: item.source_url,
     capturedText,
     identifier: item.instrument_identifier ?? item.canonical_instrument_key ?? null,
     forwardEvents,
+    bestCapture,
   });
   if (!result) {
     return { id: item.id, step: "undateable", row: null, attempts };
   }
-  const row = finalizeTimelineRow(result, todayIso, 0);
+  // Step 7 (D17 family 12, defect-fix-plan-2026-09-12): a `captured` row is deliberately ordered LAST
+  // (CAPTURED_FALLBACK_SORT_ORDER) so it never outranks a real derived milestone; every other step keeps
+  // sort_order 0 (this script writes at most one row per item, so 0 vs 999 is the only ordering that ever
+  // matters here -- see that constant's own header for why it still matters against a FUTURE row).
+  const sortOrder = result.source === "captured" ? CAPTURED_FALLBACK_SORT_ORDER : 0;
+  const row = finalizeTimelineRow(result, todayIso, sortOrder);
   return { id: item.id, step: result.source, row, attempts };
 }
 
@@ -102,6 +119,11 @@ export function partitionUndated(liveItems, timelineItemIds) {
  * Pure: the human-readable integrity_flags description for the run's undateable set (never invented --
  * every host/id named comes from the caller's own list). Capped host list for readability; the FULL id
  * list travels in recommended_actions[0].ids, not in this prose.
+ *
+ * D17 family 12 (defect-fix-plan-2026-09-12): with step 7 (the captured-date fallback) now live, an item
+ * only reaches this set when it carries NO usable stored capture at all (never even a `searched_at` to
+ * fall back on) -- a genuinely different, much rarer condition than the pre-fix "no deterministic date
+ * source" description named. The wording is updated to say so honestly.
  * @param {Array<{id:string, title?:string|null, host?:string|null}>} items
  * @returns {string}
  */
@@ -110,33 +132,96 @@ export function buildUndateableFlagDescription(items) {
   const hostSample = hosts.slice(0, 10).join(", ");
   const hostNote = hosts.length > 10 ? `${hostSample}, and ${hosts.length - 10} more` : hostSample;
   return (
-    `timeline-backfill: ${items.length} item(s) carry none of a title date, a Federal Register date path, ` +
-    "a legislation.gov.uk line, a forward event, or a dateline -- no derivation step could date them. " +
+    `timeline-backfill: ${items.length} item(s) carry no usable stored capture at all (no title date, ` +
+    "Federal Register date path, legislation.gov.uk line, forward event, dateline, or even a captured-" +
+    "date fallback -- step 7 needs a capture's own searched_at, and none exists). " +
     `Hosts: ${hostNote || "(none resolvable)"}. Full id list in this flag's recommended_actions[0].ids.`
   );
 }
 
 /**
- * Builds the integrity_flags insert row for the run's undateable set. Pure.
+ * Builds the integrity_flags row for the run's undateable set. D17 family 12 (defect-fix-plan-2026-09-12):
+ * this is no longer an OPEN ask for a person to do manual research -- ADR-030 rider forbids a queue that
+ * requires a human click to resolve, and there is nothing derivable here for a person to look up that a
+ * later capture pass would not also resolve mechanically. Written ALREADY RESOLVED, informational only,
+ * the same "record stays, queue empties" posture close-run-logs.mjs and analyze-corpus.mjs's coverage
+ * reflections use. Pure.
  * @param {Array<{id:string, title?:string|null, host?:string|null}>} items
  * @returns {object}
  */
 export function buildUndateableFlagRow(items) {
+  const nowIso = new Date().toISOString();
   return {
     ...UNDATEABLE_FLAG_CITE,
     description: buildUndateableFlagDescription(items),
     recommended_actions: [
       {
-        action: "manual_research_or_source_review",
+        action: "no_capture_to_derive_from",
         rationale:
-          "no deterministic date source was found; research the instrument's own date (or accept it as " +
-          "genuinely undated content, e.g. a portal/register page) before this item is excluded from " +
-          "population-report's timeline-coverage count.",
+          "no stored capture exists to derive even the step-7 captured-date fallback; informational only " +
+          "(ADR-030 rider: no open queue asks a person to act) -- the item is dated automatically once a " +
+          "real capture pass (acquire-primaries' successor paths, provenance-heal) gives it one.",
         ids: items.map((i) => i.id),
       },
     ],
-    status: "open",
+    status: "resolved",
+    resolved_at: nowIso,
+    resolved_by: "timeline-backfill",
+    resolution_note: "no derivable capture; informational record, not a manual-research ask (D17 family 12)",
   };
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Resolving a PRIOR run's open undateable flag (D17 family 12). Before this fix, timeline-backfill.mjs
+// wrote a fresh OPEN flag naming a "manual_research_or_source_review" ask every apply run; step 7 now
+// dates almost every one of those ids automatically on the very next run (their item_timelines row is
+// simply the normal `written` outcome above -- no second mechanism). An open flag from before this fix
+// is resolved here with the count: how many of its named ids now carry a timeline row, and how many
+// (genuinely no stored capture at all) still do not.
+// ---------------------------------------------------------------------------------------------------
+
+/** Pure: the ids named in one open flag row's recommended_actions[].ids (never guesses beyond what the
+ *  row itself carries). @param {{recommended_actions?: Array<{ids?: string[]}>}} row @returns {string[]} */
+export function idsFromUndateableFlagRow(row) {
+  const ids = new Set();
+  for (const action of Array.isArray(row?.recommended_actions) ? row.recommended_actions : []) {
+    if (!Array.isArray(action?.ids)) continue;
+    for (const id of action.ids) if (typeof id === "string" && id) ids.add(id);
+  }
+  return [...ids];
+}
+
+/**
+ * Pure: for each prior open flag row, split its named ids into now-dated (a timeline row exists for
+ * them, from any source -- step 7 or a real derivation) vs still-undateable (no capture at all, even
+ * after this run). `datedIds` is the caller's own union of item_timelines.item_id after this run's
+ * writes. Never mutates; the caller applies the resolution.
+ * @param {Array<{id:string, recommended_actions?: Array<{ids?: string[]}>}>} openFlagRows
+ * @param {Set<string>|string[]} datedIds
+ * @returns {Array<{id:string, total:number, now_dated:number, still_undateable:number, still_undateable_ids:string[]}>}
+ */
+export function planUndateableFlagResolution(openFlagRows, datedIds) {
+  const dated = datedIds instanceof Set ? datedIds : new Set(datedIds ?? []);
+  return (openFlagRows ?? []).map((row) => {
+    const ids = idsFromUndateableFlagRow(row);
+    const stillUndateable = ids.filter((id) => !dated.has(id));
+    return {
+      id: row.id,
+      total: ids.length,
+      now_dated: ids.length - stillUndateable.length,
+      still_undateable: stillUndateable.length,
+      still_undateable_ids: stillUndateable,
+    };
+  });
+}
+
+/** Pure: the resolution_note for one prior flag's resolution plan entry. */
+export function buildUndateableFlagResolutionNote(plan) {
+  return (
+    `D17 family 12 (defect-fix-plan-2026-09-12): step 7 (captured-date fallback) now dates ${plan.now_dated} ` +
+    `of the ${plan.total} previously-undateable item(s) named in this flag; ${plan.still_undateable} remain ` +
+    "genuinely uncaptured (no stored capture at all) -- carried forward in the fresh undateable flag, if any."
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -179,13 +264,15 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
   const byStep = {};
   const sampleByStep = {};
   const undateableItems = [];
+  const writtenIds = [];
   let written = 0;
 
   for (const item of page) {
     const captures = await deps.readCaptures(item.id);
-    const capturedText = pickBestCaptureText(captures);
+    const bestCapture = pickBestCapture(captures);
+    const capturedText = bestCapture?.result_content ?? null;
     const forwardEvents = await deps.readForwardEvents(item.id);
-    const plan = planTimelineBackfillItem({ item, capturedText, forwardEvents, todayIso });
+    const plan = planTimelineBackfillItem({ item, capturedText, bestCapture, forwardEvents, todayIso });
 
     byStep[plan.step] = (byStep[plan.step] ?? 0) + 1;
     if (!sampleByStep[plan.step]) sampleByStep[plan.step] = [];
@@ -201,12 +288,29 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
       sampleByStep[plan.step].push({ id: item.id, date: plan.row.milestone_date, label: plan.row.label });
     }
     written += 1;
+    writtenIds.push(item.id);
     if (apply) await deps.insertTimelineRow({ ...plan.row, item_id: item.id });
   }
 
   let flagWritten = null;
   if (apply && undateableItems.length) {
     flagWritten = await deps.writeUndateableFlag(undateableItems);
+  }
+
+  // D17 family 12 (defect-fix-plan-2026-09-12): resolve any PRIOR open undateable flag (written before
+  // this fix, back when the whole undateable set got an OPEN "manual research" ask). Step 7 dates almost
+  // all of those ids automatically now -- see idsFromUndateableFlagRow/planUndateableFlagResolution above.
+  let priorFlagsResolved = [];
+  if (apply) {
+    const openPriorFlags = await deps.readOpenUndateableFlags();
+    if (openPriorFlags.length) {
+      const datedIds = new Set([...timelineItemIds, ...writtenIds]);
+      const plans = planUndateableFlagResolution(openPriorFlags, datedIds);
+      for (const plan of plans) {
+        await deps.resolveUndateableFlag(plan.id, buildUndateableFlagResolutionNote(plan));
+      }
+      priorFlagsResolved = plans;
+    }
   }
 
   const summary = {
@@ -218,10 +322,12 @@ export async function main({ mode = "dry", limit, afterId } = {}, deps) {
       by_step: byStep,
       written,
       undateable: undateableItems.length,
+      prior_flags_resolved: priorFlagsResolved.length,
     },
     sample_by_step: sampleByStep,
     undateable_items: undateableItems,
     flag_written: flagWritten ? { id: flagWritten.inserted?.id ?? null } : null,
+    prior_flags_resolved: priorFlagsResolved,
     exitCode: 0,
   };
   if (page.length) summary.last_id_processed = page[page.length - 1].id;
@@ -245,7 +351,7 @@ if (IS_MAIN) {
         const rows = await readAll("item_timelines", "item_id");
         return rows.map((r) => r.item_id);
       },
-      readCaptures: (itemId) => readAll("agent_run_searches", "result_content", {
+      readCaptures: (itemId) => readAll("agent_run_searches", "result_content, searched_at", {
         match: (q) => q.eq("intelligence_item_id", itemId),
       }),
       readForwardEvents: (itemId) => readAll("item_forward_events", "event_date, date_precision, event_kind, obligation_text", {
@@ -253,6 +359,17 @@ if (IS_MAIN) {
       }),
       insertTimelineRow: (row) => guardedInsert("item_timelines", row, { cite: CITE, select: "id" }),
       writeUndateableFlag: (items) => guardedInsert("integrity_flags", buildUndateableFlagRow(items), { cite: CITE, select: "id" }),
+      readOpenUndateableFlags: () =>
+        readAll("integrity_flags", "id, recommended_actions", {
+          match: (q) => q.eq("created_by", UNDATEABLE_FLAG_CITE.created_by).eq("status", "open"),
+        }),
+      resolveUndateableFlag: (id, note) =>
+        guardedUpdate(
+          "integrity_flags",
+          (qb) => qb.eq("id", id),
+          { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "timeline-backfill", resolution_note: note },
+          { cite: CITE },
+        ),
     }),
   });
 }

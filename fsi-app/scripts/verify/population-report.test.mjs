@@ -24,8 +24,13 @@ import {
   computeOpenFlagsByFamily,
   describeOpenFlagsByFamilyState,
   AXIS_CLASSIFICATION_CREATED_BY,
+  computeLegalConfirmationCount,
+  describeLegalConfirmationState,
+  LEGAL_CONFIRMATION_RESOLVED_BY,
+  computeCoverageReflectionsCount,
+  describeCoverageReflectionsState,
 } from "./population-report.mjs";
-import { TAG_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { TAG_NAMESPACE, SIGNAL_NAMESPACE, GAP_NAMESPACE, ANTICIPATE_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
 test("classify: an empty store is EMPTY", () => {
   assert.equal(classify({ rows: 0, filled: 0 }), "EMPTY");
@@ -622,10 +627,66 @@ test("describeOpenFlagsByFamilyState: names the label and the exact dispatch com
   assert.match(lines[1], /tag-ratification\.mjs --arg auto/);
 });
 
-test("STORES: all three open-flags-by-family entries are wired with their own describeState hook", () => {
+test("STORES: all five integrity_flags entries (three open-flags-by-family + legal-confirmation + coverage-reflections) are wired with their own describeState hook", () => {
   const entries = STORES.filter((s) => s.table === "integrity_flags");
-  assert.equal(entries.length, 3);
+  assert.equal(entries.length, 5);
   for (const e of entries) assert.equal(typeof e.describeState, "function");
+});
+
+// ── legal-confirmation (D17 family 14, defect-fix-plan-2026-09-12) ─────────────────────────────────
+
+test("computeLegalConfirmationCount: counts only rows resolved BY close-legal-confirmation-rows.mjs", () => {
+  const rows = [
+    { resolved_by: LEGAL_CONFIRMATION_RESOLVED_BY },
+    { resolved_by: LEGAL_CONFIRMATION_RESOLVED_BY },
+    { resolved_by: "close-run-logs" }, // a run-summary resolved by a DIFFERENT step -- must not count
+    { resolved_by: null },
+  ];
+  assert.equal(computeLegalConfirmationCount(rows), 2);
+});
+
+test("computeLegalConfirmationCount: malformed/empty input never throws", () => {
+  assert.equal(computeLegalConfirmationCount([null, {}, undefined]), 0);
+  assert.equal(computeLegalConfirmationCount([]), 0);
+  assert.equal(computeLegalConfirmationCount(undefined), 0);
+});
+
+test("describeLegalConfirmationState: EMPTY names the dispatch step; populated names the resolution text and 'informational, not a defect'", () => {
+  const empty = describeLegalConfirmationState("EMPTY", { rows: 0, filled: 0 });
+  assert.match(empty[0], /close-legal-confirmation-rows\.mjs/);
+
+  const filled = describeLegalConfirmationState("FILLED", { rows: 12, filled: 12 });
+  assert.match(filled[0], /12 authorship-shard BLOCKER row\(s\)/);
+  assert.match(filled[0], /Legal Confirmation Required/);
+  assert.match(filled[0], /informational, not a defect/);
+});
+
+// ── coverage-reflections (D17 family 13, fix round 1, review-l11.md) ───────────────────────────────────
+
+test("computeCoverageReflectionsCount: counts RESOLVED rows in either the gap or anticipate namespace", () => {
+  const rows = [
+    { created_by: createdBy(GAP_NAMESPACE, "jurisdiction_span_gap"), status: "resolved" },
+    { created_by: createdBy(ANTICIPATE_NAMESPACE, "some_reason"), status: "resolved" },
+    { created_by: createdBy(GAP_NAMESPACE, "surface_gap"), status: "open" }, // not resolved -- must not count
+    { created_by: createdBy(TAG_NAMESPACE, "empty-signature"), status: "resolved" }, // different family -- must not count
+  ];
+  assert.equal(computeCoverageReflectionsCount(rows), 2);
+});
+
+test("computeCoverageReflectionsCount: malformed/empty input never throws", () => {
+  assert.equal(computeCoverageReflectionsCount([null, {}, undefined]), 0);
+  assert.equal(computeCoverageReflectionsCount([]), 0);
+  assert.equal(computeCoverageReflectionsCount(undefined), 0);
+});
+
+test("describeCoverageReflectionsState: EMPTY names the producer; populated names the resolution text and 'informational, not a defect'", () => {
+  const empty = describeCoverageReflectionsState("EMPTY", { rows: 0, filled: 0 });
+  assert.match(empty[0], /analyze-corpus\.mjs/);
+
+  const filled = describeCoverageReflectionsState("FILLED", { rows: 24, filled: 24 });
+  assert.match(filled[0], /24 coverage-gap\/anticipated-coverage reflection\(s\)/);
+  assert.match(filled[0], /reflected in the coverage view/);
+  assert.match(filled[0], /informational, not a defect/);
 });
 
 test("end-to-end: an open-flags-by-family entry renders its own wording through renderReport, never the generic pair", () => {

@@ -28,7 +28,7 @@ import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 import { readRunHistory } from "../lib/run-artifact.mjs";
 import { extractMintedItemIds } from "../turns/run-population-flywheel.mjs";
-import { TAG_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { TAG_NAMESPACE, SIGNAL_NAMESPACE, GAP_NAMESPACE, ANTICIPATE_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -319,6 +319,114 @@ export function describeOpenFlagsByFamilyState(label, dispatchStep) {
   ];
 }
 
+// ── "legal-confirmation" line (D17 family 14, defect-fix-plan-2026-09-12) ─────────────────────────────
+// authorship-shard-* BLOCKER rows are entity-to-DEFINED-ROLE legal determinations the platform never
+// makes (CLAUDE.md's "no legal role determination" standing rule); close-legal-confirmation-rows.mjs
+// resolves each with "Legal Confirmation Required ... recorded for counsel". This is an INFORMATIONAL
+// count, never a defect: growing is expected and healthy (every BLOCKER row correctly routed to a human
+// disposition, not left open), so `total`/`filled` are the SAME count -- classify() reads it as FILLED
+// (green) once any exist, never ROWS_NO_VALUES, the same "growing-good-count" shape format_type/
+// compliance_deadline already use above.
+
+export const LEGAL_CONFIRMATION_RESOLVED_BY = "close-legal-confirmation-rows";
+
+/** Pure: count integrity_flags rows this run's caller already narrowed to authorship-shard-*, resolved
+ *  BY close-legal-confirmation-rows.mjs specifically (never a row close-run-logs.mjs itself resolved).
+ * @param {Array<{resolved_by?:string|null}>} flagRows
+ * @returns {number}
+ */
+export function computeLegalConfirmationCount(flagRows) {
+  const rows = Array.isArray(flagRows) ? flagRows : [];
+  return rows.filter((r) => r?.resolved_by === LEGAL_CONFIRMATION_RESOLVED_BY).length;
+}
+
+/**
+ * @param {object} sb
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countLegalConfirmationRows(sb) {
+  try {
+    const rows = await readAll("integrity_flags", "resolved_by", {
+      match: (q) => q.ilike("created_by", "authorship-shard-%"),
+      client: sb,
+    });
+    return { count: computeLegalConfirmationCount(rows), error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/** describeState for the "legal-confirmation" line -- informational, never a defect. */
+export function describeLegalConfirmationState(state, counts) {
+  if (state === "EMPTY") {
+    return [
+      "0 authorship-shard row(s) recorded for counsel yet -- dispatch close-legal-confirmation-rows.mjs " +
+        "(D17 family 14) once an authorship-shard BLOCKER row is open.",
+    ];
+  }
+  return [
+    `${counts.rows} authorship-shard BLOCKER row(s) resolved "Legal Confirmation Required; no platform ` +
+      'determination (environmental-policy skill); recorded for counsel" -- entity-to-role matching is a ' +
+      "legal determination the platform never makes (D17 family 14); informational, not a defect.",
+  ];
+}
+
+// ── "coverage-reflections" line (D17 family 13, fix round 1, review-l11.md) ────────────────────────────
+// Fix round 1 correction: analyze-corpus.mjs's own comment claimed this file "keeps counting" the
+// flywheel-gap:*/flywheel-anticipate:* rows -- FALSE, no such entry existed before this round (checked
+// directly: no GAP_NAMESPACE/ANTICIPATE_NAMESPACE reference anywhere in this file). This line is the fix:
+// an informational count of every coverage-gap (U2) / anticipated-coverage (U5) reflection on record
+// (created by analyze-corpus.mjs already resolved, or drained from the pre-fix backlog by
+// close-coverage-reflections.mjs), so those rows stay visible the same way "legal-confirmation" makes the
+// authorship-shard resolutions visible above. Never a defect gate -- total===filled always.
+
+/** Pure: count integrity_flags rows in EITHER the gap or anticipate namespace that are resolved (the
+ *  family's own terminal state -- every row this family writes is born resolved; an open one would be a
+ *  regression, not counted as "on record" here).
+ * @param {Array<{created_by?:string|null, status?:string|null}>} flagRows
+ * @returns {number}
+ */
+export function computeCoverageReflectionsCount(flagRows) {
+  const rows = Array.isArray(flagRows) ? flagRows : [];
+  return rows.filter(
+    (r) =>
+      r?.status === "resolved" &&
+      typeof r?.created_by === "string" &&
+      (r.created_by.startsWith(GAP_NAMESPACE) || r.created_by.startsWith(ANTICIPATE_NAMESPACE)),
+  ).length;
+}
+
+/**
+ * @param {object} sb
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countCoverageReflections(sb) {
+  try {
+    const rows = await readAll("integrity_flags", "created_by, status", {
+      match: (q) => q.or(`created_by.like.${GAP_NAMESPACE}%,created_by.like.${ANTICIPATE_NAMESPACE}%`),
+      client: sb,
+    });
+    return { count: computeCoverageReflectionsCount(rows), error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/** describeState for the "coverage-reflections" line -- informational, never a defect. */
+export function describeCoverageReflectionsState(state, counts) {
+  if (state === "EMPTY") {
+    return [
+      "0 coverage-gap/anticipated-coverage reflection(s) recorded yet -- analyze-corpus.mjs (U2/U5) " +
+        "writes them already resolved on its next pass.",
+    ];
+  }
+  return [
+    `${counts.rows} coverage-gap/anticipated-coverage reflection(s) on record ("reflected in the ` +
+      'coverage view; no per-row decision pending") -- product-scope visibility only (D17 family 13), ' +
+      "informational, not a defect.",
+  ];
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -495,6 +603,23 @@ export const STORES = Object.freeze([
     totalQuery: (sb) => countOpenFlagsByFamily(sb, "signal"),
     filledQuery: async () => ({ count: 0, error: null }),
     describeState: describeOpenFlagsByFamilyState("flywheel-signal:*", "resolve-signals.mjs") },
+  // -- D17 family 14, defect-fix-plan-2026-09-12: the "legal-confirmation" line. Informational count, not
+  // a defect gate -- total===filled always, so this entry reads FILLED (green) the moment any row exists.
+  { table: "integrity_flags", fill: "authorship-shard-* rows resolved Legal Confirmation Required (informational, see below)",
+    reader: "population-report.mjs's own CLI output; the counsel-facing authorship-role backlog",
+    producer: "scripts/maintenance/close-legal-confirmation-rows.mjs --mode apply",
+    totalQuery: (sb) => countLegalConfirmationRows(sb),
+    filledQuery: (sb) => countLegalConfirmationRows(sb),
+    describeState: describeLegalConfirmationState },
+  // -- D17 family 13, fix round 1 (review-l11.md): the "coverage-reflections" line. Informational count,
+  // not a defect gate -- total===filled always. Corrects analyze-corpus.mjs's own comment, which claimed
+  // this file already counted these rows; it did not, until this entry.
+  { table: "integrity_flags", fill: "flywheel-gap:*/flywheel-anticipate:* rows resolved (informational, see below)",
+    reader: "population-report.mjs's own CLI output; the coverage-gap / anticipated-coverage reflection backlog",
+    producer: "scripts/connections/analyze-corpus.mjs (fresh, born resolved) + scripts/maintenance/close-coverage-reflections.mjs (pre-fix backlog)",
+    totalQuery: (sb) => countCoverageReflections(sb),
+    filledQuery: (sb) => countCoverageReflections(sb),
+    describeState: describeCoverageReflectionsState },
 ]);
 
 /**
