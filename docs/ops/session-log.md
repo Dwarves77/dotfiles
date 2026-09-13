@@ -21147,3 +21147,16 @@ paths only staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1
 
 **Not in this entry's scope**: `docs/runbooks/MAINTENANCE-RUNBOOK.md` (not in this round's write set,
 untouched); the tag-ratification apply this fix unblocks; every other defect in the plan not named D21.
+
+## 2026-09-13, brief-lane 004 (batch branch): 49 record-grade regulation-family items, first briefs under the 6.2b contract
+
+**What.** Batch 004 (export 34745991934, selection record, after 0ae2e8cd, limit 50) holds 49 entries
+written by ten parallel authors from the stored pools; 0ee667cc (a market_signal in the export) was
+skipped. Every entry validated (VALID. entries: 49). Authors corrected truncated, mis-slotted or
+under-mined prior record claims and dropped nothing fabricated; each item's discovery note records the
+pool survey and the N/M/K accounting. This branch is an apply target and is never merged; this entry
+exists because the memory gate counts the batch file as code until plan D20 lands.
+
+### UX compliance (batch 004)
+
+Not a UI change; no customer surface touched by this branch.
