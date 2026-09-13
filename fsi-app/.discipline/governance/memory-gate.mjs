@@ -17,10 +17,15 @@
 //
 // RULES (mirrored byte-for-byte from discipline.yml's inline shell, read in full before writing this):
 //   CODE    = changed paths under fsi-app/(src|supabase/migrations|scripts|.discipline)/, EXCLUDING
-//             fsi-app/scripts/harness-runs/** and fsi-app/scripts/turns/LAST-TURN.json (run records, not
+//             fsi-app/scripts/harness-runs/**, fsi-app/scripts/turns/LAST-TURN.json (run records, not
 //             code, emitted by GitHub-Actions runtimes on their own branches; gating those PRs on a
 //             session-log addendum would demand a first-person memory entry from a machine, corpus-turn
-//             PR #509 failed here 2026-09-01).
+//             PR #509 failed here 2026-09-01), and fsi-app/scripts/turns/record-briefs/batches/** (D20,
+//             defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13: brief-lane/002's push failed step 2b
+//             because a lane-emitted batch file under this path matched CODE with no session-log change
+//             on that branch -- the SAME arrangement as harness-runs/LAST-TURN.json: a batch file is
+//             lane-emitted DATA on an apply-target branch that is never merged, its own memory is the
+//             proposer pass on master, not a first-person entry on a throwaway branch).
 //   MEMORY  = changed paths that are exactly docs/ops/session-log.md or docs/PROGRAM-BOARD.md.
 //   SURFACE = changed paths under fsi-app/src/**/*.{tsx,css}.
 //   Memory gate:  CODE non-empty AND MEMORY empty -> FAIL.
@@ -49,7 +54,7 @@ import { isMainModule } from '../../scripts/lib/is-main.mjs';
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 const CODE_RE = /^fsi-app\/(src|supabase\/migrations|scripts|\.discipline)\//;
-const CODE_EXCLUDE_RE = /^fsi-app\/scripts\/(harness-runs\/|turns\/LAST-TURN\.json$)/;
+const CODE_EXCLUDE_RE = /^fsi-app\/scripts\/(harness-runs\/|turns\/LAST-TURN\.json$|turns\/record-briefs\/batches\/)/;
 const MEMORY_RE = /^docs\/(ops\/session-log\.md|PROGRAM-BOARD\.md)$/;
 const SURFACE_RE = /^fsi-app\/src\/.*\.(tsx|css)$/;
 const UX_COMPLIANCE_ADDED_RE = /^\+.*UX compliance/;

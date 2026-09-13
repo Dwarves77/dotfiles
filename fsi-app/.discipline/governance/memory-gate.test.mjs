@@ -37,6 +37,22 @@ test('classifyChanged: a real script alongside harness-runs still counts the scr
   assert.deepEqual(r.code, ['fsi-app/scripts/turns/record-briefs/schema.mjs']);
 });
 
+// D20 (defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13): a record-briefs batch file is lane-emitted
+// DATA on an apply-target branch that is never merged (the same posture harness-runs/** and
+// turns/LAST-TURN.json already had) -- excluded from CODE, same as those two.
+test('classifyChanged: a record-briefs batch file alone is NOT code', () => {
+  const r = classifyChanged(['fsi-app/scripts/turns/record-briefs/batches/record-briefs-002.json']);
+  assert.deepEqual(r.code, []);
+});
+
+test('classifyChanged: a record-briefs batch file alongside a real script still counts the script as CODE', () => {
+  const r = classifyChanged([
+    'fsi-app/scripts/turns/record-briefs/batches/record-briefs-002.json',
+    'fsi-app/scripts/turns/record-briefs/schema.mjs',
+  ]);
+  assert.deepEqual(r.code, ['fsi-app/scripts/turns/record-briefs/schema.mjs']);
+});
+
 test('classifyChanged: session-log.md and PROGRAM-BOARD.md are MEMORY', () => {
   const r = classifyChanged(['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/other.md']);
   assert.deepEqual(r.memory, ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md']);
@@ -74,6 +90,21 @@ test('memoryGateVerdict: harness-runs and LAST-TURN.json alone are not code, PAS
     'fsi-app/scripts/turns/LAST-TURN.json',
   ]);
   assert.equal(v.ok, true);
+});
+
+// D20's own two named cases.
+test('memoryGateVerdict: a range touching only a record-briefs batch file PASSES with no vault file', () => {
+  const v = memoryGateVerdict(['fsi-app/scripts/turns/record-briefs/batches/record-briefs-002.json']);
+  assert.equal(v.ok, true);
+});
+
+test('memoryGateVerdict: a record-briefs batch file plus a script change still FAILS without a vault file', () => {
+  const v = memoryGateVerdict([
+    'fsi-app/scripts/turns/record-briefs/batches/record-briefs-002.json',
+    'fsi-app/scripts/turns/record-briefs/schema.mjs',
+  ]);
+  assert.equal(v.ok, false);
+  assert.match(v.message, /Memory gate/);
 });
 
 test('memoryGateVerdict: docs-only range PASSES (no code touched at all)', () => {

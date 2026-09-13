@@ -166,7 +166,12 @@ jobs:
           # step 2b, so the two surfaces cannot silently disagree the way they did for PR #647 (task
           # 6.2b went red here while the lane's own pre-push run was green: pre-push had no memory-gate
           # step at all). This step only computes the same RANGE it always has and hands it to the
-          # script; the classification rules and messages live in that one file now, not here.
+          # script; the classification rules and messages live in that one file now, not here (D20,
+          # defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13: the script's CODE_EXCLUDE_RE gained
+          # fsi-app/scripts/turns/record-briefs/batches/ -- a batch file is lane-emitted DATA on an
+          # apply-target branch that is never merged, the same posture harness-runs/** and
+          # turns/LAST-TURN.json already had, so it is excluded from CODE and does not demand a
+          # session-log entry on that throwaway branch).
           #
           # DELIBERATE PARITY DEVIATION (review-7.8.md finding F1, coordinator ruling D6, 2026-09-12):
           # this inline shell used to `exit 1` the instant the memory gate failed on a pull_request
