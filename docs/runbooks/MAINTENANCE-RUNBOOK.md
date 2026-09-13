@@ -3047,9 +3047,10 @@ population report (no write) to see the real orphan count and proposed tiers bef
 
 **New this runbook, task 6.1c, brief-chain build plan 2026-09-11, under ADR-030** ("Items need to be
 resolved not quarantined... No item should be without some date in the timeline"). Written from
-`scripts/maintenance/timeline-backfill.mjs`'s own header.
+`scripts/maintenance/timeline-backfill.mjs`'s own header. **Updated for D17 family 12 (defect-fix-plan
+2026-09-12, lane L11: step 7) and its 2026-09-13 addendum (lane L11b: step 8).**
 
-**Purpose**: corpus backfill of steps 2 through 6 of ADR-030's ordered date-derivation waterfall, for
+**Purpose**: corpus backfill of steps 2 through 8 of ADR-030's ordered date-derivation waterfall, for
 every live (`is_archived=false`) item that carries NO `item_timelines` row at all:
 
 1. (not this step) the brief-body timeline-section harvest, a DIFFERENT tool
@@ -3066,8 +3067,20 @@ every live (`is_archived=false`) item that carries NO `item_timelines` row at al
 5. the earliest `item_forward_events` row, labeled from its own `obligation_text`, prefixed by its kind.
 6. a dateline in the capture text for non-legal hosts (a leading "Published DD Month YYYY", a bare
    "DD Month YYYY" in the first 400 characters, or a `<time datetime=...>` ISO date).
-7. nothing found: the item is reported in this run's own `summary.json`, never given an invented date and
-   never given `added_date` (that is the ledger's date, not the instrument's).
+7. **(D17 family 12)** `captured`: when nothing above matches, but the item has a usable stored capture
+   (`agent_run_searches`), a timeline row dated at that capture's own `searched_at` -- a real, dated event
+   about the item (when it was retrieved), never presented as the instrument's own date. Label ends
+   "not the instrument's own date"; ordered LAST via `CAPTURED_FALLBACK_SORT_ORDER` (999) so it never
+   outranks a real derived milestone.
+8. **(D17 family 12 addendum, 2026-09-13)** `recorded`: when steps 2-7 ALL miss (no derivable instrument
+   date and no usable stored capture), a timeline row dated at the item's own
+   `intelligence_items.created_at` -- when the item was recorded in the ledger, never presented as the
+   instrument's own date. Label "Recorded in the ledger on this date; not the instrument's own date";
+   ordered even later than step 7 via `RECORDED_FALLBACK_SORT_ORDER` (1000). Since `created_at` is
+   populated on every live row, this step reduces the genuinely-undateable set to structurally near zero.
+9. nothing found (no capture AND no parseable `created_at` -- a near-structurally-impossible residual):
+   the item is reported in this run's own `summary.json`, never given an invented date and never given
+   `added_date` (that is the ledger's date, not the instrument's).
 
 First hit wins; every attempt is named so the row (or the report) is auditable. Precision honesty is
 `timeline-harvest.mjs`'s existing rule, reused via `src/lib/agent/timeline-backfill-derive.mjs`: a
@@ -3075,26 +3088,33 @@ day-precise token maps to its exact date; any other precision keeps the original
 
 **What it does NOT do**: never touches an item that already has an `item_timelines` row; writes AT MOST
 ONE row per undated item (the harvest's own multi-row case is step 1's job, a different script); never
-invents a date the item's own captured text does not verbatim state; never re-derives from a stale
-verdict silently, an "undateable" item is reported again on every run until something dates it or an
-operator dispositions it.
+invents a date the item's own captured text or `created_at` does not verbatim state; never re-derives from
+a stale verdict silently -- a genuinely undateable item is reported again on every run until something
+dates it.
 
 **Ruling**: none by token, ADR-030 is the standing authorization; not gated behind a ruling `arg`.
 
 **Dispatch**: `mode=dry` reports the per-step counts (`counts.by_step`) and a 20-item sample per step
 (`sample_by_step`), writes nothing. `mode=apply` writes one `item_timelines` row per dateable item through
-the guarded `db.mjs` path (cited, snapshotted), and, when any item in the run was undateable, writes ONE
-`integrity_flags` row for the WHOLE run (category `data_quality`, subject_type `system`, subject_ref
-`timeline-backfill`, the full undateable id list carried in `recommended_actions[0].ids`) rather than one
-row per item. `arg`, if given, resumes past a prior run via `--after-id` (this step's own resumability
-flag, the same idiom `backfill-format-type.mjs` / `retype-eu-decisions.mjs` already use); the script also
-accepts a local `--limit N` for a by-hand bounded run (not exposed through this workflow's own `arg`,
-which only ever carries one value).
+the guarded `db.mjs` path (cited, snapshotted). The undateable-set write is **informational, not an open
+ask** (ADR-030 rider: no queue asks a person to act on something a later capture pass or a `created_at`
+repair resolves mechanically): when any item in the run was still undateable after steps 2-8, ONE
+`integrity_flags` row for the WHOLE run is written ALREADY `status='resolved'` (category `data_quality`,
+subject_type `system`, subject_ref `timeline-backfill`, the full undateable id list carried in
+`recommended_actions[0].ids`), rather than one open row per item. Any PRIOR open `timeline-backfill` flag
+(written before D17 family 12 landed, back when the undateable set got an open "manual research" ask) is
+also resolved on every apply run, its `resolution_note` naming how many of its ids now carry a timeline
+row (steps 7/8 dating them) versus how many remain genuinely undateable. `arg`, if given, resumes past a
+prior run via `--after-id` (this step's own resumability flag, the same idiom `backfill-format-type.mjs` /
+`retype-eu-decisions.mjs` already use); the script also accepts a local `--limit N` for a by-hand bounded
+run (not exposed through this workflow's own `arg`, which only ever carries one value).
 
 **Artifact / read back**: `summary.json` under `$OUT_ROOT/timeline-backfill/` (`counts.undated_total`,
-`counts.by_step`, `counts.written`, `counts.undateable`, `sample_by_step`, `undateable_items`,
-`flag_written`). Confirm against `scripts/verify/population-report.mjs`'s own "timeline coverage" entry:
-items without a row, excluding the reported/flagged undateable set, trending toward 0.
+`counts.by_step`, `counts.written`, `counts.undateable`, `counts.prior_flags_resolved`, `sample_by_step`,
+`undateable_items`, `flag_written`, `prior_flags_resolved`). Confirm against
+`scripts/verify/population-report.mjs`'s own "timeline coverage" entry: items without a row, excluding the
+reported/flagged undateable set, trending toward 0 (with steps 7-8 live, this should now read at or near
+zero on a live corpus).
 
 **First dispatch** (coordinator): `mode=dry`, `step=timeline-backfill`, no `arg`, only AFTER a first
 dispatch of `scripts/backfill-item-timelines.mjs` (a different script, run by hand or via a future
@@ -3611,41 +3631,68 @@ inventories JSON FILE, never a database row, so it is out of that registry's sco
 against the registry's own scan-scope comment before skipping the row).
 ## 52. `resolve-refetch-holds`
 
-**New this runbook, D17 family 11, defect-fix-plan-2026-09-12 (lane L11).**
+**New this runbook, D17 family 11, defect-fix-plan-2026-09-12 (lane L11). Rewritten for the
+re-grounds-never-destroy dominance guard, fix round 2 for L11 family 11 (lane L11b, 2026-09-13).**
 
 **Purpose**: resolves the `refetch-capped-worklist` holds `scripts/remediation/
 refetch-capped-worklist.mjs`'s own EXECUTE mode writes when a legacy-capped row's fresh re-capture no
 longer verifies a previously grounded FACT span (a real ADR-016 provenance question, not a proposer
 asking a human for nothing -- the enumeration, Family 11, found no dedicated resolver). Per held item:
-re-check every FACT claim's verbatim `source_span` against the item's newest stored capture, ZERO fetch
+re-check every FACT claim's verbatim `source_span` against every stored capture in the item's pool, ZERO fetch
 (`cheapVerifyClaims`'s own primitives, `src/lib/sources/cheap-verify.mjs` -- the SAME zero-fetch,
 snapshot-first entry point `verify-item.mjs`/`regen-quarantined.mjs` already use; see this script's own
 header for why the plan's literal "groundBrief" text is not the mechanism this reuses -- a paid Sonnet
 call is incompatible with this lane's own $0 constraint and with the plan's own "snapshot first, zero
-fetch" parenthetical in the same sentence). Outcomes: `re_grounded` (every FACT span still verifies),
-`no_capture` / `no_fact_claims` (nothing to check), or a drifted span is SUPERSEDED through the existing
+fetch" parenthetical in the same sentence).
+
+**Fix round 2 (dominance guard)**: the original version verified spans against the item's NEWEST capture
+only. A live dry run on master would have superseded 263 of 333 FACT claims across seven items because
+their newest stored capture is a degraded fetch (126-382 character stub) while an older pool row still
+holds the full instrument (up to 249,114 characters) -- exactly the shape the re-grounds-never-destroy
+dominance guard (PR #336, `src/lib/agent/ledger-dominance.mjs`) exists to catch, applied here by analogy
+(NOT by importing that module -- its axes are ledger-summary counts, this fix's axis is raw per-capture
+span verification, a different shape of the same doctrine). The fix (`planItemReground`) now verifies
+every held item's FACT spans against EVERY stored capture in its `agent_run_searches` pool, not the
+newest alone:
+- the **dominant capture** is whichever pool row verifies the most spans (ties broken by longer
+  `result_content`);
+- a claim is superseded ONLY when NO stored capture in the pool verifies it (`unmatchedFactClaims`);
+- when the chronologically newest capture verifies FEWER spans than the dominant one, that is recorded as
+  a **degraded newest** (`degradedNewestClause`): the resolution note names both capture rows (`row <id>`)
+  and their character lengths, and the claims are KEPT, re-grounded on the dominant capture instead of
+  being destroyed by a worse re-ground.
+
+Outcomes: `re_grounded` (every FACT span verified by some capture in the pool, possibly with a
+degraded-newest note), `no_capture` / `no_fact_claims` (nothing to check), or `needs_supersede` (at least
+one span verifies against NO stored capture anywhere) -- a drifted span is SUPERSEDED through the existing
 `claim_versions` mechanism (`src/lib/agent/ledger-apply.mjs`'s own `versionPayload` row shape,
 `supersede_reason='changed'`) -- the item's own `provenance_status` is then re-read: `superseded` if it
 stays verified on its other claims, `quarantined` if the provenance gate's own trigger flips it (an
-ENQUEUE into Family 1's standing investigation, `regen-quarantined.mjs` -- no second mechanism).
+ENQUEUE into Family 1's standing investigation, `regen-quarantined.mjs` -- no second mechanism). The
+flag's resolution outcome on a re-grounded item now reads "(re-grounded on capture <row>, degraded newest,
+superseded <n>)" when a degraded-newest condition was found, naming the capture the claims were actually
+re-grounded on.
 
-**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedInsert`, `guardedUpdate`),
-`src/lib/agent/timeline-backfill-derive.mjs` (`pickBestCapture`), `src/lib/sources/cheap-verify.mjs`
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`), `src/lib/sources/cheap-verify.mjs`
 (`normalizeForMatch`, `spanPresent`), `src/lib/agent/ledger-apply.mjs` (`versionPayload`, now exported for
-this reuse) -- all called unmodified.
+this reuse) -- all called unmodified. (`pickBestCapture` is no longer used here -- the dominance guard
+reads the item's FULL capture pool, `id, result_content, searched_at`, not one pre-selected "best" row.)
 
-**Ruling**: D17 family 11 (defect-fix-plan-2026-09-12, ruling table row 11).
+**Ruling**: D17 family 11 (defect-fix-plan-2026-09-12, ruling table row 11); fix round 2 for L11 family 11
+(re-grounds-never-destroy dominance guard applied to per-capture span verification, lane L11b).
 
 **Dispatch**: no `--arg`. $0, no LLM, no fetch, in both modes.
 
 **Artifact / read back**: `summary.json`'s `counts.by_outcome` / `counts.superseded_claims` /
-`counts.flags_resolved`. Confirm against `SELECT count(*) FROM integrity_flags WHERE created_by =
-'refetch-capped-worklist' AND status IN ('open','in_review')` (expect 0 after apply), `SELECT count(*)
-FROM claim_versions WHERE supersede_reason = 'changed' AND created_at > '<run start>'`, and `SELECT
-provenance_status FROM intelligence_items WHERE id = ANY(<affected item ids>)`.
+`counts.degraded_newest` / `counts.flags_resolved`. Confirm against `SELECT count(*) FROM integrity_flags
+WHERE created_by = 'refetch-capped-worklist' AND status IN ('open','in_review')` (expect 0 after apply),
+`SELECT count(*) FROM claim_versions WHERE supersede_reason = 'changed' AND created_at > '<run start>'`
+(expect far fewer than 263 across the seven affected items, since the dominance guard only supersedes a
+span no pool capture verifies), and `SELECT provenance_status FROM intelligence_items WHERE id = ANY(<affected item ids>)`.
 
 **First dispatch** (coordinator): `mode=dry` first -- the 8 live holds are few enough to read the full
-`sample_by_outcome` in one pass before ever applying.
+`sample_by_outcome` in one pass before ever applying; specifically confirm the seven items with a degraded
+newest capture show `degraded_newest` counts and zero (or near-zero) supersessions, not the pre-fix 263.
 
 ---
 
@@ -3734,7 +3781,7 @@ self-resurrection property RD-6 gives every deferral).
 ## 55. `close-flags-for-verified-items`
 
 **New this runbook, D17 family 14 CORRECTION, defect-fix-plan-2026-09-12 (lane L11, coordinator
-directive 2026-09-12).**
+directive 2026-09-12). Extended by the D17 family 14 addendum (lane L11b, 2026-09-13).**
 
 **THE CORRECTION**: this lane's first pass wrongly guessed `gate-a-verifier-sweep` was a run-log family
 and added a [HYPOTHESIS] fixture vocabulary to `close-run-logs.mjs`'s allowlist (section 41). Live SQL
@@ -3746,29 +3793,47 @@ its tests removed); this step is the real resolver.
 
 **Purpose**: resolves every open, item-subject `integrity_flags` row whose `created_by` is in the named
 per-item-family list `PER_ITEM_VERIFIED_SUPERSEDE_FAMILIES` (`gate-a-verifier-sweep` the first entry,
-extensible for a future family with the same shape) and whose subject item's CURRENT
-`provenance_status = 'verified'`, with `resolution_note` "item verified on <date>; finding superseded" --
-the finding's own quarantined-item premise no longer holds once the item verifies. A row whose item is
-still quarantined stays open; its item id is carried in `summary.json`'s own `still_open_item_ids` (every
-run, dry AND apply, never truncated to the 20-row sample) for the coordinator to feed into the next
-brief-export batch (D1, task 6.2d's `--ids` re-grounding path).
+extensible for a future family with the same shape). Two closing rules, checked per row against its
+subject item's CURRENT state:
+1. `provenance_status = 'verified'` -- resolves with `resolution_note` "item verified on <date>; finding
+   superseded" (the finding's own quarantined-item premise no longer holds once the item verifies).
+2. **(D17 family 14 addendum, 2026-09-13)** `is_archived = true` -- resolves with `resolution_note` "item
+   archived on <date>; finding moot" (the finding is equally moot for an archived item, for a different
+   reason than verification). Added after the first apply left 30 rows open and the batch-003 export
+   showed 24 of those subject items were archived, not still quarantined. Counted in its own dry-output
+   bucket (`counts.would_resolve_archived`), separate from the verified-item bucket. **[CONFIRMED]
+   deviation, disclosed**: the plan's own wording names "<archived_at or updated_at>"; `intelligence_items`
+   carries no `archived_at` column (only `is_archived boolean` + `archive_reason text` --
+   `supabase/migrations/001_schema.sql` / `004_source_trust_framework.sql`), so this rule always falls
+   back to `updated_at` for the dated note (the read/compute stays generic, so a future `archived_at`
+   column needs no code change here).
+
+A row whose item is neither verified nor archived (still live-quarantined) stays open; its item id is
+carried in `summary.json`'s own `still_open_item_ids` (every run, dry AND apply, never truncated to the
+20-row sample) for the coordinator to feed into the next brief-export batch (D1, task 6.2d's `--ids`
+re-grounding path) -- after the addendum this list names only genuinely live quarantined items.
 
 **Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`).
 
-**Ruling**: D17 family 14 correction (defect-fix-plan-2026-09-12, "Correction to the Family 14 ruling").
+**Ruling**: D17 family 14 correction (defect-fix-plan-2026-09-12, "Correction to the Family 14 ruling");
+D17 family 14 addendum (2026-09-13, lane L11b).
 
-**Dispatch**: no `--arg`. `mode=dry` reports the would-resolve/still-open counts and the full still-open
-item id list; `mode=apply` resolves every verified-item row.
+**Dispatch**: no `--arg`. `mode=dry` reports the would-resolve (verified) / would-resolve-archived /
+still-open counts and the full still-open item id list; `mode=apply` resolves every verified-item row (one
+batched write, one shared dated note) and every archived-item row (grouped by the note text each item's
+own archived/updated date produces, since that date can differ row to row -- same date, one batched write;
+different dates, one write per distinct note).
 
-**Artifact / read back**: `summary.json`'s `counts.would_resolve` / `counts.still_open` /
-`still_open_item_ids` / `read_back.remaining_open`. Confirm against `SELECT count(*) FROM integrity_flags
-f JOIN intelligence_items i ON i.id = f.subject_ref::uuid WHERE f.created_by = 'gate-a-verifier-sweep'
-AND f.status = 'open' AND i.provenance_status = 'verified'` (expect 0 after apply) and `SELECT
-subject_ref FROM integrity_flags WHERE created_by = 'gate-a-verifier-sweep' AND status = 'open'`
-(should match `still_open_item_ids` exactly).
+**Artifact / read back**: `summary.json`'s `counts.would_resolve` / `counts.would_resolve_archived` /
+`counts.still_open` / `still_open_item_ids` / `read_back.remaining_open`. Confirm against `SELECT
+count(*) FROM integrity_flags f JOIN intelligence_items i ON i.id = f.subject_ref::uuid WHERE
+f.created_by = 'gate-a-verifier-sweep' AND f.status = 'open' AND (i.provenance_status = 'verified' OR
+i.is_archived = true)` (expect 0 after apply) and `SELECT subject_ref FROM integrity_flags WHERE
+created_by = 'gate-a-verifier-sweep' AND status = 'open'` (should match `still_open_item_ids` exactly).
 
-**Idempotency**: a second run with no newly-verified items resolves 0 rows -- a row this step already
-resolved drops out of the next run's own `status IN ('open','in_review')` candidate read.
+**Idempotency**: a second run with no newly-verified and no newly-archived items resolves 0 rows -- a row
+this step already resolved (either rule) drops out of the next run's own `status IN ('open','in_review')`
+candidate read.
 
 ---
 

@@ -20795,3 +20795,91 @@ Named-path staging only. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anth
 misclassifications (a "Metropolitan Council" without a "city/county/etc." qualifier, and "Council of
 Governments" whose plural "governments" fails the singular whole-word match) -- outside the coordinator's
 named word-list additions, left as a possible future follow-on rather than a scope excursion.
+## 2026-09-13, W9 lane L11b: fix round 2 for family 11 (dominance guard), family 12 addendum (recorded fallback), family 14 addendum (archived items resolve)
+
+Branch `lane/w9-l11b-refetch-dominance-2026-09-13`, checked out fresh from `origin/master` after L11's PR
+#661 merged. Three scope additions from the coordinator, each its own commit, all under `docs/plans/
+defect-fix-plan-2026-09-12.md`'s D17 table.
+
+**Fix round 2 for L11 family 11 (`resolve-refetch-holds.mjs`).** The lane's original version verified an
+item's FACT claims against its NEWEST stored capture only. A live dry run on master would have superseded
+263 of 333 FACT claims across seven items because their newest capture is a degraded fetch (126-382
+character stub) while an older `agent_run_searches` pool row still holds the full instrument (up to
+249,114 characters) [CONFIRMED by the coordinator]. This is exactly the shape the re-grounds-never-destroy
+dominance guard (PR #336, `src/lib/agent/ledger-dominance.mjs`) exists to catch, applied here by analogy
+rather than by importing that module -- its axes are ledger-summary counts (FACT/floor-qualifying/
+verified-eligibility totals across a whole ledger), while this fix's axis is raw per-capture span
+verification, a different shape of the same doctrine, documented as such in the script's own header
+rather than silently diverging. `planItemReground` now verifies every held item's FACT spans against
+EVERY stored capture in its pool: the dominant capture is whichever verifies the most spans (ties broken
+by longer `result_content`); a claim is superseded only when NO capture in the pool verifies it; when the
+chronologically newest capture verifies fewer spans than the dominant one, that is recorded as a degraded
+newest (`degradedNewestClause` names both capture rows by id and their character lengths) and the claims
+are KEPT, re-grounded on the dominant capture instead of destroyed by a worse re-ground. The flag's
+resolution outcome on a re-grounded item now reads "(re-grounded on capture <row>, degraded newest,
+superseded <n>)" when a degraded-newest condition fired. `pickBestCapture` is no longer used here -- the
+script reads the item's full capture pool (`id, result_content, searched_at`) instead of one pre-selected
+row. Runbook section 52 rewritten to describe the fix.
+
+**Family 12 addendum (`timeline-backfill-derive.mjs` / `timeline-backfill.mjs`).** The timeline-backfill
+dry run on master left 211 undated items: 129 with a stored capture (dated via family 12's original
+`captured` fallback, step 7) and 82 with no stored capture at all -- step 7 cannot help them. An eighth,
+final, deterministic step (`extractRecordedDate`) now runs when step 7 also misses: a `recorded` timeline
+row dated at the item's own `intelligence_items.created_at` (when the item was recorded in the ledger,
+never presented as the instrument's own date), labeled "Recorded in the ledger on this date; not the
+instrument's own date", ordered even later than the captured fallback via `RECORDED_FALLBACK_SORT_ORDER`
+(1000). Since `created_at` is populated on every live row, this reduces the genuinely-undateable set to
+structurally near zero; `timeline-backfill.mjs`'s undateable-flag wording, resolution-note builder, and
+prior-flag resolution note were all updated to describe the now-much-narrower residual (no capture AND no
+parseable `created_at`) honestly rather than leaving the pre-addendum wording, which would have overstated
+how many items still reach that set. Runbook section 40 brought fully up to date with steps 7 and 8 (it
+had drifted since family 12's original landing -- corrected in the same motion, rule 13's corollary).
+
+**Family 14 addendum (`close-flags-for-verified-items.mjs`).** The family-14-correction apply left 30
+`gate-a-verifier-sweep` rows open; the batch-003 export showed 24 of those subject items are ARCHIVED, not
+still quarantined. A second closing rule: a per-item flag whose subject item has `is_archived=true`
+resolves with "item archived on <date>; finding moot", counted in its own dry-output bucket
+(`counts.would_resolve_archived`); `still_open_item_ids` now names only genuinely live quarantined items.
+**[CONFIRMED] deviation, disclosed**: the plan's own wording names "<archived_at or updated_at>";
+`intelligence_items` carries no `archived_at` column at all (only `is_archived boolean` + `archive_reason
+text` -- confirmed against `supabase/migrations/001_schema.sql` / `004_source_trust_framework.sql`), so
+the rule always falls back to `updated_at` for the dated note; the read/compute (`archivedDateIso`) stays
+generic (prefers `archived_at` when present) so a future schema change needs no code change here. Since
+each archived item can carry its own archived/updated date, ids are grouped by the note text their date
+produces before writing (same date -> one batched write; different dates -> one write per distinct note),
+rather than the single shared note the verified-item branch uses. Runbook section 55 extended.
+
+**Findings.** [CONFIRMED] resolve-refetch-holds.mjs's pre-fix newest-only check would have superseded 263
+of 333 FACT claims across the seven affected items -- verified via the coordinator's own live dry run
+before this fix, not re-derived here. [CONFIRMED] intelligence_items has no `archived_at` column (grepped
+`supabase/migrations/*.sql`); the family-14-addendum resolution note always names `updated_at`'s date.
+[CONFIRMED] timeline-backfill's runbook section 40 had drifted from the code since family 12's original
+landing (it still described only steps 2-6 plus a bare "nothing found: reported" step, with no mention of
+the family-12 `captured` fallback or the resolved-not-open flag posture already live on master) --
+corrected in the same commit as the family-12 addendum rather than left as a second, separate fix.
+
+**Gates.** Test counts: `resolve-refetch-holds.test.mjs` 23/23 (10 new for the dominance guard, including
+the two REQUIRED cases: a full older capture plus a stub newer one yields zero supersessions and a
+degraded-newest note; an older capture that also lacks the span yields a genuine supersession).
+`timeline-backfill-derive.test.mjs` 49/49 (12 new for step 8, including the two REQUIRED cases: no capture
+and no instrument date gets the recorded row; a capture gets the captured row and not the recorded one).
+`timeline-backfill.test.mjs` 26/26 (5 new, including a main()-level orchestration test proving the
+recorded row flows through end to end and is never counted undateable). `close-flags-for-verified-items.
+test.mjs` 22/22 (11 new, including the two REQUIRED cases: an archived item's flag resolves with the
+archived note; a live quarantined item's flag stays open; plus an archived-branch idempotency test
+matching the existing verified-branch one). 120 tests total across the four files, all green. Glyph byte
+check (`git diff <branch base>..HEAD | grep '^+' | grep -c` the three banned code points) is 0 across
+every file touched this branch. Full preflight (`sh fsi-app/.discipline/hooks/pre-push`) run once at the
+end; see the lane's own `task-l11b-report.md` for its tail and exit code.
+
+**Files.** `fsi-app/scripts/maintenance/resolve-refetch-holds.mjs` and test (dominance guard rewrite);
+`fsi-app/src/lib/agent/timeline-backfill-derive.mjs` and test (step 8, `recorded` fallback);
+`fsi-app/scripts/maintenance/timeline-backfill.mjs` and test (step 8 wiring, undateable-set wording);
+`fsi-app/scripts/maintenance/close-flags-for-verified-items.mjs` and test (archived-item closing rule);
+`docs/runbooks/MAINTENANCE-RUNBOOK.md` (sections 40, 52, 55); `fsi-app/docs/inventories/
+shared-dataset-ownership.md` (traceability note, no new allowlist rows -- both scripts write tables
+already registered); `docs/ops/session-log.md` (this entry).
+
+### UX compliance (L11b)
+
+Not applicable: no `.tsx`/`.css` touched.
