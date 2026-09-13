@@ -835,3 +835,78 @@ test("D23(a): the real changelogClient adapter (built from `sb`) is only reached
   assert.equal(inserted.new_value, "record-briefs-real");
   assert.equal(inserted.detected_by, "record-briefs");
 });
+
+// Fix round 1 (review-l15.md, C2): the changelog write must never be decided from the read-back
+// provenance_status alone. An item can already be "verified" in the database from an earlier,
+// unrelated success while THIS run's own generate/section/ground steps all fail - that must never
+// record a false "brief regenerated" change.
+test("Fix round 1 (C2): item already verified in the DB, but this run's generate/section/ground all fail - NO changelog row is written", async () => {
+  const itemId = "item-11";
+  let called = false;
+  const deps = successfulDeps({
+    generateBriefFromInjected: async () => ({ ok: false, detail: "generate failed" }),
+    sectionBrief: async () => ({ ok: false, detail: "section failed" }),
+    groundBrief: async () => ({ ok: false, detail: "ground failed" }),
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    // fakeSb reports "verified" regardless of this run's own outcome - reproducing the reviewer's
+    // repro: the item was verified by an EARLIER, unrelated success, not by this run.
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(result.generated, false);
+  assert.equal(result.provenanceStatus, "verified");
+  assert.equal(
+    called,
+    false,
+    "recordItemChange must not be called when this run's own generate/section/ground all failed",
+  );
+  assert.equal(
+    result.steps.some((s) => s.id === "item-11#changelog"),
+    false,
+    "no changelog step should even be attempted",
+  );
+});
+
+test("Fix round 1 (C2): a fully successful run (generate, section and ground all ok this run, verified read-back) writes exactly one changelog row", async () => {
+  const itemId = "item-12";
+  let callCount = 0;
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      callCount += 1;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(callCount, 1, "recordItemChange must be called exactly once");
+  const changelogSteps = result.steps.filter((s) => s.id === "item-12#changelog");
+  assert.equal(changelogSteps.length, 1, "exactly one changelog step outcome is recorded");
+  assert.equal(changelogSteps[0].outcome, "changelog:written");
+});
+
+// Partial-success variants: only ONE of generate/section/ground failing this run must also refuse
+// the changelog write, since the plan text requires ALL THREE to have succeeded this run.
+test("Fix round 1 (C2): generate succeeds but ground fails this run - NO changelog row, even though provenance_status reads verified", async () => {
+  const itemId = "item-13";
+  let called = false;
+  const deps = successfulDeps({
+    groundBrief: async () => ({ ok: false, detail: "dominance guard refused" }),
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(called, false, "a ground failure this run must refuse the changelog write");
+  assert.equal(result.steps.some((s) => s.id === "item-13#changelog"), false);
+});

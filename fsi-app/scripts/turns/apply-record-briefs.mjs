@@ -447,8 +447,10 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   }
 
   // 2. section ──────────────────────────────────────────────────────────────────────────────────────────
+  let sectioned = false;
   try {
     const r = await sectionBrief(itemId);
+    sectioned = r.ok === true;
     record("section", r.ok ? "sectioned" : "section_failed", r.ok ? null : r.detail);
   } catch (e) {
     record("section", "section_failed", e instanceof Error ? e.message : String(e));
@@ -456,8 +458,10 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
 
   // 3. ground (injected ledger - the metered acquire-lock gate does not apply, see groundBrief's own
   //    CC-GROUNDING-EXECUTOR SEAM header) ───────────────────────────────────────────────────────────────
+  let grounded = false;
   try {
     const r = await groundBrief(itemId, "brief-apply", { injectedLedger: entry.claims });
+    grounded = r.ok === true;
     record("ground", r.ok ? "grounded" : "ground_failed", r.ok ? null : r.detail);
   } catch (e) {
     record("ground", "ground_failed", e instanceof Error ? e.message : String(e));
@@ -479,7 +483,15 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   // change - only for a VERIFIED item (a quarantined one has nothing new to show a customer yet).
   // Idempotent per (itemId, "full_brief", batch): a resumed run over the same --briefs file writes
   // nothing a second time (recordItemChange's own idempotency read).
-  if (provenanceStatus === "verified") {
+  //
+  // FIX ROUND 1 (review-l15.md, C2): gating on `provenanceStatus === "verified"` alone is a false
+  // "brief regenerated" claim when THIS run's own generate/section/ground steps all fail while the
+  // item was already verified from an earlier, unrelated success - the write must never be decided
+  // from the read-back DB status alone. Gate on this run's own step outcomes first: `generated`
+  // (generate's own r.ok), `sectioned` (section's own r.ok), `grounded` (ground's own r.ok). Only
+  // when all three of THIS run's steps succeeded, AND the read-back status is verified, does a
+  // changelog row get written.
+  if (generated && sectioned && grounded && provenanceStatus === "verified") {
     try {
       const claimCount = Array.isArray(entry.claims) ? entry.claims.length : 0;
       const r = await doRecordItemChange(changelogClient, {
