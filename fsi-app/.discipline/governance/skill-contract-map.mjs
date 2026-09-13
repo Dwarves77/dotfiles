@@ -189,6 +189,7 @@ export const PINNED_MANIFEST = {
     contentHash: 'b4c319ee3b8f6e3aaa1f9f5246952e79c27f59dea6fce96931ca5b50d2949b0b',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
+      'fsi-app/scripts/verify/candidate-dwell-audit.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
       'fsi-app/scripts/verify/check-vocabulary-drift.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',

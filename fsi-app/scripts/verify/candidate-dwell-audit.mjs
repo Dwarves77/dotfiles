@@ -8,10 +8,10 @@
 // candidates with 3 ever promoted, because the free ($0) session-Haiku decider was never fed.
 //
 // INVARIANT: no portal_link_candidates row (status='candidate') may sit past DWELL_BOUND_DAYS unless a
-// committed scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch already names its candidate_id (a
+// committed session-verdict batch file (the JSON batches discoverVerdictsFiles below reads) already names its candidate_id (a
 // row a session lane has looked at, even if that specific verdict was later excluded for a stale
 // prompt_version, is not "never fed" -- this audit asks "was this row ever handed to the decider", not
-// "did its verdict apply cleanly"; run-ledger-consume.mjs's own validateVerdictsFile is the schema gate).
+// "did its verdict apply cleanly"; the consume runner's own validateVerdictsFile is the schema gate).
 //
 // Exit 0 = invariant holds. Exit 1 = at least one past-bound, never-named candidate -- this gates the
 // live-data audit lane (CI-with-secrets / nightly); pre-push has no DB secrets so it validates WIRING via
