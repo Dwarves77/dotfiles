@@ -13,9 +13,13 @@ import {
   PROVISIONAL_DEFAULT_TIER,
 } from "./host-authority.ts";
 
-const LEGAL = ["eur-lex.europa.eu", "www.federalregister.gov", "ecfr.gov", "govinfo.gov", "legislation.gov.uk"];
+// legifrance.gouv.fr moved OUT of GOV and into LEGAL (defect D14, docs/plans/defect-fix-plan-2026-09-12.md,
+// 2026-09-12): it is France's own official law portal, curated into LEGAL_PUBLISHER_ALLOW -> T1, the same
+// "enacted primary legal text" class as legislation.gov.uk, not a generic ministry stem.
+const LEGAL = ["eur-lex.europa.eu", "www.federalregister.gov", "ecfr.gov", "govinfo.gov", "legislation.gov.uk",
+  "legifrance.gouv.fr"];
 const GOV = ["irs.gov", "epa.gov", "assets.publishing.service.gov.uk", "economia.gob.mx",
-  "legifrance.gouv.fr", "mfe.govt.nz", "canada.gc.ca", "europa.eu", "un.org", "oecd.org", "imo.org", "icao.int"];
+  "mfe.govt.nz", "canada.gc.ca", "europa.eu", "un.org", "oecd.org", "imo.org", "icao.int"];
 // NOT-CODIFIED — commercial / analysis / law-firm / advocacy hosts the old path minted at a guessed 5.
 // codifiedTierForHost (legal/gov only) returns null for ALL of these (that guarantee is unchanged).
 const AMBIGUOUS = ["searoutes.com", "truckinginfo.com", "globalpetrolprices.com", "dieselnet.com",
