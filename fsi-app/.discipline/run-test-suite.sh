@@ -130,6 +130,7 @@ node --test \
   fsi-app/src/lib/list-pagination.test.mjs \
   fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \
   fsi-app/src/lib/supabase-server-category-rpc-paging.test.mjs \
+  fsi-app/src/lib/supabase-server-recent-changes-319.test.mjs \
   fsi-app/src/lib/data-public-surface-slugs.test.mjs \
   fsi-app/src/lib/db/*.test.mjs \
   fsi-app/src/lib/perf/*.test.mjs \
