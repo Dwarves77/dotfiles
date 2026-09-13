@@ -20336,3 +20336,83 @@ tests, never a live call). Named paths only staged, never `git add -A`. Trailer
 **Not in this entry's scope** (separate lanes per the defect-fix plan): every other defect (D1 through
 D12 except D13/D14), the batch-001/002 brief-writing lanes, and the 7.2 dry runs/applies named in the
 plan's push order.
+## 2026-09-12, W9 defect-fix-plan D5, D7, D11 (lane w9-d5-d7-2026-09-12)
+
+**What.** Three defects from the coordinator's defect-fix-plan-2026-09-12.md, lane L3 (the discipline
+lane) plus its D11 addendum, all built on the same branch.
+
+D5: discipline rule 022 (`fsi-app/.discipline/rules/022-no-dash-glyphs.mjs`) fails a commit when an added
+line carries U+2014, U+2013 or U+00A7, exempting `record-briefs/batches/`, any `fixtures` directory,
+`docs/archive/`, or a line carrying the `glyph:verbatim` marker. The check used to be prose in the lane
+contract plus a byte count the coordinator ran by hand. `context.mjs` gained `ctx.getAddedLines(path)`
+(backed by `git diff -U0` / `git show -U0` in the real modes, direct fixture injection in tests) since
+nothing in the engine could previously distinguish an added line from an unchanged one. Registered in
+`manifest.mjs` and `governance/invariants.mjs` (RD-69). The lane contract's manual byte-check sentence
+now names rule 022 and the marker.
+
+D7: a tracked inventory of every list-valued CHECK constraint
+(`fsi-app/docs/inventories/db-check-constraints.json`), closing the D2 class (nothing checked a writer's
+literal against the DB's own vocabulary before it hit production). `scripts/maintenance/lib/
+vocab-inventory.mjs` is the pure parser (both `ANY(ARRAY[...])` and `IN(...)` shapes; a migration-source
+scanner with balanced-paren CREATE TABLE / ALTER TABLE ADD|DROP CONSTRAINT extraction, last definition
+per constraint name wins). `scripts/maintenance/schema-vocabulary-inventory.mjs` is the read-only
+maintenance step (`mode=apply` refused before any DB call; `mode=dry` runs the plan's exact live query),
+wired into `maintenance.yml` section 46 with a commit-back step reusing
+`commit-worklist-artifact.sh`. The tracked JSON was seeded (187 entries, one compound constraint
+correctly left unparsed) from `supabase/migrations/*.sql` with the same parser, since no live dump was
+available in this worktree; the header carries `"source": "migrations"` until the first live run.
+`.discipline/check-vocabulary.test.mjs` scans the four named write surfaces for a governed-column literal
+at a resolvable write-call site; two scoping decisions (write-call anchoring, per-table validation when
+the table is resolvable) are documented in the file's own header, both found by running the naive
+key-name-only design against the real tree first and reading its false positives. A small, cited,
+self-auditing `KNOWN_DRIFT_ALLOWLIST` carries the 3 genuine pre-existing violations that first run found
+outside D5/D7 scope, including the D2 route itself (`src/app/api/admin/sources/promote/route.ts` writing
+`status: "promoted"`); a stale entry fails the test. `scripts/verify/check-vocabulary-drift.mjs` (pure
+core at `lib/vocab-drift.mjs`) compares the tracked inventory against the live schema, wired into
+`run-data-audit-lane.mjs` (HARD); not registered in `invariants.mjs` since execution-wiring for an
+`audit:` token comes from presence in that AUDITS list, confirmed by reading `execution-wiring.mjs` and
+`invariant-coverage.mjs`.
+
+D11: the pre-push hook (`fsi-app/.discipline/hooks/pre-push`) wrote every step's log to a fixed path
+under `/tmp` and removed it per step; concurrent hook runs (one push per lane, lane preflights, the
+coordinator's own gate runs) could clobber each other's log. The directory-creation logic is now a
+sourced fragment (`.discipline/hooks/lib/prepush-logdir.sh`, `mktemp -d`, pid fallback) so a test
+(`.discipline/hooks/pre-push-tmpdir.test.mjs`) can drive it directly: two concurrent invocations each get
+a distinct directory and neither's marker file is clobbered by the other. The hook itself installs an
+EXIT trap that removes the directory on a clean exit and keeps it, printing its path, on a failing one;
+no fixed path remains.
+
+**Findings.** [CONFIRMED] a naive "key name only" scan for D7's unit test produced roughly 150 false
+positives across `src/lib` alone before the write-call and per-table scoping were added; the corpus-wide
+run after both narrowings found exactly 3 genuine pre-existing vocabulary mismatches outside this lane's
+write set, allowlisted with citations rather than fixed here (out of scope for D5/D7). [CONFIRMED] rule
+015 (row-mutation guarded path) flagged `map.delete(candidate.explicitName)` inside
+`vocab-inventory.mjs`'s pure parser as a raw Supabase mutation; it is a JS `Map` method in a file with no
+database call of any kind, closed with a `Write-Guard-Override:` trailer on the D7 commit.
+
+**Gates.** Full new-test count: 27 (rule 022 + context.mjs) + 27 (vocab-inventory.mjs) + 4
+(schema-vocabulary-inventory.mjs) + 15 (check-vocabulary.test.mjs) + 6 (vocab-drift.mjs) + 1
+(check-vocabulary-drift.mjs runner) + 2 (pre-push-tmpdir.test.mjs) = 82 new tests, all green. Glyph byte
+check (`git diff origin/master..HEAD | grep '^+' | grep -c` the three banned code points) is 0 across the
+full range; the rule 022 test fixtures that legitimately need the literal glyphs build them at runtime
+via `String.fromCharCode`, never typing them into the file's own source text, so 0 marked
+`glyph:verbatim` lines were needed in this range. Invariant-coverage meta-gate: PASS (125 invariants + 63
+doctrines wired). Full preflight (`sh fsi-app/.discipline/hooks/pre-push`) run once at the end; see the
+lane's own report for its tail and exit code.
+
+**Files.** `fsi-app/.discipline/lib/context.mjs` and test (new); `fsi-app/.discipline/rules/
+022-no-dash-glyphs.mjs` and test (new); `fsi-app/.discipline/manifest.mjs`, `fsi-app/.discipline/
+governance/invariants.mjs`; `docs/dispatches/lane-common-contract.md`; `fsi-app/scripts/maintenance/lib/
+vocab-inventory.mjs` and test (new); `fsi-app/scripts/maintenance/schema-vocabulary-inventory.mjs` and
+test (new); `fsi-app/docs/inventories/db-check-constraints.json` (new); `fsi-app/.discipline/
+check-vocabulary.test.mjs` (new); `fsi-app/.discipline/fixtures/check-vocabulary/bad-status-value.mjs`
+(new); `fsi-app/scripts/verify/check-vocabulary-drift.mjs` and test (new); `fsi-app/scripts/verify/lib/
+vocab-drift.mjs` and test (new); `fsi-app/scripts/verify/run-data-audit-lane.mjs`;
+`.github/workflows/maintenance.yml`; `docs/runbooks/MAINTENANCE-RUNBOOK.md`; `fsi-app/.discipline/
+run-test-suite.sh`; `fsi-app/.discipline/hooks/pre-push`; `fsi-app/.discipline/hooks/lib/
+prepush-logdir.sh` (new); `fsi-app/.discipline/hooks/pre-push-tmpdir.test.mjs` (new); `docs/ops/
+session-log.md` (this entry).
+
+### UX compliance (D5, D7, D11)
+
+Not applicable: no `.tsx`/`.css` touched.

@@ -38,6 +38,10 @@ import { rule as rule020 } from './rules/020-fork-log-frozen.mjs';
 // let stale cross-deployment cache entries crash SSR of / (digest 2552218741). Content-
 // verifiable, 012-style; the failure message prints the exact new key.
 import { rule as rule021 } from './rules/021-cached-shape-key.mjs';
+// No-dash-glyphs guard (2026-09-12, defect-fix-plan-2026-09-12.md D5): an added line must not carry
+// U+2014, U+2013 or U+00A7 unless the path is exempt or the line carries `glyph:verbatim`. Was a byte
+// count the coordinator ran by hand; moved into the engine so it fires on every commit.
+import { rule as rule022 } from './rules/022-no-dash-glyphs.mjs';
 
 export const rules = [
   rule012,
@@ -49,6 +53,7 @@ export const rules = [
   rule019,
   rule020,
   rule021,
+  rule022,
 ];
 
 export function getRuleById(id) {

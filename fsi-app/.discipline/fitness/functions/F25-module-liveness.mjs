@@ -1048,7 +1048,16 @@ export function inWidenedScope(f, manifest) {
     // scripts/_snapshots/, scripts/_plans/: gitignored scratch per CLAUDE.md standing rule 5 (machine
     // evidence / regenerable working state) — tracked exceptions there are data, not modules to wire.
     !f.includes('/scripts/_snapshots/') &&
-    !f.includes('/scripts/_plans/')
+    !f.includes('/scripts/_plans/') &&
+    // Any directory named `fixtures`, by RULE, not a per-file LEGACY_ALLOWLIST entry (defect-fix-plan-
+    // 2026-09-12.md, D7 Fix round 1, review-l3.md): a fixture module (e.g. a deliberately-wrong-value
+    // fixture consumed only by reading its own file content in a test, never imported) is test scaffolding
+    // by construction, the exact class isTestFile() already exempts for a file's own suffix. An allowlist
+    // entry naming one specific fixture file would be the instance patch this ratchet exists to retire,
+    // and the NEXT fixture-shaped module would need its own entry all over again. Segment match (not a bare
+    // substring), so a `fixtures` directory is exempt at ANY depth without matching an unrelated path that
+    // merely contains the substring (e.g. `myfixtures/`).
+    !f.split('/').includes('fixtures')
   );
 }
 

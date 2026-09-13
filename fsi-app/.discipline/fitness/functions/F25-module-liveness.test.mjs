@@ -366,6 +366,40 @@ test('inWidenedScope reaches fsi-app/.discipline/governance/ and fsi-app/scripts
   assert.ok(inWidenedScope('fsi-app/scripts/spec09/some-new-producer.mjs', NO_MANIFEST));
 });
 
+// D7 Fix round 1 (docs/plans/defect-fix-plan-2026-09-12.md, review-l3.md): a `fixtures` directory is
+// exempt from this scope BY RULE, never a per-file LEGACY_ALLOWLIST entry -- a fixture module consumed
+// only by a test reading its own file content (never imported) reads exactly like a genuinely dead
+// module otherwise, and an allowlist entry naming one specific fixture would be the instance patch this
+// ratchet exists to retire (the next fixture-shaped module would need its own entry all over again).
+// Run end-to-end through the real pipeline (scope filter -> findUnimported -> auditLiveness), not just
+// the scope predicate alone, so this proves the WHOLE gate treats the two paths differently.
+test('a dead module inside a fixtures/ directory passes; the identical module outside it fails', () => {
+  const insideFixtures = 'fsi-app/scripts/maintenance/fixtures/dead-module.mjs';
+  const outsideFixtures = 'fsi-app/scripts/maintenance/dead-module.mjs';
+  const t = tree({
+    [insideFixtures]: 'export const x = 1;',
+    [outsideFixtures]: 'export const x = 1;',
+  });
+
+  assert.equal(inWidenedScope(insideFixtures, NO_MANIFEST), false);
+  assert.equal(inWidenedScope(outsideFixtures, NO_MANIFEST), true);
+
+  const importers = buildImportGraph(t.files, t.read);
+  const scope = t.files.filter((f) => inWidenedScope(f, NO_MANIFEST));
+  assert.deepEqual(scope, [outsideFixtures]);
+
+  const unimported = findUnimported(scope, importers, NO_MANIFEST);
+  const problems = auditLiveness(unimported, scope, EMPTY);
+  assert.equal(problems.length, 1);
+  assert.ok(problems[0].includes(outsideFixtures));
+});
+
+test('inWidenedScope exempts a fixtures/ segment at any depth, and does not false-match a "myfixtures" substring', () => {
+  assert.equal(inWidenedScope('fsi-app/src/lib/sources/fixtures/x.mjs', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/.discipline/fixtures/check-vocabulary/x.mjs', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/scripts/myfixtures/x.mjs', NO_MANIFEST), true);
+});
+
 // ── Source 7: OUT-OF-REPO-BOUNDARY.md's tables are themselves the registry ──
 
 test('parseBoundaryRegistryPaths: a backticked governance/*.mjs path in a table row is found', () => {

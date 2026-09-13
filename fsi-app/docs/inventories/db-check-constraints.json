@@ -1,0 +1,2195 @@
+{
+  "source": "migrations",
+  "generated": "2026-09-12T00:00:00.000Z",
+  "constraints": [
+    {
+      "table": "agent_runs",
+      "column": "status",
+      "constraint": "agent_runs_status_check",
+      "allowed": [
+        "running",
+        "success",
+        "skipped",
+        "error"
+      ]
+    },
+    {
+      "table": "assumption_register",
+      "column": "derivation",
+      "constraint": "assumption_register_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "assumption_register",
+      "column": "origin_class",
+      "constraint": "assumption_register_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "assumption_register",
+      "column": "status",
+      "constraint": "assumption_register_status_check",
+      "allowed": [
+        "active",
+        "superseded",
+        "retired"
+      ]
+    },
+    {
+      "table": "auxiliary_energy_profiles",
+      "column": "load_type",
+      "constraint": "auxiliary_energy_profiles_load_type_check",
+      "allowed": [
+        "reefer_genset",
+        "airport_climate_hold",
+        "warehouse_hvac",
+        "museum_spec_hold",
+        "battery_conditioning",
+        "dehumidification"
+      ]
+    },
+    {
+      "table": "bulk_imports",
+      "column": "format",
+      "constraint": "bulk_imports_format_check",
+      "allowed": [
+        "csv",
+        "json"
+      ]
+    },
+    {
+      "table": "canonical_source_candidates",
+      "column": "confidence",
+      "constraint": "canonical_source_candidates_confidence_check",
+      "allowed": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    {
+      "table": "canonical_source_candidates",
+      "column": "decision",
+      "constraint": "canonical_source_candidates_decision_check",
+      "allowed": [
+        "pending",
+        "approved",
+        "rejected",
+        "deferred"
+      ]
+    },
+    {
+      "table": "canonical_source_candidates",
+      "column": "issue_classification",
+      "constraint": "canonical_source_candidates_issue_classification_check",
+      "allowed": [
+        "stale_url",
+        "missing_link",
+        "missing_source",
+        "thin_match"
+      ]
+    },
+    {
+      "table": "carrier_compliance_pools",
+      "column": "derivation",
+      "constraint": "carrier_compliance_pools_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "carrier_compliance_pools",
+      "column": "NOT",
+      "constraint": "carrier_compliance_pools_never_statutory",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula"
+      ]
+    },
+    {
+      "table": "case_studies",
+      "column": "validation_status",
+      "constraint": "case_studies_validation_status_check",
+      "allowed": [
+        "submitted",
+        "under_review",
+        "peer_validated",
+        "featured"
+      ]
+    },
+    {
+      "table": "case_study_endorsements",
+      "column": "endorsement_type",
+      "constraint": "case_study_endorsements_endorsement_type_check",
+      "allowed": [
+        "technically_sound",
+        "replicated",
+        "recommended"
+      ]
+    },
+    {
+      "table": "census_worklist",
+      "column": "dryrun_disposition",
+      "constraint": "census_worklist_dryrun_disposition_check",
+      "allowed": [
+        "would_mint",
+        "dedup_hit",
+        "congruence_reject",
+        "invariant_reject",
+        "hold"
+      ]
+    },
+    {
+      "table": "census_worklist",
+      "column": "enumeration_status",
+      "constraint": "census_worklist_enumeration_status_check",
+      "allowed": [
+        "discovered",
+        "classified",
+        "dry_run_complete",
+        "reconciled",
+        "flagged"
+      ]
+    },
+    {
+      "table": "census_worklist",
+      "column": "lane",
+      "constraint": "census_worklist_lane_check",
+      "allowed": [
+        "A",
+        "C"
+      ]
+    },
+    {
+      "table": "census_worklist",
+      "column": "shape_class",
+      "constraint": "census_worklist_shape_class_check",
+      "allowed": [
+        "instrument_page",
+        "index_page",
+        "pdf_direct",
+        "feed_entry",
+        "unknown"
+      ]
+    },
+    {
+      "table": "changelog",
+      "column": "type",
+      "constraint": "changelog_type_check",
+      "allowed": [
+        "NEW",
+        "UPDATED"
+      ]
+    },
+    {
+      "table": "claim_versions",
+      "column": "supersede_reason",
+      "constraint": "claim_versions_supersede_reason_chk",
+      "allowed": [
+        "changed",
+        "proven_inaccurate",
+        "orphaned_no_prose_referent"
+      ]
+    },
+    {
+      "table": "community_benchmark_instruments",
+      "column": "calendar_cycle",
+      "constraint": "community_benchmark_instruments_calendar_cycle_check",
+      "allowed": [
+        "monthly",
+        "quarterly",
+        "annual"
+      ]
+    },
+    {
+      "table": "community_benchmark_instruments",
+      "column": "field_key",
+      "constraint": "community_benchmark_instruments_field_key_check",
+      "allowed": [
+        "rate_per_feu",
+        "wage_per_hour",
+        "capacity_teu",
+        "saf_premium_pct",
+        "pricing"
+      ]
+    },
+    {
+      "table": "community_benchmark_instruments",
+      "column": "region",
+      "constraint": "community_benchmark_instruments_region_check",
+      "allowed": [
+        "EU",
+        "UK",
+        "US",
+        "LATAM",
+        "APAC",
+        "HK",
+        "MEA",
+        "GLOBAL"
+      ]
+    },
+    {
+      "table": "community_benchmark_instruments",
+      "column": "status",
+      "constraint": "community_benchmark_instruments_status_check",
+      "allowed": [
+        "scheduled",
+        "open",
+        "closed"
+      ]
+    },
+    {
+      "table": "community_group_invitations",
+      "column": "status",
+      "constraint": "community_group_invitations_status_check",
+      "allowed": [
+        "pending",
+        "accepted",
+        "declined",
+        "revoked"
+      ]
+    },
+    {
+      "table": "community_group_members",
+      "column": "role",
+      "constraint": "community_group_members_role_check",
+      "allowed": [
+        "admin",
+        "moderator",
+        "member"
+      ]
+    },
+    {
+      "table": "community_groups",
+      "column": "privacy",
+      "constraint": "community_groups_privacy_check",
+      "allowed": [
+        "public",
+        "private"
+      ]
+    },
+    {
+      "table": "community_groups",
+      "column": "region",
+      "constraint": "community_groups_region_check",
+      "allowed": [
+        "EU",
+        "UK",
+        "US",
+        "LATAM",
+        "APAC",
+        "HK",
+        "MEA",
+        "GLOBAL"
+      ]
+    },
+    {
+      "table": "community_member_profiles",
+      "column": "org_type",
+      "constraint": "community_member_profiles_org_type_check",
+      "allowed": [
+        "forwarder",
+        "carrier",
+        "shipper",
+        "customs-broker",
+        "3pl",
+        "regulator",
+        "ngo",
+        "analyst",
+        "other"
+      ]
+    },
+    {
+      "table": "community_member_profiles",
+      "column": "region",
+      "constraint": "community_member_profiles_region_check",
+      "allowed": [
+        "EU",
+        "UK",
+        "US",
+        "LATAM",
+        "APAC",
+        "HK",
+        "MEA",
+        "GLOBAL"
+      ]
+    },
+    {
+      "table": "community_member_profiles",
+      "column": "verification_method",
+      "constraint": "community_member_profiles_verification_method_check",
+      "allowed": [
+        "corporate-email",
+        "linkedin",
+        "write-in"
+      ]
+    },
+    {
+      "table": "community_post_signoff_requests",
+      "column": "status",
+      "constraint": "community_post_signoff_requests_status_check",
+      "allowed": [
+        "pending",
+        "signed_off",
+        "declined",
+        "withdrawn"
+      ]
+    },
+    {
+      "table": "community_posts",
+      "column": "attribution",
+      "constraint": "community_posts_attribution_check",
+      "allowed": [
+        "editorial",
+        "original-author",
+        "anonymous"
+      ]
+    },
+    {
+      "table": "community_posts",
+      "column": "origin_class",
+      "constraint": "community_posts_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "community_posts",
+      "column": "promotion_state",
+      "constraint": "community_posts_promotion_state_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "under-review",
+        "verified",
+        "retired"
+      ]
+    },
+    {
+      "table": "community_posts",
+      "column": "stance",
+      "constraint": "community_posts_stance_check",
+      "allowed": [
+        "agree",
+        "disagree",
+        "neutral"
+      ]
+    },
+    {
+      "table": "community_promotion_transitions",
+      "column": "from_state",
+      "constraint": "community_promotion_transitions_from_state_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "under-review",
+        "verified",
+        "retired"
+      ]
+    },
+    {
+      "table": "community_promotion_transitions",
+      "column": "to_state",
+      "constraint": "community_promotion_transitions_to_state_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "under-review",
+        "verified",
+        "retired"
+      ]
+    },
+    {
+      "table": "connection_theme_runs",
+      "column": "status",
+      "constraint": "connection_theme_runs_status_check",
+      "allowed": [
+        "running",
+        "ok",
+        "error"
+      ]
+    },
+    {
+      "table": "corpus_turn_requests",
+      "column": "reason",
+      "constraint": "corpus_turn_requests_reason_check",
+      "allowed": [
+        "inserted",
+        "verified",
+        "unarchived",
+        "updated",
+        "tags_applied",
+        "manual"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "access_model",
+      "constraint": "coverage_gap_candidates_access_model_check",
+      "allowed": [
+        "free",
+        "licensed",
+        "mixed",
+        "not_applicable"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "coverage_class",
+      "constraint": "coverage_gap_candidates_coverage_class_check",
+      "allowed": [
+        "MISSING",
+        "AMBIGUOUS_ARCHIVED",
+        "HAVE_QUARANTINED"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "data_class",
+      "constraint": "coverage_gap_candidates_data_class_check",
+      "allowed": [
+        "instrument",
+        "data_feed",
+        "tracker"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "discovery_class",
+      "constraint": "coverage_gap_candidates_discovery_class_check",
+      "allowed": [
+        "labor_cost_feed",
+        "energy_price_feed",
+        "commercial_fuel_assessment",
+        "state_subnational_tracker",
+        "compliance_reporting_portal",
+        "enforcement_verification_system",
+        "lca_disclosure_verification",
+        "market_intel_source",
+        "research_horizon_source",
+        "vertical_operational_standard"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "disposition",
+      "constraint": "coverage_gap_candidates_disposition_check",
+      "allowed": [
+        "kept",
+        "declined",
+        "parked"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "estimated_priority",
+      "constraint": "coverage_gap_candidates_estimated_priority_check",
+      "allowed": [
+        "CRITICAL",
+        "HIGH",
+        "MODERATE",
+        "LOW"
+      ]
+    },
+    {
+      "table": "coverage_gap_candidates",
+      "column": "sizing_class",
+      "constraint": "coverage_gap_candidates_sizing_class_check",
+      "allowed": [
+        "major",
+        "minor"
+      ]
+    },
+    {
+      "table": "coverage_gap_census_findings",
+      "column": "dry_run_disposition",
+      "constraint": "coverage_gap_census_findings_dry_run_disposition_check",
+      "allowed": [
+        "would_mint",
+        "would_decline",
+        "would_park",
+        "browser_required_undetermined",
+        "not_applicable"
+      ]
+    },
+    {
+      "table": "coverage_gap_census_findings",
+      "column": "fetch_method",
+      "constraint": "coverage_gap_census_findings_fetch_method_check",
+      "allowed": [
+        "plain_http",
+        "api",
+        "feed_xml",
+        "browser_required",
+        "not_applicable"
+      ]
+    },
+    {
+      "table": "coverage_gap_census_findings",
+      "column": "pending_dependency",
+      "constraint": "coverage_gap_census_findings_pending_dependency_check",
+      "allowed": [
+        "session_a_chrome_render",
+        "session_a_register_walk"
+      ]
+    },
+    {
+      "table": "coverage_gap_census_findings",
+      "column": "subject_type",
+      "constraint": "coverage_gap_census_findings_subject_type_check",
+      "allowed": [
+        "existing_feed",
+        "candidate_source",
+        "candidate_catalog"
+      ]
+    },
+    {
+      "table": "coverage_gap_census_findings",
+      "column": "sweep",
+      "constraint": "coverage_gap_census_findings_sweep_check",
+      "allowed": [
+        "sweep1_existing_feed_audit",
+        "sweep2_adjacent_universes",
+        "sweep3_research_feedstock"
+      ]
+    },
+    {
+      "table": "coverage_gaps",
+      "column": "severity",
+      "constraint": "coverage_gaps_severity_check",
+      "allowed": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    {
+      "table": "custody_chains",
+      "column": "credit_type",
+      "constraint": "custody_chains_credit_type_check",
+      "allowed": [
+        "saf_bnc",
+        "green_methanol",
+        "biodiesel_bnc",
+        "ets_allowance"
+      ]
+    },
+    {
+      "table": "custody_chains",
+      "column": "double_count_check",
+      "constraint": "custody_chains_double_count_check_check",
+      "allowed": [
+        "unverified",
+        "single_claim_confirmed",
+        "conflict_detected"
+      ]
+    },
+    {
+      "table": "data_sources",
+      "column": "redistribution",
+      "constraint": "data_sources_redistribution_check",
+      "allowed": [
+        "permitted",
+        "conditional",
+        "unverified",
+        "prohibited"
+      ]
+    },
+    {
+      "table": "derivation_edges",
+      "column": "from_table",
+      "constraint": "derivation_edges_from_table_allowed",
+      "allowed": [
+        "emission_factors",
+        "market_series",
+        "regional_data_facts",
+        "derived_values",
+        "statutory_computations",
+        "estimated_values"
+      ]
+    },
+    {
+      "table": "derived_values",
+      "column": "admissibility",
+      "constraint": "derived_values_admissibility_check",
+      "allowed": [
+        "display_only",
+        "analysis_ok",
+        "calculation_ok",
+        "filing_ok",
+        "stale"
+      ]
+    },
+    {
+      "table": "derived_values",
+      "column": "derivation",
+      "constraint": "derived_values_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "derived_values",
+      "column": "lifecycle",
+      "constraint": "derived_values_lifecycle_check",
+      "allowed": [
+        "emerging",
+        "strengthening",
+        "corroborated",
+        "verified",
+        "stalled",
+        "falsified",
+        "superseded",
+        "obsolete"
+      ]
+    },
+    {
+      "table": "derived_values",
+      "column": "origin_class",
+      "constraint": "derived_values_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "drain_worklist",
+      "column": "lane",
+      "constraint": "drain_worklist_lane_check",
+      "allowed": [
+        "A",
+        "B"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "derivation",
+      "constraint": "emission_factors_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "gwp_basis",
+      "constraint": "emission_factors_gwp_basis",
+      "allowed": [
+        "AR4_GWP100",
+        "AR5_GWP100",
+        "AR6_GWP100",
+        "AR6_GWP20",
+        "unstated"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "mode",
+      "constraint": "emission_factors_mode",
+      "allowed": [
+        "road",
+        "rail",
+        "ocean",
+        "inland_waterway",
+        "air"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "origin_class",
+      "constraint": "emission_factors_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "quantity_basis",
+      "constraint": "emission_factors_quantity_basis",
+      "allowed": [
+        "tonne_km",
+        "vehicle_km",
+        "teu_km",
+        "tonne",
+        "litre",
+        "kg",
+        "kwh",
+        "mj"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "scope_kind",
+      "constraint": "emission_factors_scope_kind",
+      "allowed": [
+        "movement",
+        "carrier_lane",
+        "operator_lane",
+        "modal"
+      ]
+    },
+    {
+      "table": "emission_factors",
+      "column": "tier",
+      "constraint": "emission_factors_tier",
+      "allowed": [
+        "carrier_primary",
+        "verified_operator_avg",
+        "programme_lane_avg",
+        "modal_default",
+        "proxy_estimate"
+      ]
+    },
+    {
+      "table": "entities",
+      "column": "status",
+      "constraint": "entities_status_check",
+      "allowed": [
+        "active",
+        "merged",
+        "retired"
+      ]
+    },
+    {
+      "table": "entity_refs",
+      "column": "ref_table",
+      "constraint": "entity_refs_ref_table_allowed",
+      "allowed": [
+        "intelligence_items",
+        "regions"
+      ]
+    },
+    {
+      "table": "error_events",
+      "column": "side",
+      "constraint": "error_events_side_check",
+      "allowed": [
+        "server",
+        "client"
+      ]
+    },
+    {
+      "table": "eudr_plot_claims",
+      "column": "hold_risk",
+      "constraint": "eudr_plot_claims_hold_risk_check",
+      "allowed": [
+        "none",
+        "documentary",
+        "border_hold"
+      ]
+    },
+    {
+      "table": "eudr_plot_claims",
+      "column": "validation_state",
+      "constraint": "eudr_plot_claims_validation_state_check",
+      "allowed": [
+        "missing",
+        "malformed",
+        "valid",
+        "fails_cutoff"
+      ]
+    },
+    {
+      "table": "forum_sections",
+      "column": "section_type",
+      "constraint": "forum_sections_section_type_check",
+      "allowed": [
+        "regional",
+        "topical",
+        "global",
+        "special"
+      ]
+    },
+    {
+      "table": "forum_threads",
+      "column": "thread_type",
+      "constraint": "forum_threads_thread_type_check",
+      "allowed": [
+        "discussion",
+        "question",
+        "case_study_link",
+        "intelligence_alert",
+        "announcement"
+      ]
+    },
+    {
+      "table": "grid_connection_queues",
+      "column": "obs_status",
+      "constraint": "grid_connection_queues_obs_status_check",
+      "allowed": [
+        "A",
+        "P",
+        "E",
+        "I",
+        "F",
+        "B",
+        "D",
+        "U",
+        "V",
+        "G",
+        "M",
+        "O",
+        "L",
+        "H",
+        "Q",
+        "N"
+      ]
+    },
+    {
+      "table": "holdings_quality",
+      "column": "capture_kind",
+      "constraint": "holdings_quality_capture_kind_check",
+      "allowed": [
+        "snapshot",
+        "pool"
+      ]
+    },
+    {
+      "table": "holdings_quality",
+      "column": "completeness",
+      "constraint": "holdings_quality_completeness_check",
+      "allowed": [
+        "NO-KNOWN-DEFECT",
+        "TRUNCATED",
+        "FURNITURE",
+        "STUB"
+      ]
+    },
+    {
+      "table": "holdings_quality",
+      "column": "publisher_shape",
+      "constraint": "holdings_quality_publisher_shape_check",
+      "allowed": [
+        "eur-lex",
+        "legislation.gov.uk",
+        "federal-register",
+        "gazette",
+        "other"
+      ]
+    },
+    {
+      "table": "holdings_quality",
+      "column": "sufficiency",
+      "constraint": "holdings_quality_sufficiency_check",
+      "allowed": [
+        "covers_grounding",
+        "corroborators_only",
+        "insufficient"
+      ]
+    },
+    {
+      "table": "indexation_clauses",
+      "column": "review_cadence",
+      "constraint": "indexation_clauses_review_cadence_check",
+      "allowed": [
+        "monthly",
+        "quarterly",
+        "semiannual"
+      ]
+    },
+    {
+      "table": "ingest_rejections",
+      "column": "rejection_reason",
+      "constraint": "ingest_rejections_valid_reason",
+      "allowed": [
+        "below_granularity",
+        "non_geographic",
+        "institutional",
+        "unparseable"
+      ]
+    },
+    {
+      "table": "ingest_rejections",
+      "column": "triage_action",
+      "constraint": "ingest_rejections_valid_triage_action",
+      "allowed": [
+        "discarded",
+        "reclassified",
+        "escalated"
+      ]
+    },
+    {
+      "table": "integrity_flags",
+      "column": "category",
+      "constraint": "integrity_flags_category_check",
+      "allowed": [
+        "design_drift",
+        "data_quality",
+        "source_issue",
+        "coverage_gap",
+        "data_integrity",
+        "surface_concern",
+        "workflow_gap"
+      ]
+    },
+    {
+      "table": "integrity_flags",
+      "column": "status",
+      "constraint": "integrity_flags_status_check",
+      "allowed": [
+        "open",
+        "in_review",
+        "resolved",
+        "archived"
+      ]
+    },
+    {
+      "table": "integrity_flags",
+      "column": "subject_type",
+      "constraint": "integrity_flags_subject_type_check",
+      "allowed": [
+        "surface",
+        "item",
+        "source",
+        "jurisdiction",
+        "system"
+      ]
+    },
+    {
+      "table": "intelligence_item_citations",
+      "column": "origin",
+      "constraint": "intelligence_item_citations_origin_check",
+      "allowed": [
+        "sources_used_backfill",
+        "agent_extraction",
+        "manual"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "confidence",
+      "constraint": "intelligence_items_confidence_check",
+      "allowed": [
+        "confirmed",
+        "unconfirmed"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "instrument_type",
+      "constraint": "intelligence_items_instrument_type_check",
+      "allowed": [
+        "local_law",
+        "state_statute",
+        "national_regulation",
+        "federal_statute",
+        "federal_rule",
+        "federal_executive_order",
+        "eu_regulation",
+        "eu_directive",
+        "municipal_ordinance",
+        "agency_guidance",
+        "court_decision",
+        "industry_standard",
+        "market_signal",
+        "research_item",
+        "voluntary_initiative"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "item_type",
+      "constraint": "intelligence_items_item_type_check",
+      "allowed": [
+        "regulation",
+        "directive",
+        "standard",
+        "guidance",
+        "technology",
+        "market_signal",
+        "regional_data",
+        "research_finding",
+        "innovation",
+        "framework",
+        "tool",
+        "initiative"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "origin_class",
+      "constraint": "intelligence_items_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "pipeline_stage",
+      "constraint": "intelligence_items_pipeline_stage_check",
+      "allowed": [
+        "draft",
+        "active_review",
+        "published",
+        "archived"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "priority",
+      "constraint": "intelligence_items_priority_check",
+      "allowed": [
+        "CRITICAL",
+        "HIGH",
+        "MODERATE",
+        "LOW"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "severity",
+      "constraint": "intelligence_items_severity_check",
+      "allowed": [
+        "action_required",
+        "cost_alert",
+        "window_closing",
+        "competitive_edge",
+        "monitoring",
+        "critical",
+        "high",
+        "moderate",
+        "low",
+        "immediate",
+        "watch",
+        "reference",
+        "background"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "signal_band",
+      "constraint": "intelligence_items_signal_band_check",
+      "allowed": [
+        "price",
+        "corporate",
+        "corridor"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "status",
+      "constraint": "intelligence_items_status_check",
+      "allowed": [
+        "proposed",
+        "adopted",
+        "in_force",
+        "monitoring",
+        "superseded",
+        "repealed",
+        "expired"
+      ]
+    },
+    {
+      "table": "intelligence_items",
+      "column": "theme",
+      "constraint": "intelligence_items_theme_check",
+      "allowed": [
+        "emissions_accounting",
+        "fuels_saf",
+        "packaging_circular",
+        "carbon_markets",
+        "cold_chain_art",
+        "last_mile_electrification",
+        "disclosure_regimes"
+      ]
+    },
+    {
+      "table": "item_changelog",
+      "column": "change_type",
+      "constraint": "item_changelog_change_type_check",
+      "allowed": [
+        "NEW",
+        "UPDATED",
+        "STATUS_CHANGE",
+        "SEVERITY_CHANGE",
+        "ARCHIVED"
+      ]
+    },
+    {
+      "table": "item_changelog",
+      "column": "impact_level",
+      "constraint": "item_changelog_impact_level_check",
+      "allowed": [
+        "CRITICAL",
+        "HIGH",
+        "MODERATE",
+        "LOW"
+      ]
+    },
+    {
+      "table": "item_cross_references",
+      "column": "origin",
+      "constraint": "item_cross_references_origin_check",
+      "allowed": [
+        "manual",
+        "agent_semantic",
+        "entity_extraction",
+        "provenance_discovery"
+      ]
+    },
+    {
+      "table": "item_cross_references",
+      "column": "relationship",
+      "constraint": "item_cross_references_relationship_check",
+      "allowed": [
+        "related",
+        "supersedes",
+        "implements",
+        "conflicts",
+        "amends",
+        "depends_on"
+      ]
+    },
+    {
+      "table": "item_forward_events",
+      "column": "confidence",
+      "constraint": "item_forward_events_confidence_check",
+      "allowed": [
+        "high",
+        "medium"
+      ]
+    },
+    {
+      "table": "item_forward_events",
+      "column": "date_precision",
+      "constraint": "item_forward_events_date_precision_check",
+      "allowed": [
+        "day",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "table": "item_forward_events",
+      "column": "event_kind",
+      "constraint": "item_forward_events_event_kind_check",
+      "allowed": [
+        "entry_into_force",
+        "compliance_deadline",
+        "review_or_report",
+        "phase_step",
+        "consultation_close",
+        "other"
+      ]
+    },
+    {
+      "table": "item_forward_events",
+      "column": "source_kind",
+      "constraint": "item_forward_events_source_kind_check",
+      "allowed": [
+        "claim",
+        "section"
+      ]
+    },
+    {
+      "table": "item_supersessions",
+      "column": "severity",
+      "constraint": "item_supersessions_severity_check",
+      "allowed": [
+        "major",
+        "minor",
+        "replacement"
+      ]
+    },
+    {
+      "table": "market_series",
+      "column": "derivation",
+      "constraint": "market_series_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "market_series",
+      "column": "origin_class",
+      "constraint": "market_series_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "moderation_reports",
+      "column": "status",
+      "constraint": "moderation_reports_status_check",
+      "allowed": [
+        "open",
+        "resolved",
+        "dismissed"
+      ]
+    },
+    {
+      "table": "moderation_reports",
+      "column": "target_kind",
+      "constraint": "moderation_reports_target_kind_check",
+      "allowed": [
+        "post",
+        "group",
+        "user"
+      ]
+    },
+    {
+      "table": "monitoring_queue",
+      "column": "last_result",
+      "constraint": "monitoring_queue_last_result_check",
+      "allowed": [
+        "no_change",
+        "updated",
+        "new_item",
+        "error",
+        "inaccessible"
+      ]
+    },
+    {
+      "table": "monitoring_queue",
+      "column": "priority",
+      "constraint": "monitoring_queue_priority_check",
+      "allowed": [
+        "urgent",
+        "high",
+        "normal",
+        "low"
+      ]
+    },
+    {
+      "table": "notification_deliveries",
+      "column": "status",
+      "constraint": "notification_deliveries_status_check",
+      "allowed": [
+        "pending",
+        "sent",
+        "failed",
+        "read"
+      ]
+    },
+    {
+      "table": "notification_events",
+      "column": "event_type",
+      "constraint": "notification_events_event_type_check",
+      "allowed": [
+        "regulation_updated",
+        "new_thread",
+        "thread_reply",
+        "vendor_endorsed",
+        "case_study_validated",
+        "source_discovered",
+        "intelligence_alert"
+      ]
+    },
+    {
+      "table": "notification_subscriptions",
+      "column": "subscription_type",
+      "constraint": "notification_subscriptions_subscription_type_check",
+      "allowed": [
+        "regulation",
+        "vendor",
+        "topic",
+        "region",
+        "thread",
+        "source"
+      ]
+    },
+    {
+      "table": "notifications",
+      "column": "kind",
+      "constraint": "notifications_kind_check",
+      "allowed": [
+        "mention",
+        "reply",
+        "promote",
+        "invite",
+        "moderation",
+        "archive"
+      ]
+    },
+    {
+      "table": "obligations",
+      "column": "binding_position",
+      "constraint": "obligations_binding_position_check",
+      "allowed": [
+        "direct_duty",
+        "carrier_passthrough",
+        "customer_contract",
+        "monitoring_only"
+      ]
+    },
+    {
+      "table": "obligations",
+      "column": "date_precision",
+      "constraint": "obligations_date_precision_check",
+      "allowed": [
+        "day",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "table": "obligations",
+      "column": "event_kind",
+      "constraint": "obligations_event_kind_check",
+      "allowed": [
+        "entry_into_force",
+        "compliance_deadline",
+        "review_or_report",
+        "phase_step",
+        "consultation_close",
+        "other"
+      ]
+    },
+    {
+      "table": "obligations",
+      "column": "status",
+      "constraint": "obligations_status_check",
+      "allowed": [
+        "active",
+        "archived"
+      ]
+    },
+    {
+      "table": "oem_tech_roadmaps",
+      "column": "commercial_stage",
+      "constraint": "oem_tech_roadmaps_commercial_stage_check",
+      "allowed": [
+        "announced",
+        "pilot_demonstration",
+        "small_batch_fleet",
+        "mass_series_production"
+      ]
+    },
+    {
+      "table": "oem_tech_roadmaps",
+      "column": "density_basis",
+      "constraint": "oem_tech_roadmaps_density_basis_check",
+      "allowed": [
+        "cell",
+        "module",
+        "pack"
+      ]
+    },
+    {
+      "table": "oem_tech_roadmaps",
+      "column": "derivation",
+      "constraint": "oem_tech_roadmaps_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "oem_tech_roadmaps",
+      "column": "origin_class",
+      "constraint": "oem_tech_roadmaps_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "oem_tech_roadmaps",
+      "column": "tech_category",
+      "constraint": "oem_tech_roadmaps_tech_category_check",
+      "allowed": [
+        "heavy_battery",
+        "megawatt_charging",
+        "hydrogen_fcell",
+        "ammonia_engine",
+        "methanol_dualfuel",
+        "saf_refinery",
+        "e_axle",
+        "reefer_electrification"
+      ]
+    },
+    {
+      "table": "org_invitations",
+      "column": "proposed_role",
+      "constraint": "org_invitations_proposed_role_check",
+      "allowed": [
+        "admin",
+        "member",
+        "viewer"
+      ]
+    },
+    {
+      "table": "org_invitations",
+      "column": "status",
+      "constraint": "org_invitations_status_check",
+      "allowed": [
+        "pending",
+        "accepted",
+        "declined",
+        "expired",
+        "revoked"
+      ]
+    },
+    {
+      "table": "org_memberships",
+      "column": "role",
+      "constraint": "org_memberships_role_check",
+      "allowed": [
+        "owner",
+        "admin",
+        "member",
+        "viewer"
+      ]
+    },
+    {
+      "table": "org_watchlist",
+      "column": "item_type",
+      "constraint": "org_watchlist_item_type_check",
+      "allowed": [
+        "source",
+        "reg",
+        "signal",
+        "research",
+        "operations",
+        "market_series"
+      ]
+    },
+    {
+      "table": "organizations",
+      "column": "plan",
+      "constraint": "organizations_plan_check",
+      "allowed": [
+        "free",
+        "pro",
+        "enterprise"
+      ]
+    },
+    {
+      "table": "pending_first_fetch",
+      "column": "status",
+      "constraint": "pending_first_fetch_status_check",
+      "allowed": [
+        "queued",
+        "fetching",
+        "done",
+        "error",
+        "skipped"
+      ]
+    },
+    {
+      "table": "pending_jurisdiction_review",
+      "column": "flagged_reason",
+      "constraint": "pjr_valid_flagged_reason",
+      "allowed": [
+        "continent",
+        "region_bucket",
+        "undefined_group"
+      ]
+    },
+    {
+      "table": "pending_jurisdiction_review",
+      "column": "source_column",
+      "constraint": "pjr_valid_source_column",
+      "allowed": [
+        "jurisdictions",
+        "jurisdiction_iso"
+      ]
+    },
+    {
+      "table": "portal_link_candidates",
+      "column": "status",
+      "constraint": "portal_link_candidates_status_check",
+      "allowed": [
+        "candidate",
+        "promoted",
+        "rejected"
+      ]
+    },
+    {
+      "table": "post_promotions",
+      "column": "promotion_kind",
+      "constraint": "post_promotions_promotion_kind_check",
+      "allowed": [
+        "staged",
+        "direct"
+      ]
+    },
+    {
+      "table": "profiles",
+      "column": "verifier_status",
+      "constraint": "profiles_verifier_status_check",
+      "allowed": [
+        "none",
+        "pending",
+        "active",
+        "revoked"
+      ]
+    },
+    {
+      "table": "profiles",
+      "column": "workspace_role",
+      "constraint": "profiles_workspace_role_check",
+      "allowed": [
+        "owner",
+        "admin",
+        "editor",
+        "member",
+        "viewer"
+      ]
+    },
+    {
+      "table": "promotion_policy",
+      "column": "status",
+      "constraint": "promotion_policy_status_check",
+      "allowed": [
+        "active",
+        "paused",
+        "expired"
+      ]
+    },
+    {
+      "table": "propagation_events",
+      "column": "change_kind",
+      "constraint": "propagation_events_change_kind_check",
+      "allowed": [
+        "insert",
+        "update",
+        "delete",
+        "supersede"
+      ]
+    },
+    {
+      "table": "provisional_sources",
+      "column": "discovered_via",
+      "constraint": "provisional_sources_discovered_via_check",
+      "allowed": [
+        "skill_recommendation",
+        "citation_detection",
+        "worker_search",
+        "manual_add"
+      ]
+    },
+    {
+      "table": "provisional_sources",
+      "column": "status",
+      "constraint": "provisional_sources_status_check",
+      "allowed": [
+        "pending_review",
+        "confirmed",
+        "rejected",
+        "needs_more_data"
+      ]
+    },
+    {
+      "table": "published_price_statistics",
+      "column": "severity_tone",
+      "constraint": "published_price_statistics_severity_tone_check",
+      "allowed": [
+        "critical",
+        "high",
+        "moderate",
+        "low",
+        "neutral"
+      ]
+    },
+    {
+      "table": "region_dimension_coverage",
+      "column": "dimension",
+      "constraint": "region_dimension_coverage_dimension_check",
+      "allowed": [
+        "regulatory_feasibility",
+        "regional_resources",
+        "labor_markets",
+        "materials_sourcing",
+        "infrastructure",
+        "operational_cost"
+      ]
+    },
+    {
+      "table": "region_dimension_coverage",
+      "column": "state",
+      "constraint": "region_dimension_coverage_state_check",
+      "allowed": [
+        "populated",
+        "partial",
+        "pending",
+        "missing"
+      ]
+    },
+    {
+      "table": "regional_data_facts",
+      "column": "derivation",
+      "constraint": "regional_data_facts_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula",
+        "observed",
+        "transacted_index",
+        "assessed",
+        "calculated",
+        "interpolated",
+        "modelled",
+        "estimated"
+      ]
+    },
+    {
+      "table": "regional_data_facts",
+      "column": "dimension",
+      "constraint": "regional_data_facts_dimension_check",
+      "allowed": [
+        "regulatory_feasibility",
+        "regional_resources",
+        "labor_markets",
+        "materials_sourcing",
+        "infrastructure",
+        "operational_cost"
+      ]
+    },
+    {
+      "table": "regional_data_facts",
+      "column": "origin_class",
+      "constraint": "regional_data_facts_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "regional_data_facts",
+      "column": "trend",
+      "constraint": "regional_data_facts_trend_check",
+      "allowed": [
+        "up",
+        "down",
+        "flat"
+      ]
+    },
+    {
+      "table": "regions",
+      "column": "severity",
+      "constraint": "regions_severity_check",
+      "allowed": [
+        "critical",
+        "high",
+        "moderate",
+        "low"
+      ]
+    },
+    {
+      "table": "resources",
+      "column": "priority",
+      "constraint": "resources_priority_check",
+      "allowed": [
+        "CRITICAL",
+        "HIGH",
+        "MODERATE",
+        "LOW"
+      ]
+    },
+    {
+      "table": "section_claim_provenance",
+      "column": "claim_kind",
+      "constraint": "section_claim_provenance_claim_kind_check",
+      "allowed": [
+        "FACT",
+        "ANALYSIS",
+        "LEGAL",
+        "GAP",
+        "DERIVED"
+      ]
+    },
+    {
+      "table": "source_bias_tags",
+      "column": "assignment_source",
+      "constraint": "source_bias_tags_assignment_source_chk",
+      "allowed": [
+        "haiku_auto_high_confidence",
+        "haiku_proposed_low_confidence",
+        "operator_confirmed",
+        "operator_set"
+      ]
+    },
+    {
+      "table": "source_bias_tags",
+      "column": "dimension",
+      "constraint": "source_bias_tags_dimension_chk",
+      "allowed": [
+        "funding",
+        "methodology",
+        "stakeholder"
+      ]
+    },
+    {
+      "table": "source_bias_tags",
+      "column": null,
+      "constraint": "source_bias_tags_vocabulary_chk",
+      "allowed": null,
+      "unparsed": "CHECK (\n    (dimension = 'funding' AND tag IN (\n      'industry-funded',\n      'government-funded',\n      'foundation-funded',\n      'subscription-supported',\n      'academic-institutional',\n      'mixed-funded',\n      'funding-opaque'\n    ))\n    OR\n    (dimension = 'methodology' AND tag IN (\n      'peer-reviewed',\n      'methodologically-transparent',\n      'analytical-synthesis',\n      'editorial-opinion',\n      'advocacy',\n      'factual-reporting',\n      'standards-defining'\n    ))\n    OR\n    (dimension = 'stakeholder' AND tag IN (\n      'industry-incumbent',\n      'industry-challenger',\n      'regulator-aligned',\n      'environmental-advocate',\n      'independent-research',\n      'customer-perspective',\n      'labor-perspective',\n      'investor-perspective'\n    ))\n  )"
+    },
+    {
+      "table": "source_conflicts",
+      "column": "resolution",
+      "constraint": "source_conflicts_resolution_check",
+      "allowed": [
+        "source_a_correct",
+        "source_b_correct",
+        "both_partially_correct",
+        "inconclusive",
+        "superseded"
+      ]
+    },
+    {
+      "table": "source_conflicts",
+      "column": "status",
+      "constraint": "source_conflicts_status_check",
+      "allowed": [
+        "open",
+        "resolved",
+        "inconclusive"
+      ]
+    },
+    {
+      "table": "source_tier_opinions",
+      "column": "opinion_source",
+      "constraint": "source_tier_opinions_opinion_source_check",
+      "allowed": [
+        "haiku_brief_classifier",
+        "haiku_verification",
+        "operator_review",
+        "host_class_table"
+      ]
+    },
+    {
+      "table": "source_trust_events",
+      "column": "created_by",
+      "constraint": "source_trust_events_created_by_check",
+      "allowed": [
+        "system",
+        "worker",
+        "human"
+      ]
+    },
+    {
+      "table": "source_trust_events",
+      "column": "event_type",
+      "constraint": "source_trust_events_event_type_check",
+      "allowed": [
+        "confirmation",
+        "conflict_opened",
+        "conflict_resolved",
+        "accessibility_check",
+        "citation_received",
+        "tier_promotion",
+        "tier_demotion",
+        "manual_review",
+        "stale_flag",
+        "paywall_change",
+        "self_citation",
+        "discovery",
+        "tier_override",
+        "tier_override_revert"
+      ]
+    },
+    {
+      "table": "source_verifications",
+      "column": "action_taken",
+      "constraint": "source_verifications_action_taken_check",
+      "allowed": [
+        "auto-approved",
+        "queued-provisional",
+        "rejected"
+      ]
+    },
+    {
+      "table": "source_verifications",
+      "column": "ai_trust_tier",
+      "constraint": "source_verifications_ai_trust_tier_check",
+      "allowed": [
+        "T1",
+        "T2",
+        "T3"
+      ]
+    },
+    {
+      "table": "source_verifications",
+      "column": "verification_tier",
+      "constraint": "source_verifications_verification_tier_check",
+      "allowed": [
+        "H",
+        "M",
+        "L"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "access_method",
+      "constraint": "sources_access_method_check",
+      "allowed": [
+        "api",
+        "rss",
+        "html_scrape",
+        "scrape",
+        "gazette",
+        "manual"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "api_auth_method",
+      "constraint": "sources_api_auth_method_check",
+      "allowed": [
+        "none",
+        "api_key_header",
+        "api_key_query",
+        "bearer",
+        "basic",
+        "oauth2"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "api_response_format",
+      "constraint": "sources_api_response_format_check",
+      "allowed": [
+        "json",
+        "xml",
+        "rss",
+        "atom",
+        "html",
+        "text"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "category",
+      "constraint": "sources_category_check",
+      "allowed": [
+        "regulatory",
+        "research",
+        "market_news",
+        "operational_data"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "sitemap_walk_outcome",
+      "constraint": "sources_sitemap_walk_outcome_valid",
+      "allowed": [
+        "walked",
+        "no_sitemap",
+        "bot_wall",
+        "feed_only",
+        "unfetchable"
+      ]
+    },
+    {
+      "table": "sources",
+      "column": "status",
+      "constraint": "sources_status_check",
+      "allowed": [
+        "active",
+        "stale",
+        "inaccessible",
+        "provisional",
+        "suspended"
+      ]
+    },
+    {
+      "table": "staged_updates",
+      "column": "action",
+      "constraint": "staged_updates_action_check",
+      "allowed": [
+        "create",
+        "update",
+        "archive",
+        "dispute",
+        "new_source"
+      ]
+    },
+    {
+      "table": "staged_updates",
+      "column": "confidence",
+      "constraint": "staged_updates_confidence_check",
+      "allowed": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    {
+      "table": "staged_updates",
+      "column": "status",
+      "constraint": "staged_updates_status_check",
+      "allowed": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
+    {
+      "table": "staged_updates",
+      "column": "update_type",
+      "constraint": "staged_updates_update_type_check",
+      "allowed": [
+        "new_item",
+        "update_item",
+        "status_change",
+        "new_source",
+        "source_conflict",
+        "archive_item"
+      ]
+    },
+    {
+      "table": "state_cost_facts",
+      "column": "dimension",
+      "constraint": "state_cost_facts_dimension_check",
+      "allowed": [
+        "regulatory_feasibility",
+        "regional_resources",
+        "labor_markets",
+        "materials_sourcing",
+        "infrastructure",
+        "operational_cost"
+      ]
+    },
+    {
+      "table": "state_cost_facts",
+      "column": "origin_class",
+      "constraint": "state_cost_facts_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "state_cost_facts",
+      "column": "trend",
+      "constraint": "state_cost_facts_trend_check",
+      "allowed": [
+        "up",
+        "down",
+        "flat"
+      ]
+    },
+    {
+      "table": "supersessions",
+      "column": "severity",
+      "constraint": "supersessions_severity_check",
+      "allowed": [
+        "major",
+        "minor",
+        "replacement"
+      ]
+    },
+    {
+      "table": "surcharge_audits",
+      "column": "origin_class",
+      "constraint": "surcharge_audits_origin_class_check",
+      "allowed": [
+        "community",
+        "community-corroborated",
+        "modelled",
+        "derived",
+        "partner",
+        "verified",
+        "official"
+      ]
+    },
+    {
+      "table": "surcharge_audits",
+      "column": "statutory_derivation",
+      "constraint": "surcharge_audits_statutory_derivation_check",
+      "allowed": [
+        "statutory_fixed",
+        "statutory_formula"
+      ]
+    },
+    {
+      "table": "system_state",
+      "column": "scrape_cadence",
+      "constraint": "system_state_scrape_cadence_chk",
+      "allowed": [
+        "off",
+        "weekly",
+        "monthly"
+      ]
+    },
+    {
+      "table": "taxonomy_nodes",
+      "column": "node_type",
+      "constraint": "taxonomy_nodes_node_type_check",
+      "allowed": [
+        "regulation",
+        "technology",
+        "region",
+        "topic",
+        "industry",
+        "transport_mode"
+      ]
+    },
+    {
+      "table": "user_profiles",
+      "column": "verifier_status",
+      "constraint": "user_profiles_verifier_status_check",
+      "allowed": [
+        "none",
+        "pending",
+        "active",
+        "revoked"
+      ]
+    },
+    {
+      "table": "user_watchlist",
+      "column": "item_type",
+      "constraint": "user_watchlist_item_type_check",
+      "allowed": [
+        "source",
+        "reg",
+        "signal",
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "table": "vendor_regulations",
+      "column": "compliance_type",
+      "constraint": "vendor_regulations_compliance_type_check",
+      "allowed": [
+        "supports",
+        "certifies",
+        "reports",
+        "replaces"
+      ]
+    },
+    {
+      "table": "vendors",
+      "column": "listing_tier",
+      "constraint": "vendors_listing_tier_check",
+      "allowed": [
+        "basic",
+        "featured",
+        "premium"
+      ]
+    },
+    {
+      "table": "vendors",
+      "column": "verification_status",
+      "constraint": "vendors_verification_status_check",
+      "allowed": [
+        "unverified",
+        "peer_validated",
+        "staff_reviewed"
+      ]
+    },
+    {
+      "table": "workspace_item_overrides",
+      "column": "priority_override",
+      "constraint": "workspace_item_overrides_priority_override_check",
+      "allowed": [
+        "CRITICAL",
+        "HIGH",
+        "MODERATE",
+        "LOW"
+      ]
+    },
+    {
+      "table": "workspace_settings",
+      "column": "default_export_format",
+      "constraint": "workspace_settings_default_export_format_check",
+      "allowed": [
+        "html",
+        "slack"
+      ]
+    }
+  ]
+}

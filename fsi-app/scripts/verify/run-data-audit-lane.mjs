@@ -150,6 +150,15 @@ const AUDITS = [
   // integrity_flags rows for operator review, never fails the lane on its own. Self-skips (exit 2)
   // without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
   ["surface-visibility", "scripts/verify/surface-visibility-audit.mjs", false],
+  // check-vocabulary-drift.mjs, D7 (docs/plans/defect-fix-plan-2026-09-12.md): compares the tracked
+  // CHECK-constraint inventory (fsi-app/docs/inventories/db-check-constraints.json, written by the
+  // schema-vocabulary-inventory maintenance step) against the SAME live query and reports any constraint
+  // whose allowed set has drifted (a migration widened/narrowed a vocabulary and nobody re-ran the
+  // inventory step). HARD: a drifted inventory means check-vocabulary.test.mjs is validating writers
+  // against a stale vocabulary, silently. Self-skips (exit 2) without a direct Postgres connection
+  // (SUPABASE_DB_PASSWORD / SUPABASE_DB_URL / DATABASE_URL, or a local `supabase link`), same convention
+  // as every other pg-direct audit above.
+  ["check-vocabulary-drift", "scripts/verify/check-vocabulary-drift.mjs", true],
 ];
 
 const results = [];
