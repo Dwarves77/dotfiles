@@ -619,6 +619,74 @@ describe("validateRecordBriefsFile: qualification-accounting mirror (task-6.1-au
     assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
   });
 
+  // D18 (lane L12, 2026-09-13): the check previously matched only the bare root "exempt" -- an inflected
+  // form ("Exemption") was read as absent even though it is the honest capture. Stem list now covers it.
+  test("an attached FACT claim naming 'Exemption' (an inflected stem, not the bare root) satisfies the exceptions check", () => {
+    const exceptionClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "small shipments qualify for an exemption from this requirement",
+      source_span: "Shipments under 500kg qualify for an Exemption from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "shipments under 500kg qualify for an Exemption from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), exceptionClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} Shipments under 500kg qualify for an Exemption from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // D18: another inflected form ("exempted") not covered by the prior bare-root regex.
+  test("an attached FACT claim naming 'exempted' (an inflected stem) satisfies the exceptions check", () => {
+    const exceptionClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "small shipments are exempted from this requirement",
+      source_span: "Shipments under 500kg are exempted from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "shipments under 500kg are exempted from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), exceptionClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} Shipments under 500kg are exempted from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // D18's own worked example: a bare "except" that appears only in body prose -- never inside any claim's
+  // own source_span -- must NOT satisfy the exceptions check (the check reads claim source_span only).
+  test("a bare 'except' appearing only in body prose (not in any claim's source_span) does NOT satisfy the exceptions check", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency, " +
+          "except as otherwise noted elsewhere in this document.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+  });
+
   // Fix round 1, finding 4: "does not apply" is genuinely restrictive language, not a negated scope claim
   // -- the negation window looks BEFORE the match, never at the match's own text, so this must still pass.
   test("'does not apply' (a genuine scope restriction, not a negated one) still satisfies the scope check", () => {
