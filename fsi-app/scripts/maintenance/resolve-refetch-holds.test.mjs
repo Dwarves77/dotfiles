@@ -218,6 +218,36 @@ test("main(apply): no usable capture resolves honestly without touching claims",
   assert.match(deps._resolved()[0].note, /no stored capture/);
 });
 
+test("idempotent (fix round 1, review-l11.md): a second apply over the SAME underlying flag writes nothing (it resolves out of the candidate read)", async () => {
+  const flagStore = [{ id: "f1", subject_ref: "item-1" }];
+  const claimsByItem = { "item-1": [{ id: "c1", claim_kind: "FACT", source_span: "still here" }] };
+  const capturesByItem = { "item-1": [{ result_content: "... still here ...".repeat(20) }] };
+  const deps = {
+    nowIso: "2026-09-12T00:00:00.000Z",
+    readCandidates: async () => flagStore.filter((f) => !f.resolved),
+    readClaims: async (itemId) => claimsByItem[itemId] ?? [],
+    readCaptures: async (itemId) => capturesByItem[itemId] ?? [],
+    readClaimVersions: async () => [],
+    archiveClaimVersion: async () => ({ inserted: { id: "v-1" } }),
+    holdClaimPendingReground: async () => ({ updated: 1 }),
+    readItemProvenanceStatus: async () => "verified",
+    resolveFlags: async (ids) => {
+      for (const f of flagStore) if (ids.includes(f.id)) f.resolved = true;
+      return { updated: ids.length };
+    },
+    readRemainingOpen: async () => flagStore.filter((f) => !f.resolved),
+  };
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(first.applied, 1);
+  assert.equal(first.read_back.remaining_open, 0);
+
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(second.applied, 0);
+  assert.equal(second.counts.flags_scanned, 0);
+  assert.equal(second.counts.items_scanned, 0);
+  assert.equal(second.read_back.remaining_open, 0);
+});
+
 test("constants match the plan's own writer/resolver names", () => {
   assert.equal(HOLD_CREATED_BY, "refetch-capped-worklist");
   assert.equal(RESOLVED_BY, "resolve-refetch-holds");

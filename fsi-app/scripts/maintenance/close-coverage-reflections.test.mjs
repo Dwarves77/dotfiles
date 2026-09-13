@@ -62,6 +62,29 @@ test("main(apply): closes the 24-row backlog shape (18 gap + 6 anticipate) with 
   assert.equal(summary.read_back.remaining_open, 0);
 });
 
+test("idempotent (fix round 1, review-l11.md): a second apply over the SAME underlying rows writes nothing", async () => {
+  const store = [
+    { id: "1", created_by: "flywheel-gap:a" },
+    { id: "2", created_by: "flywheel-anticipate:b" },
+  ];
+  const deps = {
+    readCandidates: async () => store.filter((r) => !r.resolved),
+    closeIds: async (ids) => {
+      for (const r of store) if (ids.includes(r.id)) r.resolved = true;
+      return { updated: ids.length, snapshot: "scripts/_snapshots/fake.jsonl" };
+    },
+    readRemainingOpen: async () => store.filter((r) => !r.resolved),
+  };
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(first.applied, 2);
+  assert.equal(first.read_back.remaining_open, 0);
+
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(second.applied, 0);
+  assert.equal(second.counts.candidates_scanned, 0);
+  assert.equal(second.read_back.remaining_open, 0);
+});
+
 test("resolution constants match the plan's exact ruling text", () => {
   assert.equal(RESOLVED_BY, "close-coverage-reflections");
   assert.equal(RESOLUTION_NOTE, "reflected in the coverage view; no per-row decision pending");

@@ -71,6 +71,30 @@ test("main(apply) with zero candidates never calls closeIds", async () => {
   assert.equal(summary.applied, 0);
 });
 
+test("idempotent (fix round 1, review-l11.md): a second apply over the SAME underlying rows writes nothing (rows actually close between runs)", async () => {
+  const store = [
+    { id: "1", created_by: CREATED_BY },
+    { id: "2", created_by: CREATED_BY },
+  ];
+  const deps = {
+    readCandidates: async () => store.filter((r) => !r.resolved),
+    closeIds: async (ids) => {
+      for (const row of store) if (ids.includes(row.id)) row.resolved = true;
+      return { updated: ids.length, snapshot: "scripts/_snapshots/fake.jsonl" };
+    },
+    readRemainingOpen: async () => store.filter((r) => !r.resolved),
+  };
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(first.applied, 2);
+  assert.equal(first.read_back.remaining_open, 0);
+
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(second.applied, 0);
+  assert.equal(second.counts.candidates_scanned, 0);
+  assert.equal(second.counts.would_close, 0);
+  assert.equal(second.read_back.remaining_open, 0);
+});
+
 test("resolution constants match the plan's exact ruling text", () => {
   assert.equal(CREATED_BY, "acquire-primaries-batch-2026-07-16");
   assert.equal(RESOLVED_BY, "close-acquire-primaries-holds");

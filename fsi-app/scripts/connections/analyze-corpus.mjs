@@ -106,9 +106,11 @@ function writeClient() {
  * RESOLVED (buildResolvedReflectionRow, src/lib/connections/coverage-reflection.mjs), so the dedup below
  * is STATUS-AGNOSTIC (planResolvedReflectionInserts, same module): a still-reproducing finding whose row
  * is already resolved must never be re-inserted as a duplicate on the next run. There is nothing to
- * "resolve as stale" here (every row is resolved from birth); population-report.mjs keeps counting these
- * rows exactly as before -- see that file's own STORES entries and close-coverage-reflections.mjs for the
- * one-time backlog this fix leaves behind (the rows opened before this fix landed).
+ * "resolve as stale" here (every row is resolved from birth). CORRECTED (fix round 1, review-l11.md):
+ * population-report.mjs carried NO entry for either namespace before this round -- it now has one (the
+ * "coverage-reflections" line, counting rows in both namespaces) added in the SAME commit as this
+ * correction, so these rows stay visible; see close-coverage-reflections.mjs for the one-time backlog
+ * this fix leaves behind (the rows opened before this fix landed).
  * @param {string} namespace - one of flag-namespaces.mjs's *_NAMESPACE constants
  * @param {Array<{subjectRef:string, row:object}>} fresh - `row` is the finding shape
  *   (category, subject_type, subject_ref, description, recommended_actions, created_by -- created_by

@@ -296,3 +296,29 @@ test("main(): no undateable items -> no flag write even in apply mode", async ()
   assert.equal(deps._flagsWritten().length, 0);
   assert.equal(summary.flag_written, null);
 });
+
+test("idempotent (fix round 1, review-l11.md): a second apply over the SAME underlying item writes nothing once it is dated", async () => {
+  const timelineStore = []; // item ids that now carry a row -- mutated by insertTimelineRow, read by readTimelineItemIds
+  const liveItems = [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }];
+  const capturesByItem = { a: [{ result_content: "REGULATION (EU) 2020/852 ... of 18 June 2020 on taxonomy ...".repeat(4) }] };
+  const deps = {
+    todayIso: "2026-09-12",
+    hostOf: (url) => { try { return new URL(url).host; } catch { return null; } },
+    readLiveItems: async () => liveItems,
+    readTimelineItemIds: async () => [...timelineStore],
+    readCaptures: async (id) => capturesByItem[id] ?? [],
+    readForwardEvents: async () => [],
+    insertTimelineRow: async (row) => { timelineStore.push(row.item_id); return { inserted: { id: "tl-1" } }; },
+    writeUndateableFlag: async () => ({ inserted: { id: "flag-1" } }),
+    readOpenUndateableFlags: async () => [],
+    resolveUndateableFlag: async () => ({ updated: 1 }),
+  };
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(first.counts.written, 1);
+  assert.equal(first.counts.undated_total, 1);
+
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(second.counts.written, 0);
+  assert.equal(second.counts.undated_total, 0);
+  assert.equal(second.counts.page_size, 0);
+});
