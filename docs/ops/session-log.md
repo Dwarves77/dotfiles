@@ -22987,5 +22987,17 @@ already wrote; the clear-flags-when-satisfied rule applies to state, not only fl
 **Next.** Dry run then apply 003b with `--allow-brief-overwrite` under the IO budget.
 
 ### UX compliance (P3)
+## 2026-09-13, brief-lane 005 (batch branch): 26 existing briefs regenerated under the 6.2b contract
+
+**What.** Batch 005 (export 34746031812, 49 existing verified briefs regenerated before W9) holds the
+26 items that carry a stored pool; the other 23 have no capture (plan D25, the free capture step) and
+are excluded. Six parallel authors re-verified every prior claim against the pool; one fabricated prior
+claim (2d2cd311, an SB 253 quotation never captured) and two invented figure sets (3581c084) were dropped;
+355af9e8 is mistitled (a data_quality flag is owed). Validator: VALID, 26 entries. Apply waits for plan
+D29 (the overwrite must retire prior claims) and D30 (no synthesis cap on mechanical grounding). This
+branch is an apply target and is never merged; this entry exists because the memory gate counts the
+batch file as code until plan D20 lands.
+
+### UX compliance (batch 005)
 
 Not a UI change; no customer surface touched by this branch.
