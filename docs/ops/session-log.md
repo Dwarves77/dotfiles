@@ -20161,3 +20161,80 @@ worktree (gitignored scratch, not a commit), per the dispatch's own instruction.
 ### UX compliance (task D17)
 
 Not applicable: no `.tsx`/`.css` touched; read-only investigation, no product surface changed.
+
+## 2026-09-12, W9 Part 7 lane L9: D13/D14, provisional-resolver accessibility fix and gov-label/legal-publisher class extension
+
+Per `docs/plans/defect-fix-plan-2026-09-12.md` (D13, D14) and the lane table row L9. Worktree
+`wt-brieffields-0911`, branch `lane/w9-l9-provisional-2026-09-12`, checked out from master `aca28ed0`.
+
+**D13** (`scripts/maintenance/resolve-provisional-sources.mjs`, `decideHost`): rule (c) removed --
+accessibility never decides promote vs. worklist. The decision is now (a) existing institution or (b)
+class table promotes, else (d) worklists. The promoted `sources` row's own `status` carries the
+accessibility fact instead (`active` when `fetch_status` is ok or null, `inaccessible` when
+`fetch_status='error'`, via the new `sourcesStatusForPromote`). A decline stays possible only from the
+vertical-fit gate the `provisional_sources` promote arm already runs. Commit `0f123489`.
+
+**D14** (`src/lib/sources/host-authority.ts`, `classTierForHost`): the government second-level label
+list widens from gov/gob/gouv/govt/go/gc to also cover gv, admin, bund, overheid, gouvernement,
+regeringen, riksdagen, each resolving to T2 only under an EXACT two-letter country-code TLD suffix (so
+a label under a commercial gTLD, e.g. `gov.com`, or a lookalike subdomain, e.g. `gov.example.com`, never
+matches). A curated 13-host legal-publisher allowlist (`LEGAL_PUBLISHER_ALLOW`) resolves to T1, checked
+before the T2 gov-label rule so `legifrance.gouv.fr` and `wetten.overheid.nl` (which also carry a
+matching gov label) resolve to the more specific institution. A new read-only script,
+`scripts/maintenance/enumerate-unclassified-hosts.mjs`, lists the remaining unresolved hosts (name,
+discovered_via, citing item title, row count) to its own run's out-dir for the coordinator's ruling;
+wired into `maintenance.yml` as a dry-only step, with runbook section 46a. Commit `eda47c44` (amended
+once from the original `add63274` after the coordinator's own byte check, run per this lane's hard
+rules, caught 2 em dashes this lane had introduced in `enumerate-unclassified-hosts.mjs`/`.test.mjs`;
+fixed and re-verified before amending).
+
+**Corrections.** The initial D14 commit (`add63274`) carried 2 em-dash lines in the two new
+`enumerate-unclassified-hosts.*` files; caught by re-running the exact byte check this lane's own hard
+rules require, fixed, and the commit amended (unpushed, unreviewed, same lane) rather than left in a
+follow-up commit. `legifrance.gouv.fr` moved from the T2 fixture list to a T1 assertion in two
+pre-existing test files this lane does not otherwise own (`host-authority.npmtest.mjs`,
+`register-step.test.mjs`) -- a necessary, in-scope consequence of D14's own named institution list, not
+a scope excursion; both files re-run green.
+
+**Glyph check.** `git diff 0f123489^..eda47c44 | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'`
+prints 0 (this lane's own two commits, clean). The literal hard-rule command
+(`git diff origin/master..HEAD | grep '^+' | grep -c ...`) prints 7 -- [CONFIRMED] all 7 are in
+`fsi-app/scripts/turns/export-corpus-for-extraction.mjs`, a file this lane never touched: `git show
+aca28ed0:fsi-app/scripts/turns/export-corpus-for-extraction.mjs` carries 29 dash-family glyphs and `git
+show origin/master:<same path>` carries 22 -- origin/master moved ahead of this branch's base commit
+(another lane's D1/task-6.2d work landed there since), and the two-dot diff surfaces that base drift as
+if it were newly added. Not this lane's file, not fixed here; reported per rule 14 rather than silently
+patched around (patching another lane's already-landed file would be an out-of-write-set edit).
+
+**Gates.** `node --test` on every touched/added file green (26/26 `resolve-provisional-sources.test.mjs`,
+35/35 `host-authority-gov-label-and-legal-publisher.npmtest.mjs`, 8/8 `host-authority.npmtest.mjs`,
+14/14 `enumerate-unclassified-hosts.test.mjs`, 13/13 `register-step.test.mjs`, plus the untouched
+`host-authority-ruling-conformance.test.mjs`/`standards-body-class.test.mjs`/
+`null-tier-host-worklist.test.mjs`/`w2f-basetier.npmtest.mjs`/`canonical-autoverify.test.mjs`/
+`institution-canonicalize.test.mjs`/`resolve-cited-host-gate.test.mjs`/`tier-opinions.test.mjs`/
+`heal-provenance.test.mjs`/`inaccessible-triage.test.mjs` re-run for regression, all green). Full
+`bash .discipline/run-test-suite.sh`: 6639 tests, 6634 pass, 0 fail, 5 skipped (unrelated pre-existing
+skips), exit 0. `npx tsc --noEmit`: clean. Full preflight (`sh fsi-app/.discipline/hooks/pre-push <
+/dev/null`, foreground, from the worktree root, run once at the end): all 4 steps (untracked-critical,
+consistency runner, memory gate + UX-compliance parity, discipline+fitness+invariant-coverage+
+skill-gate-wiring+tsc) OK, exit 0.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access (no
+DB creds in this worktree; every new/changed function is pure or dependency-injected, proven by fixture
+tests, never a live call). Named paths only staged, never `git add -A`. Trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` on both commits.
+
+**Files.**
+- `fsi-app/scripts/maintenance/resolve-provisional-sources.mjs` / `.test.mjs` (modified: D13, rule c removed)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: section 46 rewritten for D13, section 46a added for D14 item 2)
+- `fsi-app/src/lib/sources/host-authority.ts` (modified: D14, `LEGAL_PUBLISHER_ALLOW`, widened `GOV_LABELS`/`GOV_LABEL_UNDER_CC_TLD`)
+- `fsi-app/src/lib/sources/host-authority.npmtest.mjs` (modified: `legifrance.gouv.fr` moved T2 to T1, new D14 label/negative tests)
+- `fsi-app/src/lib/sources/host-authority-gov-label-and-legal-publisher.npmtest.mjs` (new: per-pattern/per-allowlist-entry/negative proof, D14)
+- `fsi-app/src/lib/sources/register-step.test.mjs` (modified: `legifrance.gouv.fr` moved GOV to LEGAL)
+- `fsi-app/scripts/maintenance/enumerate-unclassified-hosts.mjs` / `.test.mjs` (new: D14 item 2, read-only enumeration)
+- `.github/workflows/maintenance.yml` (modified: `resolve-provisional-sources` comment updated for D13; `enumerate-unclassified-hosts` dry-only step added for D14)
+- `docs/ops/session-log.md` (this entry)
+
+**Not in this entry's scope** (separate lanes per the defect-fix plan): every other defect (D1 through
+D12 except D13/D14), the batch-001/002 brief-writing lanes, and the 7.2 dry runs/applies named in the
+plan's push order.
