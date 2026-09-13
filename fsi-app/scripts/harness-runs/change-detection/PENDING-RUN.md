@@ -47,6 +47,14 @@ marker is re-pinned again, per rule (c), if a governing file changes once more b
 
 **What changed.** The recorded hash `sha256:b155a4626335408f` no longer matched the live governing files of this family (`scripts/turns/run-change-detection.mjs`, `src/lib/sources/reconcile.ts`, `src/lib/intake/run-intake-cycle.ts`) on the tree this push carries. Governing files changed on this branch: `src/lib/intake/run-intake-cycle.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:66c1bb58dfbbf01a` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 3):** `sha256:66c1bb58dfbbf01a` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 3 (coordinator, 2026-09-13, at push after rebase: lane/w9-l17-candidate-drain-2026-09-13)
+
+**What changed.** The recorded hash `sha256:66c1bb58dfbbf01a` no longer matched the live governing files of this family (`scripts/turns/run-change-detection.mjs`, `src/lib/sources/reconcile.ts`, `src/lib/intake/run-intake-cycle.ts`) on the tree this push carries. Governing files changed on this branch: `src/lib/intake/run-intake-cycle.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:c8a815718d5993d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
