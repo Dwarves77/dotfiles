@@ -61,13 +61,23 @@ export interface IntakeCandidate {
   title: string;
   source_url: string;
   item_type: string;
+  /** D26 lane L17 (2026-09-13), recordOnly only: the consume step's ALREADY-FETCHED text
+   *  (portal-harvest.ts's FETCH step), carried so a recordOnly apply run can write it as the item's pool
+   *  row after a successful mint. NEVER a proposed_changes/intelligence_items column: stripped before
+   *  STAGE (below) regardless of recordOnly, so it can never reach the mint chokepoint's INSERT seed. */
+  capturedText?: string | null;
   [k: string]: unknown;
 }
 
 export type Disposition =
   | "verified" | "rejected" | "ground_failed" | "stage_failed" | "would_mint" | "would_reject"
-  // update_item drain outcomes (see drainChangeSweepUpdates below) — a re-verify, never a mint/ground.
-  | "update_applied" | "update_rejected";
+  // update_item drain outcomes (see drainChangeSweepUpdates below): a re-verify, never a mint/ground.
+  | "update_applied" | "update_rejected"
+  // D26 lane L17 (2026-09-13): a recordOnly mint. Staged and minted at record grade through the
+  // UNCHANGED chokepoint, with GROUND+VALIDATE deliberately skipped (the free record-briefs fleet
+  // writes the full_brief later, like every other record item). Never verified, never ground_failed:
+  // grounding was never attempted, so neither outcome would be honest.
+  | "record_only";
 
 export interface CycleItemOutcome {
   title: string;
@@ -308,7 +318,18 @@ export async function drainChangeSweepUpdates(
 export async function runIntakeCycle(
   sb: SupabaseClient,
   candidates: IntakeCandidate[],
-  opts: { caller?: string; mode?: CycleMode } = {}
+  opts: {
+    caller?: string;
+    mode?: CycleMode;
+    /** D26 lane L17 (2026-09-13): a new_item candidate mints at record grade through the UNCHANGED
+     *  chokepoint and skips GROUND+VALIDATE entirely (see the per-candidate loop below). Default false
+     *  (every pre-existing caller unaffected). Has no effect on the update-item drain tail. */
+    recordOnly?: boolean;
+    /** Injectable GROUND step (testability seam only; production callers never pass this, it defaults to
+     *  the real generateBriefWorkflow import). Lets a test prove a recordOnly cycle never reaches the
+     *  paid grounding contract by passing a call-counting stub and asserting it stays at 0. */
+    groundWorkflow?: typeof generateBriefWorkflow;
+  } = {}
 ): Promise<IntakeCycleResult | PlanResult> {
   // PLAN is read-only + free (F6): run the SAME apply path in dryRun (entity-gate → the mint chokepoint's
   // congruence / dedup / relevance / domain / SOURCE-LINK gates) and STOP before any write. No parallel
@@ -327,6 +348,7 @@ export async function runIntakeCycle(
     return { mode: "plan", discovered: candidates.length, wouldMint, wouldReject, verdicts };
   }
   const caller = opts.caller ?? MANUAL_INTAKE_CALLER;
+  const groundWorkflow = opts.groundWorkflow ?? generateBriefWorkflow;
   const items: CycleItemOutcome[] = [];
   let staged = 0, minted = 0, rejected = 0, verified = 0, groundFailed = 0;
 
@@ -334,12 +356,21 @@ export async function runIntakeCycle(
     const now = new Date().toISOString();
     const base: CycleItemOutcome = { title: c.title, source_url: c.source_url, stagedId: null, disposition: "stage_failed", kind: "new_item" };
 
+    // D26 lane L17 (2026-09-13): capturedText is a same-invocation carrier, NEVER a proposed_changes /
+    // intelligence_items column. It is stripped here, before the STAGE insert, regardless of recordOnly,
+    // so it can never reach the mint chokepoint's seed. recordOnly additionally stamps item_grade="record"
+    // onto the STAGED proposed_changes: the mint chokepoint (mint-item.ts) already trusts a caller-preset
+    // seed.item_grade as-is, so this mints at record grade through the UNCHANGED chokepoint, no new gate,
+    // no new write path.
+    const { capturedText, ...candidateFields } = c;
+    const stageSeed: IntakeCandidate = opts.recordOnly ? { ...candidateFields, item_grade: "record" } : candidateFields;
+
     // 1 — STAGE (transit-only, RD-20 'pending')
     const { data: stagedRow, error: stageErr } = await sb
       .from("staged_updates")
       .insert({
         update_type: "new_item",
-        proposed_changes: { ...c },
+        proposed_changes: { ...stageSeed },
         reason: "manual-intake-run cycle (no-human-finish-of-intake)",
         source_url: c.source_url ?? "",
         status: "pending",
@@ -379,15 +410,50 @@ export async function runIntakeCycle(
     minted++;
     const itemId = mat.itemId as string;
 
+    // D26 lane L17 (2026-09-13): recordOnly mints at record grade (staged above) and STOPS here - no
+    // GROUND, no VALIDATE, structurally cannot reach generateBriefWorkflow (the paid grounding contract).
+    // The candidate's already-fetched text (capturedText, captured off `c` before STAGE stripped it) is
+    // written as ONE agent_run_searches row in the canonical-ground shape canonical-pipeline.ts's own
+    // ground-fallback INSERT uses -- the SAME shape export-corpus-for-extraction.mjs's --with-pool-text
+    // read selects (assertPoolRowShape, scripts/lib/pool-row-contract.mjs) -- so the free record-briefs
+    // fleet's export can read this text exactly like a paid-grounded item's pool row. Never verified, never
+    // ground_failed: grounding was never attempted, so neither outcome would be honest (see the
+    // Disposition type's own doc above).
+    if (opts.recordOnly) {
+      await sb.from("agent_run_searches").insert({
+        intelligence_item_id: itemId,
+        search_query: "canonical ground",
+        result_url: c.source_url,
+        result_title: "source",
+        result_index: 0,
+        result_content: capturedText ?? "",
+        searched_at: now,
+      });
+      items.push({
+        ...base,
+        disposition: "record_only",
+        itemId,
+        provenance: "record",
+        reason: "record_only: brief by the record-briefs turn; item_grade=record",
+        evidence: {
+          mint: `chokepoint:${mat.action ?? "minted"}${mat.flags?.length ? " [" + mat.flags.join(",") + "]" : ""}`,
+          workflow: "skipped(record_only)",
+        },
+      });
+      continue;
+    }
+
     // 3 — GROUND + 4 — VALIDATE via the ONE grounding contract (D4): generateBriefWorkflow, awaited directly
     // (F16 caller threaded), so the cycle inherits preflight + tiered-retry + research-or-erase + the
-    // fail-closed cross-item audit gate. status='verified' only when the audit gate passed.
+    // fail-closed cross-item audit gate. status='verified' only when the audit gate passed. Called through
+    // the injected `groundWorkflow` seam (opts.groundWorkflow ?? generateBriefWorkflow, above) so a test can
+    // prove call counts without reaching the real paid contract.
     // A workflow FatalError (global-pause / data-audit-block / daily-cap) is a HALT, not a cycle crash: catch
     // it and record ground_failed with the halt reason, so the disposition trail stays complete and the item
     // stays quarantined (research-or-erase), rather than the whole cycle throwing on one halted item.
     let wf: Awaited<ReturnType<typeof generateBriefWorkflow>>;
     try {
-      wf = await generateBriefWorkflow(itemId, false, caller);
+      wf = await groundWorkflow(itemId, false, caller);
     } catch (e) {
       groundFailed++;
       const reason = `workflow halted: ${e instanceof Error ? e.message : String(e)}`;
