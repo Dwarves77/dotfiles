@@ -287,6 +287,14 @@ Fix at the source, lane L15, one Sonnet lane on a branch from master, DDL applie
 Order: the coordinator applies 319 before the code merge (the RPC's new columns are additive, so the old code ignores them); 320 after 319.
 
 
+### D24. The mobile drawer hides the Admin row below the visible viewport [CONFIRMED]
+
+Evidence (operator screenshot, iPhone Safari, 2026-09-13, and `src/components/Sidebar.tsx`): the drawer panel is `fixed top-0 left-0 flex flex-col h-screen overflow-y-auto`; its nav sections are followed by a `flex-1` spacer and then the footer (Account row, then the Admin row rendered when the store's userRole is owner or admin). `h-screen` is 100vh, which on iOS Safari is taller than the visible viewport by the height of the browser chrome, so the panel's bottom, where the footer sits, lies under the toolbar. The screenshot shows Account as the last visible row at the panel's visible edge with no Admin row; the role gate is hydrated by AuthProvider on session load and is not the cause. The desktop card is unaffected.
+
+Fix at the source, folded into lane L15 (the surface lane already open) as part (f): the drawer panel uses the dynamic viewport height (`100dvh`, with `100vh` as the fallback for browsers without dvh) and a bottom padding of `env(safe-area-inset-bottom)`; the footer stays inside the scrollable column so every row is reachable by scrolling on any viewport; the Admin row, when rendered, is the last row and is visible without scrolling at 390 by 844 with the drawer open. Tests: a DOM test that renders the drawer open for role owner and asserts the Admin link is present after the Account row; the rendering guard's 390-wide pass asserts the Admin row's bottom edge is within the visible viewport. The mobile spec's DRAWER section is the binding layout; no reordering of rows.
+
+
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
