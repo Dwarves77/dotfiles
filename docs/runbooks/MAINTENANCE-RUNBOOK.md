@@ -3361,6 +3361,17 @@ citing the gate's reason -- this is now the ONLY decline path this step has, for
 no vertical-fit gate on the `sources`-table promote path, so a `sources` row can no longer decline
 through this step at all).
 
+**D14 residue ruling (coordinator, 2026-09-13, defect-fix-plan-2026-09-12.md D14, "Residue ruling")**
+extended rule (b) with 8 deterministic name-keyword rules run over the row's OWN stored `name` plus its
+host, in fixed precedence: legal publisher (T1), academic (T4), association/standards body (T4),
+government (T2, host-label-anywhere or an institutional-noun name, with a think-tank exclusion), news/
+press (T7), analysis (T6, incl. Big-4/advisory hosts), **`company`** (T7, a NEW class: any host with a
+stored name and no rule 1-6 match -- its own site is a primary only for its own announcements, never
+passes an authority floor, T7 weight 0 in the citation network), and worklist (rule 8, a host with NO
+stored name at all -- the true residue). `classTierForHost`'s second, optional `name` parameter carries
+this; this step threads each row's own `name` column into rule (b) so the `company` class closes most of
+the corporate/unnamed residue the D14 evidence surfaced, rather than leaving it worklisted.
+
 **Write shapes differ by table** (the row already exists for `sources`, so promote/worklist are
 UPDATEs there, never a second INSERT):
 - `provisional_sources` promote -> INSERT a new `sources` row (via `buildPromotedSourceRow`, with the
@@ -3446,7 +3457,12 @@ class table -- including D14's own government-label / legal-publisher extension)
 -- the residue D14 item 1 could not close deterministically. Per host: the row's own stored `name`,
 `discovered_via`, the citing item's title where the search log names one, and the row count. The
 coordinator rules host classes from this list (a doctrine act, per SC-13 -- never delegated to a model,
-never auto-registered); a host not ruled with certainty stays worklisted.
+never auto-registered); a host not ruled with certainty stays worklisted. This step's own run
+(34728958591, 628 hosts) fed the D14 residue ruling above (2026-09-13): a re-run of this step now threads
+each row's `name` into rule (b) too, so the genuine residue narrows to hosts with NO stored name at all
+(the `company` class resolves every other named host) plus the pre-existing permanently-unregistered
+class (an aggregator or hosting platform, unrelated to whether a name exists -- see `host-authority-d14-
+residue-ruling.npmtest.mjs`'s table-driven sweep for the exact split).
 
 **READ-ONLY.** This step has NO apply branch and writes NOTHING to the database, ever, regardless of
 the `mode` input -- `scripts/maintenance/enumerate-unclassified-hosts.mjs`'s own `main()` accepts `mode`

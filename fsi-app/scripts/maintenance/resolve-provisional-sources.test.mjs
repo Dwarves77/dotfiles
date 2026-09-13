@@ -223,6 +223,42 @@ test("main() dry: classifies every row into promote/worklist without calling any
   assert.equal(deps.calls.insertNullTierFlag.length, 0);
 });
 
+// ── F1 fix (review-l9b.md, fix round 1 for L9b, defect-fix-plan-2026-09-12.md D14) ─────────────────
+// The class decision for a host is computed ONCE PER RUN over the union of every stored name the run
+// sees for it, taking the most authoritative (lowest rule number) result any single name would
+// produce, so the outcome does not depend on which row is processed first.
+test("main() apply: a host with two rows citing DIFFERENT names resolves the SAME (most authoritative) tier regardless of row order", async () => {
+  // "Multiname Corp" alone would resolve company (T7); "Multiname Department of Transportation" alone
+  // would resolve government (T2, "department of" is a RESIDUE_GOV_NOUN_WORDS phrase). Government (rule
+  // 4) is more authoritative than company (rule 7), so the host must resolve T2 either way.
+  const companyName = "Multiname Corp";
+  const governmentName = "Multiname Department of Transportation";
+  const orderA = [
+    { id: "p1", url: "https://multiname.example/a", name: companyName },
+    { id: "p2", url: "https://multiname.example/b", name: governmentName },
+  ];
+  const orderB = [
+    { id: "p1", url: "https://multiname.example/a", name: governmentName },
+    { id: "p2", url: "https://multiname.example/b", name: companyName },
+  ];
+  const depsA = fakeDeps({ pending: orderA });
+  const depsB = fakeDeps({ pending: orderB });
+  const summaryA = await main({ mode: "apply" }, depsA);
+  const summaryB = await main({ mode: "apply" }, depsB);
+  assert.equal(summaryA.counts.promote, 2, "order A: both rows promote");
+  assert.equal(summaryB.counts.promote, 2, "order B: both rows promote");
+  const tiersA = depsA.calls.promote.map((p) => p.tier);
+  const tiersB = depsB.calls.promote.map((p) => p.tier);
+  assert.deepEqual(tiersA, [2, 2], "order A: both rows for the same host promote at T2 (government), not T7 (company)");
+  assert.deepEqual(tiersB, [2, 2], "order B (reversed row order): the SAME result, T2 for both rows");
+});
+
+test("main() apply: a host with a SINGLE name still resolves exactly as classTierForHost(host, name) alone would (no behaviour change for the single-name case)", async () => {
+  const pending = [{ id: "p1", url: "https://single-name.example/a", name: "Single Name Analysis Institute for Policy" }];
+  const summary = await main({ mode: "apply" }, fakeDeps({ pending }));
+  assert.equal(summary.counts.promote, 1);
+});
+
 test("main() apply: promotes rule-a/b rows, worklists everything else, via the per-host null-tier-host merge (D13: no rule-c reject)", async () => {
   const pending = [
     { id: "p1", url: "https://epa.gov/page" },

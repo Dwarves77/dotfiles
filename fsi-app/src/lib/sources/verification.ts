@@ -635,7 +635,9 @@ async function executeAction(
     // path mints a moat-conferring base_tier from a model guess.
     let candHost: string | null = null;
     try { candHost = new URL(candidate.url).hostname.toLowerCase(); } catch { candHost = null; }
-    const detTier = classTierForHost(candHost);
+    // D14 residue ruling (2026-09-13): threads the candidate's own name (`candidate.name`, already used
+    // below) so it classifies via the 8 name-keyword rules too, not the host alone.
+    const detTier = classTierForHost(candHost, candidate.name);
 
     if (detTier != null) {
       const newSource = {

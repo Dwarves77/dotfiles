@@ -262,7 +262,16 @@ export const PINNED_MANIFEST = {
     // operator ruling that authorized it ("you know how to classify, fix it … T4" — see
     // institution-canonicalize.mjs Part C / MAINTENANCE-RUNBOOK.md §8a). citingFiles unchanged: none of the
     // files below cite this new class specifically, they cite the skill as a whole.
-    contentHash: '7f7e371f4cb2198fa976e7995fcb0c6c7a07be2148d01f2075dd73cea13f903a',
+    //
+    // 2026-09-13 (lane L9b, D14 residue ruling): re-pinned again -- Section 3's SC-13 class-table
+    // paragraph gained one new sentence naming the `company` class (T7, D14 residue ruling,
+    // defect-fix-plan-2026-09-12.md D14: any host with a stored registry name and no earlier class
+    // match). citingFiles reviewed against the new text and left unchanged for the same reason as the
+    // 2026-09-04 re-pin above: every file below cites the skill as a whole (the audit-skill-conformance
+    // / claims-tier / one-tier-per-host / orphan-source / vocab-sync family), none of them assert
+    // anything about the specific class vocabulary the new sentence adds, so none needed a code change
+    // alongside the doctrine addition.
+    contentHash: 'efaa3592fcde47094d11692124618abf50d08164ae42ef0546c9ca68d92049a1',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',

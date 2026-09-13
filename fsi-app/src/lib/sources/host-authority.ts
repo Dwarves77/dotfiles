@@ -38,6 +38,30 @@ const LEGAL_PUBLISHER_ALLOW = new Set([
   "laws-lois.justice.gc.ca", // Canadian federal legislation
   "fedlex.admin.ch",         // Swiss federal law
   "ris.bka.gv.at",           // Austrian legal information system
+  // D14 residue ruling (coordinator, 2026-09-13, defect-fix-plan-2026-09-12.md D14, "Residue ruling",
+  // rule 1): "the host allowlist gains the 17 the artifact names with their institutions" -- the 12
+  // named literally plus 5 more the artifact's names surface as the same class (LegisQuebec, the Slovak
+  // and Slovenian official gazettes, and the Nevada/Florida legislature statute portals), each of which
+  // the general name-keyword rule below (RESIDUE_LEGAL_WORDS) either cannot derive on its own (Law
+  // Wales's and Gazette officielle du Quebec's own recorded names use none of those words) or duplicates
+  // for a curated, traceable record.
+  "bclaws.gov.bc.ca",                // BC Laws (Queen's Printer / Official Gazette for BC Statutes)
+  "dre.pt",                          // Diario da Republica Eletronico -- Portugal's official gazette
+  "e-sbirka.cz",                     // e-Sbirka -- Czech Official Gazette / Collection of Laws
+  "gazzettaufficiale.it",            // Gazzetta Ufficiale della Repubblica Italiana
+  "law.gov.wales",                   // Law Wales -- Legislation of Wales Portal
+  "laws.yukon.ca",                   // Yukon Legislation Registry
+  "legilux.public.lu",               // Memorial -- Official Gazette of the Grand Duchy of Luxembourg
+  "legislation.mt",                  // Laws of Malta -- Official Consolidated Legislation Portal
+  "magyarkozlony.hu",                // Magyar Kozlony -- Hungarian Official Gazette
+  "narodne-novine.nn.hr",            // Narodne novine -- Official Gazette of the Republic of Croatia
+  "njt.hu",                          // Nemzeti Jogszabalytar -- Hungarian National Legal Register
+  "publicationsduquebec.gouv.qc.ca", // Gazette officielle du Quebec
+  "leg.state.nv.us",                 // Nevada Legislature -- Nevada Revised Statutes
+  "leg.state.fl.us",                 // Florida Legislature -- Online Sunshine (Statutes & Session Laws)
+  "legisquebec.gouv.qc.ca",          // LegisQuebec -- official consolidation of Quebec statutes
+  "slov-lex.sk",                     // SLOV-LEX -- Slovak legislative portal / official gazette
+  "uradni-list.si",                  // Uradni list Republike Slovenije -- Official Gazette of Slovenia
 ]);
 // Intergovernmental / official bodies acting in an authoritative capacity -> T2.
 // `unesco.org` added 2026-08-11 (UN specialised agency — the same class as un.org, already listed).
@@ -123,6 +147,11 @@ const ASSOCIATION_ALLOW = new Set([
   "cer.be", "usasean.org", "wbcsd.org", "intercargo.org", "seacargocharter.org",
   // 2026-08-11 batched ruling: standard-setter / industry body, same class as cer.be.
   "ieta.org", "goldstandard.org",
+  // D14 residue ruling (2026-09-13, rule 3): ACEA's own recorded names ("ACEA -- European Automobile
+  // Manufacturers", "ACEA / HDV CO2 Amendment Industry Statement") never spell out the word
+  // "Association" the abbreviation stands for, so the general name-keyword rule below cannot derive it
+  // -- curated, same posture as the entries above.
+  "acea.auto", // European Automobile Manufacturers' Association
 ]);
 /** Standards / framework bodies whose OWN text companies report against → T4 (the SAME class as
  *  SKILL.md §3's "Industry body / classification society" row — a standard-setter is classified by the
@@ -152,6 +181,11 @@ const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|sl
 const NEWS = /(reuters|freightwaves|loadstar|(^|\.)joc\.com$|(^|\.)tpm\.joc\.com$|lloydslist|maritime-executive|greenairnews|motortransport|logistics-manager|safety4sea|rivieramm|calmatters|plasticsnews|supplychainbrain|esgnews|theartnewspaper|fadmagazine|thomsonreuters|balkangreenenergynews|ceenergynews|china-briefing|cyprusshippingnews|sundancetimes|sustainable-bus|ishkaglobal)/;
 /** Analysis / think-tank → T6 (Research feedstock, sub-floor). */
 const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|cleanenergywire|climatepolicydatabase|climatecatalyst|renewable-carbon|sustainable-ships|(^|\.)rmi\.org$|theicct|(^|\.)wri\.org$|ccarbon\.info|now-gmbh|influencemap|circularactionhub|caneurope|climatecooperation|clientearth|platformelectromobility|energyadvicehub|(^|\.)igsd\.org$|nautilusint|international-climate-initiative|oneplanetnetwork|inderscience)/;
+/** Big-4 / advisory-firm hosts (D14 residue ruling, 2026-09-13, rule 6) → T6, the SAME class as ANALYSIS
+ *  above: corporate advisory commentary, not an independent analysis body. Anchored per-label (unlike
+ *  ANALYSIS's loose substrings above) because several of these stems (ey, bcg) are too short to risk as
+ *  an unanchored substring match. */
+const BIG4_ADVISORY_HOST = /(^|\.)(pwc|deloitte|ey|kpmg|mckinsey|bcg|bain|accenture|guidehouse|rolandberger)\.[a-z.]+$/;
 /** LEGAL AGGREGATORS (operator ruling #3: justia / legiscan / Cornell LII class) → PERMANENT worklist (null).
  *  They republish statutes but are NOT the official publisher — a span is a re-attribution instruction. This
  *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4.
@@ -200,13 +234,223 @@ export function permanentlyUnregisteredClass(host: string | null | undefined): P
   return null;
 }
 
-/** THE register-at-grounding class tier for a host — the SC-13 codified rule EXTENDED with the ruled class table,
- *  or NULL (worklist) for an unrecognized/permanent-worklist host. Deterministic, pattern-based, no guess/default. */
-export function classTierForHost(host: string | null | undefined): number | null {
+// ── D14 RESIDUE RULING (coordinator, 2026-09-13, defect-fix-plan-2026-09-12.md D14, "Residue ruling") ──
+// From the enumerate-unclassified-hosts artifact (628 hosts, 672 rows, run 34728958591, after PR #657
+// landed D14 part 1): a name-keyword tally over the stored registry NAMES classified 147 as government
+// bodies, 17 as legal publishers, 76 as associations/standards bodies, 23 as news/press, 2 as academic,
+// leaving 363 corporate or unnamed. This block codifies that tally into the 8 deterministic rules below,
+// run in this FIXED precedence, over the stored registry NAME plus the host -- never a model guess
+// (SC-13, source-credibility-model SKILL.md Section 3). It is a FALLBACK ONLY: every existing curated
+// allowlist / pattern above (LEGAL_PRIMARY, LEGAL_PUBLISHER_ALLOW, GOV_INTERGOV/GOV_TLD, RULED_HOST_TIER,
+// VERIFIER_CAB, ACADEMIC_TLD, ASSOCIATION_ALLOW, STANDARDS_BODY_ALLOW, ANALYSIS, BIG4_ADVISORY_HOST,
+// LAWFIRM, NEWS) is checked by classTierForHost FIRST -- this block only runs for a host none of them
+// resolve. `name` is the ONE stored registry name for the row being decided (resolve-provisional-
+// sources.mjs and enumerate-unclassified-hosts.mjs thread their own row's `name` column here; a caller
+// with no name available passes none, and only the host-based branches below can then fire -- never a
+// behaviour change for a caller that does not thread a name).
+
+/** Lowercases and strips combining diacritics (Közlöny -> kozlony, Mémorial -> memorial, Ministère ->
+ *  ministere) so the word lists below need only their base-Latin spelling. */
+function normalizeRegistryName(name: string | null | undefined): string {
+  return String(name || "")
+    .normalize("NFKD")
+    .replace(new RegExp(String.fromCharCode(91,0x0300,45,0x036f,93), "g"), "")
+    .toLowerCase();
+}
+
+/** Whole word / whole multi-word phrase match on already-normalized text -- `phrase` must sit on a
+ *  non-alphanumeric boundary at both ends, so "council" never matches inside "councillor" and "news"
+ *  never matches inside "newsroom" (SC-13's no-guess posture extends to no over-matching a substring). */
+function nameHasWord(text: string, phrase: string): boolean {
+  const esc = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${esc}(?:[^a-z0-9]|$)`).test(text);
+}
+function nameHasAnyWord(text: string, phrases: readonly string[]): boolean {
+  return phrases.some((p) => nameHasWord(text, p));
+}
+
+// Rule 1 (T1, legal publisher): the curated 17-host allowlist for this class lives in the EXISTING
+// LEGAL_PUBLISHER_ALLOW set above (checked well before this block ever runs); this is the GENERAL
+// fallback for a not-yet-curated official-gazette / consolidated-statutes host, derived from its name.
+const RESIDUE_LEGAL_WORDS: readonly string[] = [
+  "official gazette", "official journal", "legislation registry", "statutes", "laws of", "legal register",
+  "journal officiel", "diario oficial", "gazzetta ufficiale", "sbirka", "kozlony", "narodne novine", "memorial",
+];
+
+// Rule 2 (T4, academic): the existing .edu/.ac TLD rule (ACADEMIC_TLD above) is checked first; this adds
+// a name-derived signal for an academic host on any other TLD.
+const RESIDUE_ACADEMIC_WORDS: readonly string[] = [
+  "college", "polytechnic", "academy of sciences", "research institute",
+];
+// "universit" is a deliberate stem (not a whole word): it PREFIX-matches "university", "universite"
+// (Universite, normalized from Université), "universitat", "universita", "universiteit" etc. in one
+// pattern, since a whole-word match would miss every non-English inflection.
+const UNIVERSITY_PREFIX = /(?:^|[^a-z0-9])universit/;
+
+// Rule 3 (T4, association / standards body): the existing curated allowlists (ASSOCIATION_ALLOW,
+// STANDARDS_BODY_ALLOW above) are checked first ("the existing curated allowlists stay first"); this is
+// the general name-keyword fallback. "council" is handled separately below -- it is an association word
+// ONLY when the host is not ALSO a government host by rule 4 (a "county council" or "city council" is
+// government, not an association).
+const RESIDUE_ASSOCIATION_WORDS: readonly string[] = [
+  "association", "federation", "alliance", "consortium", "chamber of commerce", "standards",
+  "normalisation", "institute of",
+];
+
+// Rule 4 (T2, government): a host-label branch and a name-noun branch, with the think-tank exclusion
+// carved out of BOTH (a think tank is not a government body even when it sits on a name that would
+// otherwise match, or -- vanishingly rarely -- a host that would otherwise match).
+//
+// Host-label branch: "the host carries a gov, gouv, gob, gc, govt or parliament label anywhere" -- wider
+// than the existing GOV_LABEL_UNDER_CC_TLD rule above, which anchors on an EXACT two-letter ccTLD suffix
+// (gov.uk, admin.ch) and so never reaches a real government host on a longer vanity suffix (gov.scot,
+// gov.wales -- Scotland's and Wales's own geographic TLDs, not two-letter country codes). "Anywhere" is
+// bounded, not literal substring matching: the label must be the SECOND-TO-LAST dot-separated segment
+// (immediately followed by exactly one more segment to the end of the host), and that trailing segment
+// must NOT be one of the well-known generic top-level domains in RESIDUE_GENERIC_TLD_EXCLUDE below --
+// this is exactly what keeps D14's own required negatives refused (attacker.gov.com, bund.info: "gov"/
+// "bund" sit immediately before a real but GENERIC gTLD, never a jurisdiction) while accepting gov.scot,
+// gov.wales and commonslibrary.parliament.uk (their trailing segment is a real, non-generic suffix).
+// gov.example.com stays refused for a DIFFERENT structural reason: "gov" there is the THIRD-from-last
+// segment (two segments, "example" and "com", follow it), never the second-to-last.
+const RESIDUE_GOV_HOST_LABELS: readonly string[] = ["gov", "gouv", "gob", "gc", "govt", "parliament"];
+const RESIDUE_GOV_LABEL_ANYWHERE = new RegExp(`(^|\\.)(${RESIDUE_GOV_HOST_LABELS.join("|")})\\.([a-z]+)$`);
+const RESIDUE_GENERIC_TLD_EXCLUDE = new Set([
+  "com", "net", "org", "info", "biz", "io", "co", "edu", "gov", "mil", "int", "name", "pro", "app", "dev",
+]);
+function residueGovHostLabelMatch(host: string): boolean {
+  const m = RESIDUE_GOV_LABEL_ANYWHERE.exec(host);
+  return m != null && !RESIDUE_GENERIC_TLD_EXCLUDE.has(m[3]);
+}
+
+// Name-noun branch: "ministry and its French, Spanish, Portuguese, Italian, Dutch, German, Romanian and
+// Scandinavian forms" plus the fixed institutional-noun list from the ruling text.
+const RESIDUE_GOV_NOUN_WORDS: readonly string[] = [
+  "ministry", "ministerio", "ministerium", "ministerie", "ministero", "ministere", "ministerul", "ministerstvo",
+  "departementet", // Swedish/Norwegian ministry-equivalent ("Miljodepartementet" etc.)
+  "department of", "government", "agency", "authority", "commission", "office of", "bureau", "parliament",
+  "legislature", "assembly", "senate", "regulator", "inspectorate", "directorate", "secretariat",
+  "municipality", "county", "city of", "port authority", "customs", "revenue", "treasury", "central bank",
+  "environment agency", "emissions authority", "environment corporation",
+  // Fix round 1 for L9b (review-l9b.md finding F2, defect-fix-plan-2026-09-12.md D14): the "council"
+  // carve-out below already routes "county council" to government via the bare "county" noun, but a
+  // "city council" (a real city government's legislative body, e.g. Philadelphia's) had no matching noun
+  // -- "city of" is a different phrase. These seven explicit "<noun> council" phrases close that gap;
+  // "council on" (a think tank, e.g. "Council on Foreign Relations") stays excluded below.
+  "city council", "county council", "borough council", "town council", "regional council",
+  "district council", "municipal council",
+];
+// "A think tank is not a government body": these words route to rule 6 (analysis) BEFORE rule 4 fires,
+// for both the host-label and the name-noun branch.
+const RESIDUE_THINK_TANK_WORDS: readonly string[] = [
+  "center for", "centre for", "institute for", "council on", "foundation",
+];
+function residueGovernmentTier(host: string, normName: string): number | null {
+  if (nameHasAnyWord(normName, RESIDUE_THINK_TANK_WORDS)) return null;
+  if (residueGovHostLabelMatch(host)) return 2;
+  if (nameHasAnyWord(normName, RESIDUE_GOV_NOUN_WORDS)) return 2;
+  return null;
+}
+
+// Rule 3's "council" carve-out lives here (needs residueGovernmentTier, defined just above): "council"
+// counts as an association word only when the host is NOT a government host by rule 4 AND the name is
+// not itself a think-tank name. The second guard is fix round 1 for L9b (review-l9b.md finding F2): a
+// bare `residueGovernmentTier(...) == null` is ALSO true for "Council on Foreign Relations" (its "council
+// on" phrase is itself a think-tank word, so residueGovernmentTier returns null via ITS OWN think-tank
+// exclusion) -- without checking the think-tank words directly here too, that name would wrongly resolve
+// association (T4) via the "council" carve-out instead of falling through to analysis (T6), where the
+// SAME "council on" phrase is also listed in RESIDUE_ANALYSIS_WORDS.
+function residueAssociationTier(normName: string, host: string): number | null {
+  if (nameHasAnyWord(normName, RESIDUE_ASSOCIATION_WORDS)) return 4;
+  if (nameHasWord(normName, "council")) {
+    if (nameHasAnyWord(normName, RESIDUE_THINK_TANK_WORDS)) return null;
+    if (residueGovernmentTier(host, normName) == null) return 4;
+  }
+  return null;
+}
+
+// Rule 5 (T7, news/press): a corporate press room ("newsroom", "press release", "media information") is
+// rule 7 (company), never news -- checked first so "press"/"media" inside one of those phrases cannot
+// leak a false news classification.
+const RESIDUE_NEWS_WORDS: readonly string[] = [
+  "news", "times", "post", "herald", "magazine", "daily", "weekly", "press", "media", "broadcast", "tribune",
+];
+const RESIDUE_CORPORATE_PRESSROOM_WORDS: readonly string[] = ["newsroom", "press release", "media information"];
+function residueNewsTier(host: string, normName: string): number | null {
+  if (nameHasAnyWord(normName, RESIDUE_CORPORATE_PRESSROOM_WORDS)) return null;
+  if (nameHasAnyWord(normName, RESIDUE_NEWS_WORDS)) return 7;
+  if (/\.news$/.test(host)) return 7;
+  return null;
+}
+
+// Rule 6 (T6, analysis): the Big-4/advisory HOST check lives in the existing BIG4_ADVISORY_HOST pattern
+// above (checked well before this block runs); this is the name-derived fallback.
+const RESIDUE_ANALYSIS_WORDS: readonly string[] = [
+  "center for", "centre for", "institute for", "council on", "foundation", "think tank", "research",
+  "analysis", "consulting", "advisory", "insight",
+];
+function residueAnalysisTier(normName: string): number | null {
+  return nameHasAnyWord(normName, RESIDUE_ANALYSIS_WORDS) ? 6 : null;
+}
+
+// Rule 7 (T7, company -- new class): any host with a stored name and no rule 1-6 match. Its own site is
+// a primary only for its own announcements (market-signal corroboration counting) and never passes an
+// authority floor; T7 weight 0 in the citation network (same posture as LAWFIRM/NEWS above). This class
+// exists so a corporate host stops being a worklist question -- a mis-tier here under-credits and never
+// over-credits (the same conservative guarantee every sub-floor class in this file already carries).
+//
+// Rule 8 (worklist): stays only for a host with NO stored name at all -- the true residue.
+export type ResidueRuleId =
+  | "legal" | "academic" | "association" | "government" | "news" | "analysis" | "company" | "worklist";
+export interface ResidueClassification {
+  tier: number | null;
+  rule: ResidueRuleId;
+}
+
+/** Pure, per-host-and-name classification under the 8 D14 residue rules, in their fixed precedence.
+ *  Exported (in addition to being folded into classTierForHost below) so a caller can assert WHICH rule
+ *  fired, not merely the resulting tier -- the plan's own precedence proof ("a legal publisher with
+ *  'government' in its name is T1; a think tank with 'institute for' is T6 not T2") needs that. */
+export function classifyResidueRuling(host: string | null | undefined, name?: string | null): ResidueClassification {
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  const normName = normalizeRegistryName(name);
+  if (h) {
+    if (nameHasAnyWord(normName, RESIDUE_LEGAL_WORDS)) return { tier: 1, rule: "legal" };
+    if (nameHasAnyWord(normName, RESIDUE_ACADEMIC_WORDS) || UNIVERSITY_PREFIX.test(normName)) {
+      return { tier: 4, rule: "academic" };
+    }
+    const association = residueAssociationTier(normName, h);
+    if (association != null) return { tier: association, rule: "association" };
+    const government = residueGovernmentTier(h, normName);
+    if (government != null) return { tier: government, rule: "government" };
+    const news = residueNewsTier(h, normName);
+    if (news != null) return { tier: news, rule: "news" };
+    const analysis = residueAnalysisTier(normName);
+    if (analysis != null) return { tier: analysis, rule: "analysis" };
+  }
+  if (name != null && String(name).trim() !== "") return { tier: 7, rule: "company" };
+  return { tier: null, rule: "worklist" };
+}
+
+/** Every curated allowlist / pattern check that is HOST-ONLY (no stored NAME involved), in their fixed
+ *  precedence, shared by `classTierForHost` (single name) and `classTierForHostAcrossNames` (F1 fix,
+ *  below) so the two never drift out of sync with each other. Returns the tier these host-only rules
+ *  resolve, or null when none of them fire (the residue ruling, over the NAME(S), decides from there).
+ *  These checks are already order-independent with respect to any stored name, by construction -- they
+ *  never read `name` at all -- so F1's "same host, name order should not matter" fix only ever needs to
+ *  apply to the residue-ruling fallback underneath this. */
+function preResidueTierForHost(host: string | null | undefined): number | null {
   // PERMANENT WORKLIST FIRST — before the codified legal/gov rule, not after it. A republisher does not
   // acquire the publisher's authority by sitting on an authoritative TLD, so the never-register ruling has to
   // outrank every tier rule below it, not merely the academic one.
-  if (permanentlyUnregisteredClass(host) != null) return null;
+  // PERMANENT WORKLIST is intentionally NOT checked here (moved to a separate, explicit check in
+  // classTierForHost/classTierForHostAcrossNames below) -- this function's `null` return means "no
+  // host-only rule resolved a tier, the residue ruling over the NAME(S) may still decide", a DIFFERENT
+  // meaning from "permanently blocked, never resolve at all regardless of name". Folding the two into
+  // one null very nearly shipped a real regression during the F1 fix round: a permanently-unregistered
+  // aggregator/hosting-platform host WITH a stored name would incorrectly fall through to rule 7
+  // (company) instead of staying null, since company fires for "any host with a stored name and no rule
+  // 1-6 match" -- caught by re-running the fixture table-driven test before committing, never shipped.
   const codified = codifiedTierForHost(host);
   if (codified != null) return codified; // legal 1 / gov 2 (conservative, unchanged)
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
@@ -217,9 +461,84 @@ export function classTierForHost(host: string | null | undefined): number | null
   if (ACADEMIC_TLD.test(h)) return 4;
   if (ASSOCIATION_ALLOW.has(h)) return 4;
   if (STANDARDS_BODY_ALLOW.has(h)) return 4;
-  if (ANALYSIS.test(h)) return 6;
+  if (ANALYSIS.test(h) || BIG4_ADVISORY_HOST.test(h)) return 6;
   if (LAWFIRM.test(h) || NEWS.test(h)) return 7;
-  return null; // unknown / encyclopedia / aggregator / resolver / legal-aggregator → worklist
+  return null;
+}
+
+/** THE register-at-grounding class tier for a host -- the SC-13 codified rule EXTENDED with the ruled class
+ *  table and, as a final fallback, the D14 residue ruling over the stored registry NAME (2026-09-13) -- or
+ *  NULL (worklist) for a host none of them resolve. Deterministic, pattern-based, no guess/default.
+ *  `name` is optional and additive: every existing caller that does not pass one keeps its exact prior
+ *  behaviour, since the residue-ruling fallback only ever WIDENS what resolves, never narrows it.
+ *  Single-name form: a caller with only ONE name in scope (or none) for this host and this decision. A
+ *  caller that sees MULTIPLE stored names for the SAME host in one run (e.g. resolve-provisional-
+ *  sources.mjs, several provisional_sources/sources rows citing the same institution under different
+ *  names) should use `classTierForHostAcrossNames` instead (fix round 1 for L9b, finding F1) so the
+ *  decision does not depend on which row happens to be processed first. */
+export function classTierForHost(host: string | null | undefined, name?: string | null): number | null {
+  // PERMANENT WORKLIST FIRST, and an unconditional early return -- before even the residue ruling's own
+  // rule 7 (company), which would otherwise mint a republisher/hosting-platform host a tier just because
+  // it happens to carry a stored name (a name does not make a republisher the publisher).
+  if (permanentlyUnregisteredClass(host) != null) return null;
+  const pre = preResidueTierForHost(host);
+  if (pre != null) return pre;
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  // D14 residue ruling (2026-09-13): the 8-rule fallback over the stored registry NAME + host, reached
+  // only when every curated allowlist/pattern above already declined to classify this host.
+  return classifyResidueRuling(h, name).tier;
+}
+
+/** The D14 residue ruling's 8 rules, ordered by precedence (1 = most authoritative). Used only to
+ *  compare outcomes ACROSS several names for the SAME host (F1 fix); the single-name path
+ *  (`classTierForHost`/`classifyResidueRuling`) never needs this, since its own if/else chain already
+ *  IS the precedence for one name. */
+const RESIDUE_RULE_PRECEDENCE: Readonly<Record<ResidueRuleId, number>> = {
+  legal: 1,
+  academic: 2,
+  association: 3,
+  government: 4,
+  news: 5,
+  analysis: 6,
+  company: 7,
+  worklist: 8,
+};
+
+/** Fix round 1 for L9b (review-l9b.md finding F1, defect-fix-plan-2026-09-12.md D14): the class decision
+ *  for a host is computed ONCE PER RUN over the union of every stored name the run sees for that host,
+ *  taking the rule with the LOWEST number (most authoritative) among the rules any of its names
+ *  satisfies -- never the first-processed row's name alone, which made `resolve-provisional-
+ *  sources.mjs`'s per-row loop order-dependent (the SAME host could permanently register at T7/company
+ *  or T2/government depending purely on which of its several recorded citation names was processed
+ *  first). Host-only checks (`preResidueTierForHost`) are unaffected by this fix by construction -- they
+ *  never read a name at all, so they are already order-independent -- and are checked first, exactly as
+ *  in `classTierForHost`. `names` may be empty, one, or many; an empty/absent list degrades to the
+ *  single "no name" residue decision, the same as `classTierForHost(host)`. */
+export function classTierForHostAcrossNames(
+  host: string | null | undefined,
+  names?: ReadonlyArray<string | null | undefined> | null,
+): number | null {
+  // PERMANENT WORKLIST FIRST, and an unconditional early return -- see the identical guard and comment
+  // in classTierForHost above (the same regression this fix pre-empts: a republisher/hosting-platform
+  // host must stay null regardless of ANY of its names, not just the first one checked).
+  if (permanentlyUnregisteredClass(host) != null) return null;
+  const pre = preResidueTierForHost(host);
+  if (pre != null) return pre;
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  const candidates = names && names.length ? names : [undefined];
+  let bestTier: number | null = null;
+  let bestRank = Infinity;
+  for (const name of candidates) {
+    const { tier, rule } = classifyResidueRuling(h, name);
+    const rank = RESIDUE_RULE_PRECEDENCE[rule];
+    if (rank < bestRank) {
+      bestRank = rank;
+      bestTier = tier;
+    }
+  }
+  return bestTier;
 }
 
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";

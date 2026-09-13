@@ -155,7 +155,7 @@ export function renderMarkdown(hosts, { generatedAt }) {
  *   readActiveSources: () => Promise<Array>,
  *   readSearchLog: () => Promise<Array<{ result_url: string|null, intelligence_item_id: string|null }>>,
  *   readItemTitles: () => Promise<Array<{ id: string, title: string|null }>>,
- *   classTierForHost: (host: string) => number|null,
+ *   classTierForHost: (host: string, name?: string|null) => number|null,
  *   now?: () => string,
  * }} deps
  */
@@ -177,7 +177,11 @@ export async function main({ out = null } = {}, deps) {
       const host = row.url ? hostOf(row.url) : null;
       if (!host) continue; // no parsable host: a different residue class (resolve-provisional-sources's own worklist), not this list's job
       const existingTier = existingTierForHost(host, activeSources)?.tier ?? null;
-      const classTier = existingTier == null ? classTierFn(host) : null;
+      // D14 residue ruling (2026-09-13): thread the row's OWN stored `name` so this step's definition of
+      // "unresolved" stays IDENTICAL to resolve-provisional-sources.mjs's own rule (b) -- this step's own
+      // header says its residue is defined as "whatever that step's own rule a/b would leave unresolved",
+      // so it must call classTierForHost with the SAME arguments, never a narrower approximation.
+      const classTier = existingTier == null ? classTierFn(host, row.name) : null;
       if (isUnresolved(host, { existingTier, classTier })) {
         unresolvedRows.push({ table, id: row.id, host, name: row.name ?? null, discovered_via: row.discovered_via ?? null });
       }

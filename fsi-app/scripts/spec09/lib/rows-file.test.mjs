@@ -77,9 +77,15 @@ test("registerCitedSource: eur-lex host classifies tier 1 (legal primary)", asyn
   assert.equal(res.tier, 1);
 });
 
-test("registerCitedSource: ambiguous host (no codified class) is refused, never guessed a tier", async () => {
+// D14 residue ruling (2026-09-13, defect-fix-plan-2026-09-12.md D14, "Residue ruling") correction,
+// standing rule 13's corollary: `title: "x"` used to be genuinely ambiguous (no host class, no name
+// signal read at all), but registerCitedSource now threads `citation.title` into classTierForHost, and
+// rule 7 (company) resolves ANY non-empty name -- "x" is non-empty, so this fixture would now resolve
+// (company, T7) instead of refusing. The still-refused case is a host with NO stored name at all (the
+// true rule-8 worklist residue), so the title is corrected to an empty string here.
+test("registerCitedSource: ambiguous host (no codified class, no stored name) is refused, never guessed a tier", async () => {
   const deps = { registerSource: async () => { throw new Error("must not be called"); } };
-  const res = await registerCitedSource({ url: "https://some-random-vendor-blog.example.com/post", title: "x" }, deps);
+  const res = await registerCitedSource({ url: "https://some-random-vendor-blog.example.com/post", title: "" }, deps);
   assert.equal(res.refused, true);
   assert.match(res.reason, /does not resolve to a codified class/);
 });

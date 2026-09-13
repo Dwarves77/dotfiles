@@ -89,8 +89,14 @@ test("classTierForHost: ruled class table — verifier/academic/association 4, a
   // codified rule still wins and stays conservative:
   assert.equal(classTierForHost("eur-lex.europa.eu"), 1);
   assert.equal(classTierForHost("epa.gov"), 2);
-  // Big-4/advisory is NOT a verifier (ruling #2) — no class match -> worklist:
-  assert.equal(classTierForHost("pwc.com"), null);
+  // Big-4/advisory is NOT a verifier (ruling #2) -- that stands: pwc.com never resolves the T4
+  // verifier/CAB class (still asserted in the standards-body/verifier block above -- no Big-4 host is in
+  // VERIFIER_CAB). The D14 residue ruling (2026-09-13, defect-fix-plan-2026-09-12.md D14, rule 6)
+  // supersedes the SEPARATE "no class match -> worklist" half of ruling #2: pwc.com now resolves the
+  // SUB-FLOOR analysis class (T6, same posture as ammoniaenergy.org above -- never passes a floor, a
+  // mis-fire only under-credits) instead of sitting worklisted, so this assertion is corrected in place
+  // per standing rule 13's corollary rather than left silently contradicting the new ruling.
+  assert.equal(classTierForHost("pwc.com"), 6);
   // permanent-worklist classes -> null:
   assert.equal(classTierForHost("en.wikipedia.org"), null);
   assert.equal(classTierForHost("legiscan.com"), null);    // legal-aggregator
