@@ -122,5 +122,48 @@ check(
   wouldFire.ceilingWalls.length === 1 && wouldFire.ceilingWalls[0].transport === "context-ceiling-wall(floor)",
 );
 
+// ── I1 (review, fix round 1, 2026-09-13): D29's `doReplaceLedger` guard requires BOTH an injected ledger
+// AND `opts.replaceLedger === true` -- a bare `replaceLedger:true` on the metered path (no injectedLedger)
+// is documented as "a caller error this line refuses to act on", but had zero mechanical proof behind it
+// (apply-record-briefs.test.mjs can only assert what IT passes to groundBrief, not groundBrief's internal
+// guard; groundBriefImpl itself needs a live Supabase client to run, so it cannot be driven by a plain unit
+// test). Proof here is BEHAVIORAL, not mere presence (rule 15, "attack, don't assert presence"): extract the
+// exact declaration's right-hand-side expression as source text and EVALUATE it against every combination
+// of injected/opts, the same way executor-parity.golden.mjs's own check 7 evaluates an extracted predicate.
+const doReplaceLedgerMatch = codeOnly.match(
+  /const\s+doReplaceLedger\s*=\s*(!!injected\s*&&\s*opts\?\.replaceLedger\s*===\s*true)\s*;/,
+);
+check(
+  "the `doReplaceLedger` guard declaration is found, requiring BOTH `!!injected` and `opts?.replaceLedger === true`",
+  !!doReplaceLedgerMatch,
+);
+if (doReplaceLedgerMatch) {
+  const evalGuard = (injected, opts) => new Function("injected", "opts", `return ${doReplaceLedgerMatch[1]};`)(injected, opts);
+  check(
+    "ATTACK: bare replaceLedger:true with NO injected ledger is refused -- the documented caller-error case (a regression dropping `!!injected` from the guard would make this TRUE)",
+    evalGuard(null, { replaceLedger: true }) === false,
+  );
+  check(
+    "ATTACK: replaceLedger:true with injected undefined (opts omitted no injectedLedger key) is refused",
+    evalGuard(undefined, { replaceLedger: true }) === false,
+  );
+  check(
+    "an injected ledger present but replaceLedger not set stays false -- byte-for-byte non-destructive default",
+    evalGuard([{ claim_text: "x" }], {}) === false,
+  );
+  check(
+    "an injected ledger present but replaceLedger explicitly false stays false",
+    evalGuard([{ claim_text: "x" }], { replaceLedger: false }) === false,
+  );
+  check(
+    "the guard is true ONLY when BOTH an injected ledger AND replaceLedger:true are present -- the one case D29 actually wants archived",
+    evalGuard([{ claim_text: "x" }], { replaceLedger: true }) === true,
+  );
+  check(
+    "an empty-array injected ledger ([]) still counts as injected under `!!` (JS arrays are truthy regardless of length, matching groundBriefImpl's own `opts?.injectedLedger ?? null` semantics)",
+    evalGuard([], { replaceLedger: true }) === true,
+  );
+}
+
 console.log(failed ? `\nGOLDEN FAILED (${failed})` : "\nGOLDEN PASSED");
 process.exit(failed ? 1 : 0);
