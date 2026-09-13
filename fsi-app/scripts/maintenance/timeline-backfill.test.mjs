@@ -35,13 +35,13 @@ test("planTimelineBackfillItem: title date verified against capture -> step 'tit
   assert.equal(plan.row.label, "Adopted (from the instrument title)");
 });
 
-test("planTimelineBackfillItem: nothing matches, no capture at all -> step 'undateable', row null, attempts carried", () => {
+test("planTimelineBackfillItem: nothing matches, no capture, no created_at -> step 'undateable', row null, attempts carried", () => {
   const item = { id: "item-2", title: "IEA portal home", source_url: "https://iea.org/policies/about" };
   const plan = planTimelineBackfillItem({ item, capturedText: null, forwardEvents: [], todayIso: "2026-09-12" });
   assert.equal(plan.step, "undateable");
   assert.equal(plan.row, null);
   assert.ok(Array.isArray(plan.attempts));
-  assert.equal(plan.attempts.length, 6, "steps 2-6 plus step 7 (captured fallback)");
+  assert.equal(plan.attempts.length, 7, "steps 2-6 plus step 7 (captured fallback) plus step 8 (recorded fallback)");
 });
 
 test("planTimelineBackfillItem: no real date, but a stored capture exists -> step 'captured' (step 7), sort_order last", () => {
@@ -52,6 +52,37 @@ test("planTimelineBackfillItem: no real date, but a stored capture exists -> ste
   assert.equal(plan.row.milestone_date, "2026-05-01");
   assert.equal(plan.row.sort_order, 999);
   assert.match(plan.row.label, /not the instrument's own date/);
+});
+
+// ── D17 family 12 addendum (2026-09-13): step 8, the recorded-date fallback ────────────────────────────
+
+test("REQUIRED: an item with no capture and no instrument date gets the recorded row (step 8, dated at created_at)", () => {
+  const item = {
+    id: "item-2c",
+    title: "IEA portal home",
+    source_url: "https://iea.org/policies/about",
+    created_at: "2026-03-15T00:00:00Z",
+  };
+  const plan = planTimelineBackfillItem({ item, capturedText: null, bestCapture: null, forwardEvents: [], todayIso: "2026-09-12" });
+  assert.equal(plan.step, "recorded");
+  assert.equal(plan.row.milestone_date, "2026-03-15");
+  assert.equal(plan.row.sort_order, 1000, "ordered last -- after even the captured fallback (999)");
+  assert.match(plan.row.label, /Recorded in the ledger on this date/);
+  assert.match(plan.row.label, /not the instrument's own date/);
+});
+
+test("REQUIRED: an item with a capture gets the captured row (step 7) and not the recorded one, even when created_at is present", () => {
+  const item = {
+    id: "item-2d",
+    title: "IEA portal home",
+    source_url: "https://iea.org/policies/about",
+    created_at: "2026-03-15T00:00:00Z",
+  };
+  const bestCapture = { searched_at: "2026-05-01T00:00:00Z" };
+  const plan = planTimelineBackfillItem({ item, capturedText: null, bestCapture, forwardEvents: [], todayIso: "2026-09-12" });
+  assert.equal(plan.step, "captured", "step 7 wins over step 8 when a capture exists");
+  assert.equal(plan.row.milestone_date, "2026-05-01");
+  assert.equal(plan.row.sort_order, 999);
 });
 
 test("planTimelineBackfillItem: falls to forward event when title/FR/UK all miss", () => {
@@ -133,8 +164,9 @@ test("planUndateableFlagResolution: accepts a plain array for datedIds too", () 
 
 test("buildUndateableFlagResolutionNote: names the counts from the plan", () => {
   const note = buildUndateableFlagResolutionNote({ total: 211, now_dated: 205, still_undateable: 6 });
-  assert.match(note, /dates 205 of the 211/);
-  assert.match(note, /6 remain genuinely uncaptured/);
+  assert.match(note, /date 205 of the 211/);
+  assert.match(note, /6 remain genuinely/);
+  assert.match(note, /undateable/);
 });
 
 // ── parseBatchArgs ───────────────────────────────────────────────────────────────────────────────────
@@ -223,6 +255,22 @@ test("main() apply: inserts one row per dateable item, writes ONE flag naming th
   assert.equal(summary.flag_written.id, "flag-1");
 });
 
+test("main() apply: an item with no capture but a created_at gets a 'recorded' row (step 8) and is not counted undateable", async () => {
+  const deps = fakeDeps({
+    liveItems: [
+      { id: "a", title: "Untitled portal page", source_url: "https://iea.org/policies", created_at: "2026-03-15T00:00:00Z" },
+    ],
+    timelineItemIds: [],
+  });
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(summary.counts.by_step.recorded, 1);
+  assert.equal(summary.counts.written, 1);
+  assert.equal(summary.counts.undateable, 0);
+  assert.equal(deps._inserted().length, 1);
+  assert.equal(deps._inserted()[0].sort_order, 1000);
+  assert.equal(deps._flagsWritten().length, 0, "no undateable flag when step 8 dates the item");
+});
+
 test("main(): an item already in item_timelines is never touched", async () => {
   const deps = fakeDeps({
     liveItems: [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020", source_url: "https://eur-lex.europa.eu/x" }],
@@ -260,8 +308,8 @@ test("main() apply: resolves a PRIOR open undateable flag with the now-dated/sti
   const resolved = deps._flagsResolved();
   assert.equal(resolved.length, 1);
   assert.equal(resolved[0].id, "flag-old");
-  assert.match(resolved[0].note, /dates 2 of the 3/);
-  assert.match(resolved[0].note, /1 remain genuinely uncaptured/);
+  assert.match(resolved[0].note, /date 2 of the 3/);
+  assert.match(resolved[0].note, /1 remain genuinely/);
 });
 
 test("main() apply: no prior open flags -> resolveUndateableFlag never called", async () => {

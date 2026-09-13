@@ -36,6 +36,17 @@
 // open queue asks a person to act), and any PRIOR open "timeline-backfill" flag (from before this fix) is
 // resolved with the count of how many of its named ids now carry a timeline row.
 //
+// D17 FAMILY 12 ADDENDUM (2026-09-13, lane L11b): the dry run on master still left 82 of the 211 undated
+// items with NO stored capture at all -- step 7 above cannot help them. An EIGHTH, final, deterministic
+// step (timeline-backfill-derive.mjs's extractRecordedDate) now runs when step 7 also misses: a `recorded`
+// timeline row dated at the item's own intelligence_items.created_at (when the item was recorded IN THE
+// LEDGER -- never presented as the instrument's own date; labelled and sort-ordered LAST of all, via
+// RECORDED_FALLBACK_SORT_ORDER, so it never outranks a real derived milestone or even the captured
+// fallback). Since intelligence_items.created_at is populated on every live row, this step reduces the
+// genuinely-undateable set to structurally near zero (only an item with no capture AND an unparseable/
+// missing created_at would still land there); the flag machinery above is left in place for that residual,
+// never removed, because "near zero" is not "provably zero" for a corpus this size.
+//
 // BOUNDED AND RESUMABLE: --limit / --after-id, the same idiom backfill-format-type.mjs and
 // retype-eu-decisions.mjs already use (parsed locally -- no other MAINT wrapper needs pagination flags of
 // its own, per backfill-format-type.mjs's own header note). Dry by default; --mode apply writes through
@@ -48,6 +59,7 @@ import {
   finalizeTimelineRow,
   pickBestCapture,
   CAPTURED_FALLBACK_SORT_ORDER,
+  RECORDED_FALLBACK_SORT_ORDER,
 } from "../../src/lib/agent/timeline-backfill-derive.mjs";
 
 export const CITE = Object.freeze({
@@ -68,7 +80,7 @@ export const UNDATEABLE_FLAG_CITE = Object.freeze({
   created_by: "timeline-backfill",
 });
 
-const ITEM_COLUMNS = "id, title, item_type, source_url, instrument_identifier, canonical_instrument_key";
+const ITEM_COLUMNS = "id, title, item_type, source_url, instrument_identifier, canonical_instrument_key, created_at";
 
 // ---------------------------------------------------------------------------------------------------
 // Pure planning (unit-tested with no I/O): one item's derivation outcome from data the caller already
@@ -77,7 +89,7 @@ const ITEM_COLUMNS = "id, title, item_type, source_url, instrument_identifier, c
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * @param {{ item: {id:string, title?:string|null, source_url?:string|null, instrument_identifier?:string|null, canonical_instrument_key?:string|null}, capturedText: string|null, bestCapture?: {searched_at?: string|null}|null, forwardEvents: Array<object>, todayIso: string }} input
+ * @param {{ item: {id:string, title?:string|null, source_url?:string|null, instrument_identifier?:string|null, canonical_instrument_key?:string|null, created_at?:string|null}, capturedText: string|null, bestCapture?: {searched_at?: string|null}|null, forwardEvents: Array<object>, todayIso: string }} input
  * @returns {{ id: string, step: string, row: object|null, attempts?: Array<object> }}
  */
 export function planTimelineBackfillItem({ item, capturedText, bestCapture, forwardEvents, todayIso }) {
@@ -88,15 +100,19 @@ export function planTimelineBackfillItem({ item, capturedText, bestCapture, forw
     identifier: item.instrument_identifier ?? item.canonical_instrument_key ?? null,
     forwardEvents,
     bestCapture,
+    createdAt: item.created_at ?? null,
   });
   if (!result) {
     return { id: item.id, step: "undateable", row: null, attempts };
   }
-  // Step 7 (D17 family 12, defect-fix-plan-2026-09-12): a `captured` row is deliberately ordered LAST
-  // (CAPTURED_FALLBACK_SORT_ORDER) so it never outranks a real derived milestone; every other step keeps
-  // sort_order 0 (this script writes at most one row per item, so 0 vs 999 is the only ordering that ever
-  // matters here -- see that constant's own header for why it still matters against a FUTURE row).
-  const sortOrder = result.source === "captured" ? CAPTURED_FALLBACK_SORT_ORDER : 0;
+  // Step 7 (D17 family 12) and step 8 (D17 family 12 addendum, 2026-09-13) rows are deliberately ordered
+  // LAST so neither ever outranks a real derived milestone; every other step keeps sort_order 0 (this
+  // script writes at most one row per item, so 0 vs 999/1000 is the only ordering that ever matters here
+  // -- see each constant's own header for why it still matters against a FUTURE row).
+  const sortOrder =
+    result.source === "captured" ? CAPTURED_FALLBACK_SORT_ORDER
+    : result.source === "recorded" ? RECORDED_FALLBACK_SORT_ORDER
+    : 0;
   const row = finalizeTimelineRow(result, todayIso, sortOrder);
   return { id: item.id, step: result.source, row, attempts };
 }
@@ -120,10 +136,12 @@ export function partitionUndated(liveItems, timelineItemIds) {
  * every host/id named comes from the caller's own list). Capped host list for readability; the FULL id
  * list travels in recommended_actions[0].ids, not in this prose.
  *
- * D17 family 12 (defect-fix-plan-2026-09-12): with step 7 (the captured-date fallback) now live, an item
- * only reaches this set when it carries NO usable stored capture at all (never even a `searched_at` to
- * fall back on) -- a genuinely different, much rarer condition than the pre-fix "no deterministic date
- * source" description named. The wording is updated to say so honestly.
+ * D17 family 12 (defect-fix-plan-2026-09-12) and its 2026-09-13 addendum: with step 7 (the captured-date
+ * fallback) and step 8 (the recorded-date fallback, dated at intelligence_items.created_at) both live, an
+ * item only reaches this set when it carries NO usable stored capture at all AND has no parseable
+ * created_at either -- a genuinely rare, near-structurally-impossible condition (created_at is populated
+ * on every live row) rather than the broader pre-fix "no deterministic date source" description named.
+ * The wording is updated to say so honestly.
  * @param {Array<{id:string, title?:string|null, host?:string|null}>} items
  * @returns {string}
  */
@@ -132,10 +150,11 @@ export function buildUndateableFlagDescription(items) {
   const hostSample = hosts.slice(0, 10).join(", ");
   const hostNote = hosts.length > 10 ? `${hostSample}, and ${hosts.length - 10} more` : hostSample;
   return (
-    `timeline-backfill: ${items.length} item(s) carry no usable stored capture at all (no title date, ` +
-    "Federal Register date path, legislation.gov.uk line, forward event, dateline, or even a captured-" +
-    "date fallback -- step 7 needs a capture's own searched_at, and none exists). " +
-    `Hosts: ${hostNote || "(none resolvable)"}. Full id list in this flag's recommended_actions[0].ids.`
+    `timeline-backfill: ${items.length} item(s) carry no usable stored capture at all AND no parseable ` +
+    "intelligence_items.created_at (no title date, Federal Register date path, legislation.gov.uk line, " +
+    "forward event, dateline, captured-date fallback, or recorded-date fallback -- steps 7 and 8 both " +
+    `need data this item does not have). Hosts: ${hostNote || "(none resolvable)"}. Full id list in this ` +
+    "flag's recommended_actions[0].ids."
   );
 }
 
@@ -158,16 +177,20 @@ export function buildUndateableFlagRow(items) {
       {
         action: "no_capture_to_derive_from",
         rationale:
-          "no stored capture exists to derive even the step-7 captured-date fallback; informational only " +
-          "(ADR-030 rider: no open queue asks a person to act) -- the item is dated automatically once a " +
-          "real capture pass (acquire-primaries' successor paths, provenance-heal) gives it one.",
+          "no stored capture exists for the step-7 captured-date fallback, and no parseable " +
+          "intelligence_items.created_at exists for the step-8 recorded-date fallback either; " +
+          "informational only (ADR-030 rider: no open queue asks a person to act) -- the item is dated " +
+          "automatically once a real capture pass (acquire-primaries' successor paths, provenance-heal) " +
+          "or a created_at repair gives it one.",
         ids: items.map((i) => i.id),
       },
     ],
     status: "resolved",
     resolved_at: nowIso,
     resolved_by: "timeline-backfill",
-    resolution_note: "no derivable capture; informational record, not a manual-research ask (D17 family 12)",
+    resolution_note:
+      "no derivable capture and no parseable created_at; informational record, not a manual-research ask " +
+      "(D17 family 12 and its 2026-09-13 addendum)",
   };
 }
 
@@ -218,9 +241,11 @@ export function planUndateableFlagResolution(openFlagRows, datedIds) {
 /** Pure: the resolution_note for one prior flag's resolution plan entry. */
 export function buildUndateableFlagResolutionNote(plan) {
   return (
-    `D17 family 12 (defect-fix-plan-2026-09-12): step 7 (captured-date fallback) now dates ${plan.now_dated} ` +
-    `of the ${plan.total} previously-undateable item(s) named in this flag; ${plan.still_undateable} remain ` +
-    "genuinely uncaptured (no stored capture at all) -- carried forward in the fresh undateable flag, if any."
+    "D17 family 12 (defect-fix-plan-2026-09-12) and its 2026-09-13 addendum: step 7 (captured-date " +
+    `fallback) and step 8 (recorded-date fallback) now date ${plan.now_dated} of the ${plan.total} ` +
+    `previously-undateable item(s) named in this flag; ${plan.still_undateable} remain genuinely ` +
+    "undateable (no stored capture and no parseable created_at) -- carried forward in the fresh " +
+    "undateable flag, if any."
   );
 }
 

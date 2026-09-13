@@ -392,9 +392,44 @@ export function extractCapturedDate(bestCapture) {
 }
 
 // -------------------------------------------------------------------------------------------------------
+// Step 8 (D17 "Family 12 addendum", defect-fix-plan-2026-09-12, coordinator directive 2026-09-13): the
+// recorded-in-the-ledger fallback. Measured on the timeline-backfill dry run: of 211 undated items, 129
+// had a stored capture (step 7 dates them); 82 had NO stored capture at all -- these are genuinely
+// undateable by every capture-dependent step (2 through 7) since there is nothing to derive from or
+// stamp a retrieval date onto. ADR-030's own bar ("no item should be without some date in the timeline")
+// does not stop at "no free-fetched page exists" -- intelligence_items.created_at is itself a real, dated
+// event about the item (when this platform's own ledger recorded it), never a guess, and it exists for
+// every live row by construction (NOT NULL, stamped at insert). This is the deliberate LAST resort, tried
+// only when steps 2-7 all miss.
+// -------------------------------------------------------------------------------------------------------
+
+export const RECORDED_FALLBACK_BASE_LABEL = "Recorded in the ledger on this date; not the instrument's own date";
+// Ordered even later than the captured fallback (999) -- a recorded row is the least specific date this
+// waterfall can ever produce and must never outrank a captured (or any real) row if one is ever added for
+// the same item by a later run.
+export const RECORDED_FALLBACK_SORT_ORDER = 1000;
+
+/**
+ * Step 8: the item's own intelligence_items.created_at (day precision -- it is a real timestamp), tried
+ * only when steps 2-7 found nothing (no instrument date, no stored capture to date from). Pure given the
+ * item's own created_at a caller already read.
+ * @param {string|null|undefined} createdAt
+ * @returns {{token:string, iso:string, precision:'day'}|null}
+ */
+export function extractRecordedDate(createdAt) {
+  if (!createdAt || typeof createdAt !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(createdAt);
+  if (!m) return null;
+  const norm = toIsoDate(m[1]);
+  if (!norm) return null;
+  return { token: m[1], iso: norm.iso, precision: "day" };
+}
+
+// -------------------------------------------------------------------------------------------------------
 // Orchestrator: steps 2 through 6 (title / Federal Register / legislation.gov.uk / forward event /
-// dateline), first hit wins, then step 7 (captured-date fallback, D17 family 12) as the deliberate LAST
-// resort -- every attempt named for the audit trail.
+// dateline), first hit wins, then step 7 (captured-date fallback, D17 family 12) and step 8 (recorded-in-
+// the-ledger fallback, D17 family 12 addendum) as the deliberate LAST resorts -- every attempt named for
+// the audit trail.
 // -------------------------------------------------------------------------------------------------------
 
 /**
@@ -416,13 +451,14 @@ export function extractCapturedDate(bestCapture) {
  *   identifier?: string|null,
  *   forwardEvents?: Array<object>|null,
  *   bestCapture?: {searched_at?: string|null}|null,
+ *   createdAt?: string|null,
  * }} input
  * @returns {{
  *   result: ({token:string, iso:string, precision:string, baseLabel:string, source:string, form?:string})|null,
  *   attempts: Array<{step:string, outcome:string, [key:string]: unknown}>,
  * }}
  */
-export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, identifier, forwardEvents, bestCapture } = {}) {
+export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, identifier, forwardEvents, bestCapture, createdAt } = {}) {
   const attempts = [];
 
   // Step 2: title date, verified against the item's own captured text.
@@ -482,6 +518,18 @@ export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, ide
     };
   }
   attempts.push({ step: "captured", outcome: "no-searched-at" });
+
+  // Step 8: recorded-in-the-ledger fallback (D17 family 12 addendum). Only tried once steps 2-7 all
+  // missed -- an item with a real instrument date, or even just a stored capture, never reaches here.
+  const rec = extractRecordedDate(createdAt);
+  if (rec) {
+    attempts.push({ step: "recorded", outcome: "hit", token: rec.token });
+    return {
+      result: { ...rec, baseLabel: RECORDED_FALLBACK_BASE_LABEL, source: "recorded" },
+      attempts,
+    };
+  }
+  attempts.push({ step: "recorded", outcome: "no-created-at" });
 
   return { result: null, attempts };
 }
