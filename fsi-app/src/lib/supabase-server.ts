@@ -17,6 +17,8 @@ import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
 import { normalizeJurisdictionIsoColumn } from "@/lib/jurisdictions/iso";
 import { computeAuditDate } from "@/lib/dashboard/brief-rows";
+import { recentChangesWindowDays } from "@/lib/dashboard/recent-changes-window.mjs";
+import { readScrapeState } from "@/lib/api/pause";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2705,6 +2707,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
 
     // PERF-5: overridesRaw was already fetched above, alongside fetchWorkspaceResources — only
     // the translation to UI ids (mapOverrideRows, pure/synchronous) happens here.
+    // What-changed window: 90 days while the scrape cadence is off (build mode, CLAUDE.md rule 16; the
+    // operator wants this week's regenerations held visible until regular updates start), 7 days once a
+    // cadence is set. Decided by recentChangesWindowDays; a failed state read falls back to build mode.
+    const scrapeState = await readScrapeState(getServiceSupabase()).catch(() => ({ cadence: "off" as const }));
     const [changesResult, sectorsResult, recentResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
@@ -2716,7 +2722,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .select("sector, display_name"),
       // Window-scoped What-changed feed (see RecentChangeRow). Service client:
       // orgId authenticated upstream, same idiom as the dashboard RPC call.
-      getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: 7 }),
+      getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: recentChangesWindowDays(scrapeState.cadence) }),
     ]);
     const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
 
