@@ -1,0 +1,280 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:70029202bae4a9a6",
+  "run_id": "brief-apply-run-003",
+  "started_at": "2026-09-13T11:04:39.347Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-004.json",
+    "execute": false,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false,
+    "recordBriefsSchemaVersion": "rb1-2026-09-12.3"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-004.json"
+  ],
+  "per_item": [
+    {
+      "id": "0b3317c2-039d-41f5-9133-fa13d80e4445",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0b851900-bf96-48ef-8bd4-0311ae0e5b65",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0c09fec2-0c02-48a8-8999-a33c1909f898",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0c2f19be-e9ba-4948-8861-6b589754b011",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0c5f451e-c87b-4c67-b899-c1b279558862",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0c7040d5-1d8d-4b6c-91bb-8bee9a2cc1b4",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0cc2da7a-b012-489f-a209-b9802ad1e151",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0ccaeff4-82c8-42bd-bc4c-87bcb56e384e",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0cd0a2de-ff5b-4b82-9b6d-893f0f862c9f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0cfbbe8c-f162-4399-bba6-32f79dadd0b4",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0d4cc788-739d-4517-bdf4-c7af58aaa131",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0db3eed0-2a3c-4cfe-8c23-59dd49b1ac49",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0dbc8d75-2ce3-4177-bc01-f1efbc658477",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e026c01-e35e-43a8-b10b-b0f82cf3af31",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e11ab16-409f-4238-ac12-0580336ddd6d",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e369e4a-0fd7-4eb8-90bd-8e86d39e192a",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e56f30d-89ea-4073-a643-c563d2e8349e",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e572311-af05-4bb5-88bf-468c8f7d78ad",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e8d6a99-7d5e-471e-b7bd-f46317ae4af4",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0e9de612-8b0f-4d75-954e-eb5b42e29d7a",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0ec093c9-3430-4546-b424-b1b701574ef0",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0f343f3a-9418-4f5e-9845-6b954f92a5fe",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0f530f90-369d-4ca2-b83e-0f0cc2ca5010",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0f838d3e-74df-41bc-b3dd-8c8988f5cffe",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0f97f0bb-caca-473e-bd76-be64fc39639f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "0fac8356-f3b4-40d9-adc8-da98a6f16c97",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "10605225-088d-451a-a3a4-84108ad2d6f6",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "109d7daf-a411-4bf2-9bd2-cfdc68df6d16",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "10cf4da4-9363-4365-90df-a1dceace1b66",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "10d8a77a-c852-45a0-baa4-9d25b0db21a6",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "11164fd8-e1d3-4c2b-a809-500bad09e017",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "11c9161c-e21f-4c09-8c10-90a36304c258",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "11f5f8ad-8512-4f4c-b94e-9317f5eb9894",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "128b6a2e-cf78-4c9f-b03d-9256a3df5222",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "128b8be9-c76a-4922-bca9-2ddb929ee725",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "12b90c1b-08ad-4040-a6de-5b7fb614f68b",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "13212cdf-c6e3-4d92-8450-d9fb5295c6c1",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "135c5ae9-d77e-40d6-917c-29086d31a192",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "136fb046-e401-4318-8344-51747e62e874",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 49,
+    "selected": 49,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-004.json"
+  ],
+  "proposer_notes": ""
+}
