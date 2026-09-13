@@ -3663,7 +3663,7 @@ a governed-column literal not in the tracked allowed set) and `scripts/verify/ch
 DATABASE table writers (`intelligence_items`, `integrity_flags`, etc.); this step writes a docs/
 inventories JSON FILE, never a database row, so it is out of that registry's scope by design (confirmed
 against the registry's own scan-scope comment before skipping the row).
-## 52. `resolve-refetch-holds`
+## 49. `resolve-refetch-holds`
 
 **New this runbook, D17 family 11, defect-fix-plan-2026-09-12 (lane L11). Rewritten for the
 re-grounds-never-destroy dominance guard, fix round 2 for L11 family 11 (lane L11b, 2026-09-13).**
@@ -3730,7 +3730,7 @@ newest capture show `degraded_newest` counts and zero (or near-zero) supersessio
 
 ---
 
-## 53. `close-coverage-reflections`
+## 50. `close-coverage-reflections`
 
 **New this runbook, D17 family 13, defect-fix-plan-2026-09-12 (lane L11).**
 
@@ -3761,7 +3761,7 @@ against `SELECT count(*) FROM integrity_flags WHERE (created_by LIKE 'flywheel-g
 
 ---
 
-## 54. `close-legal-confirmation-rows`
+## 51. `close-legal-confirmation-rows`
 
 **New this runbook, D17 family 14, defect-fix-plan-2026-09-12 (lane L11).**
 
@@ -3812,7 +3812,7 @@ self-resurrection property RD-6 gives every deferral).
 
 ---
 
-## 55. `close-flags-for-verified-items`
+## 52. `close-flags-for-verified-items`
 
 **New this runbook, D17 family 14 CORRECTION, defect-fix-plan-2026-09-12 (lane L11, coordinator
 directive 2026-09-12). Extended by the D17 family 14 addendum (lane L11b, 2026-09-13).**

@@ -566,6 +566,71 @@ describe("validateRecordBriefsFile: qualification-accounting mirror (task-6.1-au
     assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
+  // Fix round 1 for lane L12 (review-l12.md, I1): D18's own widening (trajectoryCaptured accepting an
+  // unnegated TRAJECTORY_KEYWORD_RE hit in an attached FACT claim's source_span, alongside the
+  // pre-existing metadata.requirement_trajectory check) had zero test coverage -- the reviewer replaced
+  // TRAJECTORY_KEYWORD_RE with a never-matching regex and 63/63 still passed. Same shape as the
+  // exceptions test pair above (unnegated capture satisfies without the absence sentence; a negated span
+  // does not), applied to the trajectory keyword path specifically, with no
+  // metadata.requirement_trajectory set on either entry.
+  test("an attached FACT claim naming an unnegated trajectory stem in its source_span satisfies the trajectory check without metadata.requirement_trajectory or the absence sentence, but a NEGATED span does not", () => {
+    const capturedClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "[trajectory] increases over multiple years, phased in from 2027",
+      source_span: "the reporting duty is phased in from 2027 for large operators",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const capturedEntry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "the reporting duty is phased in from 2027 for large operators.\n\n" +
+          "No exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), capturedClaim],
+    });
+    const capturedPool = {
+      [ITEM_ID]: `${POOL_TEXT} The reporting duty is phased in from 2027 for large operators.`,
+    };
+    const capturedResult = validateRecordBriefsFile(validFile([capturedEntry]), { poolTextByItemId: capturedPool });
+    assert.equal(
+      capturedResult.ok,
+      true,
+      `expected ok, got: ${JSON.stringify(capturedResult.ok ? [] : capturedResult.errors)}`,
+    );
+
+    const negatedClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "no phase-in is stated for this category of operator",
+      source_span: "No phase-in is stated for this category of operator",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const negatedEntry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "no phase-in is stated for this category of operator.\n\n" +
+          "No exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), negatedClaim],
+    });
+    const negatedPool = {
+      [ITEM_ID]: `${POOL_TEXT} No phase-in is stated for this category of operator.`,
+    };
+    const negatedResult = validateRecordBriefsFile(validFile([negatedEntry]), { poolTextByItemId: negatedPool });
+    assert.equal(negatedResult.ok, false);
+    assert.ok(
+      negatedResult.errors.some((e) => e.includes("qualification accounting") && e.includes("trajectory")),
+      JSON.stringify(negatedResult.errors),
+    );
+  });
+
   // Fix round 1, finding 4: capture now reads the claim's own verbatim source_span (never free-form
   // claim_text), and the span must be UNNEGATED.
   test("an attached FACT claim naming an unnegated exception in its source_span satisfies the exceptions check without the absence sentence", () => {
@@ -615,6 +680,74 @@ describe("validateRecordBriefsFile: qualification-accounting mirror (task-6.1-au
     });
     const pool = { [ITEM_ID]: `${POOL_TEXT} No party is exempt from this requirement.` };
     const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
+  });
+
+  // D18 (lane L12, 2026-09-13): the check previously matched only the bare root "exempt" -- an inflected
+  // form ("Exemption") was read as absent even though it is the honest capture. Stem list now covers it.
+  test("an attached FACT claim naming 'Exemption' (an inflected stem, not the bare root) satisfies the exceptions check", () => {
+    const exceptionClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "small shipments qualify for an exemption from this requirement",
+      source_span: "Shipments under 500kg qualify for an Exemption from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "shipments under 500kg qualify for an Exemption from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), exceptionClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} Shipments under 500kg qualify for an Exemption from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // D18: another inflected form ("exempted") not covered by the prior bare-root regex.
+  test("an attached FACT claim naming 'exempted' (an inflected stem) satisfies the exceptions check", () => {
+    const exceptionClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "small shipments are exempted from this requirement",
+      source_span: "Shipments under 500kg are exempted from this requirement",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "shipments under 500kg are exempted from this requirement.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), exceptionClaim],
+    });
+    const pool = { [ITEM_ID]: `${POOL_TEXT} Shipments under 500kg are exempted from this requirement.` };
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: pool });
+    assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
+  });
+
+  // D18's own worked example: a bare "except" that appears only in body prose -- never inside any claim's
+  // own source_span -- must NOT satisfy the exceptions check (the check reads claim source_span only).
+  test("a bare 'except' appearing only in body prose (not in any claim's source_span) does NOT satisfy the exceptions check", () => {
+    const entry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency, " +
+          "except as otherwise noted elsewhere in this document.\n\n" +
+          "No phase-in is stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+    });
+    const r = validateRecordBriefsFile(validFile([entry]), { poolTextByItemId: POOL });
     assert.equal(r.ok, false);
     assert.ok(r.errors.some((e) => e.includes("qualification accounting") && e.includes("exception")), JSON.stringify(r.errors));
   });

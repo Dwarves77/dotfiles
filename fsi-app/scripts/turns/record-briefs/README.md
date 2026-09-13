@@ -257,18 +257,28 @@ source rather than writing something the ground step will quarantine anyway.
    round 1, finding 2: it previously ran only when the accounting line was itself present, so it never
    fired against a single one of the twenty pilot+chunk-1 claims; now both refusals are reported together
    regardless of whether the accounting line exists):
-   - **Per-year trajectory** -- captured via `metadata.requirement_trajectory` (non-null), or a sentence
-     naming the articles/sections checked: `No phase-in is stated in Articles 1 to 12.` (or `Section(s)`).
-   - **Exceptions, carve-outs, exemptions** -- captured via a FACT claim DECLARING this section (the
-     explicit `section` field, mirror 4 above) whose own `source_span` (never free-form `claim_text`)
-     contains `except` / `exempt` / `carve-out` with NO negation token (`no`/`not`/`none`/`never`/`nor`)
-     in the few words immediately before the match -- a span reading "No party is exempt from this
-     requirement" does NOT satisfy this (it asserts the opposite) -- or the sentence
-     `No exceptions are stated in Articles 1 to 12.`
-   - **Scope limits** -- captured the same way, matching `scope` / `does not apply` / `applies only` /
-     `limited to` in the `source_span` (the negation window looks only at text BEFORE the match, so "does
-     not apply" itself is never misread as negated by the word "not" it happens to contain), or the
-     sentence `No scope limits are stated in Articles 1 to 12.`
+   D18 (lane L12, 2026-09-13): each category's capture check matches a small STEM LIST with inflections,
+   not a single bare root word -- a span reading "Exemption" or "exempted" was previously read as absent
+   because the check matched only the bare root `exempt`, while a page-furniture "except" elsewhere in the
+   body (never a claim's own span) could never satisfy it either way. Every stem is still matched with word
+   boundaries on both sides and is still evaluated ONLY on a claim's own verbatim `source_span`.
+   - **Per-year trajectory** -- captured via `metadata.requirement_trajectory` (non-null); OR an unnegated
+     hit, in an attached FACT claim's `source_span`, of the stem list `phase` / `phased` / `phase-in` /
+     `per year` / `from <four-digit year>`; OR a sentence naming the articles/sections checked: `No
+     phase-in is stated in Articles 1 to 12.` (or `Section(s)`).
+   - **Exceptions, carve-outs, exemptions, conditions** -- captured via a FACT claim DECLARING this section
+     (the explicit `section` field, mirror 4 above) whose own `source_span` (never free-form `claim_text`)
+     contains an unnegated hit of the stem list `exempt` / `exempts` / `exempted` / `exemption` /
+     `exemptions` / `except` / `carve-out` (with or without the hyphen) / `condition` / `conditions` /
+     `conditional` / `subject to` -- NO negation token (`no`/`not`/`none`/`never`/`nor`) in the few words
+     immediately before the match -- a span reading "No party is exempt from this requirement" does NOT
+     satisfy this (it asserts the opposite) -- or the sentence `No exceptions are stated in Articles 1 to
+     12.` ("conditions" has no separate qualification kind of its own; D18 folds its vocabulary into this
+     one rather than inventing a fourth kind the qualification-accounting mirror does not otherwise model.)
+   - **Scope limits** -- captured the same way, matching the stem list `scope` / `applies to` /
+     `applies only` / `does not apply` / `limited to` in the `source_span` (the negation window looks only
+     at text BEFORE the match, so "does not apply" itself is never misread as negated by the word "not" it
+     happens to contain), or the sentence `No scope limits are stated in Articles 1 to 12.`
    The absence sentences now REQUIRE a named article/section citation (fix round 1, finding 4: the prior
    fixed sentences -- `No exceptions stated in the source.`, with no reference to the source at all -- were
    satisfiable regardless of what the source actually says; a lane could paste all three into every brief

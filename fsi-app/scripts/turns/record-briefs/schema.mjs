@@ -77,7 +77,23 @@ import { extractSectionByHeading, extractSectionByNumber } from "../../../src/li
 import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.3";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.4";
+// 2026-09-12.4 (D18, lane L12, defect-fix-plan-2026-09-12.md): the qualification-capture mirror's three
+// keyword checks matched only a bare root word (except/exempt/carve-out for exceptions; scope/applies to/
+// does not apply for scope), so an honest capture using an inflected form -- "Exemption", "exempted" -- was
+// read as absent while a page-furniture "except" elsewhere would have passed. EXCEPTION_KEYWORD_RE and
+// SCOPE_KEYWORD_RE are now small, named STEM LISTS with inflections (still evaluated on the claim's
+// verbatim source_span, still behind the same negation guard); EXCEPTION_KEYWORD_RE also folds in the
+// "conditions" vocabulary (condition, conditions, conditional, subject to) -- this file models three
+// qualification kinds (trajectory, exceptions, scope), not four, so D18's separate "conditions" stem list
+// is folded into exceptions rather than standing up a fourth kind the qualification-accounting mirror (e)
+// does not account for. A TRAJECTORY_KEYWORD_RE stem list (phase, phased, phase-in, per year, from
+// <year>) is added alongside them and now ALSO satisfies trajectoryCaptured (an unnegated stem hit in an
+// attached FACT claim's source_span, the same evidence exceptions/scope already accept) -- previously
+// trajectoryCaptured recognised only metadata.requirement_trajectory, so a lane that stated the trajectory
+// in prose (without also populating the structured field) had no way to satisfy the check except the
+// absence sentence, which is dishonest when the trajectory IS stated. README.md's qualification-mirror
+// rule text names the stems.
 // 2026-09-12.3 (task 6.2b fix round 1, review-6.2b.md): five findings closed.
 //   Finding 1 (critical) -- every claim now carries `section` (the canonical section key of the entry's
 //     format_type), validated against the format's own section list and against the claim's own
@@ -170,8 +186,21 @@ const LARGE_POOL_CHAR_THRESHOLD = 200_000;
 // restriction) is never itself misread as negated by the word "not" it happens to contain.
 const NEGATION_TOKEN_RE = /\b(no|not|none|never|nor)\b/i;
 const NEGATION_WINDOW_CHARS = 24;
-const EXCEPTION_KEYWORD_RE = /\b(except|exempt|carve-?out)\b/i;
-const SCOPE_KEYWORD_RE = /\b(scope|does not apply|applies only|limited to)\b/i;
+// D18 (lane L12, 2026-09-13): each of these three is a small, NAMED STEM LIST -- not a single bare root --
+// so an inflected form of the same word (Exemption, exempted, phased) is recognised, not just the root
+// (except/exempt/phase). Every alternative is still matched with \b word boundaries on both sides, so a
+// stem never partially matches inside a longer, unrelated word. EXCEPTION_KEYWORD_RE folds in the
+// "conditions" vocabulary (condition, conditions, conditional, subject to) per D18's own instruction that a
+// fourth qualification kind is not invented where the qualification-accounting mirror (e) models three.
+const EXCEPTION_KEYWORD_RE =
+  /\b(exempt|exempts|exempted|exemption|exemptions|except|carve-?out|condition|conditions|conditional|subject to)\b/i;
+const SCOPE_KEYWORD_RE = /\b(scope|applies to|applies only|does not apply|limited to)\b/i;
+// D18: trajectory's own stem list, added alongside the two above so trajectory can ALSO be satisfied by an
+// unnegated stem hit in an attached FACT claim's source_span (see trajectoryCaptured, below) -- previously
+// the only recognised evidence was the structured `metadata.requirement_trajectory` field, so a lane that
+// stated the trajectory in prose without also populating that field had no honest way to satisfy the check
+// short of writing the absence sentence over a trajectory that in fact IS stated.
+const TRAJECTORY_KEYWORD_RE = /\b(phase|phased|phase-in|per year|from \d{4})\b/i;
 
 /** True when some claim in `claims` has a `source_span` containing `keywordRe`, with no negation token
  *  (no/not/none/never/nor) in the `NEGATION_WINDOW_CHARS` immediately before the match.
@@ -811,11 +840,15 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
     // section-citing sentence (fix round 1, finding 4: a fixed sentence with no source reference, and a
     // polarity-blind keyword match against free-form claim_text, were both gameable regardless of the
     // source -- see the vocabulary comments above for the tightened forms).
+    // D18: trajectoryCaptured now also accepts an unnegated TRAJECTORY_KEYWORD_RE hit in an attached FACT
+    // claim's source_span -- the same evidence form exceptions/scope already accept -- alongside the
+    // pre-existing structured-field check.
     const trajectoryCaptured =
-      entry.metadata &&
-      typeof entry.metadata === "object" &&
-      entry.metadata.requirement_trajectory !== null &&
-      entry.metadata.requirement_trajectory !== undefined;
+      (entry.metadata &&
+        typeof entry.metadata === "object" &&
+        entry.metadata.requirement_trajectory !== null &&
+        entry.metadata.requirement_trajectory !== undefined) ||
+      hasUnnegatedKeywordInSpan(attached, TRAJECTORY_KEYWORD_RE);
     if (!trajectoryCaptured && !TRAJECTORY_ABSENCE_RE.test(reqSectionText)) {
       at(
         'qualification accounting: no per-year trajectory captured (metadata.requirement_trajectory) and no ' +

@@ -109,8 +109,34 @@ fsi-app/.discipline/
 
 ## Pre-push hook (CI-parity gate)
 
-Source: `fsi-app/.discipline/hooks/pre-push`. Installed by `install-hooks.mjs`. Runs on `git push`, BEFORE the push leaves the machine. Several steps mirror the CI workflow (numbering below matches the hook's own step comments, including the lettered steps added after the original four):
+Source: `fsi-app/.discipline/hooks/pre-push`. Runs on `git push`, BEFORE the push leaves the machine.
 
+**Out-of-repo boundary, the trampoline (D19, defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13).**
+`.git/hooks/` lives OUTSIDE the tracked repo (it is not itself a versioned file), so the tracked hook
+source above cannot run directly on `git push` -- something has to be installed there. Before this fix,
+`install-hooks.mjs` copied the tracked hook byte-for-byte into `.git/hooks/<name>`; the copy had no
+freshness check, so a merged change to the tracked hook silently did not take effect until an operator
+remembered to re-run the installer (confirmed: an installed `pre-push` copy dated 2026-09-11 ran for two
+days missing step 2b, the memory gate, and D11's own per-run log directory fix). **Fixed at the source:**
+`install-hooks.mjs` now writes a small TRAMPOLINE to `.git/hooks/<name>` instead of a copy -- a three-line
+POSIX `sh` script that resolves the pushing worktree's own top level at run time (`git rev-parse
+--show-toplevel`, worktree-aware) and `exec`s the TRACKED hook from there, with the same arguments and
+stdin passed straight through. The hook that actually runs is therefore always the branch's own tracked
+file; a hook change takes effect on the very next push, with no re-install step. The installer now needs
+to be run only once (after this lane merges) and again only when a NEW hook NAME is added -- never again
+for an ordinary edit to an existing tracked hook's own logic. `fsi-app/.discipline/hooks/pre-push` carries
+its own step 0, refusing to run at all unless `DISCIPLINE_HOOK_TRAMPOLINE` is set (the trampoline sets it;
+a stale byte-for-byte copy left over from before this fix cannot), so a stale copy prints "stale hook
+copy; run node fsi-app/.discipline/install-hooks.mjs" and exits 1 instead of silently running. A direct
+invocation of the tracked file (the lane preflight, `docs/dispatches/lane-common-contract.md`) sets
+`DISCIPLINE_HOOK_TRAMPOLINE=1` explicitly for the same reason. Only real git hook NAMES (`pre-push`,
+`pre-commit`, `commit-msg`, and so on -- `KNOWN_GIT_HOOK_NAMES` in `install-hooks.mjs`) are installed; a
+`*.test.mjs` or other non-hook file sitting in `fsi-app/.discipline/hooks/` is never a target (this is
+what let L3's own `pre-push-tmpdir.test.mjs` get copied into `.git/hooks/` under the pre-D19 behaviour).
+
+Several steps mirror the CI workflow (numbering below matches the hook's own step comments, including the lettered steps added after the original four):
+
+0. **Stale-copy refusal** (D19): refuses immediately, before any other step, unless `DISCIPLINE_HOOK_TRAMPOLINE` is set in the environment.
 1. **Untracked critical-surface gate**: `git ls-files --others --exclude-standard` against critical paths (migrations, routes, ADRs, inventories, discipline). Catches the migration-067 class (file on disk locally, missing in CI checkout).
 2. **Consistency runner**: `node fsi-app/.discipline/consistency/override-check.mjs --prepush`. Catches C3/C4 drift, override-aware.
 2b. **Memory gate, CI parity** (task 7.8, 2026-09-12): `node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD`. Fails a range that touches code (`fsi-app/(src|supabase/migrations|scripts|.discipline)/`) without a `docs/ops/session-log.md` or `docs/PROGRAM-BOARD.md` change in the same range, or a `.tsx`/`.css` change without an added "UX compliance" line in the session-log diff. The SAME script also runs as the CI workflow's "Memory gate" step (`.github/workflows/discipline.yml`), so the two surfaces cannot silently disagree the way they did for PR #647 (task 6.2b): CI's inline shell duplicate had this check and pre-push did not.
@@ -124,7 +150,9 @@ Bypass (use sparingly): `git push --no-verify`. Hook is fail-closed on missing-n
 ## Operator install + use
 
 ```bash
-# One-time install of both hooks into .git/hooks/
+# Install the trampolines into .git/hooks/ -- run once after D19 merges, and again only when a NEW hook
+# name is added (never again for an ordinary edit to an existing tracked hook's own logic; see the
+# trampoline note above).
 node fsi-app/.discipline/install-hooks.mjs
 
 # List all rules
@@ -133,8 +161,12 @@ node fsi-app/.discipline/runner.mjs --list
 # Validate a specific past commit (CI mode)
 node fsi-app/.discipline/runner.mjs --mode=ci --commit=<sha>
 
-# Run pre-push checks manually (without pushing)
+# Run pre-push checks manually (without pushing), through the installed trampoline
 .git/hooks/pre-push
+
+# Run pre-push checks manually against the TRACKED file directly (bypasses the trampoline, so the
+# stale-copy guard's own marker variable must be set explicitly -- D19):
+DISCIPLINE_HOOK_TRAMPOLINE=1 sh fsi-app/.discipline/hooks/pre-push
 
 # Bypass in a genuine emergency
 git commit --no-verify
@@ -158,7 +190,7 @@ git push --no-verify
 ## Source files
 
 - Engine: `fsi-app/.discipline/`
-- Local hooks (installed copy): `.git/hooks/commit-msg`, `.git/hooks/pre-push`
+- Local hooks (installed trampoline, D19 -- never a copy of the tracked hook's own content): `.git/hooks/commit-msg`, `.git/hooks/pre-push`
 - CI workflow: `.github/workflows/discipline.yml`
 - Operator install procedure: `fsi-app/.discipline/INSTALL.md`
 

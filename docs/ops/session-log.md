@@ -21240,6 +21240,118 @@ by reading code/migrations.
 - `fsi-app/src/lib/forward-events/read-and-extract.test.mjs` (modified: Part 2 tests)
 - `fsi-app/supabase/migrations/318_forward_events_delete_document_date_rows.sql` (new: Part 3)
 - `docs/inventories/migrations.md` (modified: migration-318 row)
+## 2026-09-13, W9 lane L12: qualification-capture stem lists (D18), hook trampoline (D19), memory-gate batch exclusion (D20)
+
+`defect-fix-plan-2026-09-12.md`'s D18, D19 and D20, one Sonnet lane (worktree wt-searchkeys-0911, branch
+lane/w9-l12-validator-hooks-2026-09-13, cut from master a0a55478).
+
+**D18 (record-briefs qualification-capture mirror matched bare words, missing inflections).** The
+validator's `EXCEPTION_KEYWORD_RE` and `SCOPE_KEYWORD_RE` (`scripts/turns/record-briefs/schema.mjs`)
+matched only a bare root word (`except`/`exempt`/`carve-out`; `scope`/`does not apply`/`applies only`), so
+a claim's own verbatim `source_span` reading "Exemption" or "exempted" read as absent while the check's
+intent was to recognise exactly that honest capture. Both are now small, named stem lists with inflections
+(still evaluated on the claim's verbatim `source_span`, still behind the unchanged negation guard);
+`EXCEPTION_KEYWORD_RE` also folds in the "conditions" vocabulary (`condition`/`conditions`/`conditional`/
+`subject to`) per D18's own instruction, since this file models three qualification kinds (trajectory,
+exceptions, scope), not four -- no fourth kind was invented. A `TRAJECTORY_KEYWORD_RE` stem list (`phase`/
+`phased`/`phase-in`/`per year`/`from <year>`) was added alongside the other two so `trajectoryCaptured` can
+also be satisfied by an unnegated stem hit in an attached FACT claim's `source_span`, the same evidence
+form exceptions/scope already accept, in addition to the pre-existing `metadata.requirement_trajectory`
+check (previously the only recognised evidence). README.md's qualification-mirror rule text names the
+stems. Tests added: "Exemption" and "exempted" (inflected forms) in a claim's `source_span` each satisfy
+the exceptions check; a bare "except" appearing only in body prose, never inside any claim's own
+`source_span`, does not. `node --test scripts/turns/record-briefs/record-briefs.test.mjs`: 63/63.
+
+**D19 (stale installed hook copy; a merged hook change never took effect until an operator re-ran the
+installer by hand).** `install-hooks.mjs` used to copy every file in `fsi-app/.discipline/hooks/`
+byte-for-byte into `.git/hooks/<name>` with no freshness check, and copied non-hook files too (L3's own
+`pre-push-tmpdir.test.mjs`). Fixed at the source: the installer now writes a TRAMPOLINE
+(`buildTrampoline`, exported) for each real git hook NAME only (`KNOWN_GIT_HOOK_NAMES`) -- a three-line
+POSIX `sh` script that resolves the pushing worktree's own top level at run time
+(`git rev-parse --show-toplevel`, worktree-aware) and `exec`s the TRACKED hook from there, stdin and args
+passed straight through, setting `DISCIPLINE_HOOK_TRAMPOLINE=1` first. The tracked `pre-push` hook gains a
+step 0, before anything else runs (before stdin capture, before `GIT_DIR` unset, before `REPO_ROOT`
+resolution): refuses with `"STEP 0 FAIL: stale hook copy; run node fsi-app/.discipline/install-hooks.mjs"`
+and exits 1 when `DISCIPLINE_HOOK_TRAMPOLINE` is unset. The installer now runs once (after this lane
+merges) and again only when a NEW hook name is added, never for an ordinary edit to an existing tracked
+hook's own logic. Call sites that invoke the tracked hook directly now set the variable explicitly:
+`docs/dispatches/lane-common-contract.md`'s wiring-preflight step 1. `docs/inventories/discipline.md`'s
+hook documentation (Pre-push hook section, Operator install + use, Source files) records the trampoline
+and the boundary it crosses. Verified `--dry-run` from this worktree: the installer's target resolves to
+the shared main-checkout `.git/hooks` (via `--git-common-dir`, worktree-aware) -- the installer was NOT
+run for real, per the brief; the coordinator runs it once after merge.
+
+Tests: `install-hooks.test.mjs` rewritten where it asserted byte-for-byte copy content (now asserts the
+trampoline shape via the exported `buildTrampoline`), plus two new cases -- a source dir with `pre-push`
+and a `pre-push-tmpdir.test.mjs` file plans exactly one target via `--dry-run`, whose content is the
+trampoline shape; `buildTrampoline`'s own shape. `pre-push-tmpdir.test.mjs` gains a case driving the REAL
+tracked `pre-push` file with `DISCIPLINE_HOOK_TRAMPOLINE` deliberately unset from the child environment:
+exits 1 with the exact stale-copy message, before any numbered step's own OK line appears. `node --test`:
+`install-hooks.test.mjs` 11/11, `pre-push-tmpdir.test.mjs` 3/3.
+
+**Runbook renumbering (D19's own instruction).** `docs/runbooks/MAINTENANCE-RUNBOOK.md` sections 52-55
+followed section 48 with 49-51 unused (a gap from prior step retirements). Renumbered 52->49, 53->50,
+54->51, 55->52, closing the gap (40 through 52, contiguous). Cross-reference sweep (`grep "## 5[2-5]\."`
+and a case-insensitive `section 5[2-5]` sweep, including the section-sign glyph form, across `docs/`,
+`fsi-app/`, `.github/`) found ONLY the four heading lines themselves, before and after; zero other
+cross-references existed to update.
+
+**Deviation, disclosed [REFUTED]**: D19's file list names "the runbook hook section in
+docs/runbooks/MAINTENANCE-RUNBOOK.md" as a place to record the trampoline. That file has no hook section
+at all -- its numbered sections are exclusively the Maintenance GitHub Actions workflow's dispatch steps
+(community-topics-seed through close-flags-for-verified-items), unrelated to git hooks; the renumbering
+task above is real and independent of the hook-documentation task. The actual, pre-existing hook
+documentation lives in `docs/inventories/discipline.md` ("Pre-push hook" / "Operator install + use" /
+"Source files" sections), which is where the trampoline is recorded instead. Not silently dropped: named
+here per rule 13's corollary (a flag that dissolves under evidence gets a same-session correction where it
+was recorded).
+
+**D20 (memory gate counted record-briefs batch files as CODE, blocking batch branches at push).**
+`fsi-app/.discipline/governance/memory-gate.mjs`'s `CODE_EXCLUDE_RE` gains
+`fsi-app/scripts/turns/record-briefs/batches/` -- a batch file is lane-emitted DATA on an apply-target
+branch that is never merged, the same posture `harness-runs/**` and `turns/LAST-TURN.json` already had.
+`.github/workflows/discipline.yml`'s comment above the memory-gate step names the addition. Tests added to
+`memory-gate.test.mjs`, both `classifyChanged` and `memoryGateVerdict` levels: a range touching only a
+batch file is not CODE and passes with no vault file; a batch file plus a real script change still counts
+the script as CODE and still fails without one. `node --test memory-gate.test.mjs`: 21/21.
+
+**Gates.** `node --test` on every touched/added test file, run together:
+`scripts/turns/record-briefs/record-briefs.test.mjs`, `.discipline/install-hooks.test.mjs`,
+`.discipline/hooks/pre-push-tmpdir.test.mjs`, `.discipline/governance/memory-gate.test.mjs` --
+97/97 pass, 0 fail. `npx tsc --noEmit`: see the report addendum for the exact result (running at commit
+time). `node .discipline/fitness/runner.mjs`: see the report addendum. `node
+.discipline/governance/memory-gate.mjs --range=origin/master..HEAD` (run post-commit, against the real
+range carrying this entry): see the report addendum.
+
+**Glyph check.** The brief's literal whole-file command
+(`git diff origin/master --name-only | xargs grep -n -P '\x{2014}|\x{2013}|\x{00A7}'`) matches pre-existing
+dash glyphs already present in files this lane merely edited (discipline.yml, MAINTENANCE-RUNBOOK.md,
+discipline.md, lane-common-contract.md all carry historical em-dashes unrelated to this diff) -- 700
+matching lines, none in this lane's own added content. The added-lines-only check
+(`git diff origin/master -- <the 13 changed files> | grep '^+' | grep -P '\x{2014}|\x{2013}|\x{00A7}'`),
+which is what rule 022 and this lane's own "no em dash ... anywhere you write" instruction actually bind,
+found one em dash in this lane's own new prose (`docs/dispatches/lane-common-contract.md`), fixed before
+commit; re-run clean (0 matches, exit 1).
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access. No
+LLM/network calls added. No hardcoded user-home paths. Named-path staging only. Trailer
+`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. Installer NOT run for real (dry-run only, per
+the brief); the coordinator runs it once after merge.
+
+**Files.**
+- `fsi-app/scripts/turns/record-briefs/schema.mjs` (modified: D18 stem lists + TRAJECTORY_KEYWORD_RE)
+- `fsi-app/scripts/turns/record-briefs/record-briefs.test.mjs` (modified: D18 tests)
+- `fsi-app/scripts/turns/record-briefs/README.md` (modified: D18 rule text)
+- `fsi-app/.discipline/install-hooks.mjs` (modified: D19 trampoline + KNOWN_GIT_HOOK_NAMES filter)
+- `fsi-app/.discipline/install-hooks.test.mjs` (modified: D19 tests)
+- `fsi-app/.discipline/hooks/pre-push` (modified: D19 step 0)
+- `fsi-app/.discipline/hooks/pre-push-tmpdir.test.mjs` (modified: D19 step 0 test)
+- `docs/dispatches/lane-common-contract.md` (modified: D19 preflight sets the trampoline variable)
+- `docs/inventories/discipline.md` (modified: D19 hook documentation)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: D19's renumbering, sections 52-55 -> 49-52)
+- `fsi-app/.discipline/governance/memory-gate.mjs` (modified: D20 exclusion)
+- `fsi-app/.discipline/governance/memory-gate.test.mjs` (modified: D20 tests)
+- `.github/workflows/discipline.yml` (modified: D20 comment)
 - `docs/ops/session-log.md` (this entry)
 ## 2026-09-13, W9 lane L16: D25 free static-host capture transport and capture-static-primaries (parts a-d)
 

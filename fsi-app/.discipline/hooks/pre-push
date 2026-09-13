@@ -7,7 +7,9 @@
 # code that were never run locally in CI-parity mode before push. This hook
 # closes that gap.
 #
-# Four steps mirror the CI workflow's gating jobs:
+# Step 0 (D19, 2026-09-13) refuses to run at all unless invoked through the installer's trampoline (see
+# fsi-app/.discipline/install-hooks.mjs) -- a stale byte-for-byte copy of this file can never silently
+# run again. Four further steps mirror the CI workflow's gating jobs:
 #   1. Untracked-file gate for critical surfaces (catches the migration-067
 #      class: file exists locally but isn't in git, so local consistency
 #      runner passes while CI checkout fails).
@@ -27,6 +29,26 @@
 #      since a missing-node skip would have allowed every failure this morning)
 
 set -u
+
+# ---------------------------------------------------------------------------
+# Step 0: refuse to run as a stale copy (D19, defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13)
+# ---------------------------------------------------------------------------
+# `install-hooks.mjs` used to copy this file byte-for-byte into .git/hooks/pre-push with no freshness
+# check, so a merged change to THIS file never took effect until an operator remembered to re-run the
+# installer -- confirmed the night of 2026-09-13: the installed copy was dated 2026-09-11 19:33 and ran
+# without step 2b (the memory gate) or D11's per-run log directory. The installer now writes a TRAMPOLINE
+# to .git/hooks/pre-push instead (a three-line script that execs THIS tracked file from the pushing
+# worktree's own top level), so this file is always what actually runs -- but only once every worktree's
+# installed hook has been refreshed to the trampoline shape. Until then, a stale byte-for-byte COPY of an
+# older version of this file could still be sitting in some worktree's .git/hooks/ and would silently run
+# instead of this one. DISCIPLINE_HOOK_TRAMPOLINE is set only by the trampoline (never by a copy of this
+# file, since a copy has no way to know it is stale) -- its absence here means this invocation did NOT
+# come through the trampoline, i.e. this IS a stale copy, so it refuses before doing anything else rather
+# than silently running with whatever this file looked like when it was copied.
+if [ -z "${DISCIPLINE_HOOK_TRAMPOLINE:-}" ]; then
+  echo "[discipline pre-push] STEP 0 FAIL: stale hook copy; run node fsi-app/.discipline/install-hooks.mjs" >&2
+  exit 1
+fi
 
 # 2026-09-11 (task 0.3b fix round 1, [CONFIRMED] by the coordinator with a throwaway repo): a hook
 # invoked from a LINKED WORKTREE inherits GIT_DIR=<repo>/.git/worktrees/<name> (and GIT_WORK_TREE /
