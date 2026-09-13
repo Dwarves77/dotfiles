@@ -177,7 +177,7 @@ batch has been re-applied since Re-pin 5 landed; record-briefs-001.json and -002
 predate the `section` field on every claim and are refused by the fixed validator as committed -- they are
 re-applied (regenerated with `section` added) after this fix round merges, not hand-patched.
 
-**harness_version at write time:** `sha256:70029202bae4a9a6` (recomputed via `hashHarnessVersion` against
+**harness_version at the previous pin's write time (superseded below, see Re-pin 8):** `sha256:70029202bae4a9a6` (recomputed via `hashHarnessVersion` against
 `GOVERNING_FILES['brief-apply']`, the same 4 files, unreordered; supersedes `sha256:e24e78f7e95a801b`
 outright).
 
@@ -189,3 +189,11 @@ numbering) will carry `harness_version: "sha256:70029202bae4a9a6"` if it lands w
 governing-file change; if not, its own harness_version records whatever the tree was at that time,
 honestly. Per F28's reverse-audit, this file is deleted the moment an artifact carrying the hash above
 lands, or re-pinned again if a governing file changes before that run lands.
+
+## Re-pin 8 (coordinator, 2026-09-13, at push after rebase: lane/w9-l12-validator-hooks-2026-09-13)
+
+**What changed.** The recorded hash `sha256:70029202bae4a9a6` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/record-briefs/schema.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:8c73f4f56a4b560e` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
