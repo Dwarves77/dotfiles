@@ -488,6 +488,64 @@ test("CLI: two consecutive thrown-failure runs claim distinct, incrementing run 
   }
 });
 
+// ── D23(c): revalidate after a successful apply (defect-fix-plan-2026-09-12.md) ─────────────────────
+//
+// Not CLI-driven: --execute unconditionally runs the four UNSCOPED (corpus-wide, not batch-scoped)
+// flywheel steps (analyze-corpus first) before the revalidate call site is ever reached, and those
+// steps need a real database connection regardless of how many items this run itself applied -
+// exactly the same "not unit-tested directly" posture this file's own header already documents for
+// the unscoped-flywheel call site immediately above the revalidate one. These are structural proofs
+// of the SAME kind the "unscoped flywheel steps" test above already uses for that adjacent call site
+// (a scan of the driver's own source, confirming the exact shape a CLI-subprocess test cannot reach
+// without a live database) - never a substitute for scripts/lib/revalidate.test.mjs's own full
+// behavioural proof of what revalidateTags itself does with the tags it receives.
+
+test("D23(c): the revalidate call site is reached only inside the --execute branch, after appliedItemIds is fully populated and the unscoped flywheel steps have run", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  const executeBlockMatch = src.match(/if \(parsed\.execute\) \{[\s\S]*?\n {4}\}\n {2}\} catch \(err\) \{/);
+  assert.ok(executeBlockMatch, "expected exactly one `if (parsed.execute) { ... }` block directly before the outer catch");
+  const block = executeBlockMatch[0];
+  assert.match(block, /const db = await import\("\.\.\/lib\/db\.mjs"\);/, "the unscoped flywheel steps must run before revalidate");
+  assert.match(block, /unscoped = await runUnscopedFlywheelSteps\("apply", appliedItemIds, db\);/);
+  const revalidateIdx = block.indexOf("revalidateResult = await revalidateTags(");
+  const unscopedIdx = block.indexOf("unscoped = await runUnscopedFlywheelSteps(");
+  assert.ok(revalidateIdx > unscopedIdx, "revalidate must run AFTER the unscoped flywheel steps, not before or in parallel");
+});
+
+test("D23(c): the revalidate call unions PUBLIC_ITEMS_TAG with itemTag(id) for every id in appliedItemIds, and passes apply:true", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  assert.match(
+    src,
+    /revalidateResult = await revalidateTags\(\[PUBLIC_ITEMS_TAG, \.\.\.appliedItemIds\.map\(\(id\) => itemTag\(id\)\)\], \{\s*\n\s*apply: true,\s*\n\s*\}\);/,
+    "the revalidate call must union PUBLIC_ITEMS_TAG with itemTag(id) for every id in appliedItemIds, always with apply:true",
+  );
+});
+
+test("D23(c): the revalidate result is logged and threaded into the run artifact's own metrics, never swallowed", () => {
+  const src = readFileSync(RUNNER_PATH, "utf8");
+  assert.match(src, /console\.log\(`apply-record-briefs: revalidate: \$\{JSON\.stringify\(revalidateResult\)\}`\);/);
+  assert.match(src, /metrics: \{ \.\.\.metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped, revalidate: revalidateResult \}/);
+  // `revalidateResult` is declared beside the other run-scoped mutables (module header's own "declared
+  // here so `finally` can see it however far the run got" rule), so a thrown failure BEFORE the
+  // --execute branch is reached still writes a schema-valid artifact with revalidate: null, never a
+  // missing field.
+  assert.match(src, /let revalidateResult = null;/);
+});
+
+test("D23(c): revalidateTags itself never throws (a flush failure can never fail the apply) - see scripts/lib/revalidate.mjs's own test file for the full behavioural proof", async () => {
+  const { revalidateTags } = await import("../lib/revalidate.mjs");
+  const result = await revalidateTags(["public-items"], {
+    apply: true,
+    appUrl: "https://example.invalid",
+    workerSecret: "s3cret",
+    fetchImpl: async () => {
+      throw new Error("ECONNREFUSED");
+    },
+  });
+  assert.equal(result.applied, false);
+  assert.match(result.reason, /ECONNREFUSED/);
+});
+
 // ── applyOneEntry via dependency injection: fix round 1 (coordinator, 2026-09-11) - "the jiti production
 // path is exercised by no test." `applyOneEntry` now accepts an overridable `deps` bag (the same injected-
 // fake pattern this module already uses for `sb`); these tests drive the FULL 8-step order and outcome

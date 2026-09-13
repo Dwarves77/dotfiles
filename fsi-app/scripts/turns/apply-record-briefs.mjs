@@ -87,6 +87,7 @@ import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-ext
 import { syncComplianceDeadlineForItem } from "../../src/lib/forward-events/compliance-deadline-sync.mjs";
 import { runDiscoveryStep, runForwardEventsStep } from "../../src/lib/intake/flywheel-steps.mjs";
 import { recordItemChange } from "../lib/changelog.mjs";
+import { revalidateTags, itemTag, PUBLIC_ITEMS_TAG } from "../lib/revalidate.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -623,6 +624,7 @@ async function main() {
   let metrics = {};
   let appliedItemIds = [];
   let unscoped = null;
+  let revalidateResult = null;
   let runError = null;
 
   try {
@@ -734,6 +736,16 @@ async function main() {
       const db = await import("../lib/db.mjs");
       unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, db);
       console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
+
+      // D23(c): flush the public listing cache and every applied item's own detail cache after a
+      // successful apply, the same way apply-mint-batch.mjs's own precedent call does. Best-effort
+      // by construction (revalidateTags never throws; a flush failure never fails this apply - see
+      // that helper's own header) and logged either way so a missing APP_URL/WORKER_SECRET shows
+      // up in the run's own log line rather than as silent staleness.
+      revalidateResult = await revalidateTags([PUBLIC_ITEMS_TAG, ...appliedItemIds.map((id) => itemTag(id))], {
+        apply: true,
+      });
+      console.log(`apply-record-briefs: revalidate: ${JSON.stringify(revalidateResult)}`);
     }
   } catch (err) {
     runError = err instanceof Error ? err : new Error(String(err));
@@ -756,7 +768,7 @@ async function main() {
         config,
         inputs_ref: [parsed.briefs],
         per_item: perItem,
-        metrics: { ...metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped },
+        metrics: { ...metrics, applied_item_ids: appliedItemIds, unscoped_flywheel: unscoped, revalidate: revalidateResult },
         defects_found: defectsFound,
         full_trace_refs: [parsed.briefs],
         proposer_notes: "",
