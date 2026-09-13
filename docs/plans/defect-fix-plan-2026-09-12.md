@@ -250,6 +250,15 @@ Fix at the source (`derive-tags.mjs`, KEYWORD_MAP and its derivation): the map c
 Fix round 1 for D21 (review-l13.md, CONDITIONAL FAIL): (F1, Critical) "The Packaging (Essential Requirements) (Amendment) Regulations 2009" derives no tag because topic_tags:packaging's own name is in SUPPRESS_OWN_NAME and no other keyword covers it, which is D21's own defect reproduced by the fix. Rule: a tag's own name may be suppressed only when every fixture item whose title or text carries that bare word still derives the tag through another keyword; a test enforces it over the corpus fixture for every suppressed tag, so a suppression can never remove a tag's only coverage. packaging leaves the suppression list (its own name is a true positive on the corpus). (F2, Important) compliance_object_tags:exporter's suppression has no named evidence and the review measured zero bare-word hits; it leaves the list; every remaining suppression carries its measured false-positive evidence in a comment (the item and the phrase). (F3, Minor) the report says nine suppressions and the code ten; the report states the true count after the fix. The yield fixture is re-measured per its procedure; no count may fall. No other change.
 
 
+
+### D22. The provisional resolver's real-deps wiring calls the vertical-fit gate with the wrong arguments, and no test exercises the real wiring [CONFIRMED]
+
+Evidence (coordinator, 2026-09-13): the first apply of resolve-provisional-sources on the merged classes (run 34734662726) failed on its first promote with "TypeError: Cannot read properties of undefined (reading 'name')" at `src/lib/sources/vertical-fit-gate.ts:44`, reached from `applyProvisionalDecision` line 410. The gate's contract is `checkVerticalFitGate(supabase, source)`; the resolver calls `deps.checkVerticalFitGate({ name, url })`, and its real-deps wrapper passes that object where the client goes, so `source` is undefined. The dry arm never calls the gate and the unit test injects a fake gate, so every dry run and every test passed while the apply arm had never once executed. Nothing was written; live counts unchanged. The same class as the 7.4c finding on apply-classifications (a real-deps import fixed by a `buildRealDeps()` test through the real import graph).
+
+Root cause: dependency injection without a test of the injected reality.
+
+Fix at the source (`scripts/maintenance/resolve-provisional-sources.mjs`, `buildDeps`): the wrapper is `(source) => checkVerticalFitGate(client, source)`; a test exercises `buildDeps` through the real import graph with a stubbed client (the 7.4c pattern) and asserts the gate receives the client first and the source second, plus one apply-mode test that drives a promote through the real wrapper with the client's negative-list query stubbed empty. Class fix, same lane: every maintenance step that builds a `deps` object from real imports gets the same real-wiring test (enumerate them: grep `buildDeps` and `buildRealDeps` under scripts/maintenance; add the test where missing; a step whose apply arm has never executed against its real deps is listed in the report). Lane: L9c, one Sonnet lane on a branch from master, before the resolve-provisional-sources apply is retried.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
@@ -269,6 +278,7 @@ Fix round 1 for D21 (review-l13.md, CONDITIONAL FAIL): (F1, Critical) "The Packa
 | L11 quarantine and human-flag writers | D17 enumeration (read-only) then per-site specification and lanes | a freed worktree, read-only first | enumeration now; lanes after L9 and L10 |
 | L12 record-briefs validator | D18 qualification stems | a freed worktree | after L9 and L10 |
 | L13 tag keyword map | D21 vocabulary-complete keyword map | wt-finishcode-0911 from master | before the tag-ratification apply |
+| L9c real-deps wiring | D22 gate argument order; real-wiring tests for every maintenance step | wt-brieffields-0911 from master | before the resolve-provisional-sources apply |
 | L10 tag decider | D15 zero-proposal flags re-derived and decided; proposer stops asking for a human | a freed worktree from master | before the tag-ratification apply |
 | L9 provisional resolver | D13 reject rule removed, accessibility as status; D14 class-table extension and residue enumeration | wt-brieffields-0911 from master after #652 | before the resolve-provisional-sources apply |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
