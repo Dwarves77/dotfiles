@@ -126,11 +126,20 @@ test("main(): a resolvable host (rule a/b) is excluded from the residue entirely
 });
 
 // Grouping is by EXACT host string, the same convention hostForRow/the null-tier-host worklist already
-// use elsewhere in this family -- a subdomain (sub.dma.dk) is a DIFFERENT host from its parent (dma.dk),
-// never collapsed to a registrable eTLD+1. Two rows citing the identical host merge into one group.
+// use elsewhere in this family -- a subdomain (sub.example.test) is a DIFFERENT host from its parent
+// (example.test), never collapsed to a registrable eTLD+1. Two rows citing the identical host merge
+// into one group.
+//
+// D14 residue ruling correction (2026-09-13, defect-fix-plan-2026-09-12.md D14, "Residue ruling"):
+// this fixture previously used dma.dk / "Danish Maritime Authority" as an example of a host NEITHER
+// rule (a) nor rule (b) could resolve -- that was true before the residue ruling landed rule (b)'s
+// name-keyword extension, and is FALSE now (a name containing "Authority" resolves T2 government, and
+// rule 7's company catch-all resolves ANY other named host to T7). Corrected in place per standing rule
+// 13's corollary, never left silently drifted: the fixture now uses a genuinely nameless row, which is
+// the TRUE post-ruling residue shape (rule 8 worklists only a host with no stored name at all).
 test("main(): an unresolvable host across both tables is counted once, its row_count sums both tables", async () => {
-  const pending = [{ id: "p1", url: "https://dma.dk/page", name: "Danish Maritime Authority", discovered_via: "worker_search" }];
-  const sourcesProv = [{ id: "s1", url: "https://dma.dk/other", name: "DMA" }];
+  const pending = [{ id: "p1", url: "https://mystery-agency.example/page", name: null, discovered_via: "worker_search" }];
+  const sourcesProv = [{ id: "s1", url: "https://mystery-agency.example/other", name: null }];
   const deps = fakeDeps({ pending, sourcesProv });
   const summary = await main({ out: null }, deps);
   assert.equal(summary.counts.unresolved_hosts, 1);
@@ -175,9 +184,12 @@ test("main(): no --out given writes no artifact and says so in the note", async 
   assert.match(summary.note, /No --out given/);
 });
 
+// D14 residue ruling correction (2026-09-13): "DMA" is a non-empty stored name, and rule 7's company
+// catch-all now resolves ANY non-empty name -- corrected in place (standing rule 13's corollary) to a
+// nameless row, the true post-ruling residue shape, same as the fixture above.
 test("main(): joins a citing item title through the search log when one exists", async () => {
-  const pending = [{ id: "p1", url: "https://dma.dk/page", name: "DMA" }];
-  const searchRows = [{ result_url: "https://dma.dk/some/deep/page", intelligence_item_id: "item-9" }];
+  const pending = [{ id: "p1", url: "https://mystery-agency.example/page", name: null }];
+  const searchRows = [{ result_url: "https://mystery-agency.example/some/deep/page", intelligence_item_id: "item-9" }];
   const items = [{ id: "item-9", title: "EU MRV extension" }];
   const deps = fakeDeps({ pending, searchRows, items });
   const summary = await main({ out: null }, deps);

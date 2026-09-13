@@ -164,8 +164,10 @@ export async function registerCitedSources(
       // why, never a `sources` row at a guessed tier (base_tier is NOT NULL, so a null-tier row cannot
       // exist; the honest state for "tier unknown" is a worklist candidate, not a minted guess).
       // tier_estimate (the brief-table guess) NEVER sets base_tier — reputation/guess never confers a
-      // grounding tier a source did not earn.
-      const classTier = classTierForHost(host);
+      // grounding tier a source did not earn. D14 residue ruling (2026-09-13): threads the citation's
+      // OWN name (`cs.name`, already used below) so a citation classifies via the 8 name-keyword rules
+      // too, not the host alone.
+      const classTier = classTierForHost(host, cs.name);
       if (classTier == null) {
         await supabase.from("provisional_sources").upsert(
           // reviewer_notes, not notes (same silent-reject fix as above — lane run #66).

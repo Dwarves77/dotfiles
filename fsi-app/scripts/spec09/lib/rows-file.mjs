@@ -79,7 +79,10 @@ export async function registerCitedSource(citation, deps) {
   if (!host) {
     return { refused: true, reason: `citation.url has no resolvable host: "${citation.url}"` };
   }
-  const tier = classTierForHost(host);
+  // D14 residue ruling (2026-09-13): threads the citation's own title (the SAME `citation.title`
+  // expression used below as the registered source's name fallback) so it classifies via the 8
+  // name-keyword rules too, not the host alone.
+  const tier = classTierForHost(host, citation.title);
   if (tier == null) {
     return {
       refused: true,

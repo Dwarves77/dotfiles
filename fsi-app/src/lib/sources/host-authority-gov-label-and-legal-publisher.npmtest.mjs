@@ -108,11 +108,18 @@ test("classTierForHost: a government label as a mere PREFIX of an unrelated mult
     assert.equal(classTierForHost(h), null, h);
 });
 
-test("classTierForHost: a country-TLD suffix longer than two letters never matches, even for a real label (no 3-letter ccTLD exists)", () => {
-  // "scot" is a real gTLD-like suffix (Scotland) but is 4 letters, not a 2-letter ISO 3166-1 alpha-2 code
-  // -- transport.gov.scot is exactly the kind of D13-evidence host D14 does NOT claim to solve; it stays
-  // in the enumeration residue for the coordinator to rule on (see enumerate-unclassified-hosts.mjs).
-  assert.equal(classTierForHost("transport.gov.scot"), null);
+test("classTierForHost: a country-TLD suffix longer than two letters, on a REAL government vanity suffix, resolves T2 via the D14 residue ruling's rule 4 (superseding the prior null)", () => {
+  // "scot" is a real gTLD-like suffix (Scotland) but is 4 letters, not a 2-letter ISO 3166-1 alpha-2 code,
+  // so it never matched THIS file's own GOV_LABEL_UNDER_CC_TLD rule (still true, unchanged above) --
+  // transport.gov.scot was exactly the D13-evidence host D14 part 1 did not claim to solve; it stayed in
+  // the enumeration residue for the coordinator to rule on (see enumerate-unclassified-hosts.mjs). The
+  // coordinator's residue ruling (2026-09-13, defect-fix-plan-2026-09-12.md D14, rule 4) resolved it: the
+  // host carries a "gov" label immediately before a real, non-generic trailing suffix (never a commercial
+  // gTLD lookalike -- see host-authority-d14-residue-ruling.npmtest.mjs for the adversarial negatives that
+  // stay refused). This assertion is corrected IN PLACE per standing rule 13's corollary, not silently
+  // dropped: the residue is resolved, not still null.
+  assert.equal(classTierForHost("transport.gov.scot"), 2);
+  assert.equal(classTierForHost("gov.scot"), 2);
 });
 
 test("classTierForHost: a name that merely CONTAINS a government label as a substring, not a registrable label, never matches", () => {

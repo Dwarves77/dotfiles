@@ -1,0 +1,3818 @@
+{
+  "source_run_id": "34728958591",
+  "generated_at": "2026-09-13T00:50:09.678Z",
+  "host_count": 628,
+  "hosts": [
+    {
+      "host": "gnb.ca",
+      "names": [
+        "GNB - New Brunswick's Action on Climate Change",
+        "New Brunswick Commercial Transportation - gnb.ca",
+        "New Brunswick Department of Environment and Local Government",
+        "New Brunswick Department of Transportation and Infrastructure"
+      ]
+    },
+    {
+      "host": "gov.scot",
+      "names": [
+        "Scottish Government - Bluetongue Movement Restrictions from 1 June 2026",
+        "Scottish Government - Climate Change Policy",
+        "Scottish Government - Net Zero and Energy Directorate (Energy Consents)",
+        "Scottish Government - Transport Policy"
+      ]
+    },
+    {
+      "host": "commonslibrary.parliament.uk",
+      "names": [
+        "House of Commons Library - Aviation and Climate Change (updated 2026)",
+        "UK House of Commons Library / Research Briefing CBP-10279",
+        "UK Parliament Commons Library - Research Briefing CDP-2021-0088"
+      ]
+    },
+    {
+      "host": "gov.wales",
+      "names": [
+        "Welsh Government - Climate Change & Environment",
+        "Welsh Government - Transport & Infrastructure",
+        "Welsh Government - Tighter Limits on Industrial, Power and Aviation Emissions (Net Zero)"
+      ]
+    },
+    {
+      "host": "theccc.org.uk",
+      "names": [
+        "Climate Change Committee (CCC)",
+        "Climate Change Committee - The Seventh Carbon Budget (2025)",
+        "UK Climate Change Committee (CCC) - Scotland Reporting"
+      ]
+    },
+    {
+      "host": "transport.gov.scot",
+      "names": [
+        "Transport Scotland",
+        "Transport Scotland - Freight Transport Portal",
+        "Transport Scotland - Rail Policy and Strategy (Rail Freight)"
+      ]
+    },
+    {
+      "host": "acea.auto",
+      "names": [
+        "ACEA / HDV CO2 Amendment Industry Statement",
+        "ACEA - European Automobile Manufacturers"
+      ]
+    },
+    {
+      "host": "airkorea.or.kr",
+      "names": [
+        "Korea Environment Corporation - AirKorea",
+        "Korea National Center for Fine Dust Information (AirKorea)"
+      ]
+    },
+    {
+      "host": "awac.be",
+      "names": [
+        "Agence wallonne de l'Air et du Climat (AwAC)",
+        "Department of Environment, Walloon Air and Climate Agency (Agence wallonne de l'Air et du Climat - AwAC)"
+      ]
+    },
+    {
+      "host": "bimco.org",
+      "names": [
+        "BIMCO Standard ETS Mandate 2024",
+        "BIMCO - Baltic and International Maritime Council"
+      ]
+    },
+    {
+      "host": "cencenelec.eu",
+      "names": [
+        "CEN-CENELEC - EN ISO 14083 Webinar Materials (April 2024)",
+        "European Committee for Standardization (CEN)"
+      ]
+    },
+    {
+      "host": "climatechange.novascotia.ca",
+      "names": [
+        "Climate Change Nova Scotia (NS Dept. of Environment and Climate Change - Climate Change Unit)",
+        "Government of Nova Scotia - Climate Change: What NS Is Doing"
+      ]
+    },
+    {
+      "host": "dot.state.mn.us",
+      "names": [
+        "Minnesota Department of Transportation (MnDOT) - Freight & Commercial Vehicle Operations",
+        "MnDOT Office of Sustainability and Public Health"
+      ]
+    },
+    {
+      "host": "efrag.org",
+      "names": [
+        "EFRAG revised ESRS exposure drafts (published 31 July 2025)",
+        "EFRAG - European Financial Reporting"
+      ]
+    },
+    {
+      "host": "ellenmacarthurfoundation.org",
+      "names": [
+        "Ellen MacArthur Foundation - ZEMBA Case Study",
+        "Ellen MacArthur Foundation - Circular Economy"
+      ]
+    },
+    {
+      "host": "emissionsauthority.nl",
+      "names": [
+        "Dutch Emissions Authority (Nederlandse Emissieautoriteit - NEa)",
+        "emissionsauthority.nl"
+      ]
+    },
+    {
+      "host": "enotrans.org",
+      "names": [
+        "Eno Center for Transportation - 2025 Autonomous Vehicles Federal Policy Wrapped",
+        "Eno Transportation Center - Washington v. USDOT and NEVI Progress Updates"
+      ]
+    },
+    {
+      "host": "guidehouse.com",
+      "names": [
+        "Guidehouse / Insight - Emergence of Hydrogen Clusters in the United Arab Emirates",
+        "Guidehouse - The Emergence of Hydrogen Clusters in the UAE"
+      ]
+    },
+    {
+      "host": "iaphworldports.org",
+      "names": [
+        "About IAPH",
+        "IAPH - World Ports"
+      ]
+    },
+    {
+      "host": "ics-shipping.org",
+      "names": [
+        "ICS - MJTTF Seafarer Training Frameworks Press Release",
+        "International Chamber of Shipping - ESG Reporting Frameworks and Standards"
+      ]
+    },
+    {
+      "host": "iuk-business-connect.org.uk",
+      "names": [
+        "Innovate UK Business Connect - ZEHID Programme",
+        "Innovate UK Business Connect - Decarbonisation Policy Tracker"
+      ]
+    },
+    {
+      "host": "leg.state.nv.us",
+      "names": [
+        "Nevada Legislature - Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+        "Nevada Legislature - Nevada Revised Statutes / Nevada Administrative Code"
+      ]
+    },
+    {
+      "host": "legvi.org",
+      "names": [
+        "Legislature of the United States Virgin Islands",
+        "Legislature of the Virgin Islands"
+      ]
+    },
+    {
+      "host": "masdar.ae",
+      "names": [
+        "Masdar Newsroom - Financial Close, 1,800MW 6th Phase Al Maktoum Solar Park",
+        "Masdar - MBR Solar Park Phase 3 Project Page"
+      ]
+    },
+    {
+      "host": "midamericafreight.org",
+      "names": [
+        "Mid-America Freight Coalition - I-29 Corridor Profile",
+        "Mid-America Freight Coalition - About"
+      ]
+    },
+    {
+      "host": "mmediu.ro",
+      "names": [
+        "Ministerul Mediului, Apelor și Pădurilor (MMAP)",
+        "Ministry of Environment, Waters and Forests (Ministerul Mediului, Apelor și Pădurilor)"
+      ]
+    },
+    {
+      "host": "modot.org",
+      "names": [
+        "Missouri Department of Transportation (MoDOT)",
+        "Missouri Highways and Transportation Commission (MHTC)"
+      ]
+    },
+    {
+      "host": "nationalsheep.org.uk",
+      "names": [
+        "National Sheep Association - 2026 Bluetongue Updates",
+        "National Sheep Association - Bluetongue News"
+      ]
+    },
+    {
+      "host": "publications.carbontrust.com",
+      "names": [
+        "Carbon Trust - Impact Report 2024",
+        "Carbon Trust - Impact Report"
+      ]
+    },
+    {
+      "host": "pwc.com",
+      "names": [
+        "PwC Middle East - Sustainable Freight to Cut GCC CO2 by 2035",
+        "pwc.com"
+      ]
+    },
+    {
+      "host": "randpc.com",
+      "names": [
+        "Rand PC - NYC LL84 Benchmarking Analysis",
+        "Rand PC - NYC LL97 Deadline Extension"
+      ]
+    },
+    {
+      "host": "register.fca.org.uk",
+      "names": [
+        "FCA Financial Services Register"
+      ]
+    },
+    {
+      "host": "sos.state.co.us",
+      "names": [
+        "Colorado Secretary of State - Code of Colorado Regulations (CCR)",
+        "Colorado Secretary of State - Colorado Register"
+      ]
+    },
+    {
+      "host": "undocs.org",
+      "names": [
+        "UN General Assembly Resolution A/RES/78/148",
+        "UN General Assembly Resolution A/RES/80/13"
+      ]
+    },
+    {
+      "host": "unece.org",
+      "names": [
+        "ADR - Dangerous Goods by Road (UNECE)",
+        "UNECE - Working Party on Automated/Autonomous and Connected Vehicles"
+      ]
+    },
+    {
+      "host": "zerocarbonshipping.com",
+      "names": [
+        "Mærsk Mc-Kinney Møller Center for Zero Carbon Shipping / IMO Net-Zero Framework",
+        "Mærsk Mc-Kinney Møller Center for Zero Carbon Shipping - About"
+      ]
+    },
+    {
+      "host": "2019.itf-oecd.org",
+      "names": [
+        "ITF 2019 Annual Summit - Official Summit Site"
+      ]
+    },
+    {
+      "host": "aashtojournal.transportation.org",
+      "names": [
+        "AASHTO Journal - WSDOT Earth Day Litter Collection"
+      ]
+    },
+    {
+      "host": "accelerator.nyc",
+      "names": [
+        "NYC Accelerator - Local Law 97 Compliance Program"
+      ]
+    },
+    {
+      "host": "accgov.com",
+      "names": [
+        "Athens-Clarke County Government - Civic Alert #6885"
+      ]
+    },
+    {
+      "host": "aceee.org",
+      "names": [
+        "ACEEE Research Report T2601"
+      ]
+    },
+    {
+      "host": "aci.aero",
+      "names": [
+        "ACI - Airports Council International"
+      ]
+    },
+    {
+      "host": "actresearch.net",
+      "names": [
+        "ACT Research - Freight Forecast Blog"
+      ]
+    },
+    {
+      "host": "adar.pl",
+      "names": [
+        "Adar.pl: EU Mobility Package blog"
+      ]
+    },
+    {
+      "host": "addleshawgoddard.com",
+      "names": [
+        "Addleshaw Goddard - UK SAF Bill Revenue Certainty Mechanism"
+      ]
+    },
+    {
+      "host": "advancedenergy.org",
+      "names": [
+        "Advanced Energy United - NC Electric Transportation Transition"
+      ]
+    },
+    {
+      "host": "aecc.eu",
+      "names": [
+        "aecc.eu"
+      ]
+    },
+    {
+      "host": "aer.ca",
+      "names": [
+        "Alberta Energy Regulator (AER)"
+      ]
+    },
+    {
+      "host": "afnor.org",
+      "names": [
+        "Association Française de Normalisation (AFNOR)"
+      ]
+    },
+    {
+      "host": "afsa.org",
+      "names": [
+        "AFSA / Decarbonizing Industry Through Demand - First Movers Coalition"
+      ]
+    },
+    {
+      "host": "agen-rs.si",
+      "names": [
+        "Energy Agency of the Republic of Slovenia (AGEN-RS)"
+      ]
+    },
+    {
+      "host": "agenciatributaria.es",
+      "names": [
+        "Agencia Estatal de Administración Tributaria - AEAT (Spanish Tax Agency / Customs)"
+      ]
+    },
+    {
+      "host": "agforceqld.org.au",
+      "names": [
+        "AgForce Queensland Knowledgebase - Article AGF-03008"
+      ]
+    },
+    {
+      "host": "aip.com.au",
+      "names": [
+        "Australian Institute of Petroleum - Terminal Gate Prices"
+      ]
+    },
+    {
+      "host": "airlines.iata.org",
+      "names": [
+        "IATA Airlines - Ensuring Transparency in SAF Environmental Benefits"
+      ]
+    },
+    {
+      "host": "airproducts.com",
+      "names": [
+        "Air Products News Center - Air Products and Yara Advanced Negotiations on Low-Emission Ammonia Projects"
+      ]
+    },
+    {
+      "host": "akenergyauthority.org",
+      "names": [
+        "Alaska Energy Authority (AEA)"
+      ]
+    },
+    {
+      "host": "alchempro.com",
+      "names": [
+        "AlchemPro / Japan Joint Logistics Trials"
+      ]
+    },
+    {
+      "host": "alison.legislature.state.al.us",
+      "names": [
+        "Alabama Legislature - ALISON (Legislative Information System Online)"
+      ]
+    },
+    {
+      "host": "all4inc.com",
+      "names": [
+        "ALL4 Inc. - NY Climate Act Updates & Insights"
+      ]
+    },
+    {
+      "host": "amta.ca",
+      "names": [
+        "Alberta Motor Transport Association (AMTA)"
+      ]
+    },
+    {
+      "host": "anaf.ro",
+      "names": [
+        "National Agency for Fiscal Administration - ANAF (Agenția Națională de Administrare Fiscală)"
+      ]
+    },
+    {
+      "host": "annualreviews.org",
+      "names": [
+        "Annual Review of Environment and Resources - Journal Article 10.1146/annurev-environ-012220-024657"
+      ]
+    },
+    {
+      "host": "aqualisco.com",
+      "names": [
+        "Aqualis Co - Alabama Stormwater Management Compliance Item"
+      ]
+    },
+    {
+      "host": "arabianbusiness.com",
+      "names": [
+        "Arabian Business - MBR Solar Park Reaches 3,860 MW (Dec 2025)"
+      ]
+    },
+    {
+      "host": "arera.it",
+      "names": [
+        "ARERA - Autorità di Regolazione per Energia Reti e Ambiente (Regulatory Authority for Energy, Networks and Environment)"
+      ]
+    },
+    {
+      "host": "argusmedia.com",
+      "names": [
+        "Argus Media / IRENA Renewable Energy Cost Report Coverage"
+      ]
+    },
+    {
+      "host": "arkleg.state.ar.us",
+      "names": [
+        "Arkansas General Assembly"
+      ]
+    },
+    {
+      "host": "arr.ro",
+      "names": [
+        "Romanian Road Transport Authority - ARR (Autoritatea Rutieră Română)"
+      ]
+    },
+    {
+      "host": "ars.apps.lara.state.mi.us",
+      "names": [
+        "Michigan Office of Regulatory Reinvention (ORR) - Michigan Administrative Code"
+      ]
+    },
+    {
+      "host": "artificialintelligenceact.eu",
+      "names": [
+        "EU AI Act"
+      ]
+    },
+    {
+      "host": "arxiv.org",
+      "names": [
+        "arXiv preprint 2306.01687"
+      ]
+    },
+    {
+      "host": "asbec.asn.au",
+      "names": [
+        "ASBEC - Submission on Melbourne Planning Scheme Amendment C376 (Sustainable Building Design)"
+      ]
+    },
+    {
+      "host": "ascendmaterials.com",
+      "names": [
+        "Ascend Performance Materials - Newsroom (Compounding Site Closure / Chapter 11 Emergence)"
+      ]
+    },
+    {
+      "host": "aspower.com",
+      "names": [
+        "American Samoa Power Authority (ASPA)"
+      ]
+    },
+    {
+      "host": "assemblee-nationale.fr",
+      "names": [
+        "Assemblée nationale"
+      ]
+    },
+    {
+      "host": "assets.bbhub.io",
+      "names": [
+        "TCFD - Final Report (Recommendations of the Task Force on Climate-related Financial Disclosures, 2017)"
+      ]
+    },
+    {
+      "host": "atag.org",
+      "names": [
+        "ATAG - Air Transport Action Group"
+      ]
+    },
+    {
+      "host": "atlantaregional.org",
+      "names": [
+        "Atlanta Regional Commission (ARC)"
+      ]
+    },
+    {
+      "host": "auc.ab.ca",
+      "names": [
+        "Alberta Utilities Commission (AUC)"
+      ]
+    },
+    {
+      "host": "aumovio.com",
+      "names": [
+        "AUMOVIO - Busworld 2025 Media Information: Tachograph Requirement (Tachographenpflicht)"
+      ]
+    },
+    {
+      "host": "austrian-standards.at",
+      "names": [
+        "Austrian Standards International (ASI)"
+      ]
+    },
+    {
+      "host": "autonomyglobal.co",
+      "names": [
+        "Autonomy Global: Safer Skies Act interim final rule"
+      ]
+    },
+    {
+      "host": "autorite-transports.fr",
+      "names": [
+        "Autorité de Régulation des Transports (ART)"
+      ]
+    },
+    {
+      "host": "babstcalland.com",
+      "names": [
+        "Babst Calland - Court Enforces CLCPA Compliance (NY DEC Emission Reduction Regs)"
+      ]
+    },
+    {
+      "host": "bakertilly.com",
+      "names": [
+        "Baker Tilly - How to Register for the Clean Fuel Production Credit"
+      ]
+    },
+    {
+      "host": "bcg.com",
+      "names": [
+        "BCG - Liability to Advantage: Decarbonizing the Supply Chain"
+      ]
+    },
+    {
+      "host": "bclaws.gov.bc.ca",
+      "names": [
+        "BC Laws (Queen's Printer / Official Gazette for BC Statutes & Regulations)"
+      ]
+    },
+    {
+      "host": "bcuc.com",
+      "names": [
+        "BC Utilities Commission (BCUC)"
+      ]
+    },
+    {
+      "host": "beaumont-capitalmarkets.co.uk",
+      "names": [
+        "Beaumont Capital Markets - Singapore Ship Finance Law Review 2025-26"
+      ]
+    },
+    {
+      "host": "becq-dcrm.opendata.arcgis.com",
+      "names": [
+        "CNMI Bureau of Environmental and Coastal Quality - Division of Coastal Resources Management (BECQ/DCRM)"
+      ]
+    },
+    {
+      "host": "belastingdienst.nl",
+      "names": [
+        "Netherlands Customs Administration (Douane)"
+      ]
+    },
+    {
+      "host": "berlinpackaging.com",
+      "names": [
+        "Berlin Packaging - Q1 2026 Industry Update: Packaging Materials, Economics & Shipping"
+      ]
+    },
+    {
+      "host": "beumergroup.com",
+      "names": [
+        "BEUMER Group Press Release - Joint Enterprise Lab for Mobile Robotics with Fraunhofer IML"
+      ]
+    },
+    {
+      "host": "billboard.com",
+      "names": [
+        "Billboard - Fan Travel Accounts for 62% of Live Music-Related Carbon Emissions in the U.S."
+      ]
+    },
+    {
+      "host": "biofuelsalliance.com",
+      "names": [
+        "Biofuels Alliance - One Fuel, Many Filters (SAF Sustainability Rules)"
+      ]
+    },
+    {
+      "host": "blog.eureciclo.com.br",
+      "names": [
+        "eureciclo Blog - MTR Guidance (Brazil)"
+      ]
+    },
+    {
+      "host": "blogs.edf.org",
+      "names": [
+        "EDF Climate 411 Blog - NY Climate Law Cap-and-Invest"
+      ]
+    },
+    {
+      "host": "blogs.unb.ca",
+      "names": [
+        "UNB Sustainability - Summary of NB Climate Change Action Plan 2022-2027"
+      ]
+    },
+    {
+      "host": "bmwk.de",
+      "names": [
+        "Bundesministerium für Wirtschaft und Klimaschutz (Federal Ministry for Economic Affairs and Climate Action, BMWK)"
+      ]
+    },
+    {
+      "host": "bostonplans.org",
+      "names": [
+        "Boston Housing Compliance - Income, Asset & Price Limits (BPDA/HCAM)"
+      ]
+    },
+    {
+      "host": "braziliannr.com",
+      "names": [
+        "Brazilian NR - Ministry of Transport Requires Sustainability in Road Concessions"
+      ]
+    },
+    {
+      "host": "brightenergyservices.com",
+      "names": [
+        "Bright Energy Services - Local Law 97 Deadlines Blog"
+      ]
+    },
+    {
+      "host": "britanniapandi.com",
+      "names": [
+        "Britannia P&I Club - CII/EEXI Regulatory Overview (PDF)"
+      ]
+    },
+    {
+      "host": "bsigroup.com",
+      "names": [
+        "British Standards Institution (BSI)"
+      ]
+    },
+    {
+      "host": "bundesnetzagentur.de",
+      "names": [
+        "Bundesnetzagentur (Federal Network Agency)"
+      ]
+    },
+    {
+      "host": "bundestag.de",
+      "names": [
+        "Deutscher Bundestag"
+      ]
+    },
+    {
+      "host": "c40.org",
+      "names": [
+        "Green Shipping Corridors Programme"
+      ]
+    },
+    {
+      "host": "cagbc.org",
+      "names": [
+        "LEED v5 Expands: New Arc Certification Tools - CAGBC"
+      ]
+    },
+    {
+      "host": "calstart.org",
+      "names": [
+        "CALSTART - Top 10 EV Battery Trends in 2025 and What We Can Expect in 2026"
+      ]
+    },
+    {
+      "host": "cambridge.org",
+      "names": [
+        "cambridge.org"
+      ]
+    },
+    {
+      "host": "cameramatics.com",
+      "names": [
+        "Cameramatics - Smart Tachograph 2 Installation Deadline Guide"
+      ]
+    },
+    {
+      "host": "campotexas.org",
+      "names": [
+        "CAMPO - RFP Recommendations (Dec 2024)"
+      ]
+    },
+    {
+      "host": "capcoa.org",
+      "names": [
+        "California Air Pollution Control Officers Association (CAPCOA)"
+      ]
+    },
+    {
+      "host": "carboncredits.com",
+      "names": [
+        "Carbon Credit Prices Today (CarbonCredits.com)"
+      ]
+    },
+    {
+      "host": "carboneer.earth",
+      "names": [
+        "carboneer.earth"
+      ]
+    },
+    {
+      "host": "carbonmarketwatch.org",
+      "names": [
+        "Carbon Market Watch - IMO Needs More Wind in the Sails"
+      ]
+    },
+    {
+      "host": "carrier.com",
+      "names": [
+        "Carrier Transicold REN Programme Press Release"
+      ]
+    },
+    {
+      "host": "cbre.co.uk",
+      "names": [
+        "CBRE UK - Upcoming Changes to Minimum Energy Efficiency Standards"
+      ]
+    },
+    {
+      "host": "cdep.ro",
+      "names": [
+        "Camera Deputaților - Chamber of Deputies of Romania"
+      ]
+    },
+    {
+      "host": "cdn.naaee.org",
+      "names": [
+        "PlaNYC Case Study - NAAEE Climate & Civics Education Program"
+      ]
+    },
+    {
+      "host": "cea.org.cy",
+      "names": [
+        "Cyprus Energy Agency (CEA / Cyprus Energy Office)"
+      ]
+    },
+    {
+      "host": "cecmanitoba.ca",
+      "names": [
+        "Manitoba Clean Environment Commission (CEC)"
+      ]
+    },
+    {
+      "host": "cen.acs.org",
+      "names": [
+        "Chemical & Engineering News (ACS): Nylon Maker Ascend Files for Bankruptcy"
+      ]
+    },
+    {
+      "host": "cera.org.cy",
+      "names": [
+        "Cyprus Energy Regulatory Authority (CERA)"
+      ]
+    },
+    {
+      "host": "cfp.energy",
+      "names": [
+        "cfp.energy"
+      ]
+    },
+    {
+      "host": "chd.lu",
+      "names": [
+        "Chambre des Députés du Grand-Duché de Luxembourg"
+      ]
+    },
+    {
+      "host": "chiefengineerlog.com",
+      "names": [
+        "Chief Engineer Log - IMO CII/SEEMP Guidance Blog"
+      ]
+    },
+    {
+      "host": "chmi.cz",
+      "names": [
+        "Czech Hydrometeorological Institute (ČHMÚ / CHMI)"
+      ]
+    },
+    {
+      "host": "citepa.org",
+      "names": [
+        "Centre Interprofessionnel Technique d'Études de la Pollution Atmosphérique (CITEPA)"
+      ]
+    },
+    {
+      "host": "cizp.cz",
+      "names": [
+        "Czech Environmental Inspection (Česká inspekce životního prostředí - ČIŽP)"
+      ]
+    },
+    {
+      "host": "clarkcountytoday.com",
+      "names": [
+        "Clark County Today - WSDOT Responds to Complaints About Litter Along Area Freeways"
+      ]
+    },
+    {
+      "host": "cleanairactionplan.org",
+      "names": [
+        "San Pedro Bay Ports Clean Air Action Plan - Official CAAP Website"
+      ]
+    },
+    {
+      "host": "cleanairforce.com",
+      "names": [
+        "Georgia Clean Air Force (GCAF)"
+      ]
+    },
+    {
+      "host": "cleanenergy.org",
+      "names": [
+        "NC Sustainable Energy Association - Cooper Executive Order News"
+      ]
+    },
+    {
+      "host": "cleanenergyministerial.org",
+      "names": [
+        "Clean Energy Ministerial: Electric Vehicles Initiative"
+      ]
+    },
+    {
+      "host": "cleanshipping.org",
+      "names": [
+        "Clean Shipping Coalition"
+      ]
+    },
+    {
+      "host": "climat.be",
+      "names": [
+        "Belgian Federal Climate Portal (klimaat.be / climat.be)"
+      ]
+    },
+    {
+      "host": "climate.cityofnewyork.us",
+      "names": [
+        "NYC PlaNYC 2024 Progress Report (climate.cityofnewyork.us)"
+      ]
+    },
+    {
+      "host": "climateactiontracker.org",
+      "names": [
+        "Climate Action Tracker - UAE Policies & Action"
+      ]
+    },
+    {
+      "host": "climatechangenunavut.ca",
+      "names": [
+        "Government of Nunavut - Climate Change Secretariat"
+      ]
+    },
+    {
+      "host": "climatecouncil.ie",
+      "names": [
+        "Climate Change Advisory Council (CCAC)"
+      ]
+    },
+    {
+      "host": "climatefundsupdate.org",
+      "names": [
+        "Climate Funds Update - GEF Profile"
+      ]
+    },
+    {
+      "host": "climatepolicydashboard.org",
+      "names": [
+        "Climate Policy Dashboard / Medium- and Heavy-Duty EV Mandates"
+      ]
+    },
+    {
+      "host": "clm.com",
+      "names": [
+        "Carter Ledyard & Milburn LLP - Local Law 97: What NYC Building Owners and Operators Need to Know"
+      ]
+    },
+    {
+      "host": "cloud.mail.iadb.org",
+      "names": [
+        "IDB - Transportation 2050: Pathways to Decarbonization and Climate Resilience in LAC (report landing page)"
+      ]
+    },
+    {
+      "host": "cmegroup.com",
+      "names": [
+        "CME Group - Henry Hub Natural Gas Futures"
+      ]
+    },
+    {
+      "host": "commercialmotor.com",
+      "names": [
+        "Commercial Motor - SMEs Trial Electric HGVs (DP World / Project Jolt)"
+      ]
+    },
+    {
+      "host": "complir.io",
+      "names": [
+        "complir.io"
+      ]
+    },
+    {
+      "host": "complymarket.com",
+      "names": [
+        "complymarket.com"
+      ]
+    },
+    {
+      "host": "conformi.eu",
+      "names": [
+        "conformi.eu"
+      ]
+    },
+    {
+      "host": "conservationcouncil.ca",
+      "names": [
+        "Conservation Council of NB - Water Strategy Progress Report Assessment"
+      ]
+    },
+    {
+      "host": "constructiondive.com",
+      "names": [
+        "Construction Dive - Arizona DOT Taps Jacobs/Sundt Highway Project"
+      ]
+    },
+    {
+      "host": "coolset.com",
+      "names": [
+        "coolset.com"
+      ]
+    },
+    {
+      "host": "cop30.pactoglobal.org.br",
+      "names": [
+        "UN Global Compact / COP30 Pacto Global - Roadmap to Net Zero Road Freight Transport Brazil"
+      ]
+    },
+    {
+      "host": "council.science",
+      "names": [
+        "International Science Council - STI Forum 2024 Event Page"
+      ]
+    },
+    {
+      "host": "cpcb.nic.in",
+      "names": [
+        "CPCB India - Vehicular Exhaust (cpcb.nic.in)"
+      ]
+    },
+    {
+      "host": "cpshomes.co.uk",
+      "names": [
+        "CPS Homes Blog - New EPC/MEES Rules for Landlords in Wales"
+      ]
+    },
+    {
+      "host": "cre.fr",
+      "names": [
+        "Commission de Régulation de l'Énergie (CRE)"
+      ]
+    },
+    {
+      "host": "cru.ie",
+      "names": [
+        "Commission for Regulation of Utilities (CRU)"
+      ]
+    },
+    {
+      "host": "cruise-ship-industry.com",
+      "names": [
+        "Cruise Ship Industry News - Norway World Heritage Fjords Zero-Emissions Rules Update"
+      ]
+    },
+    {
+      "host": "csis.org",
+      "names": [
+        "CSIS / 48th ASEAN Summit Outcomes"
+      ]
+    },
+    {
+      "host": "ctq.gouv.qc.ca",
+      "names": [
+        "Commission des transports du Québec (CTQ)"
+      ]
+    },
+    {
+      "host": "cucgov.org",
+      "names": [
+        "Commonwealth Utilities Corporation (CUC)"
+      ]
+    },
+    {
+      "host": "customs.ro",
+      "names": [
+        "Romanian Customs Authority - AVR (Autoritatea Vamală Română)"
+      ]
+    },
+    {
+      "host": "cvse.ca",
+      "names": [
+        "BC Commercial Vehicle Safety and Enforcement (CVSE)"
+      ]
+    },
+    {
+      "host": "danishbusinessauthority.dk",
+      "names": [
+        "Danish Business Authority (Erhvervsstyrelsen)"
+      ]
+    },
+    {
+      "host": "danishroadtrafficauthority.dk",
+      "names": [
+        "Danish Road Traffic Authority (Færdselsstyrelsen)"
+      ]
+    },
+    {
+      "host": "danishshipping.dk",
+      "names": [
+        "Danish Shipping (Danmarks Rederiforening)"
+      ]
+    },
+    {
+      "host": "data-basis.org",
+      "names": [
+        "data-basis (standards body - SC-14: certifies only its OWN standard)"
+      ]
+    },
+    {
+      "host": "data.lacity.org",
+      "names": [
+        "City of Los Angeles Open Data - EBEWE Program Dataset"
+      ]
+    },
+    {
+      "host": "database.aceee.org",
+      "names": [
+        "ACEEE City Policy Database - Nashville, TN"
+      ]
+    },
+    {
+      "host": "dcpsc.org",
+      "names": [
+        "Public Service Commission of the District of Columbia (DCPSC)"
+      ]
+    },
+    {
+      "host": "deliver.com.au",
+      "names": [
+        "Deliver.com.au - Australia's New Emissions Reporting Rules for Freight Customers"
+      ]
+    },
+    {
+      "host": "designwanted.com",
+      "names": [
+        "Design Wanted - Sway Seaweed Packaging Design Innovation"
+      ]
+    },
+    {
+      "host": "developer.ups.com",
+      "names": [
+        "ups.com"
+      ]
+    },
+    {
+      "host": "devex.com",
+      "names": [
+        "Devex / Transcontinental Highway Latin America Trade"
+      ]
+    },
+    {
+      "host": "dgrm.pt",
+      "names": [
+        "Direção-Geral de Recursos Naturais, Segurança e Serviços Marítimos (DGRM)"
+      ]
+    },
+    {
+      "host": "dieselnet.com",
+      "names": [
+        "dieselnet.com"
+      ]
+    },
+    {
+      "host": "din.de",
+      "names": [
+        "DIN Deutsches Institut für Normung (German Institute for Standardization)"
+      ]
+    },
+    {
+      "host": "dma.dk",
+      "names": [
+        "Danish Maritime Authority (Søfartsstyrelsen)"
+      ]
+    },
+    {
+      "host": "dobguard.com",
+      "names": [
+        "DOBGuard - NYC Local Law 97 Explained"
+      ]
+    },
+    {
+      "host": "doi.org",
+      "names": [
+        "Springer OR - Related DOI for arXiv:2306.01687"
+      ]
+    },
+    {
+      "host": "dpi.engagementhub.com.au",
+      "names": [
+        "Queensland DPI - Sunset Review of Biosecurity Regulation 2016 (Consultation Hub)"
+      ]
+    },
+    {
+      "host": "dre.pt",
+      "names": [
+        "Diário da República Eletrónico (DRE - Official Gazette)"
+      ]
+    },
+    {
+      "host": "dronelife.com",
+      "names": [
+        "DroneLife - Counter-UAS Rules and the Safer Skies Act"
+      ]
+    },
+    {
+      "host": "ds.dk",
+      "names": [
+        "Danish Standards Foundation (Dansk Standard - DS)"
+      ]
+    },
+    {
+      "host": "dsd.state.md.us",
+      "names": [
+        "Code of Maryland Regulations (COMAR) - Division of State Documents"
+      ]
+    },
+    {
+      "host": "dv.parliament.bg",
+      "names": [
+        "State Gazette of the Republic of Bulgaria (Държавен вестник)"
+      ]
+    },
+    {
+      "host": "dz-rs.si",
+      "names": [
+        "Državni zbor Republike Slovenije"
+      ]
+    },
+    {
+      "host": "e-control.at",
+      "names": [
+        "E-Control (Energie-Control Austria)"
+      ]
+    },
+    {
+      "host": "e-sbirka.cz",
+      "names": [
+        "Sbírka zákonů a mezinárodních smluv - e-Sbírka (Czech Official Gazette / Collection of Laws)"
+      ]
+    },
+    {
+      "host": "easyepc.org",
+      "names": [
+        "Easy EPC - MEES Exemptions Guide"
+      ]
+    },
+    {
+      "host": "ebrd.com",
+      "names": [
+        "EBRD: Sustainable Transport Connections between Central Asia and Europe"
+      ]
+    },
+    {
+      "host": "ecija.com",
+      "names": [
+        "ECIJA: EU Mobility Package LCV obligations from July 2026"
+      ]
+    },
+    {
+      "host": "ecori.org",
+      "names": [
+        "ecoRI News / Rhode Island River Herring Population Report"
+      ]
+    },
+    {
+      "host": "ecosistant.eu",
+      "names": [
+        "ecosistant.eu"
+      ]
+    },
+    {
+      "host": "ecsa.eu",
+      "names": [
+        "Joint Statement of ECSA, EWABA, eFuel Alliance et al. on FuelEU Maritime"
+      ]
+    },
+    {
+      "host": "edc.nyc",
+      "names": [
+        "NYC Economic Development Corporation - Green Economy Action Plan"
+      ]
+    },
+    {
+      "host": "edf.org",
+      "names": [
+        "IMO Continues Work on Net-Zero Framework \\"
+      ]
+    },
+    {
+      "host": "eduskunta.fi",
+      "names": [
+        "Eduskunta (Parliament of Finland)"
+      ]
+    },
+    {
+      "host": "eea.government.bg",
+      "names": [
+        "Executive Environment Agency (Изпълнителна агенция по околна среда)"
+      ]
+    },
+    {
+      "host": "efti4all.eu",
+      "names": [
+        "efti4all.eu"
+      ]
+    },
+    {
+      "host": "efti4eu.eu",
+      "names": [
+        "efti4eu.eu"
+      ]
+    },
+    {
+      "host": "ehpa.org",
+      "names": [
+        "European Heat Pump Association - F-Gas Regulation Guidelines (Nov 2024)"
+      ]
+    },
+    {
+      "host": "electricvehiclecouncil.com.au",
+      "names": [
+        "Electric Vehicle Council - State of Electric Vehicles 2024"
+      ]
+    },
+    {
+      "host": "electrificationcoalition.org",
+      "names": [
+        "Electrification Coalition - Tax Credit Guidance for Fleets (Budget Reconciliation Bill)"
+      ]
+    },
+    {
+      "host": "elime.gr",
+      "names": [
+        "ESPO Green Guide 2021 - Full PDF (hosted by ELIME / Greek Ports Association)"
+      ]
+    },
+    {
+      "host": "elmhurstenergy.co.uk",
+      "names": [
+        "Elmhurst Energy - MEES Member Briefing"
+      ]
+    },
+    {
+      "host": "en.logishift.net",
+      "names": [
+        "Japan's 2026 Logistics Budget: A Global Efficiency Blueprint, LogiShift"
+      ]
+    },
+    {
+      "host": "en.trafikstyrelsen.dk",
+      "names": [
+        "Danish Civil Aviation and Railway Authority (Trafikstyrelsen)"
+      ]
+    },
+    {
+      "host": "en.wikipedia.org",
+      "names": [
+        "Stockholm Environment Institute - Wikipedia"
+      ]
+    },
+    {
+      "host": "enb.iisd.org",
+      "names": [
+        "GEF Council 70th Session Summary - IISD Earth Negotiations Bulletin"
+      ]
+    },
+    {
+      "host": "enelamericas.com",
+      "names": [
+        "Enel Américas: Brazil National Solid Waste Policy (PNRS) & reverse logistics"
+      ]
+    },
+    {
+      "host": "energiaeambiente.org.br",
+      "names": [
+        "IEMA (Instituto de Energia e Meio Ambiente) - Carbon Emissions Reporting Gap in Brazil National Logistics Plan 2050"
+      ]
+    },
+    {
+      "host": "energiavirasto.fi",
+      "names": [
+        "Finnish Energy Authority (Energiavirasto)"
+      ]
+    },
+    {
+      "host": "energimyndigheten.se",
+      "names": [
+        "Swedish Energy Agency (Energimyndigheten)"
+      ]
+    },
+    {
+      "host": "energo.com",
+      "names": [
+        "Energo Blog - NYC Local Law 84 2026 Deadline"
+      ]
+    },
+    {
+      "host": "energy-storage.news",
+      "names": [
+        "Energy-Storage.News - Global Energy Storage Deployments on Track for Record Year in 2025 (BNEF)"
+      ]
+    },
+    {
+      "host": "energy-uk.org.uk",
+      "names": [
+        "Energy UK - Driving Electrification in the Road Freight Sector"
+      ]
+    },
+    {
+      "host": "energyagency.at",
+      "names": [
+        "Austrian Energy Agency (Österreichische Energieagentur - AEA)"
+      ]
+    },
+    {
+      "host": "energygovuk.citizenspace.com",
+      "names": [
+        "UK DESNZ/BEIS Citizen Space - SECR Consultation"
+      ]
+    },
+    {
+      "host": "eng.mst.dk",
+      "names": [
+        "Danish Environmental Protection Agency (Miljøstyrelsen)"
+      ]
+    },
+    {
+      "host": "england.shelter.org.uk",
+      "names": [
+        "shelter.org.uk"
+      ]
+    },
+    {
+      "host": "english.ilent.nl",
+      "names": [
+        "Human Environment and Transport Inspectorate (Inspectie Leefomgeving en Transport - ILT)"
+      ]
+    },
+    {
+      "host": "english.rvo.nl",
+      "names": [
+        "Netherlands Enterprise Agency - RVO (Rijksdienst voor Ondernemend Nederland)"
+      ]
+    },
+    {
+      "host": "enpg.com",
+      "names": [
+        "EN-POWER GROUP - NYC Local Law 84/133 Compliance & Benchmarking"
+      ]
+    },
+    {
+      "host": "ens.dk",
+      "names": [
+        "Danish Energy Agency (Energistyrelsen)"
+      ]
+    },
+    {
+      "host": "ense-epe.pt",
+      "names": [
+        "Entidade Nacional para o Setor Energético (ENSE - National Entity for the Energy Sector)"
+      ]
+    },
+    {
+      "host": "entsoe.eu",
+      "names": [
+        "ENTSO-E - Expert Panel Final Report, April 2025 Spain-Portugal Blackout"
+      ]
+    },
+    {
+      "host": "environmental-initiative.org",
+      "names": [
+        "Environmental Initiative / Minnesota Wildfire Smoke and Health"
+      ]
+    },
+    {
+      "host": "environmentamerica.org",
+      "names": [
+        "Environment America Research & Policy Center - Solar on Warehouses"
+      ]
+    },
+    {
+      "host": "environnement.brussels",
+      "names": [
+        "Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)"
+      ]
+    },
+    {
+      "host": "epcadvisor.co.uk",
+      "names": [
+        "EPC Advisor / EPC-C Deadline 2030 - Landlord Guidance"
+      ]
+    },
+    {
+      "host": "epr.sustainablepackaging.org",
+      "names": [
+        "Sustainable Packaging Coalition / EPR Policy Tracker"
+      ]
+    },
+    {
+      "host": "eralberta.ca",
+      "names": [
+        "Emissions Reduction Alberta (ERA)"
+      ]
+    },
+    {
+      "host": "ero.ontario.ca",
+      "names": [
+        "Environmental Registry of Ontario (ERO)"
+      ]
+    },
+    {
+      "host": "erse.pt",
+      "names": [
+        "Entidade Reguladora dos Serviços Energéticos (ERSE - Energy Services Regulatory Authority)"
+      ]
+    },
+    {
+      "host": "et.gr",
+      "names": [
+        "Hellenic Government Gazette (Efimeris tis Kyvernis - ET.GR)"
+      ]
+    },
+    {
+      "host": "etp-logistics.eu",
+      "names": [
+        "ALICE - European Technology Platform for Logistics (About)"
+      ]
+    },
+    {
+      "host": "eur.nl",
+      "names": [
+        "Erasmus University Rotterdam - Prof. Rob Zuidwijk Faculty Page"
+      ]
+    },
+    {
+      "host": "euric.org",
+      "names": [
+        "euric.org"
+      ]
+    },
+    {
+      "host": "eurocommerce.eu",
+      "names": [
+        "eurocommerce.eu"
+      ]
+    },
+    {
+      "host": "europeanshippers.eu",
+      "names": [
+        "europeanshippers.eu"
+      ]
+    },
+    {
+      "host": "europen-packaging.eu",
+      "names": [
+        "EUROPEN - European Packaging Environment"
+      ]
+    },
+    {
+      "host": "evs.ee",
+      "names": [
+        "EVS - Estonian Centre for Standardisation and Accreditation"
+      ]
+    },
+    {
+      "host": "fao.org",
+      "names": [
+        "Codex Alimentarius - FAO/WHO"
+      ]
+    },
+    {
+      "host": "fastcompany.com",
+      "names": [
+        "Fast Company - U.S. Ports Fear Federal Funding to Clean Up Pollution Could Be Canceled"
+      ]
+    },
+    {
+      "host": "federalgrantswire.com",
+      "names": [
+        "FederalGrantsWire - Clean Ports Program"
+      ]
+    },
+    {
+      "host": "feport.eu",
+      "names": [
+        "feport.eu"
+      ]
+    },
+    {
+      "host": "fin.gov.nt.ca",
+      "names": [
+        "Government of Northwest Territories - Department of Finance (Fuel Tax)"
+      ]
+    },
+    {
+      "host": "financien.belgium.be",
+      "names": [
+        "FPS Finance - Customs and Excise Administration (AAD&A / AGD&A)"
+      ]
+    },
+    {
+      "host": "fleetnews.co.uk",
+      "names": [
+        "Fleet News - Project Jolt Helps Drive DP World's Fleet Electrification Plans"
+      ]
+    },
+    {
+      "host": "flexport.com",
+      "names": [
+        "Flexport Blog / Middle East Escalation - Ocean and Air Freight Disruption"
+      ]
+    },
+    {
+      "host": "flrules.org",
+      "names": [
+        "Florida Administrative Register / Florida Administrative Code (flrules.org)"
+      ]
+    },
+    {
+      "host": "fortunebusinessinsights.com",
+      "names": [
+        "Fortune Business Insights - Green Logistics Market Size & Growth Report 2026-2034"
+      ]
+    },
+    {
+      "host": "freightos.com",
+      "names": [
+        "Freightos Weekly Freight Update - Container Rates Spiking on Peak Season Rush (June 2, 2026)"
+      ]
+    },
+    {
+      "host": "frontiersin.org",
+      "names": [
+        "Frontiers in Marine Science / Article 10.3389/fmars.2025.1683017"
+      ]
+    },
+    {
+      "host": "frontierspartnerships.org",
+      "names": [
+        "Frontiers - Ecological Sustainability in Arts Organisations"
+      ]
+    },
+    {
+      "host": "ft.dk",
+      "names": [
+        "Folketinget (Danish Parliament)"
+      ]
+    },
+    {
+      "host": "futureforwarding.com",
+      "names": [
+        "futureforwarding.com"
+      ]
+    },
+    {
+      "host": "futuregenerations.wales",
+      "names": [
+        "Future Generations Commissioner for Wales"
+      ]
+    },
+    {
+      "host": "fvps.ca",
+      "names": [
+        "PEI Family Violence Prevention Services - Homepage"
+      ]
+    },
+    {
+      "host": "fzoeu.hr",
+      "names": [
+        "Environmental Protection and Energy Efficiency Fund (Fond za zaštitu okoliša i energetsku učinkovitost - FZOEU)"
+      ]
+    },
+    {
+      "host": "gadens.com",
+      "names": [
+        "Gadens - Greening Melbourne: Amendment C376 to the Melbourne Planning Scheme"
+      ]
+    },
+    {
+      "host": "gadnr.org",
+      "names": [
+        "Georgia Department of Natural Resources (DNR)"
+      ]
+    },
+    {
+      "host": "gamta.lt",
+      "names": [
+        "Environmental Protection Agency of Lithuania (Aplinkos apsaugos agentūra - AAA)"
+      ]
+    },
+    {
+      "host": "gaports.com",
+      "names": [
+        "Georgia Ports Authority (GPA)"
+      ]
+    },
+    {
+      "host": "gateway-cargo.com",
+      "names": [
+        "Gateway Cargo - IMDG Code: Comprehensive Guide to Shipping Dangerous Goods by Sea (2026)"
+      ]
+    },
+    {
+      "host": "gazzettaufficiale.it",
+      "names": [
+        "Gazzetta Ufficiale della Repubblica Italiana - Official Gazette of the Italian Republic"
+      ]
+    },
+    {
+      "host": "gbci.org",
+      "names": [
+        "LEED v5 Beta Exams to Launch in 2026 - GBCI"
+      ]
+    },
+    {
+      "host": "gcaptain.com",
+      "names": [
+        "gCaptain - Jiangnan Shipyard Secures Nuclear Equipment License"
+      ]
+    },
+    {
+      "host": "gcca.org",
+      "names": [
+        "GCCA - Global Cold Chain Alliance"
+      ]
+    },
+    {
+      "host": "gcformd.org",
+      "names": [
+        "About Us - Global Centre for Maritime Decarbonisation"
+      ]
+    },
+    {
+      "host": "gencourt.state.nh.us",
+      "names": [
+        "New Hampshire General Court (gencourt.state.nh.us)"
+      ]
+    },
+    {
+      "host": "github.com",
+      "names": [
+        "NY Senate OpenLegislation GitHub Repository"
+      ]
+    },
+    {
+      "host": "globalcompliancenews.com",
+      "names": [
+        "Global Compliance News - Brazil New Federal Decree Regulating National Solid Waste Policy"
+      ]
+    },
+    {
+      "host": "globaldrivetozero.org",
+      "names": [
+        "Global Drive to Zero - Charging Up Change: Brazil Accelerating its Drive to Zero"
+      ]
+    },
+    {
+      "host": "globalpetrolprices.com",
+      "names": [
+        "GlobalPetrolPrices.com - Electricity Prices for the Industry: World Map"
+      ]
+    },
+    {
+      "host": "globaltrademag.com",
+      "names": [
+        "Global Trade Magazine - Global Air Cargo Markets Show Stabilization in Mid-May 2026 (WorldACD)"
+      ]
+    },
+    {
+      "host": "gmacenter.org",
+      "names": [
+        "Center for Green Market Activation (GMA) - Maritime Program"
+      ]
+    },
+    {
+      "host": "gnm.ro",
+      "names": [
+        "National Environmental Guard - GNM (Garda Națională de Mediu)"
+      ]
+    },
+    {
+      "host": "government.nl",
+      "names": [
+        "Ministry of Infrastructure and Water Management (Ministerie van Infrastructuur en Waterstaat - I&W)"
+      ]
+    },
+    {
+      "host": "govtech.com",
+      "names": [
+        "GovTech - North Carolina DOT Outlines Plan for Cutting Emissions"
+      ]
+    },
+    {
+      "host": "gowlingwlg.com",
+      "names": [
+        "Gowling WLG - Sustainable Aviation Fuel: A Mandate for Change"
+      ]
+    },
+    {
+      "host": "greaterindiana.com",
+      "names": [
+        "Greater Indiana Clean Cities Coalition"
+      ]
+    },
+    {
+      "host": "greenblue.org",
+      "names": [
+        "greenblue.org"
+      ]
+    },
+    {
+      "host": "greenblueevents.org",
+      "names": [
+        "GreenBlue Events - SPC Impact 2026 Event Page"
+      ]
+    },
+    {
+      "host": "greenclimate.fund",
+      "names": [
+        "Green Climate Fund - Project FP135"
+      ]
+    },
+    {
+      "host": "greenfinancelac.org",
+      "names": [
+        "Transportation 2050: Pathways to Decarbonization & Climate Resilience in LAC"
+      ]
+    },
+    {
+      "host": "greenphl.com",
+      "names": [
+        "Eco-Explainer: What is the Office of Sustainability? - Green Philly"
+      ]
+    },
+    {
+      "host": "greystar.com",
+      "names": [
+        "Matrix Hudson - Greystar (Property Operator)"
+      ]
+    },
+    {
+      "host": "guamlegislature.com",
+      "names": [
+        "Guam Legislature (I Liheslaturan Guåhan)"
+      ]
+    },
+    {
+      "host": "guampowerauthority.com",
+      "names": [
+        "Guam Power Authority (GPA)"
+      ]
+    },
+    {
+      "host": "gvw.com",
+      "names": [
+        "gvw.com"
+      ]
+    },
+    {
+      "host": "h-gac.com",
+      "names": [
+        "Houston-Galveston Area Council (H-GAC) - Freight Planning"
+      ]
+    },
+    {
+      "host": "hansard.parliament.uk",
+      "names": [
+        "UK Parliament Hansard - Transport Decarbonisation Plan Debate (April 2025)"
+      ]
+    },
+    {
+      "host": "hansonbridgett.com",
+      "names": [
+        "Hanson Bridgett - Clean Air Act Waiver Analysis"
+      ]
+    },
+    {
+      "host": "hapag-lloyd.com",
+      "names": [
+        "Hapag-Lloyd - ZEMBA Second Tender Press Release"
+      ]
+    },
+    {
+      "host": "hautconseilclimat.fr",
+      "names": [
+        "Haut Conseil pour le Climat (HCC)"
+      ]
+    },
+    {
+      "host": "hdp-au-prod-app-com-participate-files.s3.ap-southeast-2.amazonaws.com",
+      "names": [
+        "City of Melbourne Planning Panel Report - Amendment C376 (Hosted PDF)"
+      ]
+    },
+    {
+      "host": "health.belgium.be",
+      "names": [
+        "SPF Santé publique, Sécurité de la chaîne alimentaire et Environnement (FPS Health)"
+      ]
+    },
+    {
+      "host": "hkex.com.hk",
+      "names": [
+        "Hong Kong Exchanges and Clearing (HKEX) - Sustainability & ESG Disclosure"
+      ]
+    },
+    {
+      "host": "home-energy-model.co.uk",
+      "names": [
+        "home-energy-model.co.uk - EPC C by 2030: What Landlords Must Do Now (MEES)"
+      ]
+    },
+    {
+      "host": "horatioalger.org",
+      "names": [
+        "Horatio Alger Association - Member Profile: Richard K. Davidson"
+      ]
+    },
+    {
+      "host": "hzn.hr",
+      "names": [
+        "Croatian Standards Institute (Hrvatski zavod za norme - HZN)"
+      ]
+    },
+    {
+      "host": "iaea.org",
+      "names": [
+        "IAEA - IEA Policies and Measures Databases Resource Page"
+      ]
+    },
+    {
+      "host": "iapps.courts.state.ny.us",
+      "names": [
+        "NY State Courts Electronic Filing (iapps) - Case Portal"
+      ]
+    },
+    {
+      "host": "ice.com",
+      "names": [
+        "ICE (Intercontinental Exchange) - Brent vs. WTI Futures Explainer"
+      ]
+    },
+    {
+      "host": "idae.es",
+      "names": [
+        "Institute for Energy Diversification and Saving (IDAE - Instituto para la Diversificación y Ahorro de la Energía)"
+      ]
+    },
+    {
+      "host": "idbinvest.org",
+      "names": [
+        "IDB Invest Transport Sector Page"
+      ]
+    },
+    {
+      "host": "iddri.org",
+      "names": [
+        "IDDRI - Shipping in Transition: IMO's Timely Negotiations for a Net-Zero Future"
+      ]
+    },
+    {
+      "host": "ideas.repec.org",
+      "names": [
+        "Transportation Research Part E - IDEAS/RePEc Series Listing"
+      ]
+    },
+    {
+      "host": "ieabioenergy.com",
+      "names": [
+        "IEA Bioenergy - Implementation of Bioenergy in Brazil: 2024 Country Report"
+      ]
+    },
+    {
+      "host": "ieefa.org",
+      "names": [
+        "IEEFA - Advancing South Korea's Climate Finance Potential in ASEAN+3 (Mar 2026)"
+      ]
+    },
+    {
+      "host": "ifa-forwarding.net",
+      "names": [
+        "ifa-forwarding.net"
+      ]
+    },
+    {
+      "host": "ifs.org.uk",
+      "names": [
+        "Institute for Fiscal Studies (IFS) - Response to Scrapping Carbon Price Support"
+      ]
+    },
+    {
+      "host": "iisd.org",
+      "names": [
+        "IISD - Environmental Cooperation and Free Trade in North America"
+      ]
+    },
+    {
+      "host": "iledefrance.fr",
+      "names": [
+        "Région Île-de-France"
+      ]
+    },
+    {
+      "host": "ilr.lu",
+      "names": [
+        "Institut Luxembourgeois de Régulation (ILR - Luxembourg Regulatory Institute)"
+      ]
+    },
+    {
+      "host": "imf.org",
+      "names": [
+        "IMF Working Paper WP/25/93 - Nowcasting Global Trade from Space"
+      ]
+    },
+    {
+      "host": "impactbuying.com",
+      "names": [
+        "impactbuying.com"
+      ]
+    },
+    {
+      "host": "impel.eu",
+      "names": [
+        "IMPEL - Waste Shipment Topic"
+      ]
+    },
+    {
+      "host": "imt-ip.pt",
+      "names": [
+        "Instituto da Mobilidade e dos Transportes (IMT - Institute for Mobility and Transport)"
+      ]
+    },
+    {
+      "host": "indexjournal.com",
+      "names": [
+        "Index-Journal: Ascend to Close Greenwood County Plant in February"
+      ]
+    },
+    {
+      "host": "inff.org",
+      "names": [
+        "Integrated National Financing Frameworks (INFF) - Environmental Finance Tools Guidebook (Resources Page)"
+      ]
+    },
+    {
+      "host": "infox.com",
+      "names": [
+        "infox.com"
+      ]
+    },
+    {
+      "host": "innovationnewsnetwork.com",
+      "names": [
+        "Innovation News Network - Smart Port, Port of Rotterdam"
+      ]
+    },
+    {
+      "host": "insparisk.com",
+      "names": [
+        "InsparRisk: NYC Local Law 97 compliance guide"
+      ]
+    },
+    {
+      "host": "internet.kozut.hu",
+      "names": [
+        "Hungarian Public Roads Nonprofit Zrt. (Magyar Közút)"
+      ]
+    },
+    {
+      "host": "intertanko.com",
+      "names": [
+        "INTERTANKO - Independent Tanker Owners"
+      ]
+    },
+    {
+      "host": "iopscience.iop.org",
+      "names": [
+        "IOP Publishing - Progress in Energy Journal Article (10.1088/2634-4505/ad097a)"
+      ]
+    },
+    {
+      "host": "iratracker.org",
+      "names": [
+        "IRA Tracker - Section 60102: Grants to Reduce Air Pollution at Ports"
+      ]
+    },
+    {
+      "host": "irceline.be",
+      "names": [
+        "Belgian Interregional Environment Agency (IRCEL-CELINE)"
+      ]
+    },
+    {
+      "host": "irfnet.ch",
+      "names": [
+        "International Road Federation - IRF Contributes to IDB Climate-Resilient Transportation Report (LAC)"
+      ]
+    },
+    {
+      "host": "irrc.state.pa.us",
+      "names": [
+        "Pennsylvania Independent Regulatory Review Commission (IRRC)"
+      ]
+    },
+    {
+      "host": "ituc-csi.org",
+      "names": [
+        "ITUC Response to ILO Global Wage Report 2024-25"
+      ]
+    },
+    {
+      "host": "iumi.com",
+      "names": [
+        "IUMI Newsletter - MEPC 83 Update"
+      ]
+    },
+    {
+      "host": "jacobs.com",
+      "names": [
+        "Jacobs - Designing Southern Arizona's Largest Highway Construction Project"
+      ]
+    },
+    {
+      "host": "johnlewispartnership.co.uk",
+      "names": [
+        "John Lewis Partnership - Corporate Sustainability Reports"
+      ]
+    },
+    {
+      "host": "jolt.eco",
+      "names": [
+        "Project JOLT - Official Project Website (About Us)"
+      ]
+    },
+    {
+      "host": "jonesday.com",
+      "names": [
+        "Jones Day - Australia Emissions Reduction Policy Insight"
+      ]
+    },
+    {
+      "host": "jrta.ca",
+      "names": [
+        "Link Nova Scotia (Joint Regional Transportation Agency)"
+      ]
+    },
+    {
+      "host": "justice.gov.nt.ca",
+      "names": [
+        "Northwest Territories Gazette (Department of Justice - Legislation Division)"
+      ]
+    },
+    {
+      "host": "kba.de",
+      "names": [
+        "Kraftfahrt-Bundesamt (Federal Motor Transport Authority, KBA)"
+      ]
+    },
+    {
+      "host": "kcredit.or.kr",
+      "names": [
+        "Korea ETS - KETS"
+      ]
+    },
+    {
+      "host": "kefm.dk",
+      "names": [
+        "Ministry of Climate, Energy and Utilities (Klima-, Energi- og Forsyningsministeriet)"
+      ]
+    },
+    {
+      "host": "kentreporter.com",
+      "names": [
+        "Kent Reporter - Kent Multifamily Housing Complexes Apply for State Grants"
+      ]
+    },
+    {
+      "host": "keskkonnaagentuur.ee",
+      "names": [
+        "Estonian Environment Agency (Keskkonnaagentuur)"
+      ]
+    },
+    {
+      "host": "keskkonnaamet.ee",
+      "names": [
+        "Environmental Board (Keskkonnaamet)"
+      ]
+    },
+    {
+      "host": "kjtait.com",
+      "names": [
+        "KJ Tait Engineers - MEES Non-Domestic EPC Band E Guide"
+      ]
+    },
+    {
+      "host": "kliimaministeerium.ee",
+      "names": [
+        "Ministry of Climate (Kliimaministeerium)"
+      ]
+    },
+    {
+      "host": "klima-agence.lu",
+      "names": [
+        "Klima-Agence (National Energy and Climate Agency)"
+      ]
+    },
+    {
+      "host": "klima.kormany.hu",
+      "names": [
+        "National Climate Protection Authority (Nemzeti Klímavédelmi Hatóság) - under Ministry of Energy"
+      ]
+    },
+    {
+      "host": "kobize.pl",
+      "names": [
+        "National Centre for Emissions Management (KOBiZE - Krajowy Ośrodek Bilansowania i Zarządzania Emisjami)"
+      ]
+    },
+    {
+      "host": "komsa.or.kr",
+      "names": [
+        "Korea Maritime Transportation Safety Authority (KOMSA)"
+      ]
+    },
+    {
+      "host": "konkurentsiamet.ee",
+      "names": [
+        "Estonian Competition Authority - Energy Regulatory Division"
+      ]
+    },
+    {
+      "host": "kpmg-law.de",
+      "names": [
+        "KPMG Law (Germany) - CSRD/CSDDD/Taxonomy Omnibus Briefing"
+      ]
+    },
+    {
+      "host": "krs.co.kr",
+      "names": [
+        "Korea Register of Shipping - KR"
+      ]
+    },
+    {
+      "host": "kslegislature.org",
+      "names": [
+        "Kansas Legislature"
+      ]
+    },
+    {
+      "host": "lachambre.be",
+      "names": [
+        "La Chambre des représentants de Belgique / Belgische Kamer van volksvertegenwoordigers"
+      ]
+    },
+    {
+      "host": "ladwp.com",
+      "names": [
+        "ladwp.com"
+      ]
+    },
+    {
+      "host": "law.cornell.edu",
+      "names": [
+        "Cornell LII - Florida Admin. Code Ann. R. 62-210.300 (Permits Required)"
+      ]
+    },
+    {
+      "host": "law.gov.wales",
+      "names": [
+        "Law Wales (Legislation of Wales Portal)"
+      ]
+    },
+    {
+      "host": "law.justia.com",
+      "names": [
+        "2025 Montana Code Annotated - Justia"
+      ]
+    },
+    {
+      "host": "laws.gnb.ca",
+      "names": [
+        "New Brunswick Acts and Regulations (Attorney General / laws.gnb.ca)"
+      ]
+    },
+    {
+      "host": "laws.yukon.ca",
+      "names": [
+        "Yukon Legislation Registry (laws.yukon.ca)"
+      ]
+    },
+    {
+      "host": "leg.state.fl.us",
+      "names": [
+        "Florida Legislature - Online Sunshine (Statutes & Session Laws)"
+      ]
+    },
+    {
+      "host": "legalclarity.org",
+      "names": [
+        "LegalClarity - NY DOT Number Application Guide"
+      ]
+    },
+    {
+      "host": "legilux.public.lu",
+      "names": [
+        "Mémorial - Official Gazette of the Grand Duchy of Luxembourg (Journal officiel / Legilux)"
+      ]
+    },
+    {
+      "host": "legiscan.com",
+      "names": [
+        "LegiScan - New York 2025-2026 Legislative Dashboard"
+      ]
+    },
+    {
+      "host": "legislation.mt",
+      "names": [
+        "Laws of Malta (legislation.mt) - Official Consolidated Legislation Portal"
+      ]
+    },
+    {
+      "host": "legislature.state.al.us",
+      "names": [
+        "Alabama State Legislature"
+      ]
+    },
+    {
+      "host": "legisquebec.gouv.qc.ca",
+      "names": [
+        "LégisQuébec - Official Consolidation of Quebec Statutes and Regulations"
+      ]
+    },
+    {
+      "host": "lexology.com",
+      "names": [
+        "Lexology / Shin & Kim - K-Taxonomy Guideline and Its Implications"
+      ]
+    },
+    {
+      "host": "likumi.lv",
+      "names": [
+        "Latvian Laws and Regulations Portal (likumi.lv)"
+      ]
+    },
+    {
+      "host": "lindnerlogistics.com",
+      "names": [
+        "lindnerlogistics.com"
+      ]
+    },
+    {
+      "host": "link.springer.com",
+      "names": [
+        "Springer - Regulatory Momentum for an Energy Subsidies Agreement (Journal Article)"
+      ]
+    },
+    {
+      "host": "lmta.com",
+      "names": [
+        "Louisiana Motor Transport Association (LMTA)"
+      ]
+    },
+    {
+      "host": "lobbymap.org",
+      "names": [
+        "LobbyMap (InfluenceMap) - European Clean Trucking Alliance Profile"
+      ]
+    },
+    {
+      "host": "logistics.or.jp",
+      "names": [
+        "Japan Logistics Systems Association (JILS)"
+      ]
+    },
+    {
+      "host": "logisticsinsider.in",
+      "names": [
+        "India's First Certified Emissions Measurement Tool Paves the Way for Sustainable Freight Operations"
+      ]
+    },
+    {
+      "host": "lordslibrary.parliament.uk",
+      "names": [
+        "UK House of Lords Library: GHG ETS maritime activities extension order 2026"
+      ]
+    },
+    {
+      "host": "louisianacleanfuels.org",
+      "names": [
+        "Louisiana Clean Fuels / Southeast Louisiana Clean Fuel Partnership"
+      ]
+    },
+    {
+      "host": "lvgmc.lv",
+      "names": [
+        "Latvian Environment Agency (Latvijas Vides aģentūra - LEA)"
+      ]
+    },
+    {
+      "host": "lvm.fi",
+      "names": [
+        "Ministry of Transport and Communications Finland (LVM)"
+      ]
+    },
+    {
+      "host": "m-erc.org",
+      "names": [
+        "Maritime Emissions Reduction Centre (MERC)"
+      ]
+    },
+    {
+      "host": "magyarkozlony.hu",
+      "names": [
+        "Magyar Közlöny (Hungarian Official Gazette)"
+      ]
+    },
+    {
+      "host": "maloneyaffordable.com",
+      "names": [
+        "Matrix Hudson - Maloney Affordable Housing (Lottery Agent)"
+      ]
+    },
+    {
+      "host": "manifoldtimes.com",
+      "names": [
+        "Manifold Times - Industry Partners Launch Brazil-Belgium E-Fuel Green Shipping Corridor"
+      ]
+    },
+    {
+      "host": "mapon.com",
+      "names": [
+        "Mapon - EU Tachograph Regulations: 2.5t+ LCV Update 2026"
+      ]
+    },
+    {
+      "host": "marad.bg",
+      "names": [
+        "Executive Agency Maritime Administration (Изпълнителна агенция 'Морска администрация')"
+      ]
+    },
+    {
+      "host": "marineinsight.com",
+      "names": [
+        "Marine Insight - Canadian Arctic and Norwegian Sea Become MARPOL Annex VI Emission Control Areas"
+      ]
+    },
+    {
+      "host": "marinex.org",
+      "names": [
+        "MarineX - MARPOL Annex III and the IMDG Code (Industry Analysis)"
+      ]
+    },
+    {
+      "host": "marketac.eu",
+      "names": [
+        "DG ENV Presentation on PPWR (mirrored via marketac.eu)"
+      ]
+    },
+    {
+      "host": "masscec.com",
+      "names": [
+        "Massachusetts Clean Energy Center (MassCEC)"
+      ]
+    },
+    {
+      "host": "massport.com",
+      "names": [
+        "Massachusetts Port Authority (Massport)"
+      ]
+    },
+    {
+      "host": "mbrsic.ae",
+      "names": [
+        "MBR Solar Park Sustainability & Innovation Centre"
+      ]
+    },
+    {
+      "host": "mbta.com",
+      "names": [
+        "Massachusetts Bay Transportation Authority (MBTA)"
+      ]
+    },
+    {
+      "host": "mda.state.mn.us",
+      "names": [
+        "Minnesota Department of Agriculture - Biofuels & Weights and Measures"
+      ]
+    },
+    {
+      "host": "mdpi.com",
+      "names": [
+        "MDPI Sustainability - Hydrogen & Ammonia as Future Clean Marine Energies"
+      ]
+    },
+    {
+      "host": "mdst.co.uk",
+      "names": [
+        "mdst.co.uk"
+      ]
+    },
+    {
+      "host": "me.government.bg",
+      "names": [
+        "Ministry of Energy (Министерство на енергетиката)"
+      ]
+    },
+    {
+      "host": "mediaoffice.ae",
+      "names": [
+        "Dubai Media Office - DEWA Phase 7 EOI Announcement"
+      ]
+    },
+    {
+      "host": "medium.com",
+      "names": [
+        "medium.com"
+      ]
+    },
+    {
+      "host": "mekh.hu",
+      "names": [
+        "Hungarian Energy and Public Utility Regulatory Authority (MEKH)"
+      ]
+    },
+    {
+      "host": "mesia.com",
+      "names": [
+        "MESIA - Shams Dubai Rooftop Solar Capacity Report"
+      ]
+    },
+    {
+      "host": "metrans.org",
+      "names": [
+        "METRANS CSFAP Action 6 Phase 3"
+      ]
+    },
+    {
+      "host": "metro.tokyo.lg.jp",
+      "names": [
+        "Tokyo Metropolitan Government - Bureau of Transportation"
+      ]
+    },
+    {
+      "host": "metrocouncil.org",
+      "names": [
+        "Metropolitan Council - Transportation Policy Plan (Twin Cities MPO)"
+      ]
+    },
+    {
+      "host": "metrovancouver.org",
+      "names": [
+        "Metro Vancouver (Greater Vancouver Regional District) - Air Quality and Climate"
+      ]
+    },
+    {
+      "host": "mhsr.sk",
+      "names": [
+        "Ministry of Economy of the Slovak Republic (Ministerstvo hospodárstva SR)"
+      ]
+    },
+    {
+      "host": "mindop.sk",
+      "names": [
+        "Ministry of Transport and Construction of the Slovak Republic (Ministerstvo dopravy a výstavby SR)"
+      ]
+    },
+    {
+      "host": "minnesotago.org",
+      "names": [
+        "Minnesota GO - State Freight Plan Portal (MnDOT)"
+      ]
+    },
+    {
+      "host": "missionpossiblepartnership.org",
+      "names": [
+        "Mission Possible Partnership Global Project Tracker"
+      ]
+    },
+    {
+      "host": "mitsui.com",
+      "names": [
+        "Mitsui & Co. Global Strategic Studies Institute - The 2024 Problem in Logistics (May 2023)"
+      ]
+    },
+    {
+      "host": "mobilit.belgium.be",
+      "names": [
+        "Federal Public Service Mobility and Transport (FPS Mobilit)"
+      ]
+    },
+    {
+      "host": "mondaq.com",
+      "names": [
+        "Mondaq - Brazil Reverse Logistics Regulatory Decrees Article"
+      ]
+    },
+    {
+      "host": "morganlewis.com",
+      "names": [
+        "Morgan Lewis - Tariffs and Trade in Energy Storage Projects"
+      ]
+    },
+    {
+      "host": "morpc.org",
+      "names": [
+        "Mid-Ohio Regional Planning Commission (MORPC)"
+      ]
+    },
+    {
+      "host": "mpce.mp.br",
+      "names": [
+        "mp.br"
+      ]
+    },
+    {
+      "host": "mtc.government.bg",
+      "names": [
+        "Ministry of Transport and Communications (Министерство на транспорта и съобщенията)"
+      ]
+    },
+    {
+      "host": "musicweek.com",
+      "names": [
+        "Music Week - MIT Climate Machine Emissions Reporting (Coldplay/Warner/Live Nation Backed)"
+      ]
+    },
+    {
+      "host": "mwcog.org",
+      "names": [
+        "Metropolitan Washington Council of Governments - Transportation Planning Board (COG/TPB)"
+      ]
+    },
+    {
+      "host": "nacfe.org",
+      "names": [
+        "NACFE - The State of Autonomous Trucking in 2025: A Recap of 2024"
+      ]
+    },
+    {
+      "host": "nao.org.uk",
+      "names": [
+        "National Audit Office - DEFRA Overview 2024-25"
+      ]
+    },
+    {
+      "host": "nap.bg",
+      "names": [
+        "National Revenue Agency - Tax Division (Национална агенция по приходите)"
+      ]
+    },
+    {
+      "host": "napa.fi",
+      "names": [
+        "napa.fi"
+      ]
+    },
+    {
+      "host": "narodne-novine.nn.hr",
+      "names": [
+        "Narodne novine - Official Gazette of the Republic of Croatia"
+      ]
+    },
+    {
+      "host": "nationalcompliancetraining.co.uk",
+      "names": [
+        "National Compliance Training - Van Tachograph Requirements"
+      ]
+    },
+    {
+      "host": "natlawreview.com",
+      "names": [
+        "National Law Review - CLCPA Compliance Court Order Coverage"
+      ]
+    },
+    {
+      "host": "nature.com",
+      "names": [
+        "Aryanpur & Rogan - Nature Scientific Reports (2024)"
+      ]
+    },
+    {
+      "host": "nber.org",
+      "names": [
+        "NBER Working Paper - Forecasting Natural Gas Prices in Real Time"
+      ]
+    },
+    {
+      "host": "nbeub.ca",
+      "names": [
+        "New Brunswick Energy and Utilities Board (NBEUB)"
+      ]
+    },
+    {
+      "host": "nbn.be",
+      "names": [
+        "NBN - Bureau for Standardisation (Bureau voor Normalisatie / Bureau de Normalisation)"
+      ]
+    },
+    {
+      "host": "ndcpartnership.org",
+      "names": [
+        "NDC Partnership - GEF Trust Fund Explorer"
+      ]
+    },
+    {
+      "host": "nen.nl",
+      "names": [
+        "Netherlands Standardisation Institute (NEN)"
+      ]
+    },
+    {
+      "host": "nescoe.com",
+      "names": [
+        "New England States Committee on Electricity (NESCOE) / ISO-NE (regional pointer)"
+      ]
+    },
+    {
+      "host": "news.gov.mb.ca",
+      "names": [
+        "Government of Manitoba News Release Portal (news.gov.mb.ca)"
+      ]
+    },
+    {
+      "host": "newsroom.bankofamerica.com",
+      "names": [
+        "Bank of America Newsroom - USGBC 2026 LEED for Cities Certification Cohort"
+      ]
+    },
+    {
+      "host": "nfrmpo.org",
+      "names": [
+        "North Front Range MPO - Air Quality and GHG Program Page"
+      ]
+    },
+    {
+      "host": "nirb.ca",
+      "names": [
+        "Nunavut Impact Review Board (NIRB)"
+      ]
+    },
+    {
+      "host": "njt.hu",
+      "names": [
+        "Nemzeti Jogszabálytár (National Legal Register - consolidated legislation in force)"
+      ]
+    },
+    {
+      "host": "njtpa.org",
+      "names": [
+        "NJTPA Freight Planning Hub"
+      ]
+    },
+    {
+      "host": "nl4worldbank.org",
+      "names": [
+        "Transforming Transportation 2026: Powering Jobs, Growth, and Dutch Partnerships"
+      ]
+    },
+    {
+      "host": "nora.ie",
+      "names": [
+        "National Oil Reserves Agency (NORA)"
+      ]
+    },
+    {
+      "host": "npcobserver.com",
+      "names": [
+        "NPC Observer - China NPC 2026 Eco-Environmental Code Analysis"
+      ]
+    },
+    {
+      "host": "nqbp.com.au",
+      "names": [
+        "North Queensland Bulk Ports Corporation (NQBP)"
+      ]
+    },
+    {
+      "host": "nsat.sk",
+      "names": [
+        "Transport Authority of the Slovak Republic (Dopravný úrad / NSAT)"
+      ]
+    },
+    {
+      "host": "nserbt.ca",
+      "names": [
+        "Nova Scotia Energy and Regulatory Boards Tribunal - Nova Scotia Energy Board"
+      ]
+    },
+    {
+      "host": "nsuarb.ca",
+      "names": [
+        "Nova Scotia Utility and Review Board (UARB) - Rate Filings"
+      ]
+    },
+    {
+      "host": "nunavut.ca",
+      "names": [
+        "Nunavut Planning Commission (NPC)"
+      ]
+    },
+    {
+      "host": "nunavutmarinecouncil.com",
+      "names": [
+        "Nunavut Marine Council (NMC)"
+      ]
+    },
+    {
+      "host": "nwb-oen.ca",
+      "names": [
+        "Nunavut Water Board (NWB)"
+      ]
+    },
+    {
+      "host": "nwseaportalliance.com",
+      "names": [
+        "Northwest Seaport Alliance (NWSA)"
+      ]
+    },
+    {
+      "host": "nwtpublicutilitiesboard.ca",
+      "names": [
+        "NWT Public Utilities Board"
+      ]
+    },
+    {
+      "host": "nyrej.com",
+      "names": [
+        "MOCEJ Key Accomplishments & Blue Highways Freight Pilot - NY Real Estate Journal"
+      ]
+    },
+    {
+      "host": "nysfocus.com",
+      "names": [
+        "NY Focus - CLCPA Climate Rollback Coverage"
+      ]
+    },
+    {
+      "host": "obcctc.ca",
+      "names": [
+        "Office of the BC Container Trucking Commissioner (OBCCTC)"
+      ]
+    },
+    {
+      "host": "odi.org",
+      "names": [
+        "ODI (Overseas Development Institute) - EU CBAM in 2025 Briefing Paper"
+      ]
+    },
+    {
+      "host": "odsorient.com",
+      "names": [
+        "ODS Orient - IMO CO2 Regulations 2026 for Exporters"
+      ]
+    },
+    {
+      "host": "oeb.ca",
+      "names": [
+        "Ontario Energy Board (OEB)"
+      ]
+    },
+    {
+      "host": "oireachtas.ie",
+      "names": [
+        "Houses of the Oireachtas (Irish Parliament)"
+      ]
+    },
+    {
+      "host": "onlinelibrary.wiley.com",
+      "names": [
+        "Biodiversity Finance: Sovereign Biodiversity Loss Drivers and Financial Stability - Journal of Industrial Ecology (Wiley)"
+      ]
+    },
+    {
+      "host": "onrsr.com.au",
+      "names": [
+        "Office of the National Rail Safety Regulator (ONRSR) - NSW"
+      ]
+    },
+    {
+      "host": "openei.org",
+      "names": [
+        "OpenEI - IEA Policies and Measures Database Entry"
+      ]
+    },
+    {
+      "host": "oslpr.org",
+      "names": [
+        "Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)"
+      ]
+    },
+    {
+      "host": "ourworldindata.org",
+      "names": [
+        "Our World in Data - CO₂ Emissions from Transport (IEA-sourced)"
+      ]
+    },
+    {
+      "host": "pacificenvironment.org",
+      "names": [
+        "Pacific Environment / UC Berkeley - An Analysis of Japan's Carbon Neutral Port Initiative and Yokohama Port (English, final)"
+      ]
+    },
+    {
+      "host": "packworld.com",
+      "names": [
+        "SPC Impact 2026: EPR Moves from Theory to Operational Reality - Packaging World"
+      ]
+    },
+    {
+      "host": "parlament-berlin.de",
+      "names": [
+        "Abgeordnetenhaus von Berlin"
+      ]
+    },
+    {
+      "host": "parlament.hu",
+      "names": [
+        "Országgyűlés - National Assembly of Hungary"
+      ]
+    },
+    {
+      "host": "parliament.bg",
+      "names": [
+        "National Assembly of the Republic of Bulgaria"
+      ]
+    },
+    {
+      "host": "pbl.nl",
+      "names": [
+        "Netherlands Environmental Assessment Agency (Planbureau voor de Leefomgeving - PBL)"
+      ]
+    },
+    {
+      "host": "peistatusofwomen.ca",
+      "names": [
+        "PEI Advisory Council on the Status of Women - Purple Ribbon Campaign / Family Violence Prevention Week"
+      ]
+    },
+    {
+      "host": "pembina.org",
+      "names": [
+        "Pembina Institute - Reducing Truck Emissions in Montreal"
+      ]
+    },
+    {
+      "host": "phillipslytle.com",
+      "names": [
+        "Phillips Lytle: NYC Local Law 97 leasing considerations"
+      ]
+    },
+    {
+      "host": "phlcouncil.com",
+      "names": [
+        "Philadelphia City Council"
+      ]
+    },
+    {
+      "host": "pkn.pl",
+      "names": [
+        "Polish Committee for Standardization (PKN - Polski Komitet Normalizacyjny)"
+      ]
+    },
+    {
+      "host": "policycommons.net",
+      "names": [
+        "Policy Commons: Critical Materials - Batteries for Electric Vehicles (IRENA 2024 archive)"
+      ]
+    },
+    {
+      "host": "portauthoritynsw.com.au",
+      "names": [
+        "Port Authority of New South Wales"
+      ]
+    },
+    {
+      "host": "porthouston.com",
+      "names": [
+        "Port of Houston Authority"
+      ]
+    },
+    {
+      "host": "portofvirginia.com",
+      "names": [
+        "Virginia Port Authority (Port of Virginia)"
+      ]
+    },
+    {
+      "host": "portseattle.org",
+      "names": [
+        "Port of Seattle - Environment & Sustainability"
+      ]
+    },
+    {
+      "host": "post.parliament.uk",
+      "names": [
+        "POST (Parliamentary Office of Science & Technology) - Decarbonising Surface Transport (April 2025)"
+      ]
+    },
+    {
+      "host": "powerflex.com",
+      "names": [
+        "PowerFlex: Guide to commercial & industrial solar/battery storage"
+      ]
+    },
+    {
+      "host": "preferredbynature.org",
+      "names": [
+        "preferredbynature.org"
+      ]
+    },
+    {
+      "host": "prnewswire.com",
+      "names": [
+        "PR Newswire / MIT Climate Machine Live Music Emissions Study"
+      ]
+    },
+    {
+      "host": "procurementmag.com",
+      "names": [
+        "Procurement Magazine - DP World Advances Sustainable Sourcing Towards 2050 Net Zero"
+      ]
+    },
+    {
+      "host": "projects.eao.gov.bc.ca",
+      "names": [
+        "BC Environmental Assessment Office (EAO)"
+      ]
+    },
+    {
+      "host": "promiseenergy.com",
+      "names": [
+        "Promise Energy / Warehouse Logistics Solar (vendor blog)"
+      ]
+    },
+    {
+      "host": "proswppp.com",
+      "names": [
+        "ProSWPPP - Georgia SWPPP Requirements Guide"
+      ]
+    },
+    {
+      "host": "psc.state.fl.us",
+      "names": [
+        "Florida Public Service Commission (FPSC)"
+      ]
+    },
+    {
+      "host": "psc.state.ga.us",
+      "names": [
+        "Georgia Public Service Commission (PSC)"
+      ]
+    },
+    {
+      "host": "psc.state.wv.us",
+      "names": [
+        "West Virginia Public Service Commission (PSC)"
+      ]
+    },
+    {
+      "host": "ptonline.com",
+      "names": [
+        "Plastics Technology - April 2026 Volume Resin Prices Mostly Up; Uncertainty Looms"
+      ]
+    },
+    {
+      "host": "pub.nl.ca",
+      "names": [
+        "Newfoundland and Labrador Board of Commissioners of Public Utilities (PUB)"
+      ]
+    },
+    {
+      "host": "publications.opec.org",
+      "names": [
+        "OPEC Monthly Oil Market Report - May 2026"
+      ]
+    },
+    {
+      "host": "publications.saskatchewan.ca",
+      "names": [
+        "Office of the King's Printer - Saskatchewan Gazette & FreeLaw"
+      ]
+    },
+    {
+      "host": "publications.tnsosfiles.com",
+      "names": [
+        "Tennessee Secretary of State - Official Rules & Regulations (tnsosfiles.com)"
+      ]
+    },
+    {
+      "host": "publicationsduquebec.gouv.qc.ca",
+      "names": [
+        "Gazette officielle du Québec - Publications du Québec"
+      ]
+    },
+    {
+      "host": "pubmanitoba.ca",
+      "names": [
+        "Manitoba Public Utilities Board (PUB)"
+      ]
+    },
+    {
+      "host": "puertos.es",
+      "names": [
+        "Puertos del Estado (State Ports Authority)"
+      ]
+    },
+    {
+      "host": "pv-magazine-usa.com",
+      "names": [
+        "pv magazine USA - BloombergNEF Confirms Energy Storage Has Reached the 100 GW Era"
+      ]
+    },
+    {
+      "host": "qec.nu.ca",
+      "names": [
+        "Qulliq Energy Corporation (QEC)"
+      ]
+    },
+    {
+      "host": "qlsproctor.com.au",
+      "names": [
+        "Queensland Law Society Proctor - Trusts Act 2025 Commencement Article"
+      ]
+    },
+    {
+      "host": "qp.alberta.ca",
+      "names": [
+        "Alberta King's Printer / Alberta Gazette"
+      ]
+    },
+    {
+      "host": "qtagg.com",
+      "names": [
+        "QTAGG - IMO CII Requirements Explainer"
+      ]
+    },
+    {
+      "host": "qtlc.com.au",
+      "names": [
+        "Queensland Transport and Logistics Council (QTLC)"
+      ]
+    },
+    {
+      "host": "queclink.com",
+      "names": [
+        "Queclink - EU Mobility Package and Tachograph Requirements Blog"
+      ]
+    },
+    {
+      "host": "questions-statements.parliament.uk",
+      "names": [
+        "UK Parliament - Written Statement HLWS548 (2025-03-25)"
+      ]
+    },
+    {
+      "host": "quetica.com",
+      "names": [
+        "Quetica / ARPA-E Reports (publisher identity unconfirmed)"
+      ]
+    },
+    {
+      "host": "rand.org",
+      "names": [
+        "RAND Europe - Decarbonising UK Transport: Seven Mode Roadmaps"
+      ]
+    },
+    {
+      "host": "recyclingeurope.org",
+      "names": [
+        "recyclingeurope.org"
+      ]
+    },
+    {
+      "host": "reedsmith.com",
+      "names": [
+        "Reed Smith - UK EPC/MEES 2026 Reform Insight"
+      ]
+    },
+    {
+      "host": "regie-energie.qc.ca",
+      "names": [
+        "Régie de l'énergie du Québec"
+      ]
+    },
+    {
+      "host": "registerofohio.state.oh.us",
+      "names": [
+        "Register of Ohio (Ohio Legislative Service Commission)"
+      ]
+    },
+    {
+      "host": "regulations.justia.com",
+      "names": [
+        "Justia Regulations - California Title 13 Div 2 Ch 6.5 Art 6 Sec 1233"
+      ]
+    },
+    {
+      "host": "reports.weforum.org",
+      "names": [
+        "WEF - Global Aviation Sustainability Outlook 2025"
+      ]
+    },
+    {
+      "host": "research-center.amundi.com",
+      "names": [
+        "Japan Green Transformation: A Bold Ambition to Speed Up the Transition in Asia, Amundi Research Center"
+      ]
+    },
+    {
+      "host": "resilientmaritimelogistics.unctad.org",
+      "names": [
+        "Resilient Maritime Logistics - UNCTAD"
+      ]
+    },
+    {
+      "host": "rews.org.mt",
+      "names": [
+        "Regulator for Energy and Water Services (REWS)"
+      ]
+    },
+    {
+      "host": "rggi.org",
+      "names": [
+        "Regional Greenhouse Gas Initiative (RGGI)"
+      ]
+    },
+    {
+      "host": "riigikogu.ee",
+      "names": [
+        "Riigikogu - Parliament of Estonia"
+      ]
+    },
+    {
+      "host": "riigiteataja.ee",
+      "names": [
+        "Riigi Teataja (State Gazette)"
+      ]
+    },
+    {
+      "host": "rivm.nl",
+      "names": [
+        "Rijksinstituut voor Volksgezondheid en Milieu (RIVM)"
+      ]
+    },
+    {
+      "host": "rna.ro",
+      "names": [
+        "Romanian Naval Authority - ANR (Autoritatea Navală Română)"
+      ]
+    },
+    {
+      "host": "roi-nj.com",
+      "names": [
+        "ROI-NJ - NJEDA and SOSA Open NJ BASE Applications (May 4, 2026)"
+      ]
+    },
+    {
+      "host": "roselitigation.com.au",
+      "names": [
+        "Rose Litigation Lawyers - Queensland's New Trusts Act: Guidance for Trustees, Beneficiaries and Advisors"
+      ]
+    },
+    {
+      "host": "rta.ae",
+      "names": [
+        "Dubai RTA - Zero-Emissions Public Transportation 2050 Strategy"
+      ]
+    },
+    {
+      "host": "rvia.org",
+      "names": [
+        "RV Industry Association - CARB Advanced Clean Truck Rule, Multi-State Impact"
+      ]
+    },
+    {
+      "host": "s.fhg.de",
+      "names": [
+        "Fraunhofer - research methodology (s.fhg.de shortlink)"
+      ]
+    },
+    {
+      "host": "sabor.hr",
+      "names": [
+        "Hrvatski sabor - Croatian Parliament"
+      ]
+    },
+    {
+      "host": "safclearinghouse.uk",
+      "names": [
+        "safclearinghouse.uk"
+      ]
+    },
+    {
+      "host": "sanctionsmap.eu",
+      "names": [
+        "EU Sanctions Map"
+      ]
+    },
+    {
+      "host": "sazp.sk",
+      "names": [
+        "Slovak Environment Agency (Slovenská agentúra životného prostredia - SAŽP)"
+      ]
+    },
+    {
+      "host": "scc.ca",
+      "names": [
+        "Standards Council of Canada (SCC)"
+      ]
+    },
+    {
+      "host": "sciencebasedtargetsnetwork.org",
+      "names": [
+        "SBTN - Science Based Targets Network"
+      ]
+    },
+    {
+      "host": "scmr.com",
+      "names": [
+        "SCMR - Navigating the Road to Zero-Emission Trucking (Caplice & Velázquez-Martínez, 2025)"
+      ]
+    },
+    {
+      "host": "sdcexec.com",
+      "names": [
+        "SDCExec - Delta Cargo Joins Sustainable Air Freight Alliance (Press Release)"
+      ]
+    },
+    {
+      "host": "sdg.iisd.org",
+      "names": [
+        "STI Forum 2024 - IISD SDG Knowledge Hub"
+      ]
+    },
+    {
+      "host": "sdgpulse.unctad.org",
+      "names": [
+        "UNCTAD SDG Pulse 2025 - Sustainable Transport"
+      ]
+    },
+    {
+      "host": "seaharbor-group.com",
+      "names": [
+        "seaharbor-group.com"
+      ]
+    },
+    {
+      "host": "search.housingnavigatorma.org",
+      "names": [
+        "Matrix Hudson - Housing Navigator MA"
+      ]
+    },
+    {
+      "host": "sevenresiduos.com.br",
+      "names": [
+        "Seven Resíduos - Brazil Decree 10936 PNRS Reverse Logistics Regulation Analysis"
+      ]
+    },
+    {
+      "host": "sfbos.org",
+      "names": [
+        "San Francisco Board of Supervisors"
+      ]
+    },
+    {
+      "host": "sfzp.cz",
+      "names": [
+        "State Environmental Fund of the Czech Republic (Státní fond životního prostředí ČR - SFŽP)"
+      ]
+    },
+    {
+      "host": "siea.sk",
+      "names": [
+        "Slovak Innovation and Energy Agency (Slovenská inovačná a energetická agentúra - SIEA)"
+      ]
+    },
+    {
+      "host": "siiaonline.org",
+      "names": [
+        "SIIA - ASEAN Summit 2026 Cebu Analysis (Premium)"
+      ]
+    },
+    {
+      "host": "simplybusiness.co.uk",
+      "names": [
+        "Simply Business - New Energy Efficiency Rules for Rental Properties (UK)"
+      ]
+    },
+    {
+      "host": "sis.se",
+      "names": [
+        "Swedish Standards Institute (SIS)"
+      ]
+    },
+    {
+      "host": "skuld.com",
+      "names": [
+        "skuld.com"
+      ]
+    },
+    {
+      "host": "skynrg.com",
+      "names": [
+        "SkyNRG SAF Market Outlook"
+      ]
+    },
+    {
+      "host": "slov-lex.sk",
+      "names": [
+        "SLOV-LEX - Legislative and Information Portal / Zbierka zákonov (Official Gazette of the Slovak Republic)"
+      ]
+    },
+    {
+      "host": "solaroofing.ae",
+      "names": [
+        "SolarRoofing.ae - DEWA Announces New Regulations for Grid-Connected PV Systems (2022)"
+      ]
+    },
+    {
+      "host": "southeastfloridaclimatecompact.org",
+      "names": [
+        "Southeast Florida Regional Climate Change Compact"
+      ]
+    },
+    {
+      "host": "sparke.com.au",
+      "names": [
+        "Sparke Helmore - Regional Planning Interests / Condamine Alluvium Bill Insight"
+      ]
+    },
+    {
+      "host": "spglobal.com",
+      "names": [
+        "Series of new green shipping corridors emerge despite IMO regulatory setback"
+      ]
+    },
+    {
+      "host": "ssc4c.org.br",
+      "names": [
+        "SSC4C Knowledge Center - Brazil National Solid Waste Policy (PNRS) Overview"
+      ]
+    },
+    {
+      "host": "standardsmap.org",
+      "names": [
+        "Standards Map - Carbon Trust Product Footprint Certification (ITC)"
+      ]
+    },
+    {
+      "host": "stillwaterpublications.com",
+      "names": [
+        "Stillwater Publications: Oregon CFP 101"
+      ]
+    },
+    {
+      "host": "strategyand.pwc.com",
+      "names": [
+        "PwC Strategy&: Decarbonization of logistics"
+      ]
+    },
+    {
+      "host": "sundt.com",
+      "names": [
+        "Sundt Construction - Construction Starts on Southern Arizona's Largest Highway Project"
+      ]
+    },
+    {
+      "host": "support.sitecompli.com",
+      "names": [
+        "SiteCompli Help Center - NYC Local Law 84 Benchmarking Guide"
+      ]
+    },
+    {
+      "host": "sustainableaviation.co.uk",
+      "names": [
+        "Sustainable Aviation UK"
+      ]
+    },
+    {
+      "host": "sustainablescotlandnetwork.org",
+      "names": [
+        "Sustainable Scotland Network (SSN)"
+      ]
+    },
+    {
+      "host": "sustainableworldports.org",
+      "names": [
+        "World Port Sustainability Program - POLA Zero Emissions Pathway"
+      ]
+    },
+    {
+      "host": "syke.fi",
+      "names": [
+        "Finnish Environment Institute (SYKE)"
+      ]
+    },
+    {
+      "host": "tachogram.com",
+      "names": [
+        "Tachogram Blog - EU Tachograph Regulation Changes 2026"
+      ]
+    },
+    {
+      "host": "tallapolitica.com.mx",
+      "names": [
+        "Talla Política - NOM-174-SEMARNAT-2026 Published May 22 2026"
+      ]
+    },
+    {
+      "host": "thebrakereport.com",
+      "names": [
+        "The Brake Report - CVSA 2026 International Roadcheck (ELD & Cargo Securement)"
+      ]
+    },
+    {
+      "host": "thegpsc.org",
+      "names": [
+        "Global Platform for Sustainable Cities (GPSC) - Montréal City Profile"
+      ]
+    },
+    {
+      "host": "theindependentlandlord.com",
+      "names": [
+        "The Independent Landlord - New EPC Rules"
+      ]
+    },
+    {
+      "host": "thescxchange.com",
+      "names": [
+        "CSCMP State of Logistics Report 2025 (via The Supply Chain Xchange)"
+      ]
+    },
+    {
+      "host": "thesilkalliance.com",
+      "names": [
+        "The Silk Alliance - Official Site"
+      ]
+    },
+    {
+      "host": "thesoutheastasiadesk.com",
+      "names": [
+        "The Southeast Asia Desk / ASEAN Crisis Response Coverage"
+      ]
+    },
+    {
+      "host": "theurbandeveloper.com",
+      "names": [
+        "The Urban Developer - City of Melbourne Sustainable Building Amendment C376"
+      ]
+    },
+    {
+      "host": "thinkgeoenergy.com",
+      "names": [
+        "ThinkGeoEnergy - IRENA Geothermal LCOE Decline Report"
+      ]
+    },
+    {
+      "host": "tncleanfuels.org",
+      "names": [
+        "Tennessee Clean Fuels (ETCleanFuels / Middle-West TN Clean Fuels Coalition)"
+      ]
+    },
+    {
+      "host": "toldst.dk",
+      "names": [
+        "Danish Customs Agency (Toldstyrelsen)"
+      ]
+    },
+    {
+      "host": "tracker.carbongap.org",
+      "names": [
+        "Carbon Gap - ReFuelEU Aviation Policy Tracker"
+      ]
+    },
+    {
+      "host": "tract.com.au",
+      "names": [
+        "Tract: City of Melbourne ESD Amendment C376 changes"
+      ]
+    },
+    {
+      "host": "trafa.se",
+      "names": [
+        "Transport Analysis (Trafikanalys)"
+      ]
+    },
+    {
+      "host": "traficom.fi",
+      "names": [
+        "Finnish Transport and Communications Agency (Traficom)"
+      ]
+    },
+    {
+      "host": "trafikverket.se",
+      "names": [
+        "Swedish Transport Administration (Trafikverket)"
+      ]
+    },
+    {
+      "host": "transpordiamet.ee",
+      "names": [
+        "Estonian Transport Administration (Transpordiamet)"
+      ]
+    },
+    {
+      "host": "transportandclimatechange.org",
+      "names": [
+        "Transport & Climate Change in ASEAN (TCC) Project - GIZ/BMZ"
+      ]
+    },
+    {
+      "host": "transportationandclimate.org",
+      "names": [
+        "Transportation and Climate Initiative (TCI) - Regional Program"
+      ]
+    },
+    {
+      "host": "transportenvironment.org",
+      "names": [
+        "Transport & Environment - Truck weights and dimensions: more cargo, lower costs, less road wear"
+      ]
+    },
+    {
+      "host": "transports.public.lu",
+      "names": [
+        "Department of Transport - Transports.public.lu (Direction générale de la Mobilité, des Transports et des Infrastructures de Transport)"
+      ]
+    },
+    {
+      "host": "transportstyrelsen.se",
+      "names": [
+        "Swedish Transport Agency (Transportstyrelsen)"
+      ]
+    },
+    {
+      "host": "trellis.net",
+      "names": [
+        "Trellis Group - Supply Chain Topic Hub (formerly GreenBiz)"
+      ]
+    },
+    {
+      "host": "trm.dk",
+      "names": [
+        "Ministry of Transport (Transportministeriet)"
+      ]
+    },
+    {
+      "host": "truckdrivernews.com",
+      "names": [
+        "TruckDriverNews: CVSA Roadcheck 2026"
+      ]
+    },
+    {
+      "host": "tudelft.nl",
+      "names": [
+        "TU Delft - Port of Rotterdam & SmartPort extend Ports & Waterways Chair"
+      ]
+    },
+    {
+      "host": "tullverket.se",
+      "names": [
+        "Swedish Customs (Tullverket)"
+      ]
+    },
+    {
+      "host": "tweedekamer.nl",
+      "names": [
+        "Tweede Kamer der Staten-Generaal"
+      ]
+    },
+    {
+      "host": "uic.org",
+      "names": [
+        "UIC - Energy Efficiency and CO₂ Emissions (sustainability hub)"
+      ]
+    },
+    {
+      "host": "unescap.org",
+      "names": [
+        "ASEAN Cooperation on Sustainable Transport - UNESCAP Bulletin"
+      ]
+    },
+    {
+      "host": "unglobalcompact.org",
+      "names": [
+        "UN Global Compact - Maritime Just Transition Task Force (MJTTF)"
+      ]
+    },
+    {
+      "host": "unitingaviation.com",
+      "names": [
+        "Uniting Aviation (ICAO) - Global Framework for Aviation Clean Energy Transition"
+      ]
+    },
+    {
+      "host": "unms.sk",
+      "names": [
+        "Slovak Office of Standards, Metrology and Testing (Úrad pre normalizáciu, metrológiu a skúšobníctvo SR - ÚNMS SR)"
+      ]
+    },
+    {
+      "host": "unrbep.org",
+      "names": [
+        "UNR Business Environmental Program - Clark County Air Quality Assistance"
+      ]
+    },
+    {
+      "host": "uradni-list.si",
+      "names": [
+        "Uradni list Republike Slovenije - Official Gazette of the Republic of Slovenia"
+      ]
+    },
+    {
+      "host": "urbangreencouncil.org",
+      "names": [
+        "Urban Green Council - NYC Local Law 97 Policy Overview"
+      ]
+    },
+    {
+      "host": "utilitydive.com",
+      "names": [
+        "Utility Dive - Trump Tariffs and Battery Energy Storage"
+      ]
+    },
+    {
+      "host": "varuna-sentinels.com",
+      "names": [
+        "varuna-sentinels.com"
+      ]
+    },
+    {
+      "host": "vestnesis.lv",
+      "names": [
+        "Official Gazette of Latvia (Latvijas Vēstnesis)"
+      ]
+    },
+    {
+      "host": "viwapa.vi",
+      "names": [
+        "Virgin Islands Water and Power Authority (VIWAPA)"
+      ]
+    },
+    {
+      "host": "viwma.org",
+      "names": [
+        "Virgin Islands Waste Management Authority (VIWMA)"
+      ]
+    },
+    {
+      "host": "vlaanderen.be",
+      "names": [
+        "Flemish Department of Mobility and Public Works (Departement Mobiliteit en Openbare Werken - MOW)"
+      ]
+    },
+    {
+      "host": "voda.hr",
+      "names": [
+        "Croatian Waters (Hrvatske vode)"
+      ]
+    },
+    {
+      "host": "volvotrucks.com",
+      "names": [
+        "Volvo Trucks UK"
+      ]
+    },
+    {
+      "host": "wcoomd.org",
+      "names": [
+        "WCO - World Customs Organization"
+      ]
+    },
+    {
+      "host": "web2.gov.mb.ca",
+      "names": [
+        "Manitoba Laws - Continuance of Statutes and Regulations (web2.gov.mb.ca)"
+      ]
+    },
+    {
+      "host": "wfeo.org",
+      "names": [
+        "WFEO - 9th Science, Technology and Innovation Forum for the SDGs (2024)"
+      ]
+    },
+    {
+      "host": "wilmapco.org",
+      "names": [
+        "Wilmington Area Planning Council (WILMAPCO)"
+      ]
+    },
+    {
+      "host": "wipo.int",
+      "names": [
+        "wipo.int"
+      ]
+    },
+    {
+      "host": "wlox.com",
+      "names": [
+        "WLOX - 'Beach water advisories issued from Bay St. Louis to Biloxi' (May 18 2026)"
+      ]
+    },
+    {
+      "host": "woodmac.com",
+      "names": [
+        "Wood Mackenzie - Energy Storage: 5 Trends to Look for in 2026"
+      ]
+    },
+    {
+      "host": "wri-india.org",
+      "names": [
+        "Accelerating India's Freight Decarbonization (e-FAST India)"
+      ]
+    },
+    {
+      "host": "wsp.com",
+      "names": [
+        "WSP Built Ecology - LEED v5 Explained: Three Changes Building Owners Should Understand"
+      ]
+    },
+    {
+      "host": "www2.camara.leg.br",
+      "names": [
+        "leg.br"
+      ]
+    },
+    {
+      "host": "www2.snb.ca",
+      "names": [
+        "Service New Brunswick - Trucking and Transport"
+      ]
+    },
+    {
+      "host": "yamato-hd.co.jp",
+      "names": [
+        "Yamato Holdings - First MLIT Logistics Investment under 2024 Distribution Act"
+      ]
+    },
+    {
+      "host": "yesab.ca",
+      "names": [
+        "Yukon Environmental and Socio-economic Assessment Board (YESAB)"
+      ]
+    },
+    {
+      "host": "zemo.org.uk",
+      "names": [
+        "Zemo Partnership - HGV Decarbonisation"
+      ]
+    },
+    {
+      "host": "zevalliance.org",
+      "names": [
+        "ZEV Alliance"
+      ]
+    }
+  ]
+}

@@ -287,6 +287,12 @@ export function syntheticItemIdFor(table, id) {
  *   insertNullTierFlag: (row:object) => Promise<void>,
  *   updateNullTierFlag: (id:string, patch:object) => Promise<void>,
  * }} deps
+ *
+ * `classTierForHost`'s second, optional `name` parameter (D14 residue ruling, defect-fix-plan-2026-09-12.md
+ * D14, 2026-09-13) is threaded from each row's OWN stored `name` column below -- rule (b) now also
+ * classifies via the residue ruling's 8 deterministic name-keyword rules (government/legal/academic/
+ * association/news/analysis/company), not the host alone. A row with no name still resolves exactly as
+ * before (the parameter is additive, never a behaviour change for a nameless row).
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
@@ -312,7 +318,9 @@ export async function main({ mode = "dry" } = {}, deps) {
   for (const row of pendingProvisional) {
     const host = hostForRow(row);
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    const classTier = host && existingTier == null ? classTierFn(host) : null;
+    // D14 residue ruling: thread this row's OWN stored `name` so rule (b) also runs the 8 name-keyword
+    // rules, not the host alone.
+    const classTier = host && existingTier == null ? classTierFn(host, row.name) : null;
     const plan = planProvisionalSourceRow(row, { existingTier, classTier });
     await applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps });
   }
@@ -320,7 +328,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   for (const row of sourcesProvisional) {
     const host = hostForRow(row);
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    const classTier = host && existingTier == null ? classTierFn(host) : null;
+    const classTier = host && existingTier == null ? classTierFn(host, row.name) : null;
     const plan = planSourcesProvisionalRow(row, { existingTier, classTier });
     await applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps });
   }
