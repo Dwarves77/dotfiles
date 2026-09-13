@@ -21,6 +21,13 @@ name: Brief apply
 #
 # DISPATCH RECIPE: Actions tab -> Brief apply -> Run workflow (pick mode/briefs_file/limit/after_id), or
 # `gh workflow run brief-apply.yml -f mode=apply -f briefs_file=scripts/turns/record-briefs/record-briefs-001.json`.
+# briefs_file is read by the driver step below, which runs with working-directory: fsi-app (see the job's
+# own `defaults.run.working-directory`) -- so briefs_file must be the fsi-app-RELATIVE path, e.g.
+# `scripts/turns/record-briefs/record-briefs-001.json`, never `fsi-app/scripts/turns/record-briefs/
+# record-briefs-001.json`. A value starting with fsi-app/ is wrong and will not resolve from this job's
+# own working directory (D27, defect-fix-plan-2026-09-12.md: batch 003 was dispatched with exactly that
+# mistake, resolved to zero entries, and both the dry and the apply run completed GREEN with nothing
+# written -- the "Validate briefs_file" step below now catches this before the driver step ever runs).
 
 on:
   workflow_dispatch:
@@ -116,6 +123,40 @@ jobs:
           if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
           if [ "$RUN_ALLOW_BRIEF_OVERWRITE" = "true" ]; then FLAGS="$FLAGS --allow-brief-overwrite"; fi
           echo "DRIVER_FLAGS=$FLAGS" >> "$GITHUB_ENV"
+
+      # D27 (defect-fix-plan-2026-09-12.md): validates $RUN_BRIEFS_FILE BEFORE the driver step runs, so a
+      # wrong path (the batch-003 mistake: an fsi-app/-prefixed value that does not resolve from this
+      # job's own working-directory) fails the workflow LOUDLY here, naming the resolved absolute path and
+      # the entry count, instead of the driver silently planning zero items and both dry and apply modes
+      # completing green with nothing written. The driver's own scripts/turns/apply-record-briefs.mjs
+      # (resolveBriefsInput) carries the SAME refusal as a library-level guard -- this step is the
+      # earliest possible surface for the CI dispatcher reading the Action's own log, not a replacement
+      # for that guard.
+      - name: Validate briefs_file
+        run: |
+          node -e '
+            const { resolve } = require("node:path");
+            const { existsSync, readFileSync } = require("node:fs");
+            const given = process.env.RUN_BRIEFS_FILE;
+            const resolved = resolve(given);
+            if (!existsSync(resolved)) {
+              console.error(`::error::briefs_file does not exist. Path as given: ${given} ; resolved absolute path: ${resolved} (this job runs with working-directory: fsi-app -- briefs_file must be the fsi-app-relative path, e.g. scripts/turns/record-briefs/record-briefs-001.json, never fsi-app/scripts/turns/record-briefs/record-briefs-001.json)`);
+              process.exit(1);
+            }
+            let raw;
+            try {
+              raw = JSON.parse(readFileSync(resolved, "utf8"));
+            } catch (err) {
+              console.error(`::error::briefs_file failed to parse as JSON. Path as given: ${given} ; resolved absolute path: ${resolved} ; ${err.message}`);
+              process.exit(1);
+            }
+            const count = Array.isArray(raw?.entries) ? raw.entries.length : 0;
+            console.log(`briefs_file resolved to ${resolved} with ${count} entr${count === 1 ? "y" : "ies"}.`);
+            if (count === 0) {
+              console.error(`::error::briefs_file parses to ZERO entries. Path as given: ${given} ; resolved absolute path: ${resolved} -- refusing before the driver step runs.`);
+              process.exit(1);
+            }
+          '
 
       - name: apply-record-briefs
         run: |

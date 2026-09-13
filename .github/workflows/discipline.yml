@@ -136,8 +136,14 @@ jobs:
       # GitHub and never see local-disk edits, and a fresh local session that
       # skipped /done starts blind. This step makes the write-back a property of
       # the merge, not of anyone remembering a command: a change that touches
-      # code must, in the same range, touch docs/ops/session-log.md or
-      # docs/PROGRAM-BOARD.md.
+      # code must, in the same range, touch docs/ops/session-log.md,
+      # docs/PROGRAM-BOARD.md, or its own docs/ops/session-log.d/YYYY-MM-DD-
+      # <slug>.md file (D28, defect-fix-plan-2026-09-12.md, W9 lane L18: every
+      # lane appending to the ONE session-log.md file made every rebase onto a
+      # master that had merged another lane's own entry conflict on it; a
+      # per-lane-per-day file under session-log.d/ satisfies the same vault
+      # requirement with nothing shared to conflict on -- see
+      # docs/ops/session-log.d/README.md).
       #
       # BLOCKING ON pull_request ONLY, warn on push, deliberately. Delivery to
       # this repo is by GitHub web upload, scoped to one directory per commit

@@ -26,7 +26,14 @@
 //             on that branch -- the SAME arrangement as harness-runs/LAST-TURN.json: a batch file is
 //             lane-emitted DATA on an apply-target branch that is never merged, its own memory is the
 //             proposer pass on master, not a first-person entry on a throwaway branch).
-//   MEMORY  = changed paths that are exactly docs/ops/session-log.md or docs/PROGRAM-BOARD.md.
+//   MEMORY  = changed paths that are exactly docs/ops/session-log.md or docs/PROGRAM-BOARD.md, OR that
+//             match docs/ops/session-log.d/YYYY-MM-DD-<slug>.md (D28, defect-fix-plan-2026-09-12.md, W9
+//             lane L18: every lane appended to the ONE session-log.md file, so every rebase onto a master
+//             that merged another lane's own appended entry conflicted on it -- four lanes hit that
+//             conflict in one night, and two push chains swallowed the conflict and pushed half-rebased
+//             trees that then failed CI's own memory gate. A per-lane-per-day file under session-log.d/
+//             satisfies the SAME vault requirement without a shared file to conflict on; the single
+//             session-log.md file stays for coordinator entries -- see docs/ops/session-log.d/README.md).
 //   SURFACE = changed paths under fsi-app/src/**/*.{tsx,css}.
 //   Memory gate:  CODE non-empty AND MEMORY empty -> FAIL.
 //   UX gate:      SURFACE non-empty AND the session-log diff for the range has no ADDED line ("^+")
@@ -56,6 +63,11 @@ import { isMainModule } from '../../scripts/lib/is-main.mjs';
 const CODE_RE = /^fsi-app\/(src|supabase\/migrations|scripts|\.discipline)\//;
 const CODE_EXCLUDE_RE = /^fsi-app\/scripts\/(harness-runs\/|turns\/LAST-TURN\.json$|turns\/record-briefs\/batches\/)/;
 const MEMORY_RE = /^docs\/(ops\/session-log\.md|PROGRAM-BOARD\.md)$/;
+// D28 (defect-fix-plan-2026-09-12.md, W9 lane L18): a per-lane-per-day session-log file also satisfies
+// the vault requirement - see docs/ops/session-log.d/README.md for the entry format and the "one file per
+// lane per day, never edit another lane's file" rule. README.md itself does not match (no date/slug), so
+// adding the README does not, on its own, satisfy the memory gate for a code-only range - by design.
+const SESSION_LOG_D_RE = /^docs\/ops\/session-log\.d\/\d{4}-\d{2}-\d{2}-[A-Za-z0-9_-]+\.md$/;
 const SURFACE_RE = /^fsi-app\/src\/.*\.(tsx|css)$/;
 const UX_COMPLIANCE_ADDED_RE = /^\+.*UX compliance/;
 
@@ -67,7 +79,7 @@ const UX_COMPLIANCE_ADDED_RE = /^\+.*UX compliance/;
 export function classifyChanged(files) {
   const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
   const code = list.filter((f) => CODE_RE.test(f) && !CODE_EXCLUDE_RE.test(f));
-  const memory = list.filter((f) => MEMORY_RE.test(f));
+  const memory = list.filter((f) => MEMORY_RE.test(f) || SESSION_LOG_D_RE.test(f));
   const surface = list.filter((f) => SURFACE_RE.test(f));
   return { code, memory, surface };
 }
@@ -83,10 +95,11 @@ export function memoryGateVerdict(files, { range = '<range>' } = {}) {
     return {
       ok: false,
       message:
-        `Memory gate: this range (${range}) touches code but neither docs/ops/session-log.md nor ` +
-        `docs/PROGRAM-BOARD.md. The vault is the project memory; a change it does not record is ` +
-        `invisible to every future session. Append a session-log addendum (or update PROGRAM-BOARD) in ` +
-        `this PR.`,
+        `Memory gate: this range (${range}) touches code but none of docs/ops/session-log.md, ` +
+        `docs/PROGRAM-BOARD.md, or a docs/ops/session-log.d/YYYY-MM-DD-<slug>.md file. The vault is the ` +
+        `project memory; a change it does not record is invisible to every future session. Append a ` +
+        `session-log addendum (docs/ops/session-log.md, or your own docs/ops/session-log.d/ file - see ` +
+        `its README.md), or update PROGRAM-BOARD, in this PR.`,
       warnNote: 'warn-only on push: piecewise web-upload delivery lands code and docs as separate pushes',
     };
   }
