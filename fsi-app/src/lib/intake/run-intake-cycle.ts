@@ -30,6 +30,7 @@ import { getSnapshot } from "@/lib/sources/snapshot-store.mjs";
 import { probeFreshness } from "@/lib/sources/freshness-probe.mjs";
 import { cheapVerifyClaims } from "@/lib/sources/cheap-verify.mjs";
 import { CHANGE_SWEEP_STAGED_MARKER } from "@/lib/sources/change-sweep.mjs";
+import { assertPoolRowShape } from "./pool-row-contract.mjs";
 
 // F6 (plan-intake retired): PLAN mode is the real apply path in dryRun — there is no parallel planIntakeCycle.
 // The verdict shape lives here now (the module that owns the cycle), built from the chokepoint's OWN dry verdict.
@@ -415,12 +416,12 @@ export async function runIntakeCycle(
     // The candidate's already-fetched text (capturedText, captured off `c` before STAGE stripped it) is
     // written as ONE agent_run_searches row in the canonical-ground shape canonical-pipeline.ts's own
     // ground-fallback INSERT uses -- the SAME shape export-corpus-for-extraction.mjs's --with-pool-text
-    // read selects (assertPoolRowShape, scripts/lib/pool-row-contract.mjs) -- so the free record-briefs
+    // read selects (assertPoolRowShape, src/lib/intake/pool-row-contract.mjs) -- so the free record-briefs
     // fleet's export can read this text exactly like a paid-grounded item's pool row. Never verified, never
     // ground_failed: grounding was never attempted, so neither outcome would be honest (see the
     // Disposition type's own doc above).
     if (opts.recordOnly) {
-      await sb.from("agent_run_searches").insert({
+      const poolRow = {
         intelligence_item_id: itemId,
         search_query: "canonical ground",
         result_url: c.source_url,
@@ -428,7 +429,11 @@ export async function runIntakeCycle(
         result_index: 0,
         result_content: capturedText ?? "",
         searched_at: now,
-      });
+      };
+      // The ONE shared shape assertion (F25: the contract is live code on this write path, not a test-only
+      // module): a row the exporter's read cannot use is refused here, before the insert.
+      assertPoolRowShape(poolRow);
+      await sb.from("agent_run_searches").insert(poolRow);
       items.push({
         ...base,
         disposition: "record_only",

@@ -205,7 +205,7 @@ Two changes close that:
   run-intake-cycle.ts`) instead of entering the paid grounding contract: the candidate's already-fetched
   text (the SAME text this batch's own producer read to classify it, carried through as `capturedText`)
   lands as ONE `agent_run_searches` pool row in the canonical-ground shape
-  (`scripts/lib/pool-row-contract.mjs`'s `assertPoolRowShape`), GROUND and VALIDATE are skipped entirely,
+  (`src/lib/intake/pool-row-contract.mjs`'s `assertPoolRowShape`), GROUND and VALIDATE are skipped entirely,
   and the free record-briefs fleet writes the `full_brief` later, exactly like every other record-grade
   item. `ledger-consume.yml` passes `record_only` through (default `true`); set `false` only when the
   paid grounding contract is genuinely wanted inline (never set `false` by this workflow's own automatic

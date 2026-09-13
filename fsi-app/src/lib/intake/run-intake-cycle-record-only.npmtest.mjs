@@ -6,7 +6,7 @@
 //      chokepoint UNCHANGED.
 //   2. the candidate's capturedText is written as ONE agent_run_searches row in the canonical-ground
 //      shape (canonical-pipeline.ts's own INSERT shape for a grounding pool row), passing the SAME
-//      assertPoolRowShape the export test uses (scripts/lib/pool-row-contract.mjs).
+//      assertPoolRowShape the export test uses (src/lib/intake/pool-row-contract.mjs).
 //   3. the injected groundWorkflow stub is NEVER called -- the recordOnly branch structurally cannot reach
 //      GROUND+VALIDATE (this is a call-count proof against a REAL stub, not a source-text grep).
 //   4. capturedText never reaches the staged_updates.proposed_changes row nor the mint chokepoint's
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
-import { assertPoolRowShape } from "../../../scripts/lib/pool-row-contract.mjs";
+import { assertPoolRowShape } from "./pool-row-contract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
