@@ -137,6 +137,7 @@ node --test \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \
   fsi-app/src/lib/detail/*.test.mjs \
+  fsi-app/src/lib/dashboard/*.test.mjs \
   fsi-app/src/lib/url-params/*.test.mjs \
   fsi-app/src/components/community/*.test.mjs \
   fsi-app/src/components/shell/*.test.mjs \
