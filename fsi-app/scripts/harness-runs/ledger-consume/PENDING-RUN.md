@@ -15,9 +15,17 @@ query at about 435 dispositioned rows per source. The other two governing files
 `src/lib/intake/portal-harvest.npmtest.mjs` (25 goldens, including the RPC argument shape and the
 keyset threading).
 
-**harness_version at write time:** `sha256:14a162a7a2ca487d`
+**harness_version at the previous pin's write time (superseded below, see Re-pin 2):** `sha256:14a162a7a2ca487d`
 
 **The planned run that supersedes this marker:** the next `ledger-consume-run-NNN.json` (the next
 ledger-consume dispatch after this lane merges; the last artifact on record is `ledger-consume-run-007`
 at `sha256:4ec177b09e05e669`). Per F28's reverse-audit this file is deleted the moment an artifact
 carrying the hash above lands, or re-pinned if a governing file changes again before that run.
+
+## Re-pin 2 (coordinator, 2026-09-13, at push after rebase: lane/w9-l17-candidate-drain-2026-09-13)
+
+**What changed.** The recorded hash `sha256:14a162a7a2ca487d` no longer matched the live governing files of this family (`scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`, `src/lib/llm/first-fetch-classify.ts`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:4d8565eef0d1909e` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['ledger-consume']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
