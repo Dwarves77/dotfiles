@@ -21639,3 +21639,123 @@ env). Named-path staging only (`git add` five explicit paths). Trailer `Co-Autho
 **Open items carried to the report**: `finish-staged-updates.mjs`'s real-wiring gap (needs a ruling or a
 new stubbing mechanism, named above); the coordinator's own next step is retrying the
 `resolve-provisional-sources` apply now that both bugs in its promote path are fixed.
+## 2026-09-13, lane L14: D9, Axis-3 jurisdiction proposals adopt into sources.jurisdiction_iso
+
+**Defect.** D9 (defect-fix-plan-2026-09-12) found the Axis-3 jurisdiction classifier's proposals
+discarded: classify-source.mjs marked every jurisdiction proposal `applicable: false` because
+`sources.jurisdictions` is a live, differently-scoped region-bucket column. Correction: migration 033
+(`fsi-app/supabase/migrations/033_jurisdiction_iso.sql`, already applied, 718 live rows carry it) already
+gives Axis 3 a safe, ISO-shaped home, `sources.jurisdiction_iso TEXT[]`, distinct from the legacy
+`jurisdictions` column. This lane wires classify-source.mjs and apply-classifications.mjs onto that
+existing column. No DDL, no DB writes, no LLM/network calls; code-only.
+
+**Fix.**
+- `src/lib/classification/classify-source.mjs`: header rewritten to name `jurisdiction_iso` as Axis 3's
+  home and state why `jurisdictions` stays untouched by construction; `APPLICABLE_FIELDS` gains
+  `jurisdiction_iso`; `sourceClassificationGaps` tests `jurisdiction_iso` emptiness, never `jurisdictions`;
+  the Axis-3 proposal now emits `field: "jurisdiction_iso", applicable: true` (value shape unchanged: the
+  ISO code from `classifySourceJurisdiction`).
+- `scripts/classification/apply-classifications.mjs`: `AUTO_ADOPT_FIELDS` gains `jurisdiction_iso`
+  (auto-adopts only at confidence "high", the scope_modes rule); `ARRAY_FIELDS` (buildMergePatch) gains
+  `jurisdiction_iso` (merge only, append novel values, never remove); `decideClassificationProposal`'s old
+  "jurisdictions always declines, no safe write target" branch is replaced with a `jurisdiction_iso`
+  branch: a value outside `vocab.mjs`'s `isValidJurisdictionValue` shape declines unconditionally with
+  "jurisdiction_iso value <v> is not in the framework vocabulary."; else confidence "high" adopts, else
+  declines with a reason (same rule as scope_modes/scope_verticals). `readSource`'s select list gains
+  `jurisdiction_iso` so buildMergePatch merges against the source's real current value.
+- `scripts/classification/propose-classifications.mjs` and `scripts/maintenance/apply-classifications.mjs`:
+  advisory-only jurisdiction wording removed from headers/dispatch text; both files' `SOURCE_SIG`/
+  `readSource` select lists gain `jurisdiction_iso` for the same gap-correctness reason above.
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` section 17 and `fsi-app/docs/inventories/shared-dataset-ownership.md`:
+  the ADR-030-rider "jurisdiction always declines" passages corrected in place (never deleted) with a
+  2026-09-13 note that the decline is retired because the column exists.
+- Legacy `sources.jurisdictions` is never read as a gap signal and never written by this path, by
+  construction, unchanged from before this lane.
+
+**Confidence semantics found in jurisdiction.mjs** [CONFIRMED, read in full]: `classifySourceJurisdiction`
+returns either `null` (genuinely undeterminable from the host alone, never guessed) or an object with
+`confidence: "high"` always, `value` one vocab-valid token, `basis` naming the matched host pattern or
+`source_role=intergovernmental_body`. The module never produces a "medium" confidence value itself; the
+new decline-at-non-high-confidence branch in apply-classifications.mjs exists for defense in depth and is
+exercised in tests by passing a hand-built medium-confidence proposal object directly to
+`decideClassificationProposal`, which is how the class of medium-confidence source data (a future
+classifier revision, a hand-authored flag) is proven decided correctly without requiring the live
+classifier to ever emit one.
+
+**Tests** (all in existing files next to each module, `node --test`):
+1. `classify-source.test.mjs`: a source with empty `jurisdiction_iso` and a decisive host (legislation.gov.uk)
+   gets a proposal `field: "jurisdiction_iso", applicable: true, value: ["GB"]`; a source with
+   `jurisdiction_iso` already set gets none; the legacy `jurisdictions` column is never read as a gap
+   signal; `APPLICABLE_FIELDS` includes `jurisdiction_iso`, never the legacy `jurisdictions` name.
+2. `apply-classifications.test.mjs` (scripts/classification): `decideClassificationProposal` adopts
+   `jurisdiction_iso` at high confidence with a vocab-valid value, declines at medium confidence (same
+   scope_modes rule), declines a vocab-invalid value regardless of confidence (both alone and combined
+   with medium confidence, proving the vocab check runs first); `isAutoAdoptableProposal`/`AUTO_ADOPT_FIELDS`
+   cover jurisdiction_iso at high confidence only; `buildMergePatch` preserves an existing `jurisdiction_iso`
+   value and appends a novel one, a duplicate is a no-op; `autoAdoptClassification` end to end: a
+   high-confidence jurisdiction_iso-only flag adopts, writes, and resolves; a medium-confidence one is not
+   auto-adopted (declines under auto-adopt) but the SAME proposal, once operator-ratified
+   (`resolution_note` carrying `ratify:classification`), is applied and written through the separate,
+   confidence-blind ratified path (`applyClassification`), proving the proposal is not stuck; the legacy
+   `jurisdictions` field name still has no decision rule (unreachable in practice, classify-source.mjs
+   never emits it) and the INVARIANT test (every decidable flag resolves) extended with a jurisdiction_iso
+   high-confidence case and a vocab-invalid case.
+3. `propose-classifications.test.mjs`: `SOURCE_SIG` gains `jurisdiction_iso`; the two generic
+   advisory-only-proposal tests re-pointed at a placeholder field name (`some_future_axis`) since
+   jurisdiction is no longer this framework's own advisory-only example.
+4. `scripts/maintenance/apply-classifications.test.mjs`: comment corrected (jurisdiction_iso, not
+   jurisdictions, is the gap this fixture's classified source still carries); `SOURCE_SIG`/`readSource`
+   select lists gain `jurisdiction_iso`; no behavior change in this file's own assertions (the fixture's
+   host, example.com, was never gov/int, so it produces no jurisdiction_iso proposal either way).
+
+**Mutation checks** (temporarily reverted, confirmed red, restored, confirmed green): `applicable: true`
+reverted to `false` in classify-source.mjs failed the new proposal-shape test; the vocab-shape check
+disabled in `decideClassificationProposal` failed the vocab-invalid-at-medium-confidence test; the
+`jurisdiction_iso` entry removed from `ARRAY_FIELDS` failed both the merge test and the
+high-confidence-adopts-and-writes test. All three restored; full suites re-run green after each restore.
+
+**Test results** [CONFIRMED, `node --test`]: `classify-source.test.mjs` 14/14,
+`jurisdiction.test.mjs` 21/21, `vocab.test.mjs` 17/17,
+`scripts/classification/apply-classifications.test.mjs` 88/88,
+`scripts/classification/propose-classifications.test.mjs` 15/15,
+`scripts/maintenance/apply-classifications.test.mjs` 21/21. Combined run of all six: 162/162, 0 fail.
+
+**Gate.** `sh fsi-app/.discipline/hooks/pre-push` run once from the worktree top with the ref line fed on
+stdin; exit code and any failing step reported verbatim in the lane's own report
+(`task-l14-report.md`), not restated here to avoid the two diverging on a re-run.
+
+**Standing constraints honored.** No DDL, no DB writes (code-only lane; the column already exists and is
+live). No LLM or network calls. No `git stash`, no `--no-verify`, no push. Named-path staging only.
+Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+**Files.**
+- `fsi-app/src/lib/classification/classify-source.mjs` (modified: header, `APPLICABLE_FIELDS`,
+  `sourceClassificationGaps`, the Axis-3 proposal)
+- `fsi-app/src/lib/classification/classify-source.test.mjs` (modified: fixtures renamed to
+  `jurisdiction_iso`, new applicable/gap tests)
+- `fsi-app/scripts/classification/apply-classifications.mjs` (modified: `AUTO_ADOPT_FIELDS`,
+  `ARRAY_FIELDS`, `decideClassificationProposal`'s jurisdiction_iso branch, `readSource` select list,
+  header/comment corrections)
+- `fsi-app/scripts/classification/apply-classifications.test.mjs` (modified: new jurisdiction_iso
+  decision/merge/auto-adopt/ratified-path tests, corrected legacy-field tests)
+- `fsi-app/scripts/classification/propose-classifications.mjs` (modified: `SOURCE_SIG`, header/comment
+  corrections, generic advisory-only recommended_actions text)
+- `fsi-app/scripts/classification/propose-classifications.test.mjs` (modified: placeholder field name in
+  two generic advisory-only tests)
+- `fsi-app/scripts/maintenance/apply-classifications.mjs` (modified: `SOURCE_SIG`, `readSource` select
+  list, header/dispatch-text corrections)
+- `fsi-app/scripts/maintenance/apply-classifications.test.mjs` (modified: comment correction)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: section 17 correction, in place)
+- `fsi-app/docs/inventories/shared-dataset-ownership.md` (modified: `classification:*` rows corrected,
+  in place)
+- `docs/ops/session-log.md` (this entry)
+
+**Deviations from the brief, with reasons.** The brief's bullet 2 named "the SOURCE_SIG select list" as
+part of `scripts/classification/apply-classifications.mjs`'s own changes; that file has no `SOURCE_SIG`
+constant (it lives in the two propose-side files) -- read as the equivalent `readSource` select list in
+that file, which was widened for the same reason. Widened the select lists in
+`scripts/maintenance/apply-classifications.mjs` and `scripts/classification/apply-classifications.mjs`'s
+`readSource` beyond the brief's literal file list, because omitting `jurisdiction_iso` from a gap-check or
+merge-check select list would silently re-gap an already-classified source every run (a correctness bug,
+not an optional widening) [CONFIRMED by reading the call graph: `sourceClassificationGaps` and
+`buildMergePatch` both read the field directly from the row the select list fetched].

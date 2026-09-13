@@ -2130,6 +2130,21 @@ re-checks the classifier's OWN evidence basis -- the source's name and role, the
 store for a source (see `classify-source.mjs`'s header: "Deterministic name/role keyword matching only
 -- no content fetch, no LLM"), so the source's own registry name/role fields ARE its stored evidence.
 
+**Correction (D9, lane L14, 2026-09-13): the jurisdiction decline above is RETIRED because the column
+now exists.** Migration 033 (`fsi-app/supabase/migrations/033_jurisdiction_iso.sql`) added
+`sources.jurisdiction_iso TEXT[]` -- a safe, ISO-shaped Axis-3 home distinct from the legacy
+`sources.jurisdictions` region-bucket column, which stays untouched by this path forever (by
+construction: `classify-source.mjs` never emits field `"jurisdictions"`). Axis 3 now writes into
+`jurisdiction_iso` under the same decisive-match rule as `scope_modes`/`scope_verticals` -- confidence
+`"high"` (a decisive host-identity match from `jurisdiction.mjs`'s institutional-domain table) adopts,
+else declines with a reason -- plus one extra unconditional gate: a proposed value not shaped per
+`vocab.mjs`'s `isValidJurisdictionValue` (an ISO 3166-1/3166-2 code or a known free-text sentinel)
+declines regardless of confidence, with the reason `"jurisdiction_iso value <v> is not in the framework
+vocabulary."`. `jurisdiction_iso` also joined `APPLICABLE_FIELDS`/`AUTO_ADOPT_FIELDS`, so a ratified flag
+carrying only a jurisdiction_iso proposal is applicable, and a high-confidence one auto-adopts without a
+ratify marker. See `classify-source.mjs`'s header and `apply-classifications.mjs`'s
+`decideClassificationProposal` for the full reasoning.
+
 **Dispatch**: no `arg`. `mode=dry` reports the fresh proposal counts and the decision split
 (`counts.auto_adopt.eligible`/`decidable_count`/`not_eligible_count`). `mode=apply` writes through the
 guarded path (rule 015) and closes every reached flag.
