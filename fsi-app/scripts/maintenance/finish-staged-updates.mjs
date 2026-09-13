@@ -62,6 +62,9 @@
 // NO LIVE VERIFICATION IN THIS SESSION [CONFIRMED per dispatch brief facts, NOT independently
 // re-verified here -- no DB credentials in this worktree]. The 33-row count is the coordinator's own
 // live read; this script's own dry mode reconfirms it at dispatch time before any apply.
+//
+// REAL-DEPS GAP (D22 lane L9c, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): buildDeps builds a
+// raw supabase-js client outside db.mjs's seam; no test exercises it -- apply arm untested against real deps.
 import { readAll, guardedUpdate } from "../lib/db.mjs";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";

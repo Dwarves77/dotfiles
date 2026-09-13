@@ -21527,9 +21527,12 @@ first live run. [CONFIRMED] by the test failing before the fix (`AssertionError:
 got undefined`) and passing after. Fixed in the same commit as the gate wrapper -- same function, same
 defect class (an apply arm never exercised against its real dependency-injection wiring).
 
-**Class fix.** Enumerated every `scripts/maintenance/*.mjs` step that builds a `deps` object from real
-imports (`grep -rl "buildDeps\|buildRealDeps" scripts/maintenance`, 48 files matched, 44 real
-implementations after excluding 3 test files and `lib/cli.mjs`'s own contract definition):
+**Class fix [CORRECTED IN PLACE, fix round 1, 2026-09-13, coordinator review-l9c.md, CONDITIONAL FAIL --
+see the correction note below this list for what changed and why].** Enumerated every
+`scripts/maintenance/*.mjs` step that builds a `deps` object from real imports (`grep -rl
+"buildDeps\|buildRealDeps" scripts/maintenance`, 48 files matched pre-fix / 50 on the current tree after
+this lane's own 2 new `.npmtest.mjs` files, 44 real implementations after excluding 3 test files and
+`lib/cli.mjs`'s own contract definition):
 - **Already real-wiring tested**: `apply-classifications.mjs` (`buildRealDeps`, the 7.4c precedent this
   lane's own tests mirror).
 - **Fixed + real-wiring tested this lane**: `resolve-provisional-sources.mjs` (both bugs above) and
@@ -21537,37 +21540,66 @@ implementations after excluding 3 test files and `lib/cli.mjs`'s own contract de
   `specForItemType` passthrough already matched its one-argument call site -- no defect found, but its
   real jiti-loaded import had never executed against `main()`'s real orchestration in any test before
   this lane).
-- **Flagged, not fixed this lane (decision-ready gap)**: `finish-staged-updates.mjs` -- its real
-  `buildDeps` also loads a real `.ts` module via jiti (`applyStagedUpdate`, correctly wrapped as
-  `(row, opts) => applyStagedUpdate(sb, row, opts)`, matching its two-argument call site) but builds its
-  OWN raw `@supabase/supabase-js` client directly, outside `db.mjs`'s `readClient`/`writeClient` seam
-  this lane's stubbing technique (`__setWriteClientForTest`) covers. Its apply arm has never executed
-  against its real deps in any test. Needs either a new stubbing mechanism for a raw `createClient()`
-  caller, or a ruling to route it through `db.mjs`'s own seam instead -- named here rather than built
-  speculatively, per the plan's own scope (the wrapper fix, plus the SAME-shape class fix).
-- **Not given a new real-wiring test (lower risk, reasoned)**: `provenance-heal.mjs` (`buildHealDeps`,
-  already exported and reused by a second caller, but no jiti-loaded module -- a raw supabase-js client
-  + RPC + fetch, ~110 lines; substantial enough that a real-wiring test is its own scoped piece of work,
-  not a corollary of this lane's specific defect). Two thin `spawnSync` wrappers to another script with
-  no client injection at all (`refetch-capped.mjs`, `remediate-orphan-sources.mjs`). Three no-DB/file-only
-  closures (`review-digests.mjs`, `w1-dispositions.mjs`, `schema-vocabulary-inventory.mjs` -- the last
-  deliberately bypasses the shared runCli/buildDeps DB-connect ordering per its own header). The
-  remaining 34 steps (`attach-found-sources.mjs`, `canonical-autoverify.mjs`, `canonical-key-dedup.mjs`,
-  `census-off-vertical.mjs`, `close-acquire-primaries-holds.mjs`, `close-coverage-reflections.mjs`,
-  `close-flags-for-verified-items.mjs`, `close-legal-confirmation-rows.mjs`, `close-run-logs.mjs`,
-  `derive-obligations.mjs`, `enumerate-unclassified-hosts.mjs`, `forward-events-retext.mjs`,
-  `institution-canonicalize.mjs`, `origin-class-backfill.mjs`, `record-hollow-sweep.mjs`,
-  `regen-quarantined.mjs`, `reopen-validation-holds.mjs`, `resolve-cited-host-gate.mjs`,
+- **Decision-ready gap: every step whose `buildDeps` builds a client outside `db.mjs`'s seam** (3 files,
+  found by `grep -ln "createClient" scripts/maintenance/*.mjs`): `finish-staged-updates.mjs` (also loads
+  `applyStagedUpdate` via jiti, correctly wrapped as `(row, opts) => applyStagedUpdate(sb, row, opts)`,
+  matching its two-argument call site -- no argument-order defect); `provenance-heal.mjs`
+  (`buildHealDeps`, already exported and reused by a second caller, no jiti -- a raw client + RPC + fetch;
+  no argument-order defect); `tier-opinions.mjs` (`deps.supabase` passed to `recordTierOpinion` -- matches
+  its real two-argument signature, no argument-order defect). All three share the identical shape: a raw
+  `@supabase/supabase-js` client built outside `db.mjs`'s `readClient`/`writeClient` seam this lane's
+  stubbing technique (`__setWriteClientForTest`) is built around, and each apply arm has never executed
+  against its real deps in any test (`tier-opinions.test.mjs`/`provenance-heal.test.mjs` confirmed by
+  reading them: fake client only; `finish-staged-updates.test.mjs` confirmed: no reference to `buildDeps`/
+  `jiti`/`__setWriteClientForTest`). Needs either a new stubbing mechanism for a raw `createClient()`
+  caller, or a ruling to route each through `db.mjs`'s own seam instead -- named here rather than built
+  speculatively, per the plan's own scope (the wrapper fix, plus the SAME-shape class fix). Each file's
+  own header now carries a two-line `REAL-DEPS GAP` note (no change to the step's own logic).
+- **Cross-file function or module injected, independently verified, NOT the D22 class** (7 files):
+  `review-apply-portal-links.mjs`, `review-apply-canonical-candidates.mjs`,
+  `review-apply-coverage-gaps.mjs`, `review-apply-provisional-sources.mjs` each inject `deps.applyMain`
+  from a sibling `review/apply-*.mjs` script, called as `deps.applyMain({ rulingPath, apply }, deps)`
+  against the real `main({ rulingPath, apply = false } = {}, deps)` -- matches.
+  `reopen-validation-holds.mjs` injects `deps.reopenMain` from `mint/reopen-validation-holds.mjs`, called
+  as `deps.reopenMain({ reasonContains, apply })` against the real `main({ reasonContains, apply = false }
+  = {})` -- matches. `origin-class-backfill.mjs` injects `deps.fetchRowsIn` from
+  `mint/export-census-rows.mjs`, called with 5 positional arguments matching the real
+  `fetchRowsIn(sb, table, columns, keyColumn, values, {chunk}={})` -- matches. `canonical-autoverify.mjs`
+  imports the whole `host-authority.ts` namespace (plain relative import, no jiti) and calls its members
+  by direct property access -- no wrapping function, no injection surface. None of the 7 is the D22 class.
+- **Not given a new real-wiring test (lower risk, reasoned)**: two thin `spawnSync` wrappers to another
+  script with no client injection at all (`refetch-capped.mjs`, `remediate-orphan-sources.mjs`); three
+  no-DB/file-only closures (`review-digests.mjs`, `w1-dispositions.mjs`, `schema-vocabulary-inventory.mjs`
+  -- the last deliberately bypasses the shared runCli/buildDeps DB-connect ordering per its own header);
+  the remaining 26 steps (`attach-found-sources.mjs`, `canonical-key-dedup.mjs`, `census-off-vertical.mjs`,
+  `close-acquire-primaries-holds.mjs`, `close-coverage-reflections.mjs`, `close-flags-for-verified-items.mjs`,
+  `close-legal-confirmation-rows.mjs`, `close-run-logs.mjs`, `derive-obligations.mjs`,
+  `enumerate-unclassified-hosts.mjs`, `forward-events-retext.mjs`, `institution-canonicalize.mjs`,
+  `record-hollow-sweep.mjs`, `regen-quarantined.mjs`, `resolve-cited-host-gate.mjs`,
   `resolve-error-body-gate.mjs`, `resolve-refetch-holds.mjs`, `resolve-signals.mjs`,
-  `retype-eu-decisions.mjs`, `review-apply-canonical-candidates.mjs`, `review-apply-coverage-gaps.mjs`,
-  `review-apply-portal-links.mjs`, `review-apply-provisional-sources.mjs`, `seed-corridors.mjs`,
-  `source-role-cleanup.mjs`, `source-type-backfill.mjs`, `tag-proposals.mjs`, `tag-ratification.mjs`,
-  `tier-opinions.mjs`, `timeline-backfill.mjs`, `uk-series-code-reconcile.mjs`) wrap ONLY `db.mjs`'s own
-  guarded primitives (`readAll`/`guardedInsert`/`guardedUpdate`/etc.) with direct, matching-arity
-  passthroughs (verified per-file by reading each `buildDeps` body) -- no dynamically-loaded external
-  contract whose shape could silently mismatch the way `checkVerticalFitGate`'s two-argument contract
-  did; each already has its own `main()`-orchestration test via a fake `deps` object, and the shared
-  primitives themselves are covered by `db.test.mjs`. Not given a new real-wiring test in this lane.
+  `retype-eu-decisions.mjs`, `seed-corridors.mjs`, `source-role-cleanup.mjs`, `source-type-backfill.mjs`,
+  `tag-proposals.mjs`, `tag-ratification.mjs`, `timeline-backfill.mjs`, `uk-series-code-reconcile.mjs`)
+  wrap ONLY `db.mjs`'s own guarded primitives with direct, matching-arity passthroughs, build no client
+  outside `db.mjs`'s seam, and inject no cross-file function -- verified per-file by reading each
+  `buildDeps` body. Not given a new real-wiring test in this lane.
+
+**Fix round 1 correction (2026-09-13, coordinator's review-l9c.md, verdict CONDITIONAL FAIL, Important +
+Minor findings, both addressed, no other change).** The class-fix list above originally folded
+`tier-opinions.mjs` into the "wraps only db.mjs primitives" bucket; the coordinator's review (reproduced
+independently in this session: `grep -n "createClient" tier-opinions.mjs`, `grep -n "supabase"
+tier-opinions.test.mjs`) found it builds the identical raw-client-outside-`db.mjs`-seam shape this report
+already named as a gap for `finish-staged-updates.mjs`, with an apply arm equally untested against real
+deps -- Important finding, corrected by moving it into that same bucket (`provenance-heal.mjs` moves
+there too, for the same reason, tightening the original "not fixed" language into the SAME wording for
+all three). Minor finding: the original "wraps ONLY db.mjs's own guarded primitives... None of the 34
+loads an external module via jiti" line was accurate only for the "no jiti" clause; 7 of the 34 (now the
+"cross-file injected" bucket above) inject a sibling script's `main` or a whole `.ts` module namespace --
+each independently re-verified against its own call site and its own real target's signature in this
+session (not merely re-stated from the review), all 7 confirmed correctly wired. No code-logic change;
+three file headers gained a two-line `REAL-DEPS GAP` note naming the shared gap. See
+`.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-l9c-report.md`'s own "Fix round 1" section for
+the full detail. This correction, the three header notes, and the report's own "Fix round 1" section all
+land in this same commit (one commit, per the coordinator's own instruction for this fix round).
 
 **Tests.** `resolve-provisional-sources.test.mjs`: 28/28 (unchanged, no regression). New
 `resolve-provisional-sources.npmtest.mjs`: 2/2 -- (1) `buildDeps()` through the real import graph
