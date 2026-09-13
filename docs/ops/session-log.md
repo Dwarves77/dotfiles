@@ -21160,3 +21160,84 @@ exists because the memory gate counts the batch file as code until plan D20 land
 ### UX compliance (batch 004)
 
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-13, W9 Part 7 lane L6: D10 forward-events extractor refusal, verbatim-in-source class fix, cleanup migration
+
+**What.** Implements defect D10 (`docs/plans/defect-fix-plan-2026-09-12.md`): two `item_forward_events`
+rows were fabricated from an "In force as of [date]." status sentence whose date was the RUN date (the
+6.1b pilot bodies' own writing date), not a date the instrument states, because a deontic clause
+happened to sit within the CANDIDATE_ONLY_RULES 200-char look-ahead. Three parts, three commits, per the
+lane brief.
+
+**Part 1 (extractor refusals, pure, tested).** `src/lib/forward-events/extract-forward-events.mjs`:
+`extractForwardEvents`/`scanText` gain an opt-in `referenceDates` (array of ISO dates) option --
+omitted by every pre-existing caller, so no behavior change there. Two refusals: (1) a hit whose `iso`
+equals a reference date is refused unless its clause names the instrument's own commencement (a fixed
+verb list: enters/enter into force, entry into force, comes/come into force, in force from, applies/
+apply from, commences, takes effect, effective from); a new `enters-into-force-on` rule was added so the
+exemption has a present-tense commencement hit to test against ("shall enter into force on" already had
+its own rule). (2) a CANDIDATE_ONLY_RULES hit ("as of"/"since") whose clause, with its own date span
+removed, is nothing but a status phrase (`STATUS_ONLY_RE`) is refused regardless of the date. Both
+refusals are recorded in `skipped`, never silently dropped. `EXTRACTOR_VERSION` bumped to
+`fe1-2026-09-13.1`.
+
+**Part 2 (driver: referenceDates + class fix).** `src/lib/forward-events/read-and-extract.mjs`:
+`readExtractionInput` now also reads `intelligence_items.last_regenerated_at` [CONFIRMED by reading
+migration `018_b2_brief_schema.sql`, comment "Timestamp of most recent agent regeneration under new
+SKILL.md contract", still live per migration 316's own reference to it] and builds `referenceDates =
+[today's UTC ISO date, that document date]` (deduped, nulls dropped), threaded into
+`extractForwardEvents`. Class fix (D10 "Class fix" -- a forward event must be verbatim in its source,
+the same rule as a FACT claim): `enforceSectionVerbatimInSource` requires a section-kind event's date
+span to additionally appear verbatim in at least one FACT claim's own `source_span` for the same item; a
+section event that fails is dropped, logged with a run-log line naming the item/section id/span, and
+counted in the new `refusedNotInSource` stat now returned by `readAndExtractForwardEvents`. Claim-kind
+events are left untouched (already verbatim by construction). Per the lane brief, the item's
+`agent_run_searches` pool text is deliberately NOT read for this check -- that read is already
+conditional/heavy elsewhere in this same driver (due-date slot rescue only); the FACT-claim check alone
+is the assertion this lane ships, stated as such rather than silently widened.
+
+**Part 3 (cleanup migration).** `fsi-app/supabase/migrations/318_forward_events_delete_document_date_rows.sql`
+deletes `item_forward_events` rows matching the exact fabricated shape (`source_kind = 'section' AND
+obligation_text LIKE 'In force as of %' AND source_span = event_date::text`). 2 rows expected per the
+plan (one confirmed as item 252f0ecf); this lane held no live DB read credentials to independently
+reconfirm the count or the second item id, so the migration's own header states "2 expected per the
+plan; coordinator asserts before apply" per the brief's own fallback instruction, rather than guessing.
+Registered in `docs/inventories/migrations.md` (row 318). NOT applied by this lane -- data migration,
+committed with the fix, applied by the coordinator after merge (standing rule 3).
+
+**Tests.** `node --test` on `extract-forward-events.test.mjs` (125 -> 128 tests, all green) and
+`read-and-extract.test.mjs` (36 -> 50 tests, all green), run together: 179 tests, 175 pass, 0 fail, 4
+skipped (pre-existing, gitignored corpus-snapshot fixtures not present in this checkout). Each new
+refusal/assertion verified red-then-green: `refuseForReferenceDate` stubbed to always-false made the
+Part-1 reference-date test fail (others unaffected); `isStatusOnlyClause` stubbed to always-false made
+the Part-1 status-only test fail; dropping the `verbatimInAFactClaim` check made 3 of the Part-2
+class-fix tests fail; dropping `referenceDates` from the `extractForwardEvents` call in
+`readAndExtractForwardEvents` made both Part-2 referenceDates-threading tests fail; all four reverts
+restored to fully green afterward.
+
+**Glyph check.** `node` scan (not `grep -P`, locale-broken on this machine) of the added-lines-only diff
+across all four touched `.mjs`/`.test.mjs` files plus the migration file and this inventory row: 0
+occurrences of U+2014 (em dash), U+2013 (en dash), U+00A7 (section sign) in this lane's own additions
+(15 em dashes were caught in a first pass of the header-comment prose and fixed to `--` before this
+count, matching the file's own pre-existing double-hyphen convention).
+
+**Gate.** `sh fsi-app/.discipline/hooks/pre-push` (foreground, stdin fed the ref line manually per the
+lane brief): step 1 (untracked critical files) OK once migration 318 was staged; step 2 (consistency
+runner) OK once migration 318 was registered in the migrations inventory (this same commit range); step
+2b (memory gate) is this session-log entry. Full run against the final commit range, exit code and any
+remaining step reported verbatim in the lane report.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no `git add -A` (explicit paths
+only). Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No DB writes; no live DB
+reads either (no credentials available in this worktree/session) -- the migration's expected-count
+caveat and the document-date column choice are both stated as such, not asserted past what was verified
+by reading code/migrations.
+
+**Files.**
+- `fsi-app/src/lib/forward-events/extract-forward-events.mjs` (modified: Part 1)
+- `fsi-app/src/lib/forward-events/extract-forward-events.test.mjs` (modified: Part 1 tests)
+- `fsi-app/src/lib/forward-events/read-and-extract.mjs` (modified: Part 2)
+- `fsi-app/src/lib/forward-events/read-and-extract.test.mjs` (modified: Part 2 tests)
+- `fsi-app/supabase/migrations/318_forward_events_delete_document_date_rows.sql` (new: Part 3)
+- `docs/inventories/migrations.md` (modified: migration-318 row)
+- `docs/ops/session-log.md` (this entry)
