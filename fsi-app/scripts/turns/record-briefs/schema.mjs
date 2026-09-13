@@ -77,7 +77,13 @@ import { extractSectionByHeading, extractSectionByNumber } from "../../../src/li
 import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-12.4";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-13.1";
+// 2026-09-13.1 (D30, defect-fix-plan-2026-09-12, lane L19): the numeric-figure mirror. A FACT claim whose
+// claim_text states a significant number (digits, optionally currency-prefixed / percent-suffixed /
+// thousands-separated / decimal) absent from that SAME claim's own source_span is now refused at author
+// time, naming the figure -- the same class the ground step's own S-NUMERIC gate caught only after a paid
+// call (4a108d70's soft hold). See NUMERIC_FIGURE_RE's own header comment (below) for why this is a NAMED
+// DIVERGENCE from defect-signatures.mjs's extractNumbers/detectNumeric, not a re-import.
 // 2026-09-12.4 (D18, lane L12, defect-fix-plan-2026-09-12.md): the qualification-capture mirror's three
 // keyword checks matched only a bare root word (except/exempt/carve-out for exceptions; scope/applies to/
 // does not apply for scope), so an honest capture using an inflected form -- "Exemption", "exempted" -- was
@@ -201,6 +207,52 @@ const SCOPE_KEYWORD_RE = /\b(scope|applies to|applies only|does not apply|limite
 // stated the trajectory in prose without also populating that field had no honest way to satisfy the check
 // short of writing the absence sentence over a trajectory that in fact IS stated.
 const TRAJECTORY_KEYWORD_RE = /\b(phase|phased|phase-in|per year|from \d{4})\b/i;
+
+// ── numeric-figure mirror (D30, defect-fix-plan-2026-09-12, lane L19) -- a FACT claim's claim_text can
+// restate a figure the ground step's own S-NUMERIC gate (mint-gates.mjs's perFactGates -> defect-
+// signatures.mjs's detectNumeric) would ONLY catch AFTER a paid ground call -- real evidence: 4a108d70's
+// S-NUMERIC soft hold, named in this lane's own dispatch brief. This mirror refuses the SAME class of
+// defect HERE, at author time, before any grounding cost: a FACT whose claim_text states a number the
+// claim's own source_span does not carry is not a problem to catch later, it is an authoring defect to
+// catch now.
+//
+// A NAMED DIVERGENCE from defect-signatures.mjs's own extractNumbers/detectNumeric (not a re-import, unlike
+// assertVerbatim/parseAgentOutput above): that pair strips ALL punctuation -- INCLUDING the decimal point --
+// from a token before comparing digits, so a genuinely-cited decimal figure ("3.5%" in both claim and span)
+// can go through as digits "35" against a span whose decimal point survives ITS OWN [\s,]-only strip
+// ("3.5%") -- "35" is not a substring of "3.5%". Harmless for that gate's mint-time SOFT hold
+// (real-but-mis-cited is its own stated dominant class); wrong for a hard pre-write REFUSAL, which must
+// never manufacture a false positive on a correctly-cited decimal. normalizeFigure below keeps the decimal
+// point through the comparison instead of stripping it, so this mirror is CORRECT where that gate is
+// merely tolerant.
+//
+// An ISO date ("2026-09-13" in claim_text) is never itself a false hit: NUMERIC_FIGURE_RE matches its
+// component digit runs ("2026", "09", "13") as separate bare numbers (the hyphen is not part of the
+// pattern), and each one appears verbatim inside a span that carries the same date literal -- so a
+// genuinely-cited ISO date always passes this check on its own terms; no ISO-date special case is needed.
+const NUMERIC_FIGURE_RE = /(?:[$€£]|EUR|USD|GBP)?\s?\d[\d,]*(?:\.\d+)?\s?%?/gi;
+const CURRENCY_OR_PERCENT_RE = /[$€£%]|EUR|USD|GBP/gi;
+
+/** A figure's comparable core: strip currency marks / percent signs / whitespace / thousands-comma
+ *  separators, KEEP every digit and the decimal point -- so "3.5%" and "$6,800" compare as "3.5" and
+ *  "6800", checked against a span normalized the exact same way. @param {string} token @returns {string} */
+function normalizeFigure(token) {
+  return String(token).replace(CURRENCY_OR_PERCENT_RE, "").replace(/[\s,]/g, "");
+}
+
+/** Numeric figures in `text` significant enough to require span support: a digit run whose stripped core
+ *  carries >= 2 digits (a bare single digit -- a footnote marker, an inline article number -- is not a
+ *  "figure" this mirror requires sourced; the same noise floor defect-signatures.mjs's own extractNumbers
+ *  uses), optionally currency-prefixed, percent-suffixed, thousands-separated, or carrying a decimal point.
+ *  @param {string} text @returns {string[]} the matched tokens, trimmed, not yet normalized */
+function numericFiguresIn(text) {
+  const out = [];
+  for (const m of String(text ?? "").matchAll(NUMERIC_FIGURE_RE)) {
+    const digitCount = normalizeFigure(m[0]).replace(/\./g, "").length;
+    if (digitCount >= 2) out.push(m[0].trim());
+  }
+  return out;
+}
 
 /** True when some claim in `claims` has a `source_span` containing `keywordRe`, with no negation token
  *  (no/not/none/never/nor) in the `NEGATION_WINDOW_CHARS` immediately before the match.
@@ -555,6 +607,20 @@ export function validateRecordBriefsClaim(claim, i, itemId, poolText) {
       assertVerbatim(poolText, claim.source_span);
     } catch (err) {
       at(`source_span is not a verbatim substring of the item's pool text (${err.message})`);
+    }
+    // D30 numeric-figure mirror (see NUMERIC_FIGURE_RE's own header comment above): every significant
+    // number in claim_text must also appear in THIS claim's own source_span -- named error per figure, so
+    // the author fixes the citation before the batch ever reaches the ground step's S-NUMERIC soft hold.
+    if (typeof claim.claim_text === "string") {
+      const spanCore = normalizeFigure(claim.source_span);
+      for (const figure of numericFiguresIn(claim.claim_text)) {
+        if (!spanCore.includes(normalizeFigure(figure))) {
+          at(
+            `claim_text figure ${JSON.stringify(figure)} does not appear in this claim's own source_span ` +
+              "(numeric-figure mirror / S-NUMERIC) -- cite the figure as it actually appears in the source, or drop it from claim_text",
+          );
+        }
+      }
     }
   } else if (claim.source_span !== undefined && claim.source_span !== null && typeof claim.source_span !== "string") {
     at("source_span must be a string or null when claim_kind is not FACT");

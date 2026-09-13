@@ -930,6 +930,75 @@ describe("validateRecordBriefsClaim", () => {
     );
     assert.deepEqual(errors, []);
   });
+
+  // ── D30 numeric-figure mirror (defect-fix-plan-2026-09-12, lane L19) ──────────────────────────────────
+  test("a FACT claim whose claim_text figure is absent from its own source_span is refused, naming the figure", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «the premium is EUR 6,800 per shipment»",
+        source_span: "the premium is EUR 6,800 per shipment",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "the premium is EUR 6,800 per shipment"
+    );
+    // The figure is IN the span here (setup sanity) -- flip it to prove the refusal fires on a genuine mismatch.
+    const mismatched = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «the premium is EUR 6,800 per shipment»",
+        source_span: "the premium is EUR 4,500 per shipment",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "the premium is EUR 4,500 per shipment"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), [], "setup sanity: no numeric-figure error when the figure matches the span");
+    assert.ok(mismatched.some((e) => e.includes("numeric-figure mirror") && e.includes("6,800")), "the mismatched figure is named in the error");
+  });
+
+  test("a FACT claim whose claim_text figure appears in its own source_span passes the numeric-figure mirror", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «at least 20% by 2030»",
+        source_span: "reduce emissions by at least 20% by 2030",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "reduce emissions by at least 20% by 2030"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
+
+  test("a FACT claim citing an ISO-form date present in its own source_span passes the numeric-figure mirror (no ISO-date special case needed)", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «applies from 2026-09-13»",
+        source_span: "This obligation applies from 2026-09-13 onward",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "This obligation applies from 2026-09-13 onward"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
+
+  test("a FACT claim with a decimal figure correctly cited (decimal point preserved through the comparison) passes", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «a threshold of 3.5% applies»",
+        source_span: "a threshold of 3.5% applies to all operators",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "a threshold of 3.5% applies to all operators"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
 });
 
 // ── synthetic frontmatter serialization edge cases ──────────────────────────────────────────────────

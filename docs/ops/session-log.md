@@ -71,6 +71,87 @@ the pushed c082d15a; PR not yet opened because GitHub GraphQL returned 502s).
    briefs next 50 ids). After L17: verdict fleet and ledger-consume apply.
 6. Not yet dispatched: L8 (D12), 7.6, 7.4d, 7.3 residue, ADR-030 rider, 6.3 re-measure, data_quality
    flag for the mistitled item 355af9e8.
+## 2026-09-13, W9 lane L19: overwrite replaces the prior ledger (D29); no synthesis cap on mechanical grounding (D30)
+
+`defect-fix-plan-2026-09-12.md`'s D29 (a record-briefs overwrite kept every prior claim the new,
+author-checked ledger did not reproduce, quarantining a regenerated item for claims its own new authoring
+had deliberately rejected) and D30 (the synthesis context cap quarantined a mechanically grounded brief
+whose span check never reads the synthesis window at all), worktree `wt-finishcode-0911`, branch
+`lane/w9-l19-overwrite-ledger-cap-2026-09-13`. This lane resumed an interrupted prior run: the ground and
+driver code, the D29 unit tests, the D30 ground skip, the D30 validator, and an authored (not-applied)
+migration were already uncommitted in the tree; this session verified each against the plan text and the
+dispatch brief, then closed the remaining deliverables (execution-wiring the D30 golden proof, the docs)
+and committed the whole lane.
+
+**D29 (`src/lib/agent/ledger-apply.mjs`, `src/lib/agent/canonical-pipeline.ts`,
+`scripts/turns/apply-record-briefs.mjs`).** `applyLedgerDiff`'s new `opts.replaceLedger` (default `false`,
+byte-for-byte today's behaviour) archives a NOT-REPRODUCED prior claim to `claim_versions`
+(`supersede_reason='superseded_by_record_briefs'`, the batch id in the new `note` column, migration 318 --
+authored, NOT YET APPLIED, no DB access in this worktree) instead of keeping it current, then deletes the
+current `section_claim_provenance` row; fail-closed on an archive-write failure (the claim falls back to
+kept-not-reproduced, never dropped without a durable prior-state record). `groundBriefImpl` threads
+`opts.replaceLedger`/`opts.batchId` into `applyLedgerDiff` only when BOTH `injected` and
+`opts.replaceLedger===true` are true (`doReplaceLedger`), so a bare `replaceLedger` on the metered path is
+a no-op, never a live hazard. `applyOneEntry` passes `replaceLedger: allowBriefOverwrite` and `batchId:
+raw.batch` (the file's own required `batch` field, `schema.mjs` line 933) to `groundBrief`. The run log now
+names the archived count in the existing non-destructive-ground line (`archived N prior claim(s)
+(superseded_by_record_briefs)`), folded into the existing gain/no-gain lines rather than a third one.
+
+**D30 (`canonical-pipeline.ts`, `scripts/turns/record-briefs/schema.mjs`).** `groundBriefImpl` now builds
+`groundSrc`/`preparedSecs`/`user` (the synthesis window feeding the paid Sonnet ledger-extraction call)
+only `if (!injected)`; on the injected path they keep safe empty defaults, no `buildSourceBlocks` call, no
+`recordTruncation` call, no ceiling wall, no truncation-guard flag -- the `??` at
+`claims = injected ?? extractClaimLedgerLenient(...)` already short-circuited the Sonnet call on this path,
+so the paid path's own inputs are unchanged. The validator's new numeric-figure mirror
+(`NUMERIC_FIGURE_RE`/`normalizeFigure`/`numericFiguresIn` in `schema.mjs`, `RECORD_BRIEFS_SCHEMA_VERSION`
+bumped to `rb1-2026-09-13.1`) refuses a FACT claim whose `claim_text` states a >=2-digit figure (currency/
+percent/thousands-separator/decimal tolerant) absent from that claim's own `source_span`, naming the
+figure -- a NAMED DIVERGENCE from `defect-signatures.mjs`'s own `extractNumbers`/`detectNumeric` (that pair
+strips the decimal point before comparing digits, which is fine for a mint-time SOFT hold but would
+false-positive a correctly cited decimal at this validator's hard pre-write refusal; this mirror's own
+`normalizeFigure` keeps the decimal point through the comparison).
+
+**Execution-wiring (rule 15).** The prior run's untracked `scripts/verify/injected-no-synthesis-window.
+golden.mjs` proves the `if (!injected)` guard structurally (balanced-brace isolation over
+`canonical-pipeline.ts` as text, comments stripped) and behaviorally (a real 2.3M-char
+`buildSourceBlocks` call over a floor-qualifying pool DOES raise `context-ceiling-wall(floor)`, confirming
+the guard removes a real would-fire flag, matching bec305e1's own 2,265,617-char primary). Verified this
+was ALREADY execution-wired, not merely tracked: `run-goldens.mjs` glob-discovers every `*.golden.mjs`
+under `scripts/verify/` by construction and is itself run by `.github/workflows/discipline.yml` -- no
+further wiring needed; ran it standalone (`node scripts/verify/injected-no-synthesis-window.golden.mjs`),
+16/16 checks PASS.
+
+**Tests.** `src/lib/agent/ledger-apply.test.mjs` (8 tests, D29's 5 new: default-keeps, replace-archives,
+replace-leaves-unchanged-claims-alone, fail-closed-on-archive-failure, plus a setup-sanity test), 8/8 pass.
+`scripts/turns/apply-record-briefs.test.mjs` (37 tests, D29's 2 new: `allowBriefOverwrite=true` threads
+`replaceLedger:true` + `batchId` into `groundBrief`'s opts, `allowBriefOverwrite=false` threads
+`replaceLedger:false`), 37/37 pass. `scripts/turns/record-briefs/record-briefs.test.mjs` (64 tests, D30's 4
+new: figure-absent-from-span refused naming the figure, figure-present passes, ISO-date component digits
+pass with no special case, decimal-point-preserved figure passes), 64/64 pass. `npx tsc --noEmit` from
+`fsi-app`: clean, zero errors.
+
+**Docs.** `scripts/turns/record-briefs/README.md`: "The six pre-write refusals" -> "The seven pre-write
+refusals", numeric-figure mirror added as refusal 7; the driver-behavior section ("What task 3.4's driver
+does with a validated file") gained a `replaceLedger` bullet naming the archive-not-keep behaviour, the
+`note`/batch-id write, and the fail-closed posture. This session-log entry is D29/D30's own closure record
+per the standing rule ("every defect closes with a mechanical guard and tests").
+
+**Deviation, reported per this lane's instructions (same class as L10's own entry above).** The dispatch's
+hard rule requires the trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`; this session's
+own system-level attribution instruction (stated to replace any earlier attribution guidance) requires
+`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` instead. Every commit in this lane uses the
+latter, for the same reason L10 gave: the system-level instruction is explicit that it supersedes
+guidance stated earlier, including a dispatch's own trailer line.
+
+**Findings.** [CONFIRMED] both D29 and D30's ground/driver code, and D29's unit tests, were already correct
+and complete on resume, verified by reading the diffs against the plan text and by running every touched
+test file green. [CONFIRMED] the D30 golden was already execution-wired via `run-goldens.mjs`'s glob (no
+hand list to update) and that runner's own CI step, contrary to the possibility the dispatch brief raised
+("if the golden file is meant as a proof, it must be execution-wired ... or converted into a node --test
+file") -- no conversion was needed. [CONFIRMED] migration 318 (`claim_versions.note` +
+`supersede_reason` CHECK widened to include `'superseded_by_record_briefs'`) is authored and idempotent but
+NOT applied in this worktree (no DB access here per the migration two-track policy); it must land via
+Supabase CLI before any `--allow-brief-overwrite` batch runs live.
 
 ---
 
