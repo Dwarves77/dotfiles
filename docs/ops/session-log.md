@@ -20795,3 +20795,19 @@ Named-path staging only. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anth
 misclassifications (a "Metropolitan Council" without a "city/county/etc." qualifier, and "Council of
 Governments" whose plural "governments" fails the singular whole-word match) -- outside the coordinator's
 named word-list additions, left as a possible future follow-on rather than a scope excursion.
+
+## 2026-09-13, brief-lane 003 (batch branch): the six still-quarantined verified-sweep items, regenerated under the 6.2b contract
+
+**What.** Batch 003 (export 34734522699: the 30 items whose gate-a-verifier-sweep flags stayed open after
+close-flags-for-verified-items, of which 24 are archived and moot per plan D17 family 14 and 6 were
+exported) holds 5 entries: 120529b8 (ITF General Rules, both primary URLs are Cloudflare interstitials,
+recorded as honest GAP), 87ed781c (Wisconsin freight plan, all four slots FACT from the DOT guidance text
+already in the pool), 4a108d70 (AFDC laws database, a fabricated prior-draft claim dropped), bec305e1 (EPA
+HD GHG Phase 3, Shortfall line for TIFF-only tables) and fabda0e7 (Oregon DEQ hub, a fabricated OAR
+citation corrected). c4ad4cc5 is excluded: an Operations profile with no stored capture. Validator: VALID,
+5 entries. This branch is an apply target and is never merged; this entry exists because the memory gate
+counts the batch file as code until plan D20 lands.
+
+### UX compliance (batch 003)
+
+Not a UI change; no customer surface touched by this branch.
