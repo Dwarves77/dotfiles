@@ -1,0 +1,60 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:70029202bae4a9a6",
+  "run_id": "brief-apply-run-005",
+  "started_at": "2026-09-13T08:16:57.312Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-003.json",
+    "execute": false,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": true,
+    "recordBriefsSchemaVersion": "rb1-2026-09-12.3"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-003.json"
+  ],
+  "per_item": [
+    {
+      "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "87ed781c-5916-417d-9bfd-feefa3c095bb",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "4a108d70-0062-4c46-a090-151683f202a6",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "fabda0e7-dfb4-43c2-bef9-1821bb148d5d",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 5,
+    "selected": 5,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-003.json"
+  ],
+  "proposer_notes": ""
+}
