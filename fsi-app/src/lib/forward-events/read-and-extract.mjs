@@ -61,6 +61,54 @@
 // calling it.
 import { extractForwardEvents, isDueDateSlotClaim } from "./extract-forward-events.mjs";
 
+// ---------------------------------------------------------------------------
+// Reference dates + the source-verbatim class fix (lane L6, D10, 2026-09-13 -- see
+// docs/plans/defect-fix-plan-2026-09-12.md D10 and extract-forward-events.mjs's own header note
+// "REFERENCE-DATE AND STATUS-ONLY REFUSALS").
+//
+// The defect: two item_forward_events rows carried obligation_text "In force as of <date>." with the date
+// equal to the RUN date -- the 6.1b pilot bodies' own writing date, not a date the instrument states. The
+// extractor's reference-date refusal (extract-forward-events.mjs) needs to be TOLD what the reference dates
+// ARE; this driver is the one place with DB access to supply them.
+//
+// THE DOCUMENT-DATE COLUMN [CONFIRMED by reading the migration that created it]: `intelligence_items.
+// last_regenerated_at`, added by supabase/migrations/018_b2_brief_schema.sql ("Timestamp of most recent
+// agent regeneration under new SKILL.md contract"), still live (referenced by migration 316, the most
+// recent migration to touch it, 2026-09-13 checkout). This is the closest live column to "when this
+// brief's own content was written" -- exactly what the D10 defect's "In force as of <today>." sentence
+// collided with. `intelligence_item_sections.created_at`/`updated_at` were also considered (migration
+// 103_intelligence_item_sections.sql) but are per-SECTION, not per-brief, and this driver already reads
+// many sections per item -- `last_regenerated_at` is the one per-item stamp of "when the brief was last
+// written," matching the pilot's own framing exactly. `null` when the item was never regenerated under this
+// pipeline (a record-grade mint, or a pre-pipeline row) -- referenceDates then carries only today's date.
+// ---------------------------------------------------------------------------
+
+export const ITEM_BASE_COLUMNS = Object.freeze(["last_regenerated_at"]);
+
+/** Today, UTC, ISO (YYYY-MM-DD) -- the "run date" half of the reference-date refusal's input. Exported so
+ *  a test can compute the same value a live call would use, without duplicating the slice logic. */
+export function todayIsoUtc() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** The brief's own "document date" from an already-read `intelligence_items` row (or `undefined`/`null` --
+ *  tolerant, since not every caller has one) -- see this file's header note above for which column and
+ *  why. `null` when absent/malformed, never a crash. Pure. Exported for testing. */
+export function documentDateIso(itemRow) {
+  const raw = itemRow?.last_regenerated_at;
+  if (typeof raw === "string" && raw.length >= 10) return raw.slice(0, 10);
+  if (raw instanceof Date) return raw.toISOString().slice(0, 10);
+  return null;
+}
+
+/** [todayIsoUtc(), documentDateIso(itemRow)], deduplicated and with any null/empty entry dropped -- the
+ *  exact `referenceDates` array extractForwardEvents/scanText consume (extract-forward-events.mjs's own
+ *  header, "REFERENCE-DATE AND STATUS-ONLY REFUSALS"). Pure. Exported for testing. */
+export function buildReferenceDates(itemRow) {
+  const dates = [todayIsoUtc(), documentDateIso(itemRow)];
+  return dates.filter((d, i) => Boolean(d) && dates.indexOf(d) === i);
+}
+
 /** The two claim kinds every caller of this family reads — never a hand-typed `["FACT", "GAP"]` literal
  *  at a second call site. */
 export const CLAIM_KIND_FILTER = Object.freeze(["FACT", "GAP"]);
@@ -206,12 +254,88 @@ export function itemIdsNeedingContext(claimRows) {
 }
 
 // ---------------------------------------------------------------------------
+// The source-verbatim class fix (D10 "Class fix", lane L6, 2026-09-13): a forward event must be verbatim
+// in its SOURCE, the same rule as a FACT claim.
+// ---------------------------------------------------------------------------
+
+/**
+ * Enforces the D10 class fix over one item's already-extracted events: a SECTION-kind event's `source_span`
+ * (the matched date substring) must additionally be verbatim inside at least one FACT claim's own
+ * `source_span` for the SAME item. `extract-forward-events.mjs`'s own `assertVerbatim` already proves the
+ * span is verbatim in the SECTION's own rendered markdown -- exactly the text a brief-writing-date sentence
+ * like "In force as of <today>." can fabricate FROM (that sentence IS in the section, verbatim, and always
+ * will be). Requiring it ALSO appear in a FACT claim's span corroborates the date against text that was
+ * separately grounded against the item's captured source pool (ADR-016; section_claim_provenance's own
+ * contract) -- a materially stronger claim than "the brief said so."
+ *
+ * Deliberately does NOT also read the item's `agent_run_searches` pool text here, per this lane's own
+ * dispatch: that read is only ever fetched CONDITIONALLY, for a due_date slot claim's own rescue (see this
+ * file's header, "FETCH ONLY WHAT MIGHT BE CONSUMED") -- it is not already part of this driver's data path
+ * for an arbitrary section-kind event, and the pool is "never small" (this file's own header) for every
+ * item, not just the ones with a due_date slot claim. Adding an unconditional read of it here to check
+ * every section event's span would be exactly the class of unbounded read this driver's own
+ * "fetch-only-what-might-be-consumed" discipline exists to avoid. The FACT-claim check alone is the
+ * assertion this lane ships; a wider pool-text corroboration is left for a future lane if measurement shows
+ * a real residue the claim-span check misses.
+ *
+ * CLAIM-kind events are left untouched, never re-checked here: their `source_span` IS the claim's own span
+ * by construction, already asserted verbatim by `assertVerbatim` inside extract-forward-events.mjs.
+ *
+ * A section-kind event that fails is dropped (never returned to the caller), logged with one run-log line
+ * naming the item, section id, and span (never silent -- CLAUDE.md standing rule 13), appended to `skipped`
+ * with a named reason, and counted in the returned `refusedNotInSource`. Pure aside from the log line -- no
+ * DB I/O. Exported for testing.
+ * @param {object[]} events
+ * @param {object[]} skipped
+ * @param {object[]} claims already in the extractor's own claim shape (mapClaimRow output)
+ * @param {string} itemId used only for the run-log line
+ * @returns {{events: object[], skipped: object[], refusedNotInSource: number}}
+ */
+export function enforceSectionVerbatimInSource(events, skipped, claims, itemId) {
+  const factClaimSpans = (claims ?? [])
+    .filter((c) => c?.kind === "FACT" && typeof c.span === "string" && c.span.length > 0)
+    .map((c) => c.span);
+
+  const keptEvents = [];
+  const outSkipped = [...(skipped ?? [])];
+  let refusedNotInSource = 0;
+
+  for (const event of events ?? []) {
+    if (event.source_kind !== "section") {
+      keptEvents.push(event);
+      continue;
+    }
+    const verbatimInAFactClaim = factClaimSpans.some((span) => span.includes(event.source_span));
+    if (verbatimInAFactClaim) {
+      keptEvents.push(event);
+      continue;
+    }
+    refusedNotInSource += 1;
+    // Deliberate run-log line (D10 class fix) -- never a silently dropped event (CLAUDE.md standing rule 13).
+    console.warn(
+      `[forward-events] refusedNotInSource: item=${itemId ?? "unknown"} section=${event.source_section_id ?? "unknown"} span=${JSON.stringify(event.source_span)} -- date span is not verbatim in any FACT claim span for this item`
+    );
+    outSkipped.push({
+      source_kind: "section",
+      source_claim_id: null,
+      source_section_id: event.source_section_id ?? null,
+      reason:
+        "refusedNotInSource: section-kind event's date span is not verbatim in any FACT claim span for this item -- a forward event must be verbatim in its source, the same rule as a FACT claim (D10 class fix)",
+      text: event.source_span,
+    });
+  }
+
+  return { events: keptEvents, skipped: outSkipped, refusedNotInSource };
+}
+
+// ---------------------------------------------------------------------------
 // The one live, single-item reader (this module's own long-standing job — see header).
 // ---------------------------------------------------------------------------
 
 const CLAIM_SELECT = CLAIM_BASE_COLUMNS.join(", ");
 const SECTION_SELECT = SECTION_BASE_COLUMNS.join(", ");
 const POOL_SELECT = POOL_BASE_COLUMNS.join(", ");
+const ITEM_SELECT = ITEM_BASE_COLUMNS.join(", ");
 
 /**
  * Read one item's already-grounded FACT/GAP claims, rendered sections, and (for its due_date slot claims
@@ -222,18 +346,23 @@ const POOL_SELECT = POOL_BASE_COLUMNS.join(", ");
  * ONLY WHAT MIGHT BE CONSUMED".
  * @param {import('@supabase/supabase-js').SupabaseClient} sb
  * @param {string} itemId
- * @returns {Promise<{claims: object[], sections: object[]}>}
+ * @returns {Promise<{claims: object[], sections: object[], referenceDates: string[]}>} `referenceDates`
+ *   (D10, lane L6, 2026-09-13 -- see this file's header note above) is [today's UTC ISO date, the item's
+ *   `last_regenerated_at` document date], deduplicated, nulls dropped.
  */
 export async function readExtractionInput(sb, itemId) {
   const [
     { data: claimRows, error: claimErr },
     { data: sectionRows, error: sectionErr },
+    { data: itemRows, error: itemErr },
   ] = await Promise.all([
     sb.from("section_claim_provenance").select(CLAIM_SELECT).eq("intelligence_item_id", itemId).in("claim_kind", CLAIM_KIND_FILTER),
     sb.from("intelligence_item_sections").select(SECTION_SELECT).eq("item_id", itemId),
+    sb.from("intelligence_items").select(ITEM_SELECT).eq("id", itemId),
   ]);
   if (claimErr) throw new Error(`section_claim_provenance read failed: ${claimErr.message}`);
   if (sectionErr) throw new Error(`intelligence_item_sections read failed: ${sectionErr.message}`);
+  if (itemErr) throw new Error(`intelligence_items read failed: ${itemErr.message}`);
 
   const mappedClaims = mapClaimRows(claimRows);
   let poolRows = [];
@@ -245,7 +374,8 @@ export async function readExtractionInput(sb, itemId) {
 
   const claims = attachDueDateContext(mappedClaims, poolRows);
   const sections = mapSectionRows(sectionRows);
-  return { claims, sections };
+  const referenceDates = buildReferenceDates((itemRows ?? [])[0]);
+  return { claims, sections, referenceDates };
 }
 
 /**
@@ -253,14 +383,17 @@ export async function readExtractionInput(sb, itemId) {
  * over them.
  * @param {import('@supabase/supabase-js').SupabaseClient} sb
  * @param {string} itemId
- * @returns {Promise<{events: object[], skipped: object[], claims: object[], sections: object[]}>}
+ * @returns {Promise<{events: object[], skipped: object[], claims: object[], sections: object[], refusedNotInSource: number}>}
  *   `claims`/`sections` are the exact (id-bearing) inputs fed to the extractor — returned alongside
  *   events/skipped so a caller that needs to know WHICH claims/sections currently exist for this item
  *   (e.g. apply-staged-update.ts's stale-events check: does an existing item_forward_events row's
  *   source_claim_id/source_section_id still appear here) never issues a second, duplicate read.
+ *   `refusedNotInSource` (D10 class fix, lane L6, 2026-09-13 -- see `enforceSectionVerbatimInSource` above)
+ *   counts section-kind events dropped for failing the verbatim-in-a-FACT-claim assertion.
  */
 export async function readAndExtractForwardEvents(sb, itemId) {
-  const { claims, sections } = await readExtractionInput(sb, itemId);
-  const { events, skipped } = extractForwardEvents({ claims, sections });
-  return { events, skipped, claims, sections };
+  const { claims, sections, referenceDates } = await readExtractionInput(sb, itemId);
+  const { events: rawEvents, skipped: rawSkipped } = extractForwardEvents({ claims, sections, referenceDates });
+  const { events, skipped, refusedNotInSource } = enforceSectionVerbatimInSource(rawEvents, rawSkipped, claims, itemId);
+  return { events, skipped, claims, sections, refusedNotInSource };
 }

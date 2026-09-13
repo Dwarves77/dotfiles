@@ -23,6 +23,10 @@ import {
   itemIdsNeedingContext,
   readExtractionInput,
   readAndExtractForwardEvents,
+  todayIsoUtc,
+  documentDateIso,
+  buildReferenceDates,
+  enforceSectionVerbatimInSource,
 } from "./read-and-extract.mjs";
 
 // Same template read-and-extract.mjs's own callers build (record-facts.mjs's exact due_date FACT wrapper)
@@ -406,13 +410,161 @@ describe("readAndExtractForwardEvents (fake sb client, integration)", () => {
       intelligence_item_sections: [],
       agent_run_searches: [],
     });
-    const { events, skipped, claims, sections } = await readAndExtractForwardEvents(sb, "item-1");
+    const { events, skipped, claims, sections, refusedNotInSource } = await readAndExtractForwardEvents(sb, "item-1");
     assert.equal(events.length, 1);
     assert.equal(events[0].event_kind, "entry_into_force");
     assert.deepEqual(skipped, []);
     assert.equal(claims.length, 1);
     assert.equal(claims[0].claim_id, "c1");
     assert.deepEqual(sections, []);
+    assert.equal(refusedNotInSource, 0);
+  });
+});
+
+// ── D10 (lane L6, 2026-09-13): referenceDates threading + the source-verbatim class fix ───────────────
+//
+// The defect (plan docs/plans/defect-fix-plan-2026-09-12.md D10): two item_forward_events rows carried
+// obligation_text "In force as of <date>." with the date equal to the RUN date, not a date the instrument
+// states. These tests prove (1) this driver actually computes and passes referenceDates (today + the
+// item's own document date) through to the extractor, and (2) a section-kind event that is not
+// independently verbatim in a FACT claim span is dropped, logged, and counted.
+
+describe("todayIsoUtc / documentDateIso / buildReferenceDates (pure helpers)", () => {
+  test("todayIsoUtc matches the ISO-date shape and today's own UTC date", () => {
+    const iso = todayIsoUtc();
+    assert.match(iso, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(iso, new Date().toISOString().slice(0, 10));
+  });
+
+  test("documentDateIso slices a last_regenerated_at timestamp string down to its date", () => {
+    assert.equal(documentDateIso({ last_regenerated_at: "2026-08-01T12:34:56.000Z" }), "2026-08-01");
+  });
+
+  test("documentDateIso is null for a missing/malformed/absent last_regenerated_at, never a crash", () => {
+    assert.equal(documentDateIso({ last_regenerated_at: null }), null);
+    assert.equal(documentDateIso({}), null);
+    assert.equal(documentDateIso(undefined), null);
+  });
+
+  test("buildReferenceDates dedupes today against the document date when they coincide", () => {
+    const today = todayIsoUtc();
+    const dates = buildReferenceDates({ last_regenerated_at: `${today}T00:00:00Z` });
+    assert.deepEqual(dates, [today]);
+  });
+
+  test("buildReferenceDates carries both dates, in order, when they differ", () => {
+    const today = todayIsoUtc();
+    const dates = buildReferenceDates({ last_regenerated_at: "2026-01-15T10:00:00Z" });
+    assert.deepEqual(dates, [today, "2026-01-15"]);
+  });
+
+  test("buildReferenceDates is just today's date alone when the item has never been regenerated", () => {
+    const today = todayIsoUtc();
+    assert.deepEqual(buildReferenceDates(undefined), [today]);
+  });
+});
+
+describe("enforceSectionVerbatimInSource (D10 class fix, pure)", () => {
+  test("a section-kind event whose date span IS verbatim in a FACT claim span is kept", () => {
+    const events = [
+      { source_kind: "section", source_section_id: "sec1", source_span: "5 May 2031", obligation_text: "x" },
+    ];
+    const claims = [{ claim_id: "c1", kind: "FACT", span: "Annex I sets 5 May 2031 as the applicable date." }];
+    const { events: kept, skipped, refusedNotInSource } = enforceSectionVerbatimInSource(events, [], claims, "item-1");
+    assert.deepEqual(kept, events);
+    assert.deepEqual(skipped, []);
+    assert.equal(refusedNotInSource, 0);
+  });
+
+  test("a section-kind event whose date span is in NO claim span is dropped, logged, and counted", () => {
+    const events = [
+      { source_kind: "section", source_section_id: "sec1", source_span: "9 September 2032", obligation_text: "x" },
+    ];
+    const claims = [{ claim_id: "c1", kind: "FACT", span: "an unrelated claim about a different date entirely" }];
+    const { events: kept, skipped, refusedNotInSource } = enforceSectionVerbatimInSource(events, [], claims, "item-1");
+    assert.equal(kept.length, 0);
+    assert.equal(refusedNotInSource, 1);
+    assert.equal(skipped.length, 1);
+    assert.equal(skipped[0].source_section_id, "sec1");
+    assert.match(skipped[0].reason, /refusedNotInSource|verbatim/i);
+  });
+
+  test("a GAP claim's span does not count as corroboration -- only a FACT claim's span does", () => {
+    const events = [
+      { source_kind: "section", source_section_id: "sec1", source_span: "5 May 2031", obligation_text: "x" },
+    ];
+    const claims = [{ claim_id: "c1", kind: "GAP", span: "5 May 2031 is mentioned but not confirmed." }];
+    const { events: kept, refusedNotInSource } = enforceSectionVerbatimInSource(events, [], claims, "item-1");
+    assert.equal(kept.length, 0);
+    assert.equal(refusedNotInSource, 1);
+  });
+
+  test("a CLAIM-kind event is left untouched regardless of any other claim's span (already verbatim by construction)", () => {
+    const events = [
+      { source_kind: "claim", source_claim_id: "c1", source_span: "1 January 2027", obligation_text: "x" },
+    ];
+    const { events: kept, refusedNotInSource } = enforceSectionVerbatimInSource(events, [], [], "item-1");
+    assert.deepEqual(kept, events);
+    assert.equal(refusedNotInSource, 0);
+  });
+
+  test("existing skipped entries pass through unchanged alongside any newly-added refusal", () => {
+    const events = [
+      { source_kind: "section", source_section_id: "sec1", source_span: "9 September 2032", obligation_text: "x" },
+    ];
+    const priorSkip = { source_kind: "section", source_claim_id: null, source_section_id: "sec2", reason: "some other reason", text: "x" };
+    const { skipped } = enforceSectionVerbatimInSource(events, [priorSkip], [], "item-1");
+    assert.equal(skipped.length, 2);
+    assert.deepEqual(skipped[0], priorSkip);
+  });
+});
+
+describe("readAndExtractForwardEvents: referenceDates are actually threaded through to the extractor", () => {
+  test("a section-kind 'In force as of <document date>.' sentence is refused, proving the document date reached the extractor", async () => {
+    const sb = fakeSb({
+      section_claim_provenance: [],
+      intelligence_item_sections: [
+        {
+          id: "sec1",
+          item_id: "item-1",
+          section_key: "body",
+          content_md: "In force as of 2026-01-15. Operators shall comply with Article 9 within six months.",
+        },
+      ],
+      agent_run_searches: [],
+      intelligence_items: [{ id: "item-1", last_regenerated_at: "2026-01-15T10:00:00Z" }],
+    });
+    const { events, skipped } = await readAndExtractForwardEvents(sb, "item-1");
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 1);
+    assert.match(skipped[0].reason, /reference date/i);
+  });
+
+  test("a section-kind 'In force as of <today>.' sentence is refused, proving today's own date reached the extractor", async () => {
+    const today = todayIsoUtc();
+    const sb = fakeSb({
+      section_claim_provenance: [],
+      intelligence_item_sections: [
+        {
+          id: "sec1",
+          item_id: "item-1",
+          section_key: "body",
+          content_md: `In force as of ${today}. Operators shall comply with Article 9 within six months.`,
+        },
+      ],
+      agent_run_searches: [],
+      intelligence_items: [],
+    });
+    const { events, skipped } = await readAndExtractForwardEvents(sb, "item-1");
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 1);
+    assert.match(skipped[0].reason, /reference date/i);
+  });
+
+  test("readExtractionInput's own referenceDates carries today's date even with no intelligence_items row stubbed", async () => {
+    const sb = fakeSb({ section_claim_provenance: [], intelligence_item_sections: [], agent_run_searches: [] });
+    const { referenceDates } = await readExtractionInput(sb, "item-1");
+    assert.deepEqual(referenceDates, [todayIsoUtc()]);
   });
 });
 

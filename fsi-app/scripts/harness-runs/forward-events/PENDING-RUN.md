@@ -54,14 +54,15 @@ not applied), and both files' test suites also changed in this diff — none of 
 governing file (PROTOCOL.md, this family's other governing file, is unchanged), so none of them moves this
 family's `harness_version` on their own — only item 1-2 above (both in `extract-forward-events.mjs`) do.
 
-**harness_version at write time:** `sha256:99877b0fdd9a8adb` (was `sha256:33060af6a9eccf42`, the hash all
-35 landed artifacts carry)
+**harness_version at write time:** `sha256:d5c759e7218e22c4` (was `sha256:99877b0fdd9a8adb`, itself
+was `sha256:33060af6a9eccf42`, the hash all 35 landed artifacts carry -- see the lane L6 addendum below
+for what moved the hash this time)
 
 **The planned run that supersedes this marker:** the next `forward-events-run-036.json` (or whichever
-number is next once this lane's PR merges), produced by the coordinator's next `run-extraction.mjs`
-dispatch under this code. Per F28's reverse-audit (rule (c)): once that run lands recording `harness_version
-sha256:99877b0fdd9a8adb`, this marker is discharged and should be deleted in the same proposer pass that
-reads it.
+number is next once a lane's PR merges), produced by the coordinator's next `run-extraction.mjs`
+dispatch under the current code. Per F28's reverse-audit (rule (c)): once that run lands recording
+`harness_version sha256:d5c759e7218e22c4` (the CURRENT value above), this marker is discharged and
+should be deleted in the same proposer pass that reads it.
 
 **Coordinator's exact next dispatch for THIS lane's one-time cleanup** (not itself a `forward-events` family
 run — it writes no `forward-events-run-*.json` artifact; it is a MAINT dispatch over already-persisted
@@ -77,3 +78,32 @@ rows, `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12's own dedicated "lane FE-DEDUP
    853 (was 1,149).
 4. Apply migration 307 (`supabase/migrations/307_item_forward_events_text_identity_dedupe.sql`) via
    Supabase MCP — its own pre-check `DO` block re-verifies 0 duplicate groups remain and ABORTS otherwise.
+
+---
+
+**What changed (lane L6, D10, 2026-09-13) [CONFIRMED, this lane, `hashHarnessVersion` run directly
+against the base commit (a0a55478) and against the current tree].** Defect D10
+(`docs/plans/defect-fix-plan-2026-09-12.md`): the section-side extractor accepted an "In force as of
+[date]." sentence whose date was the RUN date, not a date the instrument states, whenever a deontic
+clause happened to sit within the CANDIDATE_ONLY_RULES 200-char look-ahead -- 2 fabricated
+`item_forward_events` rows resulted, cleaned up by migration 318. Before this lane, the governing-file
+hash on master was `sha256:99877b0fdd9a8adb` -- EXACTLY the value this marker already recorded (verified
+by re-hashing `a0a55478`'s own copy of the two governing files), so the prior lane's drift was still
+honestly acknowledged and F28 rule (c) was green. This lane's fix necessarily edits the ONE governing
+file this family has that is also a real code path (`src/lib/forward-events/extract-forward-events.mjs`;
+`PROTOCOL.md` is unchanged, same as every prior entry in this marker):
+
+1. Two new refusals in `scanText`: a reference-date refusal (a hit whose date equals a supplied
+   `referenceDates` entry is refused unless its clause names the instrument's own commencement) and a
+   status-only refusal (a CANDIDATE_ONLY_RULES hit that reduces to a bare status phrase once its date
+   span is removed is refused regardless of the date). `extractForwardEvents`/`scanText` gain an opt-in
+   `referenceDates` option, defaulted to none.
+2. A new RULES entry, `enters-into-force-on` (present-tense "enters/enter into force on"), added so the
+   reference-date refusal's commencement exemption has something to test against.
+3. **`EXTRACTOR_VERSION`** bumped `fe1-2026-09-04.6` -> `fe1-2026-09-13.1`.
+
+New hash: `sha256:d5c759e7218e22c4` (re-derived independently by this lane and matching F28's own
+reported "current hash" exactly). The planned-run note above is updated to this value; once a
+`forward-events-run-036` (or next available number) artifact lands recording it, this entire marker
+(both the FE-DEDUP section above and this addendum) is discharged and should be deleted together in the
+same proposer pass, per F28's own rule (c).
