@@ -6,20 +6,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseArgs, buildClassificationFlagRow, buildDriftFlagRow, buildAnomalyFlagRow, groupItemsBySource,
-  DRIFT_THRESHOLD_POINTS, ANOMALY_THRESHOLD,
+  parseArgs, buildClassificationFlagRow, buildNoDerivableClassificationFlagRow, buildDriftFlagRow,
+  groupItemsBySource, DRIFT_THRESHOLD_POINTS,
 } from "./propose-classifications.mjs";
 import { planReflect } from "../connections/propose-tags.mjs";
 import { proposeSourceAxisClassification } from "../../src/lib/classification/classify-source.mjs";
 import { detectDrift } from "../../src/lib/classification/routing.mjs";
-import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE, ITEM_ANOMALY_SUBTYPE } from "../../src/lib/classification/flags.mjs";
+import {
+  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE,
+  SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE,
+} from "../../src/lib/classification/flags.mjs";
 import { createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
+// anomalies is ALWAYS false (D17 family 5, 2026-09-12: the anomaly detector is retired) -- --anomalies
+// is still accepted for parse-compatibility but never selects a mode.
 
-test("parseArgs: no mode flag runs all three (documented default)", () => {
+test("parseArgs: no mode flag runs classify+drift (documented default; anomalies retired)", () => {
   const r = parseArgs([]);
-  assert.deepEqual(r, { execute: false, modes: { classify: true, drift: true, anomalies: true } });
+  assert.deepEqual(r, { execute: false, modes: { classify: true, drift: true, anomalies: false } });
 });
 
 test("parseArgs: a single mode flag narrows to exactly that mode", () => {
@@ -27,9 +32,14 @@ test("parseArgs: a single mode flag narrows to exactly that mode", () => {
   assert.deepEqual(r.modes, { classify: false, drift: true, anomalies: false });
 });
 
-test("parseArgs: two mode flags together narrow to exactly those two", () => {
+test("parseArgs: --anomalies alone is now a no-op (both other modes false, anomalies retired)", () => {
+  const r = parseArgs(["--anomalies"]);
+  assert.deepEqual(r.modes, { classify: false, drift: false, anomalies: false });
+});
+
+test("parseArgs: two mode flags together narrow to exactly those two (anomalies still retired even if named)", () => {
   const r = parseArgs(["--classify", "--anomalies"]);
-  assert.deepEqual(r.modes, { classify: true, drift: false, anomalies: true });
+  assert.deepEqual(r.modes, { classify: true, drift: false, anomalies: false });
 });
 
 test("parseArgs: --execute is honored alongside any mode selection", () => {
@@ -54,12 +64,27 @@ test("buildClassificationFlagRow: applicable + advisory proposals — shape, JSO
   assert.ok(row.recommended_actions.some((a) => a.includes("apply-classifications.mjs")));
 });
 
-test("buildClassificationFlagRow: zero proposals — description says so plainly, no apply command", () => {
+test("buildClassificationFlagRow: zero proposals: D17 family 4 part 2, delegates to buildNoDerivableClassificationFlagRow (born resolved, no 'needs manual' phrase, no apply command)", () => {
   const source = { id: "src-2", name: "Acme Freight Co", url: "https://acmefreight.example/", source_role: "vendor_corporate" };
   const computed = { proposals: [] };
   const row = buildClassificationFlagRow(source, computed);
+  assert.equal(row.status, "resolved");
   assert.match(row.description, /no candidate value was derivable/);
-  assert.ok(!row.recommended_actions.some((a) => a.includes("apply-classifications.mjs")));
+  assert.ok(!row.description.includes("needs manual operator classification"), "the D17 phrase must be removed");
+  assert.deepEqual(row.recommended_actions, []);
+  assert.match(row.resolution_note, /no derivable classification from the class table or the observed output/);
+});
+
+// ── buildNoDerivableClassificationFlagRow (D17 family 4 part 2) ─────────────────────────────────
+
+test("buildNoDerivableClassificationFlagRow: born already-resolved, distinct subtype from the proposal-bearing flag", () => {
+  const row = buildNoDerivableClassificationFlagRow({ id: "src-9" }, new Date("2026-09-12T00:00:00Z"));
+  assert.equal(row.status, "resolved");
+  assert.equal(row.resolved_by, "propose-classifications.mjs");
+  assert.notEqual(row.created_by, createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE));
+  assert.equal(row.created_by, createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE));
+  assert.match(row.resolution_note, /2026-09-12/);
+  assert.match(row.resolution_note, /re-evaluated on the next classify run/);
 });
 
 test("buildClassificationFlagRow: PROPOSALS_JSON round-trips the exact proposals array, including advisory-only entries", () => {
@@ -100,22 +125,10 @@ test("buildDriftFlagRow: names only the categories over threshold, largest first
   assert.ok(!row.description.includes("operations ("), "a category under threshold must not be named");
 });
 
-// ── buildAnomalyFlagRow ──────────────────────────────────────────────────────────────────────────
-
-test("buildAnomalyFlagRow: names the item, source, category, and probability; subject_type item", () => {
-  const item = { id: "item-1" };
-  const source = { id: "src-6", name: "Maersk", source_role: "vendor_corporate" };
-  const row = buildAnomalyFlagRow(item, source, "regulations", 0.02);
-  assert.equal(row.category, "data_quality");
-  assert.equal(row.subject_type, "item");
-  assert.equal(row.subject_ref, buildSubjectRef("item-1"));
-  assert.equal(row.created_by, createdBy(AXIS_NAMESPACE, ITEM_ANOMALY_SUBTYPE));
-  assert.match(row.description, /item item-1/);
-  assert.match(row.description, /source src-6/);
-  assert.match(row.description, /classified as "regulations"/);
-  assert.match(row.description, /2\.0% expected probability/);
-  assert.match(row.description, new RegExp(`${(ANOMALY_THRESHOLD * 100).toFixed(0)}%`));
-});
+// buildAnomalyFlagRow DELETED (D17 family 5, defect-fix-plan-2026-09-12) -- see propose-classifications.mjs's
+// own file header for the retirement rationale; there is no replacement builder to test here. Any
+// surviving open item-anomaly flag is retired by apply-classifications.mjs's retireAnomalyFlag, tested
+// in that file's own test suite.
 
 // ── groupItemsBySource ───────────────────────────────────────────────────────────────────────────
 

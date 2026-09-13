@@ -27,11 +27,25 @@
 //      field now and stays open, still ratifiable, for the remainder; a re-run is idempotent (buildMergePatch
 //      only appends novel values, so already-applied fields no-op harmlessly).
 //
-// ONLY THE `source-classification` SUBTYPE IS ELIGIBLE (either path). propose-classifications.mjs's
-// other two subtypes (`source-drift`, `item-anomaly`) are advisory-only by the framework's own design
-// (Section 5b names four possible causes only an operator can disposition; Section 5c is a review
-// trigger, not a value to write) — evaluateApplication/evaluateAutoAdoption both refuse them with a
-// clear "advisory-only / not this subtype, nothing to apply" error rather than silently doing nothing.
+// ONLY THE `source-classification` SUBTYPE IS ELIGIBLE for RATIFICATION/AUTO-ADOPTION (either path).
+// evaluateApplication/evaluateAutoAdoption both refuse the other two subtypes with a clear "advisory-only
+// / not this subtype, nothing to apply" error. `source-drift` and `item-anomaly` are handled separately,
+// by their OWN dedicated functions (D17 family 5, defect-fix-plan-2026-09-12, below):
+// `autoResolveDriftFlag` adopts the source's own observed item-category distribution as expected_output
+// once the sample is large enough, else resolves "insufficient sample"; never left open either way;
+// `retireAnomalyFlag` closes any surviving open item-anomaly flag with a fixed retirement note (the
+// anomaly detector itself is deleted from propose-classifications.mjs). Both are wired into this file's
+// own `--auto-adopt` CLI and the `apply-classifications` MAINT step.
+//
+// ZERO-PROPOSAL `source-classification` FLAGS (D17 family 4, defect-fix-plan-2026-09-12): a flag whose
+// PROPOSALS_JSON parses to an empty array used to fall out of evaluateAutoAdoption as `not_auto_adoptable`
+// and sit open forever. autoAdoptClassification now detects this case and re-derives from the SC-13 class
+// table (`classTierForHost`) and the source's own observed item-category distribution, two deterministic
+// signals classify-source.mjs's name/role matchers never read, via `reDeriveZeroProposalClassification`,
+// resolving the flag either with the adopted values or a fixed "no derivable classification" note. See
+// that function's own header comment for the exact, deliberately narrow scope (only tier 1 is
+// unambiguous; tier 2 contributes scope_topics only; the observed distribution always can feed
+// expected_output once the sample is large enough).
 //
 // NEVER WRITES `jurisdictions`. classify-source.mjs's APPLICABLE_FIELDS allow-list (imported here, not
 // redefined, so the two scripts cannot drift) excludes it by construction — see that module's header for
@@ -72,12 +86,19 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
 import { topicKeywordMatch, REGULATORY_TOPIC_ROLES } from "../../src/lib/classification/scope.mjs";
-import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
+import { expectedOutputForRole, isValidDistribution } from "../../src/lib/classification/expected-output.mjs";
+import { observedDistributionFromItems } from "../../src/lib/classification/routing.mjs";
+import {
+  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE, ITEM_ANOMALY_SUBTYPE,
+} from "../../src/lib/classification/flags.mjs";
 import { createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
+import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 
 export const RATIFY_CLASSIFICATION_TOKEN = "ratify:classification";
 const CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
+export const DRIFT_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_DRIFT_SUBTYPE);
+export const ANOMALY_CREATED_BY = createdBy(AXIS_NAMESPACE, ITEM_ANOMALY_SUBTYPE);
 const ARRAY_FIELDS = Object.freeze(["scope_topics", "scope_modes", "scope_verticals"]);
 
 /**
@@ -423,6 +444,299 @@ export function buildAdoptedProposalsForMerge(decisions) {
   return merged;
 }
 
+// ─────────────── Family 4: classification zero-proposal re-derivation (D17, 2026-09-12) ───────────────
+// "1,287 open flywheel-axis:source-classification flags; the zero-proposal subset ... re-derives the
+// unset axes from the SC-13 class table (classTierForHost and the class it resolves) and the source's
+// observed item-category distribution ... resolves every flag with the adopted values or the note
+// 'no derivable classification from the class table or the observed output on <date>; re-evaluated on
+// the next classify run'."
+//
+// SCOPE, NAMED (this decider never guesses a role classify-source.mjs's own name/role keyword matchers
+// already tried and failed at): classTierForHost returns a bare numeric tier (1/2/4/6/7), not a named
+// sub-class -- host-authority.ts's own VERIFIER_CAB/ACADEMIC_TLD/ASSOCIATION_ALLOW/STANDARDS_BODY_ALLOW/
+// ANALYSIS/LAWFIRM/NEWS regexes that DISTINGUISH a T4 class from a T6/T7 class are unexported, so this
+// module can only read what classTierForHost itself returns. Tier 1 (LEGAL_PRIMARY: eur-lex.europa.eu,
+// federalregister.gov, ecfr.gov, govinfo.gov, legislation.gov.uk) is the ONE unambiguous case: every host
+// in that class is, by the codified rule itself, an enacted-primary-law publisher -- the exact
+// institutional shape expected-output.mjs's `primary_legal_authority` role describes. Tier 2 merges
+// GOV_TLD national-government stems with GOV_INTERGOV intergovernmental bodies -- two different roles
+// with two different Axis-5 defaults -- so this decider only draws the ONE safe conclusion both share
+// (a regulatory-adjacent institution, scope_topics) and leaves scope_verticals/expected_output undecided
+// from the class table at tier 2 and above, never a guessed role. The source's OWN observed
+// item-category distribution (the same read propose-classifications.mjs's drift check already makes) is
+// the second, always-safe signal: a real, measured fact usable for expected_output at ANY tier once the
+// sample clears the same floor (`CLASS_TABLE_MIN_ITEMS_FOR_OBSERVED`, mirroring routing.mjs's own
+// MIN_ITEMS_FOR_DRIFT_CHECK) the drift check uses.
+
+const CLASS_TABLE_MIN_ITEMS_FOR_OBSERVED = 10;
+
+/**
+ * Re-derive candidate Axis 3/4/5 values for a source classify-source.mjs's own name/role matchers found
+ * NOTHING for, from two deterministic signals classify-source.mjs never reads: the SC-13 class table
+ * (`classTierForHost`) and the source's own observed item-category distribution. PURE. Never guesses a
+ * role from an ambiguous tier (see file header above) -- a gap this cannot decide is simply absent from
+ * the returned candidate list, not filled with a plausible-sounding default.
+ * @param {{url?:string|null}} source
+ * @param {{scope_topics:boolean, scope_verticals:boolean, expected_output:boolean}} gaps - which fields are currently unset
+ * @param {Record<string, number>|null} observed - routing.mjs's observedDistributionFromItems() output, or null (insufficient sample)
+ * @returns {Array<{field:string, value:unknown, confidence:string, basis:string, applicable:boolean}>}
+ */
+export function deriveClassTableCandidates(source, gaps, observed) {
+  const candidates = [];
+  let host = null;
+  try {
+    host = source?.url ? new URL(source.url).hostname : null;
+  } catch {
+    host = null;
+  }
+  const tier = classTierForHost(host);
+
+  // scope_topics: tier 1 (legal-primary) and tier 2 (gov/intergov, merged) are both regulatory-adjacent
+  // institutions by the codified rule's own definition -- safe regardless of which tier-2 sub-class.
+  if (gaps?.scope_topics && (tier === 1 || tier === 2)) {
+    candidates.push({
+      field: "scope_topics", value: ["regulatory"], confidence: "high",
+      basis: `SC-13 class table: host "${host}" resolves to tier ${tier} (classTierForHost) -- a legal-primary or government/intergovernmental publisher is a regulatory-adjacent institution by the codified rule's own definition.`,
+      applicable: true,
+    });
+  }
+
+  // scope_verticals: tier 1 only (unambiguous primary_legal_authority proxy; FREIGHT_GENERAL_ROLES
+  // already treats that exact role this way in scope.mjs).
+  if (gaps?.scope_verticals && tier === 1) {
+    candidates.push({
+      field: "scope_verticals", value: ["freight_general"], confidence: "high",
+      basis: `SC-13 class table: host "${host}" resolves to tier 1 (legal-primary, classTierForHost) -- general freight coverage without vertical specificity, the same Axis 4c default scope.mjs's FREIGHT_GENERAL_ROLES applies to the primary_legal_authority role.`,
+      applicable: true,
+    });
+  }
+
+  // expected_output: prefer the source's OWN observed distribution (a measured fact, never a guess) once
+  // the sample clears the floor; else, for tier 1 only, the framework's own primary_legal_authority
+  // default (classify-source.mjs's own expected_output rule, reached through the class table instead of
+  // a stored source_role).
+  if (gaps?.expected_output) {
+    if (isValidDistribution(observed)) {
+      candidates.push({
+        field: "expected_output", value: observed, confidence: "high",
+        basis: "source's own observed item-category distribution (routing.mjs observedDistributionFromItems) -- a measured fact, not a role default.",
+        applicable: true,
+      });
+    } else if (tier === 1) {
+      const eo = expectedOutputForRole("primary_legal_authority");
+      if (eo) {
+        candidates.push({
+          field: "expected_output", value: eo, confidence: "medium",
+          basis: `SC-13 class table: host "${host}" resolves to tier 1 (legal-primary) -- framework Axis-5 default for primary_legal_authority applied deterministically (no observed sample yet).`,
+          applicable: true,
+        });
+      }
+    }
+  }
+
+  return candidates;
+}
+
+/**
+ * The fixed resolution_note for "class-table + observed-output re-derivation found nothing to decide".
+ * ONE wording, shared by the decider (this module, reDeriveZeroProposalClassification below) and the
+ * proposer (propose-classifications.mjs's own zero-derivation write, D17 family 4 part 2, imports this
+ * unmodified) so the two can never drift apart -- the same shared-wording discipline D15's
+ * buildNoDerivableTagsNote establishes for the TAG namespace.
+ * @param {Date} [today]
+ * @returns {string}
+ */
+export function buildNoDerivableClassificationNote(today = new Date()) {
+  const dateStr = today.toISOString().slice(0, 10);
+  return `no derivable classification from the class table or the observed output on ${dateStr}; re-evaluated on the next classify run`;
+}
+
+/**
+ * Turn deriveClassTableCandidates' output into decision rows for buildDecisionNote/buildMergePatch. PURE.
+ * Every candidate is already-decided "adopt" -- see reDeriveZeroProposalClassification's own comment for
+ * why this never re-runs decideClassificationProposals (that function's evidence model is name/role
+ * keyword re-confirmation, not the class-table/observed-output evidence these candidates rest on).
+ * @param {Array<{field:string, value:unknown, basis:string}>} candidates
+ * @returns {Array<{field:string, value:unknown, label:string, decision:"adopt", reason:string}>}
+ */
+function candidatesToDecisions(candidates) {
+  return (Array.isArray(candidates) ? candidates : []).map((c) => ({
+    ...c, label: `${c.field}=${JSON.stringify(c.value)}`, decision: "adopt", reason: c.basis,
+  }));
+}
+
+/**
+ * True when a source-classification flag's stored PROPOSALS_JSON parses to an empty array. PURE.
+ * @param {{description?:string}} flag
+ * @returns {boolean}
+ */
+export function isZeroProposalClassificationFlag(flag) {
+  const parsed = extractProposalsFromDescription(flag?.description);
+  return parsed.ok && parsed.value.length === 0;
+}
+
+/**
+ * D17 family 4 core: re-derive + decide + (in execute mode) write/resolve for ONE zero-proposal
+ * source-classification flag. Internal (called from autoAdoptClassification below), same shape as D15's
+ * reDeriveZeroProposalTags in apply-tags.mjs.
+ * @param {{readSource:Function, readSourceItems:Function, updateSource:Function, resolveFlag:Function}} deps
+ * @param {{id:string, subject_ref?:string}} flag - already read and confirmed zero-proposal by the caller
+ * @param {{execute:boolean, today?:Date}} opts
+ */
+async function reDeriveZeroProposalClassification(deps, flag, { execute, today = new Date() } = {}) {
+  const sourceId = String(flag.subject_ref || "").trim();
+  if (!sourceId) return { status: "not_auto_adoptable", error: "flag has no subject_ref (source id)." };
+
+  const { data: source, error: srcErr } = await deps.readSource(sourceId);
+  if (srcErr) return { status: "source_read_error", error: srcErr.message };
+  if (!source) return { status: "source_not_found", error: `no sources row with id ${sourceId}.` };
+
+  const gaps = {
+    scope_topics: !Array.isArray(source.scope_topics) || source.scope_topics.length === 0,
+    scope_verticals: !Array.isArray(source.scope_verticals) || source.scope_verticals.length === 0,
+    expected_output: source.expected_output === null || source.expected_output === undefined,
+  };
+
+  const items = await deps.readSourceItems(sourceId);
+  const sufficientSample = Array.isArray(items) && items.length >= CLASS_TABLE_MIN_ITEMS_FOR_OBSERVED;
+  const observed = sufficientSample ? observedDistributionFromItems(items) : null;
+
+  // NOTE: candidates from deriveClassTableCandidates are NOT re-run through decideClassificationProposals
+  // (that function's scope_topics branch re-checks NAME/ROLE keyword evidence via decideScopeTopicsProposal
+  // -- the exact evidence classify-source.mjs's own name-based proposals rest on, which is NOT what these
+  // candidates are grounded in). deriveClassTableCandidates is itself the live, freshly-computed evidence
+  // check (the class table + the observed distribution, both re-read at decide time, never trusted from a
+  // stale payload); every candidate it returns is therefore already a decided "adopt" -- there is no
+  // decline case for this family (an undecidable gap simply produces no candidate at all).
+  const decisions = candidatesToDecisions(deriveClassTableCandidates(source, gaps, observed));
+  const merge = buildMergePatch(source, decisions.filter((d) => d.decision === "adopt"));
+  const hasWrite = Object.keys(merge.patch).length > 0;
+  const note = decisions.length
+    ? buildDecisionNote("apply-classifications (class-table/observed re-derivation)", decisions)
+    : buildNoDerivableClassificationNote(today);
+
+  if (!execute) return { status: "dry_run_rederive", sourceId, merge, decisions, hasWrite, note };
+
+  if (hasWrite) await deps.updateSource(sourceId, merge.patch);
+  await deps.resolveFlag(flag.id, note);
+  return {
+    status: hasWrite ? "re_derived_adopted" : "re_derived_no_change",
+    sourceId, merge, decisions, flagId: flag.id, resolvedNote: note,
+  };
+}
+
+// ────────── Family 5: drift auto-resolution + anomaly retirement (D17, 2026-09-12) ──────────
+// Drift: "when the source's observed output covers at least 2 runs and 20 items, the step adopts the
+// observed distribution as expected_output (guarded update) and resolves the flag with the before and
+// after values; below that sample size it resolves with 'insufficient sample, re-evaluated next run'."
+// "Runs" has no tracked column on intelligence_items (no run/scrape-event id); the most literal available
+// proxy grounded in a real column is DISTINCT CALENDAR DATES among the source's own items' created_at --
+// named here explicitly as a scoped interpretation, not a fabricated concept.
+// Anomaly: the detector itself is deleted (propose-classifications.mjs no longer opens this subtype); any
+// surviving open row is retired unconditionally, never re-derived.
+export const DRIFT_MIN_ITEMS = 20;
+export const DRIFT_MIN_DISTINCT_DATES = 2;
+
+/** Count distinct calendar dates (UTC, YYYY-MM-DD) among items' created_at. PURE. */
+export function countDistinctDates(items) {
+  const set = new Set();
+  for (const it of items || []) {
+    const d = it?.created_at ? String(it.created_at).slice(0, 10) : null;
+    if (d) set.add(d);
+  }
+  return set.size;
+}
+
+/**
+ * D17 family 5 (drift): decide whether a source's OWN observed item-category distribution is a large
+ * enough, wide-enough sample to adopt as the new expected_output. PURE.
+ * @param {Record<string, number>|null} observed
+ * @param {unknown} currentExpectedOutput
+ * @param {Array<{created_at?:string|null}>} items
+ * @param {{minItems?:number, minDistinctDates?:number, today?:Date}} [opts]
+ * @returns {{adopt:boolean, patch:{expected_output:unknown}|null, note:string}}
+ */
+export function decideDriftResolution(observed, currentExpectedOutput, items, {
+  minItems = DRIFT_MIN_ITEMS, minDistinctDates = DRIFT_MIN_DISTINCT_DATES, today = new Date(),
+} = {}) {
+  const itemCount = Array.isArray(items) ? items.length : 0;
+  const distinctDates = countDistinctDates(items);
+  const dateStr = today.toISOString().slice(0, 10);
+  const sufficientSample = itemCount >= minItems && distinctDates >= minDistinctDates && isValidDistribution(observed);
+  if (!sufficientSample) {
+    return {
+      adopt: false, patch: null,
+      note:
+        `insufficient sample, re-evaluated next run (observed ${itemCount} item(s) across ${distinctDates} ` +
+        `distinct date(s) on ${dateStr}; needs >=${minItems} items across >=${minDistinctDates} dates).`,
+    };
+  }
+  return {
+    adopt: true, patch: { expected_output: observed },
+    note:
+      `drift resolved on ${dateStr}: expected_output refreshed from the source's own observed item-category ` +
+      `distribution over ${itemCount} item(s) across ${distinctDates} distinct date(s). ` +
+      `before=${JSON.stringify(currentExpectedOutput ?? null)} after=${JSON.stringify(observed)}`,
+  };
+}
+
+/** D17 family 5 (anomaly): the fixed retirement note. */
+export const ANOMALY_RETIRED_NOTE = "advisory retired under the ADR-030 rider";
+
+/**
+ * D17 family 5 (drift): the decide-and-apply core for ONE open source-drift flag, DB access injected.
+ * @param {{readFlag:Function, readSource:Function, readSourceItems:Function, updateSource:Function, resolveFlag:Function}} deps
+ * @param {string} flagId
+ * @param {{execute:boolean}} opts
+ */
+export async function autoResolveDriftFlag(deps, flagId, { execute } = {}) {
+  const { data: flag, error } = await deps.readFlag(flagId);
+  if (error) return { status: "read_error", error: error.message };
+  if (!flag) return { status: "not_found", error: `no integrity_flags row with id ${flagId}.` };
+  if (flag.created_by !== DRIFT_CREATED_BY) {
+    return { status: "not_applicable", error: `flag created_by "${flag.created_by}" is not "${DRIFT_CREATED_BY}".` };
+  }
+  if (flag.status !== "open") return { status: "not_applicable", error: `flag status is '${flag.status}', not 'open'.` };
+
+  const sourceId = String(flag.subject_ref || "").trim();
+  if (!sourceId) return { status: "not_applicable", error: "flag has no subject_ref (source id)." };
+
+  const { data: source, error: srcErr } = await deps.readSource(sourceId);
+  if (srcErr) return { status: "source_read_error", error: srcErr.message };
+  if (!source) return { status: "source_not_found", error: `no sources row with id ${sourceId}.` };
+
+  const items = await deps.readSourceItems(sourceId);
+  const observed = observedDistributionFromItems(items);
+  const decision = decideDriftResolution(observed, source.expected_output ?? null, items);
+
+  if (!execute) return { status: "dry_run", sourceId, decision };
+
+  if (decision.adopt) await deps.updateSource(sourceId, decision.patch);
+  await deps.resolveFlag(flagId, decision.note);
+  return { status: "resolved", sourceId, adopted: decision.adopt, resolvedNote: decision.note };
+}
+
+/**
+ * D17 family 5 (anomaly): retire ONE open item-anomaly flag unconditionally -- the detector itself is
+ * deleted, so this is a flat close, never a decision.
+ * @param {{readFlag:Function, resolveFlag:Function}} deps
+ * @param {string} flagId
+ * @param {{execute:boolean}} opts
+ */
+export async function retireAnomalyFlag(deps, flagId, { execute } = {}) {
+  const { data: flag, error } = await deps.readFlag(flagId);
+  if (error) return { status: "read_error", error: error.message };
+  if (!flag) return { status: "not_found", error: `no integrity_flags row with id ${flagId}.` };
+  if (flag.created_by !== ANOMALY_CREATED_BY) {
+    return { status: "not_applicable", error: `flag created_by "${flag.created_by}" is not "${ANOMALY_CREATED_BY}".` };
+  }
+  if (flag.status !== "open") return { status: "not_applicable", error: `flag status is '${flag.status}', not 'open'.` };
+
+  if (!execute) return { status: "dry_run", flagId, note: ANOMALY_RETIRED_NOTE };
+  await deps.resolveFlag(flagId, ANOMALY_RETIRED_NOTE);
+  return { status: "resolved", flagId, resolvedNote: ANOMALY_RETIRED_NOTE };
+}
+
 /**
  * The decide-and-apply core, DB access injected (mirrors applyClassification's shape, plus `resolveFlag`
  * for the close step). Directly testable with a fake client. Every reachable proposal is decided; the
@@ -448,7 +762,17 @@ export async function autoAdoptClassification(deps, flagId, { execute } = {}) {
   if (!flag) return { status: "not_found", error: `no integrity_flags row with id ${flagId}.` };
 
   const decision = evaluateAutoAdoption(flag);
-  if (!decision.ok) return { status: "not_auto_adoptable", error: decision.error };
+  if (!decision.ok) {
+    // D17 family 4: a zero-proposal flag is decided, never skipped -- re-derive from the SC-13 class
+    // table + the source's observed output (see reDeriveZeroProposalClassification above) instead of
+    // returning not_auto_adoptable. Guarded on status==='open' (not just zero-proposal) so an
+    // ALREADY-resolved flag is never re-derived a second time (its description still parses to
+    // PROPOSALS_JSON: [] after resolution, since resolveFlag never rewrites `description`).
+    if (flag.status === "open" && flag.created_by === CLASSIFICATION_CREATED_BY && isZeroProposalClassificationFlag(flag)) {
+      return reDeriveZeroProposalClassification(deps, flag, { execute });
+    }
+    return { status: "not_auto_adoptable", error: decision.error };
+  }
 
   const { data: source, error: srcErr } = await deps.readSource(decision.sourceId);
   if (srcErr) return { status: "source_read_error", error: srcErr.message };
@@ -509,7 +833,26 @@ const deps = {
   readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
   // Widened 2026-09-12 (task 7.2): decideScopeTopicsProposal re-checks a scope_topics proposal's
   // per-topic evidence against the source's OWN name/source_role at apply time.
-  readSource: (id) => sb.from("sources").select("id, name, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+  // Widened again 2026-09-12 (D17 family 4): `url` added so deriveClassTableCandidates can resolve the
+  // SC-13 class table tier for the source's own registered host.
+  readSource: (id) => sb.from("sources").select("id, name, url, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+  // D17 families 4 and 5 (2026-09-12): a source's own verified, live items, for the observed
+  // item-category distribution (`observedDistributionFromItems`) both the zero-proposal re-derivation
+  // and the drift auto-resolution read.
+  readSourceItems: async (sourceId) => {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb
+        .from("intelligence_items")
+        .select("id, item_type, domain, created_at")
+        .eq("source_id", sourceId).eq("provenance_status", "verified").eq("is_archived", false)
+        .order("id").range(from, from + 999);
+      if (error) throw new Error(`apply-classifications: source-items read failed: ${error.message}`);
+      rows.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    return rows;
+  },
   updateSource: async (id, patch) => {
     const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
     return { updated: res.updated, snapshot: res.snapshot };
@@ -554,6 +897,49 @@ function report(flagId, result) {
       } else {
         console.log(`WROTE: source ${result.sourceId} updated (${result.updated} row) with ${JSON.stringify(result.merge.patch)} (snapshot: ${result.snapshot}).`);
       }
+      return true;
+    case "dry_run_rederive":
+      console.log(
+        `apply-classifications: flag ${flagId} zero-proposal -> source ${result.sourceId} would decide ` +
+        `${result.decisions.length} re-derived candidate(s); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
+        "(DRY RUN: nothing written. Re-run with --execute to apply.)",
+      );
+      return true;
+    case "re_derived_adopted":
+      console.log(`WROTE + RESOLVED (D17 re-derivation): source ${result.sourceId} updated with ${JSON.stringify(result.merge.patch)}; flag ${flagId} closed.`);
+      return true;
+    case "re_derived_no_change":
+      console.log(`RESOLVED (D17 re-derivation): flag ${flagId} closed with no source write needed; ${result.decisions.length} candidate(s) decided.`);
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** report() for drift/anomaly resolution results (D17 family 5): a different result shape than the
+ *  classification report() above, so kept separate rather than overloading one switch with two shapes. */
+function reportFamily5(flagId, kind, result) {
+  switch (result.status) {
+    case "not_found":
+    case "read_error":
+    case "not_applicable":
+    case "source_read_error":
+    case "source_not_found":
+      console.error(`apply-classifications: ${kind} flag ${flagId}: ${result.error}`);
+      return false;
+    case "dry_run":
+      console.log(
+        kind === "drift"
+          ? `apply-classifications: drift flag ${flagId} -> source ${result.sourceId} would ${result.decision.adopt ? "ADOPT" : "DECLINE"} (${result.decision.note}) (DRY RUN).`
+          : `apply-classifications: anomaly flag ${flagId} would be retired: "${result.note}" (DRY RUN).`,
+      );
+      return true;
+    case "resolved":
+      console.log(
+        kind === "drift"
+          ? `RESOLVED (drift): flag ${flagId} closed for source ${result.sourceId} (adopted=${result.adopted}).`
+          : `RESOLVED (anomaly): flag ${flagId} retired.`,
+      );
       return true;
     default:
       return false;
@@ -601,15 +987,53 @@ if (flagId) {
   }
   const ids = (candidates ?? []).map((r) => r.id);
   console.log(`apply-classifications: --auto-adopt — ${ids.length} open ${CLASSIFICATION_CREATED_BY} flag(s) to evaluate${EXECUTE ? "" : " (DRY RUN)"}.`);
-  let appliedCount = 0, resolvedCount = 0, skippedCount = 0;
+  let appliedCount = 0, resolvedCount = 0, skippedCount = 0, rederivedCount = 0;
   for (const id of ids) {
     const result = await autoAdoptClassification(deps, id, { execute: EXECUTE });
     const ok = report(id, result);
     if (result.status === "not_auto_adoptable") { skippedCount++; continue; } // no auto-adoptable field on this flag — expected, not a failure
     if (!ok) anyFailed = true;
     if (result.status === "applied") { appliedCount++; if (result.resolved) resolvedCount++; }
+    if (result.status === "re_derived_adopted" || result.status === "re_derived_no_change") rederivedCount++;
   }
-  console.log(`apply-classifications: --auto-adopt done — ${appliedCount} applied (${resolvedCount} fully resolved), ${skippedCount} not-auto-adoptable (skipped), of ${ids.length} candidate(s).`);
+  console.log(
+    `apply-classifications: --auto-adopt done: ${appliedCount} applied (${resolvedCount} fully resolved), ` +
+    `${rederivedCount} zero-proposal re-derived (D17), ${skippedCount} not-auto-adoptable (skipped), of ${ids.length} candidate(s).`,
+  );
+
+  // D17 family 5: every OPEN source-drift flag is auto-resolved (adopt-observed or insufficient-sample,
+  // never left open), and every OPEN item-anomaly flag is retired (the detector itself is deleted).
+  const { data: driftCandidates, error: driftListErr } = await sb
+    .from("integrity_flags").select("id").eq("status", "open").eq("created_by", DRIFT_CREATED_BY);
+  if (driftListErr) {
+    console.error(`apply-classifications: drift candidate read failed: ${driftListErr.message}`);
+    process.exit(1);
+  }
+  const driftIds = (driftCandidates ?? []).map((r) => r.id);
+  console.log(`apply-classifications: family 5 (drift): ${driftIds.length} open ${DRIFT_CREATED_BY} flag(s)${EXECUTE ? "" : " (DRY RUN)"}.`);
+  let driftResolved = 0;
+  for (const id of driftIds) {
+    const result = await autoResolveDriftFlag(deps, id, { execute: EXECUTE });
+    if (!reportFamily5(id, "drift", result)) anyFailed = true;
+    if (result.status === "resolved") driftResolved++;
+  }
+  console.log(`apply-classifications: family 5 (drift) done: ${driftResolved}/${driftIds.length} resolved.`);
+
+  const { data: anomalyCandidates, error: anomalyListErr } = await sb
+    .from("integrity_flags").select("id").eq("status", "open").eq("created_by", ANOMALY_CREATED_BY);
+  if (anomalyListErr) {
+    console.error(`apply-classifications: anomaly candidate read failed: ${anomalyListErr.message}`);
+    process.exit(1);
+  }
+  const anomalyIds = (anomalyCandidates ?? []).map((r) => r.id);
+  console.log(`apply-classifications: family 5 (anomaly): ${anomalyIds.length} open ${ANOMALY_CREATED_BY} flag(s)${EXECUTE ? "" : " (DRY RUN)"}.`);
+  let anomalyRetired = 0;
+  for (const id of anomalyIds) {
+    const result = await retireAnomalyFlag(deps, id, { execute: EXECUTE });
+    if (!reportFamily5(id, "anomaly", result)) anyFailed = true;
+    if (result.status === "resolved") anomalyRetired++;
+  }
+  console.log(`apply-classifications: family 5 (anomaly) done: ${anomalyRetired}/${anomalyIds.length} retired.`);
 }
 
 process.exit(anyFailed ? 1 : 0);

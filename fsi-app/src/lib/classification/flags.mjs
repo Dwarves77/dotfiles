@@ -34,3 +34,11 @@ export const AXIS_NAMESPACE = "flywheel-axis:";
 export const SOURCE_CLASSIFICATION_SUBTYPE = "source-classification";
 export const SOURCE_DRIFT_SUBTYPE = "source-drift";
 export const ITEM_ANOMALY_SUBTYPE = "item-anomaly";
+
+// D17 family 4 (defect-fix-plan-2026-09-12): a distinct subtype for "classify-source.mjs found nothing
+// derivable", separate from SOURCE_CLASSIFICATION_SUBTYPE. Deliberately a DIFFERENT created_by (not just
+// a different status on the same key): a later propose pass for the SAME source that now DOES derive a
+// proposal must insert a fresh, normal, open source-classification flag rather than being blocked by
+// dedup against this already-resolved row's identical (subject_ref, created_by) key -- the exact D15
+// design this mirrors for the TAG namespace (see propose-tags.mjs's NO_DERIVABLE_SUBTYPE).
+export const SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE = "source-classification-no-derivable";

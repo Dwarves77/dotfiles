@@ -76,6 +76,14 @@ function baseDeps(overrides = {}) {
       calls.push(["listOpenClassifications"]);
       return [];
     },
+    listOpenDrift: async () => {
+      calls.push(["listOpenDrift"]);
+      return [];
+    },
+    listOpenAnomaly: async () => {
+      calls.push(["listOpenAnomaly"]);
+      return [];
+    },
     readFlag: async (id) => {
       calls.push(["readFlag", id]);
       return { data: null, error: null };
@@ -234,6 +242,60 @@ test("summary includes counts and applied", async () => {
   assert.equal(typeof r.applied, "number");
 });
 
+// ── D17 families 4/5 orchestration (defect-fix-plan-2026-09-12) ────────────────────────────────────
+
+test("dry: sources with no derivable name/role signal are proposed as zero-derivation rows, not normal open flags", async () => {
+  const d = baseDeps();
+  const r = await main({ mode: "dry" }, d);
+  assert.ok(r.counts.propose.classify_no_derivable, "a classify_no_derivable bucket must exist in the summary");
+  // Both fixture sources end up zero-derivation here: UNCLASSIFIED_SOURCE has no name/role signal at
+  // all, and CLASSIFIED_SOURCE's only gap (jurisdictions -- absent from the fixture) has no derivable
+  // value either (classifySourceJurisdiction finds nothing from a bare example.com host) -- neither
+  // produces a normal open proposal.
+  assert.equal(r.counts.propose.classify_no_derivable.plan.new, 2);
+  assert.equal(r.counts.propose.classify.plan.new, 0, "nothing derives a normal open proposal in this fixture");
+});
+
+test("dry: family5 counts report open drift/anomaly candidates and the drift-would-adopt preview", async () => {
+  const d = baseDeps();
+  const r = await main({ mode: "dry" }, d);
+  assert.ok(r.counts.family5);
+  assert.equal(typeof r.counts.family5.drift_open, "number");
+  assert.equal(typeof r.counts.family5.anomaly_open, "number");
+  assert.equal(typeof r.counts.family5.drift_would_adopt, "number");
+});
+
+test("apply: calls listOpenDrift/listOpenAnomaly and reports resolved/retired counts, even with zero open rows", async () => {
+  const d = baseDeps();
+  const r = await main({ mode: "apply" }, d);
+  assert.ok(d.calls.some((c) => c[0] === "listOpenDrift"));
+  assert.ok(d.calls.some((c) => c[0] === "listOpenAnomaly"));
+  assert.equal(r.counts.family5.drift_resolved, 0);
+  assert.equal(r.counts.family5.anomaly_retired, 0);
+});
+
+test("apply: an OPEN item-anomaly flag is retired through retireAnomalyFlag, via the resolveFlag dep", async () => {
+  const anomalyFlagRow = { id: "flag-anomaly-1", created_by: "flywheel-axis:item-anomaly", status: "open", subject_ref: "item-9" };
+  const d = baseDeps({
+    listOpenAnomaly: async () => { d.calls.push(["listOpenAnomaly"]); return [anomalyFlagRow]; },
+    readFlag: async (id) => { d.calls.push(["readFlag", id]); return { data: id === "flag-anomaly-1" ? anomalyFlagRow : null, error: null }; },
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.family5.anomaly_retired, 1);
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-anomaly-1"));
+});
+
+test("apply: an OPEN source-drift flag with no source row resolves as not_applicable (source_not_found), never crashes the whole run", async () => {
+  const driftFlagRow = { id: "flag-drift-1", created_by: "flywheel-axis:source-drift", status: "open", subject_ref: "src-missing" };
+  const d = baseDeps({
+    listOpenDrift: async () => { d.calls.push(["listOpenDrift"]); return [driftFlagRow]; },
+    readFlag: async (id) => { d.calls.push(["readFlag", id]); return { data: id === "flag-drift-1" ? driftFlagRow : null, error: null }; },
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.family5.drift_resolved, 0);
+  assert.ok(d.calls.some((c) => c[0] === "readSource" && c[1] === "src-missing"));
+});
+
 // ── buildRealDeps -- regression test for the 2026-09-12 "guardedUpdate is not defined" crash ───────────
 //
 // Maintenance run 34691660889 (apply mode) threw ReferenceError at updateSource because this file's real
@@ -320,6 +382,9 @@ test("buildRealDeps(): readAll/insertMany/updateStale/listOpenClassifications/re
   assert.equal(typeof deps.insertMany, "function");
   assert.equal(typeof deps.updateStale, "function");
   assert.equal(typeof deps.listOpenClassifications, "function");
+  // D17 family 5 (2026-09-12): the two new open-flag lists Phase 2b/2c iterate.
+  assert.equal(typeof deps.listOpenDrift, "function");
+  assert.equal(typeof deps.listOpenAnomaly, "function");
   assert.equal(typeof deps.readFlag, "function");
   assert.equal(typeof deps.readSource, "function");
   assert.equal(typeof deps.updateSource, "function");
@@ -332,4 +397,6 @@ test("buildRealDeps(): readAll/insertMany/updateStale/listOpenClassifications/re
   // those two were correctly imported before this fix and must stay that way.
   await deps.updateStale("integrity_flags", ["flag-x"], { status: "resolved" });
   await deps.insertMany("integrity_flags", [{ category: "source_issue" }], { cite: CITE, select: "id" });
+  assert.deepEqual(await deps.listOpenDrift(), []);
+  assert.deepEqual(await deps.listOpenAnomaly(), []);
 });

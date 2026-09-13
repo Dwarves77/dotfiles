@@ -32,17 +32,19 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   evaluateAutoAdoption, autoAdoptClassification, AUTO_ADOPT_FIELDS,
+  autoResolveDriftFlag, retireAnomalyFlag, buildNoDerivableClassificationNote,
+  isZeroProposalClassificationFlag, DRIFT_CREATED_BY, ANOMALY_CREATED_BY,
 } from "../classification/apply-classifications.mjs";
 import {
   proposeSourceAxisClassification, APPLICABLE_FIELDS,
 } from "../../src/lib/classification/classify-source.mjs";
 import { isValidDistribution } from "../../src/lib/classification/expected-output.mjs";
-import { surfaceOf } from "../../src/lib/surface-of.mjs";
 import {
-  detectDrift, isAnomalousCategory, observedDistributionFromItems,
+  detectDrift, observedDistributionFromItems,
 } from "../../src/lib/classification/routing.mjs";
 import {
-  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE, ITEM_ANOMALY_SUBTYPE,
+  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE,
+  SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE,
 } from "../../src/lib/classification/flags.mjs";
 import { createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 import { planReflect } from "../connections/propose-tags.mjs";
@@ -52,34 +54,68 @@ export const CITE = Object.freeze({
   skill: "flywheel-build-plan-2026-08-10",
   reason:
     "MAINT apply-classifications dispatch (Lane CLASSIFY-STEP, 2026-09-04): orchestrate " +
-    "propose-classifications logic (Axis 3/4/5 source gaps, drift, anomalies as integrity_flags) " +
+    "propose-classifications logic (Axis 3/4/5 source gaps, drift as integrity_flags) " +
     "and auto-adopt high-confidence / deterministic proposals through apply-classifications.mjs's " +
     "own evaluateAutoAdoption/autoAdoptClassification (guarded writes, rule 015). Scope_topics and " +
-    "jurisdiction proposals stay ratification-only (operator rules).",
+    "jurisdiction proposals stay ratification-only (operator rules). D17 families 4/5 (2026-09-12): a " +
+    "zero-proposal classification flag is re-derived from the SC-13 class table + observed output; " +
+    "every open drift flag is resolved (adopt-observed or insufficient-sample); every open anomaly " +
+    "flag is retired (the detector itself is deleted).",
 });
 
 const CLASSIFY_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
-const DRIFT_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_DRIFT_SUBTYPE);
-const ANOMALY_CREATED_BY = createdBy(AXIS_NAMESPACE, ITEM_ANOMALY_SUBTYPE);
+const NO_DERIVABLE_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE);
+// DRIFT_CREATED_BY / ANOMALY_CREATED_BY imported directly from ../classification/apply-classifications.mjs
+// (D17 families 4/5, 2026-09-12) rather than locally re-derived, so this wrapper's family-5 resolution
+// loop and that core file's own CLI can never drift on the exact created_by string.
 
 // Framework defaults from propose-classifications.mjs (not editable here; if future ruling changes
 // these, they change there, and this wrapper picks them up via imports when this module reloads).
 const DRIFT_THRESHOLD_POINTS = 30;
-const ANOMALY_THRESHOLD = 0.05;
 const MIN_ITEMS_FOR_DRIFT_CHECK = 10;
 
 // ── Builders (copied inline to avoid exporting from propose-classifications.mjs; mirrored in exact
 //     detail so any source-of-truth drift between the two scripts is caught by inspection) ────────
 
 /**
+ * The integrity_flags row for a source classify-source.mjs's name/role matchers found ZERO candidate
+ * values for. Born ALREADY RESOLVED -- mirrored from propose-classifications.mjs's
+ * buildNoDerivableClassificationFlagRow (D17 family 4 part 2, 2026-09-12).
+ * @param {{id:string, name?:string|null, url?:string|null}} source
+ * @param {Date} [today]
+ * @returns {object} integrity_flags row (status:'resolved', no id)
+ */
+function buildNoDerivableClassificationFlagRow(source, today = new Date()) {
+  const label = source?.name || source?.url || source.id;
+  const description =
+    `Source ${source.id} (${label}) has unclassified 5-axis field(s) but no candidate value was ` +
+    "derivable from name/url/role alone.\n\nPROPOSALS_JSON: []";
+  return {
+    category: "source_issue",
+    subject_type: "source",
+    subject_ref: buildSubjectRef(source.id),
+    description,
+    recommended_actions: [],
+    status: "resolved",
+    resolved_at: today.toISOString(),
+    resolved_by: "apply-classifications.mjs (MAINT)",
+    resolution_note: buildNoDerivableClassificationNote(today),
+    created_by: NO_DERIVABLE_CREATED_BY,
+  };
+}
+
+/**
  * Build the integrity_flags insert payload for one source's classify-source.mjs proposal set. PURE.
- * Mirrored from propose-classifications.mjs's buildClassificationFlagRow.
+ * Mirrored from propose-classifications.mjs's buildClassificationFlagRow. A ZERO-proposal result
+ * delegates to buildNoDerivableClassificationFlagRow (D17 family 4 part 2).
  * @param {{id:string, name?:string|null, url?:string|null}} source
  * @param {{proposals:Array<{field:string, value:unknown, confidence:string, basis:string, applicable:boolean}>}} computed
- * @returns {object} integrity_flags row (status:'open', no id)
+ * @returns {object} integrity_flags row
  */
 function buildClassificationFlagRow(source, computed) {
   const proposals = computed?.proposals ?? [];
+  if (!proposals.length) return buildNoDerivableClassificationFlagRow(source);
+
   const label = source?.name || source?.url || source.id;
   const applicable = proposals.filter((p) => p.applicable);
   const advisory = proposals.filter((p) => !p.applicable);
@@ -89,9 +125,7 @@ function buildClassificationFlagRow(source, computed) {
   if (applicable.length) parts.push(`${applicable.length} applicable: ${applicable.map(fmt).join("; ")}`);
   if (advisory.length) parts.push(`${advisory.length} advisory-only (no safe apply target yet): ${advisory.map(fmt).join("; ")}`);
 
-  const summary = proposals.length
-    ? `classify-source.mjs proposes Axis 3/4/5 classification for source ${source.id} (${label}): ${parts.join(" | ")}.`
-    : `Source ${source.id} (${label}) has unclassified 5-axis field(s) but no candidate value was derivable from name/url/role alone -- needs manual operator classification.`;
+  const summary = `classify-source.mjs proposes Axis 3/4/5 classification for source ${source.id} (${label}): ${parts.join(" | ")}.`;
   const description = `${summary}\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}`;
 
   return {
@@ -135,32 +169,9 @@ function buildDriftFlagRow(source, drift) {
   };
 }
 
-/**
- * Build the integrity_flags insert payload for one anomalous item (framework Section 5c). PURE.
- * Mirrored from propose-classifications.mjs's buildAnomalyFlagRow.
- * @param {{id:string}} item
- * @param {{id:string, name?:string|null, url?:string|null, source_role?:string|null}} source
- * @param {string} category
- * @param {number} probability
- * @returns {object}
- */
-function buildAnomalyFlagRow(item, source, category, probability) {
-  const label = source?.name || source?.url || source.id;
-  const description =
-    `routing.mjs isAnomalousCategory: item ${item.id} from source ${source.id} (${label}, source_role=${source.source_role ?? "null"}) ` +
-    `classified as "${category}", which carries only ${(probability * 100).toFixed(1)}% expected probability in the source's Axis-5 ` +
-    `distribution (anomaly threshold ${(ANOMALY_THRESHOLD * 100).toFixed(0)}%). Framework Section 5c: review whether the item's ` +
-    `classification is wrong, or the source produced something genuinely unusual (e.g. a vendor's voluntary binding-style commitment).`;
-  return {
-    category: "data_quality",
-    subject_type: "item",
-    subject_ref: buildSubjectRef(item.id),
-    description,
-    recommended_actions: [],
-    status: "open",
-    created_by: ANOMALY_CREATED_BY,
-  };
-}
+// buildAnomalyFlagRow DELETED (D17 family 5, 2026-09-12) -- mirrors propose-classifications.mjs's own
+// deletion; see that file's header for the retirement rationale. Any surviving open item-anomaly flag is
+// retired by this file's own Phase 2c below (retireAnomalyFlag, imported unmodified).
 
 /**
  * Group a flat item list by source_id. PURE.
@@ -192,9 +203,9 @@ function groupItemsBySource(items) {
  * }} deps
  * @returns {Promise<{plan:object, wrote:object|null, resolved:object|null}>}
  */
-async function runSubtype(createdByValue, freshList, execute, deps) {
+async function runSubtype(createdByValue, freshList, execute, deps, { anyStatus = false } = {}) {
   const existingOpen = await deps.readAll("integrity_flags", "id, subject_ref, created_by", {
-    match: (q) => q.eq("status", "open").eq("created_by", createdByValue),
+    match: (q) => (anyStatus ? q : q.eq("status", "open")).eq("created_by", createdByValue),
   });
   const plan = planReflect(existingOpen, freshList);
 
@@ -223,6 +234,8 @@ async function runSubtype(createdByValue, freshList, execute, deps) {
  *   insertMany: (table:string, rows:Array, opts:object) => Promise<{inserted:number, snapshot:string|null}>,
  *   updateStale: (table:string, ids:Array, opts:object) => Promise<{updated:number, snapshot:string|null}>,
  *   listOpenClassifications: () => Promise<Array>,
+ *   listOpenDrift: () => Promise<Array>,
+ *   listOpenAnomaly: () => Promise<Array>,
  *   readFlag: (id:string) => Promise<{data:object|null, error:{message:string}|null}>,
  *   readSource: (id:string) => Promise<{data:object|null, error:{message:string}|null}>,
  *   updateSource: (id:string, patch:object) => Promise<{updated:number, snapshot:string|null}>,
@@ -237,20 +250,30 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   const SOURCE_SIG = "id, name, url, source_role, secondary_roles, status, jurisdictions, scope_topics, scope_modes, scope_verticals, expected_output";
   const sources = await deps.readAll("sources", SOURCE_SIG, { match: (q) => q.eq("status", "active") });
-  const ITEM_SIG = "id, source_id, item_type, domain";
+  // created_at added (D17 family 5): countDistinctDates needs it for the drift-resolution sample check.
+  const ITEM_SIG = "id, source_id, item_type, domain, created_at";
   const items = await deps.readAll("intelligence_items", ITEM_SIG, {
     match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
   });
+  const bySource = groupItemsBySource(items);
+  // D17 families 4 and 5: a closure over the ALREADY-loaded items, reused as the `readSourceItems` dep
+  // both the zero-proposal re-derivation (Phase 2) and the drift auto-resolution (Phase 2b) need, no
+  // second DB read.
+  const readSourceItems = async (sourceId) => bySource.get(sourceId) || [];
 
-  // Run classify-source findings
-  const classifyFresh = sources
+  // Run classify-source findings. D17 family 4 part 2: split proposal-bearing (open) from
+  // zero-derivation (born resolved, distinct subtype) so the two never share a dedup key.
+  const classifyComputed = sources
     .map((s) => ({ source: s, computed: proposeSourceAxisClassification(s) }))
-    .filter((r) => r.computed.hasGap)
+    .filter((r) => r.computed.hasGap);
+  const classifyFresh = classifyComputed.filter((r) => r.computed.proposals.length > 0)
+    .map((r) => ({ subjectRef: buildSubjectRef(r.source.id), row: buildClassificationFlagRow(r.source, r.computed) }));
+  const noDerivableFresh = classifyComputed.filter((r) => r.computed.proposals.length === 0)
     .map((r) => ({ subjectRef: buildSubjectRef(r.source.id), row: buildClassificationFlagRow(r.source, r.computed) }));
   const classifyResult = await runSubtype(CLASSIFY_CREATED_BY, classifyFresh, apply, deps);
+  const noDerivableResult = await runSubtype(NO_DERIVABLE_CREATED_BY, noDerivableFresh, apply, deps, { anyStatus: true });
 
-  // Run drift detection
-  const bySource = groupItemsBySource(items);
+  // Run drift detection (proposing side unchanged; Phase 2b below is what now ALWAYS resolves these).
   const classifiedSources = sources.filter((s) => isValidDistribution(s.expected_output));
   const driftFresh = [];
   for (const s of classifiedSources) {
@@ -262,20 +285,8 @@ export async function main({ mode = "dry" } = {}, deps) {
   }
   const driftResult = await runSubtype(DRIFT_CREATED_BY, driftFresh, apply, deps);
 
-  // Run anomaly detection
-  const bySourceId = new Map(sources.map((s) => [s.id, s]));
-  const anomalyFresh = [];
-  for (const it of items) {
-    const s = bySourceId.get(it.source_id);
-    if (!s || !isValidDistribution(s.expected_output)) continue;
-    const category = surfaceOf(it.item_type, typeof it.domain === "number" ? it.domain : null);
-    if (category === "uncategorized") continue;
-    const probability = s.expected_output[category] ?? 0;
-    if (isAnomalousCategory(category, s.expected_output, ANOMALY_THRESHOLD)) {
-      anomalyFresh.push({ subjectRef: buildSubjectRef(it.id), row: buildAnomalyFlagRow(it, s, category, probability) });
-    }
-  }
-  const anomalyResult = await runSubtype(ANOMALY_CREATED_BY, anomalyFresh, apply, deps);
+  // Anomaly detection REMOVED (D17 family 5, 2026-09-12) -- the detector is deleted; any surviving open
+  // row is retired unconditionally by Phase 2c below.
 
   summary.counts.propose = {
     classify: {
@@ -283,31 +294,31 @@ export async function main({ mode = "dry" } = {}, deps) {
       wrote: classifyResult.wrote ? { inserted: classifyResult.wrote.inserted, snapshot: classifyResult.wrote.snapshot } : null,
       resolved: classifyResult.resolved ? { updated: classifyResult.resolved.updated, snapshot: classifyResult.resolved.snapshot } : null,
     },
+    classify_no_derivable: {
+      plan: { new: noDerivableResult.plan.newRows.length, stale: noDerivableResult.plan.staleIds.length, unchanged: noDerivableResult.plan.unchanged },
+      wrote: noDerivableResult.wrote ? { inserted: noDerivableResult.wrote.inserted, snapshot: noDerivableResult.wrote.snapshot } : null,
+      resolved: noDerivableResult.resolved ? { updated: noDerivableResult.resolved.updated, snapshot: noDerivableResult.resolved.snapshot } : null,
+    },
     drift: {
       plan: { new: driftResult.plan.newRows.length, stale: driftResult.plan.staleIds.length, unchanged: driftResult.plan.unchanged },
       wrote: driftResult.wrote ? { inserted: driftResult.wrote.inserted, snapshot: driftResult.wrote.snapshot } : null,
       resolved: driftResult.resolved ? { updated: driftResult.resolved.updated, snapshot: driftResult.resolved.snapshot } : null,
     },
-    anomaly: {
-      plan: { new: anomalyResult.plan.newRows.length, stale: anomalyResult.plan.staleIds.length, unchanged: anomalyResult.plan.unchanged },
-      wrote: anomalyResult.wrote ? { inserted: anomalyResult.wrote.inserted, snapshot: anomalyResult.wrote.snapshot } : null,
-      resolved: anomalyResult.resolved ? { updated: anomalyResult.resolved.updated, snapshot: anomalyResult.resolved.snapshot } : null,
-    },
+    anomaly: { retired: true },
   };
 
-  // ── Phase 2: Auto-adopt ─────────────────────────────────────────────────────────────────────
+  // ── Phase 2: Auto-adopt (D17 family 4: zero-proposal flags now decided too, never skipped) ────
 
   const openFlags = await deps.listOpenClassifications();
-  const evaluated = openFlags.map((f) => {
-    const decision = evaluateAutoAdoption(f);
-    return { flag: f, decision };
-  });
+  const evaluated = openFlags.map((f) => ({ flag: f, decision: evaluateAutoAdoption(f) }));
   const eligible = evaluated.filter((e) => e.decision.ok);
-  const notEligible = evaluated.filter((e) => !e.decision.ok);
+  const zeroProposal = evaluated.filter((e) => !e.decision.ok && isZeroProposalClassificationFlag(e.flag));
+  const notEligible = evaluated.filter((e) => !e.decision.ok && !isZeroProposalClassificationFlag(e.flag));
 
   summary.counts.auto_adopt = {
     open_candidates: openFlags.length,
     eligible_count: eligible.length,
+    zero_proposal_count: zeroProposal.length,
     not_eligible_count: notEligible.length,
     eligible: eligible.map((e) => ({
       flag_id: e.flag.id,
@@ -316,47 +327,98 @@ export async function main({ mode = "dry" } = {}, deps) {
     })),
   };
 
+  // D17 family 5: every OPEN drift/anomaly flag is decided regardless of dry/apply mode (dry previews
+  // the decision; apply writes/resolves it) -- computed here so the dry summary carries it too.
+  const openDrift = await deps.listOpenDrift();
+  const openAnomaly = await deps.listOpenAnomaly();
+  const family5Deps = { readFlag: deps.readFlag, readSource: deps.readSource, readSourceItems, updateSource: deps.updateSource, resolveFlag: deps.resolveFlag };
+  const driftPreview = [];
+  for (const f of openDrift) driftPreview.push(await autoResolveDriftFlag(family5Deps, f.id, { execute: false }));
+  summary.counts.family5 = {
+    drift_open: openDrift.length,
+    drift_would_adopt: driftPreview.filter((r) => r.decision?.adopt).length,
+    anomaly_open: openAnomaly.length,
+  };
+
   if (!apply) {
     summary.note =
-      `DRY -- proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new ` +
-      `flag(s) (${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length + anomalyResult.plan.staleIds.length} stale resolved). ` +
+      `DRY -- proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length} new ` +
+      `flag(s) (${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length} stale resolved; ` +
+      `${noDerivableResult.plan.newRows.length} zero-derivation row(s) recorded already-resolved). ` +
       `${eligible.length} OPEN source-classification flag(s) eligible for auto-adoption (` +
-      `${eligible.reduce((n, e) => n + e.decision.proposals.length, 0)} proposals). Nothing written. ` +
-      `Apply with: node scripts/maintenance/apply-classifications.mjs --mode apply`;
+      `${eligible.reduce((n, e) => n + e.decision.proposals.length, 0)} proposals), ${zeroProposal.length} zero-proposal ` +
+      `flag(s) would be re-derived (D17). ${openDrift.length} open drift flag(s) would be resolved ` +
+      `(${summary.counts.family5.drift_would_adopt} would adopt), ${openAnomaly.length} open anomaly flag(s) ` +
+      "would be retired. Nothing written. Apply with: node scripts/maintenance/apply-classifications.mjs --mode apply";
     return summary;
   }
 
-  // ── Apply auto-adopt: run each eligible flag through autoAdoptClassification ───────────────
+  // ── Apply auto-adopt: run each eligible AND zero-proposal flag through autoAdoptClassification ──
 
-  let appliedCount = 0;
+  const classificationDeps = {
+    readFlag: (id) => deps.readFlag(id),
+    readSource: (id) => deps.readSource(id),
+    readSourceItems,
+    updateSource: (id, patch) => deps.updateSource(id, patch),
+    resolveFlag: (id, note) => deps.resolveFlag(id, note),
+  };
+
+  let appliedCount = 0, rederivedCount = 0;
   const applyResults = [];
   for (const { flag } of eligible) {
-    const r = await autoAdoptClassification(
-      {
-        readFlag: (id) => deps.readFlag(id),
-        readSource: (id) => deps.readSource(id),
-        updateSource: (id, patch) => deps.updateSource(id, patch),
-        resolveFlag: (id, note) => deps.resolveFlag(id, note),
-      },
-      flag.id,
-      { execute: true },
-    );
+    const r = await autoAdoptClassification(classificationDeps, flag.id, { execute: true });
     applyResults.push({ flag_id: flag.id, status: r.status, item_id: r.sourceId ?? null, written: r.written ?? false, resolved: r.resolved ?? false });
     if (r.status === "applied") appliedCount += 1;
+  }
+  const rederiveResults = [];
+  for (const { flag } of zeroProposal) {
+    const r = await autoAdoptClassification(classificationDeps, flag.id, { execute: true });
+    rederiveResults.push({ flag_id: flag.id, status: r.status, item_id: r.sourceId ?? null });
+    if (r.status === "re_derived_adopted" || r.status === "re_derived_no_change") rederivedCount += 1;
   }
 
   summary.applied = appliedCount;
   summary.counts.apply_results = applyResults;
-  const appliedItemIds = [...new Set(applyResults.filter((r) => r.status === "applied" && r.written).map((r) => r.item_id))];
+  summary.counts.rederive_apply_results = rederiveResults;
+  const appliedItemIds = [
+    ...new Set([
+      ...applyResults.filter((r) => r.status === "applied" && r.written).map((r) => r.item_id),
+      ...rederiveResults.filter((r) => r.status === "re_derived_adopted").map((r) => r.item_id),
+    ]),
+  ];
+
+  // ── Phase 2b/2c: resolve every open drift flag, retire every open anomaly flag ──────────────
+
+  let driftResolvedCount = 0;
+  const driftApplyResults = [];
+  for (const f of openDrift) {
+    const r = await autoResolveDriftFlag(family5Deps, f.id, { execute: true });
+    driftApplyResults.push({ flag_id: f.id, status: r.status, source_id: r.sourceId ?? null, adopted: r.adopted ?? false });
+    if (r.status === "resolved") { driftResolvedCount += 1; if (r.adopted && r.sourceId) appliedItemIds.push(r.sourceId); }
+  }
+  let anomalyRetiredCount = 0;
+  const anomalyApplyResults = [];
+  for (const f of openAnomaly) {
+    const r = await retireAnomalyFlag(family5Deps, f.id, { execute: true });
+    anomalyApplyResults.push({ flag_id: f.id, status: r.status });
+    if (r.status === "resolved") anomalyRetiredCount += 1;
+  }
+  summary.counts.family5.drift_apply_results = driftApplyResults;
+  summary.counts.family5.anomaly_apply_results = anomalyApplyResults;
+  summary.counts.family5.drift_resolved = driftResolvedCount;
+  summary.counts.family5.anomaly_retired = anomalyRetiredCount;
 
   summary.note =
-    `Proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length + anomalyResult.plan.newRows.length} new flag(s), ` +
-    `resolved ${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length + anomalyResult.plan.staleIds.length} stale. ` +
-    `Auto-adopted ${appliedCount}/${eligible.length} eligible OPEN source-classification flag(s).`;
+    `Proposed ${classifyResult.plan.newRows.length + driftResult.plan.newRows.length} new flag(s), ` +
+    `resolved ${classifyResult.plan.staleIds.length + driftResult.plan.staleIds.length} stale ` +
+    `(${noDerivableResult.plan.newRows.length} zero-derivation row(s) recorded already-resolved). ` +
+    `Auto-adopted ${appliedCount}/${eligible.length} eligible OPEN source-classification flag(s); ` +
+    `${rederivedCount}/${zeroProposal.length} zero-proposal flag(s) re-derived (D17). ` +
+    `${driftResolvedCount}/${openDrift.length} drift flag(s) resolved; ${anomalyRetiredCount}/${openAnomaly.length} anomaly flag(s) retired.`;
 
   // Read back written sources for artifact summary
   const readBack = {};
-  for (const sourceId of appliedItemIds) {
+  for (const sourceId of [...new Set(appliedItemIds)]) {
     const { data } = await deps.readSource(sourceId);
     readBack[sourceId] = data
       ? {
@@ -382,6 +444,26 @@ export async function main({ mode = "dry" } = {}, deps) {
 // with db.mjs's `__setWriteClientForTest` seam, so an apply-only closure with a missing import fails the
 // test the same way it failed production, instead of only being exercised by fake `deps` objects that
 // never touch the real imports (see apply-classifications.test.mjs's own "buildRealDeps" tests).
+/** Paginated open-flag read scoped to one exact created_by value. Shared by listOpenClassifications/
+ *  listOpenDrift/listOpenAnomaly below (D17, 2026-09-12) so the three lists never hand-copy the same
+ *  pagination loop three times. */
+async function listOpenByCreatedBy(sb, createdByValue) {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb
+      .from("integrity_flags")
+      .select("id, subject_ref, created_by, status, description")
+      .eq("status", "open")
+      .eq("created_by", createdByValue)
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(`apply-classifications: open flag read failed (${createdByValue}): ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return rows;
+}
+
 export async function buildRealDeps() {
   const { readAll, readClient, guardedInsertMany, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
   const sb = readClient();
@@ -395,26 +477,16 @@ export async function buildRealDeps() {
     // class (2026-09-06; same shape as analyze-corpus.mjs's 1,317-id resolve).
     updateStale: async (table, ids, patch) =>
       guardedUpdateByIds(table, ids, patch, { cite: CITE }),
-    listOpenClassifications: async () => {
-      const rows = [];
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await sb
-          .from("integrity_flags")
-          .select("id, subject_ref, created_by, status, description")
-          .eq("status", "open")
-          .eq("created_by", CLASSIFY_CREATED_BY)
-          .order("id")
-          .range(from, from + 999);
-        if (error) throw new Error(`apply-classifications: open flag read failed: ${error.message}`);
-        rows.push(...(data ?? []));
-        if (!data || data.length < 1000) break;
-      }
-      return rows;
-    },
+    listOpenClassifications: async () => listOpenByCreatedBy(sb, CLASSIFY_CREATED_BY),
+    // D17 family 5 (2026-09-12): the open-flag lists Phase 2b/2c iterate.
+    listOpenDrift: async () => listOpenByCreatedBy(sb, DRIFT_CREATED_BY),
+    listOpenAnomaly: async () => listOpenByCreatedBy(sb, ANOMALY_CREATED_BY),
     readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
     // Widened 2026-09-12 (task 7.2): decideScopeTopicsProposal re-checks a scope_topics proposal's
     // per-topic evidence against the source's OWN name/source_role at apply time.
-    readSource: (id) => sb.from("sources").select("id, name, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+    // Widened again 2026-09-12 (D17 family 4): `url` added so deriveClassTableCandidates can resolve the
+    // SC-13 class table tier for the source's own registered host.
+    readSource: (id) => sb.from("sources").select("id, name, url, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
     updateSource: async (id, patch) => {
       const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
       return { updated: res.updated, snapshot: res.snapshot };
