@@ -51,24 +51,34 @@ check("driver-identity declared once: `const injected = opts?.injectedLedger ?? 
 check("drivers unify into one `claims` ledger at the extraction pivot (`injected ?? extractClaimLedgerLenient(`)",
   /claims\s*=\s*injected\s*\?\?\s*extractClaimLedgerLenient\(/.test(codeOnly));
 
-// 3. THE THREE ALLOWLISTED DIVERGENCE POINTS — every read of the driver-identity var is one of these, and each
+// 3. THE FIVE ALLOWLISTED DIVERGENCE POINTS -- every read of the driver-identity var is one of these, and each
 //    is the free driver SKIPPING a paid/model step, never a difference in JUDGMENT of a candidate:
 //    (a) acquire-lock skip  — the free driver acquires no scrape lock (`if (!injected) assertAcquireAllowed`)
 //    (b) extraction source  — the pivot above (`injected ?? extractClaimLedgerLenient`)
 //    (c) dominance-guard skip — a deliberate executor re-source of a QUARANTINED item versions over junk
 //        (`if (reg.regression && !injected)`); the metered re-extract keeps the accidental-thinning guard.
+//    (d) replace-ledger guard (D29, defect-fix-plan-2026-09-12, lane L19) -- `doReplaceLedger` only ever
+//        archives a not-reproduced prior claim when the ledger came from the free driver AND the caller
+//        asked for it (`!!injected && opts?.replaceLedger === true`); the metered path can never replace.
+//    (e) synthesis-window skip (D30, same lane) -- the free driver never builds the paid synthesis blocks
+//        the model-extraction call needs (`if (!injected) { ... }`); its own span check reads the full
+//        stored capture directly, so the synthesis window is pure waste on that path.
 const divergeAcquire = /if\s*\(\s*!injected\s*\)\s*assertAcquireAllowed/.test(codeOnly);
 const divergeExtract = /claims\s*=\s*injected\s*\?\?/.test(codeOnly);
 const divergeDominance = /if\s*\(\s*reg\.regression\s*&&\s*!injected\s*\)/.test(codeOnly);
+const divergeReplaceLedger = /const\s+doReplaceLedger\s*=\s*!!injected\s*&&\s*opts\?\.replaceLedger\s*===\s*true/.test(codeOnly);
+const divergeSynthesisSkip = /if\s*\(\s*!injected\s*\)\s*\{/.test(codeOnly);
 check("divergence (a): acquire-lock skip for the free driver", divergeAcquire);
 check("divergence (b): extraction-source pivot", divergeExtract);
 check("divergence (c): dominance-guard skip for a deliberate executor re-source", divergeDominance);
+check("divergence (d): replace-ledger guard requires both an injected ledger and opts.replaceLedger===true (D29)", divergeReplaceLedger);
+check("divergence (e): synthesis-window skip for the free driver (D30)", divergeSynthesisSkip);
 
-// 4. NO FOURTH DIVERGENCE — the driver-identity var appears EXACTLY 4 times in code: 1 declaration + 3
-//    allowlisted branch reads. A 5th reference would be an un-audited place the pipeline behaves differently
+// 4. NO SIXTH DIVERGENCE -- the driver-identity var appears EXACTLY 6 times in code: 1 declaration + 5
+//    allowlisted branch reads. A 7th reference would be an un-audited place the pipeline behaves differently
 //    per driver — the exact thing this doctrine forbids. This is the hard structural gate.
-check(`driver-identity referenced EXACTLY 4x in code (1 decl + 3 allowlisted divergences); found ${injectedRefs}`,
-  injectedRefs === 4);
+check(`driver-identity referenced EXACTLY 6x in code (1 decl + 5 allowlisted divergences); found ${injectedRefs}`,
+  injectedRefs === 6);
 
 // 5. THE JUDGMENT CORE IS DRIVER-BLIND — the region from the verbatim kept-filter through the non-destructive
 //    persist (the gates that DISPOSE + the writer that MINTS section_claim_provenance) contains ZERO driver-
