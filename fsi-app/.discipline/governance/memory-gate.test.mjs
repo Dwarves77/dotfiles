@@ -58,6 +58,38 @@ test('classifyChanged: session-log.md and PROGRAM-BOARD.md are MEMORY', () => {
   assert.deepEqual(r.memory, ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md']);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// D28 (defect-fix-plan-2026-09-12.md, W9 lane L18): docs/ops/session-log.d/YYYY-MM-DD-<slug>.md also
+// satisfies MEMORY, so a per-lane-per-day file ends the shared-file rebase conflicts on session-log.md.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('classifyChanged: a docs/ops/session-log.d/YYYY-MM-DD-<slug>.md file is MEMORY', () => {
+  const r = classifyChanged(['docs/ops/session-log.d/2026-09-13-l18.md']);
+  assert.deepEqual(r.memory, ['docs/ops/session-log.d/2026-09-13-l18.md']);
+});
+
+test('classifyChanged: docs/ops/session-log.d/README.md does NOT satisfy MEMORY (no date/slug in the name)', () => {
+  const r = classifyChanged(['docs/ops/session-log.d/README.md']);
+  assert.deepEqual(r.memory, []);
+});
+
+test('classifyChanged: a session-log.d file with a malformed name (no date prefix) does NOT satisfy MEMORY', () => {
+  const r = classifyChanged(['docs/ops/session-log.d/l18.md', 'docs/ops/session-log.d/2026-09-13.md']);
+  assert.deepEqual(r.memory, []);
+});
+
+test('memoryGateVerdict: a range adding ONLY a session-log.d file PASSES', () => {
+  const v = memoryGateVerdict(['fsi-app/src/x.ts', 'docs/ops/session-log.d/2026-09-13-l18.md'], { range: 'a..b' });
+  assert.equal(v.ok, true);
+  assert.equal(v.message, 'memory gate OK');
+});
+
+test('memoryGateVerdict: a range with code and NONE of the three vault forms FAILS, and names the session-log.d option', () => {
+  const v = memoryGateVerdict(['fsi-app/src/x.ts'], { range: 'a..b' });
+  assert.equal(v.ok, false);
+  assert.match(v.message, /session-log\.d\/YYYY-MM-DD-<slug>\.md/);
+});
+
 test('classifyChanged: .tsx and .css under fsi-app/src are SURFACE, other extensions are not', () => {
   const r = classifyChanged([
     'fsi-app/src/components/Foo.tsx',
