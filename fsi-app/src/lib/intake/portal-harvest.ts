@@ -176,6 +176,17 @@ export interface ConsumeOpts {
   classify?: ClassifyFn;
   anthropicKey: string;
   now?: () => string;
+  /** D26 lane L17 (2026-09-13): apply mode mints the would-mint set at record grade through the UNCHANGED
+   *  chokepoint (runIntakeCycle's own recordOnly option) instead of entering the paid grounding contract.
+   *  Threaded straight through to runIntakeCycle's own `recordOnly` opt (see run-intake-cycle.ts) - this
+   *  file makes no gate decision of its own, per this file's own GATE PLACEMENT rule. No effect in plan
+   *  mode (plan never calls runIntakeCycle). Default false: every pre-existing caller unaffected. */
+  recordOnly?: boolean;
+  /** Injectable runIntakeCycle (testability seam only, same discipline as fetchDoc/classify above - a
+   *  production caller never passes this; it defaults to the real import). Lets a test prove recordOnly
+   *  and the already-fetched capturedText actually reach runIntakeCycle's own call, without faking the
+   *  full mint chokepoint this function's apply path otherwise requires. */
+  runIntakeCycleImpl?: typeof runIntakeCycle;
   /** OPTIONAL PRE-FETCH GATE (W1.4 event chaining fix, 2026-09-05 — see
    *  scripts/harness-runs/ledger-consume/LAST-PROPOSER-PASS.md's finding 2: "the fetch is spent before
    *  the skip decision"). When supplied, consulted for each candidate's URL BEFORE step "1 — FETCH"
@@ -202,8 +213,14 @@ export interface ConsumeOpts {
 /** Build the intake candidate (staged proposed_changes) from a classified ledger row. PURE — the one
  *  place classifier output maps to the seed vocabulary: severity display→db (toDbSeverity), source_id
  *  preset from the parent portal, relevance carried for the chokepoint's surface-only floor (the seed
- *  strip in applyStagedUpdate keeps it out of the INSERT). */
-export function buildCandidateSeed(row: LedgerCandidate, cls: FirstFetchClassifyOutput): IntakeCandidate {
+ *  strip in applyStagedUpdate keeps it out of the INSERT).
+ *  `capturedText` (D26 lane L17, 2026-09-13, optional): the consume step's OWN already-fetched text for
+ *  this row (the FETCH step's `text`, below) - carried onto `IntakeCandidate.capturedText`, a
+ *  same-invocation carrier `runIntakeCycle` strips before STAGE regardless of `recordOnly` (never a real
+ *  `intelligence_items`/`proposed_changes` column) and uses ONLY when `recordOnly` mints, to write the
+ *  item's own pool row without a second fetch. Harmless when omitted or when the cycle does not run
+ *  recordOnly - the field is simply never read. */
+export function buildCandidateSeed(row: LedgerCandidate, cls: FirstFetchClassifyOutput, capturedText?: string): IntakeCandidate {
   return {
     title: cls.title_candidate,
     source_url: row.url,
@@ -217,6 +234,7 @@ export function buildCandidateSeed(row: LedgerCandidate, cls: FirstFetchClassify
     summary: cls.summary,
     relevance: cls.relevance,
     source_id: row.source_id,
+    ...(capturedText !== undefined ? { capturedText } : {}),
   };
 }
 
@@ -440,9 +458,11 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     }
 
     // 4 — SEED (pure mapping; toDbSeverity throws on a vocabulary contract break → inconclusive, loud).
+    //     capturedText rides along always (harmless when unused) - it is runIntakeCycle's own recordOnly
+    //     branch that decides whether to write it as the item's pool row (see buildCandidateSeed's doc).
     let seed: IntakeCandidate;
     try {
-      seed = buildCandidateSeed(row, cls);
+      seed = buildCandidateSeed(row, cls, text);
     } catch (e) {
       outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `seed vocabulary: ${e instanceof Error ? e.message : String(e)}` });
       continue;
@@ -478,10 +498,11 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   //     ledger stamps each outcome with the cycle's machine trail.
   let cycle: IntakeCycleResult | undefined;
   if (mode === "apply" && mintable.length) {
-    cycle = (await runIntakeCycle(
+    const runCycle = opts.runIntakeCycleImpl ?? runIntakeCycle;
+    cycle = (await runCycle(
       sb,
       mintable.map((m) => m.seed),
-      { caller: opts.caller ?? undefined, mode: "apply" }
+      { caller: opts.caller ?? undefined, mode: "apply", recordOnly: opts.recordOnly }
     )) as IntakeCycleResult;
     for (const m of mintable) {
       const item = cycle.items.find((i) => i.source_url === m.seed.source_url);

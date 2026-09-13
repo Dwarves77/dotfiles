@@ -232,6 +232,7 @@ function usage() {
     "Usage: node scripts/turns/run-ledger-consume.mjs [--mode plan|apply] [--limit N] [--source-id uuid]\n" +
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}']\n" +
     "         [--harness-runs-dir dir] [--trace-dir dir] [--verdicts path] [--allow-api]\n" +
+    "         [--record-only true|false]  # default true (D26) - apply mints at record grade, no grounding spend\n" +
     "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]\n" +
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}'] [--with-text]"
   );
@@ -255,6 +256,11 @@ export function parseArgs(argv) {
         "allow-api": { type: "boolean", default: false },
         "export-candidates": { type: "string" },
         "with-text": { type: "boolean", default: false },
+        // D26 lane L17 (2026-09-13): string, not presence-based boolean - a GitHub Actions boolean input
+        // arrives as the literal string "true"/"false" (ledger-consume.yml's own record_only input), and
+        // this flag needs an explicit off switch (unlike --newest-first/--with-text, which are pure
+        // opt-in flags with no meaningful "false" case to express from a workflow_dispatch UI).
+        "record-only": { type: "string", default: "true" },
       },
       allowPositionals: false,
       strict: true,
@@ -281,6 +287,9 @@ export function parseArgs(argv) {
     // fields): --with-text has no meaning outside --export-candidates, so an operator who typed it expecting
     // an effect finds out immediately, not by reading an unaugmented payload afterward.
     return { ok: false, error: "--with-text requires --export-candidates (it has no effect in plan/apply mode)." };
+  }
+  if (values["record-only"] !== "true" && values["record-only"] !== "false") {
+    return { ok: false, error: `--record-only must be "true" or "false" (got ${JSON.stringify(values["record-only"])}).` };
   }
 
   let after = null;
@@ -317,6 +326,7 @@ export function parseArgs(argv) {
     allowApi: values["allow-api"] === true,
     exportCandidates: values["export-candidates"] || null,
     withText: values["with-text"] === true,
+    recordOnly: values["record-only"] === "true",
   };
 }
 
@@ -1029,6 +1039,23 @@ export function buildRunArtifact({
  * @param {boolean} applyEnabled the LEDGER_CONSUME_APPLY_ENABLED const
  * @returns {{effectiveMode: "plan"|"apply", applyDisarmed: boolean, message: string|null}}
  */
+/**
+ * D26 lane L17 (2026-09-13) arming rule: apply is armed when and only when this run named an EXPLICIT
+ * `--verdicts <path>` (a single, human-chosen committed batch this dispatch means to act on), AND the
+ * reviewed-code gate (LEDGER_CONSUME_APPLY_ENABLED, ADR-023's own mechanism) is still true. Auto-discovery
+ * of every committed `ledger-verdicts-*.json` batch (when `--verdicts` is omitted - see `discoverVerdictsFiles`
+ * above) still feeds PLAN mode's own classify decisions unchanged; it does NOT arm apply - an apply
+ * dispatch must name the one batch it means to act on, never "whatever is committed right now". By the
+ * time this is evaluated, an explicitly-named `--verdicts` file has ALREADY passed `validateVerdictsFile`
+ * (main()'s own fail-closed check, `process.exit(4)` on failure) - so `verdictsGiven: true` here always
+ * means "named AND schema-valid", never merely "named". PURE, no I/O.
+ * @param {{applyEnabledConst: boolean, verdictsGiven: boolean}} opts
+ * @returns {boolean}
+ */
+export function isApplyArmed({ applyEnabledConst, verdictsGiven }) {
+  return applyEnabledConst === true && verdictsGiven === true;
+}
+
 export function resolveApplyGate(requestedMode, applyEnabled) {
   if (requestedMode === "apply" && !applyEnabled) {
     return {
@@ -1542,11 +1569,25 @@ async function main() {
   const anthropicKey = process.env.ANTHROPIC_API_KEY || "";
 
   const requestedMode = parsed.mode;
-  const { effectiveMode, applyDisarmed, message: applyGateMessage } = resolveApplyGate(
-    requestedMode,
-    LEDGER_CONSUME_APPLY_ENABLED
-  );
+  // D26 lane L17 (2026-09-13): apply now arms ONLY when this run named an EXPLICIT --verdicts <path> (a
+  // single, human-chosen committed batch), never merely because auto-discovery found SOME committed
+  // batch(es) sitting in the directory - see isApplyArmed's own doc above. `parsed.verdicts` is the
+  // explicit-path signal; the file it names has already passed validateVerdictsFile above (or main()
+  // already exited 4) by the time this line runs.
+  const verdictsGiven = Boolean(parsed.verdicts);
+  const applyArmed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven });
+  const { effectiveMode, applyDisarmed, message: applyGateMessage } = resolveApplyGate(requestedMode, applyArmed);
   if (applyGateMessage) console.log(applyGateMessage);
+  if (requestedMode === "apply" && applyDisarmed && LEDGER_CONSUME_APPLY_ENABLED && !verdictsGiven) {
+    // The disarm message above (resolveApplyGate's own, unchanged wording) names LEDGER_CONSUME_APPLY_ENABLED
+    // even when that const is actually true - this line names the REAL reason so a reader is never misled.
+    console.log(
+      "run-ledger-consume: the actual reason for the disarm above is D26's arming rule (2026-09-13) - apply " +
+        "requires an EXPLICIT --verdicts <path> naming ONE committed batch this dispatch means to act on; " +
+        "LEDGER_CONSUME_APPLY_ENABLED itself is true. Auto-discovery of every committed batch (no --verdicts " +
+        "given) still feeds plan mode's own classify decisions, but never arms apply on its own."
+    );
+  }
   if (effectiveMode === "apply" && verdictsByUrl.size === 0 && !parsed.allowApi) {
     console.log(
       "run-ledger-consume: apply requested with no usable verdicts (none given/discovered) and no " +
@@ -1578,6 +1619,11 @@ async function main() {
     mode: effectiveMode,
     apply_disarmed: applyDisarmed,
     apply_enabled_const: LEDGER_CONSUME_APPLY_ENABLED,
+    // D26 lane L17 (2026-09-13): the new arming input (verdicts_given) alongside the pre-existing
+    // reviewed-code gate, so a reader can tell WHICH of the two the disarm above (if any) came from,
+    // never merely inferring it from apply_enabled_const alone.
+    verdicts_given: verdictsGiven,
+    record_only: parsed.recordOnly,
     limit: parsed.limit,
     source_id: parsed.sourceId,
     newest_first: parsed.newestFirst,
@@ -1624,6 +1670,7 @@ async function main() {
       classifyGate,
       anthropicKey,
       caller: "ledger-consume-turn",
+      recordOnly: parsed.recordOnly,
     });
 
     mkdirSync(traceDir, { recursive: true });

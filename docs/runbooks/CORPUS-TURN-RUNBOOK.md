@@ -576,6 +576,56 @@ separate. Separately, and independently: an `apply` dispatch that supplies neith
 run's gates" step emits a `::warning::` for exactly this combination so it is visible in the run log, not
 silently absorbed.
 
+### D26 (2026-09-13): record-only intake, the arming rule, and no empty runs
+
+Lane L17 (`docs/plans/defect-fix-plan-2026-09-12.md`, D26, "the candidate drain has never run: 3,751
+discovered instruments, 3 promoted"). Two workflow inputs matter for an operator dispatch from here on:
+
+- **`verdicts_file`** (unchanged shape, changed CONSEQUENCE): naming ONE committed batch is now what ARMS
+  `apply` at all. Before D26, `LEDGER_CONSUME_APPLY_ENABLED = true` alone armed apply (an apply dispatch
+  with a blank `verdicts_file` still "ran" apply, honestly minting nothing for want of a classification
+  source). As of D26, `isApplyArmed` (`run-ledger-consume.mjs`) requires BOTH the reviewed-code gate AND
+  `verdicts_file` non-blank; leaving it blank on an `apply` dispatch now runs with PLAN semantics
+  (`config.apply_disarmed: true`), never mints, however many batches auto-discovery would otherwise have
+  found. Auto-discovery of every committed batch (blank `verdicts_file`) still feeds PLAN mode's own
+  classify decisions unchanged; it simply never arms apply on its own any more.
+- **`record_only`** (new, default `true`): governs what an ARMED apply actually does. `true` mints the
+  would-mint set at RECORD grade through the UNCHANGED mint chokepoint (`runIntakeCycle`'s own
+  `recordOnly` option); the candidate's already-fetched text (carried on the seed as `capturedText`,
+  never a real `intelligence_items`/`proposed_changes` column) lands as ONE `agent_run_searches` row in
+  the SAME canonical-ground shape `canonical-pipeline.ts`'s own ground-fallback INSERT uses (asserted by
+  `scripts/lib/pool-row-contract.mjs`'s `assertPoolRowShape`, the ONE shape both the writer and the
+  export's `--with-pool-text` read agree on); GROUND and VALIDATE are skipped entirely (no grounding
+  spend, disposition `record_only`, reason naming `item_grade=record`), and the free record-briefs fleet
+  writes the `full_brief` later, like every other record item. `false` is never set by this workflow's own
+  automatic trigger.
+
+**No empty runs (part g).** Two changes close the "wasted run" class the operator named ("no money spent
+populating the site, no unnecessary runs"):
+
+- The **export step now runs ONLY on an explicit `workflow_dispatch`** with `export_candidates: true`. A
+  `workflow_run` firing (the Source-sweep chain) never runs it any more; previously it always fetched real
+  page text for up to 400 candidates on every source-sweep completion, whether or not anything downstream
+  could use it.
+- The **CONSUME half of a `workflow_run` firing now checks for real work before running at all**: it reads
+  every committed `ledger-verdicts-*.json` batch's own `generated_at` field and every committed
+  `ledger-consume` harness-run artifact's own `finished_at` (both straight from the checked-out working
+  tree, no `git log` history depth needed) and proceeds only when the newest verdicts batch is newer than
+  the last run that actually ran ARMED apply (`config.action=="consume"`, `config.mode=="apply"`, never
+  merely a requested-and-disarmed one). No such batch means nothing has been classified for $0 since the
+  last real apply; the chain prints a named `::notice::` line and the remaining steps this job would
+  otherwise run are fast no-ops (their own `if:` gates, or `git diff --cached --quiet` finding nothing new
+  to commit).
+
+**Recurrence guard (part f).** `scripts/verify/candidate-dwell-audit.mjs` (wired HARD into
+`run-data-audit-lane.mjs`, invariant `RD-31-candidate-dwell` in
+`.discipline/governance/invariants.mjs`) fails the live-data audit lane when any `portal_link_candidates`
+row has sat `status='candidate'` past 14 days with no committed `ledger-verdicts-*.json` batch ever naming
+its `candidate_id`, the SAME "permanent limbo, never a terminal state" class D26's own root cause was an
+instance of (3,751 candidates stood with 3 ever promoted because the free decider was never fed), applied
+to the candidate-drain half of the intake funnel the way `quarantine-disposition-audit.mjs` already applies
+it to quarantined items.
+
 ### Event chaining, not a schedule (build plan W1.4)
 
 `ledger-consume.yml` carries a `workflow_run: workflows: ["Source sweep"]` trigger (rule 16 governs

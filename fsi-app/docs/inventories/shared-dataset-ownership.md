@@ -165,7 +165,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/remediation/refetch-capped-worklist.mjs",
       "scripts/maintenance/provenance-heal.mjs",
       "scripts/maintenance/resolve-error-body-gate.mjs",
-      "scripts/maintenance/capture-static-primaries.mjs"
+      "scripts/maintenance/capture-static-primaries.mjs",
+      "src/lib/intake/run-intake-cycle.ts"
     ],
     "intelligence_item_sections": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -1183,3 +1184,5 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
     this file, line 130, and `snapshot-store.test.mjs`'s own fixture — no other script or route calls it).
     Recorded here, narratively, on the same first-writer-disclosure basis as items 7, 8, and 9 — not a gap,
     a single-writer registration for a table the enforced JSON array structurally does not cover.
+
+Note (added by lane L17, D26 part (a), defect-fix-plan-2026-09-12, 2026-09-13): `src/lib/intake/run-intake-cycle.ts` writes ONE `agent_run_searches` pool row per record-only mint (the candidate's own captured text in the generate-pool shape canonical-pipeline and the exporter read, asserted by `scripts/lib/pool-row-contract.mjs`), so a record-grade item enters the ledger with its capture stored and never triggers the paid ground path; disposition `record_only`.

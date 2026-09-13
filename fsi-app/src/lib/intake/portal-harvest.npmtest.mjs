@@ -145,6 +145,17 @@ test("buildCandidateSeed: toDbSeverity mapping + source_id PRESET from the paren
   assert.equal(seed.item_type, "regulation");
 });
 
+// ── 2b. D26 lane L17 (2026-09-13): capturedText rides the seed, harmless when omitted ───────────────────
+test("buildCandidateSeed: capturedText, when given, rides onto the seed (runIntakeCycle's recordOnly pool-row write)", () => {
+  const seed = buildCandidateSeed(LEDGER_ROW, CLS_DOC, "The instrument's already-fetched page text.");
+  assert.equal(seed.capturedText, "The instrument's already-fetched page text.");
+});
+
+test("buildCandidateSeed: capturedText omitted -> the seed carries no capturedText field at all (pre-existing callers unaffected)", () => {
+  const seed = buildCandidateSeed(LEDGER_ROW, CLS_DOC);
+  assert.equal(Object.hasOwn(seed, "capturedText"), false);
+});
+
 // ── 3. plan mode is READ-ONLY ────────────────────────────────────────────────────────────────────────
 test("plan: specific_document → would_mint; ZERO ledger updates, ZERO staged inserts", async () => {
   const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
@@ -469,4 +480,54 @@ test("no classifyGate given at all (omitted) → behavior unchanged from before 
   });
   assert.deepEqual(fetchCalls, [ROW_A.url], "no classifyGate -> the old unconditional fetch-then-classify path runs");
   assert.equal(r.fetched, 1);
+});
+
+// ── D26 lane L17 (2026-09-13): recordOnly threads through to runIntakeCycle, and the already-fetched
+// text rides on the mintable seed as capturedText -- proven with an INJECTED runIntakeCycleImpl (the same
+// testability seam fetchDoc/classify/classifyGate already use in this file) rather than faking the full
+// mint chokepoint applyStagedUpdate's real success path requires (that deeper boundary is proven, in full,
+// by run-intake-cycle-record-only.npmtest.mjs). The dry pre-pass above this call is the REAL
+// applyStagedUpdate(dryRun:true) -- unchanged, and already proven to succeed against this exact fakeClient
+// by the "plan: specific_document -> would_mint" test above -- so mode:"apply" reaches the SAME dry
+// success and pushes this row onto `mintable`. ─────────────────────────────────────────────────────────
+test("recordOnly: threads through to runIntakeCycle's own recordOnly opt, and the fetched text rides the seed as capturedText", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  let capturedCandidates = null;
+  let capturedOpts = null;
+  const stubRunIntakeCycle = async (_sb, candidates, cycleOpts) => {
+    capturedCandidates = candidates;
+    capturedOpts = cycleOpts;
+    return {
+      discovered: candidates.length, staged: 0, minted: 0, rejected: 0, verified: 0, groundFailed: 0,
+      updatesDrained: 0, updatesApproved: 0, updatesRejected: 0, updatesNotDrained: 0, items: [],
+    };
+  };
+  const fetchedText = "The operator shall comply with this Regulation by 1 January 2027. ".repeat(4);
+  await consumePortalCandidates(sb, {
+    mode: "apply", limit: 10, fetchDoc: async () => ({ text: fetchedText }),
+    classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    recordOnly: true, runIntakeCycleImpl: stubRunIntakeCycle,
+  });
+  assert.ok(capturedOpts, "runIntakeCycleImpl must have been called for a would-mint row");
+  assert.equal(capturedOpts.recordOnly, true, "recordOnly must thread through to runIntakeCycle unchanged");
+  assert.equal(capturedCandidates.length, 1);
+  assert.equal(capturedCandidates[0].capturedText, fetchedText, "the already-fetched text must ride the seed, never re-fetched");
+});
+
+test("recordOnly omitted (default false/undefined) -> runIntakeCycle is still called (mode:apply unaffected) but recordOnly is falsy", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  let capturedOpts = null;
+  const stubRunIntakeCycle = async (_sb, candidates, cycleOpts) => {
+    capturedOpts = cycleOpts;
+    return {
+      discovered: candidates.length, staged: 0, minted: 0, rejected: 0, verified: 0, groundFailed: 0,
+      updatesDrained: 0, updatesApproved: 0, updatesRejected: 0, updatesNotDrained: 0, items: [],
+    };
+  };
+  await consumePortalCandidates(sb, {
+    mode: "apply", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    runIntakeCycleImpl: stubRunIntakeCycle,
+  });
+  assert.ok(capturedOpts, "runIntakeCycleImpl must have been called");
+  assert.ok(!capturedOpts.recordOnly, "recordOnly must be falsy when the caller never set it - pre-existing callers unaffected");
 });
