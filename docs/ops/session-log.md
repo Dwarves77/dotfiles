@@ -214,6 +214,86 @@ coordinator's own push/rebase step, not this lane's).**
   later `#671` merge this branch never rebased onto) is explicitly the coordinator's push-step reconciliation
   per this dispatch, not reopened here. M1 and M2 were reviewed as "not a defect" / "intentional" findings
   and carry no fix.
+## 2026-09-13, W9 lane L17: D26 candidate drain, record-only intake, arming rule, no empty runs
+
+`defect-fix-plan-2026-09-12.md`'s D26 ("the candidate drain has never run: 3,751 discovered instruments, 3
+promoted") parts (a), (b), (d), (f), (g); worktree `wt-hashsep-0911`, branch
+`lane/w9-l17-candidate-drain-2026-09-13`. Parts (c) and (e) are coordinator operations after merge, per the
+brief.
+
+**(a) Record-only intake.** `runIntakeCycle` (`src/lib/intake/run-intake-cycle.ts`) gains a `recordOnly`
+option: a `new_item` candidate mints at record grade (`item_grade: "record"`) through the UNCHANGED mint
+chokepoint, then STOPS, never reaching `generateBriefWorkflow` (the paid grounding contract); its
+already-fetched text (`capturedText`, a same-invocation carrier stripped before STAGE regardless of
+`recordOnly`, never a real column) is written as ONE `agent_run_searches` pool row in the canonical-ground
+shape the export reads, asserted by a shared `assertPoolRowShape` (`scripts/lib/pool-row-contract.mjs`, new
+this lane). Disposition `record_only`, reason `"record_only: brief by the record-briefs turn;
+item_grade=record"`. Found and fixed in the same motion: the file already declared an injectable
+`groundWorkflow` seam (for testing recordOnly's own call-count proof) but the GROUND step called the real
+`generateBriefWorkflow` import directly, never the seam - a latent bug that would have made every
+groundWorkflow-stubbed test silently exercise the real paid contract instead. `portal-harvest.ts`'s
+`consumePortalCandidates` threads `recordOnly` through to `runIntakeCycle` and carries the FETCH step's
+already-fetched text onto each mintable seed as `capturedText` (`buildCandidateSeed`'s new optional third
+parameter); an injectable `runIntakeCycleImpl` (same testability discipline as `fetchDoc`/`classify`
+already in this file) proves the wiring without faking the full mint chokepoint's real-success path.
+
+**(b) Arming.** `isApplyArmed` (`run-ledger-consume.mjs`, new pure function) requires BOTH
+`LEDGER_CONSUME_APPLY_ENABLED` AND an explicit `--verdicts <path>` naming one committed, schema-valid
+batch; auto-discovery of every committed batch (blank `--verdicts`) still feeds PLAN mode's classify
+decisions but no longer arms apply on its own. `resolveApplyGate` itself is untouched (same signature, same
+tests) - only what is passed as its `applyEnabled` argument changed, so the pre-existing const-based gate
+tests stay valid while the new D26 restriction composes on top. `ledger-consume.yml` gains a `record_only`
+input (default `true`, boolean) passed as `--record-only true|false` (a new CLI flag on the driver,
+string-typed since a GitHub Actions boolean input arrives as the literal string); `--allow-api` stays
+CLI-only and absent from the workflow.
+
+**(d) Tests.** `src/lib/intake/run-intake-cycle-record-only.npmtest.mjs` (3 tests, from the prior run in
+this worktree, now green after the groundWorkflow fix): recordOnly mints + writes the pool row + never
+calls a stubbed `generateBriefWorkflow`; no-capturedText writes an empty `result_content`; recordOnly:false
+is unaffected. `portal-harvest.npmtest.mjs` gains 6 tests (buildCandidateSeed's capturedText param,
+recordOnly threading with an injected `runIntakeCycleImpl`). `run-ledger-consume.test.mjs` gains 8 tests
+(`--record-only` parsing, `isApplyArmed`'s four boolean combinations, two composition tests against the
+real `resolveApplyGate` proving "apply without `--verdicts` runs as plan and records `apply_disarmed`" and
+its positive counterpart). `scripts/verify/candidate-dwell-audit.test.mjs` (9 tests, from the prior run,
+unmodified, already green): the pure `namedCandidateIds`/`classifyDwellCandidates` helpers.
+
+**(f) Recurrence guard.** `scripts/verify/candidate-dwell-audit.mjs` (from the prior run) is now actually
+WIRED (rule 15 - a cited-but-unrun proof is a lie the coverage gate must not rubber-stamp): registered as
+invariant `RD-31-candidate-dwell` in `.discipline/governance/invariants.mjs` (Section 2.1,
+`remediation-discipline`, `enforcedBy: audit:fsi-app/scripts/verify/candidate-dwell-audit.mjs`) and added
+HARD to `run-data-audit-lane.mjs`'s `AUDITS` array. Fails the live-data audit lane when any
+`portal_link_candidates` row has sat `status='candidate'` past 14 days with no committed
+`ledger-verdicts-*.json` batch ever naming its `candidate_id`.
+
+**(g) No empty runs.** `ledger-consume.yml`'s `workflow_run` chain (fires after every Source-sweep
+completion) no longer runs the export half at all - `export_candidates` only runs on an explicit
+`workflow_dispatch` now. The CONSUME half of that chain checks, before running, whether any committed
+`ledger-verdicts-*.json` batch's own `generated_at` is newer than the last run that actually ran ARMED
+apply (`config.action=="consume"`, `config.mode=="apply"`, read from the committed harness-run artifacts'
+own `finished_at`, no `git log` history depth needed under the default shallow checkout); when nothing is
+newer it prints a named `::notice::` line and `run_consume=false`, so every later step in that job is a
+fast no-op (its own `if:` gate, or `git diff --cached --quiet` finding nothing new to commit).
+
+**Docs.** `scripts/turns/ledger-verdicts/README.md` gains a "Record-only apply" section naming both
+behavior changes. `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section gains a "D26" subsection
+naming both new inputs (`verdicts_file`'s changed consequence, `record_only`) and the no-empty-runs / RD-31
+mechanisms.
+
+**Deviations.** (1) The brief's deliverables list named only parts (a), (b), (d) explicitly (with (c)/(e)
+marked coordinator-only); the outer dispatch instruction named "D26 parts a to g" as binding. Read together:
+(f) and (g) are in this lane's scope (their scaffolding - `candidate-dwell-audit.mjs` and its test, and
+`pool-row-contract.mjs` - was already present, uncommitted, from the interrupted prior run, confirming this
+reading), (c) and (e) stay coordinator-only exactly as the brief states. (2) `resolveApplyGate`'s own
+signature and message text were left unchanged rather than rewritten to know about D26's verdicts-given
+condition directly - a new pure `isApplyArmed` composes the two conditions at the call site instead, so the
+function's substantial pre-existing test coverage needed no changes and the new restriction is independently
+unit-tested. A supplementary log line in `main()` names the REAL disarm reason (no `--verdicts`) on top of
+`resolveApplyGate`'s own (unchanged) "LEDGER_CONSUME_APPLY_ENABLED is false" wording, so a reader is never
+misled when the disarm is actually D26's new rule rather than the reviewed-code gate being off.
+
+Verification: `node --test` on every touched/added test file green (3 + 29 + 116 + 9 = 157 tests); `npx tsc
+--noEmit` clean from `fsi-app`; a UTF-8-safe glyph check (U+2014/U+2013/U+00A7) over every added line across
+this branch's range reports 0.
 
 ---
 

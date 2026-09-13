@@ -189,6 +189,28 @@ that returns an array of human-readable error strings (empty = valid), fail-clos
   skipped one (`classify_source: "skipped-no-verdict"`) — one telemetry map, one shaping function, no
   parallel accounting path to drift out of sync.
 
+## Record-only apply (D26, 2026-09-13)
+
+`docs/plans/defect-fix-plan-2026-09-12.md`, D26: this batch mechanism unlocked classification for $0, but
+the ONLY apply path still spent on the paid grounding contract (`generateBriefWorkflow`) per would-mint
+candidate, so the free decider was still never fed at scale (3,751 discovered candidates, 3 ever promoted).
+Two changes close that:
+
+- **Arming changed.** `run-ledger-consume.mjs --mode apply` now arms ONLY when `--verdicts <path>` names
+  ONE readable, schema-valid batch, explicitly (`isApplyArmed`). Auto-discovery of every committed batch
+  (omitting `--verdicts`) still feeds PLAN mode's own classify decisions; it does not arm apply on its own
+  any more. Naming a file is naming the ONE batch this dispatch means to act on.
+- **`--record-only true|false` (default `true`).** An armed apply mints the would-mint set at RECORD grade
+  through the UNCHANGED mint chokepoint (`runIntakeCycle`'s own `recordOnly` option, `src/lib/intake/
+  run-intake-cycle.ts`) instead of entering the paid grounding contract: the candidate's already-fetched
+  text (the SAME text this batch's own producer read to classify it, carried through as `capturedText`)
+  lands as ONE `agent_run_searches` pool row in the canonical-ground shape
+  (`scripts/lib/pool-row-contract.mjs`'s `assertPoolRowShape`), GROUND and VALIDATE are skipped entirely,
+  and the free record-briefs fleet writes the `full_brief` later, exactly like every other record-grade
+  item. `ledger-consume.yml` passes `record_only` through (default `true`); set `false` only when the
+  paid grounding contract is genuinely wanted inline (never set `false` by this workflow's own automatic
+  `workflow_run` trigger).
+
 ## `classified_by`
 
 Only `"session-haiku"` is accepted today (`ALLOWED_CLASSIFIED_BY` in `run-ledger-consume.mjs`,
