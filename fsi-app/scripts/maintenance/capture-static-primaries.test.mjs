@@ -363,6 +363,26 @@ test("main: ids: arg scopes to exactly those ids, still filtered to a static-tex
   assert.equal(r.counts.would_capture, 1);
 });
 
+test("main: THREE roadblocked items in one apply run write exactly ONE integrity flag naming all three (review-l16.md I1)", async () => {
+  const items = [
+    { id: "item-a", source_url: "https://legislation.gov.uk/a", instrument_identifier: null },
+    { id: "item-b", source_url: "https://federalregister.gov/b", instrument_identifier: null },
+    { id: "item-c", source_url: "https://ecfr.gov/c", instrument_identifier: null },
+  ];
+  const d = baseDeps({
+    readUnscopedCandidates: async () => items,
+    fetchViaLadder: async () => ({ outcome: "no_reachable_source", holdReason: "NO_REACHABLE_SOURCE" }),
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.roadblocked, 3);
+  const flagCalls = d.calls.filter((c) => c[0] === "insertRoadblockFlag");
+  assert.equal(flagCalls.length, 1, "exactly one integrity-flag insert for the whole run, never one per item");
+  const description = flagCalls[0][1].description;
+  for (const it of items) {
+    assert.ok(description.includes(it.id), `summary flag description must name ${it.id}`);
+  }
+});
+
 test("main: paces the host before every fetch attempt (idempotency + the second CELEX retry both pace)", async () => {
   const items = [{ id: "a", source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1115", instrument_identifier: null }];
   const d = baseDeps({
@@ -533,6 +553,62 @@ test("import graph: capture-static-primaries.mjs's own source never imports cano
   const importLines = src.split("\n").filter((l) => /^\s*import\s/.test(l));
   assert.ok(importLines.every((l) => !/canonical-fetch\.mjs/.test(l)), "must not import canonical-fetch.mjs directly");
   assert.ok(!/\bbrowserlessFetch\s*\(/.test(src.replace(/\/\/.*$/gm, "")), "must never CALL browserlessFetch");
+});
+
+// Review-l16.md I2: the test above is a one-hop, same-file check. This walks the TRANSITIVE import
+// closure the session-log describes a manual script walking (16 files: capture-static-primaries.mjs ->
+// transport-runtime.mjs -> transport-escalation.mjs -> entity-gate.mjs/holdings-audit.mjs/
+// primary-fallback.mjs -> ...; fetch-hold.mjs -> ...; canonical-key.mjs; institution-key.mjs; db.mjs ->
+// ...; cli.mjs; is-main.mjs) with a small resolver over relative import specifiers, so a future addition
+// three hops down the graph is caught mechanically rather than by a one-off manual pass.
+function collectRelativeImportSpecs(src) {
+  const specs = [];
+  // Matches `import ... from "spec"` and bare `import "spec"`, one statement at a time -- the `[^"'\n]`
+  // in the optional "from" segment keeps each match scoped to a single line/statement so it never spans
+  // two import statements. Bare package specifiers (no leading ".") and node: builtins are filtered by
+  // the caller, which is what "skip bare package specifiers and node_modules" reduces to when only
+  // relative specifiers are ever followed.
+  const re = /import\s+(?:[^"'\n]*?from\s+)?["']([^"']+)["']/g;
+  let m;
+  while ((m = re.exec(src))) specs.push(m[1]);
+  return specs.filter((s) => s.startsWith("."));
+}
+
+test("import graph (transitive closure): no file in the closure imports canonical-fetch.mjs or calls browserlessFetch( (review-l16.md I2)", () => {
+  const startFile = fileURLToPath(new URL("./capture-static-primaries.mjs", import.meta.url));
+  const visited = new Set();
+  const queue = [startFile];
+  const importOffenders = [];
+  const callOffenders = [];
+  while (queue.length) {
+    const file = queue.shift();
+    if (visited.has(file)) continue;
+    visited.add(file);
+    let src;
+    try {
+      src = readFileSync(file, "utf8");
+    } catch {
+      continue; // an unresolvable path is a separate (build-time) problem, not this test's concern
+    }
+    // Strip both block (/* */, incl. JSDoc) and line (//) comments before the CALL check -- several files
+    // in this graph document their own dep-injection shape in a JSDoc block using the SAME parameter name
+    // ("browserlessFetch(url) -> ...", primary-fallback.mjs's own fetchPrimaryWithFallback contract) and a
+    // raw substring match on uncommented source would false-positive on that documentation, not a real
+    // call. The IMPORT check does not need this: collectRelativeImportSpecs only matches quoted specifiers
+    // inside an actual `import` statement, which prose/JSDoc never produces.
+    const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    for (const spec of collectRelativeImportSpecs(src)) {
+      if (/canonical-fetch\.mjs$/.test(spec)) importOffenders.push(`${file} imports "${spec}"`);
+      const resolved = resolve(dirname(file), spec);
+      if (!visited.has(resolved)) queue.push(resolved);
+    }
+    if (/\bbrowserlessFetch\s*\(/.test(codeOnly)) callOffenders.push(file);
+  }
+  const allPaths = [...visited];
+  // A real multi-hop walk, not a one-file no-op -- the session-log's own manual walk named 16 files.
+  assert.ok(allPaths.length >= 12, `expected a real transitive closure, got ${allPaths.length}: ${allPaths.join(", ")}`);
+  assert.deepEqual(importOffenders, [], "no file in the transitive import closure may import canonical-fetch.mjs");
+  assert.deepEqual(callOffenders, [], "no file in the transitive import closure may call browserlessFetch(");
 });
 
 test("CITE: carries the governing skill + reason (guardedInsert requires it)", () => {
