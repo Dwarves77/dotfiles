@@ -207,6 +207,16 @@ Evidence: writing the 00a8c0d9 brief, the lane found the instrument's only occur
 
 Fix at the source (`fsi-app/scripts/turns/record-briefs/schema.mjs`, the qualification-capture mirror): each qualification kind matches a small stem list with inflections (exempt, exempts, exempted, exemption, exemptions; condition, conditions, conditional, subject to; scope, applies to, does not apply; phase, phased, per year, from <year>), case-insensitive, evaluated on the claim's verbatim `source_span` as today; the negation guard stays. Tests: "Exemption" and "exempted" in a span count as an exceptions capture; "except" inside page furniture alone does not (the span must be a claim's span, not body prose). README rule text updated to name the stems. Lane: folded into the next record-briefs lane (L12) after L9 and L10; no re-apply of landed batches is required (their captures were honest either way).
 
+
+### D19. Git runs a stale copy of the pre-push hook, so merged hook changes are not in force on push [CONFIRMED]
+
+Evidence (coordinator, 2026-09-13): `core.hooksPath` is the repository's `.git/hooks`; `install-hooks.mjs` copies the tracked hooks there byte for byte as an operator-run step; the installed pre-push copy is dated 2026-09-11 19:33 and differs from the tracked `fsi-app/.discipline/hooks/pre-push` on master. Every push since #651 merged ran without step 2b (the memory gate) and without D11's per-run log directory; the L3 push (lane/w9-d5-d7) failed at step 3 and the stale copy deleted its own log ("tail: cannot open /tmp/discipline-prepush-t.log"), the very defect D11 fixed on that branch. The lanes' preflights run the tracked file directly, so a lane's green preflight and the push hook can disagree.
+
+Root cause: a copy with no freshness check and a manual installer; the boundary between the tracked source of truth and the out-of-repo hook directory is not enforced by anything.
+
+Fix at the source: `install-hooks.mjs` installs a trampoline for each hook, not a copy: a three-line shell script in `.git/hooks/<name>` that resolves the current worktree's top level (`git rev-parse --show-toplevel`) and execs the tracked `fsi-app/.discipline/hooks/<name>` from it with the same arguments and stdin, so the hook that runs is always the branch's tracked hook (CI parity by construction, per worktree). A check in the tracked pre-push (step 0) verifies it was reached through the trampoline (an environment variable the trampoline sets) and otherwise prints "stale hook copy; run node fsi-app/.discipline/install-hooks.mjs" and exits 1, so a stale copy can never silently run again. The runbook's hook section and `docs/inventories/discipline.md` (the out-of-repo boundary rows) record the trampoline. Tests: the installer writes the trampoline shape; the tracked hook refuses without the trampoline variable. Interim, before the lane lands: the coordinator runs the existing installer once so the merged hook is in force. Lane: L12 (with D18), one Sonnet lane.
+
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
