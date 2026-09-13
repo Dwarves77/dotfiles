@@ -216,6 +216,13 @@ Root cause: a copy with no freshness check and a manual installer; the boundary 
 
 Fix at the source: `install-hooks.mjs` installs a trampoline for each hook, not a copy: a three-line shell script in `.git/hooks/<name>` that resolves the current worktree's top level (`git rev-parse --show-toplevel`) and execs the tracked `fsi-app/.discipline/hooks/<name>` from it with the same arguments and stdin, so the hook that runs is always the branch's tracked hook (CI parity by construction, per worktree). A check in the tracked pre-push (step 0) verifies it was reached through the trampoline (an environment variable the trampoline sets) and otherwise prints "stale hook copy; run node fsi-app/.discipline/install-hooks.mjs" and exits 1, so a stale copy can never silently run again. The runbook's hook section and `docs/inventories/discipline.md` (the out-of-repo boundary rows) record the trampoline. Tests: the installer writes the trampoline shape; the tracked hook refuses without the trampoline variable. Interim, before the lane lands: the coordinator runs the existing installer once so the merged hook is in force. Lane: L12 (with D18), one Sonnet lane.
 
+### D20. The memory gate counts record-briefs batch files as code, so batch branches cannot be pushed [CONFIRMED]
+
+Evidence (2026-09-13, first push under the refreshed hook): brief-lane/002-2026-09-12's push failed at step 2b because `fsi-app/scripts/turns/record-briefs/batches/record-briefs-002.json` matches the gate's CODE pattern and the branch carries no session-log change. Batch files are lane-emitted data on apply-target branches that are never merged; their memory is the proposer pass on master, the same arrangement the gate already makes for `scripts/harness-runs/**` and `scripts/turns/LAST-TURN.json`.
+
+Fix at the source (`fsi-app/.discipline/governance/memory-gate.mjs`, the CODE exclusion list, and the discipline.yml comment above the step): add `fsi-app/scripts/turns/record-briefs/batches/` to the exclusions, with a test (a range touching only a batch file passes; a batch file plus a script change still requires the vault). Interim (today): the coordinator writes a session-log entry on the batch branch describing the batch and its apply, which is honest memory even though the branch is never merged. Lane: L12.
+
+
 
 ## 3. Lanes, order and gates
 
