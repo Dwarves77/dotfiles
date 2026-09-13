@@ -536,6 +536,9 @@ function successfulDeps(overrides = {}) {
     runForwardEventsStep: async () => ({ attempted: 1, insertedCount: 1, collision: false, staleRows: [] }),
     syncComplianceDeadlineForItem: async () => ({ changed: true, value: "2026-01-01" }),
     importLinkItemEntities: async () => async () => ({ refs: 1, instrumentEntityId: "cl:instrument:abc" }),
+    // D23(a): the default fake never touches `sb` (see fakeSb's own header - it throws on any table
+    // but intelligence_items), matching every other step's injectable-dep posture in this file.
+    recordItemChange: async () => ({ written: true, reason: "inserted", row: null }),
     ...overrides,
   };
 }
@@ -556,6 +559,7 @@ test("applyOneEntry: step order and outcome vocabulary, all 8 steps + provenance
       { id: "item-1#section", outcome: "sectioned" },
       { id: "item-1#ground", outcome: "grounded" },
       { id: "item-1#provenance-status", outcome: "verified" },
+      { id: "item-1#changelog", outcome: "changelog:written" },
       { id: "item-1#grow", outcome: "grown" },
       { id: "item-1#discovery", outcome: "discovery:2" },
       { id: "item-1#forward-events", outcome: "forward-events:1" },
@@ -656,4 +660,120 @@ test("applyOneEntry: provenance_status is read back and reported even when groun
   assert.equal(byId["item-5#ground"].outcome, "ground_failed");
   assert.equal(result.provenanceStatus, "quarantined");
   assert.equal(byId["item-5#provenance-status"].outcome, "quarantined");
+});
+
+// ── D23(a): the changelog step (defect-fix-plan-2026-09-12.md, "a regenerated brief is invisible to
+// the customer") ────────────────────────────────────────────────────────────────────────────────────
+
+test("D23(a): the changelog step passes the batch, the claim count, and the item's severity through to recordItemChange", async () => {
+  const itemId = "item-6";
+  let captured = null;
+  const deps = successfulDeps({
+    recordItemChange: async (client, opts) => {
+      captured = opts;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const claims = [{ slot_key: "a" }, { slot_key: "b" }, { slot_key: "c" }];
+  await applyOneEntry(
+    { itemId, entry: { ...baseEntry(itemId), claims, metadata: { severity: "action_required" } } },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "record-briefs-002", deps },
+  );
+  assert.equal(captured.itemId, itemId);
+  assert.equal(captured.field, "full_brief");
+  assert.equal(captured.batch, "record-briefs-002");
+  assert.equal(captured.severity, "action_required");
+  assert.equal(captured.apply, true);
+  assert.match(captured.note, /record-briefs-002/);
+  assert.match(captured.note, /3 claim/);
+});
+
+test("D23(a): a non-verified item (quarantined) never reaches the changelog step at all", async () => {
+  const itemId = "item-7";
+  let called = false;
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      called = true;
+      return { written: true, reason: "inserted", row: null };
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "quarantined" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  assert.equal(called, false, "a quarantined item has nothing new to show a customer yet - no changelog row");
+  assert.equal(result.steps.some((s) => s.id === "item-7#changelog"), false);
+});
+
+test("D23(a): recordItemChange reporting 'already recorded' (idempotent re-run) is a non-failing outcome", async () => {
+  const itemId = "item-8";
+  const deps = successfulDeps({
+    recordItemChange: async () => ({ written: false, reason: "already recorded for this item and batch", row: null }),
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-8#changelog"].outcome, "changelog:skipped");
+  assert.match(byId["item-8#changelog"].error, /already recorded/);
+});
+
+test("D23(a): a thrown recordItemChange is caught and does not stop the item's other steps", async () => {
+  const itemId = "item-9";
+  const deps = successfulDeps({
+    recordItemChange: async () => {
+      throw new Error("db unreachable");
+    },
+  });
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, batch: "b1", deps },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-9#changelog"].outcome, "changelog_failed");
+  assert.match(byId["item-9#changelog"].error, /db unreachable/);
+  assert.equal(byId["item-9#grow"].outcome, "grown", "a thrown changelog step must not stop later steps");
+});
+
+test("D23(a): the real changelogClient adapter (built from `sb`) is only reached when deps.recordItemChange is NOT overridden", async () => {
+  // fakeSb() throws on any table other than intelligence_items (see its own header) - so if the
+  // production changelogClient were ever invoked against it (i.e. doRecordItemChange fell through to
+  // the real module-level recordItemChange instead of the test's override), this test would throw
+  // instead of asserting. Proven here by NOT overriding recordItemChange and using a `sb` that also
+  // answers item_changelog, confirming the adapter shape (findExisting -> boolean, insert -> {error}).
+  const itemId = "item-10";
+  let inserted = null;
+  const itemsChain = {
+    select() { return itemsChain; },
+    eq() { return itemsChain; },
+    async single() { return { data: { provenance_status: "verified" }, error: null }; },
+  };
+  const changelogChain = {
+    select() { return changelogChain; },
+    eq() { return changelogChain; },
+    async limit() { return { data: [], error: null }; },
+    async insert(row) {
+      inserted = row;
+      return { error: null };
+    },
+  };
+  const sb = {
+    from(table) {
+      if (table === "intelligence_items") return itemsChain;
+      if (table === "item_changelog") return changelogChain;
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+  const result = await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb, allowBriefOverwrite: false, batch: "record-briefs-real", deps: successfulDeps({ recordItemChange: undefined }) },
+  );
+  const byId = Object.fromEntries(result.steps.map((s) => [s.id, s]));
+  assert.equal(byId["item-10#changelog"].outcome, "changelog:written");
+  assert.ok(inserted, "the real recordItemChange must have inserted through the sb-backed adapter");
+  assert.equal(inserted.item_id, itemId);
+  assert.equal(inserted.field, "full_brief");
+  assert.equal(inserted.new_value, "record-briefs-real");
+  assert.equal(inserted.detected_by, "record-briefs");
 });

@@ -80,6 +80,7 @@ node --test \
   fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
   fsi-app/scripts/lib/assemble-train.test.mjs \
   fsi-app/scripts/lib/canonical-key.selftest.mjs \
+  fsi-app/scripts/lib/changelog.test.mjs \
   fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
   fsi-app/scripts/lib/db-register-source-role.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \

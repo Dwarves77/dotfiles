@@ -70,7 +70,7 @@
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 // @supabase/supabase-js is loaded lazily inside main() (see there): a top-level import made this
 // module, and therefore apply-record-briefs.test.mjs, unloadable in the no-npm-ci discipline job
@@ -86,6 +86,7 @@ import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "../../src/lib/forward-events/compliance-deadline-sync.mjs";
 import { runDiscoveryStep, runForwardEventsStep } from "../../src/lib/intake/flywheel-steps.mjs";
+import { recordItemChange } from "../lib/changelog.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -377,14 +378,14 @@ export async function importLinkItemEntities(specifier = ENTITIES_MODULE_SPECIFI
  * vocabulary against pure fakes, deterministically and fast, while the real production call (from `main()`,
  * no `deps` passed) is byte-identical to before this round.
  * @param {{itemId:string, entry:object}} planned
- * @param {{sb:object, allowBriefOverwrite:boolean, deps?: Partial<{
+ * @param {{sb:object, allowBriefOverwrite:boolean, batch?:string, deps?: Partial<{
  *   generateBriefFromInjected:Function, sectionBrief:Function, groundBrief:Function, growSources:Function,
  *   recordFlywheelDefect:Function, runDiscoveryStep:Function, runForwardEventsStep:Function,
- *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function
+ *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function, recordItemChange:Function
  * }>}} ctx
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
  */
-export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, deps = {} }) {
+export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, batch = "unbatched", deps = {} }) {
   const needsPipeline = !(deps.generateBriefFromInjected && deps.sectionBrief && deps.groundBrief && deps.growSources);
   const pipeline = needsPipeline ? await loadPipeline() : null;
   const generateBriefFromInjected = deps.generateBriefFromInjected ?? pipeline.generateBriefFromInjected;
@@ -396,6 +397,21 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   const doForwardEventsStep = deps.runForwardEventsStep ?? runForwardEventsStep;
   const doComplianceSync = deps.syncComplianceDeadlineForItem ?? syncComplianceDeadlineForItem;
   const doImportLinkItemEntities = deps.importLinkItemEntities ?? importLinkItemEntities;
+  // D23(a): the real implementation talks to item_changelog through the {findExisting, insert}
+  // adapter changelog.mjs's own header explains (not a raw client chain) - built here, lazily, only
+  // if a test has not already overridden the whole step via `deps.recordItemChange`.
+  const doRecordItemChange = deps.recordItemChange ?? recordItemChange;
+  const changelogClient = {
+    findExisting: async ({ itemId: id, field, batch: b }) => {
+      const { data, error } = await sb.from("item_changelog").select("id").eq("item_id", id).eq("field", field).eq("new_value", b).limit(1);
+      if (error) throw new Error(error.message);
+      return Array.isArray(data) && data.length > 0;
+    },
+    insert: async (row) => {
+      const { error } = await sb.from("item_changelog").insert(row);
+      return { error };
+    },
+  };
 
   const steps = [];
   const record = (step, outcome, error = null) => {
@@ -456,6 +472,27 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
     record("provenance-status", provenanceStatus ?? "unknown");
   } catch (e) {
     record("provenance-status", "provenance_status_read_failed", e instanceof Error ? e.message : String(e));
+  }
+
+  // changelog (D23(a), defect-fix-plan-2026-09-12.md): a regenerated brief is a customer-visible
+  // change - only for a VERIFIED item (a quarantined one has nothing new to show a customer yet).
+  // Idempotent per (itemId, "full_brief", batch): a resumed run over the same --briefs file writes
+  // nothing a second time (recordItemChange's own idempotency read).
+  if (provenanceStatus === "verified") {
+    try {
+      const claimCount = Array.isArray(entry.claims) ? entry.claims.length : 0;
+      const r = await doRecordItemChange(changelogClient, {
+        itemId,
+        field: "full_brief",
+        batch,
+        severity: entry.metadata?.severity ?? null,
+        note: `Batch ${batch}: brief regenerated with ${claimCount} claim(s).`,
+        apply: true,
+      });
+      record("changelog", r.written ? "changelog:written" : "changelog:skipped", r.written ? null : r.reason);
+    } catch (e) {
+      record("changelog", "changelog_failed", e instanceof Error ? e.message : String(e));
+    }
   }
 
   // 4. grow ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -635,6 +672,11 @@ async function main() {
       afterId: parsed.afterId,
     });
 
+    // D23(a): the changelog idempotency key ("has this batch already been recorded for this item")
+    // is the --briefs file's own identity, never a fresh per-run id - a resumed run over the SAME
+    // file must find its own prior rows, not double-record them.
+    const batch = basename(parsed.briefs).replace(/\.json$/i, "");
+
     console.log(
       `apply-record-briefs: ${plan.length} item(s) selected (of ${validated.entries.length} in file), ` +
         `mode=${parsed.execute ? "apply" : "dry"}.`,
@@ -662,7 +704,7 @@ async function main() {
         console.log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
         continue;
       }
-      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite });
+      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch });
       for (const step of result.steps) perItem.push(step);
       if (!result.generated) {
         metrics.generate_failed += 1;
