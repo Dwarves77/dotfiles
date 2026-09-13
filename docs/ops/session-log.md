@@ -294,6 +294,73 @@ misled when the disarm is actually D26's new rule rather than the reviewed-code 
 Verification: `node --test` on every touched/added test file green (3 + 29 + 116 + 9 = 157 tests); `npx tsc
 --noEmit` clean from `fsi-app`; a UTF-8-safe glyph check (U+2014/U+2013/U+00A7) over every added line across
 this branch's range reports 0.
+## 2026-09-13, W9 lane L20: D31 format-gated timeline mirror and harvest, one per-format table
+
+`defect-fix-plan-2026-09-12.md`'s D31 (the record-briefs validator's timeline mirror and the live
+`item_timelines` harvest recognised only the regulatory "Confirmed Regulatory Timeline" section, so every
+non-regulatory brief could only pass by adding a dummy regulatory heading its own format does not have --
+the batch-007 exemplars discovery-45006684 and discovery-0781a8c0 both hit this), worktree
+`wt-session-b`, branch `lane/w9-l20-format-gated-mirrors-2026-09-13`.
+
+**Fix at the source: one per-format timeline-section table.** New module
+`src/lib/agent/formats/timeline-section.mjs` exports `TIMELINE_SECTION_BY_FORMAT` (format_type -> `{key,
+heading, headingAlts}`, read directly from `src/lib/agent/formats/*.ts`'s own `SECTIONS` arrays --
+`regulatory_fact_document` section 14 "Confirmed Regulatory Timeline"; `market_signal_brief` section 3
+"Expected Trajectory and Conversion Triggers"; `research_summary` section 5 "What the Finding Does Not
+Resolve"; `operations_profile` section 7 "Pending Changes That Shift the Calculus"; `technology_profile`
+section 7 "Time-to-Market, Procurement Window, and Action") and `findTimelineSectionFor(body,
+formatType)`. Plain `.mjs`, zero "@/" alias (imports `extract-sections.ts` via a relative path, the same
+posture `schema.mjs` already uses for `timeline-parse.mjs`), so it is importable from BOTH the
+no-npm-ci-portable record-briefs validator and the live write site with no second copy. The regulatory
+lookup is byte-for-byte the pre-D31 behaviour (heading-text match only, including the section-sign alias;
+never number-first, to avoid picking up an unrelated "## 14. ..." heading); the other four formats
+resolve number-first-then-heading-then-alts, the same order `prose-extractor.ts`'s `makeProseExtractor`
+(the real write path every format's `sectionBrief` runs through) already uses.
+
+**Validator (`scripts/turns/record-briefs/schema.mjs`).** MIRROR (c) now reads the entry's own
+`format_type`'s timeline section through the table and applies the identical `parseTimeline` +
+`buildTimelineRows` rule (>=1 dated row) to every format; a non-regulatory body carrying a stray
+"Confirmed Regulatory Timeline" heading is refused naming the format's OWN mapped section, since that
+heading is never that format's section. `TIMELINE_HEADING_VARIANTS`/`findTimelineSection` (the old
+regulatory-only inline mirror) are retired in favour of the imported table. All 60 pre-existing
+`record-briefs.test.mjs` tests pass unchanged, proving the regulatory path is untouched.
+
+**Harvest and backfill.** `canonical-pipeline.ts`'s `harvestItemTimeline` gates on "does this format have
+a mapped timeline section" (`TIMELINE_SECTION_BY_FORMAT`) instead of a strict
+`formatType === "regulatory_fact_document"` check; the regulatory branch still calls
+`extractRegulationSections` unchanged, the other four formats resolve their own section via
+`findTimelineSectionFor` then run the same `parseTimeline` -> `buildTimelineRows` pipeline (the paid path
+that produced `full_brief` is unchanged either way; the harvest step is $0). `scripts/backfill-item-
+timelines.mjs` widens its scope from `regulationSpec.itemTypes` alone to every item_type any FormatSpec
+owns that has a mapped timeline section, dispatching per item through `specForItemType`.
+
+**Tests.** `src/lib/agent/formats/timeline-section.test.mjs` (10 tests, plain `node:test`): structural
+coverage (every `SECTION_DEFS_BY_FORMAT_TYPE` format has a table entry whose key/heading match the
+canonical section list -- transitively proven against the real format files via `section-list-drift.
+npmtest.mjs`'s existing equality), plus direct `findTimelineSectionFor` lookup behaviour (unrecognised
+format, number-first for non-reg formats, heading-only-never-number-first for regulatory).
+`scripts/turns/record-briefs/timeline-mirror-format-gate.test.mjs` (12 tests): per non-regulatory format,
+a dated line in the mapped section validates, the same line in a different section is refused naming the
+mapped section, and a stray "Confirmed Regulatory Timeline" heading never satisfies a non-regulatory
+format's own mirror. `src/lib/agent/timeline-harvest-unlock.npmtest.mjs` extended with 8 new tests (one
+pair per non-regulatory format: writes rows from the format's own section; yields 0 rows when the dated
+line sits elsewhere) alongside its 3 pre-existing tests (now 11 total, all passing).
+
+**Docs.** `scripts/turns/record-briefs/README.md`'s timeline-mirror rule rewritten per-format (a short
+table); two D31 calibration findings from the same exemplars added as named limitations: the flat-YAML
+`key_data` comma refusal (already documented; a live 2026-09-13 confirmation note added) and two NEW Gate
+A limitations -- "percent" vs "%" treated as different literal tokens with no equivalence, and the
+FIGURE/DATE harvest capturing only the trailing endpoint of a hyphenated date range.
+
+**Verification.** `node --test` on every touched/added test file green (60 + 12 + 15 + 10 = 97 tests,
+0 failures); `npx tsc --noEmit` clean (one index-signature error fixed by widening
+`TIMELINE_SECTION_BY_FORMAT` to a typed `Record<string, ...>` lookup at its one indexing call site in
+`canonical-pipeline.ts`, since the imported `.mjs` object's inferred literal-key type has no index
+signature); `section-list-drift.npmtest.mjs` and `apply-record-briefs.npmtest.mjs` re-run clean (no
+regression); `canonical-pipeline.write-fields.npmtest.mjs` and `canonical-pipeline.injected-synthesis.
+npmtest.mjs` re-run clean. No DB access, no network, no LLM calls in this lane.
+
+**UX compliance:** N/A -- no `.tsx`/`.css` under `fsi-app/src` touched (backend/validator/docs only).
 
 ---
 
