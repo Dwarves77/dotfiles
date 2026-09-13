@@ -365,6 +365,42 @@ describe('non-extraction: citations and historical narration', () => {
     assert.match(skipped[0].reason, /snapshot/i);
   });
 
+  test('D10: "In force as of <today>." with today as a reference date is refused (reference-date reason)', () => {
+    // The exact live defect shape (plan docs/plans/defect-fix-plan-2026-09-12.md D10): the 6.1b pilot
+    // bodies carried this sentence and a deontic clause happened to sit within the CANDIDATE_ONLY_RULES
+    // 200-char look-ahead, so it was wrongly promoted to an event dated the RUN date, not a date the
+    // instrument states.
+    const text = 'In force as of 2026-09-12. Operators shall comply with Article 9 within six months.';
+    const { events, skipped } = extractForwardEvents({ ...oneSection(text), referenceDates: ['2026-09-12'] });
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 1);
+    assert.match(skipped[0].reason, /reference date/i);
+  });
+
+  test('D10: "enters into force on <date>" is accepted even when that date is a reference date', () => {
+    // The instrument's OWN commencement language exempts a hit from the reference-date refusal -- this is
+    // why the 'enters-into-force-on' rule exists at all (present tense; "shall enter into force on" already
+    // had its own rule).
+    const text = 'The Regulation enters into force on 1 January 2027.';
+    const { events } = extractForwardEvents({ ...oneClaim(text), referenceDates: ['2027-01-01', '2026-09-12'] });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_date, '2027-01-01');
+    assert.equal(events[0].event_kind, 'entry_into_force');
+    assertWellFormedEvent(events[0], text);
+  });
+
+  test('D10: "In force as of <date>." with no referenceDates is refused by the status-only rule', () => {
+    // Same sentence as the reference-date case above, but with no referenceDates supplied -- the
+    // reference-date refusal never engages (empty list), yet the sentence is still refused, this time
+    // because its own clause is nothing but a status phrase once the date is removed, regardless of the
+    // deontic clause sitting in the look-ahead window.
+    const text = 'In force as of 2026-09-12. Operators shall comply with Article 9 within six months.';
+    const { events, skipped } = extractForwardEvents(oneSection(text));
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 1);
+    assert.match(skipped[0].reason, /status/i);
+  });
+
   test('a historical entry-into-force date IS extracted (forward-vs-past is not the filter)', () => {
     // Per the module's inclusion rule: obligation-binding language is what
     // matters, not whether the date is in the future relative to "now".

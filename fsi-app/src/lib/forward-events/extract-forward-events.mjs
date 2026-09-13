@@ -459,9 +459,35 @@
 //   `scripts/maintenance/forward-events-retext.mjs` (lane FE-DEDUP, same date, see that file's own header);
 //   migration 307 adds the DB-level guard that makes the twin impossible for any FUTURE write.
 //
+// REFERENCE-DATE AND STATUS-ONLY REFUSALS (lane L6, D10, 2026-09-13):
+//   [CONFIRMED, coordinator live SQL 2026-09-12, plan docs/plans/defect-fix-plan-2026-09-12.md D10] two
+//   `item_forward_events` rows carried `source_kind = 'section'`, `obligation_text = "In force as of
+//   <date>."`, `source_span` equal to the bare date, and the date equal to the RUN date (the date the brief
+//   itself was written), not a date the instrument states. Root cause: the 6.1b pilot bodies carried a
+//   sentence "In force as of 2026-09-12." (a status/snapshot note about the brief's OWN freshness, not the
+//   instrument's commencement), a deontic clause happened to sit within the CANDIDATE_ONLY_RULES 200-char
+//   look-ahead, and the "as of"/"since" candidate rule promoted it to a kind 'other' event.
+//   THE FIX, two independent refusals, neither replacing the other:
+//   (1) Reference-date refusal (`refuseForReferenceDate`, applied to every hit in BOTH the main RULES loop
+//       and the CANDIDATE_ONLY_RULES loop): `extractForwardEvents`/`scanText` accept an optional
+//       `referenceDates` (array of ISO dates -- the run date and the brief's own document date, supplied by
+//       `read-and-extract.mjs`). A hit whose `iso` equals one of these is refused UNLESS the clause names
+//       the instrument's OWN commencement (`COMMENCEMENT_CLAUSE_RE` -- "enters/enter into force", "entry
+//       into force", "comes/come into force", "in force from", "applies/apply from", "commences", "takes
+//       effect", "effective from" -- the fixed list this lane's own dispatch names; no pattern added beyond
+//       it without a test). This is why a NEW rule, `enters-into-force-on`, is added below: without it, "The
+//       Regulation enters into force on <date>." produced no hit at all to test the exemption against.
+//   (2) Status-only refusal (`isStatusOnlyClause`, CANDIDATE_ONLY_RULES only): a candidate hit whose clause,
+//       with its own date span removed, is NOTHING but a status/snapshot phrase ("in force as of", "last
+//       updated as of", "valid since", etc. -- `STATUS_ONLY_RE`) is refused regardless of the date and
+//       regardless of any nearby deontic clause -- a status phrase never becomes an obligation just because
+//       an unrelated deontic sentence happens to sit within the look-ahead window.
+//   Both refusals are recorded in `skips`/`skipped`, never silently dropped. Cleanup of the two
+//   already-persisted fabricated rows is a separate data migration (318), not this code fix's concern.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.6';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-13.1';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -1110,6 +1136,15 @@ const RULES = [
     scanRe: /\bentered\s+into\s+force\s+on\s+/gi,
   },
   {
+    // "The Regulation enters into force on <date>." / "This Directive enter[s] into force on <date>." --
+    // present-tense commencement (D10, lane L6, 2026-09-13); the negative lookbehind excludes "shall enter
+    // into force on" so this never overlaps 'shall-enter-into-force-on' below (both would otherwise match
+    // the same "enter into force on" substring; the modal form keeps its own named rule).
+    name: 'enters-into-force-on',
+    kind: 'entry_into_force',
+    scanRe: /\b(?<!shall\s)enters?\s+into\s+force\s+on\s+/gi,
+  },
+  {
     name: 'shall-enter-into-force-on',
     kind: 'entry_into_force',
     scanRe: /\bshall\s+enter\s+into\s+force\s+on\s+/gi,
@@ -1257,6 +1292,47 @@ const CANDIDATE_ONLY_RULES = [
 ];
 
 // ---------------------------------------------------------------------------
+// Reference-date and status-only refusals (lane L6, D10, 2026-09-13 -- see this file's header note
+// "REFERENCE-DATE AND STATUS-ONLY REFUSALS" for the full defect and fix rationale)
+// ---------------------------------------------------------------------------
+
+// The instrument's OWN commencement language -- the fixed, small verb list this lane's own dispatch names
+// (docs/plans/defect-fix-plan-2026-09-12.md D10 / brief-l6.md): "enters into force", "enter into force",
+// "entry into force", "comes into force", "come into force", "in force from", "applies from", "apply
+// from", "commences", "takes effect", "effective from". A hit on a reference date is refused UNLESS its
+// clause contains one of these -- never a pattern added beyond this list without its own test.
+const COMMENCEMENT_CLAUSE_RE =
+  /\b(?:enters?\s+into\s+force|entry\s+into\s+force|comes?\s+into\s+force|in\s+force\s+from|applies\s+from|apply\s+from|commences|takes\s+effect|effective\s+from)\b/i;
+
+// A status/snapshot phrase with nothing else in the clause once the date span itself is removed -- "In
+// force as of <date>.", "Last updated as of <date>", "Valid since <date>" -- never a bound obligation
+// regardless of any deontic clause sitting elsewhere in the look-ahead window.
+const STATUS_ONLY_RE = /^\s*(in force|current|updated|last updated|valid|accessed|retrieved)\s+(as of|since)\s*[.!?]?\s*$/i;
+
+const REFERENCE_DATE_SKIP_REASON =
+  "date equals a reference date (the run date or the brief's own document date) with no instrument-commencement language in its clause -- refused as a fabricated event, never a real obligation";
+
+const STATUS_ONLY_SKIP_REASON =
+  "'as of'/'since' clause is only a status/snapshot phrase once its own date span is removed (e.g. \"in force as of\", \"updated as of\") -- never a bound obligation, regardless of any deontic clause nearby";
+
+/** True when `iso` is one of the supplied `referenceDates` AND `clauseText` names no commencement verb --
+ *  the reference-date refusal (D10 fix part 1). `referenceDates` defaults to empty (opt-in; existing
+ *  callers that never pass it see no behavior change). */
+function refuseForReferenceDate(iso, clauseText, referenceDates) {
+  if (!Array.isArray(referenceDates) || referenceDates.length === 0) return false;
+  if (!referenceDates.includes(iso)) return false;
+  return !COMMENCEMENT_CLAUSE_RE.test(typeof clauseText === 'string' ? clauseText : '');
+}
+
+/** True when `clauseText`, with its own `dateSpan` removed, is nothing but a status phrase -- the
+ *  status-only refusal (D10 fix part 2), CANDIDATE_ONLY_RULES hits only. */
+function isStatusOnlyClause(clauseText, dateSpan) {
+  const text = typeof clauseText === 'string' ? clauseText : '';
+  const stripped = typeof dateSpan === 'string' && dateSpan ? text.replace(dateSpan, '') : text;
+  return STATUS_ONLY_RE.test(stripped);
+}
+
+// ---------------------------------------------------------------------------
 // Core scan over one text blob
 // ---------------------------------------------------------------------------
 
@@ -1285,10 +1361,15 @@ function findTrailingToDate(text, pos) {
 
 /**
  * Scan one text blob for candidate (rule, date) hits.
+ * `options.referenceDates` (array of ISO dates, optional, default none) feeds the reference-date refusal
+ * (D10, lane L6, 2026-09-13 -- see this file's header note): a hit whose date equals one of these is
+ * refused unless its clause names the instrument's own commencement. Omitting it (every pre-existing
+ * caller) is a no-op -- no behavior change.
  * Returns { hits: [{ruleName, kind, dateIso, precision, spanStart, spanEnd,
  *   obligationText, extraEvents}], skips: [{reason, spanStart, spanEnd, text}] }
  */
-function scanText(text) {
+function scanText(text, options = {}) {
+  const referenceDates = Array.isArray(options.referenceDates) ? options.referenceDates : [];
   const hits = [];
   const skips = [];
   const claimedRanges = []; // [start, end) already turned into a hit, to dedupe overlapping rules
@@ -1371,6 +1452,8 @@ function scanText(text) {
 
       if (around.skip) {
         skips.push({ reason: around.skip, span: dateSpan });
+      } else if (refuseForReferenceDate(parsed.iso, around.text, referenceDates)) {
+        skips.push({ reason: REFERENCE_DATE_SKIP_REASON, span: dateSpan });
       } else {
         hits.push({
           ruleName: rule.name,
@@ -1395,6 +1478,8 @@ function scanText(text) {
           claimedRanges.push([spanEnd, wSpanEnd]);
           if (wAround.skip) {
             skips.push({ reason: wAround.skip, span: wDateSpan });
+          } else if (refuseForReferenceDate(w.parsed.iso, wAround.text, referenceDates)) {
+            skips.push({ reason: REFERENCE_DATE_SKIP_REASON, span: wDateSpan });
           } else {
             hits.push({
               ruleName: rule.name + '-window-end',
@@ -1454,6 +1539,15 @@ function scanText(text) {
       claimedRanges.push([m.index, spanEnd]);
       if (around.skip) {
         skips.push({ reason: around.skip, span: candidateDateSpan });
+      } else if (refuseForReferenceDate(parsed.iso, around.text, referenceDates)) {
+        // D10 fix part 1: e.g. "In force as of <today>." where <today> is the run date -- refused
+        // regardless of the deontic clause the check above already found nearby, because this clause
+        // itself names no commencement.
+        skips.push({ reason: REFERENCE_DATE_SKIP_REASON, span: candidateDateSpan });
+      } else if (isStatusOnlyClause(around.text, candidateDateSpan)) {
+        // D10 fix part 2: a bare status/snapshot phrase once its own date is removed -- refused regardless
+        // of the date and regardless of the nearby deontic clause.
+        skips.push({ reason: STATUS_ONLY_SKIP_REASON, span: candidateDateSpan });
       } else {
         hits.push({
           ruleName: rule.name,
@@ -1550,13 +1644,13 @@ export function finerDuePrecision(extractorPrecision, slotPrecision) {
  * wider text still shows no deontic/aim near the date (a genuine, informed refusal). Pure — no I/O, this
  * module still never fetches anything itself. Exported for testing.
  */
-export function rescueSlotDateWithContext(claimSpan, context) {
+export function rescueSlotDateWithContext(claimSpan, context, referenceDates) {
   if (typeof claimSpan !== 'string' || !claimSpan) return null;
   if (!context || typeof context.before !== 'string' || typeof context.after !== 'string') return null;
   const contextText = context.before + claimSpan + context.after;
   const spanRangeStart = context.before.length;
   const spanRangeEnd = spanRangeStart + claimSpan.length;
-  const { hits } = scanText(contextText);
+  const { hits } = scanText(contextText, { referenceDates });
   return hits.find((h) => h.spanStart >= spanRangeStart && h.spanEnd <= spanRangeEnd) ?? null;
 }
 
@@ -1689,6 +1783,10 @@ export function dedupeEvents(events) {
 export function extractForwardEvents(input) {
   const claims = Array.isArray(input?.claims) ? input.claims : [];
   const sections = Array.isArray(input?.sections) ? input.sections : [];
+  // D10, lane L6, 2026-09-13: the run date and the brief's own document date, supplied by
+  // read-and-extract.mjs -- see this file's header note "REFERENCE-DATE AND STATUS-ONLY REFUSALS". Omitted
+  // (or not an array) is a no-op: the reference-date refusal never fires with an empty list.
+  const referenceDates = Array.isArray(input?.referenceDates) ? input.referenceDates : [];
 
   const events = [];
   const skipped = [];
@@ -1702,7 +1800,7 @@ export function extractForwardEvents(input) {
       continue;
     }
     const text = claim.span;
-    const { hits, skips } = scanText(text);
+    const { hits, skips } = scanText(text, { referenceDates });
     const isDueDateSlot = isDueDateSlotClaim(claim);
 
     for (const s of skips) {
@@ -1766,7 +1864,7 @@ export function extractForwardEvents(input) {
           text,
         });
       } else {
-        const rescued = rescueSlotDateWithContext(claim.span, claim.context);
+        const rescued = rescueSlotDateWithContext(claim.span, claim.context, referenceDates);
         if (rescued) {
           const contextText = claim.context.before + claim.span + claim.context.after;
           assertVerbatim(contextText, rescued.dateSpan);
@@ -1801,7 +1899,7 @@ export function extractForwardEvents(input) {
   for (const section of sections) {
     const text = typeof section.md === 'string' ? section.md : '';
     if (!text) continue;
-    const { hits, skips } = scanText(text);
+    const { hits, skips } = scanText(text, { referenceDates });
 
     for (const s of skips) {
       skipped.push({
