@@ -9,9 +9,11 @@
 // Actions). This wrapper is the missing coordinator-dispatch runtime that makes the full
 // propose->auto-adopt pipeline runnable through the MAINT framework (docs/plans/finish-plan-2026-09-02.md,
 // MAINT paragraph). See apply-classifications.mjs's header (operator ruling 2026-09-03) for why
-// auto-adoption is safe for scope_modes/scope_verticals (high confidence = decisive name match) and
-// expected_output (closed role->default lookup, deterministic). scope_topics stays ratification-only
-// (undecidable "regular and material coverage" judgment). jurisdictions was never applicable (see
+// auto-adoption is safe for scope_modes/scope_verticals/jurisdiction_iso (high confidence = decisive
+// name/host match) and expected_output (closed role->default lookup, deterministic). scope_topics stays
+// ratification-only (undecidable "regular and material coverage" judgment). jurisdiction_iso joined the
+// applicable/auto-adoptable set D9, lane L14, 2026-09-13 (migration 033 gives Axis 3 a safe home); the
+// legacy `sources.jurisdictions` column was never applicable and stays untouched forever (see
 // classify-source.mjs).
 //
 // WHAT IT DOES, both modes use this file's own orchestration with DB access injected.
@@ -24,9 +26,10 @@
 //   (evaluating + writing only the high-confidence and deterministic proposals, resolving flags once
 //   nothing applicable remains). Committed writes via the guarded path (rule 015).
 //
-// This step NEVER WRITES sources.jurisdictions (see apply-classifications.mjs's header). If
-// propose-classifications emits a jurisdiction proposal, it rides along in description (advisory-only)
-// but is filtered out before any auto-adopt patch is built -- the framework's own rule (classify-source.mjs).
+// This step NEVER WRITES the legacy sources.jurisdictions column (see apply-classifications.mjs's
+// header) -- classify-source.mjs never emits field "jurisdictions". Axis-3 writes go to
+// sources.jurisdiction_iso only, through the same guarded APPLICABLE_FIELDS/AUTO_ADOPT_FIELDS gate as
+// every other axis (D9, lane L14, 2026-09-13; migration 033).
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,8 +59,9 @@ export const CITE = Object.freeze({
     "MAINT apply-classifications dispatch (Lane CLASSIFY-STEP, 2026-09-04): orchestrate " +
     "propose-classifications logic (Axis 3/4/5 source gaps, drift as integrity_flags) " +
     "and auto-adopt high-confidence / deterministic proposals through apply-classifications.mjs's " +
-    "own evaluateAutoAdoption/autoAdoptClassification (guarded writes, rule 015). Scope_topics and " +
-    "jurisdiction proposals stay ratification-only (operator rules). D17 families 4/5 (2026-09-12): a " +
+    "own evaluateAutoAdoption/autoAdoptClassification (guarded writes, rule 015). Scope_topics stays " +
+    "ratification-only (operator rules); jurisdiction_iso auto-adopts at high confidence (D9, lane L14, " +
+    "2026-09-13, migration 033). D17 families 4/5 (2026-09-12): a " +
     "zero-proposal classification flag is re-derived from the SC-13 class table + observed output; " +
     "every open drift flag is resolved (adopt-observed or insufficient-sample); every open anomaly " +
     "flag is retired (the detector itself is deleted).",
@@ -248,7 +252,9 @@ export async function main({ mode = "dry" } = {}, deps) {
 
   // ── Phase 1: Propose ────────────────────────────────────────────────────────────────────────
 
-  const SOURCE_SIG = "id, name, url, source_role, secondary_roles, status, jurisdictions, scope_topics, scope_modes, scope_verticals, expected_output";
+  // jurisdiction_iso added (D9, lane L14, 2026-09-13) so proposeSourceAxisClassification's gap check
+  // sees the source's REAL current value instead of always reading it as empty.
+  const SOURCE_SIG = "id, name, url, source_role, secondary_roles, status, jurisdictions, jurisdiction_iso, scope_topics, scope_modes, scope_verticals, expected_output";
   const sources = await deps.readAll("sources", SOURCE_SIG, { match: (q) => q.eq("status", "active") });
   // created_at added (D17 family 5): countDistinctDates needs it for the drift-resolution sample check.
   const ITEM_SIG = "id, source_id, item_type, domain, created_at";
@@ -486,7 +492,9 @@ export async function buildRealDeps() {
     // per-topic evidence against the source's OWN name/source_role at apply time.
     // Widened again 2026-09-12 (D17 family 4): `url` added so deriveClassTableCandidates can resolve the
     // SC-13 class table tier for the source's own registered host.
-    readSource: (id) => sb.from("sources").select("id, name, url, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+    // jurisdiction_iso added (D9, lane L14, 2026-09-13) so buildMergePatch merges against the source's
+    // real current value.
+    readSource: (id) => sb.from("sources").select("id, name, url, source_role, jurisdiction_iso, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
     updateSource: async (id, patch) => {
       const res = await guardedUpdate("sources", (qb) => qb.eq("id", id), patch, { cite: CITE });
       return { updated: res.updated, snapshot: res.snapshot };

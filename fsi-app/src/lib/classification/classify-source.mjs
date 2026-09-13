@@ -11,20 +11,26 @@
 // 2026-09-02 (script/src, excluding _snapshots/ and this module's own vocab.mjs): zero other readers or
 // writers exist anywhere in the live app or scripts. Safe to write. `applicable: true`.
 //
-// Axis 3 (jurisdiction) has NO safe home. `sources.jurisdictions` was NOT added by migration 063 — it
-// already existed from migration 004, and migration 063's own `ADD COLUMN IF NOT EXISTS jurisdictions`
-// was therefore a documented no-op against that pre-existing column, not a new axis-3 field. That
-// pre-existing column is LIVE: src/app/api/admin/canonical-sources/decide/route.ts and
-// src/app/api/admin/sources/promote/route.ts populate it from an operator-reviewed Haiku classification
-// (bulk-classify/route.ts's own system prompt) whose vocabulary is region buckets —
-// `eu | us | uk | latam | asia | hk | meaf | global` — NOT this framework's ISO 3166 shape
-// (`GB`, `US-CA`, `EU`, `GLOBAL`...; jurisdiction.mjs / vocab.mjs). Three live surfaces read it
-// (src/components/regulations/AffectedLanesCard.tsx, src/components/map/MapPageView.tsx, and the
-// workspace RPCs migrations 073/077/117 select it through). Writing an ISO-shaped value into that
-// column would silently corrupt every one of those reads. Until an ADR rules a real Axis-3 home (a new,
-// distinctly-named column — out of this lane's write set), jurisdiction proposals are surfaced for
-// OPERATOR REVIEW ONLY. `applicable: false` — and apply-classifications.mjs refuses to write field
-// "jurisdictions" even if one somehow reached it, by construction (APPLICABLE_FIELDS allow-list).
+// Axis 3 (jurisdiction) NOW HAS a safe home (D9, lane L14, 2026-09-13, correcting the 2026-09-02
+// finding below): migration 033 (`fsi-app/supabase/migrations/033_jurisdiction_iso.sql`) added
+// `sources.jurisdiction_iso TEXT[]` specifically for this framework's ISO-3166 shape (`GB`, `US-CA`,
+// `EU`, `GLOBAL`...; jurisdiction.mjs / vocab.mjs's `isValidJurisdictionValue`), distinct from the
+// legacy `sources.jurisdictions` column this framework must never touch. `applicable: true`.
+//
+// `sources.jurisdictions` remains untouched BY CONSTRUCTION and stays exactly as risky as the original
+// finding described: it was NOT added by migration 063 -- it already existed from migration 004, and
+// migration 063's own `ADD COLUMN IF NOT EXISTS jurisdictions` was therefore a documented no-op against
+// that pre-existing column, not a new axis-3 field. That pre-existing column is LIVE:
+// src/app/api/admin/canonical-sources/decide/route.ts and src/app/api/admin/sources/promote/route.ts
+// populate it from an operator-reviewed Haiku classification (bulk-classify/route.ts's own system
+// prompt) whose vocabulary is region buckets -- `eu | us | uk | latam | asia | hk | meaf | global` --
+// NOT this framework's ISO shape. Three live surfaces read it (src/components/regulations/
+// AffectedLanesCard.tsx, src/components/map/MapPageView.tsx, and the workspace RPCs migrations
+// 073/077/117 select it through). Writing an ISO-shaped value into `jurisdictions` would silently
+// corrupt every one of those reads -- this module never proposes writing that column, never reads it as
+// a gap signal, and never emits `field: "jurisdictions"`; it proposes `field: "jurisdiction_iso"` only,
+// which apply-classifications.mjs's own APPLICABLE_FIELDS allow-list (imported from this module, so the
+// two scripts cannot drift) is the sole gate on.
 //
 // `sources.topic_tags` / `transport_modes` / `vertical_tags` are the analogous LIVE, differently-scoped
 // legacy columns for 4a/4b/4c (same review flow, same Haiku vocabulary —
@@ -37,23 +43,25 @@ import { classifyScopeTopics, classifyScopeModes, classifyScopeVerticals } from 
 import { expectedOutputForRole } from "./expected-output.mjs";
 
 /** The only sources columns apply-classifications.mjs will ever write. Single source of truth, imported
- *  by both the proposer and the applier so the allow-list cannot drift between the two scripts. */
-export const APPLICABLE_FIELDS = Object.freeze(["scope_topics", "scope_modes", "scope_verticals", "expected_output"]);
+ *  by both the proposer and the applier so the allow-list cannot drift between the two scripts.
+ *  `jurisdiction_iso` added (D9, lane L14, 2026-09-13): migration 033 gives Axis 3 a safe, ISO-shaped
+ *  home distinct from the legacy `jurisdictions` column, which stays outside this list forever. */
+export const APPLICABLE_FIELDS = Object.freeze(["jurisdiction_iso", "scope_topics", "scope_modes", "scope_verticals", "expected_output"]);
 
 function isEmptyArray(v) {
   return !Array.isArray(v) || v.length === 0;
 }
 
 /**
- * Which of the five axis fields are currently unset on `source`. PURE. `jurisdictions` is included so
- * the caller can decide whether to surface an (advisory-only) Axis-3 finding, even though this module
- * never proposes writing it.
- * @param {{jurisdictions?:unknown, scope_topics?:unknown, scope_modes?:unknown, scope_verticals?:unknown, expected_output?:unknown}} source
- * @returns {{jurisdictions:boolean, scope_topics:boolean, scope_modes:boolean, scope_verticals:boolean, expected_output:boolean}}
+ * Which of the five axis fields are currently unset on `source`. PURE. `jurisdiction_iso` (D9, lane
+ * L14, 2026-09-13) tests the framework's OWN column, not the legacy `jurisdictions` region-bucket
+ * column -- this module never reads `source.jurisdictions` as a gap signal, by construction.
+ * @param {{jurisdiction_iso?:unknown, scope_topics?:unknown, scope_modes?:unknown, scope_verticals?:unknown, expected_output?:unknown}} source
+ * @returns {{jurisdiction_iso:boolean, scope_topics:boolean, scope_modes:boolean, scope_verticals:boolean, expected_output:boolean}}
  */
 export function sourceClassificationGaps(source) {
   return {
-    jurisdictions: isEmptyArray(source?.jurisdictions),
+    jurisdiction_iso: isEmptyArray(source?.jurisdiction_iso),
     scope_topics: isEmptyArray(source?.scope_topics),
     scope_modes: isEmptyArray(source?.scope_modes),
     scope_verticals: isEmptyArray(source?.scope_verticals),
@@ -67,7 +75,7 @@ export function sourceClassificationGaps(source) {
  * classifier returned null — genuinely undeterminable from name/url/role) contributes NOTHING to
  * `proposals`; `hasGap` still reports the gap so the caller can flag "needs manual classification".
  * @param {{id?:string, name?:string|null, url?:string|null, source_role?:string|null,
- *   jurisdictions?:unknown, scope_topics?:unknown, scope_modes?:unknown, scope_verticals?:unknown,
+ *   jurisdiction_iso?:unknown, scope_topics?:unknown, scope_modes?:unknown, scope_verticals?:unknown,
  *   expected_output?:unknown}} source
  * @returns {{sourceId:string|null, hasGap:boolean, gaps:object,
  *   proposals:Array<{field:string, value:unknown, confidence:string, basis:string, applicable:boolean}>}}
@@ -78,12 +86,12 @@ export function proposeSourceAxisClassification(source) {
   const proposals = [];
   const sourceRole = source?.source_role ?? null;
 
-  if (gaps.jurisdictions) {
+  if (gaps.jurisdiction_iso) {
     const j = classifySourceJurisdiction({ url: source?.url, sourceRole });
     if (j) {
       proposals.push({
-        field: "jurisdictions", value: [j.value], confidence: j.confidence, basis: j.basis,
-        applicable: false, // see file header — no safe write target (sources.jurisdictions is live, differently-scoped)
+        field: "jurisdiction_iso", value: [j.value], confidence: j.confidence, basis: j.basis,
+        applicable: true, // D9, lane L14, 2026-09-13 -- migration 033 gives Axis 3 a safe, ISO-shaped home
       });
     }
   }

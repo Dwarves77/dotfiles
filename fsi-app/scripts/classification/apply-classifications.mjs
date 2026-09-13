@@ -11,15 +11,18 @@
 //      human ratify marker" posture for the fields where that marker was never adding a real decision —
 //      spec 08 §Loop B forbids a human gate in the flywheel path). evaluateAutoAdoption/AUTO_ADOPT_FIELDS
 //      below draw the line from classify-source.mjs's OWN evidence (read that file in full — every
-//      proposal already carries a `confidence`): scope_modes/scope_verticals auto-adopt only at "high"
-//      confidence (a single/exact name-keyword match — decisive); expected_output ALWAYS auto-adopts
-//      despite classify-source.mjs labeling it "medium" — that label reflects "not yet refined by
-//      observed history" (its own comment), not doubt about the ROLE -> DEFAULT mapping itself, which is
-//      a closed, deterministic lookup (expected-output.mjs's table). scope_topics is EXCLUDED even
-//      though the same "medium" label: scope.mjs's own header says a keyword match cannot itself judge
-//      "regular and material coverage" (framework Axis 4a) — that judgment is the undecidable residue
-//      this ruling says stays a flag, not a derivation this module can auto-adopt. jurisdictions was
-//      never applicable at all (see below) — untouched either way. --auto-adopt drives this path, and
+//      proposal already carries a `confidence`): scope_modes/scope_verticals/jurisdiction_iso auto-adopt
+//      only at "high" confidence (a single/exact name-keyword or host-identity match -- decisive);
+//      expected_output ALWAYS auto-adopts despite classify-source.mjs labeling it "medium" -- that label
+//      reflects "not yet refined by observed history" (its own comment), not doubt about the ROLE ->
+//      DEFAULT mapping itself, which is a closed, deterministic lookup (expected-output.mjs's table).
+//      scope_topics is EXCLUDED even though the same "medium" label: scope.mjs's own header says a
+//      keyword match cannot itself judge "regular and material coverage" (framework Axis 4a) -- that
+//      judgment is the undecidable residue this ruling says stays a flag, not a derivation this module
+//      can auto-adopt. jurisdiction_iso (D9, lane L14, 2026-09-13) additionally declines any value not
+//      shaped per vocab.mjs's isValidJurisdictionValue, regardless of confidence -- see
+//      decideClassificationProposal below. The legacy `jurisdictions` column was never applicable at
+//      all and stays untouched forever (see classify-source.mjs's header). --auto-adopt drives this path, and
 //      requires no operator action: it evaluates OPEN flags directly, applies the auto-adoptable
 //      proposals, and resolves the flag ONLY when nothing APPLICABLE remains for a human to ratify
 //      (resolution_note='auto-adopted:classification:<fields>', resolved_by='apply-classifications.mjs')
@@ -47,12 +50,13 @@
 // unambiguous; tier 2 contributes scope_topics only; the observed distribution always can feed
 // expected_output once the sample is large enough).
 //
-// NEVER WRITES `jurisdictions`. classify-source.mjs's APPLICABLE_FIELDS allow-list (imported here, not
-// redefined, so the two scripts cannot drift) excludes it by construction — see that module's header for
-// why: sources.jurisdictions already carries a LIVE, differently-scoped region-bucket vocabulary from
-// the canonical-source-candidate review flow, and this framework's ISO-shaped Axis-3 values would
-// corrupt it. A jurisdiction proposal riding along in the same flag's PROPOSALS_JSON (applicable:false)
-// is filtered out before any patch is built, even if it were somehow present, on both paths.
+// NEVER WRITES the legacy `jurisdictions` column. classify-source.mjs's APPLICABLE_FIELDS allow-list
+// (imported here, not redefined, so the two scripts cannot drift) excludes it by construction -- see
+// that module's header for why: sources.jurisdictions already carries a LIVE, differently-scoped
+// region-bucket vocabulary from the canonical-source-candidate review flow, and this framework's
+// ISO-shaped Axis-3 values would corrupt it. This module never proposes or writes field "jurisdictions".
+// Axis 3 writes go to `jurisdiction_iso` only (D9, lane L14, 2026-09-13; migration 033), through the
+// same APPLICABLE_FIELDS gate as every other axis.
 //
 // WHAT THE RATIFIED PATH DOES, per --flag <id>:
 //   1. Reads the integrity_flags row; requires createdBy == the `source-classification` subtype exactly,
@@ -85,6 +89,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
+import { isValidJurisdictionValue } from "../../src/lib/classification/vocab.mjs";
 import { topicKeywordMatch, REGULATORY_TOPIC_ROLES } from "../../src/lib/classification/scope.mjs";
 import { expectedOutputForRole, isValidDistribution } from "../../src/lib/classification/expected-output.mjs";
 import { observedDistributionFromItems } from "../../src/lib/classification/routing.mjs";
@@ -99,7 +104,9 @@ export const RATIFY_CLASSIFICATION_TOKEN = "ratify:classification";
 const CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
 export const DRIFT_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_DRIFT_SUBTYPE);
 export const ANOMALY_CREATED_BY = createdBy(AXIS_NAMESPACE, ITEM_ANOMALY_SUBTYPE);
-const ARRAY_FIELDS = Object.freeze(["scope_topics", "scope_modes", "scope_verticals"]);
+// jurisdiction_iso added (D9, lane L14, 2026-09-13): an accumulating tag list exactly like the three
+// scope fields -- existing values survive, novel proposed values are appended, never removed.
+const ARRAY_FIELDS = Object.freeze(["jurisdiction_iso", "scope_topics", "scope_modes", "scope_verticals"]);
 
 /**
  * True when `note` carries the `ratify:classification` marker as its own whitespace-delimited token
@@ -114,8 +121,8 @@ export function hasRatifyClassificationToken(note) {
 
 /**
  * Extract + validate the PROPOSALS_JSON block propose-classifications.mjs's buildClassificationFlagRow()
- * wrote into a flag's `description`. PURE. Parses every well-shaped entry (including advisory-only
- * ones like jurisdiction); applying-time filtering to APPLICABLE_FIELDS happens in buildMergePatch.
+ * wrote into a flag's `description`. PURE. Parses every well-shaped entry; applying-time filtering to
+ * APPLICABLE_FIELDS happens in buildMergePatch.
  * @param {string|null|undefined} description
  * @returns {{ok:true, value:Array<{field:string, value:unknown, confidence:string, basis:string, applicable:boolean}>} | {ok:false, error:string}}
  */
@@ -249,10 +256,13 @@ export async function applyClassification(deps, flagId, { execute } = {}) {
 
 // ─────────────────────────── auto-adoption path (operator ruling 2026-09-03) ───────────────────────────
 // See file header for the full evidence-based reasoning. AUTO_ADOPT_FIELDS is a SUBSET of
-// APPLICABLE_FIELDS — never wider — so a field this framework has no safe write target for (jurisdictions)
-// can never auto-adopt either, by construction (isAutoAdoptableProposal below only ever accepts a field
-// already screened through APPLICABLE_FIELDS in evaluateAutoAdoption's partition step).
-export const AUTO_ADOPT_FIELDS = Object.freeze(["scope_modes", "scope_verticals", "expected_output"]);
+// APPLICABLE_FIELDS -- never wider -- so a field this framework has no safe write target for (the legacy
+// `jurisdictions` column) can never auto-adopt either, by construction (isAutoAdoptableProposal below
+// only ever accepts a field already screened through APPLICABLE_FIELDS in evaluateAutoAdoption's
+// partition step). jurisdiction_iso added (D9, lane L14, 2026-09-13): the scope_modes rule -- a decisive
+// host-identity match (confidence "high") auto-adopts; the vocab-shape check lives in
+// decideClassificationProposal (the live decision path autoAdoptClassification actually uses), not here.
+export const AUTO_ADOPT_FIELDS = Object.freeze(["jurisdiction_iso", "scope_modes", "scope_verticals", "expected_output"]);
 
 /**
  * True when a single proposal is auto-adoptable without operator ratification. PURE. scope_topics is
@@ -264,12 +274,13 @@ export const AUTO_ADOPT_FIELDS = Object.freeze(["scope_modes", "scope_verticals"
 export function isAutoAdoptableProposal(proposal) {
   if (!proposal || typeof proposal.field !== "string" || !AUTO_ADOPT_FIELDS.includes(proposal.field)) return false;
   if (proposal.field === "expected_output") return true; // closed role->default lookup — deterministic (see header), confidence label is always "medium" by classify-source.mjs's own design and is not the gate here
-  return proposal.confidence === "high"; // scope_modes / scope_verticals: only a decisive keyword match
+  return proposal.confidence === "high"; // scope_modes / scope_verticals / jurisdiction_iso: only a decisive match
 }
 
 /**
- * Split a proposal list into auto-adoptable vs everything else (including advisory-only jurisdiction
- * proposals, which are never in AUTO_ADOPT_FIELDS or APPLICABLE_FIELDS). PURE.
+ * Split a proposal list into auto-adoptable vs everything else (including a medium-confidence
+ * jurisdiction_iso proposal, and a legacy field "jurisdictions" proposal -- the latter is never in
+ * AUTO_ADOPT_FIELDS or APPLICABLE_FIELDS at all). PURE.
  * @param {Array<{field:string, confidence?:string}>} proposals
  * @returns {{autoAdoptable:Array<object>, remaining:Array<object>}}
  */
@@ -324,16 +335,20 @@ export function evaluateAutoAdoption(flag) {
 // of silently sitting on an open flag forever (ADR-030 rider: "a decision of 'no action, and why' is a
 // valid close").
 //
-// JURISDICTION, A HARD EXISTING GATE (read classify-source.mjs's header in full before changing this):
-// sources.jurisdictions is a LIVE, differently-scoped column (region buckets eu|us|uk|latam|asia|hk|
-// meaf|global, populated by the canonical-source-candidate review flow) -- writing this framework's
-// ISO-3166 Axis-3 values into it would silently corrupt three live reads (AffectedLanesCard, MapPageView,
-// the workspace RPCs). classify-source.mjs's own proposal already marks it `applicable:false` for exactly
-// this reason. This rider does not carry an ADR authorizing a dedicated Axis-3 column, so a jurisdiction
-// proposal is DECIDED (declined, with the architectural reason) rather than written -- the safe reading of
-// "adopt when it matches, else decline": there is no safe column to adopt INTO, so it always declines,
-// same as it always silently never-applied before this rider, except now the reason is recorded and the
-// flag can close instead of hanging on this one un-actionable proposal forever.
+// JURISDICTION_ISO NOW ADOPTS (D9, lane L14, 2026-09-13, CORRECTING the ADR-030-rider posture below,
+// which is retained here in comment form only as the record of what was true before migration 033):
+// read classify-source.mjs's header in full before changing this. Migration 033
+// (fsi-app/supabase/migrations/033_jurisdiction_iso.sql) added `sources.jurisdiction_iso TEXT[]`, a
+// safe, ISO-shaped Axis-3 home distinct from the legacy `sources.jurisdictions` region-bucket column
+// (eu|us|uk|latam|asia|hk|meaf|global) three live surfaces read (AffectedLanesCard, MapPageView, the
+// workspace RPCs) -- that legacy column is still never written by this path, by construction
+// (classify-source.mjs never emits field "jurisdictions"; APPLICABLE_FIELDS never lists it). The decline
+// this rider originally specified is RETIRED because the column exists: a jurisdiction_iso proposal now
+// follows the same decisive-match rule as scope_modes/scope_verticals (confidence "high" adopts, else
+// declines with a reason), plus one extra gate scope_modes/scope_verticals don't need -- a value not
+// shaped per vocab.mjs's `isValidJurisdictionValue` (an ISO 3166-1/3166-2 code or a known free-text
+// sentinel) declines regardless of confidence, since jurisdiction.mjs's own classifier is host-derived
+// and a shape violation there would indicate a future bug in that table, never a judgment call to defer.
 //
 // scope_topics EVIDENCE RE-CHECK: classify-source.mjs's proposal carries ONE shared `basis` string for
 // the whole matched-topic array (no per-topic evidence field) -- this function re-derives the per-topic
@@ -344,7 +359,7 @@ export function evaluateAutoAdoption(flag) {
 
 /**
  * Decide one classification proposal that is NOT scope_topics (scope_modes / scope_verticals /
- * expected_output / jurisdictions). PURE.
+ * jurisdiction_iso / expected_output). PURE.
  * @param {{field:string, value:unknown, confidence?:string}} proposal
  * @param {{expected_output?:unknown}} source
  * @returns {{field:string, value:unknown, label:string, decision:"adopt"|"decline", reason:string}}
@@ -373,14 +388,26 @@ export function decideClassificationProposal(proposal, source) {
     };
   }
 
-  if (field === "jurisdictions") {
-    // Coordinator ruling (review-7.2.md, accepted, no code change to the rule): the resolution_note
-    // names the architectural gate explicitly, per ADR-030's rider that "a decision of 'no action, and
-    // why' is a valid close" -- there is no ADR-authorized column to adopt this proposal INTO, so the
-    // decline itself, with this reason, is the close.
+  if (field === "jurisdiction_iso") {
+    // D9, lane L14, 2026-09-13: migration 033 gave Axis 3 a safe home, retiring the old "always
+    // declines, no safe write target" rule below. Vocab shape is checked FIRST and unconditionally
+    // (jurisdiction.mjs's own host table is deterministic; a shape violation is a future bug in that
+    // table, never a judgment call to defer), then the same decisive-match rule as scope_modes/
+    // scope_verticals.
+    const values = Array.isArray(proposal.value) ? proposal.value : [proposal.value];
+    const invalid = values.find((v) => !isValidJurisdictionValue(v));
+    if (invalid !== undefined) {
+      return {
+        ...proposal, label, decision: "decline",
+        reason: `jurisdiction_iso value ${invalid} is not in the framework vocabulary.`,
+      };
+    }
+    const decisive = proposal.confidence === "high";
     return {
-      ...proposal, label, decision: "decline",
-      reason: "no safe write target: sources.jurisdictions carries the live region-bucket vocabulary (eu, us, uk, latam, asia, hk, meaf, global) that AffectedLanesCard, MapPageView and the workspace RPCs already read; this framework's ISO-3166 Axis-3 values have no column of their own, and no ADR authorizes one. Per the ADR-030 rider, this decline with its reason is a valid close, not a pending action.",
+      ...proposal, label, decision: decisive ? "adopt" : "decline",
+      reason: decisive
+        ? "confidence 'high': decisive host-identity match for jurisdiction_iso (jurisdiction.mjs institutional-domain signal)."
+        : `confidence '${proposal.confidence ?? "unknown"}' does not meet the decisive 'high' bar for jurisdiction_iso; only a decisive host-identity match auto-adopts without operator ratification.`,
     };
   }
 
@@ -835,7 +862,10 @@ const deps = {
   // per-topic evidence against the source's OWN name/source_role at apply time.
   // Widened again 2026-09-12 (D17 family 4): `url` added so deriveClassTableCandidates can resolve the
   // SC-13 class table tier for the source's own registered host.
-  readSource: (id) => sb.from("sources").select("id, name, url, source_role, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
+  // Widened again 2026-09-13 (D9, lane L14): `jurisdiction_iso` added so buildMergePatch merges against
+  // the source's REAL current value instead of always seeing it as empty (which would falsely re-gap an
+  // already-classified source on every run).
+  readSource: (id) => sb.from("sources").select("id, name, url, source_role, jurisdiction_iso, scope_topics, scope_modes, scope_verticals, expected_output").eq("id", id).maybeSingle(),
   // D17 families 4 and 5 (2026-09-12): a source's own verified, live items, for the observed
   // item-category distribution (`observedDistributionFromItems`) both the zero-proposal re-derivation
   // and the drift auto-resolution read.
