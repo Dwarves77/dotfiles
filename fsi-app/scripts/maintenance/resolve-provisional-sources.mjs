@@ -123,7 +123,7 @@
 // live read; this script's own dry mode is the mechanism that reconfirms them at dispatch time before
 // any apply.
 import { resolve } from "node:path";
-import { readAll, guardedUpdate, guardedInsert, hostOf } from "../lib/db.mjs";
+import { readAll, guardedUpdate, guardedInsert, hostOf, readClient } from "../lib/db.mjs";
 import { classTierForHostAcrossNames } from "../../src/lib/sources/host-authority.ts";
 import {
   buildPromotedSourceRow,
@@ -146,6 +146,25 @@ import { isMainModule } from "../lib/is-main.mjs";
 // own header documents for extract-registry.ts. Loaded lazily, inside buildDeps() below, never at
 // module top level, so this file's own test (resolve-provisional-sources.test.mjs, in the no-npm
 // glob) never needs jiti.
+//
+// DEFECT D22 FIX (docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): `checkVerticalFitGate`'s own
+// contract (src/lib/sources/vertical-fit-gate.ts) is `checkVerticalFitGate(supabase, source)` -- the
+// CLIENT first, the row SECOND. The pre-fix `buildDeps` below returned the raw jiti-imported function
+// AS `deps.checkVerticalFitGate`, unwrapped -- but `applyProvisionalDecision`'s own call site (below)
+// calls `deps.checkVerticalFitGate({ name: row.name, url: row.url })` with ONE argument (the row). That
+// one argument landed in the real function's FIRST parameter (`supabase`), leaving `source` undefined,
+// so `classifyInstitutionalType(source.name, ...)` threw `TypeError: Cannot read properties of
+// undefined (reading 'name')` at vertical-fit-gate.ts:44 on the first live apply promote (run
+// 34734662726) -- the dry arm never calls the gate (applyProvisionalDecision returns before the gate
+// when `!apply`) and the pre-fix unit test injected a FAKE gate (resolve-provisional-sources.test.mjs's
+// own `fakeDeps`), so every dry run and every existing test passed while the apply arm's real wiring
+// had never once executed (the 7.4c class: dependency injection without a test of the injected
+// reality). Fixed: `buildDeps` is now EXPORTED (not left inline in the IS_MAIN block, matching
+// apply-classifications.mjs's own `buildRealDeps` precedent) so a test can call it directly through the
+// REAL import graph; `checkVerticalFitGate` is now a one-argument wrapper, `(source) =>
+// checkVerticalFitGate(client, source)`, matching the one-argument shape the call site already expects
+// -- the client is closed over, never passed by the caller. See
+// resolve-provisional-sources.npmtest.mjs for the real-wiring proof (the 7.4c pattern).
 
 export const CITE = Object.freeze({
   skill: "brief-chain-build-plan-2026-09-11 Part 7 task 7.5 item 1 / defect-fix-plan-2026-09-12 D2/D3/D4/D13",
@@ -478,112 +497,138 @@ async function applyNullTierWorklist(host, table, rowId, deps, worklistFlagOps) 
   }
 }
 
+/**
+ * Real DB + real vertical-fit-gate wiring for `main()` -- EXPORTED (not left inline in the IS_MAIN
+ * block) so a test can call it directly through the REAL import graph with only db.mjs's write-client
+ * seam stubbed, the same shape apply-classifications.mjs's own `buildRealDeps` proves against (defect
+ * D22 fix; see this file's header for the crash this closes). `checkVerticalFitGate` is a one-argument
+ * wrapper closing over `client` (from `readClient()`) so `deps.checkVerticalFitGate(source)` matches
+ * the ONE-argument shape `applyProvisionalDecision` already calls it with; the raw imported function's
+ * own two-argument contract (`supabase`, `source`) is never exposed to the caller directly.
+ */
+export async function buildDeps() {
+  const now = () => new Date().toISOString();
+  const client = readClient();
+  const { createJiti } = await import("jiti");
+  const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
+  const { checkVerticalFitGate: realCheckVerticalFitGate } = await jiti.import("../../src/lib/sources/vertical-fit-gate.ts");
+  return {
+    // DEFECT D22 FIX: one argument (the row), the client closed over -- never the raw two-argument
+    // function passed straight through (that was the bug: the raw function expects (supabase, source),
+    // the call site passes one argument, the row).
+    checkVerticalFitGate: (source) => realCheckVerticalFitGate(client, source),
+    readPendingProvisional: () =>
+      readAll(
+        "provisional_sources",
+        "id, name, url, description, discovered_via, accessibility_verified, status",
+        { match: (q) => q.in("status", ["pending_review", PROVISIONAL_WORKLIST_STATUS]) },
+      ),
+    readProvisionalSourcesRows: () =>
+      readAll("sources", "id, name, url, notes, fetch_status, status", { match: (q) => q.eq("status", "provisional") }),
+    // Rule (a)'s registry: EVERY active source (existingTierForHost filters to status='active'
+    // itself, but paginating the whole table once here, rather than per-row, is the same
+    // "read all pages once, resolve many rows against it" shape registerPoolHostsForGrounding
+    // and canonical-autoverify.mjs's own callers already use).
+    readActiveSources: () => readAll("sources", "id, url, status, base_tier, tier_override", {}),
+    promoteProvisional: async (row, tier, ruleReason) => {
+      const canonUrl = row.url;
+      let canonHost = "";
+      try { canonHost = new URL(canonUrl).host; } catch { /* non-URL provisional URL, already worklisted upstream */ }
+      const hostMatches = canonHost
+        ? await readAll("sources", "id, url", { match: (q) => q.ilike("url", `%${canonHost}%`) })
+        : [];
+      const existing = findExistingSourceByCanonicalUrl(hostMatches, canonUrl);
+      const nowIso = now();
+      if (existing) {
+        await guardedUpdate(
+          "provisional_sources",
+          (q) => q.eq("id", row.id),
+          {
+            status: PROVISIONAL_SOURCES_PROMOTED_STATUS,
+            promoted_to_source_id: existing.id,
+            reviewed_at: nowIso,
+            reviewer_notes: `${ruleReason}: canonical URL already in registry, reused existing source ${existing.id}, no duplicate created`,
+          },
+          { cite: CITE },
+        );
+        return { sourceId: existing.id, reused: true };
+      }
+      const newSource = buildPromotedSourceRow(row, tier, { promotedBy: "resolve-provisional-sources", note: ruleReason, nowIso });
+      // SECOND real-deps-wiring bug found by this lane's own required apply-mode test (D22 class,
+      // docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): db.mjs's `guardedInsert` returns
+      // `{ inserted: <row>, snapshot }` (see db.mjs's own header and every other caller in this repo,
+      // e.g. retype-eu-decisions.mjs's `(await guardedInsert(...)).inserted`) -- the row itself is
+      // `.inserted`, not the top-level object. This site read `inserted.id` (always undefined) instead
+      // of `inserted.inserted.id`, so a NEW-institution promote (the common case: no existing `sources`
+      // row shares the canonical host) would have written `promoted_to_source_id: undefined` and
+      // returned `sourceId: undefined` on its very first live run -- unreachable until this lane's own
+      // real-wiring test (resolve-provisional-sources.npmtest.mjs) exercised the real guardedInsert
+      // return shape for the first time; every prior dry run and fake-deps test used a fake
+      // promoteProvisional that never touched this line.
+      const inserted = await guardedInsert("sources", newSource, { cite: CITE, select: "id" });
+      await guardedUpdate(
+        "provisional_sources",
+        (q) => q.eq("id", row.id),
+        { status: PROVISIONAL_SOURCES_PROMOTED_STATUS, promoted_to_source_id: inserted.inserted.id, reviewed_at: nowIso, reviewer_notes: ruleReason },
+        { cite: CITE },
+      );
+      return { sourceId: inserted.inserted.id, reused: false };
+    },
+    rejectProvisional: (id, reason) =>
+      guardedUpdate("provisional_sources", (q) => q.eq("id", id), { status: PROVISIONAL_SOURCES_REJECTED_STATUS, reviewed_at: now(), reviewer_notes: reason }, { cite: CITE }),
+    worklistProvisional: (id, reason) =>
+      guardedUpdate(
+        "provisional_sources",
+        (q) => q.eq("id", id),
+        { status: PROVISIONAL_WORKLIST_STATUS, reviewed_at: now(), reviewer_notes: `${reason}: awaiting an SC-13 class-table rule; see the null-tier-host integrity_flags queue` },
+        { cite: CITE },
+      ),
+    // Defect D13 fix: `status` is caller-supplied (sourcesStatusForPromote(row), computed from the
+    // row's own fetch_status), never hardcoded "active" -- a promoted row that is currently
+    // inaccessible says so on the row rather than masquerading as active.
+    activateSourcesRow: (id, tier, status) =>
+      guardedUpdate("sources", (q) => q.eq("id", id), { status, base_tier: tier, effective_tier: tier }, { cite: CITE }),
+    // defect D4 fix (review-7.5.md finding 3): the decline reason is now written INTO `notes`, the
+    // same on-row form worklistSourcesRow already uses, not only into guardedUpdate's `cite`
+    // (which db.mjs writes to an off-row audit snapshot file, never a column). Defect D13 fix: rule
+    // c itself is removed, so this dep is currently unreached from main() for the `sources` table
+    // (kept as the on-row-reason mechanism for a future decline path on this table).
+    rejectSourcesRow: async (id, reason) => {
+      const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
+      const priorNotes = rows[0]?.notes ?? "";
+      const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] reject: ${reason}.`;
+      await guardedUpdate(
+        "sources",
+        (q) => q.eq("id", id),
+        { status: SOURCES_REJECT_STATUS, notes: priorNotes ? `${priorNotes}\n${stamp}` : stamp },
+        { cite: CITE },
+      );
+    },
+    worklistSourcesRow: async (id, reason) => {
+      const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
+      const priorNotes = rows[0]?.notes ?? "";
+      const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] ${reason}: awaiting an SC-13 class-table rule.`;
+      await guardedUpdate("sources", (q) => q.eq("id", id), { notes: priorNotes ? `${priorNotes}\n${stamp}` : stamp }, { cite: CITE });
+    },
+    // defect D3 fix: the SAME null-tier-host read-modify-write resolve-cited-host-gate.mjs's own
+    // buildDeps uses, imported through the shared module (never a second worklist).
+    readNullTierFlag: async (host) => {
+      const rows = await readAll("integrity_flags", "id, recommended_actions", {
+        match: (q) => q.eq("created_by", "null-tier-host").eq("subject_ref", host).eq("status", "open"),
+      });
+      return rows[0] ?? null;
+    },
+    insertNullTierFlag: (row) => guardedInsert("integrity_flags", row, { cite: CITE, select: "id" }),
+    updateNullTierFlag: (id, patch) => guardedUpdate("integrity_flags", (q) => q.eq("id", id), patch, { cite: CITE }),
+  };
+}
+
 const IS_MAIN = isMainModule(import.meta.url);
 if (IS_MAIN) {
   await runCli({
     step: "resolve-provisional-sources",
     main,
     needsDb: true,
-    buildDeps: async () => {
-      const now = () => new Date().toISOString();
-      const { createJiti } = await import("jiti");
-      const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
-      const { checkVerticalFitGate } = await jiti.import("../../src/lib/sources/vertical-fit-gate.ts");
-      return {
-        checkVerticalFitGate,
-        readPendingProvisional: () =>
-          readAll(
-            "provisional_sources",
-            "id, name, url, description, discovered_via, accessibility_verified, status",
-            { match: (q) => q.in("status", ["pending_review", PROVISIONAL_WORKLIST_STATUS]) },
-          ),
-        readProvisionalSourcesRows: () =>
-          readAll("sources", "id, name, url, notes, fetch_status, status", { match: (q) => q.eq("status", "provisional") }),
-        // Rule (a)'s registry: EVERY active source (existingTierForHost filters to status='active'
-        // itself, but paginating the whole table once here, rather than per-row, is the same
-        // "read all pages once, resolve many rows against it" shape registerPoolHostsForGrounding
-        // and canonical-autoverify.mjs's own callers already use).
-        readActiveSources: () => readAll("sources", "id, url, status, base_tier, tier_override", {}),
-        promoteProvisional: async (row, tier, ruleReason) => {
-          const canonUrl = row.url;
-          let canonHost = "";
-          try { canonHost = new URL(canonUrl).host; } catch { /* non-URL provisional URL, already worklisted upstream */ }
-          const hostMatches = canonHost
-            ? await readAll("sources", "id, url", { match: (q) => q.ilike("url", `%${canonHost}%`) })
-            : [];
-          const existing = findExistingSourceByCanonicalUrl(hostMatches, canonUrl);
-          const nowIso = now();
-          if (existing) {
-            await guardedUpdate(
-              "provisional_sources",
-              (q) => q.eq("id", row.id),
-              {
-                status: PROVISIONAL_SOURCES_PROMOTED_STATUS,
-                promoted_to_source_id: existing.id,
-                reviewed_at: nowIso,
-                reviewer_notes: `${ruleReason}: canonical URL already in registry, reused existing source ${existing.id}, no duplicate created`,
-              },
-              { cite: CITE },
-            );
-            return { sourceId: existing.id, reused: true };
-          }
-          const newSource = buildPromotedSourceRow(row, tier, { promotedBy: "resolve-provisional-sources", note: ruleReason, nowIso });
-          const inserted = await guardedInsert("sources", newSource, { cite: CITE, select: "id" });
-          await guardedUpdate(
-            "provisional_sources",
-            (q) => q.eq("id", row.id),
-            { status: PROVISIONAL_SOURCES_PROMOTED_STATUS, promoted_to_source_id: inserted.id, reviewed_at: nowIso, reviewer_notes: ruleReason },
-            { cite: CITE },
-          );
-          return { sourceId: inserted.id, reused: false };
-        },
-        rejectProvisional: (id, reason) =>
-          guardedUpdate("provisional_sources", (q) => q.eq("id", id), { status: PROVISIONAL_SOURCES_REJECTED_STATUS, reviewed_at: now(), reviewer_notes: reason }, { cite: CITE }),
-        worklistProvisional: (id, reason) =>
-          guardedUpdate(
-            "provisional_sources",
-            (q) => q.eq("id", id),
-            { status: PROVISIONAL_WORKLIST_STATUS, reviewed_at: now(), reviewer_notes: `${reason}: awaiting an SC-13 class-table rule; see the null-tier-host integrity_flags queue` },
-            { cite: CITE },
-          ),
-        // Defect D13 fix: `status` is caller-supplied (sourcesStatusForPromote(row), computed from the
-        // row's own fetch_status), never hardcoded "active" -- a promoted row that is currently
-        // inaccessible says so on the row rather than masquerading as active.
-        activateSourcesRow: (id, tier, status) =>
-          guardedUpdate("sources", (q) => q.eq("id", id), { status, base_tier: tier, effective_tier: tier }, { cite: CITE }),
-        // defect D4 fix (review-7.5.md finding 3): the decline reason is now written INTO `notes`, the
-        // same on-row form worklistSourcesRow already uses, not only into guardedUpdate's `cite`
-        // (which db.mjs writes to an off-row audit snapshot file, never a column). Defect D13 fix: rule
-        // c itself is removed, so this dep is currently unreached from main() for the `sources` table
-        // (kept as the on-row-reason mechanism for a future decline path on this table).
-        rejectSourcesRow: async (id, reason) => {
-          const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
-          const priorNotes = rows[0]?.notes ?? "";
-          const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] reject: ${reason}.`;
-          await guardedUpdate(
-            "sources",
-            (q) => q.eq("id", id),
-            { status: SOURCES_REJECT_STATUS, notes: priorNotes ? `${priorNotes}\n${stamp}` : stamp },
-            { cite: CITE },
-          );
-        },
-        worklistSourcesRow: async (id, reason) => {
-          const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
-          const priorNotes = rows[0]?.notes ?? "";
-          const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] ${reason}: awaiting an SC-13 class-table rule.`;
-          await guardedUpdate("sources", (q) => q.eq("id", id), { notes: priorNotes ? `${priorNotes}\n${stamp}` : stamp }, { cite: CITE });
-        },
-        // defect D3 fix: the SAME null-tier-host read-modify-write resolve-cited-host-gate.mjs's own
-        // buildDeps uses, imported through the shared module (never a second worklist).
-        readNullTierFlag: async (host) => {
-          const rows = await readAll("integrity_flags", "id, recommended_actions", {
-            match: (q) => q.eq("created_by", "null-tier-host").eq("subject_ref", host).eq("status", "open"),
-          });
-          return rows[0] ?? null;
-        },
-        insertNullTierFlag: (row) => guardedInsert("integrity_flags", row, { cite: CITE, select: "id" }),
-        updateNullTierFlag: (id, patch) => guardedUpdate("integrity_flags", (q) => q.eq("id", id), patch, { cite: CITE }),
-      };
-    },
+    buildDeps,
   });
 }
