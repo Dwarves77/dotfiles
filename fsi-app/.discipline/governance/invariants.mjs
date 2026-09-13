@@ -693,6 +693,15 @@ export const INVARIANTS = [
     residual: 'Closes the dwell GAP (operator ruling 2026-07-13, flag-system item 5): quarantine-disposition-audit (RD-4/RD-6) enforces dwell on quarantined ITEMS only — it cannot see open-flag age for non-item subject_types (surface/source/system) or for item-flags whose item is not quarantined (e.g. skill-conformance on verified items), so 450 open flags >30d tripped nothing. flag-age-audit.mjs (CI-with-secrets/ops lane, read-only, report-only — never blind-writes) scans ALL open flags, exempts RD-28-held (the 65 held-mints legitimately rest until change-evidence or a contract migration — item 5 wires this so they do not red immediately) + disposition_deferred (owned by deferral-hygiene) + standing-debt markers, and fails the lane (exit 1) on any other flag past the 30d bound. The pure core scripts/lib/flag-age.mjs is red-then-green selftested (flag-age.selftest.mjs, suite-wired). The meta-gate proves wiring (audit file git-tracked + skill-cited) in the secret-less pre-push. NOT mechanized: whether the enqueued disposition is the RIGHT one is remediation judgment (RD-1), not a checkable property; the audit names the dwell, it does not choose the disposition.',
   },
   {
+    id: 'RD-31-candidate-dwell',
+    skill: 'remediation-discipline',
+    section: 'Section 2.1: Quarantine Is an Open Investigation (research-or-erase)',
+    text: 'No portal_link_candidates row (status=candidate) may sit past DWELL_BOUND_DAYS (14) unless a committed scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch already names its candidate_id, a row the free session-Haiku decider has never been fed is the SAME forbidden permanent-limbo class RD-4 already forbids for quarantined items, applied here to the OTHER half of the intake funnel (D26, docs/plans/defect-fix-plan-2026-09-12.md, part f). D26 root cause: 3,751 discovered candidates stood with 3 ever promoted because the free decider was never fed.',
+    anchor: 'Quarantine Is an Open Investigation (research-or-erase)',
+    enforcedBy: ['audit:fsi-app/scripts/verify/candidate-dwell-audit.mjs'],
+    residual: 'Verifies "was this row ever handed to the decider", never "did its verdict apply cleanly"; run-ledger-consume.mjs own validateVerdictsFile is the schema gate for that. Read-only, 0 Browserless: reads portal_link_candidates plus the committed ledger-verdicts-*.json batches already in the checkout. Self-skips (exit 2) without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY, same convention as every other data-audit-lane entry. Wired into run-data-audit-lane.mjs (HARD) the same commit this invariant lands.',
+  },
+  {
     id: 'RD-7-roadblock-alternative-search',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 8: Roadblock resilience (source fetch)',

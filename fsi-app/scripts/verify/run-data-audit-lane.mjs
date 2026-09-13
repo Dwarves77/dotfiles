@@ -159,6 +159,14 @@ const AUDITS = [
   // (SUPABASE_DB_PASSWORD / SUPABASE_DB_URL / DATABASE_URL, or a local `supabase link`), same convention
   // as every other pg-direct audit above.
   ["check-vocabulary-drift", "scripts/verify/check-vocabulary-drift.mjs", true],
+  // candidate-dwell-audit.mjs, D26 lane L17 (docs/plans/defect-fix-plan-2026-09-12.md, part f): the
+  // candidate-drain half of the quarantine-disposition-audit pattern, applied to portal_link_candidates
+  // instead of intelligence_items. D26's own root cause was 3,751 discovered candidates sitting forever
+  // with the free session-Haiku decider never fed -- this is the recurrence guard so that class of
+  // silent backlog cannot reopen unnoticed. HARD: a past-bound, never-named candidate is the same
+  // forbidden "permanent limbo, never a terminal state" class quarantine-disposition-audit already fails
+  // the lane on. Self-skips (exit 2) without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
+  ["candidate-dwell", "scripts/verify/candidate-dwell-audit.mjs", true],
 ];
 
 const results = [];
