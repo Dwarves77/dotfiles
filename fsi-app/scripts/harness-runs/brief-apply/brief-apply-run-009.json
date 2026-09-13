@@ -1,0 +1,40 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:70029202bae4a9a6",
+  "run_id": "brief-apply-run-009",
+  "started_at": "2026-09-13T00:02:46.475Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-002.json",
+    "execute": false,
+    "limit": 1,
+    "afterId": "01936f81-7f2f-419a-af3c-681c1d577b6a",
+    "allowBriefOverwrite": true,
+    "recordBriefsSchemaVersion": "rb1-2026-09-12.3"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "per_item": [
+    {
+      "id": "00a8c0d9-405a-48d9-a01b-9c14c4101155",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 1,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-002.json"
+  ],
+  "proposer_notes": ""
+}
