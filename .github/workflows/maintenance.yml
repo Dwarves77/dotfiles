@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -746,19 +746,17 @@ jobs:
           mkdir -p "$OUT_ROOT/regen-quarantined"
           node scripts/maintenance/regen-quarantined.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/regen-quarantined"
 
-      - name: acquire-primaries
-        # scripts/remediation/acquire-primaries-batch.mjs — the sole writer of raw_fetches on the
-        # operator-fired acquire path (docs/inventories/shared-dataset-ownership.md). `arg` names the item
-        # scope to acquire for (--only=<legacy_id,...> — there is no separate worklist FILE; the target
-        # script reads live from intelligence_items, so this arg IS "the worklist" this run drives).
-        # APPLY ONLY — deliberately absent from the 'all' dry fan-out: even the target script's own
-        # dry-run performs real, live network fetches (fetch + PDF extraction + officialness
-        # classification) with no persisted effect, so an 'all' dry sweep must never trigger it silently.
-        # Dispatch it NAMED, with an explicit --arg scope (or blank for the full non-verified set).
-        if: env.RUN_STEP == 'acquire-primaries'
+      - name: close-acquire-primaries-holds
+        # D17 family 10, defect-fix-plan-2026-09-12 (lane L11). scripts/remediation/acquire-primaries-
+        # batch.mjs and its MAINT wrapper (scripts/maintenance/acquire-primaries.mjs, the former
+        # "acquire-primaries" step) are DELETED: a write-only orphan flag writer with no reader anywhere
+        # (docs/audits/quarantine-and-human-flag-writers-2026-09-12.md, Family 10). This step resolves the
+        # 19 rows it already wrote (created_by 'acquire-primaries-batch-2026-07-16') with "superseded by
+        # the free capture path and provenance-heal (task 7.3)". Not ruling-gated; apply needs no --arg.
+        if: env.RUN_STEP == 'close-acquire-primaries-holds' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
-          mkdir -p "$OUT_ROOT/acquire-primaries"
-          node scripts/maintenance/acquire-primaries.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/acquire-primaries"
+          mkdir -p "$OUT_ROOT/close-acquire-primaries-holds"
+          node scripts/maintenance/close-acquire-primaries-holds.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/close-acquire-primaries-holds"
 
       - name: refetch-capped
         # scripts/remediation/refetch-capped-worklist.mjs — ADR-016 (docs/decisions/ADR-016-storage-side-
@@ -771,6 +769,19 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/refetch-capped"
           node scripts/maintenance/refetch-capped.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/refetch-capped"
+
+      - name: resolve-refetch-holds
+        # D17 family 11, defect-fix-plan-2026-09-12 (lane L11). Resolves the 8 open 'refetch-capped-
+        # worklist' holds (a real ADR-016 provenance question, not a proposer asking a human for
+        # nothing): a zero-fetch, snapshot-first re-check of each held item's FACT spans against its
+        # newest stored capture (cheapVerifyClaims, the same entry point verify-item.mjs /
+        # regen-quarantined.mjs already use); a span that no longer verifies is superseded through the
+        # existing claim_versions mechanism (supersede_reason 'changed'). Not ruling-gated; apply needs
+        # no --arg.
+        if: env.RUN_STEP == 'resolve-refetch-holds' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/resolve-refetch-holds"
+          node scripts/maintenance/resolve-refetch-holds.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/resolve-refetch-holds"
 
       - name: source-role-cleanup
         # scripts/source-role-cleanup.mjs — the #3 source-classification cleanup (authorized 2026-06-04).
@@ -987,6 +998,46 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/enumerate-unclassified-hosts"
           node scripts/maintenance/enumerate-unclassified-hosts.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/enumerate-unclassified-hosts"
+      - name: close-coverage-reflections
+        # D17 family 13, defect-fix-plan-2026-09-12 (lane L11). One-time drain of the 24 open
+        # coverage-gap (flywheel-gap:*, 18) and anticipated-coverage (flywheel-anticipate:*, 6) rows
+        # opened before analyze-corpus.mjs started writing these product-scope reflections already
+        # resolved (never a question to a person). Resolves them with the SAME note the fresh-insert
+        # path now uses ("reflected in the coverage view; no per-row decision pending"). Not
+        # ruling-gated; apply needs no --arg.
+        if: env.RUN_STEP == 'close-coverage-reflections' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/close-coverage-reflections"
+          node scripts/maintenance/close-coverage-reflections.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/close-coverage-reflections"
+
+      - name: close-legal-confirmation-rows
+        # D17 family 14, defect-fix-plan-2026-09-12 (lane L11). Resolves the two per-item carve-outs
+        # close-run-logs.mjs leaves open: an authorship-shard-* BLOCKER row (entity-to-role matching is a
+        # legal determination the platform never makes; resolved "recorded for counsel") and a
+        # legacy-remediation PARKED row (converted to a valid RD-6 deferral -- dispositioned-as-blocked,
+        # original row left open for task 7.3 to close from its stored pool; the id list is carried in
+        # this run's own summary.json for the task 7.3 residue report). Not ruling-gated; apply needs no
+        # --arg.
+        if: env.RUN_STEP == 'close-legal-confirmation-rows' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/close-legal-confirmation-rows"
+          node scripts/maintenance/close-legal-confirmation-rows.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/close-legal-confirmation-rows"
+
+      - name: close-flags-for-verified-items
+        # D17 family 14 CORRECTION, defect-fix-plan-2026-09-12 (lane L11, coordinator directive
+        # 2026-09-12). gate-a-verifier-sweep is NOT a run-log family (the lane's first pass wrongly
+        # guessed it was, reverted in close-run-logs.mjs the same commit) -- live SQL over its 37 open
+        # rows found per-item findings about a quarantined item's Gate A / full_brief state. Resolves
+        # every open item-subject row whose created_by is in PER_ITEM_VERIFIED_SUPERSEDE_FAMILIES
+        # (gate-a-verifier-sweep the first entry) and whose subject item is now provenance_status=
+        # 'verified', with resolution_note "item verified on <date>; finding superseded"; a row whose
+        # item is still quarantined stays open and its item id is listed in this run's own summary.json
+        # (still_open_item_ids) for the coordinator to feed into the next brief-export batch. Not
+        # ruling-gated; apply needs no --arg.
+        if: env.RUN_STEP == 'close-flags-for-verified-items' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/close-flags-for-verified-items"
+          node scripts/maintenance/close-flags-for-verified-items.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/close-flags-for-verified-items"
 
       - name: finish-staged-updates
         # Part 7 task 7.5 item 2, brief-chain build plan 2026-09-11 / ADR-030 rider / RD-20: runs every

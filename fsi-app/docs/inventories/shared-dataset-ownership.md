@@ -46,7 +46,6 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/id-stamp.mjs",
       "scripts/_reground/tombstone-delete.mjs",
-      "scripts/remediation/acquire-primaries-batch.mjs",
       "src/app/api/admin/canonical-sources/bulk-approve/route.ts",
       "src/app/api/admin/canonical-sources/decide/route.ts",
       "src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
@@ -96,7 +95,6 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/sources/verify-item.mjs",
       "scripts/audit-skill-conformance.mjs",
       "scripts/entities/backfill-lineage-edges.mjs",
-      "scripts/remediation/acquire-primaries-batch.mjs",
       "scripts/remediation/refetch-capped-worklist.mjs",
       "scripts/verify/run-data-audit-lane.mjs",
       "scripts/verify/surface-visibility-audit.mjs",
@@ -118,7 +116,12 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/resolve-error-body-gate.mjs",
       "scripts/maintenance/resolve-signals.mjs",
       "scripts/maintenance/resolve-provisional-sources.mjs",
-      "src/lib/sources/null-tier-host-worklist.mjs"
+      "src/lib/sources/null-tier-host-worklist.mjs",
+      "scripts/maintenance/close-acquire-primaries-holds.mjs",
+      "scripts/maintenance/resolve-refetch-holds.mjs",
+      "scripts/maintenance/close-coverage-reflections.mjs",
+      "scripts/maintenance/close-legal-confirmation-rows.mjs",
+      "scripts/maintenance/close-flags-for-verified-items.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -151,7 +154,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/mint/apply-mint-batch.mjs",
       "src/lib/intake/write-item.ts",
       "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/retype-eu-decisions.mjs"
+      "scripts/maintenance/retype-eu-decisions.mjs",
+      "scripts/maintenance/resolve-refetch-holds.mjs"
     ],
     "agent_run_searches": [
       "src/lib/agent/canonical-pipeline.ts",
@@ -293,6 +297,25 @@ update.ts`, imported unmodified) `run-intake-cycle.ts`'s own STAGE->MINT step al
 the SAME three columns (`materialized_at`/`materialized_item_id`/`materialization_error`) that step
 already stamps on success, or `status='rejected'` on a machine refusal. No second chokepoint, no second
 write shape -- this is a third caller of the one function every live path already uses.
+
+Note (added by lane L11, D17 families 10-14, defect-fix-plan-2026-09-12): `scripts/remediation/
+acquire-primaries-batch.mjs` -- the write-only orphan flag writer named "the 19 rows" in D17 family 10 --
+is DELETED (with its MAINT wrapper, `scripts/maintenance/acquire-primaries.mjs`; the former
+`acquire-primaries` maintenance.yml step is retired) and REMOVED from the `intelligence_items` and
+`integrity_flags` allowlists above. `scripts/maintenance/close-acquire-primaries-holds.mjs` (family 10),
+`scripts/maintenance/resolve-refetch-holds.mjs` (family 11, also added to `section_claim_provenance` --
+the guarded `mint_hold_reason` update when a drifted FACT span is superseded through the existing
+`claim_versions` mechanism; `claim_versions` itself stays out of this register's scope, unchanged, see
+this doc's own "not shared-listed" note elsewhere), `scripts/maintenance/close-coverage-reflections.mjs`
+(family 13), `scripts/maintenance/close-legal-confirmation-rows.mjs` (family 14, also writes a
+companion `disposition_deferred` row -- the SAME mechanism `quarantine-disposition-audit.mjs` already
+reads), and `scripts/maintenance/close-flags-for-verified-items.mjs` (family 14 CORRECTION, coordinator
+directive 2026-09-12: `gate-a-verifier-sweep` is a per-item finding family, not a run-log family --
+resolved once its subject item verifies, not by `close-run-logs.mjs`) are added to `integrity_flags`
+above. `scripts/connections/analyze-corpus.mjs`'s own entry is
+UNCHANGED (already present) even though its gap/anticipate write path changed shape (family 13: every
+fresh row is now born already resolved, via the new `src/lib/connections/coverage-reflection.mjs`) --
+same file, same entry, no second entry needed.
 
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
