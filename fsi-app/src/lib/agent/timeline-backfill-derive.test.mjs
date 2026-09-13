@@ -11,6 +11,7 @@ import {
   formatPrecisionLabel,
   containsToken,
   finalizeTimelineRow,
+  pickBestCapture,
   pickBestCaptureText,
   extractTitleDate,
   extractFederalRegisterDate,
@@ -18,10 +19,13 @@ import {
   ukFrontMatterWindow,
   extractForwardEventDate,
   extractDatelineDate,
+  extractCapturedDate,
   deriveTimelineFromMetadata,
   TITLE_DATE_BASE_LABEL,
   FEDERAL_REGISTER_BASE_LABEL,
   DATELINE_BASE_LABEL,
+  CAPTURED_FALLBACK_BASE_LABEL,
+  CAPTURED_FALLBACK_SORT_ORDER,
 } from "./timeline-backfill-derive.mjs";
 
 // ── formatPrecisionLabel / containsToken / finalizeTimelineRow / pickBestCaptureText ────────────────────
@@ -62,6 +66,21 @@ test("pickBestCaptureText: ADR-016's 200-char floor, longest usable capture wins
   assert.equal(pickBestCaptureText([{ result_content: long1 }, { result_content: long2 }]), long2);
   assert.equal(pickBestCaptureText([]), null);
   assert.equal(pickBestCaptureText(null), null);
+});
+
+test("pickBestCapture: returns the WHOLE winning row (not just its text), same winner as pickBestCaptureText", () => {
+  const long1 = "a".repeat(250);
+  const long2 = "b".repeat(400);
+  const rows = [
+    { result_content: long1, searched_at: "2026-01-01T00:00:00Z" },
+    { result_content: long2, searched_at: "2026-03-15T12:00:00Z" },
+  ];
+  const best = pickBestCapture(rows);
+  assert.equal(best.result_content, long2);
+  assert.equal(best.searched_at, "2026-03-15T12:00:00Z");
+  assert.equal(pickBestCapture([]), null);
+  assert.equal(pickBestCapture(null), null);
+  assert.equal(pickBestCapture([{ result_content: "short" }]), null);
 });
 
 // ── Step 2: title date ──────────────────────────────────────────────────────────────────────────────
@@ -277,14 +296,16 @@ test("orchestrator: no title token, no FR path, no UK lines, no forward events -
   assert.equal(attempts.map((a) => a.step).join(","), "title,federal_register,legislation_gov_uk,forward_event,dateline");
 });
 
-test("orchestrator: nothing matches anywhere -> result null, every step reported (never invents a date)", () => {
+test("orchestrator: nothing matches anywhere AND no usable capture -> result null, every step reported (never invents a date)", () => {
   const { result, attempts } = deriveTimelineFromMetadata({
     title: "Regulation (EU) 2019/1242",
     sourceUrl: "https://ec.europa.eu/some-portal",
     capturedText: "This Regulation shall enter into force on the twentieth day following its publication.",
   });
   assert.equal(result, null);
-  assert.equal(attempts.length, 5);
+  assert.equal(attempts.length, 6);
+  assert.equal(attempts[5].step, "captured");
+  assert.equal(attempts[5].outcome, "no-searched-at");
   assert.ok(attempts.every((a) => a.outcome !== "hit" && a.outcome !== "hit-verified"));
 });
 
@@ -297,4 +318,50 @@ test("orchestrator: forward event fires when title/FR/UK all miss (step 5)", () 
   });
   assert.equal(result.source, "forward_event");
   assert.equal(result.iso, "2027-01-01");
+});
+
+// ── Step 7 (D17 family 12): captured-date fallback ─────────────────────────────────────────────────
+
+test("captured: a bare 'YYYY-MM-DD' prefix on searched_at derives a day-precise date", () => {
+  const r = extractCapturedDate({ searched_at: "2026-03-15T12:00:00Z" });
+  assert.equal(r.iso, "2026-03-15");
+  assert.equal(r.precision, "day");
+  assert.equal(r.token, "2026-03-15");
+});
+
+test("captured: no searched_at, or a malformed one, yields nothing (never invents a date)", () => {
+  assert.equal(extractCapturedDate(null), null);
+  assert.equal(extractCapturedDate(undefined), null);
+  assert.equal(extractCapturedDate({}), null);
+  assert.equal(extractCapturedDate({ searched_at: "not-a-date" }), null);
+});
+
+test("orchestrator: captured-date fallback fires ONLY when every real-date step misses (step 7, last resort)", () => {
+  const { result, attempts } = deriveTimelineFromMetadata({
+    title: "Regulation (EU) 2019/1242",
+    sourceUrl: "https://ec.europa.eu/some-portal",
+    capturedText: "This Regulation shall enter into force on the twentieth day following its publication.",
+    bestCapture: { searched_at: "2026-04-01T00:00:00Z" },
+  });
+  assert.equal(result.source, "captured");
+  assert.equal(result.iso, "2026-04-01");
+  assert.equal(result.baseLabel, CAPTURED_FALLBACK_BASE_LABEL);
+  assert.match(result.baseLabel, /not the instrument's own date/);
+  assert.equal(attempts[attempts.length - 1].step, "captured");
+  assert.equal(attempts[attempts.length - 1].outcome, "hit");
+});
+
+test("orchestrator: an item with a real instrument date NEVER reaches the captured fallback", () => {
+  const { result, attempts } = deriveTimelineFromMetadata({
+    title: "Regulation (EU) 2019/1242 of 20 June 2019 setting CO2 emission performance standards",
+    capturedText: "...REGULATION (EU) 2019/1242 OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL of 20 June 2019 setting CO2 emission performance standards...",
+    sourceUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242",
+    bestCapture: { searched_at: "2026-04-01T00:00:00Z" },
+  });
+  assert.equal(result.source, "title");
+  assert.ok(!attempts.some((a) => a.step === "captured"), "the waterfall returns before step 7 is ever attempted");
+});
+
+test("CAPTURED_FALLBACK_SORT_ORDER is a real, high constant (renders last against any real milestone's 0-based order)", () => {
+  assert.equal(CAPTURED_FALLBACK_SORT_ORDER, 999);
 });

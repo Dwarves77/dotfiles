@@ -96,14 +96,24 @@ export function finalizeTimelineRow(derived, todayIso, sortOrder = 0) {
  * scripts/mint/heal-provenance.mjs's own `bestCaptureText` applies (re-implemented here, rather than
  * imported, so this module stays free of that 4000+-line script's own dependency surface); the CONTRACT
  * is identical: the longest usable `result_content` among the item's captures, or null when none clears
- * the floor. Pure given the array of `{result_content}`-shaped rows a caller already read.
- * @param {Array<{result_content?: string|null}>} captures
- * @returns {string|null}
+ * the floor. Pure given the array of `{result_content}`-shaped rows a caller already read. Returns the
+ * WHOLE winning row (D17 family 12, 2026-09-12) so a caller that also needs the row's own `searched_at`
+ * (step 7's captured-date fallback, below) does not run a second, divergent selection pass over the same
+ * captures -- one winner, read once.
+ * @param {Array<{result_content?: string|null, searched_at?: string|null}>} captures
+ * @returns {{result_content: string, searched_at?: string|null}|null}
  */
-export function pickBestCaptureText(captures) {
+export function pickBestCapture(captures) {
   const usable = (captures ?? []).filter((c) => String(c?.result_content ?? "").trim().length > 200);
   if (!usable.length) return null;
-  return usable.reduce((best, c) => (c.result_content.length > best.result_content.length ? c : best)).result_content;
+  return usable.reduce((best, c) => (c.result_content.length > best.result_content.length ? c : best));
+}
+
+/** Text-only convenience wrapper over pickBestCapture, unchanged contract for every existing caller
+ *  (mint-item.ts, this file's own orchestrator). @param {Array<{result_content?: string|null}>} captures
+ *  @returns {string|null} */
+export function pickBestCaptureText(captures) {
+  return pickBestCapture(captures)?.result_content ?? null;
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -345,7 +355,46 @@ export function extractDatelineDate(capturedText) {
 export const DATELINE_BASE_LABEL = "Published (from the source page)";
 
 // -------------------------------------------------------------------------------------------------------
-// Orchestrator: steps 2 through 6, first hit wins, every attempt named for the audit trail.
+// Step 7 (D17 family 12, defect-fix-plan-2026-09-12, ruling table row 12): the captured-date fallback.
+// An item that carries NONE of a title date, a Federal Register date path, a legislation.gov.uk line, a
+// forward event, or a dateline is not left undateable any longer (ADR-030's own bar, "no item should be
+// without some date in the timeline"). Its stored capture's OWN searched_at (agent_run_searches, a real
+// dated event about the item -- when it was retrieved, never a guess) becomes a `captured` timeline row.
+// This is NEVER presented as the instrument's own date: the label says "Captured", the sort_order is
+// deliberately the highest of the waterfall's own tokens so a captured row renders LAST if an item ever
+// also carries a real derived milestone from a later run (the SCOPE note in timeline-backfill.mjs already
+// guarantees the two never coexist FROM THIS SCRIPT alone -- see that file's header -- but a captured row
+// must still never outrank a real date if the harvest step (step 1, backfill-item-timelines.mjs) later
+// adds one for the same item).
+// -------------------------------------------------------------------------------------------------------
+
+export const CAPTURED_FALLBACK_BASE_LABEL = "Captured (source page retrieved on this date; not the instrument's own date)";
+// Deliberately far past any real milestone's own sort_order (the waterfall's other steps and the harvest
+// step both start counting from 0) so a captured-date row always renders last if it ever ends up sharing
+// an item with a later, real derivation.
+export const CAPTURED_FALLBACK_SORT_ORDER = 999;
+
+/**
+ * Step 7: the item's own stored capture's `searched_at` (day precision -- it is a real timestamp, not a
+ * token needing precision inference), when steps 2-6 found nothing. Pure given the winning capture row
+ * (pickBestCapture, above) a caller already selected -- never a second, divergent capture-selection pass.
+ * @param {{searched_at?: string|null}|null|undefined} bestCapture
+ * @returns {{token:string, iso:string, precision:'day'}|null}
+ */
+export function extractCapturedDate(bestCapture) {
+  const searchedAt = bestCapture?.searched_at;
+  if (!searchedAt || typeof searchedAt !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(searchedAt);
+  if (!m) return null;
+  const norm = toIsoDate(m[1]);
+  if (!norm) return null;
+  return { token: m[1], iso: norm.iso, precision: "day" };
+}
+
+// -------------------------------------------------------------------------------------------------------
+// Orchestrator: steps 2 through 6 (title / Federal Register / legislation.gov.uk / forward event /
+// dateline), first hit wins, then step 7 (captured-date fallback, D17 family 12) as the deliberate LAST
+// resort -- every attempt named for the audit trail.
 // -------------------------------------------------------------------------------------------------------
 
 /**
@@ -366,13 +415,14 @@ export const DATELINE_BASE_LABEL = "Published (from the source page)";
  *   capturedText?: string|null,
  *   identifier?: string|null,
  *   forwardEvents?: Array<object>|null,
+ *   bestCapture?: {searched_at?: string|null}|null,
  * }} input
  * @returns {{
  *   result: ({token:string, iso:string, precision:string, baseLabel:string, source:string, form?:string})|null,
  *   attempts: Array<{step:string, outcome:string, [key:string]: unknown}>,
  * }}
  */
-export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, identifier, forwardEvents } = {}) {
+export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, identifier, forwardEvents, bestCapture } = {}) {
   const attempts = [];
 
   // Step 2: title date, verified against the item's own captured text.
@@ -419,6 +469,19 @@ export function deriveTimelineFromMetadata({ title, sourceUrl, capturedText, ide
     return { result: { ...dl, baseLabel: DATELINE_BASE_LABEL, source: "dateline" }, attempts };
   }
   attempts.push({ step: "dateline", outcome: "no-match" });
+
+  // Step 7: captured-date fallback (D17 family 12). Only tried once every real-instrument-date step has
+  // been exhausted; an item with a real instrument date never reaches here (each step above returns
+  // early on its own hit).
+  const cap = extractCapturedDate(bestCapture);
+  if (cap) {
+    attempts.push({ step: "captured", outcome: "hit", token: cap.token });
+    return {
+      result: { ...cap, baseLabel: CAPTURED_FALLBACK_BASE_LABEL, source: "captured" },
+      attempts,
+    };
+  }
+  attempts.push({ step: "captured", outcome: "no-searched-at" });
 
   return { result: null, attempts };
 }
