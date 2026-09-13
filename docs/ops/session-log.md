@@ -22019,3 +22019,37 @@ edits in `RegulationsLedger.tsx`, `RegulationDetailSurface.tsx`, and `Sidebar.ts
   two surfaces; the dedicated rendering-guard CI job is the honest verification path for the visual
   claims above, not run standalone in this session. `[HYPOTHESIS]`, not `[CONFIRMED]`, pending that
   run.
+
+**Fix round 1 (review-l15.md, CONDITIONAL FAIL: C1, C2).** Two commits.
+
+C1: this lane's own migrations 319 and 320 were never added to `docs/inventories/migrations.md`,
+leaving the mechanically enforced C3 consistency check RED on this branch (the pre-push hook's step 2
+and CI's `consistency-backstop` job both run it unconditionally, no override trailer was in force).
+Added rows for 319 and 320 immediately after row 317, in the established row shape, naming defect D23
+parts (b) and (e), lane L15, what each migration's SQL does, its idempotency, and the two-track split
+(the coordinator applies 319 before this lane's code merges, 320 after). `node
+.discipline/consistency/runner.mjs` now reports `PASS [C3]` and `0 drift record(s)` for all three
+checks.
+
+C2: `apply-record-briefs.mjs`'s D23(a) changelog write gated only on the read-back
+`provenance_status === "verified"`, never on whether THIS run's own generate/section/ground steps
+succeeded. An item already verified in the database from an earlier, unrelated success could get a
+false "brief regenerated" `item_changelog` row on a run whose own three steps all failed this time --
+confirmed live by the reviewer with a standalone probe. `applyOneEntry` now also tracks `sectioned`
+and `grounded` (each step's own `r.ok`, mirroring the existing `generated`) and the changelog write is
+gated on `generated && sectioned && grounded && provenanceStatus === "verified"` -- this run's own
+outcome first, the read-back status second, never the read-back status alone. Added to
+`apply-record-briefs.test.mjs`: the reviewer's exact repro (verified read-back, all three steps fail
+this run -- asserts no changelog row and no changelog step at all), a fully successful run (asserts
+`recordItemChange` called exactly once and exactly one `changelog:written` step), and a
+partial-failure variant (ground alone fails -- still refused).
+
+Verification performed this round: `node --test scripts/turns/apply-record-briefs.test.mjs` 47/47
+green. Revert-test-restore on the gate itself: reverted the condition back to
+`provenanceStatus === "verified"` alone in the working tree, re-ran the same test file -- 45/47, the
+two new C2-specific tests failing exactly as expected (the reviewer's repro and the partial-ground-
+failure variant); restored via `git checkout --` against the committed fix, re-ran -- 47/47 green
+again, `git status --short` clean apart from the pre-existing untracked `.superpowers/`. `npx tsc
+--noEmit` from `fsi-app`: clean. `node .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`
+from `fsi-app`: OK. Push gate (`.discipline/hooks/pre-push`, `run-test-suite.sh`): not run here; the
+coordinator runs it at push, per this lane's own scope.
