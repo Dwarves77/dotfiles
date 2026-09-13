@@ -3550,7 +3550,7 @@ per-row disposition.
 
 ---
 
-## 46. `schema-vocabulary-inventory`
+## 48. `schema-vocabulary-inventory`
 
 **Purpose**: D7 (docs/plans/defect-fix-plan-2026-09-12.md, the D2 class fix). A tracked, committed
 inventory of every list-valued CHECK constraint on the public schema, so a writer that uses a value the
@@ -3674,7 +3674,7 @@ Same shape as the entries above: not a `.github/workflows/maintenance.yml` step,
   vocabulary and nobody re-ran section 46's step); live but absent from tracked (new); tracked but no
   longer live (stale). Read-only, pg-direct (`scripts/lib/pg-conn.mjs`'s shared resolver, same as
   `schema-drift-audit`/`vocab-sync-audit`). Self-skips exit 2 without a direct Postgres connection.
-  Remediation on a red: dispatch section 46 (`mode=dry`) to refresh the tracked inventory.
+  Remediation on a red: dispatch section 48 (`mode=dry`) to refresh the tracked inventory.
 
 **Not registered in `.discipline/governance/invariants.mjs`** [CONFIRMED, read `execution-wiring.mjs`
 and `invariant-coverage.mjs`, 2026-09-12]: an `audit:` token is execution-wired by presence in
