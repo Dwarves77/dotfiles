@@ -1185,4 +1185,4 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
     Recorded here, narratively, on the same first-writer-disclosure basis as items 7, 8, and 9 — not a gap,
     a single-writer registration for a table the enforced JSON array structurally does not cover.
 
-Note (added by lane L17, D26 part (a), defect-fix-plan-2026-09-12, 2026-09-13):  writes ONE  pool row per record-only mint (the candidate's own captured text in the generate-pool shape canonical-pipeline and the exporter read, asserted by ), so a record-grade item enters the ledger with its capture stored and never triggers the paid ground path; disposition .
+Note (added by lane L17, D26 part (a), defect-fix-plan-2026-09-12, 2026-09-13): `src/lib/intake/run-intake-cycle.ts` writes ONE `agent_run_searches` pool row per record-only mint (the candidate's own captured text in the generate-pool shape canonical-pipeline and the exporter read, asserted by `scripts/lib/pool-row-contract.mjs`), so a record-grade item enters the ledger with its capture stored and never triggers the paid ground path; disposition `record_only`.
