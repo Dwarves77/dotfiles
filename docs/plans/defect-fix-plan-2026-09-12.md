@@ -328,6 +328,10 @@ Fix, lane L17, one Sonnet lane on a branch from master:
 (d) Tests: recordOnly mints with a pool row and never reaches the grounding workflow (assert by a stubbed generateBriefWorkflow that must not be called); apply without --verdicts stays plan; apply with a verdict file mints the would-mint set and marks exists and rejected rows; the pool row shape matches the export's read.
 (e) After merge: export the 3,751 in 200-row runs; verdict fleet in parallel; ledger-consume apply with each verdict file in record_only mode; the minted record items flow into the next record-briefs export.
 
+### D27. The brief-apply driver processes zero entries silently when the briefs file path is wrong [CONFIRMED]
+
+Evidence (coordinator, 2026-09-13): batch 003 was dispatched with briefs_file = fsi-app/scripts/turns/record-briefs/batches/record-briefs-003.json (the workflow runs from fsi-app, so the correct value is the path relative to fsi-app, as batches 001 and 002 used). Both the dry (34746821947) and the apply (34746954028) completed green, committed run artifacts (run-003 and run-004) with items 0 and applied_item_ids empty, and wrote nothing; the failure was found only by reading the artifact. Fix at the source (scripts/turns/apply-record-briefs.mjs): a briefs file that does not exist or parses to zero entries is a fatal error with the resolved absolute path in the message, in both modes; brief-apply.yml validates the input before the driver step and prints the resolved path; a test covers the missing-file refusal. Lane: folded into the next record-briefs lane; interim: dispatches use the fsi-app-relative path.
+
 ## 3. Lanes, order and gates
 
 | Lane | Contents | Worktree | Precondition |
