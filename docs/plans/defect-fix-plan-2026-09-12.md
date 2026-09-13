@@ -274,10 +274,6 @@ Fix at the source (`scripts/maintenance/resolve-provisional-sources.mjs`, `build
 | L4 7.8 | D6, review then push | wt-eudecision-0911 | review PASS |
 | L5 investigation | D8 finding | read-only | none |
 | L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 | L8 harness numbering | D12 run-id artifact names across every harness family | a freed worktree | after L6 |
 | L11 quarantine and human-flag writers | D17 enumeration (read-only) then per-site specification and lanes | a freed worktree, read-only first | enumeration now; lanes after L9 and L10 |
 | L12 record-briefs validator | D18 qualification stems | a freed worktree | after L9 and L10 |
@@ -286,8 +282,6 @@ Fix at the source (`scripts/maintenance/resolve-provisional-sources.mjs`, `build
 | L10 tag decider | D15 zero-proposal flags re-derived and decided; proposer stops asking for a human | a freed worktree from master | before the tag-ratification apply |
 | L9 provisional resolver | D13 reject rule removed, accessibility as status; D14 class-table extension and residue enumeration | wt-brieffields-0911 from master after #652 | before the resolve-provisional-sources apply |
 | L3 addendum | D11 per-run hook temp files | wt-searchkeys-0911 | with L3 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
-| L6 forward events | D10 extractor refusal, verbatim assertion, cleanup data migration | a freed worktree | after L1 to L5 |
 
 Order of pushes (serial, each through the hook): L4, L3, L2, L1. Then: brief-export for 00a8c0d9 alone, the batch-002 lane writes its tenth brief, brief-apply with `allow_brief_overwrite` for batches 001 and 002, the three 7.2 dry runs one at a time, then their applies, then the 7.5 dry runs and applies.
 
