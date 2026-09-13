@@ -31,6 +31,7 @@ import { tmpdir } from "node:os";
 import {
   parseArgs,
   resolveApplyGate,
+  isApplyArmed,
   buildFetchDoc,
   collectClassifyTelemetry,
   shapeConsumeResult,
@@ -168,6 +169,57 @@ test("parseArgs: --with-text requires --export-candidates — refused loudly, ne
   const r = parseArgs(["--with-text"]);
   assert.equal(r.ok, false);
   assert.match(r.error, /--with-text requires --export-candidates/);
+});
+
+// ── parseArgs: --record-only (D26 lane L17, 2026-09-13) ─────────────────────────────────────────────────
+
+test("parseArgs: --record-only defaults true (D26 - apply never grounds by omission)", () => {
+  const r = parseArgs([]);
+  assert.equal(r.ok, true);
+  assert.equal(r.recordOnly, true);
+});
+
+test("parseArgs: --record-only true|false parses to the matching boolean", () => {
+  assert.equal(parseArgs(["--record-only", "true"]).recordOnly, true);
+  assert.equal(parseArgs(["--record-only", "false"]).recordOnly, false);
+});
+
+test("parseArgs: --record-only rejects anything other than the literal strings true/false", () => {
+  const r = parseArgs(["--record-only", "yes"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--record-only must be "true" or "false"/);
+});
+
+// -- isApplyArmed - the D26(b) arming rule, pure --------------------------------------------------------
+
+test("isApplyArmed: both the reviewed-code gate AND an explicit --verdicts file must be true", () => {
+  assert.equal(isApplyArmed({ applyEnabledConst: true, verdictsGiven: true }), true);
+});
+
+test("isApplyArmed: reviewed-code gate true but NO --verdicts given -> not armed (auto-discovery alone never arms apply)", () => {
+  assert.equal(isApplyArmed({ applyEnabledConst: true, verdictsGiven: false }), false);
+});
+
+test("isApplyArmed: --verdicts given but the reviewed-code gate is false -> not armed", () => {
+  assert.equal(isApplyArmed({ applyEnabledConst: false, verdictsGiven: true }), false);
+});
+
+test("isApplyArmed: neither true -> not armed", () => {
+  assert.equal(isApplyArmed({ applyEnabledConst: false, verdictsGiven: false }), false);
+});
+
+test("D26(b) composition: apply requested with no --verdicts runs as plan and records apply_disarmed, even though LEDGER_CONSUME_APPLY_ENABLED is true", () => {
+  const armed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven: false });
+  const gate = resolveApplyGate("apply", armed);
+  assert.equal(gate.effectiveMode, "plan");
+  assert.equal(gate.applyDisarmed, true);
+});
+
+test("D26(b) composition: apply requested WITH an explicit --verdicts file arms apply (given the reviewed-code gate is true)", () => {
+  const armed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven: true });
+  const gate = resolveApplyGate("apply", armed);
+  assert.equal(gate.effectiveMode, "apply");
+  assert.equal(gate.applyDisarmed, false);
 });
 
 test("parseArgs: --export-candidates --with-text parses fine together", () => {
