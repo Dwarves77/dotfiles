@@ -80,6 +80,9 @@ Class fix, one discipline lane:
 - A unit test `check-vocabulary.test.mjs` scans `scripts/maintenance/*.mjs`, `scripts/turns/*.mjs`, `src/app/api/**/route.ts` and `src/lib/**/*.{ts,mjs}` for object literals that set a column carrying a CHECK in the inventory (`status`, `provenance_status`, `discovered_via`, `archive_reason`, and every other column the inventory names) and fails when a literal value is not in that column's allowed set. Dynamic values are skipped, never guessed.
 - A data-audit-lane verifier compares the tracked inventory with the live constraints and reports drift (exit 2 without credentials).
 
+Fix round 1 for D7 (review-l3.md, CONDITIONAL FAIL): the negative fixture `fsi-app/.discipline/fixtures/check-vocabulary/bad-status-value.mjs` is, by design, imported by nothing, so fitness function F25 (module liveness) reports it as a dead module and CI's fitness job would go red. Specification: F25 exempts every file under a directory named `fixtures` by rule, with a test that a dead module inside `fixtures/` passes and the same module outside it fails; no per-file allowlist entry (an allowlist entry for one fixture is the instance patch this plan retires). The lane also corrects the report's claim about invariant RD-52 (it appears once; the report names the actually duplicated identifiers instead), re-runs `node fsi-app/.discipline/fitness/runner.mjs` (must print 0 violations) and the full preflight, and the review re-runs on the fix commit.
+
+
 ### D8. The local rendering guard reports 112 failures while CI's rendering guard is green [HYPOTHESIS]
 
 Evidence: review-7.5.md reproduced the 112 in a full local run, none touching the 7.5 change; CI on #647 and #648 passed the rendering guard.
