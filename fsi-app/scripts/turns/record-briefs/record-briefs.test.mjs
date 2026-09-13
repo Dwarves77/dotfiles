@@ -999,6 +999,41 @@ describe("validateRecordBriefsClaim", () => {
     );
     assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
   });
+
+  // ── I2 fix round 1 (review finding, 2026-09-13): the pre-fix mirror was a raw substring test
+  // (`spanCore.includes(normalizeFigure(figure))`), which let "35" pass against a span carrying "3,500"
+  // because normalizeFigure collapses "3,500" to "3500" and "3500".includes("35") is true -- the reviewer's
+  // own repro. Fixed by requiring the claim's figure to EQUAL a COMPLETE figure token extracted from the
+  // span, never merely appear as a leading-digit substring of a longer one.
+  test("I2: a claim_text figure that is a leading-digit SUBSTRING of the real (longer) span figure is REFUSED, naming the wrong figure (reviewer's repro: 35 vs 3,500)", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «the fee is 35 EUR per shipment»",
+        source_span: "the premium is EUR 3,500 per shipment",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "the premium is EUR 3,500 per shipment"
+    );
+    const mirrorErrors = errors.filter((e) => e.includes("numeric-figure mirror"));
+    assert.ok(mirrorErrors.length > 0, "a figure that is only a substring of a different, longer span figure must be refused, not silently accepted");
+    assert.ok(mirrorErrors.some((e) => e.includes("35")), "the wrong (mismatched) figure is named in the error");
+  });
+
+  test("I2: the genuine complete figure ('3,500') against the same span passes the numeric-figure mirror", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] The captured source states, verbatim: «the fee is 3,500 EUR per shipment»",
+        source_span: "the premium is EUR 3,500 per shipment",
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      "the premium is EUR 3,500 per shipment"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
 });
 
 // ── synthetic frontmatter serialization edge cases ──────────────────────────────────────────────────

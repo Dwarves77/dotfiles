@@ -611,10 +611,19 @@ export function validateRecordBriefsClaim(claim, i, itemId, poolText) {
     // D30 numeric-figure mirror (see NUMERIC_FIGURE_RE's own header comment above): every significant
     // number in claim_text must also appear in THIS claim's own source_span -- named error per figure, so
     // the author fixes the citation before the batch ever reaches the ground step's S-NUMERIC soft hold.
+    //
+    // I2 (review finding, fix round 1, 2026-09-13): the original check was `spanCore.includes(normalizeFigure
+    // (figure))`, a raw SUBSTRING test against the whole span with commas/whitespace already stripped. That
+    // let a materially wrong figure pass whenever it happened to be a leading-digit prefix of a longer number
+    // elsewhere in the span -- "35".includes-style false pass against a span carrying "3,500", because
+    // normalizeFigure collapses "3,500" to "3500" and "3500".includes("35") is true. Fixed by extracting every
+    // COMPLETE numeric-figure token from the span with the SAME extractor used on claim_text (numericFiguresIn),
+    // normalizing each one, and requiring the claim's figure to EQUAL one of those complete span figures --
+    // never merely appear as a substring of the concatenated span text.
     if (typeof claim.claim_text === "string") {
-      const spanCore = normalizeFigure(claim.source_span);
+      const spanFigures = new Set(numericFiguresIn(claim.source_span).map(normalizeFigure));
       for (const figure of numericFiguresIn(claim.claim_text)) {
-        if (!spanCore.includes(normalizeFigure(figure))) {
+        if (!spanFigures.has(normalizeFigure(figure))) {
           at(
             `claim_text figure ${JSON.stringify(figure)} does not appear in this claim's own source_span ` +
               "(numeric-figure mirror / S-NUMERIC) -- cite the figure as it actually appears in the source, or drop it from claim_text",
