@@ -149,6 +149,9 @@ Fix at the source, two parts, one lane:
 2. Proposer (`derive-tags.mjs`): when it finds no candidates it no longer opens an open flag asking for a human; it records the finding as an already-resolved flag with the same no-derivable-tags note (one row per item, merged on re-run), so the count stays visible in the population report and no queue forms. The phrase "needs manual operator tagging" is removed.
 Lane: L10, one Sonnet lane on a freed worktree from master, before the tag-ratification apply; the dry run is repeated after it lands.
 
+Fix round 1 for D15 (review-l10.md, CONDITIONAL FAIL on coverage): (1) `tag-ratification.mjs`'s D15 dry and apply outcome bucketing (re-derived-and-adopted, re-derived-and-declined, no-derivable-tags) and its 20-row sampling gain tests mirroring the classification side's; (2) the re-derivation's declined branch (a candidate in the vocabulary whose evidence is not in the item's own text) is tested end to end on the tag side, asserting the flag resolves with the declined decision recorded in its note. Ruling on the Minor: "runs" in the drift sample floor is read as distinct calendar dates of observation, accepted; the runbook sentence says so. No behaviour change; the review re-runs on the fix commit.
+
+
 ### D17. The quarantine writers and the human-request flag writers, enumerated and removed as a class [CONFIRMED pattern; sites to enumerate]
 
 Operator, 2026-09-12, verbatim: "You probably have to find the code that is quarantining the info and remove it and the code that is creating these false flags and remove them." D13 (a resolver rejecting on the absence of a check) and D15 (a proposer opening 1,034 flags that ask for manual tagging) are two instances of one class: a runtime that reaches a question it cannot answer and parks the item or opens a flag addressed to a person, instead of answering or recording a decision. ADR-030 and the admin-is-visibility rider forbid both resting states.
