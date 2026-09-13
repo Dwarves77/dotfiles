@@ -566,6 +566,71 @@ describe("validateRecordBriefsFile: qualification-accounting mirror (task-6.1-au
     assert.equal(r.ok, true, `expected ok, got: ${JSON.stringify(r.ok ? [] : r.errors)}`);
   });
 
+  // Fix round 1 for lane L12 (review-l12.md, I1): D18's own widening (trajectoryCaptured accepting an
+  // unnegated TRAJECTORY_KEYWORD_RE hit in an attached FACT claim's source_span, alongside the
+  // pre-existing metadata.requirement_trajectory check) had zero test coverage -- the reviewer replaced
+  // TRAJECTORY_KEYWORD_RE with a never-matching regex and 63/63 still passed. Same shape as the
+  // exceptions test pair above (unnegated capture satisfies without the absence sentence; a negated span
+  // does not), applied to the trajectory keyword path specifically, with no
+  // metadata.requirement_trajectory set on either entry.
+  test("an attached FACT claim naming an unnegated trajectory stem in its source_span satisfies the trajectory check without metadata.requirement_trajectory or the absence sentence, but a NEGATED span does not", () => {
+    const capturedClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "[trajectory] increases over multiple years, phased in from 2027",
+      source_span: "the reporting duty is phased in from 2027 for large operators",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const capturedEntry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "the reporting duty is phased in from 2027 for large operators.\n\n" +
+          "No exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), capturedClaim],
+    });
+    const capturedPool = {
+      [ITEM_ID]: `${POOL_TEXT} The reporting duty is phased in from 2027 for large operators.`,
+    };
+    const capturedResult = validateRecordBriefsFile(validFile([capturedEntry]), { poolTextByItemId: capturedPool });
+    assert.equal(
+      capturedResult.ok,
+      true,
+      `expected ok, got: ${JSON.stringify(capturedResult.ok ? [] : capturedResult.errors)}`,
+    );
+
+    const negatedClaim = {
+      slot_key: null,
+      claim_kind: "FACT",
+      claim_text: "no phase-in is stated for this category of operator",
+      source_span: "No phase-in is stated for this category of operator",
+      source_url: "https://example.org/reg",
+      section: "8",
+    };
+    const negatedEntry = validEntry({
+      body: baseBody({
+        substantiveRequirements:
+          "# Substantive Requirements\n\n*Analytical inference:* the operator must register with the agency; " +
+          "no phase-in is stated for this category of operator.\n\n" +
+          "No exceptions are stated in Articles 1 to 12.\nNo scope limits are stated in Articles 1 to 12.\n" +
+          "Obligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n",
+      }),
+      claims: [validClaim(), negatedClaim],
+    });
+    const negatedPool = {
+      [ITEM_ID]: `${POOL_TEXT} No phase-in is stated for this category of operator.`,
+    };
+    const negatedResult = validateRecordBriefsFile(validFile([negatedEntry]), { poolTextByItemId: negatedPool });
+    assert.equal(negatedResult.ok, false);
+    assert.ok(
+      negatedResult.errors.some((e) => e.includes("qualification accounting") && e.includes("trajectory")),
+      JSON.stringify(negatedResult.errors),
+    );
+  });
+
   // Fix round 1, finding 4: capture now reads the claim's own verbatim source_span (never free-form
   // claim_text), and the span must be UNNEGATED.
   test("an attached FACT claim naming an unnegated exception in its source_span satisfies the exceptions check without the absence sentence", () => {
