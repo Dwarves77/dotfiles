@@ -656,6 +656,45 @@ test("applyOneEntry: entry.claims (including each claim's .section field) passes
   assert.equal(capturedLedger[1].section, "8");
 });
 
+// D29 (defect-fix-plan-2026-09-12, lane L19): with --allow-brief-overwrite, the driver passes
+// replaceLedger:true to groundBrief (so a prior claim this entry does not reproduce is ARCHIVED, not kept --
+// see canonical-pipeline.ts / ledger-apply.mjs's own "REPLACE-LEDGER EXCEPTION"), plus the record-briefs
+// file's own batch id, named on every archive's `note`. Proven the same way the claims-passthrough test
+// above proves the ledger itself: capture groundBrief's own opts and assert on it directly.
+test("applyOneEntry: allowBriefOverwrite=true passes replaceLedger:true and the batchId through to groundBrief", async () => {
+  const itemId = "item-1";
+  let capturedOpts = null;
+  const deps = successfulDeps({
+    groundBrief: async (_itemId, _caller, opts) => {
+      capturedOpts = opts;
+      return { ok: true, detail: "grounded" };
+    },
+  });
+  await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: true, batchId: "record-briefs-003", deps },
+  );
+  assert.equal(capturedOpts.replaceLedger, true);
+  assert.equal(capturedOpts.batchId, "record-briefs-003");
+});
+
+test("applyOneEntry: allowBriefOverwrite=false (default) passes replaceLedger:false -- today's call, unchanged", async () => {
+  const itemId = "item-1";
+  let capturedOpts = null;
+  const deps = successfulDeps({
+    groundBrief: async (_itemId, _caller, opts) => {
+      capturedOpts = opts;
+      return { ok: true, detail: "grounded" };
+    },
+  });
+  await applyOneEntry(
+    { itemId, entry: baseEntry(itemId) },
+    { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps },
+  );
+  assert.equal(capturedOpts.replaceLedger, false);
+  assert.equal(capturedOpts.batchId, null, "batchId defaults to null when the caller supplies none");
+});
+
 test("applyOneEntry: a generate failure is recorded, but every OTHER step still runs (independent-step, non-halting posture)", async () => {
   const itemId = "item-2";
   const deps = successfulDeps({
