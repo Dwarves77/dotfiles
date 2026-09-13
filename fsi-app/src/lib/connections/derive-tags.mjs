@@ -250,52 +250,72 @@ export function ownNameForms(tag) {
   return spaced === tag ? [tag] : [tag, spaced];
 }
 
-// The three deliberate exceptions to "every tag's own bare name is an auto-generated keyword" -- see
-// the KEYWORD_MAP doc comment above for why this list exists at all. Each carries the concrete evidence
-// a bare-word keyword for that tag was checked against and found to regress.
-const SUPPRESS_OWN_NAME = new Set([
-  // tag-aliases.mjs's ALIAS_MAP deliberately adds "packaging waste" (a specific real regulation
-  // phrase), never bare "packaging", for exactly this tag -- its own header documents the same
-  // discipline this suppression follows (REJECTED "sulphur"/"verified emissions" bare-word aliases,
-  // for the identical false-positive reason). A bare "packaging" keyword here would make ALIAS_MAP's
-  // narrower phrase redundant and fails tag-aliases.test.mjs's "integration" test, which asserts
-  // KEYWORD_MAP alone must MISS "Directive on packaging waste" so the alias table's own, more careful
-  // coverage is the thing doing the work.
-  "topic_tags|packaging",
+// Fix round 1 (review-l13.md, CONDITIONAL FAIL; defect-fix-plan-2026-09-12 D21 fix round 1). Rule: a
+// tag's own name may be suppressed only when every corpus-fixture item whose title or text carries that
+// bare word still derives the tag through another keyword -- a suppression can never remove a tag's
+// only coverage. `topic_tags:packaging` FAILED this rule (a real corpus item, "The Packaging (Essential
+// Requirements) (Amendment) Regulations 2009", carried the bare word and derived NOTHING at all through
+// the full production pipeline -- exactly the "no derivable tags on an obviously on-topic item" failure
+// D21 exists to close) and leaves this list; its own name is a true positive on the corpus.
+// `compliance_object_tags:exporter` carried no named measurement to begin with, and a direct check
+// against the same 178-item snapshot finds ZERO real bare-"exporter" hits at all, so the analogy that
+// justified it (grouped with importer/shipper) is unsupported by this corpus; it leaves the list too.
+// Re-checking the remaining nine against the SAME real snapshot for THIS fix round also found
+// `compliance_object_tags:shipper` (2 real hits, BOTH genuine on-topic uses -- "A shipper of solid bulk
+// cargo... must make a declaration" (Merchant Shipping (Prevention of Pollution by Garbage from Ships)
+// Regulations 2020); a FLEGT timber-licence definition naming "a consignor or a shipper") and
+// `compliance_object_tags:distributor` (9 real hits, 8 of them genuine EU product-compliance "distributor"
+// definitions -- RoHS 2011/65/EU, the UK Producer Responsibility (Packaging Waste) Regulations 2024, the
+// F-gas Regulation (EU) 2024/573, tyre-labelling Regulation (EU) 2020/740, the electricity-market
+// Directive (EU) 2019/944 -- each of which imposes real "distributor" obligations) carry the SAME defect
+// as packaging: their prior grouped justification named only ONE anecdotal air-permitting mention and was
+// never checked item-by-item. Both leave the list for the same reason packaging does. The remaining six
+// each carry per-tag, item-and-phrase evidence below; "no other change" beyond these four removals plus
+// the required evidence comments and the corpus-fixture test (see tag-yield.fixture.test.mjs) is made.
+export const SUPPRESS_OWN_NAME = new Set([
   // apply-tags.test.mjs's D15 re-derivation fixture ("This instrument establishes new CBAM reporting
   // duties for importers.") is written to derive ONLY operational_scenario_tags:CBAM-declaration from
-  // that sentence. A bare "reporting" keyword would also fire on the incidental word "reporting" in
-  // that sentence (which is not about the reporting topic at all), changing the test's asserted patch.
+  // that sentence, independently re-run and confirmed still passing (review-l13.md). A bare "reporting"
+  // keyword would also fire on the incidental word "reporting" in that sentence (which is not about the
+  // reporting topic at all), changing the test's asserted patch. This is a DIFFERENT evidence kind than
+  // the corpus-measured entries below (a synthetic fixture, not a real corpus item), named here exactly
+  // as it was reviewed and accepted: review-l13.md's "Checks that passed" lists this suppression, with
+  // importer's below, as one of the two "test-tied" (not corpus-measured) exceptions.
   // topic_tags:reporting still gets its plain inflections (report/reports/reported -- see
   // CURATED_SYNONYMS) which do NOT match "reporting" (a different word under \b word-boundary
   // matching), so real "report"/"reports" title/body text is still covered.
   "topic_tags|reporting",
   // Same fixture, same sentence: "...for importers." A bare "importer" keyword would also fire on this
   // incidental plural mention. compliance_object_tags:importer keeps its existing narrower phrases
-  // ("importer obligation", "importers must").
+  // ("importer obligation", "importers must"). Same test-tied evidence kind as reporting above.
   "compliance_object_tags|importer",
-  // MEASURED against the real 178-item record-grade snapshot tag-yield.fixture.test.mjs reads
-  // (scripts/_snapshots/population-33749140151/census-rows.apply-ready.json), the same corpus
-  // ALIAS_MAP's own header uses to accept/reject a candidate phrase: bare "fuel(s)", "transport",
-  // "corridor(s)", "shipper", and "distributor" each fired on real items with no genuine connection to
-  // the tag (e.g. a US "Minor New Source Review" air-permitting notice matched topic_tags:corridors and
-  // compliance_object_tags:distributor; a GB Ecodesign energy-labelling instrument matched
-  // topic_tags:research), pushing the corpus-wide BEFORE-hit count from 16/178 to 94/178 -- the exact
-  // false-positive class ALIAS_MAP's own header rejected "sulphur" for. These five tags keep only their
-  // pre-D21 curated phrases (still >= 1 keyword each, so the "never lacks a keyword" invariant holds);
-  // "transport" is the platform's own domain word and matches almost any freight-adjacent document,
-  // which is precisely why it is unsafe as a bare keyword here.
+  // MEASURED (fix round 1) against the real 178-item record-grade snapshot: item "The Vehicle Excise
+  // Duty (Reduced Pollution) Regulations 1998" carries bare "fuel" in "...access to the engine and the
+  // fuel and exhaust systems..." -- a vehicle-inspection procedure clause, not fuels-policy content.
+  // topic_tags:fuels keeps its pre-D21 curated phrases only.
   "topic_tags|fuels",
+  // MEASURED (fix round 1): item "The Vehicle Excise Duty (Reduced Pollution) Regulations 1998" (the
+  // same instrument) also carries bare "Transport" in "...Secretary of State for the Environment,
+  // Transport and the Regions..." -- a UK government DEPARTMENT NAME, not the transport topic. Bare
+  // "transport" is also the platform's own domain word, appearing incidentally in most freight-adjacent
+  // documents (measured: 69/178 items). topic_tags:transport keeps its pre-D21 curated phrases only.
   "topic_tags|transport",
+  // MEASURED (fix round 1): 51 of 52 real bare-"corridor" hits in the snapshot are the SAME platform-
+  // generated GAP note ("No verbatim UN/LOCODE port-pair and mode were located together in the captured
+  // source text for this record-grade item -- corridor identity is only stated when both ends are named
+  // together"), e.g. on "Minor New Source Review Program Air Permitting Public Participation
+  // Requirements" -- boilerplate the mint pipeline itself writes on any record-grade item lacking a
+  // resolved corridor, not real source content. topic_tags:corridors keeps its pre-D21 curated phrases
+  // only.
   "topic_tags|corridors",
-  "compliance_object_tags|shipper",
-  "compliance_object_tags|exporter",
-  "compliance_object_tags|distributor",
-  // "research" previously had ZERO keywords (D21's evidenced gap). Bare "research" was measured against
-  // the same snapshot and also produced false positives (an air-permitting notice, an ecodesign
-  // instrument -- neither a research finding). CURATED_SYNONYMS gives it the specific two-word phrase
-  // "research finding" instead (system-prompt.ts's own term for this item type), which still satisfies
-  // "every vocabulary tag has at least one keyword" without the bare word's corpus noise.
+  // "research" previously had ZERO keywords (D21's evidenced gap). MEASURED (fix round 1): bare
+  // "research" hits 96 of 178 items (54%) in the snapshot -- e.g. item "Minor New Source Review Program
+  // Air Permitting Public Participation Requirements" carries "...U.S. EPA, Office of State Air
+  // Partnerships, Permitting & Program Support Division, ... Research Triangle Park, NC 27711..." -- an
+  // EPA office's postal address (a place name in North Carolina), zero connection to research-finding
+  // content. CURATED_SYNONYMS gives topic_tags:research the specific two-word phrase "research finding"
+  // instead (system-prompt.ts's own term for this item type), which still satisfies "every vocabulary
+  // tag has at least one keyword" without the bare word's corpus noise.
   "topic_tags|research",
 ]);
 
@@ -350,8 +370,13 @@ const CURATED_SYNONYMS = {
   // ── topic_tags (closed, 7) ── own name auto-added via ownNameForms() except where SUPPRESS_OWN_NAME
   // says otherwise; entries below are the pre-D21 phrases plus D21's plain inflections.
   "topic_tags|emissions": ["carbon pricing", "emissions trading", "greenhouse gas strategy", "emission", "emitting"],
-  // own name "fuels" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases only.
-  "topic_tags|fuels": ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia"],
+  // own name "fuels" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases plus
+  // "motor fuel" (fix round 1, review-l13.md's corpus-fixture rule): "The Motor Fuel (Composition and
+  // Content) (Amendment) Regulations 2001" carries bare "fuel" in its own title and, pre-fix, derived
+  // ZERO tags at all through the full production pipeline -- the same defect class as packaging (D21's
+  // own evidenced failure), found while writing the corpus-fixture test below. "motor fuel" is a
+  // specific, corpus-verified phrase (not the noisy bare word) that closes this exact gap.
+  "topic_tags|fuels": ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia", "motor fuel"],
   // own name "transport" SUPPRESSED (see SUPPRESS_OWN_NAME) -- pre-D21 phrases only.
   "topic_tags|transport": ["vehicle emission standard", "fleet mandate", "zero emission vehicle"],
   // own name "reporting" SUPPRESSED (see SUPPRESS_OWN_NAME) -- plain inflections still covered, and do

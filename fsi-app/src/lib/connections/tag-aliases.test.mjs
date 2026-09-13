@@ -116,15 +116,21 @@ test("mergeTagProposals: empty/missing inputs never throw", () => {
 });
 
 test("integration: merged output for a real record-grade shape matches what deriveTags() alone would miss", () => {
+  // Fix round 1 (review-l13.md, D21): the previous fixture ("Directive on packaging waste") stopped
+  // proving this once topic_tags:packaging's own bare name left SUPPRESS_OWN_NAME (derive-tags.mjs) --
+  // KEYWORD_MAP alone now correctly derives packaging from that title. topic_tags:fuels' own bare name
+  // stays suppressed (measured false-positive evidence: derive-tags.mjs's SUPPRESS_OWN_NAME), and its
+  // KEYWORD_MAP phrases ("alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia") still
+  // do not cover "biofuel" -- an ALIAS_MAP-only phrase -- so this fixture still proves the same point.
   const item = {
     id: "i1",
-    title: "Directive on packaging waste",
+    title: "Directive on biofuel blending",
     full_brief: "A short catalogue stub carrying no closed-vocabulary phrase for this topic.",
   };
   const baseOnly = deriveTags(item);
   assert.equal(baseOnly.proposals.length, 0, "existing KEYWORD_MAP alone must miss this real-world phrasing");
   const aliasOnly = deriveAliasTags(item);
-  assert.ok(aliasOnly.proposals.some((p) => p.tag === "packaging"));
+  assert.ok(aliasOnly.proposals.some((p) => p.tag === "fuels"));
   const merged = mergeTagProposals(baseOnly.proposals, aliasOnly.proposals);
-  assert.ok(merged.some((p) => p.tag === "packaging"));
+  assert.ok(merged.some((p) => p.tag === "fuels"));
 });

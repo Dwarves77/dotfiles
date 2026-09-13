@@ -505,15 +505,28 @@ complete evidence rule. Fix at the source: `KEYWORD_MAP` is now GENERATED (`buil
 three live vocabularies (`TOPIC_TAG_VALUES`/`COMPLIANCE_OBJECT_VALUES`/`SCENARIO_TAG_VALUES`) plus a
 curated synonym table, so every tag carries at least its own name (and, for a hyphenated tag, both the
 hyphen and space forms) as a keyword -- a tag added to a vocabulary tomorrow is covered automatically,
-with no `KEYWORD_MAP` edit required. A small, evidence-named set of single-word tags
-(`topic_tags:fuels`/`transport`/`corridors`/`packaging`/`reporting`/`research`,
-`compliance_object_tags:importer`/`shipper`/`exporter`/`distributor`) keep their pre-D21 narrower phrases
-instead of the bare name -- each was measured against the real 178-item record-grade snapshot
-(`tag-yield.fixture.test.mjs`) and found to false-positive on unrelated content (the same discipline
-`tag-aliases.mjs`'s `ALIAS_MAP` header already documents for its own rejected candidates); see
-`derive-tags.mjs`'s `SUPPRESS_OWN_NAME` for the named list and evidence. Matching stays word-boundary,
-case-insensitive, over title/instrument-key/`what_is_it`/summary/`full_brief`; evidence recorded is
-always the matched phrase. No behaviour change outside `KEYWORD_MAP`'s own coverage.
+with no `KEYWORD_MAP` edit required. Matching stays word-boundary, case-insensitive, over
+title/instrument-key/`what_is_it`/summary/`full_brief`; evidence recorded is always the matched phrase.
+
+**Fix round 1 for D21 (review-l13.md, CONDITIONAL FAIL)**: the corpus-fixture rule is now explicit -- a
+tag's own name may be suppressed only when a suppression never removes a tag's ONLY coverage; a real
+corpus item, "The Packaging (Essential Requirements) (Amendment) Regulations 2009", carried bare
+"packaging" in its own title and derived NOTHING at all pre-fix (the same "no derivable tags on an
+obviously on-topic item" failure D21 exists to close), so `topic_tags:packaging` left the suppression
+list. Re-checking the remaining nine against the same snapshot for this fix round found
+`compliance_object_tags:exporter` (zero real corpus hits at all -- no measurement had ever supported it)
+and `compliance_object_tags:shipper`/`distributor` (real hits, but overwhelmingly genuine on-topic uses --
+e.g. RoHS Directive 2011/65/EU's own "distributor" definition) carrying the same unevidenced-suppression
+defect; all three left the list too. A fourth pass, closing the one remaining title-level zero-tag gap the
+new corpus-fixture test found ("The Motor Fuel (Composition and Content) (Amendment) Regulations 2001"),
+added the specific phrase "motor fuel" to `topic_tags:fuels`' curated synonyms. Six suppressions remain,
+each with per-tag measured evidence in `derive-tags.mjs`'s `SUPPRESS_OWN_NAME`:
+`topic_tags:fuels`/`transport`/`corridors`/`reporting`/`research`, `compliance_object_tags:importer`
+(`reporting` and `importer` are evidenced differently -- a synthetic apply-tags.mjs D15 fixture, reviewed
+and accepted, not a corpus false positive; the other four each carry a named real-corpus item and phrase).
+A new test (`tag-yield.fixture.test.mjs`) enforces the rule going forward: no real corpus item whose title
+carries a suppressed tag's own bare name may derive zero tags total. No behaviour change outside
+`KEYWORD_MAP`'s own coverage.
 
 **Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
 summary's `note` carries the documented fallback:

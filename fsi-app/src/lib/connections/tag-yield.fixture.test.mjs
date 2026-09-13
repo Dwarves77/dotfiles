@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { deriveTags, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES } from "./derive-tags.mjs";
+import { deriveTags, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES, SUPPRESS_OWN_NAME, ownNameForms } from "./derive-tags.mjs";
 import { assembleTagInput } from "./tag-input.mjs";
 import { deriveAliasTags, mergeTagProposals } from "./tag-aliases.mjs";
 
@@ -110,11 +110,19 @@ test("MEASURED CAUSE: the ten real fixtures — per-item before/after (printed t
   // item whose own text genuinely carries one of those tags' plain names, independent of this file's
   // WIDE-input/ALIAS_MAP mechanism. Each changed row below is a real, verbatim match (see the
   // "NO INVENTED TAGS" tests) newly reachable because the tag's own bare name is now a keyword.
+  // RE-MEASURED again, fix round 1 (review-l13.md, D21 fix round 1): topic_tags:packaging and
+  // compliance_object_tags:distributor left SUPPRESS_OWN_NAME (derive-tags.mjs) -- each was found, on
+  // re-measurement against this same snapshot, to be a true positive the corpus fixture demonstrated
+  // (packaging: idx 51's own title; distributor: idx 0's "energy suppliers, distributors, or users" is
+  // itself the one WEAK example found, but the other 8 real corpus distributor hits outside this
+  // 10-item sample are genuine EU product-compliance "distributor" definitions -- see derive-tags.mjs's
+  // fix-round-1 comment). idx 0 gains compliance_object_tags:distributor; idx 51's own title now matches
+  // bare "packaging" even at the flat/BEFORE stage (before 0 -> 1).
   const expected = {
-    0: { before: 0, after: 1 }, // Minor NSR air permitting (US) -- genuinely about air emissions; topic_tags:emissions (D21: bare "emissions")
+    0: { before: 0, after: 2 }, // Minor NSR air permitting (US) -- topic_tags:emissions (D21 bare word) + compliance_object_tags:distributor (fix round 1: own name restored)
     17: { before: 0, after: 1 }, // EU EUDR high/low-risk country list — EUDR-due-diligence via alias
     34: { before: 0, after: 0 }, // GB Ecodesign for Energy-Related Products — no freight-vocab fit
-    51: { before: 0, after: 2 }, // EU packaging-waste directive amendment -- packaging via alias + topic_tags:reporting (D21 inflection)
+    51: { before: 1, after: 2 }, // EU packaging-waste directive amendment -- fix round 1: bare "packaging" now KEYWORD_MAP-level (own name restored), + topic_tags:reporting (D21 inflection)
     68: { before: 0, after: 2 }, // EU sustainability-factors/MiFID delegated regulation -- emissions (D21 bare word) + reporting (D21 inflection)
     85: { before: 1, after: 4 }, // EU heavy-duty-vehicle CO2 list -- truck-CO2-standard via alias; emissions/transport now KEYWORD_MAP-level; + reporting (D21 inflection)
     102: { before: 2, after: 3 }, // EU biofuel/RED II GHG-savings decision -- emissions/reporting now KEYWORD_MAP-level; + fuels via alias
@@ -128,10 +136,10 @@ test("MEASURED CAUSE: the ten real fixtures — per-item before/after (printed t
   }
 
   // The headline finding this test exists to lock in: the combined fix finds at least one tag for 7 of
-  // the 10 (idx 0, 17, 51, 68, 85, 102, 119), of which 3 (85, 102, 119) already derive something from
-  // KEYWORD_MAP alone post-D21 -- and correctly finds NOTHING for the other 3, because their real text
-  // does not support a tag in the live, in-scope vocabulary (idx 34, 136, 153).
-  assert.equal(rows.filter((r) => r.before > 0).length, 3);
+  // the 10 (idx 0, 17, 51, 68, 85, 102, 119), of which 4 (51, 85, 102, 119) already derive something from
+  // KEYWORD_MAP alone post-D21-fix-round-1 -- and correctly finds NOTHING for the other 3, because their
+  // real text does not support a tag in the live, in-scope vocabulary (idx 34, 136, 153).
+  assert.equal(rows.filter((r) => r.before > 0).length, 4);
   assert.equal(rows.filter((r) => r.after > 0).length, 7);
 });
 
@@ -156,14 +164,20 @@ test("MEASURED CAUSE, full population: BEFORE (flat shape) vs WIDE (input only) 
   // (defect-fix-plan-2026-09-12): KEYWORD_MAP now carries several closed-vocabulary tags' own bare
   // names (topic_tags:emissions chief among them -- the exact gap D21 evidenced) as keywords, which
   // raises BEFORE/WIDE/AFTER together since the same deriveTags()/KEYWORD_MAP now matches more real
-  // corpus text at every stage, not only through ALIAS_MAP/wide-input. See derive-tags.mjs's
-  // SUPPRESS_OWN_NAME for the tags deliberately held back from this widening after being measured
-  // noisy against this SAME snapshot (fuels/transport/corridors/shipper/exporter/distributor own
-  // names, and research's bare form) -- this run's counts already reflect that narrower, evidence-based
-  // set, not the widest possible one.
-  assert.equal(beforeHit, 53, "BEFORE hit count changed -- re-measure against the tracked snapshot");
-  assert.equal(wideHit, 132, "WIDE (input-only) hit count changed -- re-measure against the tracked snapshot");
-  assert.equal(afterHit, 135, "AFTER (input+alias) hit count changed -- re-measure against the tracked snapshot");
+  // corpus text at every stage, not only through ALIAS_MAP/wide-input. RE-MEASURED AGAIN, fix round 1
+  // (review-l13.md): topic_tags:packaging and compliance_object_tags:distributor left SUPPRESS_OWN_NAME
+  // (each measured, on real-corpus re-check, to be a true positive the suppression was wrongly
+  // withholding, the same defect class review-l13.md's Critical finding named for packaging), raising
+  // the counts again. See derive-tags.mjs's SUPPRESS_OWN_NAME for the six tags still held back, each
+  // with its own per-tag measured evidence, and for exporter and shipper, which also left the list this
+  // fix round (measured, like packaging and distributor, to be unevidenced) -- this run's counts already
+  // reflect that narrower, evidence-based set, not the widest possible one.
+  // Bumped once more within this same fix round: "motor fuel" (topic_tags:fuels' CURATED_SYNONYMS)
+  // closes the one confirmed title-level zero-tag gap the new SUPPRESS_OWN_NAME corpus-fixture test
+  // below exists to catch ("The Motor Fuel (Composition and Content) (Amendment) Regulations 2001").
+  assert.equal(beforeHit, 65, "BEFORE hit count changed -- re-measure against the tracked snapshot");
+  assert.equal(wideHit, 142, "WIDE (input-only) hit count changed -- re-measure against the tracked snapshot");
+  assert.equal(afterHit, 143, "AFTER (input+alias) hit count changed -- re-measure against the tracked snapshot");
   // Both the input fix alone and the alias vocabulary alone must move the needle in this population —
   // neither addition is a no-op, and each is separable in this measurement.
   assert.ok(wideHit > beforeHit, "wider grounded input must recover real matches the flat shape misses");
@@ -205,4 +219,38 @@ test("NO INVENTED TAGS: every AFTER proposal names a tag that is a real member o
     }
   }
   assert.ok(checked > 0, "expected at least one AFTER proposal across the population to check");
+});
+
+// ── SUPPRESS_OWN_NAME corpus-fixture rule (fix round 1, review-l13.md, D21 fix round 1) ─────────────
+// Rule (defect-fix-plan-2026-09-12, D21 fix round 1): a tag's own name may be suppressed only when a
+// suppression can never remove a tag's ONLY coverage -- concretely, no real corpus item whose TITLE
+// carries the suppressed tag's own bare name may derive literally NO tags at all through the full
+// production pipeline (KEYWORD_MAP + ALIAS_MAP merged). Title-level is the decisive signal: D21's own
+// two worked failures ("The Emissions Performance Standard..." and, this fix round, "The Packaging
+// (Essential Requirements)...") are both title-level, and body-text bare-word hits are far noisier (see
+// derive-tags.mjs's SUPPRESS_OWN_NAME comments -- e.g. 51 of 52 real "corridor" body hits are the SAME
+// platform-generated GAP-note boilerplate) -- checking every body-text hit would make this test itself
+// re-litigate the false-positive judgment SUPPRESS_OWN_NAME's comments already carry evidence for,
+// rather than guarding the specific total-collapse failure D21 exists to close.
+test("SUPPRESS_OWN_NAME: no real corpus item whose TITLE carries a suppressed tag's own bare name derives zero tags total", () => {
+  let titleHitsChecked = 0;
+  const zeroTagItems = [];
+  for (const key of SUPPRESS_OWN_NAME) {
+    const sep = key.indexOf("|");
+    const tag = key.slice(sep + 1);
+    const [bareName] = ownNameForms(tag); // the tag's own literal name (hyphen form for a hyphenated tag)
+    const re = new RegExp(`\\b${bareName.replace(/-/g, " ")}s?\\b`, "i");
+    for (const row of POPULATION) {
+      if (!re.test(row.item.title || "")) continue;
+      titleHitsChecked++;
+      const { after } = measure(row);
+      if (after.length === 0) zeroTagItems.push({ key, title: row.item.title, id: row.id });
+    }
+  }
+  assert.ok(titleHitsChecked > 0, "expected at least one real corpus title to carry a suppressed tag's own bare name (sanity: the rule is actually exercised)");
+  assert.deepEqual(
+    zeroTagItems, [],
+    `${zeroTagItems.length} real corpus item(s) whose title names a suppressed tag derive ZERO tags at all -- ` +
+    `a suppression removed that tag's only coverage (the D21/packaging failure class): ${JSON.stringify(zeroTagItems)}`,
+  );
 });

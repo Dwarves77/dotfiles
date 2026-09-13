@@ -20971,3 +20971,98 @@ Not applicable: no `.tsx`/`.css` touched.
 
 **Not in this entry's scope**: the tag-ratification apply this fix unblocks (coordinator dispatch, after
 this lane lands), and every other defect in the plan not named D21.
+
+## 2026-09-13, W9 Part 7 lane L13 fix round 1: D21, packaging/exporter unsuppressed, per-tag evidence, corpus-fixture test
+
+Per review-l13.md (CONDITIONAL FAIL) and the coordinator's "Fix round 1 for D21" entry in
+`docs/plans/defect-fix-plan-2026-09-12.md`. Same worktree and branch as the entry above.
+
+**F1 (Critical)**: "The Packaging (Essential Requirements) (Amendment) Regulations 2009" carried bare
+"packaging" in its own title and, pre-fix, derived NOTHING through the full production pipeline
+(`deriveTags()` merged with `deriveAliasTags()`) -- `topic_tags:packaging`'s own name was suppressed
+(`SUPPRESS_OWN_NAME`) and no other keyword covered it. Fix: `topic_tags:packaging` leaves
+`SUPPRESS_OWN_NAME` (its own name is a true positive on the corpus, per the coordinator's rule: a
+suppression may never remove a tag's only coverage). `tag-aliases.test.mjs`'s "integration" test and
+`tag-input.test.mjs`'s `boundedSourceWindow` vocabTerms test both depended on bare "packaging" being
+absent from `KEYWORD_MAP` (a dependency review-l13.md flagged as pre-existing); both fixtures now use
+"biofuel"/"bioliquid" (still `ALIAS_MAP`-only, since `topic_tags:fuels`' own name stays suppressed),
+preserving each test's original intent.
+
+**F2 (Important)**: `compliance_object_tags:exporter` carried no named measurement; a direct recheck
+against the real 178-item snapshot finds zero real bare-"exporter" hits at all. It leaves
+`SUPPRESS_OWN_NAME`. Re-checking the other eight for this fix round against the same snapshot found the
+identical unevidenced-suppression defect in two more: `compliance_object_tags:shipper` (2 real hits, both
+genuine on-topic uses -- a Merchant Shipping declaration duty, a FLEGT timber-licence definition) and
+`compliance_object_tags:distributor` (9 real hits, 8 of them genuine EU product-compliance "distributor"
+definitions -- RoHS 2011/65/EU, the UK Packaging Waste Regulations 2024, the F-gas Regulation (EU)
+2024/573, tyre-labelling Regulation (EU) 2020/740, the electricity-market Directive (EU) 2019/944). Both
+leave `SUPPRESS_OWN_NAME` for the same reason packaging does -- their prior grouped justification named
+only one anecdotal mention and was never checked item-by-item. This is a correction beyond the two items
+the coordinator named, found while doing the mandated per-tag evidence review; rule 13/14 apply (a
+suppression that dissolves under evidence gets a same-session correction, never a quiet drop) rather than
+leaving `shipper`/`distributor` suppressed with fabricated "evidence" that does not exist.
+
+**A fourth, narrower correction**: writing the required corpus-fixture test (below) surfaced one more
+real title-level zero-tag item, the same failure class as packaging: "The Motor Fuel (Composition and
+Content) (Amendment) Regulations 2001" (bare "fuel" in its own title; `topic_tags:fuels`' own name stays
+suppressed, evidenced separately -- see below). Closed with one specific, corpus-verified curated phrase
+("motor fuel") rather than un-suppressing the noisy bare word.
+
+**Remaining six suppressions, each with per-tag measured evidence** (`derive-tags.mjs`'s
+`SUPPRESS_OWN_NAME`): `topic_tags:reporting`/`compliance_object_tags:importer` are evidenced by
+`apply-tags.mjs`'s D15 re-derivation fixture (a synthetic sentence, reviewed and accepted in
+review-l13.md's "Checks that passed" as a different, valid evidence kind -- not a corpus false positive);
+`topic_tags:fuels` (item: "The Vehicle Excise Duty (Reduced Pollution) Regulations 1998", phrase: "the
+engine and the fuel and exhaust systems"), `topic_tags:transport` (same item, phrase: "Secretary of State
+for the Environment, Transport and the Regions" -- a department name), `topic_tags:corridors` (item:
+"Minor New Source Review Program Air Permitting...", phrase: the platform's own GAP-note boilerplate,
+51/52 real hits), and `topic_tags:research` (item: same Minor NSR notice, phrase: "Research Triangle
+Park, NC" -- an EPA office address) each carry a named real-corpus item and phrase.
+
+**F3 (Minor)**: `task-l13-report.md`'s headline said "9" suppressions when the code (and both docs)
+already listed ten; corrected there (fix-round addendum) to state the count truthfully at each stage (10
+before this fix round's four removals, 6 after).
+
+**Test**: `tag-yield.fixture.test.mjs` gains "SUPPRESS_OWN_NAME: no real corpus item whose TITLE carries a
+suppressed tag's own bare name derives zero tags total" -- a table-driven check over `SUPPRESS_OWN_NAME`
+and the live 178-item snapshot, scoped to title-level hits (the decisive signal both of D21's own worked
+failures share; body-text hits are far noisier -- e.g. 51/52 real "corridor" body hits are the same
+platform GAP-note boilerplate -- and checking them would re-litigate the false-positive judgment the
+per-tag comments already carry evidence for, rather than guarding the specific total-collapse failure D21
+exists to close).
+
+**Re-measured again** (`tag-yield.fixture.test.mjs`'s own documented procedure, twice within this fix
+round -- once after the four `SUPPRESS_OWN_NAME` removals, once more after the "motor fuel" addition): the
+10-fixture table's idx 0 (before 0->0, after 1->2) and idx 51 (before 0->1, after unchanged at 2) moved
+up; every other sampled row unchanged. Corpus-wide: BEFORE 53->65, WIDE 132->142, AFTER 135->143 (all
+three up from the entry above; no count fell, per the coordinator's requirement).
+
+**Gates.** `node --test` on every touched/consuming file green: `derive-tags.test.mjs` 26/26,
+`tag-aliases.test.mjs` 14/14, `tag-input.test.mjs` 14/14, `tag-yield.fixture.test.mjs` 6/6 (one new test),
+`apply-tags.test.mjs` 66/66, `tag-ratification.test.mjs` 13/13, `propose-tags.test.mjs` 30/30 (169 total).
+Full `bash .discipline/run-test-suite.sh` and the full preflight (`sh fsi-app/.discipline/hooks/pre-push <
+/dev/null`, foreground, run once at the end): see the lane report's fix-round addendum for the tail and
+exit code. Glyph check, `git diff 9234d76d..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'`:
+0.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access. Named
+paths only staged, never `git add -A`. Trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+**Files (this fix round).**
+- `fsi-app/src/lib/connections/derive-tags.mjs` (modified: `SUPPRESS_OWN_NAME` narrowed to six, each
+  re-evidenced; `SUPPRESS_OWN_NAME` exported for the new test; "motor fuel" added to
+  `topic_tags:fuels`' curated synonyms)
+- `fsi-app/src/lib/connections/tag-aliases.test.mjs` (modified: "integration" test fixture moved off
+  packaging, onto still-ALIAS_MAP-only "biofuel")
+- `fsi-app/src/lib/connections/tag-input.test.mjs` (modified: `boundedSourceWindow` vocabTerms test
+  fixture moved off "packaging waste", onto still-ALIAS_MAP-only "bioliquid")
+- `fsi-app/src/lib/connections/tag-yield.fixture.test.mjs` (modified: re-measured counts; new
+  `SUPPRESS_OWN_NAME` corpus-fixture test)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: D21 ruling paragraph updated, fix-round-1 paragraph
+  added)
+- `docs/ops/session-log.md` (this entry)
+- `.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-l13-report.md` (in the `wt-datechain-0911`
+  worktree, per the coordinator's report path: "Fix round 1" addendum appended)
+
+**Not in this entry's scope**: the tag-ratification apply this fix unblocks; every other defect in the
+plan not named D21.
