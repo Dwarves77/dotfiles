@@ -74,6 +74,48 @@ test("KEYWORD_MAP self-check: every mapped tag is a real member of its field's l
   }
 });
 
+// ── D21 (defect-fix-plan-2026-09-12): KEYWORD_MAP covers every closed-vocabulary tag ────────────────
+
+test("D21: every tag in all three live vocabularies has at least one KEYWORD_MAP keyword (table-driven, over the live vocabulary arrays)", () => {
+  const byKey = new Map(KEYWORD_MAP.map((e) => [`${e.field}|${e.tag}`, e]));
+  const allVocabTags = [
+    ...TOPIC_TAG_VALUES.map((tag) => ({ field: "topic_tags", tag })),
+    ...COMPLIANCE_OBJECT_VALUES.map((tag) => ({ field: "compliance_object_tags", tag })),
+    ...SCENARIO_TAG_VALUES.map((tag) => ({ field: "operational_scenario_tags", tag })),
+  ];
+  assert.ok(allVocabTags.length >= 58, "sanity: expected at least the known 7+19+32 vocabulary tags");
+  for (const { field, tag } of allVocabTags) {
+    const entry = byKey.get(`${field}|${tag}`);
+    assert.ok(entry, `${field}:${tag} has no KEYWORD_MAP entry at all`);
+    assert.ok(Array.isArray(entry.keywords) && entry.keywords.length > 0, `${field}:${tag} has zero keywords -- D21 requires at least one`);
+  }
+});
+
+test("D21: a title carrying a topic_tags tag's own bare name derives that tag (the evidenced gap: 'Emissions' alone previously derived nothing)", () => {
+  const item = {
+    id: "item-wales-1",
+    title: "The Emissions Performance Standard (Enforcement) (Wales) Regulations 2015",
+    canonical_instrument_key: null,
+    full_brief: null,
+  };
+  const { proposals } = deriveTags(item);
+  const emissions = proposals.find((p) => p.field === "topic_tags" && p.tag === "emissions");
+  assert.ok(emissions, "topic_tags:emissions must derive from the title's own bare 'Emissions' word");
+  assert.equal(emissions.confidence, "high", "a title-level match is high confidence");
+  assert.match(emissions.evidence, /emissions/i);
+});
+
+test("D21: a title carrying none of the vocabulary's keywords derives nothing", () => {
+  const item = {
+    id: "item-none-1",
+    title: "Annual Statistical Bulletin on Regional Population Trends",
+    canonical_instrument_key: null,
+    full_brief: null,
+  };
+  const { proposals } = deriveTags(item);
+  assert.deepEqual(proposals, [], "a title/brief carrying no vocabulary keyword must derive no tag proposals");
+});
+
 // ── deriveTags: fixtures across instrument families ─────────────────────────────────────────────
 
 test("maritime instrument: title-level ocean/emissions keywords score HIGH, body-level score MEDIUM", () => {
@@ -231,6 +273,11 @@ test("meetsConfidence over a real deriveTags() output: partitions maritime fixtu
   const { proposals } = deriveTags(item);
   const eligible = proposals.filter((p) => meetsConfidence(p.confidence, "high"));
   const residue = proposals.filter((p) => !meetsConfidence(p.confidence, "high"));
-  assert.equal(eligible.length, 2, "ocean-bunkering + ocean-emissions-MRV are title-level HIGH");
+  // D21 (defect-fix-plan-2026-09-12): KEYWORD_MAP now carries topic_tags:emissions' own bare name as a
+  // keyword (the exact gap D21 fixes), so this title's own "emissions" word now ALSO derives
+  // topic_tags:emissions at title-level HIGH, alongside ocean-bunkering + ocean-emissions-MRV -- 3, not
+  // 2. The partitioning behavior under test (meetsConfidence splits high from medium) is unchanged;
+  // only the fixture's own proposal count grew, which is the intended effect of the fix.
+  assert.equal(eligible.length, 3, "ocean-bunkering + ocean-emissions-MRV + topic_tags:emissions are title-level HIGH");
   assert.equal(residue.length, 2, "vessel-shore-power + vessel-operator are body-only MEDIUM");
 });

@@ -103,15 +103,22 @@ test("MEASURED CAUSE: the ten real fixtures — per-item before/after (printed t
   console.log("");
 
   // Locked-in per-fixture result (from the tracked snapshot; a snapshot change would need a re-measure).
+  // RE-MEASURED for D21 (defect-fix-plan-2026-09-12): derive-tags.mjs's KEYWORD_MAP now carries several
+  // vocabulary tags' own bare names (topic_tags:emissions, plus wider compliance/scenario own-name
+  // coverage) as keywords, closed vocabulary-wide -- see derive-tags.mjs's KEYWORD_MAP doc comment. That
+  // widens BEFORE (flat-shape KEYWORD_MAP matches, no ALIAS_MAP/wide-input involved) and AFTER on any
+  // item whose own text genuinely carries one of those tags' plain names, independent of this file's
+  // WIDE-input/ALIAS_MAP mechanism. Each changed row below is a real, verbatim match (see the
+  // "NO INVENTED TAGS" tests) newly reachable because the tag's own bare name is now a keyword.
   const expected = {
-    0: { before: 0, after: 0 }, // Minor NSR air permitting (US) — general permitting procedure, no freight-vocab fit
+    0: { before: 0, after: 1 }, // Minor NSR air permitting (US) -- genuinely about air emissions; topic_tags:emissions (D21: bare "emissions")
     17: { before: 0, after: 1 }, // EU EUDR high/low-risk country list — EUDR-due-diligence via alias
     34: { before: 0, after: 0 }, // GB Ecodesign for Energy-Related Products — no freight-vocab fit
-    51: { before: 0, after: 1 }, // EU packaging-waste directive amendment — packaging via alias
-    68: { before: 0, after: 1 }, // EU sustainability-factors/MiFID delegated regulation — emissions via alias
-    85: { before: 0, after: 2 }, // EU heavy-duty-vehicle CO2 list — truck-CO2-standard + transport via alias
-    102: { before: 0, after: 2 }, // EU biofuel/RED II GHG-savings decision — emissions + fuels via alias
-    119: { before: 0, after: 0 }, // EU waste-sector reporting questionnaire — ADR-020 named gap, no tag owed yet
+    51: { before: 0, after: 2 }, // EU packaging-waste directive amendment -- packaging via alias + topic_tags:reporting (D21 inflection)
+    68: { before: 0, after: 2 }, // EU sustainability-factors/MiFID delegated regulation -- emissions (D21 bare word) + reporting (D21 inflection)
+    85: { before: 1, after: 4 }, // EU heavy-duty-vehicle CO2 list -- truck-CO2-standard via alias; emissions/transport now KEYWORD_MAP-level; + reporting (D21 inflection)
+    102: { before: 2, after: 3 }, // EU biofuel/RED II GHG-savings decision -- emissions/reporting now KEYWORD_MAP-level; + fuels via alias
+    119: { before: 1, after: 1 }, // EU waste-sector reporting questionnaire -- topic_tags:reporting now KEYWORD_MAP-level (D21 "report" inflection)
     136: { before: 0, after: 0 }, // EU REACH acrylamide restriction — no freight-vocab fit
     153: { before: 0, after: 0 }, // EEA eco-label textile decision — no freight-vocab fit
   };
@@ -120,12 +127,12 @@ test("MEASURED CAUSE: the ten real fixtures — per-item before/after (printed t
     assert.equal(r.after, expected[r.idx].after, `idx ${r.idx} AFTER count changed — re-measure and update this fixture`);
   }
 
-  // The headline finding this test exists to lock in: baseline finds nothing on any of the ten; the
-  // combined fix finds at least one tag for exactly half, all of them real content matches (idx 17,
-  // 51, 68, 85, 102) — and correctly finds NOTHING for the other half, because their real text does
-  // not support a tag in the live, in-scope vocabulary (idx 0, 34, 119, 136, 153).
-  assert.equal(rows.filter((r) => r.before > 0).length, 0);
-  assert.equal(rows.filter((r) => r.after > 0).length, 5);
+  // The headline finding this test exists to lock in: the combined fix finds at least one tag for 7 of
+  // the 10 (idx 0, 17, 51, 68, 85, 102, 119), of which 3 (85, 102, 119) already derive something from
+  // KEYWORD_MAP alone post-D21 -- and correctly finds NOTHING for the other 3, because their real text
+  // does not support a tag in the live, in-scope vocabulary (idx 34, 136, 153).
+  assert.equal(rows.filter((r) => r.before > 0).length, 3);
+  assert.equal(rows.filter((r) => r.after > 0).length, 7);
 });
 
 test("MEASURED CAUSE, full population: BEFORE (flat shape) vs WIDE (input only) vs AFTER (input + alias)", () => {
@@ -145,10 +152,18 @@ test("MEASURED CAUSE, full population: BEFORE (flat shape) vs WIDE (input only) 
     `compliance_object_tags=${fieldHit.compliance_object_tags}, topic_tags=${fieldHit.topic_tags}.\n`,
   );
 
-  // Locked-in corpus-level counts (from the tracked snapshot).
-  assert.equal(beforeHit, 16, "BEFORE hit count changed — re-measure against the tracked snapshot");
-  assert.equal(wideHit, 51, "WIDE (input-only) hit count changed — re-measure against the tracked snapshot");
-  assert.equal(afterHit, 72, "AFTER (input+alias) hit count changed — re-measure against the tracked snapshot");
+  // Locked-in corpus-level counts (from the tracked snapshot). RE-MEASURED for D21
+  // (defect-fix-plan-2026-09-12): KEYWORD_MAP now carries several closed-vocabulary tags' own bare
+  // names (topic_tags:emissions chief among them -- the exact gap D21 evidenced) as keywords, which
+  // raises BEFORE/WIDE/AFTER together since the same deriveTags()/KEYWORD_MAP now matches more real
+  // corpus text at every stage, not only through ALIAS_MAP/wide-input. See derive-tags.mjs's
+  // SUPPRESS_OWN_NAME for the tags deliberately held back from this widening after being measured
+  // noisy against this SAME snapshot (fuels/transport/corridors/shipper/exporter/distributor own
+  // names, and research's bare form) -- this run's counts already reflect that narrower, evidence-based
+  // set, not the widest possible one.
+  assert.equal(beforeHit, 53, "BEFORE hit count changed -- re-measure against the tracked snapshot");
+  assert.equal(wideHit, 132, "WIDE (input-only) hit count changed -- re-measure against the tracked snapshot");
+  assert.equal(afterHit, 135, "AFTER (input+alias) hit count changed -- re-measure against the tracked snapshot");
   // Both the input fix alone and the alias vocabulary alone must move the needle in this population —
   // neither addition is a no-op, and each is separable in this measurement.
   assert.ok(wideHit > beforeHit, "wider grounded input must recover real matches the flat shape misses");

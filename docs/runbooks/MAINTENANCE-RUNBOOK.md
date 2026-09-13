@@ -476,7 +476,9 @@ decided -- no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`de
 zero proposals and asked for manual tagging; the auto path left every one of them open forever
 (`evaluateAutoAdoption` refused them as "flag carries zero proposals"). Most were record-grade stubs from
 2026-09-03 that now carry real brief text (batches 001/002, the timeline and forward-event backfills), so
-the derivation that found nothing then may find tags now. Two-part fix:
+the derivation that found nothing then may find tags now -- though, per D21 below, a thin-text stub was
+only half the cause: some of the 1,034 carried plenty of real text whose only fault was that
+`derive-tags.mjs`'s own `KEYWORD_MAP` had no keyword for the vocabulary term that text used. Two-part fix:
 - **Decider** (`apply-tags.mjs`'s `autoAdoptTags`): a zero-proposal flag (`isZeroProposalFlag`) is decided,
   never skipped, it re-derives candidates for the flag's item from its CURRENT title/
   canonical_instrument_key/what_is_it/summary/full_brief through derive-tags.mjs's own pure `deriveTags()`
@@ -493,6 +495,25 @@ the derivation that found nothing then may find tags now. Two-part fix:
   derive proposals still opens a fresh normal flag). Dedup against a prior no-derivable write uses its own
   any-status read (`readExistingNoDerivable`), so a re-run merges into the same row rather than inserting a
   duplicate. The phrase "needs manual operator tagging" is removed.
+
+**Ruling (D21, defect-fix-plan-2026-09-12, lane L13)**: even with D15's re-derivation live, the L10 dry
+run still resolved 1,019 flags "no derivable tags" -- including items whose own title said "Emissions"
+(e.g. "The Emissions Performance Standard (Enforcement) (Wales) Regulations 2015") -- because
+`derive-tags.mjs`'s `KEYWORD_MAP` was written as a proposer's hint list of narrow synonym phrases
+("emissions trading", "carbon pricing", ...), never widened when D15 promoted it into the decider's
+complete evidence rule. Fix at the source: `KEYWORD_MAP` is now GENERATED (`buildKeywordMap()`) from the
+three live vocabularies (`TOPIC_TAG_VALUES`/`COMPLIANCE_OBJECT_VALUES`/`SCENARIO_TAG_VALUES`) plus a
+curated synonym table, so every tag carries at least its own name (and, for a hyphenated tag, both the
+hyphen and space forms) as a keyword -- a tag added to a vocabulary tomorrow is covered automatically,
+with no `KEYWORD_MAP` edit required. A small, evidence-named set of single-word tags
+(`topic_tags:fuels`/`transport`/`corridors`/`packaging`/`reporting`/`research`,
+`compliance_object_tags:importer`/`shipper`/`exporter`/`distributor`) keep their pre-D21 narrower phrases
+instead of the bare name -- each was measured against the real 178-item record-grade snapshot
+(`tag-yield.fixture.test.mjs`) and found to false-positive on unrelated content (the same discipline
+`tag-aliases.mjs`'s `ALIAS_MAP` header already documents for its own rejected candidates); see
+`derive-tags.mjs`'s `SUPPRESS_OWN_NAME` for the named list and evidence. Matching stays word-boundary,
+case-insensitive, over title/instrument-key/`what_is_it`/summary/`full_brief`; evidence recorded is
+always the matched phrase. No behaviour change outside `KEYWORD_MAP`'s own coverage.
 
 **Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
 summary's `note` carries the documented fallback:

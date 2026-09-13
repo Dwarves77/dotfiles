@@ -20631,6 +20631,82 @@ for the exact tail and exit code.
 
 **Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access (no
 DB creds in this worktree; every touched function is pure or dependency-injected, proven by fixture
+
+## 2026-09-13, W9 Part 7 lane L13: D21, the tag derivation's keyword map now covers the closed vocabularies
+
+Per `docs/plans/defect-fix-plan-2026-09-12.md` (D21) and the lane table row L13. Worktree
+`wt-finishcode-0911`, branch `lane/w9-l13-tag-keywords-2026-09-13`, checked out from master `9234d76d`.
+
+**D21** (`fsi-app/src/lib/connections/derive-tags.mjs`, `KEYWORD_MAP`): the L10 dry run resolved 1,019 of
+1,105 open `flywheel-tag:` flags "no derivable tags", including items whose own title said "Emissions"
+(e.g. "The Emissions Performance Standard (Enforcement) (Wales) Regulations 2015") -- `KEYWORD_MAP` was
+written as a proposer's hint list of narrow synonym phrases (topic_tags:emissions only matched "carbon
+pricing"/"emissions trading"/"greenhouse gas strategy") and was never widened when D15 promoted it into
+the decider's complete evidence rule. Fix: `KEYWORD_MAP` is now GENERATED (`buildKeywordMap()`) from the
+three live vocabularies (`TOPIC_TAG_VALUES`/`COMPLIANCE_OBJECT_VALUES`/`SCENARIO_TAG_VALUES`, already
+extracted from their real SoT files) plus a curated synonym table (`CURATED_SYNONYMS`): every tag gets
+its own name as a keyword automatically via `ownNameForms()` (for a hyphenated tag, both the hyphen form
+and the space form), so a tag a future vocabulary edit adds can never lack a keyword -- no `KEYWORD_MAP`
+edit required. Every pre-existing phrase is preserved verbatim inside `CURATED_SYNONYMS`. Matching stays
+word-boundary, case-insensitive, over title/instrument-key (KEYWORD_MAP's own scan) and, at the decider
+(`apply-tags.mjs`, unchanged this lane), title/what_is_it/summary/full_brief; evidence recorded is always
+the matched phrase.
+
+**SUPPRESS_OWN_NAME (evidence-based exceptions).** A small, named set of single-word tags keep only their
+pre-D21 narrower phrases instead of gaining the bare tag name: `topic_tags:packaging`/`reporting` (their
+bare forms would have regressed `tag-aliases.test.mjs`'s "integration" test and `apply-tags.test.mjs`'s
+D15 re-derivation fixture respectively -- see the code comment on each), and, added after measuring the
+real 178-item record-grade snapshot `tag-yield.fixture.test.mjs` reads
+(`scripts/_snapshots/population-33749140151/census-rows.apply-ready.json`):
+`topic_tags:fuels`/`transport`/`corridors`/`research` and `compliance_object_tags:importer`/`shipper`/
+`exporter`/`distributor`. Each bare form was tried, measured to false-positive on real unrelated corpus
+items (a US air-permitting notice matched `topic_tags:corridors` and `compliance_object_tags:distributor`;
+a GB ecodesign instrument matched bare `topic_tags:research`; the corpus-wide BEFORE-hit count jumped from
+16/178 to 94/178, mostly noise), and withdrawn in favour of the narrower phrases -- the same
+measure-against-the-real-corpus discipline `tag-aliases.mjs`'s own header already documents for its
+rejected "sulphur"/"verified emissions" candidates. `topic_tags:research` (previously zero keywords, D21's
+own evidenced gap) keeps the single curated phrase "research finding" instead of bare "research".
+`topic_tags:emissions` keeps its bare name (required by the plan's own worked example and its acceptance
+test) plus "emission"/"emitting"; `compliance_object_tags:aircraft-operator` gains "air carrier"/"airline"
+(the plan's own named synonyms).
+
+**Tests** (`fsi-app/src/lib/connections/derive-tags.test.mjs`): two new D21 cases -- every tag across all
+three live vocabularies has >= 1 `KEYWORD_MAP` keyword (table-driven over the live vocabulary arrays,
+58 tags today); the plan's own title example ("The Emissions Performance Standard (Enforcement) (Wales)
+Regulations 2015") derives `topic_tags:emissions` at high confidence -- plus a negative case (a title
+carrying none of the vocabulary derives nothing). One pre-existing test's fixture-derived expected count
+was corrected (`meetsConfidence over a real deriveTags() output`, maritime fixture: 2 high-confidence
+proposals -> 3, since the fixture's own title contains the word "emissions", now correctly derived) --
+the partitioning behaviour under test is unchanged, only the fixture's proposal count grew as the fix's
+intended effect.
+
+**Corrections.** `fsi-app/src/lib/connections/tag-yield.fixture.test.mjs`'s locked-in real-corpus counts
+(not named in the dispatch's own write set, but a direct, necessary consequence of widening `KEYWORD_MAP`
+-- it derives against the SAME live `KEYWORD_MAP`, not a frozen copy) were re-measured and updated per
+that file's own documented maintenance procedure ("a snapshot change would need a re-measure"): the
+10-fixture table (idx 0/51/68/85/102/119 changed, each a real, verbatim, evidence-checked new match, per
+the file's own "NO INVENTED TAGS" tests) and the corpus-wide BEFORE/WIDE/AFTER counts (16/51/72 ->
+53/132/135). This is the file's own built-in response to a derivation-logic change, not a weakening of
+its assertions -- every "NO INVENTED TAGS"/vocabulary-membership test still holds unmodified. First
+attempt at the widening was far more aggressive (bare own name for every single-word tag with no
+exception) and pushed BEFORE to 94/178, almost entirely noise (see SUPPRESS_OWN_NAME above); narrowed
+after measuring against the real snapshot before locking in these numbers.
+
+**Glyph check.** `git diff origin/master..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'`
+prints 0 -- a mechanical first pass introduced 51 em-dash lines across the four changed files (comment
+prose habit), caught by running this exact check before commit (not after), fixed by a scripted
+line-targeted substitution (only lines the diff shows as added, not surrounding untouched context) to
+` -- `, re-verified at 0, and every affected test file re-run green afterward.
+
+**Gates.** `node --test` on every touched/consuming file green: `derive-tags.test.mjs` 26/26,
+`apply-tags.test.mjs` 66/66, `tag-ratification.test.mjs` 13/13, `tag-aliases.test.mjs` 14/14,
+`tag-input.test.mjs` 14/14, `tag-yield.fixture.test.mjs` 5/5, `propose-tags.test.mjs` 30/30 (168 total).
+Full `bash .discipline/run-test-suite.sh`: 6702 tests, 6697 pass, 0 fail, 5 skipped (pre-existing,
+unrelated), exit 0. Full preflight (`sh fsi-app/.discipline/hooks/pre-push < /dev/null`, from the
+worktree root, run once at the end): see the lane report for the step-by-step tail and exit code.
+
+**Standing constraints.** No `git stash`, no `--no-verify`, no push, no rebase. No database access (this
+module is pure -- no DB creds, no network, no LLM; every new function is pure and proven by fixture
 tests). Named paths only staged, never `git add -A`. Trailer
 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 
@@ -20883,3 +20959,15 @@ already registered); `docs/ops/session-log.md` (this entry).
 ### UX compliance (L11b)
 
 Not applicable: no `.tsx`/`.css` touched.
+- `fsi-app/src/lib/connections/derive-tags.mjs` (modified: D21, `KEYWORD_MAP` generated from
+  `buildKeywordMap()`/`ownNameForms()`/`CURATED_SYNONYMS`/`SUPPRESS_OWN_NAME`)
+- `fsi-app/src/lib/connections/derive-tags.test.mjs` (modified: two new D21 tests; one pre-existing
+  fixture count corrected)
+- `fsi-app/src/lib/connections/tag-yield.fixture.test.mjs` (modified: locked-in real-corpus counts
+  re-measured per this file's own documented procedure)
+- `docs/runbooks/MAINTENANCE-RUNBOOK.md` (modified: section 7 `tag-ratification` -- D15 ruling paragraph
+  qualified, D21 ruling paragraph added)
+- `docs/ops/session-log.md` (this entry)
+
+**Not in this entry's scope**: the tag-ratification apply this fix unblocks (coordinator dispatch, after
+this lane lands), and every other defect in the plan not named D21.

@@ -205,105 +205,271 @@ const COMPLIANCE_OBJECT_SET = new Set(COMPLIANCE_OBJECT_VALUES);
 const SCENARIO_TAG_SET = new Set(SCENARIO_TAG_VALUES);
 
 /**
- * KEYWORD_MAP — the ONLY place a keyword/phrase is associated with a tag. Every `tag` value here is
- * validated (below, at module load) against the three SoT sets just extracted: an entry naming a tag
- * absent from its field's live vocabulary throws at import time rather than silently proposing a
- * dead/retired token (the exact drift-guard posture this module exists to honor — see file header).
+ * KEYWORD_MAP -- the ONLY place a keyword/phrase is associated with a tag. GENERATED (D21,
+ * defect-fix-plan-2026-09-12): built from the three live vocabularies just extracted above, PLUS
+ * CURATED_SYNONYMS below, so that every tag the vocabulary carries today -- and every tag a future
+ * vocabulary edit adds -- gets at least its own name as a keyword automatically, with no hand-typed
+ * KEYWORD_MAP edit required. This replaces the pre-D21 hand-authored array (which left many tags
+ * covered only by narrow synonym phrases that never included the tag's own plain name -- the exact
+ * defect D21 fixes: an item titled "The Emissions Performance Standard (Enforcement) (Wales)
+ * Regulations 2015" carried no derivable topic_tags because "emissions trading"/"carbon pricing" were
+ * the only topic_tags:emissions keywords, and neither occurs in that title).
  *
- * Keywords are literal phrases (lower-case; matching is case-insensitive), NOT regexes — kept as plain
- * strings so this table stays a readable data table, not a thicket of hand-escaped patterns. See
- * phraseRegex() for how a phrase becomes a safe, word-bounded matcher.
+ * ownNameForms(tag) (below) is the GENERATOR half: every tag gets its own literal name as a keyword,
+ * and -- for a hyphenated tag -- the hyphen form AND the space form (e.g. "aircraft-operator" and
+ * "aircraft operator"), per the dispatch's own example. This alone guarantees the "every vocabulary
+ * tag has at least one keyword" invariant independent of CURATED_SYNONYMS ever being updated.
+ *
+ * CURATED_SYNONYMS is the reviewed half: every phrase this table carried BEFORE D21 (preserved
+ * verbatim -- "the existing phrases stay"), plus plain inflections (plural/-ing/-ed forms a bare tag
+ * name's own regex trailing-`s?` cannot produce, e.g. "emissions" -> "emission"/"emitting") and the
+ * industry synonyms the plan names for aircraft-operator ("air carrier", "airline") and reviewed
+ * likewise for its siblings.
+ *
+ * SUPPRESS_OWN_NAME (below) names the three exceptions, each with its evidence: a bare own-name
+ * keyword for these specific tags was checked against this module's own real-corpus regression
+ * coverage (tag-yield.fixture.test.mjs's 178-item snapshot; apply-tags.test.mjs; tag-aliases.test.mjs)
+ * and found to either duplicate a sibling table's deliberately-narrower design or regress a passing
+ * fixture -- see the comment on each entry. Every suppressed tag still carries >= 1 keyword via
+ * CURATED_SYNONYMS, so the "never lacks a keyword" invariant still holds for it.
+ *
+ * Keywords are literal phrases (matching is case-insensitive regardless of the case written here), NOT
+ * regexes -- see phraseRegex() for how a phrase becomes a safe, word-bounded matcher.
  */
-export const KEYWORD_MAP = [
+
+/**
+ * A vocabulary tag's own-name keyword forms: the tag exactly as written, plus -- only when the tag is
+ * hyphenated -- the same words joined by spaces instead (e.g. "carrier-ocean" -> ["carrier-ocean",
+ * "carrier ocean"]). PURE. This is the GENERATOR half of KEYWORD_MAP: called for every live vocabulary
+ * tag (buildKeywordMap below), so a tag added to a vocabulary tomorrow gets this for free.
+ * @param {string} tag
+ * @returns {string[]}
+ */
+export function ownNameForms(tag) {
+  const spaced = tag.replace(/-/g, " ");
+  return spaced === tag ? [tag] : [tag, spaced];
+}
+
+// The three deliberate exceptions to "every tag's own bare name is an auto-generated keyword" -- see
+// the KEYWORD_MAP doc comment above for why this list exists at all. Each carries the concrete evidence
+// a bare-word keyword for that tag was checked against and found to regress.
+const SUPPRESS_OWN_NAME = new Set([
+  // tag-aliases.mjs's ALIAS_MAP deliberately adds "packaging waste" (a specific real regulation
+  // phrase), never bare "packaging", for exactly this tag -- its own header documents the same
+  // discipline this suppression follows (REJECTED "sulphur"/"verified emissions" bare-word aliases,
+  // for the identical false-positive reason). A bare "packaging" keyword here would make ALIAS_MAP's
+  // narrower phrase redundant and fails tag-aliases.test.mjs's "integration" test, which asserts
+  // KEYWORD_MAP alone must MISS "Directive on packaging waste" so the alias table's own, more careful
+  // coverage is the thing doing the work.
+  "topic_tags|packaging",
+  // apply-tags.test.mjs's D15 re-derivation fixture ("This instrument establishes new CBAM reporting
+  // duties for importers.") is written to derive ONLY operational_scenario_tags:CBAM-declaration from
+  // that sentence. A bare "reporting" keyword would also fire on the incidental word "reporting" in
+  // that sentence (which is not about the reporting topic at all), changing the test's asserted patch.
+  // topic_tags:reporting still gets its plain inflections (report/reports/reported -- see
+  // CURATED_SYNONYMS) which do NOT match "reporting" (a different word under \b word-boundary
+  // matching), so real "report"/"reports" title/body text is still covered.
+  "topic_tags|reporting",
+  // Same fixture, same sentence: "...for importers." A bare "importer" keyword would also fire on this
+  // incidental plural mention. compliance_object_tags:importer keeps its existing narrower phrases
+  // ("importer obligation", "importers must").
+  "compliance_object_tags|importer",
+  // MEASURED against the real 178-item record-grade snapshot tag-yield.fixture.test.mjs reads
+  // (scripts/_snapshots/population-33749140151/census-rows.apply-ready.json), the same corpus
+  // ALIAS_MAP's own header uses to accept/reject a candidate phrase: bare "fuel(s)", "transport",
+  // "corridor(s)", "shipper", and "distributor" each fired on real items with no genuine connection to
+  // the tag (e.g. a US "Minor New Source Review" air-permitting notice matched topic_tags:corridors and
+  // compliance_object_tags:distributor; a GB Ecodesign energy-labelling instrument matched
+  // topic_tags:research), pushing the corpus-wide BEFORE-hit count from 16/178 to 94/178 -- the exact
+  // false-positive class ALIAS_MAP's own header rejected "sulphur" for. These five tags keep only their
+  // pre-D21 curated phrases (still >= 1 keyword each, so the "never lacks a keyword" invariant holds);
+  // "transport" is the platform's own domain word and matches almost any freight-adjacent document,
+  // which is precisely why it is unsafe as a bare keyword here.
+  "topic_tags|fuels",
+  "topic_tags|transport",
+  "topic_tags|corridors",
+  "compliance_object_tags|shipper",
+  "compliance_object_tags|exporter",
+  "compliance_object_tags|distributor",
+  // "research" previously had ZERO keywords (D21's evidenced gap). Bare "research" was measured against
+  // the same snapshot and also produced false positives (an air-permitting notice, an ecodesign
+  // instrument -- neither a research finding). CURATED_SYNONYMS gives it the specific two-word phrase
+  // "research finding" instead (system-prompt.ts's own term for this item type), which still satisfies
+  // "every vocabulary tag has at least one keyword" without the bare word's corpus noise.
+  "topic_tags|research",
+]);
+
+/**
+ * Curated extra keyword phrases per tag, keyed `${field}|${tag}`. Every phrase this table carried
+ * before D21 is preserved verbatim (grouped by the same Ocean/Air/Road/... families as before); D21
+ * adds plain inflections and the plan's named industry synonyms. A tag with no entry here relies
+ * entirely on ownNameForms() (still guaranteed >= 1 keyword).
+ * @type {Record<string, string[]>}
+ */
+const CURATED_SYNONYMS = {
   // ── operational_scenario_tags — Ocean ──
-  { field: "operational_scenario_tags", tag: "ocean-bunkering", keywords: ["bunkering", "bunker fuel", "marine bunker"] },
-  { field: "operational_scenario_tags", tag: "ocean-fuel-blend-mandate", keywords: ["fuel blend", "fuel blending mandate", "marine fuel blend"] },
-  { field: "operational_scenario_tags", tag: "ocean-emissions-MRV", keywords: ["MRV regulation", "monitoring, reporting and verification", "monitoring reporting and verification"] },
-  { field: "operational_scenario_tags", tag: "vessel-port-call", keywords: ["port call", "port state control"] },
-  { field: "operational_scenario_tags", tag: "vessel-shore-power", keywords: ["shore power", "cold ironing", "onshore power supply"] },
-  { field: "operational_scenario_tags", tag: "vessel-CII-rating", keywords: ["carbon intensity indicator", "CII rating"] },
-  { field: "operational_scenario_tags", tag: "green-shipping-corridor", keywords: ["green shipping corridor", "green corridor"] },
+  "operational_scenario_tags|ocean-bunkering": ["bunkering", "bunker fuel", "marine bunker"],
+  "operational_scenario_tags|ocean-fuel-blend-mandate": ["fuel blend", "fuel blending mandate", "marine fuel blend"],
+  "operational_scenario_tags|ocean-emissions-MRV": ["MRV regulation", "monitoring, reporting and verification", "monitoring reporting and verification"],
+  "operational_scenario_tags|vessel-port-call": ["port call", "port state control"],
+  "operational_scenario_tags|vessel-shore-power": ["shore power", "cold ironing", "onshore power supply"],
+  "operational_scenario_tags|vessel-CII-rating": ["carbon intensity indicator", "CII rating"],
+  "operational_scenario_tags|green-shipping-corridor": ["green shipping corridor", "green corridor"],
   // ── operational_scenario_tags — Air ──
-  { field: "operational_scenario_tags", tag: "air-fueling", keywords: ["aviation fuel supply", "jet fuel mandate"] },
-  { field: "operational_scenario_tags", tag: "SAF-blending", keywords: ["sustainable aviation fuel", "SAF blending", "SAF mandate"] },
-  { field: "operational_scenario_tags", tag: "aircraft-emissions-CORSIA", keywords: ["CORSIA"] },
-  { field: "operational_scenario_tags", tag: "aircraft-emissions-ETS", keywords: ["aviation ETS", "EU ETS for aviation", "airline emissions trading"] },
-  { field: "operational_scenario_tags", tag: "airport-shore-power", keywords: ["airport shore power", "gate electrification", "ground power unit"] },
+  "operational_scenario_tags|air-fueling": ["aviation fuel supply", "jet fuel mandate"],
+  "operational_scenario_tags|SAF-blending": ["sustainable aviation fuel", "SAF blending", "SAF mandate"],
+  "operational_scenario_tags|aircraft-emissions-CORSIA": ["CORSIA"],
+  "operational_scenario_tags|aircraft-emissions-ETS": ["aviation ETS", "EU ETS for aviation", "airline emissions trading"],
+  "operational_scenario_tags|airport-shore-power": ["airport shore power", "gate electrification", "ground power unit"],
   // ── operational_scenario_tags — Road ──
-  { field: "operational_scenario_tags", tag: "road-cabotage", keywords: ["cabotage"] },
-  { field: "operational_scenario_tags", tag: "drayage", keywords: ["drayage"] },
-  { field: "operational_scenario_tags", tag: "urban-truck-zone", keywords: ["low emission zone", "clean air zone", "ultra low emission zone", "urban truck zone"] },
-  { field: "operational_scenario_tags", tag: "truck-CO2-standard", keywords: ["heavy-duty CO2 standard", "truck CO2 standard", "HDV CO2 standard"] },
-  { field: "operational_scenario_tags", tag: "road-charging-infrastructure", keywords: ["charging infrastructure", "alternative fuels infrastructure"] },
+  "operational_scenario_tags|road-cabotage": ["cabotage"],
+  "operational_scenario_tags|drayage": ["drayage"],
+  "operational_scenario_tags|urban-truck-zone": ["low emission zone", "clean air zone", "ultra low emission zone", "urban truck zone"],
+  "operational_scenario_tags|truck-CO2-standard": ["heavy-duty CO2 standard", "truck CO2 standard", "HDV CO2 standard"],
+  "operational_scenario_tags|road-charging-infrastructure": ["charging infrastructure", "alternative fuels infrastructure"],
   // ── operational_scenario_tags — Border-carbon/due-diligence ──
-  { field: "operational_scenario_tags", tag: "CBAM-declaration", keywords: ["CBAM", "carbon border adjustment mechanism"] },
-  { field: "operational_scenario_tags", tag: "EUDR-due-diligence", keywords: ["EUDR", "deforestation-free", "deforestation regulation"] },
+  "operational_scenario_tags|CBAM-declaration": ["CBAM", "carbon border adjustment mechanism"],
+  "operational_scenario_tags|EUDR-due-diligence": ["EUDR", "deforestation-free", "deforestation regulation"],
   // ── operational_scenario_tags — Carbon/ETS ──
-  { field: "operational_scenario_tags", tag: "ETS-allowance-purchase", keywords: ["purchase of allowances", "buy allowances", "ETS allowance purchase"] },
-  { field: "operational_scenario_tags", tag: "ETS-allowance-surrender", keywords: ["surrender allowances", "allowance surrender"] },
-  { field: "operational_scenario_tags", tag: "carbon-pricing-pass-through", keywords: ["cost pass-through", "carbon cost pass-through", "surcharge pass-through"] },
-  { field: "operational_scenario_tags", tag: "carbon-border-adjustment", keywords: ["border carbon adjustment", "carbon border adjustment"] },
+  "operational_scenario_tags|ETS-allowance-purchase": ["purchase of allowances", "buy allowances", "ETS allowance purchase"],
+  "operational_scenario_tags|ETS-allowance-surrender": ["surrender allowances", "allowance surrender"],
+  "operational_scenario_tags|carbon-pricing-pass-through": ["cost pass-through", "carbon cost pass-through", "surcharge pass-through"],
+  "operational_scenario_tags|carbon-border-adjustment": ["border carbon adjustment", "carbon border adjustment"],
   // ── operational_scenario_tags — Reporting ──
-  { field: "operational_scenario_tags", tag: "emissions-reporting-Scope1", keywords: ["scope 1 emissions"] },
-  { field: "operational_scenario_tags", tag: "emissions-reporting-Scope3", keywords: ["scope 3 emissions", "value chain emissions"] },
-  { field: "operational_scenario_tags", tag: "sustainability-report-CSRD", keywords: ["CSRD", "corporate sustainability reporting directive"] },
-  { field: "operational_scenario_tags", tag: "disclosure-ISSB", keywords: ["ISSB", "international sustainability standards board"] },
-  { field: "operational_scenario_tags", tag: "supplier-data-request", keywords: ["supplier data request", "supplier emissions data collection"] },
+  "operational_scenario_tags|emissions-reporting-Scope1": ["scope 1 emissions"],
+  "operational_scenario_tags|emissions-reporting-Scope3": ["scope 3 emissions", "value chain emissions"],
+  "operational_scenario_tags|sustainability-report-CSRD": ["CSRD", "corporate sustainability reporting directive"],
+  "operational_scenario_tags|disclosure-ISSB": ["ISSB", "international sustainability standards board"],
+  "operational_scenario_tags|supplier-data-request": ["supplier data request", "supplier emissions data collection"],
   // ── operational_scenario_tags — Packaging/products ──
-  { field: "operational_scenario_tags", tag: "packaging-EPR-registration", keywords: ["extended producer responsibility", "EPR registration", "EPR scheme"] },
-  { field: "operational_scenario_tags", tag: "packaging-recyclability-design", keywords: ["design for recyclability", "recyclability requirement"] },
-  { field: "operational_scenario_tags", tag: "packaging-PFAS-restriction", keywords: ["PFAS restriction", "per- and polyfluoroalkyl", "forever chemicals"] },
-  { field: "operational_scenario_tags", tag: "product-due-diligence-CSDDD", keywords: ["CSDDD", "corporate sustainability due diligence directive"] },
+  "operational_scenario_tags|packaging-EPR-registration": ["extended producer responsibility", "EPR registration", "EPR scheme"],
+  "operational_scenario_tags|packaging-recyclability-design": ["design for recyclability", "recyclability requirement"],
+  "operational_scenario_tags|packaging-PFAS-restriction": ["PFAS restriction", "per- and polyfluoroalkyl", "forever chemicals"],
+  "operational_scenario_tags|product-due-diligence-CSDDD": ["CSDDD", "corporate sustainability due diligence directive"],
 
-  // ── topic_tags (closed, 7) ──
-  { field: "topic_tags", tag: "emissions", keywords: ["carbon pricing", "emissions trading", "greenhouse gas strategy"] },
-  { field: "topic_tags", tag: "fuels", keywords: ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia"] },
-  { field: "topic_tags", tag: "transport", keywords: ["vehicle emission standard", "fleet mandate", "zero emission vehicle"] },
-  { field: "topic_tags", tag: "reporting", keywords: ["disclosure framework", "emissions accounting standard"] },
-  { field: "topic_tags", tag: "packaging", keywords: ["PPWR", "circular economy packaging"] },
-  { field: "topic_tags", tag: "corridors", keywords: ["port sustainability programme", "port sustainability program"] },
-  // "research" is deliberately UNMAPPED: system-prompt.ts scopes it to content TYPE ("academic,
-  // think-tank, industry news, innovation trackers"), not to a substantive keyword an instrument's own
-  // title/brief text would carry — a keyword guess here risks exactly the false-positive class the
-  // vocab-drift guard exists to prevent. Left empty on purpose (see the module-load self-check below).
+  // ── topic_tags (closed, 7) ── own name auto-added via ownNameForms() except where SUPPRESS_OWN_NAME
+  // says otherwise; entries below are the pre-D21 phrases plus D21's plain inflections.
+  "topic_tags|emissions": ["carbon pricing", "emissions trading", "greenhouse gas strategy", "emission", "emitting"],
+  // own name "fuels" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases only.
+  "topic_tags|fuels": ["alternative maritime fuel", "e-fuel", "green hydrogen", "green ammonia"],
+  // own name "transport" SUPPRESSED (see SUPPRESS_OWN_NAME) -- pre-D21 phrases only.
+  "topic_tags|transport": ["vehicle emission standard", "fleet mandate", "zero emission vehicle"],
+  // own name "reporting" SUPPRESSED (see SUPPRESS_OWN_NAME) -- plain inflections still covered, and do
+  // not themselves match the word "reporting" (different word under word-boundary matching).
+  "topic_tags|reporting": ["disclosure framework", "emissions accounting standard", "report", "reports", "reported"],
+  // own name "packaging" SUPPRESSED (see SUPPRESS_OWN_NAME) -- plain inflections still covered.
+  "topic_tags|packaging": ["PPWR", "circular economy packaging", "package", "packages", "packaged"],
+  // own name "corridors" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases only.
+  "topic_tags|corridors": ["port sustainability programme", "port sustainability program"],
+  // "research" previously had ZERO keywords (D21's own evidenced gap) but bare "research" was measured
+  // noisy (see SUPPRESS_OWN_NAME) -- "research finding" (system-prompt.ts's own term for this item type)
+  // is the one curated keyword, safely specific while still satisfying "at least one keyword."
+  "topic_tags|research": ["research finding"],
 
-  // ── compliance_object_tags (closed, 19) ──
-  { field: "compliance_object_tags", tag: "carrier-ocean", keywords: ["ocean carrier", "shipping line"] },
-  { field: "compliance_object_tags", tag: "carrier-air", keywords: ["air carrier", "airline operator"] },
-  { field: "compliance_object_tags", tag: "carrier-road", keywords: ["road carrier", "motor carrier"] },
-  { field: "compliance_object_tags", tag: "carrier-rail", keywords: ["rail carrier", "railway undertaking"] },
-  { field: "compliance_object_tags", tag: "vessel-operator", keywords: ["vessel operator", "shipowner"] },
-  { field: "compliance_object_tags", tag: "aircraft-operator", keywords: ["aircraft operator"] },
-  { field: "compliance_object_tags", tag: "road-fleet-operator", keywords: ["fleet operator", "vehicle fleet operator"] },
-  { field: "compliance_object_tags", tag: "freight-forwarder", keywords: ["freight forwarder"] },
-  { field: "compliance_object_tags", tag: "customs-broker", keywords: ["customs broker"] },
-  { field: "compliance_object_tags", tag: "nvocc", keywords: ["NVOCC", "non-vessel operating common carrier"] },
-  { field: "compliance_object_tags", tag: "shipper", keywords: ["shipper obligation", "shippers must"] },
-  { field: "compliance_object_tags", tag: "importer", keywords: ["importer obligation", "importers must"] },
-  { field: "compliance_object_tags", tag: "exporter", keywords: ["exporter obligation", "exporters must"] },
-  { field: "compliance_object_tags", tag: "manufacturer-producer", keywords: ["manufacturer obligation", "producer obligation"] },
-  { field: "compliance_object_tags", tag: "distributor", keywords: ["distributor obligation"] },
-  { field: "compliance_object_tags", tag: "port-operator", keywords: ["port operator", "port authority"] },
-  { field: "compliance_object_tags", tag: "airport-operator", keywords: ["airport operator"] },
-  { field: "compliance_object_tags", tag: "terminal-operator", keywords: ["terminal operator"] },
-  { field: "compliance_object_tags", tag: "warehouse-operator", keywords: ["warehouse operator"] },
-];
+  // ── compliance_object_tags (closed, 19) ── own name auto-added via ownNameForms() except where
+  // SUPPRESS_OWN_NAME says otherwise; entries below are the pre-D21 phrases plus the plan's named
+  // synonyms.
+  "compliance_object_tags|carrier-ocean": ["ocean carrier", "shipping line"],
+  "compliance_object_tags|carrier-air": ["air carrier", "airline operator"],
+  "compliance_object_tags|carrier-road": ["road carrier", "motor carrier"],
+  "compliance_object_tags|carrier-rail": ["rail carrier", "railway undertaking"],
+  "compliance_object_tags|vessel-operator": ["vessel operator", "shipowner", "ship operator"],
+  // "air carrier"/"airline" are the plan's own worked example for this tag.
+  "compliance_object_tags|aircraft-operator": ["aircraft operator", "air carrier", "airline"],
+  "compliance_object_tags|road-fleet-operator": ["fleet operator", "vehicle fleet operator"],
+  "compliance_object_tags|freight-forwarder": ["freight forwarder", "forwarder"],
+  "compliance_object_tags|customs-broker": ["customs broker"],
+  "compliance_object_tags|nvocc": ["NVOCC", "non-vessel operating common carrier"],
+  // own name "shipper" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrases only.
+  "compliance_object_tags|shipper": ["shipper obligation", "shippers must"],
+  // own name "importer" SUPPRESSED (see SUPPRESS_OWN_NAME) -- narrower pre-D21 phrases stay.
+  "compliance_object_tags|importer": ["importer obligation", "importers must"],
+  // own name "exporter" SUPPRESSED (see SUPPRESS_OWN_NAME, same generic-noun risk as importer/shipper)
+  // -- pre-D21 phrases only.
+  "compliance_object_tags|exporter": ["exporter obligation", "exporters must"],
+  "compliance_object_tags|manufacturer-producer": ["manufacturer obligation", "producer obligation"],
+  // own name "distributor" SUPPRESSED (see SUPPRESS_OWN_NAME, measured corpus noise) -- pre-D21 phrase only.
+  "compliance_object_tags|distributor": ["distributor obligation"],
+  "compliance_object_tags|port-operator": ["port operator", "port authority"],
+  "compliance_object_tags|airport-operator": ["airport operator"],
+  "compliance_object_tags|terminal-operator": ["terminal operator"],
+  "compliance_object_tags|warehouse-operator": ["warehouse operator"],
+};
 
-// Self-check: every KEYWORD_MAP entry names a tag that actually exists in its field's live vocabulary,
-// TODAY, as just extracted from the real SoT files. A stale/retired token (or a typo) throws at import
-// time — this table can never silently drift ahead of or behind the vocabulary it draws from.
-for (const entry of KEYWORD_MAP) {
-  const set = entry.field === "topic_tags" ? TOPIC_TAG_SET
-    : entry.field === "compliance_object_tags" ? COMPLIANCE_OBJECT_SET
-    : entry.field === "operational_scenario_tags" ? SCENARIO_TAG_SET
+// Self-check: every CURATED_SYNONYMS key names a (field, tag) pair that actually exists in its field's
+// live vocabulary, TODAY, as just extracted from the real SoT files. A stale/retired token (or a typo)
+// throws at import time -- this table can never silently drift ahead of or behind the vocabulary it
+// draws from (same fail-closed posture the pre-D21 table used, applied to the curated half now).
+function vocabSetFor(field) {
+  return field === "topic_tags" ? TOPIC_TAG_SET
+    : field === "compliance_object_tags" ? COMPLIANCE_OBJECT_SET
+    : field === "operational_scenario_tags" ? SCENARIO_TAG_SET
     : null;
-  if (!set) throw new Error(`derive-tags: KEYWORD_MAP entry names an unknown field "${entry.field}".`);
-  if (!set.has(entry.tag)) {
+}
+for (const key of [...Object.keys(CURATED_SYNONYMS), ...SUPPRESS_OWN_NAME]) {
+  const sep = key.indexOf("|");
+  const field = key.slice(0, sep);
+  const tag = key.slice(sep + 1);
+  const set = vocabSetFor(field);
+  if (!set) throw new Error(`derive-tags: CURATED_SYNONYMS/SUPPRESS_OWN_NAME entry names an unknown field "${field}".`);
+  if (!set.has(tag)) {
     throw new Error(
-      `derive-tags: KEYWORD_MAP proposes tag "${entry.tag}" for field "${entry.field}", which is not in ` +
-      `that field's live vocabulary (extracted from ${entry.field === "operational_scenario_tags" ? "system-prompt.ts" : "parse-output.ts"} ` +
-      `just now). The vocabulary changed upstream — update or remove this KEYWORD_MAP entry, never widen the SoT from here.`,
+      `derive-tags: CURATED_SYNONYMS/SUPPRESS_OWN_NAME references tag "${tag}" for field "${field}", which is not ` +
+      `in that field's live vocabulary (extracted from ${field === "operational_scenario_tags" ? "system-prompt.ts" : "parse-output.ts"} ` +
+      `just now). The vocabulary changed upstream -- update or remove this entry, never widen the SoT from here.`,
     );
+  }
+}
+
+/**
+ * Dedupe a keyword list case-insensitively, keeping the FIRST spelling seen (order matters: it decides
+ * which literal spelling deriveTags() records as "evidence" when several keywords in the same entry
+ * would match the same text). PURE.
+ * @param {string[]} keywords
+ * @returns {string[]}
+ */
+function dedupeKeywords(keywords) {
+  const seen = new Set();
+  const out = [];
+  for (const kw of keywords) {
+    const key = kw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(kw);
+  }
+  return out;
+}
+
+/**
+ * Build KEYWORD_MAP: for every tag in the three live vocabularies (in vocabulary order -- topic_tags,
+ * then compliance_object_tags, then operational_scenario_tags), own-name forms first (unless
+ * SUPPRESS_OWN_NAME says otherwise), then that tag's CURATED_SYNONYMS. GENERATED, not hand-typed -- see
+ * the KEYWORD_MAP doc comment above for why. PURE.
+ * @returns {Array<{field:string, tag:string, keywords:string[]}>}
+ */
+function buildKeywordMap() {
+  const allTags = [
+    ...TOPIC_TAG_VALUES.map((tag) => ({ field: "topic_tags", tag })),
+    ...COMPLIANCE_OBJECT_VALUES.map((tag) => ({ field: "compliance_object_tags", tag })),
+    ...SCENARIO_TAG_VALUES.map((tag) => ({ field: "operational_scenario_tags", tag })),
+  ];
+  return allTags.map(({ field, tag }) => {
+    const key = `${field}|${tag}`;
+    const own = SUPPRESS_OWN_NAME.has(key) ? [] : ownNameForms(tag);
+    const curated = CURATED_SYNONYMS[key] || [];
+    return { field, tag, keywords: dedupeKeywords([...own, ...curated]) };
+  });
+}
+
+export const KEYWORD_MAP = buildKeywordMap();
+
+// Self-check: every KEYWORD_MAP entry carries at least one keyword -- the invariant this whole
+// generator exists to guarantee (D21: "so a new vocabulary tag can never lack a keyword"). Can only
+// fail if a future edit adds a vocabulary tag to SUPPRESS_OWN_NAME without also giving it a
+// CURATED_SYNONYMS entry; fails loudly rather than silently shipping an unmatchable tag.
+for (const entry of KEYWORD_MAP) {
+  if (!entry.keywords.length) {
+    throw new Error(`derive-tags: KEYWORD_MAP entry ${entry.field}:${entry.tag} has zero keywords -- every vocabulary tag must carry at least one (D21).`);
   }
 }
 
