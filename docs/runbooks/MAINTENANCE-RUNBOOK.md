@@ -2763,50 +2763,33 @@ report with zero writes, to see the live eligible/HOLD/decided split before ever
 
 ---
 
-## 35. `acquire-primaries`
+## 35. `close-acquire-primaries-holds` (supersedes the retired `acquire-primaries` step)
 
-**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). Written from
-`scripts/remediation/acquire-primaries-batch.mjs`'s own header.
+**RETIRED, D17 family 10, defect-fix-plan-2026-09-12 (lane L11).** `scripts/remediation/
+acquire-primaries-batch.mjs` (the one-shot 2026-07-16 batch script this section used to document) and its
+MAINT wrapper `scripts/maintenance/acquire-primaries.mjs` are DELETED: the enumeration
+(`docs/audits/quarantine-and-human-flag-writers-2026-09-12.md`, Family 10) found this script's
+`integrity_flags` writer (`created_by='acquire-primaries-batch-2026-07-16'`) had NO reader anywhere -- a
+write-only orphan. The free capture path and `provenance-heal.mjs` (this runbook's own `provenance-heal`
+section) supersede it for the same job.
 
-**Purpose**: batch free-acquisition of authoritative primaries (operator dispatch 2026-07-16, "collect
-all the data and source everything for all items") — the o9 template at scale, $0, existing mechanisms
-only. Per non-verified item: skip if it already holds a floor-qualifying path-'a' snapshot; else fetch
-`source_url` + extract portal deep-links + pool corroborator URLs as candidates; for each candidate
-(bounded), free-capture (fetch → unpdf for PDF / htmlToText for HTML), resolve the host's CODIFIED tier
-(NULL = not knowable → HOLD, never a guessed tier), and accept the FIRST candidate at officialness path
-'a'. On accept: register the source at its honest codified tier, `writeSnapshot` (the sole writer of
-`raw_fetches` on this operator-fired acquire path — see `docs/inventories/shared-dataset-ownership.md`
-item 11), and repoint the item off any portal. On no-accept: HOLD (`integrity_flags`, honest reason,
-never a guessed tier).
+**Purpose (this step)**: resolve the 19 rows the deleted writer already left behind
+(`created_by='acquire-primaries-batch-2026-07-16'`, `status IN ('open','in_review')`). Every row closes
+the same way -- there is no per-row decision left to make (the writer and its only possible reader are
+both gone); resolution_note is fixed: "superseded by the free capture path and provenance-heal (task
+7.3); item carried in the 7.3 residue report."
 
-**What it does NOT do**: never guesses a source tier; never fabricates a certificate; a JS/bot-walled
-portal with no free candidate HOLDS for manual Chrome capture, never a forced acquire.
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`).
 
-**Upstream**: `scripts/lib/db.mjs` (`registerSource`, `guardedUpdate`, `guardedInsert`),
-`src/lib/sources/snapshot-store.mjs` (`writeSnapshot`), `officialness.mjs`, `portal-links.mjs`,
-`pdf-extract.mjs`, `host-authority.ts`, `source-blocks.mjs` — all called unmodified. The wrapper
-(`scripts/maintenance/acquire-primaries.mjs`) wraps the target script as a SUBPROCESS (not an in-process
-import), since even its own dry path performs real network fetches — see that wrapper's own header for
-why.
+**Ruling**: D17 family 10 (defect-fix-plan-2026-09-12, ruling table row 10).
 
-**Ruling**: operator dispatch 2026-07-16 (verbatim in the target script's own header).
+**Dispatch**: no `--arg`. `mode=dry` reports the would-close count and a 20-row sample; `mode=apply`
+resolves every matched row via the guarded path and reads back the remaining open count (expected 0).
 
-**Dispatch**: `arg` names the item scope to acquire for (`--only=<legacy_id,...>` — there is no separate
-worklist FILE; the script reads live from `intelligence_items`, so `arg` IS "the worklist" this run
-drives; omit for the full non-verified set). **APPLY ONLY in practice** — this step is deliberately
-absent from the `all` dry fan-out (`maintenance.yml`'s `if:` for this step has no `|| (dry && all)`
-branch): even a NAMED dry dispatch performs real, live network fetches with no persisted effect, so it
-must never fire from a blanket sweep. `mode=apply` adds `--execute` (writes: register + snapshot +
-repoint).
-
-**Artifact / read back**: `summary.json` under `$OUT_ROOT/acquire-primaries/`, parsed from the target
-script's own `scripts/tmp/acquire-batch-{applied,dryrun}.json` manifest (acquired/already-held/held/exempt
-counts). Confirm against `SELECT count(*) FROM raw_fetches WHERE created_at > '<run start>'` and a spot
-`SELECT source_id, source_url FROM intelligence_items WHERE id = ANY(<acquired ids>)`.
-
-**First dispatch** (coordinator): `mode=dry`, `step=acquire-primaries`, `arg` = a small named scope
-(2-3 `legacy_id`s known to be non-verified with a portal `source_url`) — a bounded first look at the
-acquire path's candidate selection and officialness verdicts before ever spending a write.
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/close-acquire-primaries-holds/`
+(`counts.would_close` / `counts.write.updated` / `read_back.remaining_open`). Confirm against
+`SELECT count(*) FROM integrity_flags WHERE created_by = 'acquire-primaries-batch-2026-07-16' AND status
+IN ('open','in_review')` (expect 0 after apply).
 
 ---
 
@@ -3610,6 +3593,166 @@ a governed-column literal not in the tracked allowed set) and `scripts/verify/ch
 DATABASE table writers (`intelligence_items`, `integrity_flags`, etc.); this step writes a docs/
 inventories JSON FILE, never a database row, so it is out of that registry's scope by design (confirmed
 against the registry's own scan-scope comment before skipping the row).
+## 52. `resolve-refetch-holds`
+
+**New this runbook, D17 family 11, defect-fix-plan-2026-09-12 (lane L11).**
+
+**Purpose**: resolves the `refetch-capped-worklist` holds `scripts/remediation/
+refetch-capped-worklist.mjs`'s own EXECUTE mode writes when a legacy-capped row's fresh re-capture no
+longer verifies a previously grounded FACT span (a real ADR-016 provenance question, not a proposer
+asking a human for nothing -- the enumeration, Family 11, found no dedicated resolver). Per held item:
+re-check every FACT claim's verbatim `source_span` against the item's newest stored capture, ZERO fetch
+(`cheapVerifyClaims`'s own primitives, `src/lib/sources/cheap-verify.mjs` -- the SAME zero-fetch,
+snapshot-first entry point `verify-item.mjs`/`regen-quarantined.mjs` already use; see this script's own
+header for why the plan's literal "groundBrief" text is not the mechanism this reuses -- a paid Sonnet
+call is incompatible with this lane's own $0 constraint and with the plan's own "snapshot first, zero
+fetch" parenthetical in the same sentence). Outcomes: `re_grounded` (every FACT span still verifies),
+`no_capture` / `no_fact_claims` (nothing to check), or a drifted span is SUPERSEDED through the existing
+`claim_versions` mechanism (`src/lib/agent/ledger-apply.mjs`'s own `versionPayload` row shape,
+`supersede_reason='changed'`) -- the item's own `provenance_status` is then re-read: `superseded` if it
+stays verified on its other claims, `quarantined` if the provenance gate's own trigger flips it (an
+ENQUEUE into Family 1's standing investigation, `regen-quarantined.mjs` -- no second mechanism).
+
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedInsert`, `guardedUpdate`),
+`src/lib/agent/timeline-backfill-derive.mjs` (`pickBestCapture`), `src/lib/sources/cheap-verify.mjs`
+(`normalizeForMatch`, `spanPresent`), `src/lib/agent/ledger-apply.mjs` (`versionPayload`, now exported for
+this reuse) -- all called unmodified.
+
+**Ruling**: D17 family 11 (defect-fix-plan-2026-09-12, ruling table row 11).
+
+**Dispatch**: no `--arg`. $0, no LLM, no fetch, in both modes.
+
+**Artifact / read back**: `summary.json`'s `counts.by_outcome` / `counts.superseded_claims` /
+`counts.flags_resolved`. Confirm against `SELECT count(*) FROM integrity_flags WHERE created_by =
+'refetch-capped-worklist' AND status IN ('open','in_review')` (expect 0 after apply), `SELECT count(*)
+FROM claim_versions WHERE supersede_reason = 'changed' AND created_at > '<run start>'`, and `SELECT
+provenance_status FROM intelligence_items WHERE id = ANY(<affected item ids>)`.
+
+**First dispatch** (coordinator): `mode=dry` first -- the 8 live holds are few enough to read the full
+`sample_by_outcome` in one pass before ever applying.
+
+---
+
+## 53. `close-coverage-reflections`
+
+**New this runbook, D17 family 13, defect-fix-plan-2026-09-12 (lane L11).**
+
+**Purpose**: one-time drain of the coverage-gap (`flywheel-gap:*`, 18 open) and anticipated-coverage
+(`flywheel-anticipate:*`, 6 open) backlog opened before `scripts/connections/analyze-corpus.mjs` started
+writing these findings ALREADY RESOLVED (`src/lib/connections/coverage-reflection.mjs`'s
+`reflectResolvedFlags`, wired into `analyze-corpus.mjs` the same commit as this step). Both families are
+product-scope reflections, not questions to a person (the coordinator's own ruling, plan row 13); every
+row resolves with the SAME note the fresh-insert path now uses: "reflected in the coverage view; no
+per-row decision pending."
+
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`),
+`src/lib/connections/flag-namespaces.mjs` (`GAP_NAMESPACE`, `ANTICIPATE_NAMESPACE`),
+`src/lib/connections/coverage-reflection.mjs` (`RESOLVED_REFLECTION_NOTE`, shared with the fresh-insert
+path so a reader cannot tell backlog from fresh).
+
+**Ruling**: D17 family 13 (defect-fix-plan-2026-09-12, ruling table row 13).
+
+**Dispatch**: no `--arg`. `mode=dry` reports the by-family would-close counts; `mode=apply` resolves
+every matched row.
+
+**Artifact / read back**: `summary.json`'s `counts.by_family` / `read_back.remaining_open`. Confirm
+against `SELECT count(*) FROM integrity_flags WHERE (created_by LIKE 'flywheel-gap:%' OR created_by LIKE
+'flywheel-anticipate:%') AND status IN ('open','in_review')` (expect 0 after apply).
+`scripts/verify/population-report.mjs` carries no dedicated line for these two namespaces today
+[CONFIRMED, no `flywheel-gap`/`flywheel-anticipate` reference anywhere in that file] -- the plan's own
+"population-report.mjs keeps counting them" premise does not hold; nothing there needed adjusting.
+
+---
+
+## 54. `close-legal-confirmation-rows`
+
+**New this runbook, D17 family 14, defect-fix-plan-2026-09-12 (lane L11).**
+
+**Purpose**: resolves the two per-item carve-outs `close-run-logs.mjs` (section 41) deliberately leaves open --
+`isAuthorshipRunSummary`/`isLegacyRemediationRunSummary` are IMPORTED unmodified, never a second,
+divergent vocabulary:
+
+1. **authorship-shard-\* BLOCKER rows** -- entity-to-DEFINED-ROLE matching is a legal determination the
+   platform never makes (`fsi-app/.claude/CLAUDE.md`'s standing "no legal role determination" rule).
+   RESOLVED with "Legal Confirmation Required; no platform determination (environmental-policy skill);
+   recorded for counsel", `resolved_by='close-legal-confirmation-rows'`.
+   `scripts/verify/population-report.mjs` gains a `legal-confirmation` STORES line counting them
+   (informational, never a defect gate -- `total===filled` always, so it reads FILLED/green the moment any
+   row exists).
+2. **legacy-remediation PARKED rows** (the task 7.3 residue) -- converted to a VALID RD-6 deferral
+   (`scripts/lib/deferral.mjs`'s `assertValidDeferral`): a NEW companion `disposition_deferred`
+   `integrity_flags` row is written (the SAME mechanism `scripts/verify/quarantine-disposition-audit.mjs`
+   already reads), carrying `{ reason, deferred_until: '2026-10-15', owner: 'operator',
+   resolution_event: 'acquire lock lifted' }`. **[CONFIRMED] deviation, disclosed**: the plan's own
+   literal reason text ("paid re-acquire behind the operator's acquire lock") carries none of
+   `isValidDeferral`'s required disposition-path keywords and would be REJECTED by the guard; this step's
+   `LEGACY_REMEDIATION_DEFERRAL` reason preserves the exact same meaning, reworded to name "reground ...
+   against a primary source" so the guard's own keyword requirement is satisfied. The ORIGINAL
+   legacy-remediation row is left untouched (still open -- task 7.3 still owns closing it once the pool
+   actually re-grounds); the full `subject_ref`/flag-id list is carried in this run's own `summary.json`
+   under `task_7_3_residue.deferred` for the task 7.3 residue report.
+
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`, `guardedInsert`),
+`scripts/maintenance/close-run-logs.mjs` (`isAuthorshipRunSummary`, `isLegacyRemediationRunSummary`),
+`scripts/lib/deferral.mjs` (`assertValidDeferral`).
+
+**Ruling**: D17 family 14 (defect-fix-plan-2026-09-12, ruling table row 14).
+
+**Dispatch**: no `--arg`. `mode=dry` reports the authorship/legacy candidate counts and samples;
+`mode=apply` resolves the authorship-shard set and writes the legacy-remediation deferrals.
+
+**Artifact / read back**: `summary.json`'s `counts.authorship_blockers` / `counts.legacy_parked` /
+`task_7_3_residue.deferred`. Confirm against `SELECT count(*) FROM integrity_flags WHERE created_by ILIKE
+'authorship-shard-%' AND resolved_by = 'close-legal-confirmation-rows'` and `SELECT count(*) FROM
+integrity_flags WHERE created_by = 'disposition_deferred' AND status = 'open' AND
+recommended_actions::text LIKE '%acquire lock lifted%'`.
+
+**Time-bound note**: `LEGACY_REMEDIATION_DEFERRAL.deferred_until` is the fixed date `2026-10-15` per the
+plan's own wording -- `assertValidDeferral` throws at MODULE LOAD if this payload is ever edited into an
+invalid shape, and re-validates the future-date check against wall-clock time on every write, so this
+step naturally refuses to run past that date without a deliberate update to the payload (the same
+self-resurrection property RD-6 gives every deferral).
+
+---
+
+## 55. `close-flags-for-verified-items`
+
+**New this runbook, D17 family 14 CORRECTION, defect-fix-plan-2026-09-12 (lane L11, coordinator
+directive 2026-09-12).**
+
+**THE CORRECTION**: this lane's first pass wrongly guessed `gate-a-verifier-sweep` was a run-log family
+and added a [HYPOTHESIS] fixture vocabulary to `close-run-logs.mjs`'s allowlist (section 41). Live SQL
+over the 37 open rows [CONFIRMED by the coordinator] found they are PER-ITEM findings, two shapes: "Item
+<title> has no full_brief at all (NULL/empty) while quarantined; a structural authoring gap" and
+"<title>: two of three Gate A orphans fixed this pass; the remaining orphan is <named>" -- never a run
+summary. The `close-run-logs.mjs` guess is reverted (back to its original three families, the fixture and
+its tests removed); this step is the real resolver.
+
+**Purpose**: resolves every open, item-subject `integrity_flags` row whose `created_by` is in the named
+per-item-family list `PER_ITEM_VERIFIED_SUPERSEDE_FAMILIES` (`gate-a-verifier-sweep` the first entry,
+extensible for a future family with the same shape) and whose subject item's CURRENT
+`provenance_status = 'verified'`, with `resolution_note` "item verified on <date>; finding superseded" --
+the finding's own quarantined-item premise no longer holds once the item verifies. A row whose item is
+still quarantined stays open; its item id is carried in `summary.json`'s own `still_open_item_ids` (every
+run, dry AND apply, never truncated to the 20-row sample) for the coordinator to feed into the next
+brief-export batch (D1, task 6.2d's `--ids` re-grounding path).
+
+**Upstream**: `scripts/lib/db.mjs` (`readAll`, `guardedUpdateByIds`).
+
+**Ruling**: D17 family 14 correction (defect-fix-plan-2026-09-12, "Correction to the Family 14 ruling").
+
+**Dispatch**: no `--arg`. `mode=dry` reports the would-resolve/still-open counts and the full still-open
+item id list; `mode=apply` resolves every verified-item row.
+
+**Artifact / read back**: `summary.json`'s `counts.would_resolve` / `counts.still_open` /
+`still_open_item_ids` / `read_back.remaining_open`. Confirm against `SELECT count(*) FROM integrity_flags
+f JOIN intelligence_items i ON i.id = f.subject_ref::uuid WHERE f.created_by = 'gate-a-verifier-sweep'
+AND f.status = 'open' AND i.provenance_status = 'verified'` (expect 0 after apply) and `SELECT
+subject_ref FROM integrity_flags WHERE created_by = 'gate-a-verifier-sweep' AND status = 'open'`
+(should match `still_open_item_ids` exactly).
+
+**Idempotency**: a second run with no newly-verified items resolves 0 rows -- a row this step already
+resolved drops out of the next run's own `status IN ('open','in_review')` candidate read.
 
 ---
 

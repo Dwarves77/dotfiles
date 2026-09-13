@@ -3,7 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   isPerItemQuestion, isLegacyRemediationRunSummary, hasRunSummaryMarker, hasAllWords,
-  isAuthorshipRunSummary, isCitationHarvestRunSummary, decideRunLogClosure, planClosure, groupCounts,
+  isAuthorshipRunSummary, isCitationHarvestRunSummary,
+  decideRunLogClosure, planClosure, groupCounts,
   main, CITE, RESOLVED_BY, RESOLUTION_NOTE,
 } from "./close-run-logs.mjs";
 
@@ -210,6 +211,13 @@ test("decideRunLogClosure: an unrelated created_by is kept, unmatched", () => {
   assert.equal(d.close, false);
   assert.equal(d.family, null);
   assert.match(d.reason, /none of the three run-log families/);
+});
+
+test("decideRunLogClosure: gate-a-verifier-sweep is NOT a run-log family (coordinator correction, 2026-09-12) -- per-item findings, never closed here regardless of text shape", () => {
+  const structural = decideRunLogClosure({ created_by: "gate-a-verifier-sweep", description: "Item some-title has no full_brief at all (NULL/empty) while quarantined; a structural authoring gap" });
+  assert.equal(structural.close, false);
+  const orphanFix = decideRunLogClosure({ created_by: "gate-a-verifier-sweep", description: "some-title: two of three Gate A orphans fixed this pass; the remaining orphan is named-thing" });
+  assert.equal(orphanFix.close, false);
 });
 
 test("decideRunLogClosure: handles missing fields without throwing", () => {

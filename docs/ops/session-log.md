@@ -102,6 +102,94 @@ test is fixture/pure-function-driven with injected deps. Named paths only staged
 ### UX compliance
 
 Not applicable: no `.tsx`/`.css` touched.
+## 2026-09-12, lane L11: D17 flag-writer families 10-14 (defect-fix-plan-2026-09-12)
+
+**What.** `defect-fix-plan-2026-09-12.md`'s D17 (the quarantine-and-human-flag-writer enumeration),
+ruling table rows 10 to 14, one maintenance step per family, per site: resolve at the source, record a
+decision and close, or delete a writer that produces nothing a reader consumes.
+
+- **Family 10** (`acquire-primaries-batch-2026-07-16`, 19 rows): the write-only flag writer
+  (`scripts/remediation/acquire-primaries-batch.mjs`) and its MAINT wrapper
+  (`scripts/maintenance/acquire-primaries.mjs`, the retired `acquire-primaries` maintenance.yml step) are
+  DELETED (no reader anywhere). New step `close-acquire-primaries-holds.mjs` resolves the 19 rows:
+  "superseded by the free capture path and provenance-heal (task 7.3); item carried in the 7.3 residue
+  report."
+- **Family 11** (`refetch-capped-worklist`, 8 rows): new step `resolve-refetch-holds.mjs` re-grounds
+  each held item against its newest stored capture, zero fetch (`cheapVerifyClaims`'s own primitives,
+  the same entry point `verify-item.mjs`/`regen-quarantined.mjs` already use). A span that no longer
+  verifies is superseded through the existing `claim_versions` mechanism (supersede_reason `changed`,
+  `src/lib/agent/ledger-apply.mjs`'s `versionPayload`, now exported for this reuse); the flag resolves
+  with the outcome (re-grounded, superseded claims count, or quarantined under the provenance gate, an
+  enqueue into Family 1's own standing investigation). **[CONFIRMED] deviation, disclosed**: the plan
+  names "the existing groundBrief entry point" as the mechanism; `groundBrief`
+  (`src/lib/agent/canonical-pipeline.ts`) is a paid Sonnet + Browserless call, incompatible with this
+  lane's own $0 constraint and with the plan's own "snapshot first, zero fetch" parenthetical in the same
+  sentence. `cheapVerifyClaims` is the actual zero-fetch, snapshot-first entry point this repo already
+  has for exactly this re-check.
+- **Family 12** (`timeline-backfill`, 1 row listing 211 ids): a sixth (step 7) deterministic derivation
+  step added to `timeline-backfill-derive.mjs` (`extractCapturedDate`): an item with no derivable
+  instrument date now carries a `captured` timeline row dated at its stored capture's `searched_at`,
+  labelled "Captured ... not the instrument's own date," sort-ordered last (`CAPTURED_FALLBACK_SORT_ORDER
+  = 999`). `timeline-backfill.mjs` no longer writes a "manual research" ask for the residual set (a
+  genuinely capture-less item is written already resolved, informational); it also resolves any PRIOR
+  open `timeline-backfill` flag with the now-dated/still-undateable split.
+- **Family 13** (`flywheel-gap:*` 18 + `flywheel-anticipate:*` 6, 24 rows): `analyze-corpus.mjs` now
+  inserts these findings already resolved ("reflected in the coverage view; no per-row decision
+  pending"), via new pure module `src/lib/connections/coverage-reflection.mjs` (status-agnostic dedup,
+  the same fix class the L4 signal path already needed). New step `close-coverage-reflections.mjs` drains
+  the 24-row backlog with the identical note. **[CONFIRMED]** `scripts/verify/population-report.mjs`
+  carries no entry for either namespace today; the plan's "population-report.mjs keeps counting them"
+  premise does not hold, nothing there needed adjusting.
+- **Family 14** (`authorship-shard-*` BLOCKER + `legacy-remediation` PARKED + `gate-a-verifier-sweep` 37):
+  new step `close-legal-confirmation-rows.mjs` resolves every authorship-shard BLOCKER row with "Legal
+  Confirmation Required; no platform determination (environmental-policy skill); recorded for counsel"
+  (population-report gains a `legal-confirmation` line, informational); converts every legacy-remediation
+  PARKED row to a valid RD-6 deferral (a new companion `disposition_deferred` row, original row left open
+  for task 7.3), with the id list carried in the run's own `task_7_3_residue`. **[CONFIRMED] deviation,
+  disclosed**: the plan's literal deferral reason text carries no `isValidDeferral` disposition-path
+  keyword and would be rejected; the reason used preserves the same meaning, reworded to name "reground
+  ... against a primary source."
+
+  **Correction (coordinator, same day, live SQL over the 37 open `gate-a-verifier-sweep` rows
+  [CONFIRMED]):** the first pass of this lane wrongly guessed `gate-a-verifier-sweep` was a run-log
+  family and added a `[HYPOTHESIS]` fixture vocabulary to `close-run-logs.mjs`'s allowlist. The rows are
+  actually per-item findings, two shapes ("Item <title> has no full_brief at all (NULL/empty) while
+  quarantined; a structural authoring gap" and "<title>: two of three Gate A orphans fixed this pass; the
+  remaining orphan is <named>"), never run summaries. That guess is REVERTED (`close-run-logs.mjs` is
+  back to its original three families; the `[HYPOTHESIS]` fixture and its tests are removed). New step
+  `close-flags-for-verified-items.mjs` handles this family instead: it resolves every open item-subject
+  `integrity_flags` row whose `created_by` is in a named per-item-family list
+  (`PER_ITEM_VERIFIED_SUPERSEDE_FAMILIES`, `gate-a-verifier-sweep` the first entry) and whose subject item
+  is now `provenance_status='verified'`, with resolution_note "item verified on <date>; finding
+  superseded"; a row whose item is still quarantined stays open, and the dry (and apply) output lists
+  those item ids for the coordinator to feed into the next brief-export batch. Guarded, idempotent
+  (a second run changes nothing once every eligible row is resolved).
+
+**Files.** `fsi-app/scripts/maintenance/close-acquire-primaries-holds.mjs` (+`.test.mjs`),
+`fsi-app/scripts/maintenance/resolve-refetch-holds.mjs` (+`.test.mjs`),
+`fsi-app/scripts/maintenance/close-coverage-reflections.mjs` (+`.test.mjs`),
+`fsi-app/scripts/maintenance/close-legal-confirmation-rows.mjs` (+`.test.mjs`),
+`fsi-app/scripts/maintenance/close-flags-for-verified-items.mjs` (+`.test.mjs`, the corrected
+`gate-a-verifier-sweep` resolver),
+`fsi-app/scripts/maintenance/close-run-logs.mjs` (+`.test.mjs`, unchanged three families, the reverted
+`gate-a-verifier-sweep` guess removed),
+`fsi-app/scripts/maintenance/timeline-backfill.mjs` (+`.test.mjs`),
+`fsi-app/src/lib/agent/timeline-backfill-derive.mjs` (+`.test.mjs`, step 7, `pickBestCapture`),
+`fsi-app/src/lib/agent/ledger-apply.mjs` (`versionPayload` exported),
+`fsi-app/src/lib/connections/coverage-reflection.mjs` (new, +`.test.mjs`),
+`fsi-app/scripts/connections/analyze-corpus.mjs` (gap/anticipate reflection rewired),
+`fsi-app/scripts/verify/population-report.mjs` (+`.test.mjs`, `legal-confirmation` line),
+`fsi-app/scripts/remediation/acquire-primaries-batch.mjs` (deleted),
+`fsi-app/scripts/maintenance/acquire-primaries.mjs` (+`.test.mjs`, deleted),
+`.github/workflows/maintenance.yml` (five new steps, `acquire-primaries` retired),
+`docs/runbooks/MAINTENANCE-RUNBOOK.md` (section 35 replaced, sections 48-51 added),
+`fsi-app/docs/inventories/shared-dataset-ownership.md` (writer allowlist updated), this file.
+
+**Gates.** Per-family `node --test` runs (all green, counts in the lane report); full preflight
+(`sh fsi-app/.discipline/hooks/pre-push`) run once at the end; tail and exit code in the lane report
+(`.superpowers/sdd/brief-chain-build-plan-2026-09-11/task-l11-report.md`).
+
+---
 
 ## 2026-09-12, W9 task 6.2d: the brief export now includes a quarantined item named by id (D1)
 

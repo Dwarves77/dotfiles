@@ -19,6 +19,12 @@
 //      backlog counts a batch summary names are RE-DERIVED LIVE elsewhere (task 7.4's resolvers); this
 //      step never carries any of that backlog forward, it only closes the informational row.
 //
+// gate-a-verifier-sweep is explicitly NOT a run-log family (coordinator correction, 2026-09-12, after
+// this file's first pass wrongly guessed it was one): live SQL over its 37 open rows found two per-item
+// shapes ("Item <title> has no full_brief at all... a structural authoring gap" and "<title>: two of
+// three Gate A orphans fixed this pass; the remaining orphan is <named>"), never a run summary. It is
+// handled by close-flags-for-verified-items.mjs instead -- see that file's own header.
+//
 // THE RULE (verbatim, Part 7 spec): "A lane implements the rule in the existing resolver, widening its
 // auto-adopt to the whole proposal set with the decision written into the flag's resolution_note." For a
 // run log the decision is always the same: informational, closed, record kept. resolution_note is fixed:

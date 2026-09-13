@@ -11,6 +11,9 @@ import {
   partitionUndated,
   buildUndateableFlagDescription,
   buildUndateableFlagRow,
+  idsFromUndateableFlagRow,
+  planUndateableFlagResolution,
+  buildUndateableFlagResolutionNote,
   parseBatchArgs,
   main,
   UNDATEABLE_FLAG_CITE,
@@ -32,13 +35,23 @@ test("planTimelineBackfillItem: title date verified against capture -> step 'tit
   assert.equal(plan.row.label, "Adopted (from the instrument title)");
 });
 
-test("planTimelineBackfillItem: nothing matches -> step 'undateable', row null, attempts carried", () => {
+test("planTimelineBackfillItem: nothing matches, no capture at all -> step 'undateable', row null, attempts carried", () => {
   const item = { id: "item-2", title: "IEA portal home", source_url: "https://iea.org/policies/about" };
   const plan = planTimelineBackfillItem({ item, capturedText: null, forwardEvents: [], todayIso: "2026-09-12" });
   assert.equal(plan.step, "undateable");
   assert.equal(plan.row, null);
   assert.ok(Array.isArray(plan.attempts));
-  assert.equal(plan.attempts.length, 5);
+  assert.equal(plan.attempts.length, 6, "steps 2-6 plus step 7 (captured fallback)");
+});
+
+test("planTimelineBackfillItem: no real date, but a stored capture exists -> step 'captured' (step 7), sort_order last", () => {
+  const item = { id: "item-2b", title: "IEA portal home", source_url: "https://iea.org/policies/about" };
+  const bestCapture = { searched_at: "2026-05-01T00:00:00Z" };
+  const plan = planTimelineBackfillItem({ item, capturedText: null, bestCapture, forwardEvents: [], todayIso: "2026-09-12" });
+  assert.equal(plan.step, "captured");
+  assert.equal(plan.row.milestone_date, "2026-05-01");
+  assert.equal(plan.row.sort_order, 999);
+  assert.match(plan.row.label, /not the instrument's own date/);
 });
 
 test("planTimelineBackfillItem: falls to forward event when title/FR/UK all miss", () => {
@@ -72,20 +85,56 @@ test("buildUndateableFlagDescription: names hosts and count, never invents an id
   assert.match(desc, /iea\.org/);
 });
 
-test("buildUndateableFlagRow: category/subject_type/subject_ref fixed, full id list carried in recommended_actions", () => {
+test("buildUndateableFlagRow: category/subject_type/subject_ref fixed, full id list carried in recommended_actions, written ALREADY RESOLVED (D17 family 12 -- no open manual-research ask)", () => {
   const items = [{ id: "id-1", host: "epa.gov" }, { id: "id-2", host: "iea.org" }];
   const row = buildUndateableFlagRow(items);
   assert.equal(row.category, "data_quality");
   assert.equal(row.subject_type, "system");
   assert.equal(row.subject_ref, "timeline-backfill");
-  assert.equal(row.status, "open");
+  assert.equal(row.status, "resolved");
+  assert.equal(row.resolved_by, "timeline-backfill");
+  assert.ok(row.resolution_note);
   assert.equal(row.created_by, "timeline-backfill");
   assert.deepEqual(row.recommended_actions[0].ids, ["id-1", "id-2"]);
+  assert.equal(row.recommended_actions[0].action, "no_capture_to_derive_from");
+  assert.doesNotMatch(JSON.stringify(row), /manual_research_or_source_review/);
 });
 
 test("UNDATEABLE_FLAG_CITE is the fixed shape the row builder starts from", () => {
   assert.equal(UNDATEABLE_FLAG_CITE.category, "data_quality");
   assert.equal(UNDATEABLE_FLAG_CITE.subject_ref, "timeline-backfill");
+});
+
+// ── prior-flag resolution (D17 family 12) ───────────────────────────────────────────────────────────
+
+test("idsFromUndateableFlagRow: reads recommended_actions[].ids, dedups, never guesses", () => {
+  const row = { recommended_actions: [{ ids: ["a", "b", "a"] }] };
+  assert.deepEqual(idsFromUndateableFlagRow(row), ["a", "b"]);
+  assert.deepEqual(idsFromUndateableFlagRow({}), []);
+  assert.deepEqual(idsFromUndateableFlagRow(null), []);
+});
+
+test("planUndateableFlagResolution: splits a prior flag's ids into now-dated vs still-undateable", () => {
+  const rows = [{ id: "flag-1", recommended_actions: [{ ids: ["a", "b", "c"] }] }];
+  const plans = planUndateableFlagResolution(rows, new Set(["a", "c"]));
+  assert.equal(plans.length, 1);
+  assert.equal(plans[0].total, 3);
+  assert.equal(plans[0].now_dated, 2);
+  assert.equal(plans[0].still_undateable, 1);
+  assert.deepEqual(plans[0].still_undateable_ids, ["b"]);
+});
+
+test("planUndateableFlagResolution: accepts a plain array for datedIds too", () => {
+  const rows = [{ id: "flag-1", recommended_actions: [{ ids: ["a"] }] }];
+  const plans = planUndateableFlagResolution(rows, ["a"]);
+  assert.equal(plans[0].now_dated, 1);
+  assert.equal(plans[0].still_undateable, 0);
+});
+
+test("buildUndateableFlagResolutionNote: names the counts from the plan", () => {
+  const note = buildUndateableFlagResolutionNote({ total: 211, now_dated: 205, still_undateable: 6 });
+  assert.match(note, /dates 205 of the 211/);
+  assert.match(note, /6 remain genuinely uncaptured/);
 });
 
 // ── parseBatchArgs ───────────────────────────────────────────────────────────────────────────────────
@@ -103,10 +152,12 @@ function fakeDeps({
   timelineItemIds = [],
   capturesByItem = {},
   forwardEventsByItem = {},
+  openPriorFlags = [],
   todayIso = "2026-09-12",
 } = {}) {
   const inserted = [];
   const flagsWritten = [];
+  const flagsResolved = [];
   return {
     todayIso,
     hostOf: (url) => {
@@ -114,12 +165,19 @@ function fakeDeps({
     },
     readLiveItems: async () => liveItems,
     readTimelineItemIds: async () => timelineItemIds,
-    readCaptures: async (id) => (capturesByItem[id] ?? []).map((result_content) => ({ result_content })),
+    // Each entry may be a bare string (result_content only, no searched_at -- the pre-family-12 shape
+    // most existing tests still use, so step 7 never fires for them) or a full {result_content,
+    // searched_at} row.
+    readCaptures: async (id) =>
+      (capturesByItem[id] ?? []).map((c) => (typeof c === "string" ? { result_content: c } : c)),
     readForwardEvents: async (id) => forwardEventsByItem[id] ?? [],
     insertTimelineRow: async (row) => { inserted.push(row); return { inserted: { id: `tl-${inserted.length}` } }; },
     writeUndateableFlag: async (items) => { flagsWritten.push(items); return { inserted: { id: "flag-1" } }; },
+    readOpenUndateableFlags: async () => openPriorFlags,
+    resolveUndateableFlag: async (id, note) => { flagsResolved.push({ id, note }); return { updated: 1 }; },
     _inserted: () => inserted,
     _flagsWritten: () => flagsWritten,
+    _flagsResolved: () => flagsResolved,
   };
 }
 
@@ -188,6 +246,45 @@ test("main(): --limit and --after-id bound and resume the page", async () => {
   assert.equal(resumed.last_id_processed, "c");
 });
 
+test("main() apply: resolves a PRIOR open undateable flag with the now-dated/still-undateable split", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "b", title: "Untitled portal page", source_url: "https://iea.org/policies" }],
+    timelineItemIds: ["a"], // "a" was already dated by an earlier run
+    capturesByItem: { b: [{ result_content: "no dated content here at all".repeat(10), searched_at: "2026-05-01T00:00:00Z" }] },
+    openPriorFlags: [{ id: "flag-old", recommended_actions: [{ ids: ["a", "b", "z"] }] }],
+  });
+  const summary = await main({ mode: "apply" }, deps);
+  // "b" gets a captured-date row this run (has a stored capture), "a" was already dated, "z" is unknown
+  // to both timelineItemIds and this run -- still undateable.
+  assert.equal(summary.counts.prior_flags_resolved, 1);
+  const resolved = deps._flagsResolved();
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].id, "flag-old");
+  assert.match(resolved[0].note, /dates 2 of the 3/);
+  assert.match(resolved[0].note, /1 remain genuinely uncaptured/);
+});
+
+test("main() apply: no prior open flags -> resolveUndateableFlag never called", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "a", title: "no date here", source_url: "https://x.example/1" }],
+    timelineItemIds: [],
+    openPriorFlags: [],
+  });
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(summary.counts.prior_flags_resolved, 0);
+  assert.equal(deps._flagsResolved().length, 0);
+});
+
+test("main() dry: never reads or resolves prior flags", async () => {
+  const deps = fakeDeps({
+    liveItems: [{ id: "a", title: "no date here", source_url: "https://x.example/1" }],
+    openPriorFlags: [{ id: "flag-old", recommended_actions: [{ ids: ["a"] }] }],
+  });
+  const summary = await main({ mode: "dry" }, deps);
+  assert.equal(summary.counts.prior_flags_resolved, 0);
+  assert.equal(deps._flagsResolved().length, 0);
+});
+
 test("main(): no undateable items -> no flag write even in apply mode", async () => {
   const deps = fakeDeps({
     liveItems: [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }],
@@ -198,4 +295,30 @@ test("main(): no undateable items -> no flag write even in apply mode", async ()
   assert.equal(summary.counts.undateable, 0);
   assert.equal(deps._flagsWritten().length, 0);
   assert.equal(summary.flag_written, null);
+});
+
+test("idempotent (fix round 1, review-l11.md): a second apply over the SAME underlying item writes nothing once it is dated", async () => {
+  const timelineStore = []; // item ids that now carry a row -- mutated by insertTimelineRow, read by readTimelineItemIds
+  const liveItems = [{ id: "a", title: "Regulation (EU) 2020/852 of 18 June 2020 on taxonomy", source_url: "https://eur-lex.europa.eu/x" }];
+  const capturesByItem = { a: [{ result_content: "REGULATION (EU) 2020/852 ... of 18 June 2020 on taxonomy ...".repeat(4) }] };
+  const deps = {
+    todayIso: "2026-09-12",
+    hostOf: (url) => { try { return new URL(url).host; } catch { return null; } },
+    readLiveItems: async () => liveItems,
+    readTimelineItemIds: async () => [...timelineStore],
+    readCaptures: async (id) => capturesByItem[id] ?? [],
+    readForwardEvents: async () => [],
+    insertTimelineRow: async (row) => { timelineStore.push(row.item_id); return { inserted: { id: "tl-1" } }; },
+    writeUndateableFlag: async () => ({ inserted: { id: "flag-1" } }),
+    readOpenUndateableFlags: async () => [],
+    resolveUndateableFlag: async () => ({ updated: 1 }),
+  };
+  const first = await main({ mode: "apply" }, deps);
+  assert.equal(first.counts.written, 1);
+  assert.equal(first.counts.undated_total, 1);
+
+  const second = await main({ mode: "apply" }, deps);
+  assert.equal(second.counts.written, 0);
+  assert.equal(second.counts.undated_total, 0);
+  assert.equal(second.counts.page_size, 0);
 });
