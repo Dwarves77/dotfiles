@@ -317,6 +317,12 @@ UNCHANGED (already present) even though its gap/anticipate write path changed sh
 fresh row is now born already resolved, via the new `src/lib/connections/coverage-reflection.mjs`) --
 same file, same entry, no second entry needed.
 
+Note (added by lane L11b, 2026-09-13, fix round 2 for family 11): `scripts/maintenance/
+resolve-refetch-holds.mjs` (the re-grounds-never-destroy dominance guard applied to per-capture span
+verification) writes the SAME tables its original entry above already registers (`integrity_flags` /
+`section_claim_provenance`) -- no new allowlist row needed, only the script's own header comment and this
+doc's runbook section 52 changed to describe the corrected behavior.
+
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
 `run-mint-batch.mjs`, `run-extraction.mjs`) are now present in this tree. `src/lib/connections/write-edges.mjs`

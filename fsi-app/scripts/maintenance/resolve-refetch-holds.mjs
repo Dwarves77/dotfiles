@@ -16,37 +16,59 @@
 // regen-quarantined.mjs / verify-item.mjs (src/lib/sources/verify-item.mjs) already use for exactly this
 // class of re-check -- is cheapVerifyClaims (src/lib/sources/cheap-verify.mjs): re-confirm each claim's
 // verbatim source_span against the item's own stored capture text, ZERO model calls, ZERO fetch. This
-// script reuses cheapVerifyClaims (and its own spanPresent/normalizeForMatch primitives, to keep the
-// per-claim ids the wrapper's own aggregate result drops) and timeline-backfill-derive.mjs's
-// pickBestCapture (the SAME "newest/best stored capture" selection timeline-backfill.mjs already uses) --
-// never a second grounding path.
+// script reuses cheapVerifyClaims's own spanPresent/normalizeForMatch primitives directly (to keep the
+// per-claim ids the wrapper's own aggregate result drops) -- never a second grounding path. It does NOT
+// use timeline-backfill-derive.mjs's pickBestCapture (a single-pick selector) -- see "FIX ROUND 2" below
+// for why picking one capture, even the "best" one, was itself the defect.
 //
 // PER ITEM (one or more open `refetch-capped-worklist` flags share a subject_ref -- grouped, resolved
 // together):
-//   1. Read the item's live FACT claims (section_claim_provenance) and its best stored capture
-//      (pickBestCapture over agent_run_searches).
+//   1. Read the item's live FACT claims (section_claim_provenance) and its FULL agent_run_searches pool
+//      (every stored capture, not the newest alone -- fix round 2, below).
 //   2. No usable capture at all -> outcome 'no_capture': nothing to verify against; flags resolve
 //      honestly, naming that the item awaits a real capture (Family 1's regen-quarantined.mjs sweep
 //      already covers it if it is quarantined).
 //   3. A capture exists but the item carries no FACT claims to check -> outcome 'no_fact_claims':
 //      nothing to supersede; flags resolve honestly.
-//   4. Every FACT span still verifies against the capture -> outcome 're_grounded': flags resolve noting
-//      the confirmed count.
-//   5. One or more FACT spans no longer verify -> each such claim is SUPERSEDED through the EXISTING
-//      claim_versions mechanism (src/lib/agent/ledger-apply.mjs's own versionPayload row shape,
-//      supersede_reason 'changed' -- a re-attribution record, never proof-of-inaccuracy, since no fresh
-//      re-ground data replaces it) and the current row's mint_hold_reason is set so the mint gate holds
-//      until a real re-ground lands. On apply, the item's OWN provenance_status is re-read afterward (the
-//      set_provenance_status trigger, migration 209, re-evaluates on every touch to its claims): if it
-//      quarantined, the outcome is 'quarantined' (an ENQUEUE into Family 1's own open investigation,
-//      regen-quarantined.mjs -- no second mechanism); otherwise 'superseded' (the item's other claims
-//      still meet the provenance criteria).
+//   4. Every FACT span verifies against AT LEAST ONE stored capture -> outcome 're_grounded': flags
+//      resolve naming the capture that grounds them (the dominant one, see fix round 2) and, if the
+//      newest capture was degraded, that finding too.
+//   5. One or more FACT spans verify against NO stored capture (checked every pool row) -> each such
+//      claim is SUPERSEDED through the EXISTING claim_versions mechanism (src/lib/agent/ledger-apply.mjs's
+//      own versionPayload row shape, supersede_reason 'changed' -- a re-attribution record, never
+//      proof-of-inaccuracy, since no fresh re-ground data replaces it) and the current row's
+//      mint_hold_reason is set so the mint gate holds until a real re-ground lands. On apply, the item's
+//      OWN provenance_status is re-read afterward (the set_provenance_status trigger, migration 209,
+//      re-evaluates on every touch to its claims): if it quarantined, the outcome is 'quarantined' (an
+//      ENQUEUE into Family 1's own open investigation, regen-quarantined.mjs -- no second mechanism);
+//      otherwise 'superseded' (the item's other claims still meet the provenance criteria).
+//
+// FIX ROUND 2 (coordinator, 2026-09-13, defect-fix-plan-2026-09-12.md "Fix round 2 for L11, family 11",
+// after dry run 34733905421): the FIRST version of this step verified spans against `pickBestCapture`'s
+// pick alone -- the SINGLE longest-content row, which this step's own header called "the newest/best
+// stored capture". That pick is NOT reliably the newest, and even when it is, "newest" is not reliably
+// authoritative: the dry run would have superseded 263 of 333 live FACT claims across seven items
+// because their actual-newest capture rows are degraded fetches (126-382-character news stubs), while an
+// OLDER pool row for the same item holds the full instrument (up to 249,114 characters) that verifies
+// every span. Applying that dry run would have DESTROYED 263 correct claims on a degraded-fetch
+// artifact, not a real content change -- exactly the failure class the re-grounds-never-destroy dominance
+// guard (PR #336, src/lib/agent/ledger-dominance.mjs) exists to name, applied here to a different
+// mechanism (span-verification across a pool, not ledger-axis comparison, so this step does not import
+// that module -- the axes it compares do not apply to a raw span check -- but honors the SAME doctrine:
+// a worse answer is a DIAGNOSTIC, never grounds for destroying a better one).
+//
+// THE FIX: `planItemReground` now checks EVERY usable stored capture in the item's pool, not one picked
+// capture. A claim is superseded ONLY when NO capture (old or new) verifies its span. Separately, the
+// NEWEST capture (by `searched_at`) is compared against the DOMINANT capture (the one verifying the most
+// spans): when the newest verifies fewer spans than the dominant, that is recorded as "degraded newest"
+// in the resolution note (naming both capture rows and their lengths) and does NOT cause any supersession
+// by itself -- the claims stay grounded on the dominant capture. `pickBestCapture` (a single-pick
+// selector) is no longer used by this step; every capture is read and checked.
 //
 // $0, no LLM, no paid fetch. Dry by default; --mode apply writes through scripts/lib/db.mjs's guarded path.
 import { readAll, guardedInsert, guardedUpdate, guardedUpdateByIds } from "../lib/db.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
-import { pickBestCapture } from "../../src/lib/agent/timeline-backfill-derive.mjs";
 import { normalizeForMatch, spanPresent } from "../../src/lib/sources/cheap-verify.mjs";
 import { versionPayload } from "../../src/lib/agent/ledger-apply.mjs";
 
@@ -65,7 +87,7 @@ export const RESOLVED_BY = "resolve-refetch-holds";
 
 const FLAG_COLUMNS = "id, created_by, description, status, subject_ref, category";
 const CLAIM_COLUMNS = "id, claim_kind, claim_text, source_span, source_id, section_row_id, search_result_id, source_tier_at_grounding, mint_hold_reason";
-const CAPTURE_COLUMNS = "result_content, searched_at";
+const CAPTURE_COLUMNS = "id, result_content, searched_at";
 
 // ---------------------------------------------------------------------------------------------------
 // Pure planning (unit-tested with no I/O).
@@ -87,30 +109,103 @@ export function groupHoldsByItem(rows) {
   return byItem;
 }
 
+/** Pure: a short, stable label naming a capture row for a resolution note ("row <id>" or "an unidentified
+ *  row" if the injected fixture carries no id -- never fabricates one). */
+export function captureRowLabel(capture) {
+  return capture && capture.id != null ? `row ${capture.id}` : "an unidentified row";
+}
+
+/** Pure: the char length of a capture's stored content, honestly 0 for a missing/empty row. */
+export function captureLength(capture) {
+  return String(capture?.result_content ?? "").length;
+}
+
 /**
- * The zero-fetch, snapshot-first re-check for ONE item: which of its FACT claims still verify against
- * its best stored capture. Pure, given the data a caller already read. Reuses spanPresent/
- * normalizeForMatch directly (rather than cheapVerifyClaims' own aggregate wrapper) so the per-claim
- * `id` survives into the unmatched set -- required to supersede the EXACT row, never a guess by text
- * match alone.
- * @param {{claims: Array<object>, bestCapture: {result_content?:string|null}|null}} input
- * @returns {{outcome: 'no_capture'|'no_fact_claims'|'re_grounded'|'needs_supersede', unmatchedFactClaims: Array<object>, factTotal: number}}
+ * The zero-fetch, snapshot-first re-check for ONE item: which of its FACT claims verify against ANY of
+ * its stored captures -- fix round 2 (2026-09-13, "Fix round 2 for L11, family 11"): every usable pool
+ * row is checked, never one picked capture, per the re-grounds-never-destroy doctrine (a worse capture
+ * is a diagnostic, never grounds for destroying claims a better capture still verifies). Pure, given the
+ * data a caller already read. Reuses spanPresent/normalizeForMatch directly (rather than
+ * cheapVerifyClaims' own aggregate wrapper) so the per-claim `id` survives into the unmatched set --
+ * required to supersede the EXACT row, never a guess by text match alone.
+ * @param {{claims: Array<object>, captures: Array<{id?:string|null, result_content?:string|null, searched_at?:string|null}>}} input
+ * @returns {{
+ *   outcome: 'no_capture'|'no_fact_claims'|'re_grounded'|'needs_supersede',
+ *   unmatchedFactClaims: Array<object>, factTotal: number,
+ *   dominantCapture: object|null, newestCapture: object|null,
+ *   degradedNewest: {newest:object, newestVerified:number, dominant:object, dominantVerified:number}|null,
+ * }}
  */
-export function planItemReground({ claims, bestCapture }) {
-  const capturedText = bestCapture?.result_content ?? null;
-  if (!capturedText) {
-    return { outcome: "no_capture", unmatchedFactClaims: [], factTotal: 0 };
+export function planItemReground({ claims, captures }) {
+  const usable = (captures ?? []).filter((c) => String(c?.result_content ?? "").trim().length > 0);
+  if (!usable.length) {
+    return { outcome: "no_capture", unmatchedFactClaims: [], factTotal: 0, dominantCapture: null, newestCapture: null, degradedNewest: null };
   }
-  const normalized = normalizeForMatch(capturedText);
   const factClaims = (claims ?? []).filter((c) => String(c?.claim_kind ?? "").toLowerCase() === "fact");
   if (!factClaims.length) {
-    return { outcome: "no_fact_claims", unmatchedFactClaims: [], factTotal: 0 };
+    return { outcome: "no_fact_claims", unmatchedFactClaims: [], factTotal: 0, dominantCapture: null, newestCapture: null, degradedNewest: null };
   }
-  const unmatchedFactClaims = factClaims.filter((c) => !spanPresent(c.source_span, normalized));
-  if (!unmatchedFactClaims.length) {
-    return { outcome: "re_grounded", unmatchedFactClaims: [], factTotal: factClaims.length };
-  }
-  return { outcome: "needs_supersede", unmatchedFactClaims, factTotal: factClaims.length };
+
+  // Per-capture: which FACT claim ids does THIS row's text verify. Every row is checked independently --
+  // no single "the capture" is ever picked before the check runs.
+  const perCapture = usable.map((capture) => {
+    const normalized = normalizeForMatch(capture.result_content);
+    const verifiedIds = new Set(factClaims.filter((c) => spanPresent(c.source_span, normalized)).map((c) => c.id));
+    return { capture, verifiedIds, verifiedCount: verifiedIds.size };
+  });
+
+  // A claim is unmatched only when NO capture (old or new) verifies it -- the union across the pool.
+  const verifiedByAny = new Set();
+  for (const pc of perCapture) for (const id of pc.verifiedIds) verifiedByAny.add(id);
+  const unmatchedFactClaims = factClaims.filter((c) => !verifiedByAny.has(c.id));
+
+  // Dominant capture: verifies the MOST spans (ties broken by longer stored content, then array order --
+  // deterministic, never random, never "newest wins a tie" since that is exactly the assumption this fix
+  // round removes).
+  const dominant = perCapture.reduce((best, pc) => {
+    if (!best) return pc;
+    if (pc.verifiedCount > best.verifiedCount) return pc;
+    if (pc.verifiedCount === best.verifiedCount && captureLength(pc.capture) > captureLength(best.capture)) return pc;
+    return best;
+  }, null);
+
+  // Newest capture: the row with the latest PARSEABLE searched_at. A row with no/unparseable searched_at
+  // is never assumed newest (it simply cannot win the comparison) -- an absent date is not evidence of
+  // recency.
+  const newest = perCapture.reduce((latest, pc) => {
+    const t = Date.parse(pc.capture?.searched_at ?? "");
+    if (!Number.isFinite(t)) return latest;
+    if (!latest || t > Date.parse(latest.capture?.searched_at ?? "")) return pc;
+    return latest;
+  }, null);
+
+  const degradedNewest =
+    newest && dominant && newest.capture !== dominant.capture && newest.verifiedCount < dominant.verifiedCount
+      ? { newest: newest.capture, newestVerified: newest.verifiedCount, dominant: dominant.capture, dominantVerified: dominant.verifiedCount }
+      : null;
+
+  const outcome = unmatchedFactClaims.length ? "needs_supersede" : "re_grounded";
+  return {
+    outcome,
+    unmatchedFactClaims,
+    factTotal: factClaims.length,
+    dominantCapture: dominant?.capture ?? null,
+    newestCapture: newest?.capture ?? null,
+    degradedNewest,
+  };
+}
+
+/** Pure: the "degraded newest" clause shared by both note builders below -- names both capture rows and
+ *  their lengths, and states which row the claims actually ground on instead. Empty string when there is
+ *  no degradation to report. */
+export function degradedNewestClause(degradedNewest) {
+  if (!degradedNewest) return "";
+  const { newest, newestVerified, dominant, dominantVerified } = degradedNewest;
+  return (
+    ` Degraded newest: ${captureRowLabel(newest)} (${captureLength(newest)} chars) verifies ${newestVerified} ` +
+    `span(s) vs ${captureRowLabel(dominant)} (${captureLength(dominant)} chars) verifying ${dominantVerified}; ` +
+    `re-grounded on ${captureRowLabel(dominant)} instead.`
+  );
 }
 
 /** Pure: the resolution_note for one item's dry-mode plan (the apply-mode note is built after the
@@ -123,9 +218,17 @@ export function buildDryResolutionNote(plan) {
     case "no_fact_claims":
       return "item currently carries no FACT claim to re-check; nothing to supersede.";
     case "re_grounded":
-      return `all ${plan.factTotal} FACT span(s) still verify against the item's newest stored capture (zero-fetch re-check).`;
+      return (
+        `all ${plan.factTotal} FACT span(s) verify against at least one stored capture (every pool row ` +
+        `checked, zero fetch); re-grounded on ${captureRowLabel(plan.dominantCapture)} (${captureLength(plan.dominantCapture)} chars).` +
+        degradedNewestClause(plan.degradedNewest)
+      );
     case "needs_supersede":
-      return `${plan.unmatchedFactClaims.length} of ${plan.factTotal} FACT span(s) no longer verify against the newest stored capture; would supersede through claim_versions (supersede_reason 'changed').`;
+      return (
+        `${plan.unmatchedFactClaims.length} of ${plan.factTotal} FACT span(s) verify against NO stored capture ` +
+        "(every pool row checked); would supersede through claim_versions (supersede_reason 'changed')." +
+        degradedNewestClause(plan.degradedNewest)
+      );
     default:
       return "unrecognized outcome";
   }
@@ -135,12 +238,22 @@ export function buildDryResolutionNote(plan) {
  *  provenance_status is known. Only called for the 'needs_supersede' plans. */
 export function buildAppliedSupersedeNote(plan, provenanceStatusAfter) {
   const n = plan.unmatchedFactClaims.length;
+  const groundedOn = plan.dominantCapture
+    ? ` The item's other claims re-ground on ${captureRowLabel(plan.dominantCapture)} (${captureLength(plan.dominantCapture)} chars).`
+    : "";
+  const degraded = degradedNewestClause(plan.degradedNewest);
   if (provenanceStatusAfter === "quarantined") {
-    return `${n} FACT claim(s) superseded (span no longer present in the newest stored capture); the item ` +
-      "quarantined under the provenance gate -- now an open Family 1 investigation, resolver regen-quarantined.mjs.";
+    return (
+      `${n} FACT claim(s) superseded (verified by NO stored capture, every pool row checked); the item ` +
+      "quarantined under the provenance gate -- now an open Family 1 investigation, resolver regen-quarantined.mjs." +
+      groundedOn + degraded
+    );
   }
-  return `${n} FACT claim(s) superseded (span no longer present in the newest stored capture); the item's ` +
-    "other claims still meet the provenance criteria (re-grounded).";
+  return (
+    `${n} FACT claim(s) superseded (verified by NO stored capture, every pool row checked); the item's ` +
+    "other claims still meet the provenance criteria (re-grounded)." +
+    groundedOn + degraded
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -159,12 +272,13 @@ export async function main({ mode = "dry" } = {}, deps) {
   const sampleByOutcome = {};
   let supersededClaims = 0;
   let flagsResolved = 0;
+  let degradedNewestCount = 0;
 
   for (const [itemId, flagsForItem] of byItem) {
     const claims = await deps.readClaims(itemId);
     const captures = await deps.readCaptures(itemId);
-    const bestCapture = pickBestCapture(captures);
-    const plan = planItemReground({ claims, bestCapture });
+    const plan = planItemReground({ claims, captures });
+    if (plan.degradedNewest) degradedNewestCount += 1;
 
     let finalOutcome = plan.outcome;
     let note = buildDryResolutionNote(plan);
@@ -200,6 +314,7 @@ export async function main({ mode = "dry" } = {}, deps) {
     by_outcome: byOutcome,
     superseded_claims: supersededClaims,
     flags_resolved: flagsResolved,
+    degraded_newest: degradedNewestCount,
   };
   summary.sample_by_outcome = sampleByOutcome;
 
