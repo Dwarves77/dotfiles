@@ -109,6 +109,8 @@ Fix at the source: the section extractor refuses a candidate whose span is only 
 
 Class fix: a forward event must be verbatim in its source (the same rule as a FACT claim); add an assertion to the forward-events write path that the span is present in the pool or section text it cites, refusing otherwise with a run-log line. Lane: L6, one Sonnet lane after L1 to L5, on a freed worktree.
 
+Addendum (L6 review, 2026-09-13) [CONFIRMED]: the two harness entry points, scripts/forward-events/run-extraction.mjs and scripts/maintenance/forward-events-retext.mjs, call extractForwardEvents without referenceDates and never run enforceSectionVerbatimInSource; the exact D10 shape is still refused there by the unconditional status-only rule, but a main-rule hit colliding with a reference date would pass, and the retext step can refresh a stored section-kind row the class rule would now refuse. Owed: both scripts go through the read-and-extract driver (or receive the same reference dates and assertion); one lane after L15, not before the applies.
+
 ### D11. The pre-push hook writes every step log to a fixed path under /tmp, so concurrent hook runs clobber each other [CONFIRMED]
 
 Evidence: `fsi-app/.discipline/hooks/pre-push` lines 102 to 178 redirect each step to `/tmp/discipline-prepush-{c,t,inv,gate,tsc}.log` and `rm -f` the file when the step ends. On 2026-09-12 the batch-001 push ran while two lane gates were running; its step 3 failed and printed `tail: cannot open '/tmp/discipline-prepush-t.log'` instead of the failing tests, because another run had already deleted the file. The exit status is the suite's own, so a fail is real, but its diagnosis is lost and a passing run can also delete the log a failing run needs.
