@@ -124,7 +124,7 @@
 // any apply.
 import { resolve } from "node:path";
 import { readAll, guardedUpdate, guardedInsert, hostOf } from "../lib/db.mjs";
-import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
+import { classTierForHostAcrossNames } from "../../src/lib/sources/host-authority.ts";
 import {
   buildPromotedSourceRow,
   findExistingSourceByCanonicalUrl,
@@ -133,6 +133,11 @@ import {
 } from "../../src/lib/sources/promote-provisional.ts";
 import { planHostDecision, buildNullTierHostWrite } from "../../src/lib/sources/null-tier-host-worklist.mjs";
 import { existingTierForHost } from "./canonical-autoverify.mjs";
+// groupUnresolvedHosts (F1 fix, review-l9b.md, fix round 1 for L9b): the SAME per-host name-grouping
+// enumerate-unclassified-hosts.mjs already uses, reused here (never a second copy) so this step's class
+// decision for a host is computed once, over the union of every stored name the run sees for it, rather
+// than per row.
+import { groupUnresolvedHosts } from "./enumerate-unclassified-hosts.mjs";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 // `checkVerticalFitGate` (src/lib/sources/vertical-fit-gate.ts) imports the `@/lib/...` TS path alias
@@ -275,7 +280,7 @@ export function syntheticItemIdFor(table, id) {
  *   readPendingProvisional: () => Promise<Array>,
  *   readProvisionalSourcesRows: () => Promise<Array>,
  *   readActiveSources: () => Promise<Array>,
- *   classTierForHost: (host:string) => number|null,
+ *   classTierForHostAcrossNames: (host:string, names:string[]) => number|null,
  *   promoteProvisional: (row:object, tier:number, rule:string) => Promise<{sourceId:string, reused:boolean}>,
  *   rejectProvisional: (id:string, reason:string) => Promise<void>,
  *   worklistProvisional: (id:string, flagNote:string) => Promise<void>,
@@ -287,6 +292,24 @@ export function syntheticItemIdFor(table, id) {
  *   insertNullTierFlag: (row:object) => Promise<void>,
  *   updateNullTierFlag: (id:string, patch:object) => Promise<void>,
  * }} deps
+ *
+ * `classTierForHost`'s second, optional `name` parameter (D14 residue ruling, defect-fix-plan-2026-09-12.md
+ * D14, 2026-09-13) is threaded from each row's OWN stored `name` column below -- rule (b) now also
+ * classifies via the residue ruling's 8 deterministic name-keyword rules (government/legal/academic/
+ * association/news/analysis/company), not the host alone. A row with no name still resolves exactly as
+ * before (the parameter is additive, never a behaviour change for a nameless row).
+ *
+ * FIX ROUND 1 for L9b (review-l9b.md finding F1, defect-fix-plan-2026-09-12.md D14): rule (b) now uses
+ * `classTierForHostAcrossNames`, not the single-name `classTierForHost`, for its residue-ruling decision.
+ * Several real hosts in the pending backlog carry MULTIPLE stored citation names across their rows (a
+ * regulator cited once by its full department name and once by a bare/ambiguous name); the single-name
+ * path made the same host resolve to DIFFERENT tiers depending purely on which row's name was read
+ * first, and a promoted host's tier is then PERMANENT (the promote path reuses an existing `sources` row
+ * for the same host rather than re-deciding it). The fix groups every row's own name by host FIRST
+ * (`groupUnresolvedHosts`, reused from enumerate-unclassified-hosts.mjs, across BOTH tables' rows this
+ * run sees), then decides each host's class ONCE, over the union of its names, taking the most
+ * authoritative (lowest rule number) result any single name would produce -- so the outcome is the same
+ * regardless of row order.
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
@@ -306,13 +329,27 @@ export async function main({ mode = "dry" } = {}, deps) {
     deps.readActiveSources(),
   ]);
 
-  const classTierFn = deps.classTierForHost ?? classTierForHost;
+  const classTierAcrossNamesFn = deps.classTierForHostAcrossNames ?? classTierForHostAcrossNames;
   const worklistFlagOps = { inserted: 0, updated: 0 };
+
+  // F1 fix (review-l9b.md, fix round 1 for L9b): group every row's own name by host, across BOTH
+  // tables' rows this run sees, BEFORE deciding any row -- the same grouping enumerate-unclassified-
+  // hosts.mjs already uses (reused, never a second copy), fed with empty search-log/item-title maps
+  // since this step has no use for the citing-item join, only the per-host `names` list.
+  const namesByHostRows = [
+    ...pendingProvisional.map((r) => ({ table: "provisional_sources", id: r.id, host: hostForRow(r), name: r.name ?? null })),
+    ...sourcesProvisional.map((r) => ({ table: "sources", id: r.id, host: hostForRow(r), name: r.name ?? null })),
+  ].filter((r) => r.host);
+  const namesByHost = new Map(
+    groupUnresolvedHosts(namesByHostRows, new Map(), new Map()).map((g) => [g.host, g.names]),
+  );
 
   for (const row of pendingProvisional) {
     const host = hostForRow(row);
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    const classTier = host && existingTier == null ? classTierFn(host) : null;
+    // F1 fix: the host's class decision is computed ONCE over the union of every name this run sees for
+    // it (namesByHost), not this row's own name alone -- order-independent by construction.
+    const classTier = host && existingTier == null ? classTierAcrossNamesFn(host, namesByHost.get(host)) : null;
     const plan = planProvisionalSourceRow(row, { existingTier, classTier });
     await applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps });
   }
@@ -320,7 +357,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   for (const row of sourcesProvisional) {
     const host = hostForRow(row);
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    const classTier = host && existingTier == null ? classTierFn(host) : null;
+    const classTier = host && existingTier == null ? classTierAcrossNamesFn(host, namesByHost.get(host)) : null;
     const plan = planSourcesProvisionalRow(row, { existingTier, classTier });
     await applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps });
   }

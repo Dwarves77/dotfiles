@@ -47,9 +47,12 @@ export function reachabilityBucket(row) {
   return "flaky";
 }
 
-/** Officialness tier bucket: host-authority.ts's deterministic host->tier classifier, or "unclassified". */
+/** Officialness tier bucket: host-authority.ts's deterministic host->tier classifier, or "unclassified".
+ *  D14 residue ruling (2026-09-13): threads the row's OWN stored `name` (already in SELECT_COLUMNS) so
+ *  this digest's bucketing benefits from the same 8 name-keyword rules resolve-provisional-sources.mjs
+ *  applies at apply time -- a row bucketed "unclassified" here should match what that step would decide. */
 export function officialnessTier(row) {
-  const t = classTierForHost(hostOf(row.url));
+  const t = classTierForHost(hostOf(row.url), row.name);
   return t == null ? "unclassified" : String(t);
 }
 

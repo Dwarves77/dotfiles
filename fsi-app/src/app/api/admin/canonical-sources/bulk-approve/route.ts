@@ -151,7 +151,10 @@ export async function POST(request: NextRequest) {
       // route, where the operator sets assignedTier explicitly, the moat-sanctioned human-override path).
       let candHost = "";
       try { candHost = new URL(canonCandidateUrl).hostname.toLowerCase(); } catch { candHost = ""; }
-      const detTier = classTierForHost(candHost);
+      // D14 residue ruling (2026-09-13): threads the candidate's own recorded publisher/title (the SAME
+      // name expression the vertical-fit gate call just below already uses) so it classifies via the 8
+      // name-keyword rules too, not the host alone.
+      const detTier = classTierForHost(candHost, cand.candidate_publisher || cand.candidate_title);
       if (detTier == null) {
         requiresReview.push({
           candidateId: cand.id,
