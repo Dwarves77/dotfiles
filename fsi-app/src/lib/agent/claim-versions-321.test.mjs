@@ -27,6 +27,10 @@ test("321: supersede_reason_chk is dropped-if-exists then re-added widened to ad
   assert.match(chkMatch[1], /'changed'/);
   assert.match(chkMatch[1], /'proven_inaccurate'/);
   assert.match(chkMatch[1], /'superseded_by_record_briefs'/);
+  // Re-review round 1 [CONFIRMED live]: 22 claim_versions rows carry 'orphaned_no_prose_referent' (migration 210's
+  // vocabulary); a widened CHECK that drops it fails to apply. The vocabulary is a superset, never a replacement.
+  assert.match(chkMatch[1], /'orphaned_no_prose_referent'/, "321 must keep migration 210's 'orphaned_no_prose_referent' in the vocabulary");
+  assert.match(chkMatch[1], /'proven_inaccurate'/);
 });
 
 test("321: the sibling claim_versions_proof_required constraint (migration 210) is ALSO dropped-if-exists then re-added, widened to exempt 'superseded_by_record_briefs' (C2)", () => {
@@ -47,7 +51,7 @@ test("321: both widened constraints appear together, so a replace-ledger archive
   // versionPayload() produces for a replace-ledger archive (proof argument is a literal null).
   const supersedeReason = "superseded_by_record_briefs";
   const inaccuracyProof = null;
-  const supersedeReasonChkOk = ["changed", "proven_inaccurate", "superseded_by_record_briefs"].includes(supersedeReason);
+  const supersedeReasonChkOk = ["changed", "proven_inaccurate", "orphaned_no_prose_referent", "superseded_by_record_briefs"].includes(supersedeReason);
   const proofRequiredOk = ["changed", "superseded_by_record_briefs"].includes(supersedeReason) || inaccuracyProof !== null;
   assert.ok(supersedeReasonChkOk, "supersede_reason_chk must accept the new reason");
   assert.ok(proofRequiredOk, "proof_required must accept a null proof for the new reason (this is exactly C2's fix)");

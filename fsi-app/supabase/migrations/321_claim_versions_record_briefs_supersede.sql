@@ -36,7 +36,9 @@ comment on column public.claim_versions.note is
 
 alter table public.claim_versions drop constraint if exists claim_versions_supersede_reason_chk;
 alter table public.claim_versions add constraint claim_versions_supersede_reason_chk
-  check (supersede_reason in ('changed', 'proven_inaccurate', 'superseded_by_record_briefs'));
+  check (supersede_reason in ('changed', 'proven_inaccurate', 'orphaned_no_prose_referent', 'superseded_by_record_briefs'));
+-- 'orphaned_no_prose_referent' stays: migration 210 admitted it and 22 live rows carry it (verified 2026-09-13);
+-- dropping it would make this ADD CONSTRAINT fail against the live table.
 
 -- Widen the proof-required sibling constraint (migration 210) so a replace-ledger archive is exempt from
 -- carrying inaccuracy_proof, the same way 'changed' already is -- a not-reproduced claim dropped by the
