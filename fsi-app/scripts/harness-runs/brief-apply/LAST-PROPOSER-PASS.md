@@ -2,7 +2,7 @@
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **two** artifacts
 (`brief-apply-run-001` and `brief-apply-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-006** (this branch; see the numbering finding in the passes below).
+verbatim: **brief-apply-run-010** (this branch; see the numbering finding in the passes below).
 
 ## Pass over brief-apply-run-001 and brief-apply-run-002 (2026-09-12, task 6.1b)
 
@@ -147,3 +147,29 @@ merges, then applied on this branch as its own run.
 **Proposal:** none new beyond D1 and D12.
 
 **Family gates status:** GREEN. This attestation names brief-apply-run-006 as this branch's latest artifact.
+
+## Pass over brief-apply-run-007 to brief-apply-run-010 on brief-lane/002-2026-09-12 (2026-09-13, coordinator)
+
+**Artifacts read:** run-007 (dry, after_id 00a2452a, limit 1, overwrite) and run-008 (apply, same
+scope): both selected 00d1a570, not the intended 00a8c0d9, because `--after-id` walks the batch FILE
+order and the tenth entry (commit 3271d444) was appended after 01936f81; run-008 re-applied 00d1a570
+under overwrite (applied 1, verified 1, no defects; a harmless re-verification). run-009 (dry, after_id
+01936f81, limit 1) and run-010 (apply, same scope, started_at 2026-09-13T00:04:07.197Z): 00a8c0d9
+selected; applied 1, quarantined 0, generate_failed 0; per-item generated, sectioned, grounded, verified,
+grown, discovery 12 refs, forward-events 0 new, compliance-deadline unchanged, entities 0.
+
+**Live read-back (coordinator SQL, 2026-09-13 00:05 UTC):** 00a8c0d9 provenance_status verified,
+item_grade brief, instrument_identifier "UK wsi 2010/2880", 16 FACT claims, 12,250-char brief, 3
+timeline rows, updated 00:04:16 UTC by run-010 [CONFIRMED]. Batch 002 is 10 of 10 verified.
+
+**Hypotheses (verified, with basis):**
+- [CONFIRMED] the item that chunk 1 quarantined at ground (run-004) is resolved by the source fixes
+  alone: the identifier reconciled (task 7.4e), the export made to include quarantined items (task
+  6.2d), and a brief written under the 6.2b contract; no per-item patch anywhere (ADR-030).
+- [CONFIRMED] `--after-id` is file order, not id order; the runbook's brief-apply section should say so
+  (a one-line docs fix, folded into the next record-briefs lane, L12).
+- [CONFIRMED] numbering: run-007 to run-010 continue this branch's own sequence (defect D12 unchanged).
+
+**Proposal:** the runbook sentence above (L12); nothing else new.
+
+**Family gates status:** GREEN. This attestation names brief-apply-run-010 as this branch's latest artifact.
