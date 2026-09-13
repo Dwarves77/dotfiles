@@ -1,0 +1,375 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:3e2c4f2d0563eee1",
+  "run_id": "source-sweep-run-020",
+  "started_at": "2026-09-13T08:04:39.925Z",
+  "finished_at": "2026-09-13T08:05:10.943Z",
+  "config": {
+    "walker": "register-eurlex",
+    "mode": "dry",
+    "from": "2026-08-13",
+    "to": "2026-09-13",
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+    "portal_url": "https://eur-lex.europa.eu",
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": false,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=13082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=14082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=15082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=16082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=17082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=18082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=19082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=20082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=21082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=22082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=23082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=24082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=25082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=26082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=27082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=28082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=29082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=31082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=01092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=02092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=03092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=04092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=05092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=06092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=07092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=08092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=09092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=10092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=11092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=12092026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=13092026"
+  ],
+  "per_item": [
+    {
+      "id": "2026-08-13",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=13082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-14",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=14082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-15",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=15082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-16",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=16082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-17",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=17082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-18",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=18082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-19",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=19082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-20",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=20082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-21",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=21082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-22",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=22082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-23",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=23082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-24",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=24082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-25",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=25082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-26",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=26082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-27",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=27082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-28",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=28082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-29",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=29082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-30",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-08-31",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=31082026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-01",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=01092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-02",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=02092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-03",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=03092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-04",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=04092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-05",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=05092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-06",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=06092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-07",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=07092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-08",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=08092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-09",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=09092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-10",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=10092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-11",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=11092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-12",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=12092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    },
+    {
+      "id": "2026-09-13",
+      "outcome": "error",
+      "verdict": "0 act link(s) extracted, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=13092026"
+      ],
+      "error": "unexpected page shape: 2035 bytes with no daily-view markers (not the OJ register); head: \"<!DOCTYPE html> <html lang=\\\"en\\\"> <head> <meta charset=\\\"utf-8\\\"> <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\"> <title></title> <style> body { font-family: \\\"Arial\\\"; } </style> <scr\""
+    }
+  ],
+  "metrics": {
+    "register": "eurlex-oj",
+    "series": "L",
+    "from": "2026-08-13",
+    "to": "2026-09-13",
+    "mode": "dry",
+    "days_walked": 32,
+    "days_with_error": 32,
+    "days_duplicate_edition": 0,
+    "extracted_total": 0,
+    "upserted": 0,
+    "planned": 0,
+    "failed": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-020.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
