@@ -20,8 +20,13 @@ import {
   APPLY_STEP_ORDER,
   ENTITIES_MODULE_NOT_PRESENT,
   DEFAULT_HARNESS_RUNS_DIR,
+  DEFAULT_IO_BUDGET_MB,
+  BYTES_PER_MB,
   importLinkItemEntities,
   resolveBriefsInput,
+  runApplyLoop,
+  PIPELINE_POOL_REREADS,
+  IO_BUDGET_STOP_REASON,
 } from "./apply-record-briefs.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
@@ -948,4 +953,166 @@ test("Fix round 1 (C2): generate succeeds but ground fails this run - NO changel
   );
   assert.equal(called, false, "a ground failure this run must refuse the changelog write");
   assert.equal(result.steps.some((s) => s.id === "item-13#changelog"), false);
+});
+
+// ── D32 (defect-fix-plan-2026-09-12.md, lane L21): IO budget in the apply driver ───────────────────────
+//
+// "a fake client whose pool rows are oversized" (brief (b)(5)(i)): readCurrentPool/buildPoolContext are
+// the I/O helpers that would talk to a fake Supabase client (not unit-tested directly, same posture this
+// file's own header already documents for applyOneEntry's pipeline calls) - their OUTPUT is exactly
+// poolBytesByItemId, so these tests drive runApplyLoop (the pure, exported budget-metering loop) with that
+// map populated as an oversized fake client's readCurrentPool calls would have produced it.
+
+function ioPlan(ids) {
+  return buildApplyPlan(
+    ids.map((id) => ({ item_id: id, source_pool_hash: "h", body: "b", metadata: {}, claims: [] })),
+    { currentHashByItemId: Object.fromEntries(ids.map((id) => [id, "h"])) },
+  );
+}
+
+function applySpy(overrides = {}) {
+  const calls = [];
+  const fn = async (planned) => {
+    calls.push(planned.itemId);
+    return { itemId: planned.itemId, generated: true, provenanceStatus: "verified", steps: [{ id: `${planned.itemId}#generate`, outcome: "generated", error: null }], ...overrides };
+  };
+  fn.calls = calls;
+  return fn;
+}
+
+test("runApplyLoop: stops at the budget - the applyEntry spy is not called for any item past the stop, every remaining item is not_applied_io_budget, metrics carry stop_reason/bytes_read/last_item_id", async () => {
+  const plan = ioPlan(["a", "b", "c"]);
+  const poolBytesByItemId = { a: 100, b: 100, c: 100 };
+  const applyEntry = applySpy();
+  const logs = [];
+  const { perItem, metrics, appliedItemIds, stopped } = await runApplyLoop({
+    plan,
+    execute: true,
+    ioBudgetBytes: 650, // precheck 300 + a's 200 (100*REREADS) = 500 ok; + b's 200 = 700 > 650 -> stop at b
+    poolBytesByItemId,
+    applyEntry,
+    log: (m) => logs.push(m),
+  });
+
+  assert.equal(stopped, true);
+  assert.deepEqual(applyEntry.calls, ["a"], "applyEntry must be called for a only - never for b or c, past the stop");
+  assert.deepEqual(appliedItemIds, ["a"]);
+  assert.equal(metrics.stop_reason, IO_BUDGET_STOP_REASON);
+  assert.equal(metrics.bytes_read, 500, "bytes_read = precheck(300) + a's applied cost (100 * PIPELINE_POOL_REREADS)");
+  assert.equal(metrics.last_item_id, "a", "the last item actually processed, so the next dispatch resumes with --after-id a");
+  assert.equal(metrics.io_budget_bytes, 650);
+
+  const byId = Object.fromEntries(perItem.filter((p) => p.id === "b" || p.id === "c").map((p) => [p.id, p]));
+  assert.equal(byId.b.outcome, "not_applied_io_budget");
+  assert.match(byId.b.error, /io budget/);
+  assert.equal(byId.c.outcome, "not_applied_io_budget");
+  assert.ok(logs.some((l) => l.startsWith("::warning::")), "a ::warning:: line is logged on the stop");
+});
+
+test("runApplyLoop: ioBudgetBytes 0 never stops (unlimited) - every item applies regardless of pool size", async () => {
+  const plan = ioPlan(["a", "b", "c"]);
+  const poolBytesByItemId = { a: 10_000_000, b: 10_000_000, c: 10_000_000 };
+  const applyEntry = applySpy();
+  const { metrics, appliedItemIds, stopped } = await runApplyLoop({
+    plan,
+    execute: true,
+    ioBudgetBytes: 0,
+    poolBytesByItemId,
+    applyEntry,
+    log: () => {},
+  });
+  assert.equal(stopped, false);
+  assert.deepEqual(applyEntry.calls, ["a", "b", "c"]);
+  assert.deepEqual(appliedItemIds, ["a", "b", "c"]);
+  assert.equal(metrics.stop_reason, null);
+  assert.equal(metrics.bytes_read, 3 * 10_000_000 + 3 * 10_000_000 * PIPELINE_POOL_REREADS);
+});
+
+test("runApplyLoop: dry mode never calls applyEntry, reports bytes_read as the flat pre-check total, and predicts would_stop_at_item_id via the same walk", async () => {
+  const plan = ioPlan(["a", "b", "c"]);
+  const poolBytesByItemId = { a: 100, b: 100, c: 100 };
+  const applyEntry = applySpy();
+  const { perItem, metrics, appliedItemIds, stopped } = await runApplyLoop({
+    plan,
+    execute: false,
+    ioBudgetBytes: 650, // same numbers as the apply-mode stop test above -> would stop at b
+    poolBytesByItemId,
+    applyEntry,
+    log: () => {},
+  });
+  assert.equal(stopped, false, "dry mode never itself stops - it only predicts");
+  assert.equal(applyEntry.calls.length, 0, "dry mode never calls applyEntry");
+  assert.deepEqual(appliedItemIds, []);
+  assert.equal(metrics.bytes_read, 300, "dry mode bytes_read is the flat pre-check total, not the simulated running total");
+  assert.equal(metrics.would_stop_at_item_id, "b");
+  assert.deepEqual(perItem.map((p) => p.outcome), ["would_apply", "would_apply", "would_apply"], "dry mode per-item outcomes are unaffected by the prediction");
+});
+
+test("runApplyLoop: skip-on-stale-hash entries never consume the apply-cost budget walk, but their pre-read bytes still count toward bytes_read", async () => {
+  const plan = buildApplyPlan(
+    [
+      { item_id: "a", source_pool_hash: "stale", body: "b", metadata: {}, claims: [] },
+      { item_id: "b", source_pool_hash: "h", body: "b", metadata: {}, claims: [] },
+    ],
+    { currentHashByItemId: { a: "current", b: "h" } },
+  );
+  const poolBytesByItemId = { a: 500, b: 50 };
+  const applyEntry = applySpy();
+  const { perItem, metrics, appliedItemIds } = await runApplyLoop({
+    plan,
+    execute: true,
+    ioBudgetBytes: 0,
+    poolBytesByItemId,
+    applyEntry,
+    log: () => {},
+  });
+  assert.deepEqual(applyEntry.calls, ["b"]);
+  assert.deepEqual(appliedItemIds, ["b"]);
+  assert.equal(metrics.skipped_stale_hash, 1);
+  assert.equal(perItem[0].outcome, "stale_pool_hash");
+  assert.equal(metrics.bytes_read, 550 + 50 * PIPELINE_POOL_REREADS, "precheck(a's 500 + b's 50) + b's applied cost");
+});
+
+test("parseArgs: --io-budget-mb defaults to DEFAULT_IO_BUDGET_MB when omitted", () => {
+  const r = parseArgs(["--briefs", "x.json"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.ioBudgetMb, DEFAULT_IO_BUDGET_MB);
+});
+
+test("parseArgs: --io-budget-mb threads through, 0 is valid (unlimited)", () => {
+  assert.equal(parseArgs(["--briefs", "x.json", "--io-budget-mb", "0"]).ioBudgetMb, 0);
+  assert.equal(parseArgs(["--briefs", "x.json", "--io-budget-mb", "200"]).ioBudgetMb, 200);
+});
+
+test("parseArgs: --io-budget-mb rejects a negative value", () => {
+  const r = parseArgs(["--briefs", "x.json", "--io-budget-mb", "-1"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--io-budget-mb/);
+});
+
+test("parseArgs: --io-budget-mb rejects a non-numeric string", () => {
+  const r = parseArgs(["--briefs", "x.json", "--io-budget-mb", "abc"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--io-budget-mb/);
+});
+
+test("BYTES_PER_MB: 1024 * 1024", () => {
+  assert.equal(BYTES_PER_MB, 1024 * 1024);
+});
+
+// ── workflow-text: brief-apply.yml declares io_budget_mb and passes --io-budget-mb ─────────────────────
+
+test("brief-apply.yml: declares the io_budget_mb workflow_dispatch input, string type, default '400'", () => {
+  const yml = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "brief-apply.yml"), "utf8");
+  assert.match(
+    yml,
+    /io_budget_mb:\s*\n\s*description:[^\n]*\n\s*required: false\s*\n\s*default: '400'\s*\n\s*type: string/,
+    "expected io_budget_mb: required:false, default:'400', type:string, in that order",
+  );
+});
+
+test("brief-apply.yml: RUN_IO_BUDGET_MB is threaded from inputs.io_budget_mb and passed to the driver as --io-budget-mb", () => {
+  const yml = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "brief-apply.yml"), "utf8");
+  assert.match(yml, /RUN_IO_BUDGET_MB:\s*\$\{\{\s*inputs\.io_budget_mb\s*\}\}/);
+  assert.match(yml, /--io-budget-mb \$RUN_IO_BUDGET_MB/);
 });

@@ -85,6 +85,7 @@ import { renderNowIso } from "@/lib/render-now";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
+import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {
@@ -146,8 +147,13 @@ const UUID_RE =
 // here — see nextjs.org/docs/app/building-your-application/rendering/server-components
 // (static rendering with `generateStaticParams` producing HTML/RSC payload at build time, cached
 // and reused, vs. dynamic rendering generated per-request).
+// D32 (defect-fix-plan-2026-09-12.md, lane L21, part (d)): the read is guarded by slugsOrEmpty
+// (src/lib/perf/static-params-fallback.mjs) - a rejected or slow (>10s) read falls back to [] with a build
+// warning instead of failing the build, since this route already renders on demand via dynamicParams (see
+// this comment block's own citations above). The 2026-09-13 incident: every Vercel preview build failed
+// here, unguarded, while the database was hung on the disk-IO-budget exhaustion D32 as a whole fixes.
 export async function generateStaticParams() {
-  const slugs = await getPublicSurfaceSlugs("regulations");
+  const slugs = await slugsOrEmpty(() => getPublicSurfaceSlugs("regulations"), { route: "/regulations/[slug]" });
   return slugs.map((slug) => ({ slug }));
 }
 

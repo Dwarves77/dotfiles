@@ -34,6 +34,67 @@ not reproduce (PR #680 first push: recorded 0221014f, CI computed 3e2c4f2d). Loc
   (mutation-checked: removing the normalization fails it).
 
 **Numbers.** run-artifact.test.mjs 58 to 59 tests; pre-push-tmpdir.test.mjs 3 to 4. Glyph sweep of the diff: 0.
+## 2026-09-16, lane L21 (D32, defect-fix-plan-2026-09-12.md): disk IO budget -- stored capture length, apply-driver budget, pre-flight, build fallback
+
+Worktree `wt-session-c`, branch `lane/w9-l21-disk-io-budget-2026-09-16`. All five deliverables of D32 in
+one lane, no database access from this worktree (fakes/fixtures only, per the coordinator's ruling that no
+DB work happens until the budget refills post-2026-09-13).
+
+**(a) Stored capture length.** Migration 322 (`fsi-app/supabase/migrations/`): `agent_run_searches` gains
+`result_chars integer`, trigger-maintained (`agent_run_searches_result_chars_trg`, BEFORE INSERT OR UPDATE
+OF result_content), indexed `(intelligence_item_id, result_chars)`; also creates `brief_apply_runs` (RLS
+enabled, no policy, service-role only) for part (c). Migration 323: chunked backfill (200 rows/chunk,
+keyset-paginated, `pg_sleep(0.5)` between chunks) for pre-existing rows. Readers converted to
+`result_chars`: `scripts/maintenance/capture-static-primaries.mjs` (`maxPoolLenByItem` + its `readPoolRows`
+select), the `MAINTENANCE-RUNBOOK.md` recipes at (what were) lines 2879 and 3978,
+`scripts/remediation/refetch-capped-worklist.mjs`'s own header comment reworded (the script itself still
+reads `result_content` in JS, by design -- it rewrites the text). New guard
+`scripts/verify/capture-length-scan.test.mjs`: scans every tracked `*.sql/*.mjs/*.ts/*.tsx/*.md/*.js/*.yml`
+file for a call that computes the length (or char_length) of result_content outside a five-entry allowlist (migrations
+322/323, the guard itself, the historical plan doc, and the historical FE-SLOT-2 dispatch record), and
+asserts every allowlist entry is still a tracked file.
+
+**(b) IO budget in the apply driver.** `scripts/turns/apply-record-briefs.mjs`: `readCurrentPool`/
+`buildPoolContext` now also return `poolBytesByItemId` (`Buffer.byteLength` per row, including sub-200-char
+rows). New `--io-budget-mb` flag (default 400, 0 = unlimited) and workflow input on `brief-apply.yml`. The
+per-item loop is extracted into exported `runApplyLoop({plan, execute, ioBudgetBytes, poolBytesByItemId,
+applyEntry, log})`: `bytes_read` = pre-check bytes (every plan entry's pool) plus, per applied item, its
+pool bytes times `PIPELINE_POOL_REREADS` (named constant, 2, `[HYPOTHESIS]`). A run that would exceed the
+budget stops cleanly -- every remaining entry (including the one that tipped it) is `not_applied_io_budget`,
+`metrics.stop_reason`/`bytes_read`/`last_item_id` recorded, exit code stays 0, a `::warning::` line is
+logged. Dry mode never applies; it reports `bytes_read` as the flat pre-check total and predicts
+`metrics.would_stop_at_item_id` via the same walk.
+
+**(c) Pre-flight IO check.** New `scripts/turns/io-preflight.mjs`, imported by the driver: `decidePreflight`
+(pure) refuses on cooldown (`--cooldown-min`, default 30) or an in-flight/crashed prior run (no
+`finished_at`, started under 60 minutes ago; an older null row is ignored), and on a disk sample over
+`--io-busy-max` (default 0.5, `[HYPOTHESIS]`) or `--io-read-mbps-max` (default 40 MB/s, `[HYPOTHESIS]`).
+`sampleDiskCounters` takes two Prometheus samples 30s apart from
+`https://<project-ref>.supabase.co/customer/v1/privileged/metrics` (basic auth, service_role); a failed
+sample never refuses on its own -- cooldown alone decides. `preflightOrRefuse` is the driver's one call
+site; a refusal is loud (stderr + `::error::`), `metrics.stop_reason = "preflight_refused"`, exit code 3.
+`recordApplyRunStart`/`recordApplyRunFinish` write the durable `brief_apply_runs` row (apply mode only,
+best-effort, dry mode writes nothing). Registered in
+`fsi-app/docs/inventories/shared-dataset-ownership.md`.
+
+**(d) Build stops depending on a live read.** New `src/lib/perf/static-params-fallback.mjs`
+(`slugsOrEmpty`): races a read against a 10s timeout, falls back to `[]` with a warning on either a
+rejection or a timeout. Wired into all FOUR `[slug]` detail routes' `generateStaticParams`
+(`regulations`, `market`, `operations`, `research` -- all four had the identical unguarded
+`getPublicSurfaceSlugs` pattern, not just `regulations` as the plan's own evidence quote named).
+
+**(e) Runbook.** New `docs/runbooks/MAINTENANCE-RUNBOOK.md` section 57 (budget/cooldown/pre-flight/restart
+procedure/hand-curl recipe/coordinator rule). No dedicated "brief-apply" section existed in the runbook to
+cross-link FROM; cross-linked both directions between section 57 and
+`scripts/turns/record-briefs/README.md` instead.
+
+**Tests**: `capture-length-scan.test.mjs` (2), `agent-run-searches-322.test.mjs` (11),
+`apply-record-briefs.test.mjs` (67, up from 56), `io-preflight.test.mjs` (32),
+`static-params-fallback.test.mjs` (13), `capture-static-primaries.test.mjs` (49, unchanged count, fixtures
+updated). Migrations 322/323 authored, NOT applied (schema DDL applies via Supabase CLI before this lane's
+dependent code is exercised live, per CLAUDE.md standing rule 3) -- coordinator applies both before merge.
+
+---
 
 ## 2026-09-13, W9 coordinator session close (/done): defect plan D21 to D30, batch 003 applied, all lanes PAUSED
 

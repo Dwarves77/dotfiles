@@ -498,3 +498,9 @@ does with a verdict file" section documents `run-ledger-consume.mjs`'s side of t
   this validator already proved it against -- so a file that passes `validateRecordBriefsFile` is not
   merely "shaped right", it is proven to parse under the real write site's own parser before any grounding
   cost is spent on it.
+- **Disk IO budget, cooldown, and pre-flight (D32, defect-fix-plan-2026-09-12.md, lane L21).** An
+  `--execute` run meters the bytes it reads and stops cleanly before `--io-budget-mb` (default 400 MB); a
+  pre-flight check refuses to even start when the previous apply run is too recent (`--cooldown-min`,
+  default 30) or the database's own disk metrics read busy/saturated. See
+  `docs/runbooks/MAINTENANCE-RUNBOOK.md` section 57 for the full budget/cooldown/restart procedure, and
+  `scripts/turns/io-preflight.mjs` for the code.

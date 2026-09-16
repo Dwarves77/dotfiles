@@ -202,10 +202,21 @@ who may write a shared table; the test enforces it on every future PR.
     "source_tier_opinions": [
       "src/lib/sources/tier-opinion-writer.ts",
       "src/app/api/admin/sources/tier-opinions/route.ts"
+    ],
+    "brief_apply_runs": [
+      "scripts/turns/apply-record-briefs.mjs",
+      "scripts/turns/io-preflight.mjs"
     ]
   }
 }
 ```
+
+Note (added by lane L21, 2026-09-16, D32 defect-fix-plan-2026-09-12.md): `brief_apply_runs` (migration
+322) is a NEW shared dataset registered for the first time here -- its ONE writer is
+`scripts/turns/apply-record-briefs.mjs` itself, via `scripts/turns/io-preflight.mjs`'s
+`recordApplyRunStart`/`recordApplyRunFinish` (a durable run record the driver's own pre-flight cooldown
+check, `preflightOrRefuse`, reads back before the next apply run starts). Apply mode only; dry mode never
+writes.
 
 Note (added by lane HEAL, 2026-09-03): `scripts/maintenance/provenance-heal.mjs` (the guarded-write MAINT
 wrapper for `scripts/mint/heal-provenance.mjs`'s healing runtime) added to `intelligence_items` and

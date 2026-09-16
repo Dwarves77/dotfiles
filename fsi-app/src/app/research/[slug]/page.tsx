@@ -42,6 +42,7 @@
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
+import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
@@ -115,8 +116,12 @@ interface ItemScoped {
 // (src/lib/data.ts, the SAME function every `[slug]` route now calls). `dynamicParams` stays `true`
 // for an item minted after the last build; the deploy-time warm step
 // (docs/runbooks/warm-static-detail-routes.md) closes that gap before a real viewer's first click.
+// D32 (defect-fix-plan-2026-09-12.md, lane L21, part (d)): guarded by slugsOrEmpty
+// (src/lib/perf/static-params-fallback.mjs) - see regulations/[slug]/page.tsx's own comment for the full
+// incident/citation. A rejected or slow (>10s) read falls back to [] with a build warning; the route
+// already renders on demand via dynamicParams.
 export async function generateStaticParams() {
-  const slugs = await getPublicSurfaceSlugs("research");
+  const slugs = await slugsOrEmpty(() => getPublicSurfaceSlugs("research"), { route: "/research/[slug]" });
   return slugs.map((slug) => ({ slug }));
 }
 

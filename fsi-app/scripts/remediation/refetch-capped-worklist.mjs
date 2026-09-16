@@ -36,7 +36,9 @@ const CUTOFF = "2026-06-28"; // premise-2 legacy-cap date boundary
 const PRE_ADR016_SKILL = "remediation-discipline";
 
 // ── The three legacy populations, EXACT premise-2 predicates (a row belongs to exactly one — the length
-//    ranges are disjoint). `len` is length(result_content); `searched_at` gates only legacy_40k.
+//    ranges are disjoint). `len` is the JS string length of the already-fetched result_content field (this
+//    script rewrites the text itself, so it reads result_content regardless - see the module header);
+//    `searched_at` gates only legacy_40k.
 function classify(row) {
   const len = (row.result_content || "").length;
   if (row.searched_at && row.searched_at < CUTOFF && len >= 39900 && len <= 40000) return "legacy_40k";

@@ -194,5 +194,8 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/turns/record-briefs/schema.mjs',
     'src/lib/agent/canonical-pipeline.ts',
     'src/lib/intake/flywheel-steps.mjs',
+    // D32 (defect-fix-plan-2026-09-12.md, lane L21): the pre-flight IO check + durable run record - both
+    // gate whether an --execute run even starts, so both are behavior-bearing for this harness family.
+    'scripts/turns/io-preflight.mjs',
   ]),
 });
