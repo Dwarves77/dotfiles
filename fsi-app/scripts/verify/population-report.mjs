@@ -463,7 +463,7 @@ export const STORES = Object.freeze([
   // the exact gap this population-report guard was invented to catch and did not: built-but-empty
   // stores the CI/build gates never questioned. See docs/ops/runbooks/date-chain-2026-09-11.md.
   { table: "item_timelines", fill: "milestone_date",
-    reader: "item detail page — §14 Confirmed Regulatory Timeline widget",
+    reader: "item detail page -- the item's own format's timeline widget (regulatory section 14 \"Confirmed Regulatory Timeline\"; the four non-regulatory sections named in src/lib/agent/formats/timeline-section.mjs's TIMELINE_SECTION_BY_FORMAT table, added by D31)",
     producer: "canonical-pipeline.ts harvestItemTimeline() (per-generation) + scripts/backfill-item-timelines.mjs (corpus sweep, revived from _archive/ this lane)" },
   { table: "item_forward_events", fill: "event_date",
     reader: "/api/admin/forward-events — upcoming-obligations queue",

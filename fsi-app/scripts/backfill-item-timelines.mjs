@@ -62,6 +62,10 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { readAll, guardedDelete, guardedInsert } from "./lib/db.mjs";
+import { isMainModule } from "./lib/is-main.mjs"; // task 0.3b: the Windows-safe CLI main guard --
+// also what makes this module SAFELY IMPORTABLE (main() no longer runs merely on import), which is
+// what backfill-item-timelines.npmtest.mjs relies on to exercise resolveTimelineEntriesForItem below
+// without touching Supabase (lane L20 fix round, I1).
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be preloaded */ }
@@ -102,6 +106,36 @@ const cite = {
   reason: "DATECHAIN date-chain fix (2026-09-11), corpus sweep half: mechanical §14 harvest from stored briefs into item_timelines — the dates the model already extracted, structured; precision-honest, zero spend",
 };
 
+/**
+ * D31's own per-item resolution (lane L20 fix round, I1): locate `it`'s timeline entries through the
+ * SAME per-format table the live harvest and the record-briefs validator both read, never a second
+ * hand-typed dispatch. Extracted to a pure, dependency-injected function (item in, deps in, entries
+ * out -- no I/O, no jiti, no Supabase) so it is unit-testable without importing this script itself
+ * (which pulls in jiti + Supabase at module scope) -- see backfill-item-timelines.npmtest.mjs.
+ * `regulatory_fact_document` keeps its byte-for-byte pre-D31 path (extractRegulationSections's
+ * heading-only section-14 walk, never findTimelineSectionFor); the other four formats resolve their
+ * own mapped section via findTimelineSectionFor, then run the SAME parseTimeline the display parser
+ * uses internally. An item_type with no FormatSpec, or a FormatSpec whose formatType has no entry in
+ * TIMELINE_SECTION_BY_FORMAT, yields no entries.
+ *
+ * @param {{item_type: string, full_brief: string}} it
+ * @param {{extractRegulationSections: Function, TIMELINE_SECTION_BY_FORMAT: Record<string, unknown>,
+ *   findTimelineSectionFor: Function, parseTimeline: Function, specForItemType: Function}} deps
+ * @returns {Array<{date: string, label: string, source: (string|null)}>}
+ */
+export function resolveTimelineEntriesForItem(it, deps) {
+  const { extractRegulationSections, TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor, parseTimeline, specForItemType } = deps;
+  const spec = specForItemType(it.item_type);
+  if (spec?.formatType === "regulatory_fact_document") {
+    const sec = extractRegulationSections(it.full_brief)["14"];
+    return sec && sec.kind === "timeline" ? sec.entries : [];
+  } else if (spec && TIMELINE_SECTION_BY_FORMAT[spec.formatType]) {
+    const section = findTimelineSectionFor(it.full_brief, spec.formatType);
+    return section ? parseTimeline(section.contentMarkdown) : [];
+  }
+  return [];
+}
+
 async function main() {
   console.log(`\nbackfill-item-timelines — ${EXECUTE ? "EXECUTE" : "DRY-RUN"} (today=${TODAY})${LIMIT ? ` limit=${LIMIT}` : ""}${AFTER_ID ? ` after-id=${AFTER_ID}` : ""}\n`);
 
@@ -130,20 +164,14 @@ async function main() {
     let entries = [];
     try {
       // D31: locate through the same per-format table the live harvest and the record-briefs
-      // validator both read. regulatory_fact_document keeps its byte-for-byte pre-D31 path
-      // (extractRegulationSections's heading-only section-14 walk); the other four formats resolve their
-      // own mapped section via findTimelineSectionFor, then run the SAME parseTimeline the display
-      // parser uses internally.
-      const spec = specForItemType(it.item_type);
-      if (spec?.formatType === "regulatory_fact_document") {
-        const sec = extractRegulationSections(it.full_brief)["14"];
-        entries = sec && sec.kind === "timeline" ? sec.entries : [];
-      } else if (spec && TIMELINE_SECTION_BY_FORMAT[spec.formatType]) {
-        const section = findTimelineSectionFor(it.full_brief, spec.formatType);
-        entries = section ? parseTimeline(section.contentMarkdown) : [];
-      } else {
-        entries = [];
-      }
+      // validator both read -- see resolveTimelineEntriesForItem's own header above.
+      entries = resolveTimelineEntriesForItem(it, {
+        extractRegulationSections,
+        TIMELINE_SECTION_BY_FORMAT,
+        findTimelineSectionFor,
+        parseTimeline,
+        specForItemType,
+      });
     } catch (e) {
       console.warn(`  PARSE-ERR ${it.id} (${(it.title || "").slice(0, 50)}): ${e.message}`);
       continue;
@@ -183,4 +211,10 @@ async function main() {
   }
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+// task 0.3b guard: run only when this file is the CLI entry point, never merely on import -- this is
+// what lets backfill-item-timelines.npmtest.mjs import resolveTimelineEntriesForItem directly without
+// kicking off a real Supabase sweep. `node scripts/backfill-item-timelines.mjs` (every RUN form in the
+// header above) is unaffected: argv[1] resolves to this file, so main() still runs exactly as before.
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => { console.error(err); process.exit(1); });
+}

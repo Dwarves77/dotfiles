@@ -352,7 +352,7 @@ table); two D31 calibration findings from the same exemplars added as named limi
 A limitations -- "percent" vs "%" treated as different literal tokens with no equivalence, and the
 FIGURE/DATE harvest capturing only the trailing endpoint of a hyphenated date range.
 
-**Verification.** `node --test` on every touched/added test file green (60 + 12 + 15 + 10 = 97 tests,
+**Verification.** `node --test` on every touched/added test file green (60 + 12 + 11 + 10 = 93 tests,
 0 failures); `npx tsc --noEmit` clean (one index-signature error fixed by widening
 `TIMELINE_SECTION_BY_FORMAT` to a typed `Record<string, ...>` lookup at its one indexing call site in
 `canonical-pipeline.ts`, since the imported `.mjs` object's inferred literal-key type has no index
@@ -361,6 +361,35 @@ regression); `canonical-pipeline.write-fields.npmtest.mjs` and `canonical-pipeli
 npmtest.mjs` re-run clean. No DB access, no network, no LLM calls in this lane.
 
 **UX compliance:** N/A -- no `.tsx`/`.css` under `fsi-app/src` touched (backend/validator/docs only).
+
+### Fix round 1 (review-l20.md, 2026-09-16)
+
+Review (`review-l20.md`) returned CONDITIONAL FAIL on three findings, all closed this round:
+
+- **I1.** `scripts/backfill-item-timelines.mjs`'s own D31 per-item resolution (the per-format section
+  lookup replacing the old `REG_FAMILY`-only scope) had no test anywhere in the repo. Fixed by extracting
+  the resolution into an exported pure function, `resolveTimelineEntriesForItem(it, deps)` (item plus deps
+  in, timeline entries out -- no I/O), and guarding the script's `main()` call behind
+  `isMainModule(import.meta.url)` (task 0.3b's convention) so the module is safely importable without
+  triggering a real Supabase sweep. New file `scripts/backfill-item-timelines.npmtest.mjs` (6 tests, all
+  green): a non-regulatory item resolves through its own mapped section; a regulatory item still resolves
+  through section 14 only; an item whose format has no mapped section (or no FormatSpec at all, or a
+  mapped section absent from the body) yields no entries; and a dedicated case proves the reverted pre-D31
+  behaviour (unconditional `extractRegulationSections(...)["14"]`, transcribed verbatim from `git show
+  964b0421:fsi-app/scripts/backfill-item-timelines.mjs` lines 107-114, since that version exports no
+  matching function to swap in directly) makes the non-regulatory case fail. `.npmtest.mjs` because the
+  script pulls in `jiti` at module scope; named into `.github/workflows/discipline.yml`'s "App unit tests
+  requiring npm deps" step (`fsi-app/scripts/**` is outside that step's glob, same posture as
+  `apply-record-briefs.npmtest.mjs` and `section-list-drift.npmtest.mjs`).
+- **I2.** This entry's own test-count claim was wrong (97, sum "60+12+15+10") -- corrected above to the
+  verified 93 (60 + 12 + 11 + 10). With I1's new file, the lane's total test-file count is now 5 (93 +
+  the new 6 in `backfill-item-timelines.npmtest.mjs` = 99 across the touched/added set).
+- **M1.** `scripts/verify/population-report.mjs`'s `item_timelines` `STORES` row `reader` label named only
+  the regulatory "section 14 Confirmed Regulatory Timeline" widget; relabeled to name every format's own
+  timeline section (regulatory section 14 plus the four non-regulatory sections in
+  `src/lib/agent/formats/timeline-section.mjs`'s table). No query-logic change.
+
+**UX compliance (fix round 1):** N/A -- no `.tsx`/`.css` under `fsi-app/src` touched.
 
 ---
 
