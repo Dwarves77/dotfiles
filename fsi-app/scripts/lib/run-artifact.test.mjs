@@ -358,6 +358,19 @@ test("hashHarnessVersion: deterministic for identical file content", () => {
   }
 });
 
+test("hashHarnessVersion: CRLF and LF copies of the same content hash identically (CI parity, lane L22)", () => {
+  const dir = tmpDir();
+  try {
+    writeFileSync(join(dir, "a.mjs"), "export const x = 1;\nexport const y = 2;\n");
+    const lf = hashHarnessVersion(["a.mjs"], dir);
+    writeFileSync(join(dir, "a.mjs"), "export const x = 1;\r\nexport const y = 2;\r\n");
+    const crlf = hashHarnessVersion(["a.mjs"], dir);
+    assert.equal(crlf, lf, "a CRLF working copy must hash like the LF blob CI checks out");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("hashHarnessVersion: any change to any listed file changes the hash", () => {
   const dir = tmpDir();
   try {

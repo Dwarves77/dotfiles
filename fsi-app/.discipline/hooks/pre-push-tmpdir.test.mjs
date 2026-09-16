@@ -108,3 +108,26 @@ test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE uns
   assert.doesNotMatch(stdout, /step 1 \(untracked critical files\)/);
   assert.doesNotMatch(stdout, /running 4-step CI-parity check/);
 });
+
+// Lane L22 (2026-09-16), class fix for the first-push-red pattern: five lanes in a row went red on their
+// FIRST CI run on a fitness function that scans the live tree (F23 twice, F20, F25, the skill-drift gate)
+// because the hook ran the fitness functions' unit tests (step 3) but never the runner itself, which is
+// what the CI "Fitness functions" job runs. Step 3d now runs it; this test pins the hook's command to the
+// exact command discipline.yml runs, read from the workflow file, so the two cannot drift apart silently.
+test("pre-push hook source: step 3d runs the SAME fitness-runner command the CI Fitness functions job runs (parity by construction)", () => {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "discipline.yml"), "utf8");
+  const m = workflow.match(/run:\s*(node fsi-app\/\.discipline\/fitness\/runner\.mjs)\s*$/m);
+  assert.ok(m, "discipline.yml must run the fitness runner as a bare command line this test can read");
+  const ciCommand = m[1];
+  assert.ok(
+    hook.includes("if ! " + ciCommand + " >"),
+    "pre-push step 3d must run exactly the CI fitness-runner command: " + ciCommand,
+  );
+  assert.match(hook, /step 3d \(fitness runner, live tree, CI parity\): OK/);
+  // Ordering: the runner runs after the canonical suite (step 3) and before tsc (step 4).
+  const i3 = hook.indexOf("step 3 (discipline + fitness tests, canonical suite): OK");
+  const i3d = hook.indexOf("step 3d (fitness runner, live tree, CI parity): OK");
+  const i4 = hook.indexOf("step 4 (tsc --noEmit): OK");
+  assert.ok(i3 > 0 && i3d > i3 && i4 > i3d, "step 3d must sit between step 3 and step 4");
+});

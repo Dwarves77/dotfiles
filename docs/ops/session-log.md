@@ -5,6 +5,36 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-16, W9 lane L22: local gate runs the fitness runner; harness hash ignores line endings (first-push-red class fix)
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l22-local-ci-parity-2026-09-16, cut from
+master 703430b9. Operator ruling 2026-09-16: "Every time you do a merge you fail. Find out why you continue
+to fail and stop it."
+
+**The class [CONFIRMED].** Five lanes in a row (L15, L16, L17, L19, L20) went red on their FIRST CI run and
+green on the second, each on a fitness function that scans the live tree: F23 orphaned proofs (twice: a
+test dropped into a directory no suite glob matched), F20, F25, the skill-drift gate. The pre-push hook's
+step 3 runs the fitness functions' UNIT TESTS (fixtures) but never the runner itself; the CI "Fitness
+functions" job runs `node fsi-app/.discipline/fitness/runner.mjs` over the tree. So those scans ran for the
+first time on GitHub, every time. Second cause, same lane: `hashHarnessVersion` hashed raw working-tree
+bytes; wt-session-b's copy of `src/lib/sources/feed-walk.mjs` carried CRLF (checked out before the
+`text eol=lf` attribute existed; the blob is LF), so the F28 re-pin at push produced a marker hash CI could
+not reproduce (PR #680 first push: recorded 0221014f, CI computed 3e2c4f2d). Local F28 passed, GitHub failed.
+
+**The fix.**
+- `fsi-app/.discipline/hooks/pre-push`: new step 3d runs the fitness runner exactly as discipline.yml does,
+  between step 3 and step 4; a violation is refused before the push with the runner's own report lines.
+  About 60 s locally (measured 66 s on a merged tree).
+- `fsi-app/scripts/lib/run-artifact.mjs`: `hashHarnessVersion` normalizes CRLF to LF before the digest,
+  so the hash describes the content, never the platform that checked it out. LF content hashes unchanged
+  (every existing marker keeps its value).
+- Guards: `pre-push-tmpdir.test.mjs` reads the runner command out of discipline.yml and asserts the hook
+  runs that exact command in step 3d, between steps 3 and 4 (mutation-checked: neutering the step fails
+  it); `run-artifact.test.mjs` asserts a CRLF and an LF copy of the same content hash identically
+  (mutation-checked: removing the normalization fails it).
+
+**Numbers.** run-artifact.test.mjs 58 to 59 tests; pre-push-tmpdir.test.mjs 3 to 4. Glyph sweep of the diff: 0.
+
 ## 2026-09-13, W9 coordinator session close (/done): defect plan D21 to D30, batch 003 applied, all lanes PAUSED
 
 Coordinator (Fable) entry for the 2026-09-12/13 session on the W9 brief chain. Written at 05:05 EDT

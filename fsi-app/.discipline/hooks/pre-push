@@ -223,6 +223,23 @@ cat "$PRE_PUSH_LOG_DIR/gate.log"
 echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 
 # ---------------------------------------------------------------------------
+# Step 3d: the fitness runner over the live tree, the SAME command the CI "Fitness functions" job runs
+# ---------------------------------------------------------------------------
+# CLASS FIX (2026-09-16, lane L22): five lanes in a row went red on their FIRST CI run and green on the
+# second, every time on a fitness function that scans the live tree (F23 orphaned proofs twice, F20, F25,
+# the skill-drift gate). Step 3 runs the fitness functions' UNIT TESTS (fixtures), never the runner itself,
+# so those scans ran for the first time on GitHub. The hook now runs the runner the way discipline.yml
+# does (node fsi-app/.discipline/fitness/runner.mjs, from the repo root; pre-push-tmpdir.test.mjs pins the
+# two commands to each other), so a live-tree violation is refused here, before the push. About 60s locally.
+if ! node fsi-app/.discipline/fitness/runner.mjs >"$PRE_PUSH_LOG_DIR/fit.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3d FAIL: fitness runner reported violation(s) on the live tree:" >&2
+  grep -E 'FAIL  \[F|^  \[F[0-9]+\]|^        ' "$PRE_PUSH_LOG_DIR/fit.log" | head -60 >&2
+  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/fit.log" >&2
+  exit 1
+fi
+echo "[discipline pre-push] step 3d (fitness runner, live tree, CI parity): OK"
+
+# ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)
 # ---------------------------------------------------------------------------
 # tsc-noEmit is slow (~10-30s); run last so quick failures abort first.

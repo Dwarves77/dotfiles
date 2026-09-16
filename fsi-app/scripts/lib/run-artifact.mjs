@@ -376,7 +376,13 @@ export function hashHarnessVersion(filePaths, baseDir = process.cwd()) {
       // scripts/harness-runs/governing-files.mjs), so this normalization changes nothing for
       // Linux/CI and makes Windows agree with it, not the other way around.
       const rel = relative(base, abs).split(sep).join("/");
-      const content = readFileSync(abs, "utf8");
+      // Line endings are normalized to LF before the digest (lane L22, 2026-09-16). The blobs are LF
+      // (.gitattributes: text eol=lf) and CI checks them out as LF, but a working copy checked out
+      // before that attribute existed can still carry CRLF bytes; hashing raw bytes then produced a
+      // marker hash CI could not reproduce (PR #680: source-sweep marker, feed-walk.mjs CRLF locally),
+      // so F28 passed locally and failed on GitHub. The digest must describe the CONTENT, not the
+      // platform that checked it out.
+      const content = readFileSync(abs, "utf8").replace(/\r\n/g, "\n");
       return { rel, content };
     })
     .sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
