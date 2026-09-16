@@ -96,6 +96,15 @@ dependent code is exercised live, per CLAUDE.md standing rule 3) -- coordinator 
 
 ---
 
+### UX compliance
+
+Four `.tsx` files touched (`src/app/{regulations,market,operations,research}/[slug]/page.tsx`), each in one
+place: `generateStaticParams` now reaches `getPublicSurfaceSlugs` through `slugsOrEmpty`, so a rejected or
+slow build-time read yields an empty prerender list with a build warning and the route renders on demand.
+No markup, style, copy, or interaction changed; nothing a customer sees differs. Design principles
+(`docs/design/design-principles.md`) and UX laws: not engaged by a build-time data-fetch guard; no
+visual review needed.
+
 ## 2026-09-13, W9 coordinator session close (/done): defect plan D21 to D30, batch 003 applied, all lanes PAUSED
 
 Coordinator (Fable) entry for the 2026-09-12/13 session on the W9 brief chain. Written at 05:05 EDT
