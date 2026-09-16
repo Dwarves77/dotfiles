@@ -226,6 +226,14 @@ lands, or re-pinned again if a governing file changes before that run lands.
 
 **What changed.** The recorded hash `sha256:ab26bcfeb9ad940c` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:88ee1b916340b176` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 13):** `sha256:88ee1b916340b176` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 13 (coordinator, 2026-09-16, at push after rebase: l21-post-rebase)
+
+**What changed.** The recorded hash `sha256:88ee1b916340b176` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/apply-record-briefs.mjs`, `scripts/turns/io-preflight.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:496016b964f3c4cf` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

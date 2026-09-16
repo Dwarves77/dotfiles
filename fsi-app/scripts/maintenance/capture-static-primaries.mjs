@@ -154,14 +154,18 @@ export function classifyCaptureOutcome(v) {
   return { ok: false, text: "", reason };
 }
 
-/** Map itemId -> the longest result_content length already stored for it (trimmed). Pure. Drives the
- *  idempotency skip -- an item at or above 200 chars already has a usable capture. */
+/** Map itemId -> the longest stored capture length already on record for it, read from the trigger-
+ *  maintained `result_chars` column (migration 322, D32 defect-fix-plan-2026-09-12.md) rather than
+ *  decompressing `result_content` to measure it in SQL or in JS -- this driver only needs to know HOW LONG
+ *  a capture is, not its text, so reading the indexed integer avoids pulling the text over the wire at
+ *  all. Pure. Drives the idempotency skip -- an item at or above 200 chars already has a usable capture. A
+ *  null result_chars (no content, or a not-yet-backfilled row) counts as 0, never as "missing". */
 export function maxPoolLenByItem(rows) {
   const m = new Map();
   for (const r of rows ?? []) {
     const id = r?.intelligence_item_id;
     if (!id) continue;
-    const len = String(r?.result_content ?? "").trim().length;
+    const len = Number.isFinite(r?.result_chars) ? r.result_chars : 0;
     if (!m.has(id) || len > m.get(id)) m.set(id, len);
   }
   return m;
@@ -387,9 +391,11 @@ export async function buildDeps() {
       }),
     readByIds: (ids) => readAllByIds("intelligence_items", ITEM_COLUMNS, ids),
     // fitness-allow: F39 (a batch-scoped .in(intelligence_item_id, ids) read over the run's own small
-    // candidate id set, never a whole-table agent_run_searches scan)
+    // candidate id set, never a whole-table agent_run_searches scan). D32 (defect-fix-plan-2026-09-12.md,
+    // lane L21): reads result_chars (migration 322's trigger-maintained length), never result_content --
+    // this idempotency check only needs to know how long a capture is, not its text.
     readPoolRows: (ids) => (ids?.length
-      ? readAllByIds("agent_run_searches", "intelligence_item_id, result_content", ids, { idColumn: "intelligence_item_id" })
+      ? readAllByIds("agent_run_searches", "intelligence_item_id, result_chars", ids, { idColumn: "intelligence_item_id" })
       : Promise.resolve([])),
     fetchViaLadder: (url) => escalateToFetchResult(url, MAX_CHARS, { directFetch, renderAllowed: false }),
     paceHost: (host) => paceHost(lastFetchAtByHost, host),

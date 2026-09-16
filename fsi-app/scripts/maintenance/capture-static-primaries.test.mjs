@@ -87,15 +87,20 @@ test("classifyCaptureOutcome: a seek_more outcome carries the not-found class as
 
 // ── maxPoolLenByItem / partitionByPoolState ─────────────────────────────────────────────────────────────
 
-test("maxPoolLenByItem: keeps the LONGEST result_content per item", () => {
+test("maxPoolLenByItem: keeps the LONGEST result_chars per item (D32: reads the trigger-maintained length column, never result_content)", () => {
   const m = maxPoolLenByItem([
-    { intelligence_item_id: "a", result_content: "x".repeat(50) },
-    { intelligence_item_id: "a", result_content: "x".repeat(300) },
-    { intelligence_item_id: "b", result_content: "x".repeat(10) },
+    { intelligence_item_id: "a", result_chars: 50 },
+    { intelligence_item_id: "a", result_chars: 300 },
+    { intelligence_item_id: "b", result_chars: 10 },
   ]);
   assert.equal(m.get("a"), 300);
   assert.equal(m.get("b"), 10);
   assert.equal(m.has("c"), false);
+});
+
+test("maxPoolLenByItem: a null result_chars (no content, or a not-yet-backfilled row) counts as 0, never as missing", () => {
+  const m = maxPoolLenByItem([{ intelligence_item_id: "a", result_chars: null }]);
+  assert.equal(m.get("a"), 0);
 });
 
 test("partitionByPoolState: an item at or above 200 chars is idempotently skipped (alreadyCaptured)", () => {
@@ -273,7 +278,7 @@ test("main: an item with an existing >200-char pool row is idempotently skipped,
   const items = [{ id: "a", source_url: "https://eur-lex.europa.eu/x", instrument_identifier: null }];
   const d = baseDeps({
     readUnscopedCandidates: async () => items,
-    readPoolRows: async () => [{ intelligence_item_id: "a", result_content: "x".repeat(500) }],
+    readPoolRows: async () => [{ intelligence_item_id: "a", result_chars: 500 }],
   });
   const r = await main({ mode: "apply" }, d);
   assert.equal(r.counts.already_captured_skipped, 1);
@@ -286,7 +291,7 @@ test("main: apply captures a successful direct-fetch item and writes ONE row", a
   const items = [{ id: "a", source_url: "https://legislation.gov.uk/x", instrument_identifier: null }];
   const d = baseDeps({
     readUnscopedCandidates: async () => items,
-    readPoolRows: async (ids) => (ids.length && d.calls.filter((c) => c[0] === "insertRow").length ? [{ intelligence_item_id: "a", result_content: "x".repeat(500) }] : []),
+    readPoolRows: async (ids) => (ids.length && d.calls.filter((c) => c[0] === "insertRow").length ? [{ intelligence_item_id: "a", result_chars: 500 }] : []),
     fetchViaLadder: async () => ({ outcome: "content", text: "Real act text. ".repeat(20) }),
   });
   const r = await main({ mode: "apply" }, d);
@@ -458,18 +463,22 @@ test("buildDeps().readUnscopedCandidates: calls the real readAll against intelli
   __setWriteClientForTest(null);
 });
 
-test("buildDeps().readPoolRows: calls the real readAllByIds against agent_run_searches keyed by intelligence_item_id", async () => {
+test("buildDeps().readPoolRows: calls the real readAllByIds against agent_run_searches keyed by intelligence_item_id, selecting result_chars (D32, never result_content)", async () => {
   const calls = [];
   __setWriteClientForTest(() => makeClient((s) => {
-    if (s.table === "agent_run_searches" && s.verb === "select") return { data: [{ intelligence_item_id: "a", result_content: "x".repeat(300) }], error: null };
+    if (s.table === "agent_run_searches" && s.verb === "select") return { data: [{ intelligence_item_id: "a", result_chars: 300 }], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb}`);
   }, calls));
   const deps = await buildDeps();
   const rows = await deps.readPoolRows(["a"]);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].intelligence_item_id, "a");
-  const inCall = calls.find((c) => c.table === "agent_run_searches").ops.find((o) => o[0] === "in" && o[1] === "intelligence_item_id");
+  const call = calls.find((c) => c.table === "agent_run_searches");
+  const inCall = call.ops.find((o) => o[0] === "in" && o[1] === "intelligence_item_id");
   assert.deepEqual(inCall[2], ["a"]);
+  const selectCall = call.ops.find((o) => o[0] === "select");
+  assert.match(selectCall[1], /result_chars/);
+  assert.doesNotMatch(selectCall[1], /result_content/);
   __setWriteClientForTest(null);
 });
 

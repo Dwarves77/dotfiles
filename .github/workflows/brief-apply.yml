@@ -57,6 +57,11 @@ on:
         required: false
         default: false
         type: boolean
+      io_budget_mb:
+        description: 'D32 (defect-fix-plan-2026-09-12.md, lane L21): --io-budget-mb N, the per-run disk IO ceiling in MB (0 = unlimited). A run stops cleanly before it would exceed this and reports the remaining items not_applied_io_budget, resumable via after_id.'
+        required: false
+        default: '400'
+        type: string
 
 concurrency:
   group: brief-apply
@@ -75,6 +80,7 @@ env:
   RUN_LIMIT: ${{ inputs.limit }}
   RUN_AFTER_ID: ${{ inputs.after_id }}
   RUN_ALLOW_BRIEF_OVERWRITE: ${{ inputs.allow_brief_overwrite }}
+  RUN_IO_BUDGET_MB: ${{ inputs.io_budget_mb }}
 
 jobs:
   brief-apply:
@@ -120,6 +126,7 @@ jobs:
           echo "limit                = ${RUN_LIMIT:-(none, unbounded)}"
           echo "after_id             = ${RUN_AFTER_ID:-(none, start from the beginning)}"
           echo "allow_brief_overwrite = $RUN_ALLOW_BRIEF_OVERWRITE"
+          echo "io_budget_mb          = $RUN_IO_BUDGET_MB (0 = unlimited; D32, defect-fix-plan-2026-09-12.md)"
           echo "mode=apply passes --execute and runs the full per-item pipeline; mode=dry never writes."
           if [ -n "$APP_URL" ] && [ -n "$WORKER_SECRET" ]; then
             echo "revalidate      = APP_URL/WORKER_SECRET set - a successful apply flushes the public listing and detail caches"
@@ -134,6 +141,7 @@ jobs:
           if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
           if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
           if [ "$RUN_ALLOW_BRIEF_OVERWRITE" = "true" ]; then FLAGS="$FLAGS --allow-brief-overwrite"; fi
+          FLAGS="$FLAGS --io-budget-mb $RUN_IO_BUDGET_MB"
           echo "DRIVER_FLAGS=$FLAGS" >> "$GITHUB_ENV"
 
       # D27 (defect-fix-plan-2026-09-12.md): validates $RUN_BRIEFS_FILE BEFORE the driver step runs, so a

@@ -150,14 +150,16 @@ shape and `scripts/harness-runs/corpus-turn/PENDING-RUN.md` for why this family 
 `PENDING-RUN.md` recorded at its own registration, copied here).
 
 `brief-apply` (task 3.4, brief-chain build plan Part 3, 2026-09-11), registered over
-`scripts/turns/apply-record-briefs.mjs` and the three modules a run actually exercises the behavior of:
+`scripts/turns/apply-record-briefs.mjs` and the four modules a run actually exercises the behavior of:
 `scripts/turns/record-briefs/schema.mjs` (the record-briefs artifact contract this driver validates every
 batch against before touching a live item), `src/lib/agent/canonical-pipeline.ts` (the injected-synthesis
-seam this driver's first per-item step calls, plus the section/ground/grow steps it runs after), and
+seam this driver's first per-item step calls, plus the section/ground/grow steps it runs after),
 `src/lib/intake/flywheel-steps.mjs` (the two per-item flywheel steps, discovery and forward-event
 extraction, this driver shares with `apply-staged-update.ts`'s own substantive-update path, task 3.4's own
 extraction of that logic so the two callers can never independently drift on the dedupe key or the
-stale-events detection). A ninth shape again, whose "runs" turn a validated batch of session-lane-authored
+stale-events detection), and `scripts/turns/io-preflight.mjs` (D32, defect-fix-plan-2026-09-12.md, lane
+L21: the pre-flight IO check and durable run record that gate whether an `--execute` run even starts).
+A ninth shape again, whose "runs" turn a validated batch of session-lane-authored
 full briefs into fully connected items: generate, section, ground, grow, then the per-item flywheel
 (discovery/forward-events/compliance-deadline/entities), then the batch-level unscoped flywheel steps
 (analyze-corpus/derive-obligations/tag-proposals/tag-ratification, via
@@ -429,7 +431,7 @@ trusted on faith — this table exists for a human reader, the module is what ev
 | `change-detection` | `scripts/turns/run-change-detection.mjs`, `../../src/lib/sources/reconcile.ts`, `../../src/lib/intake/run-intake-cycle.ts` |
 | `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
 | `corpus-turn` | `scripts/turns/consume-turn-requests.mjs`, `export-corpus-for-extraction.mjs` |
-| `brief-apply` | `scripts/turns/apply-record-briefs.mjs`, `record-briefs/schema.mjs`, `../../src/lib/agent/canonical-pipeline.ts`, `../../src/lib/intake/flywheel-steps.mjs` |
+| `brief-apply` | `scripts/turns/apply-record-briefs.mjs`, `record-briefs/schema.mjs`, `../../src/lib/agent/canonical-pipeline.ts`, `../../src/lib/intake/flywheel-steps.mjs`, `io-preflight.mjs` |
 
 **`ledger-consume`, `change-detection` and `propagation`** were staged in this table by Lane SPEND
 (system-completion train, 2026-09-02) ahead of the lanes that registered them, and all three are now

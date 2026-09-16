@@ -57,6 +57,25 @@
 //   node scripts/turns/apply-record-briefs.mjs --briefs path/to/record-briefs-NNN.json [--execute]
 //                                                 [--limit N] [--after-id <uuid>]
 //                                                 [--allow-brief-overwrite] [--harness-runs-dir dir]
+//                                                 [--io-budget-mb N]
+//
+// IO BUDGET ACCOUNTING RULE (D32, defect-fix-plan-2026-09-12.md, lane L21 - "nothing meters disk IO"): a
+// corpus-wide SQL scan that computed the length of result_content for every stored capture, plus one
+// sequential 49-item apply, exhausted the Supabase small-tier disk IO burst budget and hung the database
+// for three and a half hours on 2026-09-13. This driver now counts the bytes it reads and stops before it
+// would spend past --io-budget-mb (default 400 MB, 0 = unlimited). `bytes_read` for a run = the PRE-CHECK
+// bytes (every selected item's pool, read once
+// by buildPoolContext, whether or not the item later turns out stale) PLUS, for each item this run actually
+// APPLIES, that item's own pool bytes times PIPELINE_POOL_REREADS (see that constant's own comment -
+// [HYPOTHESIS]: the canonical pipeline re-reads an item's pool once in generate and again in ground; this
+// driver cannot observe reads made INSIDE the pipeline, so the factor is an estimate sizing the per-apply
+// check, not a measured count). Before each apply, if bytes_read + poolBytes * PIPELINE_POOL_REREADS would
+// exceed the budget, the run stops cleanly: every remaining plan entry (including the one that would have
+// tipped it over) is recorded `not_applied_io_budget`, `metrics.stop_reason` is set, and the artifact names
+// `metrics.last_item_id` so the next dispatch resumes with `--after-id`. Exit code stays 0 - a clean budget
+// stop is not a failure. Dry mode never applies anything, so it reports `bytes_read` as the flat pre-check
+// total and predicts where an apply run WOULD stop via `metrics.would_stop_at_item_id`, computed the same
+// walk (see runApplyLoop, below) without ever calling applyEntry.
 // Dry (default): validates the file (reading each item's CURRENT stored pool text/hash for the validator's
 //   own verbatim check and this driver's own stale-hash pre-check), builds the plan, and prints what WOULD
 //   run - no pipeline step is called, nothing is written to intelligence_items/item_forward_events/
@@ -66,7 +85,10 @@
 //   the plan selected (bounded by --limit / resumed past --after-id).
 // Exit 0 done (dry or apply; a per-item step failure is recorded, never a process exit failure - see
 //   "quarantine is reported, never hidden" above) · 1 bad args or a malformed/invalid --briefs file ·
-//   2 no DB creds.
+//   2 no DB creds · 3 pre-flight refused (D32, defect-fix-plan-2026-09-12.md, lane L21 - see
+//   scripts/turns/io-preflight.mjs: apply mode only, before the first item, refuses on a too-recent prior
+//   run or a busy/saturated disk; the run artifact still records the refusal, this is a loud CI-visible
+//   stop, never a silent no-op).
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync, existsSync } from "node:fs";
@@ -88,10 +110,25 @@ import { syncComplianceDeadlineForItem } from "../../src/lib/forward-events/comp
 import { runDiscoveryStep, runForwardEventsStep } from "../../src/lib/intake/flywheel-steps.mjs";
 import { recordItemChange } from "../lib/changelog.mjs";
 import { revalidateTags, itemTag, PUBLIC_ITEMS_TAG } from "../lib/revalidate.mjs";
+import {
+  preflightOrRefuse,
+  recordApplyRunStart,
+  recordApplyRunFinish,
+  deriveMetricsUrl,
+  PREFLIGHT_STOP_REASON,
+  DEFAULT_COOLDOWN_MIN,
+  DEFAULT_IO_BUSY_MAX,
+  DEFAULT_IO_READ_MBPS_MAX,
+} from "./io-preflight.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 export const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "brief-apply");
+
+// D32 (defect-fix-plan-2026-09-12.md, lane L21): the IO budget defaults and unit conversion. 0 means
+// unlimited (never stops) - see runApplyLoop's own header for the full accounting rule.
+export const DEFAULT_IO_BUDGET_MB = 400;
+export const BYTES_PER_MB = 1024 * 1024;
 
 // canonical-pipeline.ts and flywheel-defect.ts both use "@/..." (tsconfig paths) internal imports, which
 // plain node ESM cannot resolve - the SAME reason scripts/_reground/executor-ground.mjs already resolves
@@ -155,6 +192,10 @@ export function parseArgs(argv) {
         "after-id": { type: "string" },
         "allow-brief-overwrite": { type: "boolean", default: false },
         "harness-runs-dir": { type: "string" },
+        "io-budget-mb": { type: "string" },
+        "cooldown-min": { type: "string" },
+        "io-busy-max": { type: "string" },
+        "io-read-mbps-max": { type: "string" },
         help: { type: "boolean", default: false },
       },
       allowPositionals: false,
@@ -175,6 +216,48 @@ export function parseArgs(argv) {
     limit = n;
   }
 
+  // D32 (defect-fix-plan-2026-09-12.md, lane L21): default 400 MB, 0 means unlimited. Validated the SAME
+  // way --limit is (a strict non-negative integer string, no trailing garbage).
+  let ioBudgetMb = DEFAULT_IO_BUDGET_MB;
+  if (values["io-budget-mb"] !== undefined) {
+    const n = Number.parseInt(values["io-budget-mb"], 10);
+    if (!Number.isInteger(n) || n < 0 || String(n) !== values["io-budget-mb"].trim()) {
+      return {
+        ok: false,
+        error: `--io-budget-mb must be a non-negative integer (got ${JSON.stringify(values["io-budget-mb"])}).`,
+      };
+    }
+    ioBudgetMb = n;
+  }
+
+  // D32 part (c): the pre-flight thresholds. cooldownMin is a non-negative integer (minutes); the two
+  // disk-sample thresholds are non-negative numbers (a fraction and a MB/s rate, so fractional values are
+  // valid input, unlike --limit/--io-budget-mb).
+  let cooldownMin = DEFAULT_COOLDOWN_MIN;
+  if (values["cooldown-min"] !== undefined) {
+    const n = Number.parseInt(values["cooldown-min"], 10);
+    if (!Number.isInteger(n) || n < 0 || String(n) !== values["cooldown-min"].trim()) {
+      return { ok: false, error: `--cooldown-min must be a non-negative integer (got ${JSON.stringify(values["cooldown-min"])}).` };
+    }
+    cooldownMin = n;
+  }
+  let ioBusyMax = DEFAULT_IO_BUSY_MAX;
+  if (values["io-busy-max"] !== undefined) {
+    const n = Number.parseFloat(values["io-busy-max"]);
+    if (!Number.isFinite(n) || n < 0) {
+      return { ok: false, error: `--io-busy-max must be a non-negative number (got ${JSON.stringify(values["io-busy-max"])}).` };
+    }
+    ioBusyMax = n;
+  }
+  let ioReadMbpsMax = DEFAULT_IO_READ_MBPS_MAX;
+  if (values["io-read-mbps-max"] !== undefined) {
+    const n = Number.parseFloat(values["io-read-mbps-max"]);
+    if (!Number.isFinite(n) || n < 0) {
+      return { ok: false, error: `--io-read-mbps-max must be a non-negative number (got ${JSON.stringify(values["io-read-mbps-max"])}).` };
+    }
+    ioReadMbpsMax = n;
+  }
+
   return {
     ok: true,
     help: false,
@@ -184,6 +267,10 @@ export function parseArgs(argv) {
     afterId: values["after-id"] || null,
     allowBriefOverwrite: values["allow-brief-overwrite"] === true,
     harnessRunsDir: values["harness-runs-dir"] || null,
+    ioBudgetMb,
+    cooldownMin,
+    ioBusyMax,
+    ioReadMbpsMax,
   };
 }
 
@@ -320,31 +407,42 @@ export function buildApplyPlan(entries, opts = {}) {
 /** This item's CURRENT stored pool, in the exact `{url, text}` shape hashSourcePool/generateBriefFromInjected
  *  use (usableCapturesOrdered's 200-char floor + a result_url presence filter - the SAME filter task 3.1's
  *  export and task 3.3's write site both apply, so this driver's own pre-check hash is computed the
- *  identical way the write site will recompute it). @param {object} sb @param {string} itemId */
+ *  identical way the write site will recompute it), PLUS the bytes this read actually fetched (D32,
+ *  defect-fix-plan-2026-09-12.md, lane L21) - Buffer.byteLength of every row's result_content, including
+ *  rows below the 200-char usable-capture floor, since they were read off the wire regardless of whether
+ *  usableCapturesOrdered's own filter later excludes them from the pool text. This is the measurable IO
+ *  unit the run's own io-budget accounting (see module header) is built on.
+ *  @param {object} sb @param {string} itemId @returns {Promise<{pool: Array<{url:string,text:string}>, bytes:number}>} */
 async function readCurrentPool(sb, itemId) {
   const { data: rows, error } = await sb
     .from("agent_run_searches")
     .select("result_url, result_content, result_index")
     .eq("intelligence_item_id", itemId);
   if (error) throw new Error(`agent_run_searches read failed for ${itemId}: ${error.message}`);
-  return usableCapturesOrdered(rows ?? [])
+  const allRows = rows ?? [];
+  const bytes = allRows.reduce((sum, r) => sum + Buffer.byteLength(r?.result_content ?? "", "utf8"), 0);
+  const pool = usableCapturesOrdered(allRows)
     .filter((r) => typeof r.result_url === "string")
     .map((r) => ({ url: r.result_url, text: r.result_content }));
+  return { pool, bytes };
 }
 
-/** Builds the two maps the rest of this driver needs from one pass over each item's current pool:
- *  `poolTextByItemId` (validateRecordBriefsFile's own FACT-verbatim check input) and
- *  `currentHashByItemId` (buildApplyPlan's stale-hash pre-check input). One read per item, not one per
- *  concern - the same rows feed both maps. @param {object} sb @param {string[]} itemIds */
+/** Builds the three maps the rest of this driver needs from one pass over each item's current pool:
+ *  `poolTextByItemId` (validateRecordBriefsFile's own FACT-verbatim check input), `currentHashByItemId`
+ *  (buildApplyPlan's stale-hash pre-check input), and `poolBytesByItemId` (D32: the pre-check IO-budget
+ *  input runApplyLoop's own accounting rule starts from - see module header). One read per item, not one
+ *  per concern - the same rows feed all three maps. @param {object} sb @param {string[]} itemIds */
 async function buildPoolContext(sb, itemIds) {
   const poolTextByItemId = {};
   const currentHashByItemId = {};
+  const poolBytesByItemId = {};
   for (const itemId of itemIds) {
-    const pool = await readCurrentPool(sb, itemId);
+    const { pool, bytes } = await readCurrentPool(sb, itemId);
     poolTextByItemId[itemId] = pool.map((p) => p.text).join("\n\n");
     currentHashByItemId[itemId] = hashSourcePool(pool);
+    poolBytesByItemId[itemId] = bytes;
   }
-  return { poolTextByItemId, currentHashByItemId };
+  return { poolTextByItemId, currentHashByItemId, poolBytesByItemId };
 }
 
 /** Dynamic import of task 1.1's entity-linking writer - see the module header's PRE-FLIGHT note. Returns
@@ -586,6 +684,146 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   return { itemId, generated, provenanceStatus, steps };
 }
 
+// ── IO budget loop (D32, defect-fix-plan-2026-09-12.md, lane L21) ──────────────────────────────────────
+
+// [HYPOTHESIS]: the canonical pipeline's generate and ground steps each re-read the item's pool once (two
+// reads total) - this driver has no visibility into reads made INSIDE canonical-pipeline.ts, so this is an
+// estimate sizing the per-apply budget check below, not a measured count. Calibrate from the first metered
+// runs (see docs/runbooks/MAINTENANCE-RUNBOOK.md section 57).
+export const PIPELINE_POOL_REREADS = 2;
+export const IO_BUDGET_STOP_REASON = "io_budget";
+
+/**
+ * Runs the per-item apply loop over `plan` (buildApplyPlan's own output), metering bytes read against
+ * `ioBudgetBytes` and stopping cleanly before it would be exceeded. Extracted from main() so it is testable
+ * without a real database (see the module header's own accounting-rule paragraph for the full rule).
+ *
+ * Two passes share one budget-walk: PRE-CHECK bytes (every plan entry's pool, read once by
+ * buildPoolContext before this function ever runs, whether or not the entry later turns out stale) seed
+ * the running total; then, in EXECUTE mode, each non-skipped entry is checked in file order - if applying
+ * it (its own pool bytes times PIPELINE_POOL_REREADS) would push the running total past the budget, the
+ * run stops: this entry and every remaining one are recorded `not_applied_io_budget`, naming the budget
+ * and the bytes already read, `metrics.stop_reason` is set to IO_BUDGET_STOP_REASON, and
+ * `metrics.last_item_id` names the last item actually applied (so the next dispatch resumes with
+ * `--after-id`). A budget of 0 means unlimited - the check never fires. DRY mode never calls `applyEntry`
+ * (every non-skipped entry stays `would_apply`, unchanged); instead it walks the SAME projected-cost
+ * simulation to predict `metrics.would_stop_at_item_id` - the item an apply run of this same plan would
+ * stop at - while `metrics.bytes_read` stays the flat pre-check total (nothing was actually spent).
+ *
+ * @param {{plan: Array, execute: boolean, ioBudgetBytes: number, poolBytesByItemId: Record<string,number>,
+ *   applyEntry: (planned: object) => Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array}>,
+ *   log: (msg: string) => void}} args
+ * @returns {Promise<{perItem: Array, metrics: object, appliedItemIds: string[], stopped: boolean}>}
+ */
+export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByItemId, applyEntry, log }) {
+  const list = Array.isArray(plan) ? plan : [];
+  const bytesOf = (itemId) => {
+    const v = poolBytesByItemId?.[itemId];
+    return Number.isFinite(v) ? v : 0;
+  };
+  const overBudget = (projected) => ioBudgetBytes > 0 && projected > ioBudgetBytes;
+
+  // Pre-check bytes: every plan entry's pool was already read once by buildPoolContext, before this
+  // function ever runs, whether or not the entry later turns out stale.
+  const precheckBytes = list.reduce((sum, p) => sum + bytesOf(p.itemId), 0);
+
+  // The SAME projected-cost walk drives both the real apply-mode stop AND the dry-mode prediction - find
+  // the first non-skipped entry (if any) where applying it would exceed the budget.
+  let projectedRunning = precheckBytes;
+  let wouldStopAtItemId = null;
+  for (const planned of list) {
+    if (planned.skip) continue;
+    const projected = projectedRunning + bytesOf(planned.itemId) * PIPELINE_POOL_REREADS;
+    if (overBudget(projected)) {
+      wouldStopAtItemId = planned.itemId;
+      break;
+    }
+    projectedRunning = projected;
+  }
+
+  const metrics = {
+    skipped_stale_hash: 0,
+    applied: 0,
+    quarantined: 0,
+    generate_failed: 0,
+    bytes_read: precheckBytes,
+    io_budget_bytes: ioBudgetBytes,
+    stop_reason: null,
+    last_item_id: null,
+    would_stop_at_item_id: wouldStopAtItemId,
+  };
+  const perItem = [];
+  const appliedItemIds = [];
+
+  if (!execute) {
+    for (const planned of list) {
+      if (planned.skip) {
+        metrics.skipped_stale_hash += 1;
+        perItem.push({ id: planned.itemId, outcome: "stale_pool_hash", error: planned.skipReason });
+        log(`  ${planned.itemId}: SKIP (${planned.skipReason})`);
+        continue;
+      }
+      perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
+      log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
+    }
+    return { perItem, metrics, appliedItemIds, stopped: false };
+  }
+
+  let bytesRead = precheckBytes;
+  let lastItemId = null;
+  let stopped = false;
+
+  for (const planned of list) {
+    if (planned.skip) {
+      metrics.skipped_stale_hash += 1;
+      perItem.push({ id: planned.itemId, outcome: "stale_pool_hash", error: planned.skipReason });
+      log(`  ${planned.itemId}: SKIP (${planned.skipReason})`);
+      continue;
+    }
+
+    if (stopped) {
+      perItem.push({
+        id: planned.itemId,
+        outcome: "not_applied_io_budget",
+        error: `io budget ${ioBudgetBytes} byte(s) reached (${bytesRead} byte(s) already read) - not applied.`,
+      });
+      continue;
+    }
+
+    const poolBytes = bytesOf(planned.itemId);
+    const projected = bytesRead + poolBytes * PIPELINE_POOL_REREADS;
+    if (overBudget(projected)) {
+      stopped = true;
+      metrics.stop_reason = IO_BUDGET_STOP_REASON;
+      const msg = `apply-record-briefs: io budget reached - ${ioBudgetBytes} byte(s) budget, ${bytesRead} byte(s) read, next item would add ~${poolBytes * PIPELINE_POOL_REREADS} byte(s) (pool ${poolBytes} byte(s) x PIPELINE_POOL_REREADS ${PIPELINE_POOL_REREADS}). Stopping before ${planned.itemId}; resume with --after-id ${lastItemId ?? "(none - nothing applied this run)"}.`;
+      log(`::warning::${msg}`);
+      perItem.push({
+        id: planned.itemId,
+        outcome: "not_applied_io_budget",
+        error: `io budget ${ioBudgetBytes} byte(s) reached (${bytesRead} byte(s) already read) - not applied.`,
+      });
+      continue;
+    }
+
+    const result = await applyEntry(planned);
+    bytesRead = projected;
+    lastItemId = planned.itemId;
+    for (const step of result.steps) perItem.push(step);
+    if (!result.generated) {
+      metrics.generate_failed += 1;
+    } else {
+      appliedItemIds.push(result.itemId);
+      if (result.provenanceStatus && result.provenanceStatus !== "verified") metrics.quarantined += 1;
+      else metrics.applied += 1;
+    }
+    log(`  ${planned.itemId}: generated=${result.generated} provenance_status=${result.provenanceStatus ?? "(unknown)"}`);
+  }
+
+  metrics.bytes_read = bytesRead;
+  metrics.last_item_id = lastItemId;
+  return { perItem, metrics, appliedItemIds, stopped };
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────────
 
 if (isMainModule(import.meta.url)) await main();
@@ -644,6 +882,12 @@ async function main() {
   let unscoped = null;
   let revalidateResult = null;
   let runError = null;
+  // D32 (defect-fix-plan-2026-09-12.md, lane L21, part (c)): hoisted so the `finally` block below can see
+  // them however far the run got - the SAME crash-safety shape the block above this one already documents
+  // for perItem/metrics/appliedItemIds.
+  let sb = null;
+  let preflightRefused = null;
+  let startedApplyRun = false;
 
   try {
     runId = claimRunId(runsDir, "brief-apply");
@@ -667,14 +911,13 @@ async function main() {
     // still proves this lazy-import path never runs when it need not. Every later use of `sb`
     // (buildPoolContext's reads, applyOneEntry) is reached only through an entry that carries an item_id,
     // so `sb` is never null where it is used.
-    let sb = null;
     if (rawItemIds.length > 0) {
       const { createClient } = await import("@supabase/supabase-js");
       sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
         auth: { persistSession: false },
       });
     }
-    const { poolTextByItemId, currentHashByItemId } = await buildPoolContext(sb, rawItemIds);
+    const { poolTextByItemId, currentHashByItemId, poolBytesByItemId } = await buildPoolContext(sb, rawItemIds);
 
     const validated = validateRecordBriefsFile(raw, { poolTextByItemId });
     if (!validated.ok) {
@@ -702,73 +945,119 @@ async function main() {
         `mode=${parsed.execute ? "apply" : "dry"}.`,
     );
 
-    metrics = {
-      file_valid: true,
-      entries_in_file: validated.entries.length,
-      selected: plan.length,
-      skipped_stale_hash: 0,
-      applied: 0,
-      quarantined: 0,
-      generate_failed: 0,
-    };
-
-    for (const planned of plan) {
-      if (planned.skip) {
-        metrics.skipped_stale_hash += 1;
-        perItem.push({ id: planned.itemId, outcome: "stale_pool_hash", error: planned.skipReason });
-        console.log(`  ${planned.itemId}: SKIP (${planned.skipReason})`);
-        continue;
-      }
-      if (!parsed.execute) {
-        perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
-        console.log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
-        continue;
-      }
-      // batchId (D29): the record-briefs file's own  field, named on every replace-ledger archive.
-      const result = await applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch, batchId: raw.batch ?? null });
-      for (const step of result.steps) perItem.push(step);
-      if (!result.generated) {
-        metrics.generate_failed += 1;
-      } else {
-        appliedItemIds.push(result.itemId);
-        if (result.provenanceStatus && result.provenanceStatus !== "verified") metrics.quarantined += 1;
-        else metrics.applied += 1;
-      }
-      console.log(
-        `  ${planned.itemId}: generated=${result.generated} provenance_status=${result.provenanceStatus ?? "(unknown)"}`,
-      );
+    // D32 (defect-fix-plan-2026-09-12.md, lane L21, part (c)): pre-flight, apply mode only, before the
+    // first item, after the plan is built. `sb` is null only in the defensive every-entry-lacked-an-id
+    // edge case noted above (D27 already refuses the primary zero-entry case) - pre-flight has nothing to
+    // read in that case and is skipped rather than thrown on.
+    if (parsed.execute && sb) {
+      const metricsUrl = deriveMetricsUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+      const decision = await preflightOrRefuse({
+        sb,
+        cooldownMinutes: parsed.cooldownMin,
+        metricsUrl,
+        serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        busyMax: parsed.ioBusyMax,
+        readMbpsMax: parsed.ioReadMbpsMax,
+        log: (msg) => console.log(msg),
+      });
+      if (!decision.ok) preflightRefused = decision.reason;
     }
 
-    // Batch-level unscoped flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
-    // tag-ratification), scoped to exactly the items this run actually applied - never in dry mode (there
-    // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
-    // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
-    if (parsed.execute) {
-      // Pass the WHOLE ../lib/db.mjs module (task 6.1b, fix D) -- the same object run-population-
-      // flywheel.mjs's own main passes to runFlywheelForOneArtifact. The prior five-function subset
-      // (readAll/guardedInsertMany/guardedUpdate/guardedUpdateByIds/readClient) omitted readAllByIds,
-      // which stepDeriveObligations' own deriveObligationsMain call requires (derive-obligations.mjs's
-      // own `main({ mode }, { readAll, readAllByIds, guardedInsertMany })`) -- the pilot's `readAllByIds
-      // is not a function` throw from scripts/obligations/derive-obligations.mjs:161. A namespace import
-      // exposes every named export as a property, so this can never omit a function a future flywheel
-      // step handler starts calling.
-      const db = await import("../lib/db.mjs");
-      unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, db);
-      console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
+    if (preflightRefused) {
+      // Refusal is loud (D32 part (c)): named on stderr AND as a ::error:: line, so the workflow's own
+      // apply-record-briefs step fails visibly - never a silent, easy-to-miss log line. The run artifact
+      // still gets written (the `finally` block below runs regardless), naming stop_reason so a coordinator
+      // reading the artifact after the fact sees exactly why nothing ran.
+      console.error(`apply-record-briefs: REFUSED pre-flight: ${preflightRefused}`);
+      console.error(`::error::apply-record-briefs: REFUSED pre-flight: ${preflightRefused}`);
+      metrics = {
+        file_valid: true,
+        entries_in_file: validated.entries.length,
+        selected: plan.length,
+        stop_reason: PREFLIGHT_STOP_REASON,
+      };
+    } else {
+      // D32 part (c): the durable run record. Apply mode only, best-effort (never fails the run) - see
+      // io-preflight.mjs's own header. Dry mode writes nothing.
+      if (parsed.execute && sb) {
+        await recordApplyRunStart(sb, { runId, startedAt }, { log: (msg) => console.log(msg) });
+        startedApplyRun = true;
+      }
 
-      // D23(c): flush the public listing cache and every applied item's own detail cache after a
-      // successful apply, the same way apply-mint-batch.mjs's own precedent call does. Best-effort
-      // by construction (revalidateTags never throws; a flush failure never fails this apply - see
-      // that helper's own header) and logged either way so a missing APP_URL/WORKER_SECRET shows
-      // up in the run's own log line rather than as silent staleness.
-      revalidateResult = await revalidateTags([PUBLIC_ITEMS_TAG, ...appliedItemIds.map((id) => itemTag(id))], {
-        apply: true,
+      // D32 part (b): ioBudgetBytes=0 means unlimited (parseArgs already validated ioBudgetMb as a
+      // non-negative integer, default DEFAULT_IO_BUDGET_MB).
+      const ioBudgetBytes = parsed.ioBudgetMb * BYTES_PER_MB;
+      console.log(
+        `apply-record-briefs: io budget = ${parsed.ioBudgetMb} MB (${ioBudgetBytes === 0 ? "unlimited" : `${ioBudgetBytes} byte(s)`}).`,
+      );
+
+      const loopResult = await runApplyLoop({
+        plan,
+        execute: parsed.execute,
+        ioBudgetBytes,
+        poolBytesByItemId,
+        // batchId (D29): the record-briefs file's own  field, named on every replace-ledger archive.
+        applyEntry: (planned) =>
+          applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch, batchId: raw.batch ?? null }),
+        log: (msg) => console.log(msg),
       });
-      console.log(`apply-record-briefs: revalidate: ${JSON.stringify(revalidateResult)}`);
+      perItem = loopResult.perItem;
+      appliedItemIds = loopResult.appliedItemIds;
+      metrics = {
+        file_valid: true,
+        entries_in_file: validated.entries.length,
+        selected: plan.length,
+        ...loopResult.metrics,
+      };
+
+      // Batch-level unscoped flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
+      // tag-ratification), scoped to exactly the items this run actually applied - never in dry mode (there
+      // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
+      // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
+      if (parsed.execute) {
+        // Pass the WHOLE ../lib/db.mjs module (task 6.1b, fix D) -- the same object run-population-
+        // flywheel.mjs's own main passes to runFlywheelForOneArtifact. The prior five-function subset
+        // (readAll/guardedInsertMany/guardedUpdate/guardedUpdateByIds/readClient) omitted readAllByIds,
+        // which stepDeriveObligations' own deriveObligationsMain call requires (derive-obligations.mjs's
+        // own `main({ mode }, { readAll, readAllByIds, guardedInsertMany })`) -- the pilot's `readAllByIds
+        // is not a function` throw from scripts/obligations/derive-obligations.mjs:161. A namespace import
+        // exposes every named export as a property, so this can never omit a function a future flywheel
+        // step handler starts calling.
+        const db = await import("../lib/db.mjs");
+        unscoped = await runUnscopedFlywheelSteps("apply", appliedItemIds, db);
+        console.log(`apply-record-briefs: unscoped flywheel steps: ${JSON.stringify(unscoped)}`);
+
+        // D23(c): flush the public listing cache and every applied item's own detail cache after a
+        // successful apply, the same way apply-mint-batch.mjs's own precedent call does. Best-effort
+        // by construction (revalidateTags never throws; a flush failure never fails this apply - see
+        // that helper's own header) and logged either way so a missing APP_URL/WORKER_SECRET shows
+        // up in the run's own log line rather than as silent staleness.
+        revalidateResult = await revalidateTags([PUBLIC_ITEMS_TAG, ...appliedItemIds.map((id) => itemTag(id))], {
+          apply: true,
+        });
+        console.log(`apply-record-briefs: revalidate: ${JSON.stringify(revalidateResult)}`);
+      }
     }
   } catch (err) {
     runError = err instanceof Error ? err : new Error(String(err));
   } finally {
+    // D32 part (c): update THIS run's own brief_apply_runs row however far the run got (a thrown failure
+    // included - the same crash-safety posture the run-artifact write below already has). Only when a
+    // start row was actually inserted (apply mode, preflight NOT refused, sb present) - dry mode and a
+    // refused preflight never started one. Routes through db.mjs's guardedUpdate internally (rule 015) -
+    // never needs `sb` itself, it manages its own write client.
+    if (startedApplyRun && sb) {
+      await recordApplyRunFinish(
+        {
+          runId,
+          finishedAt: new Date().toISOString(),
+          bytesRead: metrics.bytes_read ?? 0,
+          itemsApplied: metrics.applied ?? 0,
+          stopReason: metrics.stop_reason ?? null,
+        },
+        { log: (msg) => console.log(msg) },
+      );
+    }
     if (runId) {
       const defectsFound = runError
         ? [
@@ -796,6 +1085,12 @@ async function main() {
     }
   }
 
+  if (preflightRefused) {
+    // The refusal was already logged loudly (stderr + ::error::) above, before the run artifact was
+    // written - exit 3 is a distinct code from both "done" (0) and "thrown failure" (1) so a coordinator
+    // (or a script) can tell a clean pre-flight stop apart from a real defect.
+    process.exit(3);
+  }
   if (runError) {
     console.error(`apply-record-briefs: FAILED - ${runError.message}`);
     process.exit(1);
