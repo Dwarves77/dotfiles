@@ -193,19 +193,39 @@ source rather than writing something the ground step will quarantine anyway.
    carries an analysis label or the legal callout, in that same section, even when a FACT claim elsewhere
    in the entry covers the same ground.
 
-3. **Timeline mirror.** The body must contain a "Confirmed Regulatory Timeline" section (heading aliases:
-   `"Confirmed Regulatory Timeline"` or the section-sign form `extract-regulation-sections.ts`'s own
-   heading table already accepts) whose entries, run through the real parser
-   (`src/lib/agent/timeline-parse.mjs`'s `parseTimeline`, the SAME parser the live write site uses) and
-   `buildTimelineRows(entries, todayIso)` (`src/lib/agent/timeline-harvest.mjs`), yield at least one row.
-   Refusal prints the parser's own view of the section (how many raw entries it found, how many it
-   skipped as unparseable, and why) so the lane sees exactly why, rather than guessing. **Authoring rule
-   this implies:** the Confirmed Regulatory Timeline section is MANDATORY, with at least one dated entry
-   in the `- <date>: <label>` form (a colon separator, never a literal em/en dash -- this repo's own
-   dash-glyph ban means every lane-authored timeline entry uses a colon); the instrument's own adoption,
-   publication, or entry-into-force date qualifies when no other dated milestone exists. "No item should
-   be without some date in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with
-   at least one `item_timelines` row.
+3. **Timeline mirror -- PER FORMAT (D31, lane L20, defect-fix-plan-2026-09-12).** Before D31 this mirror
+   checked every entry, regardless of `format_type`, for a "Confirmed Regulatory Timeline" heading only --
+   so a non-regulatory entry could pass it ONLY by adding a dummy regulatory heading its own format does
+   not have (the defect the batch-007 exemplars discovery-45006684 and discovery-0781a8c0 both hit before
+   this fix). The entry's OWN format's timeline section is now looked up through ONE per-format table
+   (`TIMELINE_SECTION_BY_FORMAT`, `src/lib/agent/formats/timeline-section.mjs` -- the SAME module the live
+   write site imports, so the validator and the write site can never check two different sections):
+
+   | `format_type` | timeline section (key, heading) |
+   |---|---|
+   | `regulatory_fact_document` | `14` "Confirmed Regulatory Timeline" |
+   | `market_signal_brief` | `3` "Expected Trajectory and Conversion Triggers" |
+   | `research_summary` | `5` "What the Finding Does Not Resolve" |
+   | `operations_profile` | `7` "Pending Changes That Shift the Calculus" |
+   | `technology_profile` | `7` "Time-to-Market, Procurement Window, and Action" |
+
+   That section's entries, run through the real parser (`src/lib/agent/timeline-parse.mjs`'s
+   `parseTimeline`, the SAME parser the live write site uses) and `buildTimelineRows(entries, todayIso)`
+   (`src/lib/agent/timeline-harvest.mjs`), must yield at least one row. Refusal prints the parser's own
+   view of the section (how many raw entries it found, how many it skipped as unparseable, and why) and
+   names the FORMAT'S OWN section heading -- never "Confirmed Regulatory Timeline" for a non-regulatory
+   entry. `regulatory_fact_document`'s own lookup is byte-for-byte the pre-D31 behaviour (heading-text
+   match only, including the section-sign heading alias `extract-regulation-sections.ts`'s own heading
+   table already accepted; never a number-first attempt); the other four formats resolve number-first-
+   then-heading-then-alts, the same order every other section extraction in this codebase uses.
+   **Authoring rule this implies:** every entry's OWN mapped section (per the table above) is MANDATORY,
+   with at least one dated entry in the `- <date>: <label>` form (a colon separator, never a literal
+   em/en dash -- this repo's own dash-glyph ban means every lane-authored timeline entry uses a colon);
+   for `regulatory_fact_document`, the instrument's own adoption, publication, or entry-into-force date
+   qualifies when no other dated milestone exists. Adding a "Confirmed Regulatory Timeline" heading to a
+   non-regulatory entry satisfies NOTHING -- it is not that format's own section. "No item should be
+   without some date in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with at
+   least one `item_timelines` row, now for all five formats, not only `regulatory_fact_document`.
 
 4. **Claim section attachment mirror (fix round 1, finding 1).** Every claim in `claims[]` carries
    `section`: the canonical section key (from the entry's own `format_type` section list, e.g. `"8"` for
@@ -340,11 +360,15 @@ other two added by task 6.1b for the three pre-write refusals above):
 3. **Gate A scanning** -- `src/lib/agent/gate-a-scan.mjs`'s `scanBrief` is imported directly (zero
    imports beyond `node:crypto` and its own sibling `gate-a-match.mjs`, also zero-import). The Gate A
    mirror above calls it exactly once per entry, never a second hand-rolled figure/date-token scanner.
-4. **Timeline parsing** -- `src/lib/agent/extract-sections.ts`'s `extractSectionByHeading` (zero imports)
-   locates the section, `src/lib/agent/timeline-parse.mjs`'s `parseTimeline` (moved out of
-   `extract-regulation-sections.ts` by task 6.1b, re-exported and used by that module too -- one parser,
-   two callers) turns it into entries, and `src/lib/agent/timeline-harvest.mjs`'s `buildTimelineRows`
-   turns entries into rows. The timeline mirror above never re-implements any of the three.
+4. **Timeline parsing** -- `src/lib/agent/formats/timeline-section.mjs`'s `findTimelineSectionFor` (D31,
+   lane L20; imports `src/lib/agent/extract-sections.ts`'s `extractSectionByNumber`/`extractSectionByHeading`,
+   both zero-import) locates the entry's own format's timeline section through the ONE per-format table
+   (`TIMELINE_SECTION_BY_FORMAT`) both this validator and the live write site (`canonical-pipeline.ts`'s
+   `harvestItemTimeline`, `scripts/backfill-item-timelines.mjs`) import, `src/lib/agent/timeline-parse.mjs`'s
+   `parseTimeline` (moved out of `extract-regulation-sections.ts` by task 6.1b, re-exported and used by that
+   module too -- one parser, three callers now) turns it into entries, and
+   `src/lib/agent/timeline-harvest.mjs`'s `buildTimelineRows` turns entries into rows. The timeline mirror
+   above never re-implements any of the three.
 
 Two local vocabularies are genuinely duplicated, and named as such rather than left silent:
 `CLAIM_KIND_VALUES` (`FACT`/`ANALYSIS`/`LEGAL`/`GAP`) mirrors `parse-output.ts`'s own (also
@@ -384,6 +408,43 @@ named error (field name in the message) rather than silently truncating or mis-s
 that would corrupt at the real write site is caught here first. A value that both starts and ends with a
 matching quote character (`"`/`'`) is refused for the same reason: the parser's own generic quote-stripping
 would silently remove that pair, corrupting content that was never meant to be a quoted literal.
+
+**Confirmed live, 2026-09-13 (D31 calibration finding, batch-007 exemplar discovery-45006684):** this is
+not a theoretical limitation. The first draft of `key_data` for that item included
+`"23% of energy-related CO2 from transport today, could reach 40% by 2030"`, which this validator
+correctly refused on first pass (`... contains a comma`). Fixed at authoring time by replacing the comma
+with a semicolon and shortening a comma-joined actor list ("governments, organisations, institutions,
+foundations and companies" -> "governments and organisations") -- never by patching this validator, since
+the constraint is the shared parser's, not a bug here. **Authoring rule this implies:** never write a
+comma inside a `key_data` (or `topic_tags`/`operational_scenario_tags`/`compliance_object_tags`/
+`related_items`/`sources_used`) array entry; use a semicolon or "and" instead.
+
+## Gate A named limitations (D31 calibration findings, 2026-09-13)
+
+Two Gate A behaviours, confirmed live against the same batch-007 exemplars (discovery-45006684,
+discovery-0781a8c0) that surfaced D31's timeline-mirror defect. Both are named limitations of the EXISTING
+Gate A scanner (`src/lib/agent/gate-a-scan.mjs`), not bugs this validator introduces or re-implements
+differently -- the mirror above calls the same `scanBrief` the live write site uses, so a lane hits these
+at validation time exactly as it would at the real write site.
+
+1. **Gate A treats spelled-out "percent" and the "%" glyph as different tokens.** `figureTokens`'s FIGURE
+   regex accepts both `\d[\d.,]*\s?%` and `\d[\d.,]*\s?(?:per ?cent|percent)`, but the coverage check
+   (`containsToken`, `gate-a-match.mjs`) is a literal substring check with no equivalence between the two
+   spellings. A body that writes `"20 percent"` is NOT covered by a FACT claim whose span carries `"20%"`
+   (the pool's own notation), or vice versa. **Authoring rule this implies:** always quote a percentage in
+   the body using the SAME notation (glyph or spelled-out word) the covering FACT claim's `source_span`
+   uses -- a paraphrase from one form to the other risks an orphan Gate A token even though the number
+   itself is correct and sourced.
+2. **Gate A's date-range harvest covers only the trailing endpoint of a hyphenated range.** When the pool
+   states a range written `"N - M Month Year"` (hyphen-separated, spaces on both sides), the FIGURE/DATE
+   harvest regex extracts only the trailing endpoint (`"M Month Year"`) as a standalone token -- it never
+   lets the leading `"N"` bind across the `"- M"` in between to form a token of its own. A timeline (or any
+   other) line citing the RANGE'S START date as a bare token is refused as an orphan unless it has its own
+   separate covering claim; citing the range's END date, or restating the full range verbatim, is covered.
+   **Authoring rule this implies:** when quoting a date range from the pool, either cite the trailing
+   endpoint alone (Gate-A-covered by the SAME claim that covers the range), or restate the full range
+   verbatim in the body rather than truncating to the leading date if the leading date needs its own
+   bare-token citation elsewhere.
 
 ## `compliance_object_tags` out-of-vocabulary values are dropped, not rejected
 

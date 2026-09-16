@@ -76,6 +76,7 @@ import { scanBrief } from "../../../src/lib/agent/gate-a-scan.mjs";
 import { extractSectionByHeading, extractSectionByNumber } from "../../../src/lib/agent/extract-sections.ts";
 import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
+import { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } from "../../../src/lib/agent/formats/timeline-section.mjs";
 
 export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-13.1";
 // 2026-09-13.1 (D30, defect-fix-plan-2026-09-12, lane L19): the numeric-figure mirror. A FACT claim whose
@@ -419,27 +420,22 @@ function extractCanonicalSections(body, formatType) {
   return rows;
 }
 
-// ── timeline mirror -- the two heading variants extract-regulation-sections.ts's own (module-private)
-// SECTION_HEADINGS["14"] accepts, reproduced here as the same two literal strings (never exported from
-// that module, so this is the same named-duplicate posture as CLAIM_KIND_VALUES/ANALYSIS_LABEL_RE above).
-// The section-sign form is written with a \u escape, never the literal glyph (this repo's own dash/
-// section-sign ban), which matches the SAME character the live heading variant uses either way.
-const TIMELINE_HEADING_VARIANTS = Object.freeze([
-  "Confirmed Regulatory Timeline",
-  "\u00A714 Confirmed Regulatory Timeline",
-]);
+// ── timeline mirror (D31, lane L20, defect-fix-plan-2026-09-12) -- format-gated. The heading-variant
+// lookup this mirror used to carry inline (regulatory-only) now lives in the ONE per-format table both
+// this validator and the live write site (canonical-pipeline.ts's harvestItemTimeline,
+// scripts/backfill-item-timelines.mjs) import -- see src/lib/agent/formats/timeline-section.mjs's own
+// header for why a second copy of the ALGORITHM is not created here (that module is imported directly,
+// via the SAME plain-relative-path posture as parseTimeline/buildTimelineRows above -- no "@/" alias, no
+// npm dependency). findTimelineSectionFor(body, formatType) resolves EVERY format's own timeline section
+// (regulatory_fact_document's lookup is byte-for-byte the old heading-only walk; the other four formats
+// resolve number-first-then-heading-then-alts, the same order every other section extraction in this
+// codebase uses) -- a non-regulatory body carrying a stray "Confirmed Regulatory Timeline" heading is
+// simply not that format's own section, so it is never matched and the refusal below names the format's
+// REAL timeline section instead.
 // Only used for buildTimelineRows' is_completed flag, which this mirror never inspects (it only checks
 // row COUNT) -- a fixed sentinel keeps this validator pure and deterministic rather than depending on the
 // wall clock for a value that plays no part in any refusal decision here.
 const TIMELINE_MIRROR_TODAY_ISO = "1970-01-01";
-
-function findTimelineSection(body) {
-  for (const variant of TIMELINE_HEADING_VARIANTS) {
-    const extracted = extractSectionByHeading(String(body ?? ""), variant);
-    if (extracted) return extracted;
-  }
-  return null;
-}
 
 function isNonEmptyString(v) {
   return typeof v === "string" && v.trim().length > 0;
@@ -801,16 +797,27 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
     }
   }
 
-  // ── MIRROR (c): timeline -- the body must contain a "Confirmed Regulatory Timeline" section whose
-  // entries, run through the SAME parser (timeline-parse.mjs) and buildTimelineRows (timeline-
-  // harvest.mjs) the live write site uses, yield at least one row. "No item should be without some date
-  // in the timeline" (operator ruling, 2026-09-12): every brief-apply item ends with at least one
-  // item_timelines row, and this refuses BEFORE the write when that would not hold.
-  if (hasBody) {
-    const timelineSection = findTimelineSection(entry.body);
+  // ── MIRROR (c): timeline (D31, lane L20, defect-fix-plan-2026-09-12) -- FORMAT-GATED. Before D31 this
+  // mirror ran on every entry regardless of format_type, checking ONLY for a "Confirmed Regulatory
+  // Timeline" heading -- so a market/research/operations/technology entry could only pass by adding a
+  // dummy regulatory heading its own format does not have (the exact defect the two batch-007 exemplars,
+  // 45006684 and 0781a8c0, hit). It now reads the entry's OWN format's timeline section through the one
+  // per-format table (TIMELINE_SECTION_BY_FORMAT / findTimelineSectionFor,
+  // src/lib/agent/formats/timeline-section.mjs -- the SAME module the live write site imports) and applies
+  // the identical parse-then-count rule to every format's own section. A body carrying a stray "Confirmed
+  // Regulatory Timeline" heading that is NOT this format's own timeline section is refused exactly as any
+  // other missing section would be -- findTimelineSectionFor only ever resolves the format's own mapped
+  // section, so that stray heading is never matched. "No item should be without some date in the
+  // timeline" (operator ruling, 2026-09-12): every brief-apply item ends with at least one item_timelines
+  // row, and this refuses BEFORE the write when that would not hold. Skipped entirely for an
+  // unrecognised/missing format_type -- the metadata vocabulary check elsewhere already refuses such an
+  // entry on its own terms, so this mirror never guesses a timeline section to check.
+  const timelineFormatDef = TIMELINE_SECTION_BY_FORMAT[formatType];
+  if (hasBody && timelineFormatDef) {
+    const timelineSection = findTimelineSectionFor(entry.body, formatType);
     if (!timelineSection) {
       at(
-        'timeline mirror: body has no "Confirmed Regulatory Timeline" section (heading required -- ' +
+        `timeline mirror: body has no ${JSON.stringify(timelineFormatDef.heading)} section (heading required -- ` +
           "the instrument's own adoption, publication, or entry-into-force date qualifies when no other dated milestone exists).",
       );
     } else {
@@ -818,7 +825,7 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
       const { rows, skipped } = buildTimelineRows(parsedEntries, TIMELINE_MIRROR_TODAY_ISO);
       if (rows.length === 0) {
         at(
-          `timeline mirror: the "Confirmed Regulatory Timeline" section yields ZERO rows once parsed ` +
+          `timeline mirror: the ${JSON.stringify(timelineFormatDef.heading)} section yields ZERO rows once parsed ` +
             `(the parser's own view: ${parsedEntries.length} raw entr${parsedEntries.length === 1 ? "y" : "ies"} found, ` +
             `${skipped.length} skipped as unparseable: ${JSON.stringify(skipped)}). Section text: ${JSON.stringify(timelineSection.contentMarkdown.slice(0, 500))}`,
         );

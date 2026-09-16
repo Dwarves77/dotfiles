@@ -110,8 +110,8 @@ test("harvestItemTimeline writes item_timelines for a verified item and never to
   assert.ok(!sb.calls.tables.includes("section_claim_provenance"));
 });
 
-test("harvestItemTimeline is a no-op (no writes) for a non-regulatory_fact_document item_type", async () => {
-  const sb = fakeClient({ itemType: "market" });
+test("harvestItemTimeline is a no-op (no writes) for an item_type with no format spec at all", async () => {
+  const sb = fakeClient({ itemType: "not-a-real-item-type" });
   const result = await harvestItemTimeline("item-2", sb);
   assert.equal(result.ok, true);
   assert.match(result.detail, /no timeline harvest/);
@@ -126,3 +126,58 @@ test("harvestItemTimeline reports 0 rows honestly when §14 has no timeline bloc
   assert.equal(sb.calls.deletes.length, 0);
   assert.equal(sb.calls.inserts.length, 0);
 });
+
+// ── D31 (lane L20, defect-fix-plan-2026-09-12): the format-gated harvest. Before this fix the gate above
+// was a strict `formatType !== "regulatory_fact_document"` check, so a genuinely non-regulatory item_type
+// (market_signal, research_finding, regional_data, technology -- all of which DO resolve to a real
+// FormatSpec via specForItemType) could never reach item_timelines from its own body. One test per format
+// proves the fix: a dated line inside the format's OWN mapped timeline section (per
+// src/lib/agent/formats/timeline-section.mjs's TIMELINE_SECTION_BY_FORMAT -- the same table the
+// record-briefs validator's MIRROR (c) reads) now yields a written row.
+const NON_REG_FORMAT_FIXTURES = [
+  {
+    formatType: "market_signal_brief",
+    itemType: "market_signal",
+    heading: "3. Expected Trajectory and Conversion Triggers",
+  },
+  {
+    formatType: "research_summary",
+    itemType: "research_finding",
+    heading: "5. What the Finding Does Not Resolve",
+  },
+  {
+    formatType: "operations_profile",
+    itemType: "regional_data",
+    heading: "7. Pending Changes That Shift the Calculus",
+  },
+  {
+    formatType: "technology_profile",
+    itemType: "technology",
+    heading: "7. Time-to-Market, Procurement Window, and Action",
+  },
+];
+
+for (const { formatType, itemType, heading } of NON_REG_FORMAT_FIXTURES) {
+  test(`harvestItemTimeline writes item_timelines for ${formatType} from its own mapped section`, async () => {
+    const fullBrief = `\n## ${heading}\n\n12 August 2026: A dated milestone in this format's own section.\n`;
+    const sb = fakeClient({ itemType, fullBrief });
+    const result = await harvestItemTimeline(`item-${formatType}`, sb);
+
+    assert.equal(result.ok, true);
+    assert.match(result.detail, /timeline 1 milestone/);
+    assert.equal(sb.calls.inserts.length, 1);
+    assert.equal(sb.calls.inserts[0].length, 1);
+    assert.equal(sb.calls.inserts[0][0].milestone_date, "2026-08-12");
+    assert.equal(sb.calls.inserts[0][0].item_id, `item-${formatType}`);
+  });
+
+  test(`harvestItemTimeline yields 0 rows for ${formatType} when the dated line sits in a DIFFERENT section`, async () => {
+    const fullBrief = `\n## 1. Some Other Section\n\n12 August 2026: A dated milestone in the WRONG section.\n\n## ${heading}\n\nNo dated content here.\n`;
+    const sb = fakeClient({ itemType, fullBrief });
+    const result = await harvestItemTimeline(`item-${formatType}-wrong-section`, sb);
+
+    assert.equal(result.ok, true);
+    assert.equal(sb.calls.deletes.length, 0);
+    assert.equal(sb.calls.inserts.length, 0);
+  });
+}

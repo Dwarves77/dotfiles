@@ -33,6 +33,14 @@ import { spendStreamRaw, spendSearch, spendStream, setSpendTicket, currentSpendT
 import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
 import { extractRegulationSections } from "@/lib/agent/extract-regulation-sections";
 import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
+import { parseTimeline } from "@/lib/agent/timeline-parse.mjs";
+import { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } from "@/lib/agent/formats/timeline-section.mjs";
+// TIMELINE_SECTION_BY_FORMAT is a plain frozen data object (timeline-section.mjs, deliberately untyped
+// JS so it stays importable from the record-briefs validator with no "@/" alias) -- TS infers its literal
+// key set with no index signature, so a lookup keyed by the RUNTIME `spec.formatType: string` needs an
+// explicit widened view rather than a cast at every call site.
+const TIMELINE_SECTION_LOOKUP: Record<string, { key: string; heading: string; headingAlts?: readonly string[] } | undefined> =
+  TIMELINE_SECTION_BY_FORMAT;
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
@@ -1405,16 +1413,39 @@ export async function harvestItemTimeline(itemId: string, sbClient?: SupabaseCli
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("item_type, full_brief").eq("id", itemId).single();
   if (itErr || !it?.full_brief) return { ok: false, detail: `no full_brief${itErr ? `: ${itErr.message}` : ""}` };
   const spec = specForItemType(it.item_type);
-  if (!spec || spec.formatType !== "regulatory_fact_document") return { ok: true, detail: "not a regulatory_fact_document — no timeline harvest" };
+  // D31 (lane L20, defect-fix-plan-2026-09-12): before this fix, the gate below was
+  // `spec.formatType !== "regulatory_fact_document"`, so a market/research/operations/technology item
+  // could never produce item_timelines rows from its own body -- the operator ruling "no item should be
+  // without some date in the timeline" (2026-09-12) could not hold for four of the five formats. The gate
+  // is now "does this format have a mapped timeline section at all" (TIMELINE_SECTION_BY_FORMAT,
+  // src/lib/agent/formats/timeline-section.mjs -- the SAME table the record-briefs validator's MIRROR (c)
+  // reads), which covers all five known formats and still refuses an unrecognised one.
+  if (!spec || !TIMELINE_SECTION_LOOKUP[spec.formatType]) {
+    return { ok: true, detail: `no mapped timeline section for format_type ${spec?.formatType ?? "(none)"} -- no timeline harvest` };
+  }
   // §14 TIMELINE HARVEST (Phase-3b, DD-01): item_timelines had NO production writer — the model
   // assembled "Confirmed Regulatory Timeline" in the brief prose and the structured store stayed
   // empty (85% of verified reg briefs), while the few seeded rows drifted wrong (the PPWR Aug-12→
   // Aug-1 precision defect). Harvest §14 here so EVERY future generation persists its timeline:
   // parse (the existing display parser) → precision-honest normalize (timeline-harvest.mjs) →
   // replace this item's rows. Non-fatal: a harvest failure logs and never fails the caller's step.
+  //
+  // REGULATORY PATH IS BYTE-FOR-BYTE UNCHANGED (D31's own requirement): still reads section 14 through
+  // extractRegulationSections, the exact pre-D31 code path. NON-REGULATORY PATH (D31, new): the format's
+  // own timeline section is located through the SAME per-format table plus findTimelineSectionFor the
+  // validator uses, then run through the identical parseTimeline -> buildTimelineRows pipeline -- one
+  // paid path (the model call that produced full_brief) already happened; this harvest step is $0 either
+  // way, so the paid path for regulations is unchanged and the free path now applies to every format.
   try {
-    const t = extractRegulationSections(it.full_brief)["14"];
-    const entries = t && t.kind === "timeline" ? t.entries : [];
+    const isRegDoc = spec.formatType === "regulatory_fact_document";
+    let entries: { date: string; label: string; source: string | null }[] = [];
+    if (isRegDoc) {
+      const t = extractRegulationSections(it.full_brief)["14"];
+      entries = t && t.kind === "timeline" ? t.entries : [];
+    } else {
+      const section = findTimelineSectionFor(it.full_brief, spec.formatType);
+      entries = section ? parseTimeline(section.contentMarkdown) : [];
+    }
     const { rows: tlRows, skipped } = buildTimelineRows(entries, new Date().toISOString().slice(0, 10));
     if (tlRows.length) {
       const { error: delErr } = await sb.from("item_timelines").delete().eq("item_id", itemId);

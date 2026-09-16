@@ -154,6 +154,7 @@ node --test \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/intake/*.test.mjs \
   fsi-app/src/lib/agent/*.test.mjs \
+  fsi-app/src/lib/agent/formats/*.test.mjs \
   fsi-app/src/lib/auth/*.test.mjs \
   fsi-app/src/lib/llm/*.test.mjs \
   fsi-app/src/lib/text/*.test.mjs \
