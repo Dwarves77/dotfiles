@@ -24,9 +24,17 @@ persistence, and metrics are computed exactly as before; a run against a sitemap
 (every run to date, per `source-sweep-run-001` through `-018`'s own `metrics`) produces byte-identical
 output to the un-chunked call it replaces, since chunking a list of 50 into one chunk of 50 is a no-op.
 
-**harness_version at write time:** `sha256:3e2c4f2d0563eee1`
+**harness_version at the previous pin's write time (superseded below, see Re-pin 2):** `sha256:3e2c4f2d0563eee1`
 
 **The planned run that supersedes this marker:** the next real `node scripts/turns/run-source-sweep.mjs`
 dispatch (dry or apply) will land `source-sweep-run-019.json` with `harness_version:
 sha256:3e2c4f2d0563eee1`, and this marker is deleted the moment that artifact lands (or updated to a new
 hash, per rule (c), if the governing files change again before that run lands).
+
+## Re-pin 2 (coordinator, 2026-09-16, at push after rebase: lane/w9-l20-format-gated-mirrors-2026-09-13)
+
+**What changed.** The recorded hash `sha256:3e2c4f2d0563eee1` no longer matched the live governing files of this family (`scripts/turns/run-source-sweep.mjs`, `src/lib/sources/register-walk.mjs`, `src/lib/sources/feed-walk.mjs`) on the tree this push carries. Governing files changed on this branch: none of this family's own files on this branch; the drift came from master after rebase. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:0221014f1f760998` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['source-sweep']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
