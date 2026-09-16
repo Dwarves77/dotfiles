@@ -162,7 +162,7 @@ paragraph, and harness_version table row in the same commit, kept in parity with
 the CONVENTION-TABLE-PARITY test. `.discipline/fitness/functions/F28-harness-run-integrity.mjs` and
 `PROPOSER-RUNBOOK.md` (the other two `meta-harness` governing files) are untouched by this task.
 
-**harness_version at write time:** `sha256:f776eaece088d744` (recomputed via `hashHarnessVersion` against
+**harness_version at the previous pin's write time (superseded below, see Re-pin 2):** `sha256:f776eaece088d744` (recomputed via `hashHarnessVersion` against
 `governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array, the same 5 files, unreordered;
 supersedes `sha256:96ead321c8f54a2e` outright).
 
@@ -170,3 +170,11 @@ supersedes `sha256:96ead321c8f54a2e` outright).
 next self-application review pass over this wave. No other `meta-harness` governing file was edited by
 task 3.4; only `run-artifact.mjs`, `governing-files.mjs`, and `CONVENTION.md` moved the hash, all three for
 the single reason above (registering `brief-apply`).
+
+## Re-pin 2 (coordinator, 2026-09-16, at push after rebase: lane/w9-l22-local-ci-parity-2026-09-16)
+
+**What changed.** The recorded hash `sha256:f776eaece088d744` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/lib/run-artifact.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:e19622ff5bec3f23` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
