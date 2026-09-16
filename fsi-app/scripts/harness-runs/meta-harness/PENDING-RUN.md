@@ -175,6 +175,14 @@ the single reason above (registering `brief-apply`).
 
 **What changed.** The recorded hash `sha256:f776eaece088d744` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/lib/run-artifact.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:e19622ff5bec3f23` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 3):** `sha256:e19622ff5bec3f23` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 3 (coordinator, 2026-09-16, at push after rebase: l21-post-rebase)
+
+**What changed.** The recorded hash `sha256:e19622ff5bec3f23` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/governing-files.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:331382dbea0f66e9` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
