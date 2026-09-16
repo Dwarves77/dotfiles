@@ -3980,7 +3980,7 @@ agent_run_searches s WHERE s.intelligence_item_id = i.id AND s.result_chars > 20
 i.source_url ~* '(eur-lex\.europa\.eu|legislation\.gov\.uk|federalregister\.gov|ecfr\.gov|govinfo\.gov)'`
 (expect it to fall by `counts.captured` after an apply run; `result_chars` is the trigger-maintained,
 untrimmed length -- section 57 below -- so a capture that is ONLY whitespace past 200 raw characters reads
-differently than the old `length(trim(...))` form did, an edge case no live capture exhibits).
+differently than the old `length(trim(...))` form did, an edge case no live capture exhibits [HYPOTHESIS]).
 
 **Idempotency**: a second run selects only items still missing a >200-char pool row -- an item this run
 captured drops out of the next run's own candidate read via the same query above, never re-fetched or
@@ -4030,7 +4030,7 @@ rather than refusing forever on an ambiguous state).
 (default 40 MB/s), both [HYPOTHESIS] -- calibrate from the first metered runs on the resized tier. The
 driver takes two Prometheus metrics samples 30 seconds apart from the project's own metrics endpoint (see
 below) and refuses to start if the busiest db device's busy fraction or read throughput exceeds either
-threshold. A non-200 response, a timeout, or an unparseable body does NOT refuse -- it logs "metrics
+threshold. A non-200 response, a timeout (10 seconds per request), or an unparseable body does NOT refuse -- it logs "metrics
 unavailable, continuing on cooldown alone" and the cooldown check decides by itself.
 
 **Reading the metrics endpoint by hand** (never paste the key into a log or a commit):
