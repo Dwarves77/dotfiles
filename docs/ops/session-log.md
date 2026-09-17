@@ -5,6 +5,51 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L32: F47, the database census as a standing gate; drain_worklist dropped; Part 7 of the plan
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l32-db-object-census-2026-09-17, on top
+of L31. Order 3 in Part 7 of `docs/plans/brief-chain-build-plan-2026-09-11.md`. Operator, same day: "What
+audits are you running of complete code and files and supabase?" and, on the four unconnected lists:
+"you need to update the planned build as a whole."
+
+**Part 7 [CONFIRMED in the plan document].** The W9 plan gains the one plan for everything unfinished: the
+revised end state (population to zero pending; F45, F46, F47 as the three standing numbers reported at
+every /done; wire or remove; every gate attack-proven) and an ordered table of 17 lanes, system health
+(L30 to L38) alternating with population (P1 to P7), each row naming what it moves and what it depends on.
+Two corrections recorded there and in the audit: `intelligence_summaries` is a keep by the 2026-04-30
+shelve decision, and `drain_worklist` was the survivor of migrations 219 and 254, not the retired table.
+
+**F47 db-object-reference [CONFIRMED by tests, the runner and the attack].** Core
+`.discipline/governance/db-object-reference.mjs`: the migration tree replayed statement by statement
+(CREATE, DROP, RENAME in file order), which is what makes the static answer equal the live catalog (120
+committed tables against 121 live, the one difference being the ad hoc snapshot table with no migration;
+6 views; 95 functions, the create-only parse had read 73). References reuse F14's scanners (code
+`.from("t").op`, the guarded-write helpers, embedded selects; SQL FROM, JOIN, REFERENCES, INSERT INTO,
+UPDATE) plus the `readAll`-family read helpers and bare-word mentions in non-comment code; a function is
+referenced by `.rpc("f")`, a bare word, or SQL beyond its own CREATE, DROP, COMMENT, GRANT, ALTER. Three
+checks: unreferenced tables (ratchet, 0), unread tables (ratchet, 0; the trigger-written class F14 could
+not see), dead functions (strict 0), each minus a reason-bearing dated allowlist the gate audits for stale
+entries; F14's own terminal-sink allowlist is reused, not copied, and F14's schema scan now reads the same
+replay. Registered in the manifest, RD-71, remediation category 45 (marker baseline 55 to 56), the skill
+re-pinned. Tests 6/6 (statement order, DDL versus use, the synthetic orphan, the allowlist audit, the
+LIVE ratchet). Attack: a planted migration with an unreferenced table and an uncalled function, then a
+planted trigger sink, each red naming the plant, green after removal.
+
+**Dispositions, all from live evidence (SQL 2026-09-17) [CONFIRMED].** `drain_worklist`: 66 rows, 0
+triggers, 0 foreign keys in, 0 code references, 0 SQL references beyond its DDL, reader dissolved
+2026-07-12: DROPPED, migration 324, applied through the management API before this code merges (rule 3).
+`gate_a_health_refresh`: the cache writer, deliberately unscheduled by operator ruling 2026-08-10, last
+run 2026-08-10 09:20 UTC: allowlisted with that ruling. `pending_first_fetch`: 1,388 rows (done 1,235,
+error 136, queued 12, skipped 5), written by the sources triggers, its reader re-homed to the cadence-flip
+unit: allowlisted as a writer preceding a named-later reader. `community_promotion_transitions` (0 rows,
+the promote-to-public audit trail) and `case_study_endorsements` (0 rows, the unbuilt half of case
+studies): allowlisted with review at the community rebuild dispatch. `intelligence_item_versions` has a
+SQL reader after all; `community_topic_groups` and `taxonomy_nodes` are referenced through policies and
+foreign keys. Audit section 3 corrected row by row.
+
+**Standing numbers after this lane.** F45 7,569 (unchanged here). F46 7. F47 0 unreferenced, 0 unread, 0
+dead functions, 6 allowlist entries with reasons and dates. Next in Part 7 order: P1 (L25), then L33.
+
 ## 2026-09-17, W9 lane L31: one route guard for every API route, and F46 (one home per external host)
 
 Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l31-route-handler-helper-2026-09-17, on

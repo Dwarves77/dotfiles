@@ -613,3 +613,56 @@ Lanes are Sonnet in disjoint worktrees; the coordinator (this session, Fable) re
 - Spec coverage: definition of done section 0: reachable (workflows and chokepoints named per task), run (harness-run family `brief-apply`, run ids in 6.3), populated (population-report entries 1.4, 3.5), visible (2.3 fixtures + 6.1 site check), gated (F28 row, population-report attack tests, executor-parity golden), documented (README 3.2, MINT-RUNBOOK step 12, ADR-028). Operator ruling "briefs need to exist for all items": 3.x + 6.x. "Wired for every new addition": 1.1, 1.2, 1.3, 3.5. "Understand before writing": every task opens with the read of the seam it changes.
 - Placeholder scan: no TBD; each code step names its file and line range; where a name is introduced (`linkItemEntities`, `generateBriefFromInjected`, `validateRecordBriefsFile`, `RequirementTrajectory.tsx`, `buildTitleForRow`) the same name is used in every later task.
 - Type consistency: `RequirementTrajectoryJSON` is defined in 2.2 and consumed in 2.3 and 3.2; `linkItemEntities` signature in 1.1 is what 3.4 step 6 calls.
+
+---
+
+## Part 7: the one plan for what remains (revision 2026-09-17; supersedes the sequence table above for every unfinished task)
+
+Operator, 2026-09-17, after the system health audit landed as its own list beside this plan: "you have built a plan that is a bunch of non connected pieces now that things have been updated and you need to update the planned build as a whole." Before this revision there were four lists that did not reference each other: the sequence table above (Parts 0 to 6), the population backlog in the ledger, the audit's removal order (`../audits/system-health-audit-2026-09-17.md` section 6), and the three standing gates. This part is the single plan. Every remaining piece of work is a row below; nothing is planned anywhere else.
+
+### 7.0 End state (the revised definition of done for W9)
+
+1. **Population.** Every one of the 1,518 live items carries a verified brief or a recorded disposition; `population-report` reads "briefs pending 0". The last confirmed reading is the ledger's 2026-09-17 entry; the next reading is P7.
+2. **Three standing numbers**, green in pre-push step 3d and the CI Fitness job, each a both-ways ratchet, each reported at every /done: F45 duplicated normalized lines (8,061 on `ed2ee7c9`, 7,569 after L31; the families in audit section 2 removed one lane at a time); F46 external hosts with more than one home (7 after L31; 0 when L35 completes); F47 database objects with no reference (seeded in L32 after the verified removals; functions strict at 0 with a reason-bearing allowlist).
+3. **Wire or remove.** Every table, function, module and route does a job someone can point to, or it is gone. Every row still marked "decision" in audit section 3 is resolved by a ruling recorded in the audit; "candidate" is not a state.
+4. **Every gate proven by attack** (rule 15): the lane that lands or changes a gate plants the defect, shows the red, removes the plant, shows the green, and puts the output in its PR (`attack-gates.mjs`, first used in L31).
+
+### 7.1 Lanes, in order, with the number each one moves
+
+System health lanes (mechanical, coordinator-built, no model spend) and population lanes (author work) alternate so the token budget goes to briefs while the removals proceed. Lanes never share a write set.
+
+| Order | Lane | Scope | Moves | Depends on | State |
+|---|---|---|---|---|---|
+| 1 | L30 | System health audit; F45 duplicate-code; RD-69; remediation category 45; lane-contract prior-art step | F45 seeded 8,061 | none | MERGED #690 |
+| 2 | L31 | One route guard for 89 API routes (`src/lib/api/route-guard.ts`); F46 external-host-home; RD-70; F45 regressions name the clone pairs on changed files; attack proofs | F45 8,061 to 7,569; F46 seeded 7 | L30 | pushed 2026-09-17, PR pending |
+| 3 | L32 | F47 db-object-reference: statement-ordered replay of the migration tree (matches the live catalog exactly: 120 committed tables plus the one ad hoc snapshot, 6 views, 95 functions) reusing F14's code and SQL scanners; RD-71; audit section 3 corrected in place (`intelligence_summaries` is KEEP by the operator's 2026-04-30 shelve decision and is read by `supabase-server.ts`, not remove; `drain_worklist` is the survivor of migrations 219 and 254, its disposition is verified against the D26 record-only intake before any drop); migrations dropping what verification confirms dead (`_snapshot_gapflags_20260831`, and `drain_worklist` only if confirmed); `gate_a_health_refresh` wired to a caller or dropped with its cache; F14 gains trigger-only writers through F47's no-reader count | F47 seeded | L31 | next |
+| 4 | P1 (L25) | Criterion-5 required-slot mirror in the record-briefs validator and the driver maps (`brief-l25.md` is written) | unblocks the 1bb72c94 class | none | queued |
+| 5 | L33 | Community page shell and the shared loading page (7 shells, 8 loading pages) | F45 down | L31 | |
+| 6 | P2 | Batch 005 author pass: 45 label restatements, then dry and apply | verified briefs up | P1 | |
+| 7 | L35a | eur-lex.europa.eu onto one module (7 files; `scripts/lib/eurlex-cellar.mjs` is the home) | F46 7 to 6 | L31 | |
+| 8 | P3 | Batch 003's three quarantined items re-applied; 1bb72c94 (Council Decision typed regulation, no penalty text) retyped per task 5.5 or its penalty slot recorded GAP by the source's own characterization | +4 | P1 | |
+| 9 | L34 | Detail-surface primitives (5 surfaces) and the admin table view primitive (10 views) | F45 down | L33 | |
+| 10 | L35b to L35g | One host per commit into `HOST_HOMES`: www.federalregister.gov (6 files), www.ecfr.gov (3), api.anthropic.com (2), ec.europa.eu Eurostat (2), www.legislation.gov.uk (2), www.linkedin.com (2) | F46 6 to 0 | L35a | |
+| 11 | P4 | Batch 007: the entry files staged in `wt-landdocs-0911` `scripts/tmp`, assembled, dry, apply | verified briefs up | P1 | |
+| 12 | L36 | Nine maintenance scripts onto `runCli`; the two private pagers (`supabase-server.ts`, `corpus-turn-requests`) onto `fetchAllRows` | F45 down | L31 | |
+| 13 | P5 | The 34 non-reg items authored exemplar-first (brief-format rule; `analysis-construction-spec`) | +34 | none | |
+| 14 | L37 | The 53 byte-identical `scripts/_snapshots` files out of the index (gitignored scratch by rule 5) | files | none | |
+| 15 | L38 | The 77 admitted mirrors: each keep-with-reason (a real client-bundle boundary) or wired to an import | F45 down | L34 | |
+| 16 | P6 | Coordinator tooling: `repin.mjs` creates a PENDING-RUN marker when a governing file changes and none exists; `push-queue.sh` rebases with `--onto` when the lane's base was squash-merged (the L31 conflict) | tooling | none | |
+| 17 | P7 | Task 6.3 re-measure and close: `population-report`, the three standing numbers, the board row, /done | | everything above | |
+
+Task 5.5 (EU Decisions retype and retitle) is DONE per the ledger: 369 rows retyped, the flywheel pass over them run (tag-proposals dry run 34686658300, 0 proposals owed), so P3 retypes 1bb72c94 by the same script.
+
+### 7.2 What every lane in this part must do
+
+- Prior art first (lane contract item 6): search the tree for the host, vendor or concept; cite what is reused; a second copy is a review FAIL.
+- Re-seed F45, F46 and F47 downward in the same commit that earns the drop; the gates fail on an unclaimed improvement, so this is enforced, not asked.
+- A lane that lands or changes a gate ships the attack proof in its PR.
+- The audit rows a lane completes flip to DONE in the same PR; the session-log entry names the numbers before and after.
+- DDL (drops in L32) is applied by the coordinator before the dependent code merges (rule 3), with the read-back that the object is gone.
+
+### 7.3 Corrections this revision makes to earlier text
+
+- Audit section 3, `intelligence_summaries`: "remove after a read-back" was wrong. The operator's 2026-04-30 decision (`.claude/CLAUDE.md`, Sector Activation) is SHELVE, the rows stay, and `src/lib/supabase-server.ts` still references the table. Disposition: keep, with that reason. Corrected in L32.
+- Audit section 3, `drain_worklist`: "superseded by the D26 record-only intake; migrations 219 and 254 name it as retired" misread the migrations, which retired other tables in favour of `drain_worklist`. Its 66 rows and zero code references make it a removal candidate only after L32 verifies nothing writes or reads it through SQL; the disposition is recorded from that verification, not from this text.
+- The sequence table above stays as the record of how Parts 0 to 6 were ordered; for anything unfinished, 7.1 governs.

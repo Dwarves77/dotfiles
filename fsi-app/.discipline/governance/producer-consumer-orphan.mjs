@@ -96,11 +96,11 @@ export const TERMINAL_SINK_ALLOWLIST = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+import { replaySchema } from './db-object-reference.mjs';
+
 // SCANNERS (pure over provided text — no fs, so the core is unit-testable with injected inputs).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CREATE_TABLE_RE = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["']?([a-z_][a-z0-9_]*)["']?/gi;
-const CREATE_FUNC_RE = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?["']?([a-z_][a-z0-9_]*)["']?/gi;
 
 // supabase-js CRUD verb sits immediately after .from("T") (possibly across a newline). Low-false-positive.
 const CODE_OP_RE = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)\s*\.(insert|upsert|update|delete|select)\b/g;
@@ -145,13 +145,11 @@ function lineOf(text, index) {
 }
 
 export function scanSchema(migrationTexts) {
-  const tables = new Set();
-  const rpcs = new Set();
-  for (const { content } of migrationTexts) {
-    for (const m of matchAll(CREATE_TABLE_RE, content)) tables.add(m[1]);
-    for (const m of matchAll(CREATE_FUNC_RE, content)) rpcs.add(m[1]);
-  }
-  return { tables, rpcs };
+  // One home for schema derivation (lane L32): the statement-ordered replay in db-object-reference.mjs, so a
+  // table a later migration DROPPED no longer counts here either (the create-only scan this replaced kept
+  // dropped tables alive as phantom write-orphan candidates).
+  const replayed = replaySchema(migrationTexts);
+  return { tables: new Set(replayed.tables.keys()), rpcs: new Set(replayed.functions.keys()) };
 }
 
 export function scanCode(codeFiles) {

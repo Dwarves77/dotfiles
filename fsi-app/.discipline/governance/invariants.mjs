@@ -225,7 +225,8 @@ export const SKILL_MARKER_BASELINE = {
   // the second one has no source-level tell at all, which is why it needs both halves.
   // 53→54 (2026-09-17, lane L30): category 45, the duplicated-code ratchet (one MUST line). TRIAGE: new invariant RD-69 (fitness F45).
   // 54→55 (2026-09-17, lane L31): category 45 gains the host-home bullet (one MUST line). TRIAGE: new invariant RD-70 (fitness F46).
-  'remediation-discipline': 55,
+  // 55→56 (2026-09-17, lane L32): category 45 gains the database-census bullet (one MUST line). TRIAGE: new invariant RD-71 (fitness F47).
+  'remediation-discipline': 56,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1530,5 +1531,17 @@ export const INVARIANTS = [
       'selftest:fsi-app/.discipline/fitness/functions/F46-external-host-home.test.mjs',
     ],
     residual: 'F46 attributes URL LITERALS to hosts. A URL assembled from a host held in a variable or an env value, or a host reached through a client library with no literal in scope, is not attributed; the ratchet is seeded at 7 multi-home hosts (eur-lex, federalregister, ecfr, anthropic, ec.europa.eu, legislation.gov.uk, linkedin) and green means none gained a home, not that those seven are consolidated. Reference files are a named list; adding a file to it is a review decision, not a wildcard.',
+  },
+  {
+    id: 'RD-71',
+    skill: 'remediation-discipline',
+    section: 'Section 4 - category 45: one home per concept, and the count of copied code can only fall',
+    text: 'Every table and function the committed migration tree defines is referenced by code or by SQL outside its own DDL, and every written table has a reader; the counts of unreferenced and unread tables equal their committed ceilings (both-ways ratchets) and dead functions are zero; operator keep-decisions live in a reason-bearing dated allowlist the gate audits.',
+    anchor: 'Every table and function the committed migration tree defines MUST be referenced by code or by SQL',
+    enforcedBy: [
+      'fitness:F47',
+      'selftest:fsi-app/.discipline/fitness/functions/F47-db-object-reference.test.mjs',
+    ],
+    residual: 'F47 is static: it replays the committed migrations (equal to the live catalog on 2026-09-17: 120 tables, 6 views, 95 functions) and cannot see objects that exist live without a migration; that class is RD-49 (schema-drift-audit, the data-audit lane) and the two gates together cover both directions. References are textual: a table reached only through a dynamic name is invisible, and a bare-word mention in non-comment code counts as a reference, so the gate under-reports rather than cries wolf.',
   },
 ];
