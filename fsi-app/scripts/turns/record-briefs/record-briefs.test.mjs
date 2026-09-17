@@ -1048,6 +1048,33 @@ describe("validateRecordBriefsClaim", () => {
     assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"12"')));
   });
 
+  test("figureCheckText: batch 005's pointer shapes (hyphenated slot tags, numbered targets, titled instruments with an acronym, code citations, hyphenated identifiers)", () => {
+    const out = figureCheckText(
+      "[annual-report-10] Target 9.1 and Target 13.1 under the IMO 2023 GHG Strategy, the 2027 TFMP and the 2024 MSGI refresh, per 17 CRR-NY Part 8 and 40 CFR 60, the COVID-19 order, verbatim: a fee of USD 1,250 from 30 December 2024"
+    );
+    for (const gone of ["10", "9.1", "13.1", "2023", "2027", "2024 MSGI", "17 CRR", "40 CFR", "19"]) {
+      assert.ok(!out.includes(gone), "pointer removed: " + gone + " in " + out);
+    }
+    assert.ok(out.includes("1,250"), "the amount in the quote is kept");
+    assert.ok(out.includes("30 December 2024"), "the date in the quote is kept");
+  });
+
+  test("numeric-figure mirror: a date the label computes or cites from elsewhere in the pool (27 December 2024) is still refused", () => {
+    const span = "This Regulation shall enter into force on the third day following that of its publication in the Official Journal";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[effective_date] Entered into force on 30 December 2024 (the third day after its 27 December 2024 publication), verbatim: '" + span + "'",
+        source_span: span,
+        section: "2",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"30"')));
+    assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"27"')));
+  });
+
   test("figureCheckText: strips one leading slot tag and every legal locator, keeps amounts and dates", () => {
     const out = figureCheckText("[section10] Section 60(1) and Schedule 2, s. 61(6), Regulation (EU) No 510/2011: a fee of EUR 6,800 applies from 2026-09-13; Article 12(3)(a) too");
     for (const gone of ["10", "60", "61", "510", "2011", "12"]) {

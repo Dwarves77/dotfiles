@@ -255,12 +255,19 @@ export function figureCheckText(claimText) {
   return String(claimText ?? "")
     .replace(SLOT_TAG_PREFIX_RE, "")
     .replace(LEGAL_LOCATOR_RE, " ")
-    .replace(INSTRUMENT_TITLE_RE, " ");
+    .replace(INSTRUMENT_TITLE_RE, " ")
+    .replace(CODE_CITATION_RE, " ")
+    .replace(HYPHENATED_IDENTIFIER_RE, " ");
 }
 /** An instrument's short title ("the 2012 Regulations", "the 2010 Act") names WHICH instrument, not a
  *  figure: the year is part of the title, the span quotes a provision, not the title. */
-const INSTRUMENT_TITLE_RE = /\b(?:19|20)\d{2}(?:\s+[A-Z][A-Za-z-]*){0,3}\s+(?:Regulations|Act|Order|Rules|Scheme|[Ii]nstruments?)\b/g;
-const SLOT_TAG_PREFIX_RE = /^\s*\[[a-z][a-z0-9_]*\]\s*/i;
+const INSTRUMENT_TITLE_RE =
+  /\b(?:19|20)\d{2}(?:\s+[A-Z][A-Za-z-]*){0,3}\s+(?:Regulations|Act|Order|Rules|Scheme|[Ii]nstruments?|Strategy|Plan|Programme|Program|Policy|Framework|Guidelines?|Standard|Roadmap|Agreement|Protocol|Directive|Regulation|Decision|[A-Z]{2,6})\b/g;
+/** A code citation names a title of a code, never a figure: "17 CRR-NY Part 8", "40 CFR 60", "42 U.S.C.". */
+const CODE_CITATION_RE = /\b\d{1,2}\s+(?:CFR|C\.F\.R\.|CRR-NY|NYCRR|USC|U\.S\.C\.)\b/g;
+/** A hyphenated identifier (COVID-19, ISO-14083, SOLAS-74) is a name; its digits are not a figure. */
+const HYPHENATED_IDENTIFIER_RE = /\b[A-Z][A-Za-z]*-\d+[A-Za-z]?\b/g;
+const SLOT_TAG_PREFIX_RE = /^\s*\[[a-z][a-z0-9_-]*\]\s*/i;
 // Batch 006 (2026-09-16) added four locator shapes the first cut missed: the "Sec." abbreviation, a list of
 // numbers after one keyword ("Articles 7, 11, 12 and 14", "Regulations 9 to 15"), a numbered entry ("Annex
 // XVII entry 61"), and an instrument title with words between the year and the noun ("the 2020 Amendment
@@ -269,7 +276,7 @@ const SLOT_TAG_PREFIX_RE = /^\s*\[[a-z][a-z0-9_]*\]\s*/i;
 const LOCATOR_NUM = String.raw`\d+(?:[./-]\d+)*(?:\s*\(\d+\))*(?:\s*\([a-z]\))?(?:[a-z](?![a-z]))?`;
 const LOCATOR_LIST = LOCATOR_NUM + String.raw`(?:\s*(?:,|and|to|or|&)\s*` + LOCATOR_NUM + String.raw`)*`;
 const LEGAL_LOCATOR_RE = new RegExp(
-  String.raw`\b(?:sections?|secs?\.|ss\.|s\.|articles?|arts?\.|regulations?|regs?\.|directives?|decisions?|parts?|schedules?|annex(?:es)?|chapters?|rules?|paragraphs?|paras?\.|points?|entr(?:y|ies)|clauses?|recitals?|subparts?)\s*(?:\((?:EU|EC|EEC)\)\s*)?(?:No\.?\s*)?` + LOCATOR_LIST,
+  String.raw`\b(?:sections?|secs?\.|ss\.|s\.|articles?|arts?\.|regulations?|regs?\.|directives?|decisions?|parts?|schedules?|annex(?:es)?|chapters?|rules?|paragraphs?|paras?\.|points?|entr(?:y|ies)|clauses?|recitals?|subparts?|targets?|goals?|indicators?|SDGs?)\s*(?:\((?:EU|EC|EEC)\)\s*)?(?:No\.?\s*)?` + LOCATOR_LIST,
   "gi",
 );
 
