@@ -18,11 +18,8 @@
 // Rate limit: 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { assertBound } from "@/lib/db/paginate.mjs";
 
 const UUID_RE =
@@ -64,11 +61,8 @@ function decodeReason(stored: string | null): {
 // GET — list reports
 // ───────────────────────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
@@ -213,11 +207,8 @@ export async function GET(request: NextRequest) {
 // POST — file a new report
 // ───────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let payload: { post_id?: string; reason?: string; body?: string };
   try {

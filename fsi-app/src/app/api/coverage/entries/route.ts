@@ -5,17 +5,14 @@
 // exclusively — no customer-reachable endpoint serves census data). Server-side gated: requireAuth (401
 // unauthenticated) + isPlatformAdmin (403 non-admin), same as /api/admin/promotion-policy. Read-only.
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { getCoverageEntries, COVERAGE_SURFACES, type CoverageSurface } from "@/lib/coverage/index-data";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
   const admin = await isPlatformAdmin(auth.userId, getServiceSupabase());
   if (!admin) return NextResponse.json({ error: "Platform admin access required" }, { status: 403 });
 

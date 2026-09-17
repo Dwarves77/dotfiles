@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { runSearch, MIN_QUERY_LEN, type SearchSupabaseClient } from "./logic";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 
 // GET /api/search?q=<text> — Standard Search (CMDSEARCH lane, 2026-09-09).
 //
@@ -28,11 +28,8 @@ import { runSearch, MIN_QUERY_LEN, type SearchSupabaseClient } from "./logic";
 export const dynamic = "force-dynamic";
 
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const q = (request.nextUrl.searchParams.get("q") ?? "").trim();
 

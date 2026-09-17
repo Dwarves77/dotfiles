@@ -11,28 +11,20 @@
 // design, auto-cadence built + dormant).
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { runIntakeCycle, type IntakeCandidate } from "@/lib/intake/run-intake-cycle";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 // Grounding is synchronous (the sanctioned direct-lib chain); bound the set + the wall time.
 export const maxDuration = 300;
 const MAX_CANDIDATES = 5;
 
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const gate = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const admin = await isPlatformAdmin(auth.userId, gate);
-  if (!admin) {
-    return NextResponse.json({ error: "Platform admin access required" }, { status: 403, headers: rateLimitHeaders(auth.userId) });
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase: gate } = auth;
 
   let candidates: IntakeCandidate[];
   let mode: "plan" | "apply";

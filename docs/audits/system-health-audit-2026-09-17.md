@@ -20,16 +20,16 @@ The clone families (files that share clone blocks with each other), each one ext
 
 | Family | Files | Disposition |
 |---|---|---|
-| Admin API routes sharing the same guard-and-respond boilerplate (`src/app/api/admin/**/route.ts`) | 26 | wire: one `adminRoute()` handler helper (auth, org resolution, error envelope), routes keep only their own logic |
-| Community API routes (`src/app/api/community/**/route.ts`) | 22 | wire: the same helper, community variant |
-| Workspace and user-state routes (`src/app/api/workspace/**`, `watchlist`, `user/list-order`) | 10 | wire: the same helper |
+| Admin API routes sharing the same guard-and-respond boilerplate (`src/app/api/admin/**/route.ts`) | 26 | DONE, lane L31: `requireAdminRoute` in `src/lib/api/route-guard.ts` (auth, rate limit, service client, platform-admin gate, one 403 shape); 35 admin routes and the admin-gated agent-run and coverage routes moved onto it; four private `requireAdminRole` copies deleted; F2 accepts the guard |
+| Community API routes (`src/app/api/community/**/route.ts`) | 22 | DONE, lane L31: `requireCommunityRoute` (cookie auth + rate limit); 39 community, invitation and org routes moved onto it |
+| Workspace and user-state routes (`src/app/api/workspace/**`, `watchlist`, `user/list-order`) | 10 | DONE, lane L31: `requireUserRoute`; 16 routes moved onto it (the timed bootstrap auth composes the guard inside its timer) |
 | Community page shells (`src/app/community/{benchmarks,profile,directory,discover,moderation,[slug],browse}/page.tsx`) | 7 | wire: one `CommunityPageShell` component; the largest single clone pairs in the tree (96, 89, 89, 86 shared windows) |
 | Identical `loading.tsx` pages across the surfaces | 8 | wire: one shared loading component |
 | Detail surfaces (`MarketSignalDetailSurface`, `ResearchFindingDetailSurface`, `RegulationDetailSurface`, `OperationsDetailSurface`, `SourcesGrid`) | 5 | wire: shared detail primitives; the 107-line block shared by Market and Research is the first cut |
 | Admin views (`IngestRejectionsView`, `TierOpinionDisagreementsView`, `PendingJurisdictionReviewView`, `SourceAdminControls`, ...) | 10 | wire: one admin table view primitive |
 | Maintenance and classification scripts sharing one read-plan-write scaffold (`propose-classifications`, `ratify-flag-to-census`, `generate-theme-brief`, `apply-tags`, `canonical-key-dedup`, `record-hollow-sweep`, ...) | 9 | wire: the scaffold already exists as `scripts/maintenance/lib/cli.mjs` (`runCli`); the scripts that do not use it move onto it |
 | Two recommend-classification routes (`canonical-sources` and `sources`) sharing 85 windows | 2 | wire: one handler, two thin routes |
-| `src/lib/supabase-server.ts` repeating its own RPC-paging block (66 windows within the file) | 1 | wire: one paging helper |
+| `src/lib/supabase-server.ts` repeating its own RPC-paging block (66 windows within the file); `api/admin/corpus-turn-requests` carrying its own `readAllValues` pager with a comment saying a route cannot import a scripts module (it can import `src/lib/db/paginate.mjs`, which already exists) | 2 | wire: `fetchAllRows` in `src/lib/db/paginate.mjs` is the one paging helper; both move onto it |
 
 Admitted mirrors: 77 comments in source say a constant or helper was copied rather than imported. Some are legitimate client-bundle boundaries (a browser component cannot import a Node-only module) and say so; each will be listed with keep-or-wire in the removal lanes. The JS mirrors of SQL functions (`url-canon`, `source-blocks`, `effective-confidence`, `aggregate-safeguards`, `canonical-key`) are deliberate and drift-tested; they stay.
 
@@ -68,14 +68,14 @@ The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byt
 
 ## 5. The gates
 
-- **F45 duplicate-code** (this lane): both-ways ratchet on duplicated normalized lines, ceiling 8,061 on `ed2ee7c9`; a new copy anywhere in src or scripts reds the build naming the clone pair.
+- **F45 duplicate-code** (lane L30, RD-69): both-ways ratchet on duplicated normalized lines, ceiling 8,061 on `ed2ee7c9`; a new copy anywhere in src or scripts reds the build naming the clone pair. Re-seeded to 7,600 by lane L31 (the route-guard extraction).
 - **Database census** (next lane): tables and functions with no code and no database reference, ratchet at the count after the removals above; F14 extended to trigger writers.
-- **One home per external route** (lane L31, F46 external-host single-home): every external host that code builds URLs for is named in exactly one route module, and a second file that builds a URL for that host fails the build. [CORRECTED 2026-09-17, same day, before merge: the first draft of this line said the gate was folded into F45. That was wrong. F45 catches copied lines; the EUR-Lex case was three different implementations of one route, which F45 would not have caught. Until F46 lands, only the per-host sweep test in `capture-static-primaries.test.mjs` covers that one host, and re-implementations of any other host are not gated.]
+- **One home per external route** (lane L31, F46 external-host-home, RD-70, LANDED): every external host that code builds URLs for is named in exactly one route module. Consolidated hosts (`HOST_HOMES`: publications.europa.eu in `scripts/lib/eurlex-cellar.mjs`, which also gained the OJ-issue endpoint the provenance healer had built on its own) may appear only in their home, and the count of other multi-home hosts is a both-ways ratchet seeded at 7 (eur-lex.europa.eu 7 files, www.federalregister.gov 6, www.ecfr.gov 3, api.anthropic.com 2, ec.europa.eu 2, www.legislation.gov.uk 2, www.linkedin.com 2). Removal order item 4 consolidates them one host per commit. [CORRECTED 2026-09-17, same day, before merge: the first draft of this line said the gate was folded into F45. That was wrong. F45 catches copied lines; the EUR-Lex case was three different implementations of one route, which F45 would not have caught. Until F46 lands, only the per-host sweep test in `capture-static-primaries.test.mjs` covers that one host, and re-implementations of any other host are not gated.]
 - **Lane contract**: the binding prior-art step (search the repo first; cite what is reused).
 
 ## 6. Removal order
 
-1. Route-handler helper for the 58 API routes (three families, largest by lines).
+1. DONE (lane L31): route guard for the API routes; 87 route files onto one module, F45 8,061 to 7,600.
 2. Community page shell and the shared loading page (15 files).
 3. Detail-surface and admin-view primitives (15 files).
 4. One route module per external host (Federal Register, eCFR, legislation.gov.uk, Eurostat, the oil bulletin, Anthropic).

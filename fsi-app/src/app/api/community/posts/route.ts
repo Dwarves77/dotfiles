@@ -44,11 +44,8 @@
 // and display name without a second round-trip.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { evaluateAntitrustGuard, SENSITIVE_FIELDS } from "@/lib/community/index.mjs";
 import { entityKindOf } from "@/lib/entities/entity-id.mjs";
 import { assertBound } from "@/lib/db/paginate.mjs";
@@ -109,11 +106,8 @@ function shapePost(row: PostRow, profilesById: Map<string, AuthorProfile>) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { searchParams } = new URL(request.url);
   const groupId = searchParams.get("group_id");
@@ -203,11 +197,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let body: {
     group_id?: string;

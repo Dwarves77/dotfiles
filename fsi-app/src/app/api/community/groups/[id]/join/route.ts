@@ -21,23 +21,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id: groupId } = await params;
   if (!groupId) {

@@ -12,19 +12,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

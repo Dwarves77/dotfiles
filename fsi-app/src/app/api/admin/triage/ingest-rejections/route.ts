@@ -17,31 +17,16 @@
 // surfaces (migration 082 RLS).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 
 
 const VALID_ACTIONS = new Set(["discarded", "reclassified", "escalated"]);
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   const { data, error } = await supabase
     .from("ingest_rejections")
@@ -84,21 +69,9 @@ interface TriageBody {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   let body: TriageBody;
   try {

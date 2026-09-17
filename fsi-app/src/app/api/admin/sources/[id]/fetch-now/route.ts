@@ -9,13 +9,10 @@
 // what was retrieved without paging through the full body.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { createHash } from "crypto";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { browserlessRender } from "@/lib/sources/browserless";
 import { decideFetchOutcome } from "@/lib/sources/fetch-now-decision.mjs";
 import { pausedResponse } from "@/lib/api/pause";
@@ -61,25 +58,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "source id required" }, { status: 400 });
-  }
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
   }
 
   // Phase 0.1 global-pause gate: honor the global hold even on this explicit manual fetch (was

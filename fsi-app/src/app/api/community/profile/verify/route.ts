@@ -39,11 +39,8 @@
 // Auth: cookie session. Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { resolveOrganisationSalt } from "@/lib/community/organisation-salt";
 import {
@@ -53,11 +50,8 @@ import {
 } from "@/lib/community/index.mjs";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   // PERF-7 (2026-09-04, audit §13.5): the account email is on the standard Supabase JWT claim set, so
   // read it from the locally verified claims (getClaims(), JWKS) instead of a second Auth-server round

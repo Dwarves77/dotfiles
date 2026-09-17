@@ -16,33 +16,19 @@
 // (clusters), admin/intersections serves PAIRS (edges). One scoring home (discover.mjs) feeds both.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { computeThemeStats } from "@/lib/connections/theme-stats.mjs";
 import { isBriefStale } from "@/lib/connections/brief-staleness.mjs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   const { searchParams } = new URL(request.url);
   const limitRaw = searchParams.get("limit");
   const limit = limitRaw ? Math.min(500, Math.max(1, parseInt(limitRaw, 10) || 50)) : 50;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
 
   const { data, error } = await supabase
     .from("connection_themes")

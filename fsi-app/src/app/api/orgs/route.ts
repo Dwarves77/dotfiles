@@ -14,15 +14,12 @@
 // Workstream B (Multi-Tenant Foundation) — 2026-05-15.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireCommunityAuth, isCommunityAuthError } from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let body: { name?: string; slug?: string };
   try {

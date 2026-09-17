@@ -16,11 +16,8 @@
 // Powered by the coverage_matrix() RPC introduced in migration 039.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import {
   TIER_1_JURISDICTIONS,
@@ -78,20 +75,6 @@ interface RpcRow {
 }
 
 
-// Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
-async function requireAdminRole(
-  supabase: ReturnType<typeof getServiceSupabase>,
-  userId: string
-): Promise<NextResponse | null> {
-  const admin = await isPlatformAdmin(userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403 }
-    );
-  }
-  return null;
-}
 
 /**
  * Classify a single matrix cell using the documented heuristic:
@@ -138,15 +121,9 @@ function parseTierFilter(raw: string | null): 1 | 2 | 3 | null {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-  const denied = await requireAdminRole(supabase, auth.userId);
-  if (denied) return denied;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   // ── Parse filters ────────────────────────────────────────────
   const url = new URL(request.url);

@@ -13,11 +13,8 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { assertBound } from "@/lib/db/paginate.mjs";
 
@@ -78,11 +75,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id: parentId } = await params;
   if (!parentId || !UUID_RE.test(parentId)) {
@@ -169,11 +163,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id: parentId } = await params;
   if (!parentId || !UUID_RE.test(parentId)) {

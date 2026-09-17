@@ -12,6 +12,14 @@ test('F2: PASS when route uses isPlatformAdmin', () => {
   assert.deepEqual(violations, []);
 });
 
+test('F2: PASS when route uses the shared requireAdminRoute guard (lane L31)', () => {
+  const violations = fitnessFunction.check(
+    'fsi-app/src/app/api/admin/foo/route.ts',
+    'const { requireAdminRoute, isRefusal } = guard; // the shared guard, imported in a real route\nexport async function GET(req) { const auth = await requireAdminRoute(req); if (isRefusal(auth)) return auth; }'
+  );
+  assert.deepEqual(violations, []);
+});
+
 test('F2: FAIL when admin route lacks isPlatformAdmin', () => {
   const violations = fitnessFunction.check(
     'fsi-app/src/app/api/admin/foo/route.ts',

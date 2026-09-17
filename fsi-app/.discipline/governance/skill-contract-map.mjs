@@ -191,7 +191,11 @@ export const PINNED_MANIFEST = {
     // APPENDED before Section 9 after the operator found the EUR-Lex route written three times. No
     // citingFiles change: the files below cite the skill as a whole, its content hash moving is what this
     // re-pin acknowledges, same posture as the category 42 re-pin.
-    contentHash: '93438616723721c9dcd481cf1f5e0380236d05c37bed8e2c4718178d35271502',
+        // 2026-09-17 (lane L31, coordinator): re-pinned again for the F46 host-home bullet added to Section 4
+    // category 45 (invariant RD-70, F46 external-host-home), the gate the EUR-Lex re-implementation class
+    // needed since F45 catches copies only. No citingFiles change: the files below cite the skill as a
+    // whole.
+    contentHash: '161a7f050495c146238e60b4ea7f999acd0b67d6e06818b538ee3ef8e3a2ed4e',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/candidate-dwell-audit.mjs',

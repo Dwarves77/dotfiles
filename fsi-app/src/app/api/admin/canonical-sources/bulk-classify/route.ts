@@ -22,12 +22,9 @@
 //             failed: [{candidateId, error}] }
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import Anthropic from "@anthropic-ai/sdk";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 export const maxDuration = 60;
@@ -126,10 +123,9 @@ Output the JSON object only.`;
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   let body: Body;
   try {
@@ -147,16 +143,6 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
-  }
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
   }
 
   const { data: candidates } = await supabase

@@ -14,11 +14,8 @@
 //             non-decision and doesn't affect trust history).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 // task 7.5 (brief-chain build plan Part 7, 2026-09-12): the row-shape builder + dedup-match helper
@@ -48,11 +45,9 @@ interface PromoteBody {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   let body: PromoteBody;
   try {
@@ -71,16 +66,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "decision must be one of: approve, reject, defer" },
       { status: 400 }
-    );
-  }
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }
 

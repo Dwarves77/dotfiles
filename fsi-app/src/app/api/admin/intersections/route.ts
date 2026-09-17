@@ -18,20 +18,16 @@
 // Auth: requireAuth + rate limit + platform-admin gate (house pattern, mirrors admin/themes).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { assemblePairs } from "@/lib/connections/pair-view.mjs";
 
 const PAGE = 1000; // supabase-js caps a select at 1000 rows; the edge table exceeds it (1,771 on 2026-08-17)
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   const { searchParams } = new URL(request.url);
   const minScoreRaw = searchParams.get("minScore");
@@ -40,16 +36,6 @@ export async function GET(request: NextRequest) {
   const parsedMinScore = minScoreRaw ? Number.parseFloat(minScoreRaw) : NaN;
   const minScore = Number.isFinite(parsedMinScore) ? Math.min(1, Math.max(0, parsedMinScore)) : 0.3;
   const limit = limitRaw ? Math.min(500, Math.max(1, parseInt(limitRaw, 10) || 100)) : 100;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
 
   // 1. Load the full edge set (any origin — curated edges mark explicit linkage), paged past the
   // 1000-row client cap.

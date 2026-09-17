@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { revalidateTag } from "next/cache";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
@@ -54,11 +53,8 @@ function readItemId(value: unknown): string | null {
 // those — the route does not invent positions for unseen items, because it has
 // no way to know what the surface is currently rendering.
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const listKey = request.nextUrl.searchParams.get("list_key") ?? "";
   if (!LIST_KEY_SET.has(listKey)) {
@@ -108,11 +104,8 @@ async function handleGET(request: NextRequest) {
 // would make two people on two devices clobber each other's entire list instead
 // of just racing on one position.
 async function handlePATCH(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let body: Record<string, unknown>;
   try {
@@ -208,11 +201,8 @@ async function handlePATCH(request: NextRequest) {
 // is a real feature rather than a maintenance hatch — a custom order that can be
 // entered but not left is a trap.
 async function handleDELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const listKey = request.nextUrl.searchParams.get("list_key") ?? "";
   if (!LIST_KEY_SET.has(listKey)) {

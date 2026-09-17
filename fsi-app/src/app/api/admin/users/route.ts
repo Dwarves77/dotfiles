@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
 
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+
 
 
 // POST /api/admin/users — create a user and assign to org
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   try {
     const { email, password, role, org_id } = await request.json();
@@ -22,20 +19,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "email and password are required" },
         { status: 400 }
-      );
-    }
-
-    const supabase = getServiceSupabase();
-
-    // Platform-admin gate (OBS-17, Sprint 2 Build 6). Prior implementation
-    // had no admin gate beyond requireAuth, meaning any authenticated user
-    // could provision Auth users + org memberships. Closed by reading
-    // profiles.is_platform_admin via the service-role client.
-    const admin = await isPlatformAdmin(auth.userId, supabase);
-    if (!admin) {
-      return NextResponse.json(
-        { error: "Platform admin access required" },
-        { status: 403, headers: rateLimitHeaders(auth.userId) }
       );
     }
 
@@ -91,25 +74,11 @@ export async function POST(request: NextRequest) {
 
 // GET /api/admin/users — list org members
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   try {
-    const supabase = getServiceSupabase();
-
-    // Platform-admin gate (OBS-17, Sprint 2 Build 6). The list spans
-    // org_memberships across ALL orgs — must be gated on platform admin.
-    const admin = await isPlatformAdmin(auth.userId, supabase);
-    if (!admin) {
-      return NextResponse.json(
-        { error: "Platform admin access required" },
-        { status: 403, headers: rateLimitHeaders(auth.userId) }
-      );
-    }
-
     const { data, error } = await supabase
       .from("org_memberships")
       .select("id, org_id, user_id, role, created_at")

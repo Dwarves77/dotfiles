@@ -13,11 +13,8 @@
 // Auth: cookie session. Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { entityKindOf } from "@/lib/entities/entity-id.mjs";
 
 const DEFAULT_LIMIT = 20;
@@ -27,11 +24,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ entityId: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { entityId } = await params;
   if (!entityId || !entityKindOf(entityId)) {

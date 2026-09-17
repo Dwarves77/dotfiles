@@ -226,6 +226,7 @@ import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
 // clone scan then measured 8,061 duplicated lines across 970 source files. F45 is the ratchet: the count
 // may only fall, and a new copy anywhere in src or scripts reds the build naming the clone pair.
 import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
+import { fitnessFunction as F46 } from './functions/F46-external-host-home.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -267,6 +268,7 @@ export const fitnessFunctions = [
   F43,
   F44,
   F45,
+  F46,
 ];
 
 export function getFunctionById(id) {

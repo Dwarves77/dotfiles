@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { fetchSupersededNotices } from "@/lib/propagation/methods/superseded-notices.ts";
 import type { NoticesClient } from "@/lib/propagation/methods/superseded-notices.ts";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 // resolveSinceParam and attachEntityLabels live in a sibling module, not here: a
 // route.ts may export only route handlers/config (F34's named residual — `next
 // build --webpack` rejects any other export field). See logic.ts's header.
@@ -46,10 +46,8 @@ import type { EntityResolveClient } from "./resolve-watched-entities";
 // entity_refs, organisation_entity_id) this resolution actually uses.
 
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const url = new URL(request.url);
   const sinceIso = resolveSinceParam(url.searchParams.get("since"), new Date());

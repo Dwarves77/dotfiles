@@ -299,6 +299,8 @@ import {
   followUpgradingRedirects,
 } from "./export-census-rows.mjs";
 import { deriveKey } from "../lib/canonical-key.mjs";
+import { cellarEndpointForOj } from "../lib/eurlex-cellar.mjs";
+export { cellarEndpointForOj };
 // buildGateARow -- THE live Gate-A scanner (gate-a-scan.mjs) wrapped exactly as apply-mint-batch.mjs's own
 // computeGateAState wraps it. Imported unmodified (see this file's header).
 import { buildGateARow } from "../../src/lib/intake/write-item.ts";
@@ -1432,14 +1434,6 @@ export function parseOjReference(url) {
   return null;
 }
 
-/** The Publications Office's own OJ-issue resource URL for one `{series,year,issue}` + edition letter —
- *  the exact shape the dispatch names (`.../resource/oj/JOL_2025_040_R`). Pure. NOT independently
- *  confirmed live this session (this lane's egress is denied to publications.europa.eu — see this file's
- *  FIFTH PASS header); [HYPOTHESIS], sourced from the dispatch's own text. */
-export function cellarEndpointForOj({ series, year, issue }, edition) {
-  const prefix = series === "L" ? "JOL" : "JOC";
-  return `https://publications.europa.eu/resource/oj/${prefix}_${year}_${issue}_${edition}`;
-}
 
 /**
  * Resolve one parsed OJ reference to captured text. An explicit edition (the citation's own JO-prefixed

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 
 // /api/workspace/archive-impact — the truthful pre-archive warning
 // (dual-scope archive, migration 235).
@@ -28,11 +28,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const WATCHER_NAME_CAP = 5;
 
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const itemId = (request.nextUrl.searchParams.get("itemId") || "").trim();
   if (!itemId) {

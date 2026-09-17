@@ -64,6 +64,8 @@ const API_FETCH = /\b(\w*[Ff]etch)\(\s*(['"`])(\/api\/[^'"`]*)\2/g;
 /** Route files under src/app/api that actually CALL requireAuth (not merely mention it in a
  *  comment — /api/obligations/upcoming's header says "Public: no requireAuth" and is public).
  *  Returns a Set of route paths relative to src/app/api, e.g. "workspace/tags/[id]/items". */
+export const GUARD_CALL_RE = /\b(?:requireAuth|requireUserRoute|requireAdminRoute)\(request\)/;
+
 export function guardedRoutes(files) {
   const root = getRepoRoot();
   const out = new Set();
@@ -71,7 +73,11 @@ export function guardedRoutes(files) {
   for (const f of list) {
     let content;
     try { content = readFileSync(resolve(root, f), 'utf8'); } catch { continue; }
-    if (!/\bawait requireAuth\(/.test(stripComments(content))) continue;
+    // requireAuth directly, or the shared route guard that composes it (src/lib/api/route-guard.ts, lane L31:
+    // requireUserRoute / requireAdminRoute, the Bearer guards; requireCommunityRoute is cookie-session and is
+    // correctly called with credentials: include), called with the request, awaited or
+    // passed to a timer (the bootstrap route times its auth phase).
+    if (!GUARD_CALL_RE.test(stripComments(content))) continue;
     out.add(f.replace(/^fsi-app\/src\/app\/api\//, '').replace(/\/route\.ts$/, ''));
   }
   return out;

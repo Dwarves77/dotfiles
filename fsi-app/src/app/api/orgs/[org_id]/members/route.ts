@@ -34,11 +34,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { type SupabaseClient } from "@supabase/supabase-js";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { checkOrgBan } from "@/lib/orgs/ban-check.mjs";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
@@ -87,11 +84,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { org_id } = await params;
   if (!org_id) {
@@ -171,11 +165,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { org_id } = await params;
   if (!org_id) {
@@ -302,11 +293,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { org_id } = await params;
   if (!org_id) {
@@ -427,11 +415,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { org_id } = await params;
   if (!org_id) {
@@ -543,11 +528,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { org_id } = await params;
   if (!org_id) {
