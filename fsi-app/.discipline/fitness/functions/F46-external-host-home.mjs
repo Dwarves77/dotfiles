@@ -44,10 +44,11 @@ export const HOST_HOMES = {
   'www.federalregister.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
   'www.ecfr.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
   'api.anthropic.com': 'fsi-app/src/lib/agent/anthropic-stream.mjs', // lane L35
+  'ec.europa.eu': 'fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs', // lane L35
 };
 
 /** Committed ceiling: multi-home hosts outside HOST_HOMES on the tree this file ships on. Only re-seed DOWN. */
-export const MULTI_HOME_CEILING = 4; // lane L35, 2026-09-17: federalregister.gov + ecfr.gov homed together
+export const MULTI_HOME_CEILING = 3; // lane L35, 2026-09-17: federalregister.gov + ecfr.gov homed together
 // (both hosts are served by the SAME api-transport.mjs / identifier-variants.mjs usCandidates edits, so
 // this ceiling moved 7 -> 5 in one lane commit rather than two; eur-lex.europa.eu stayed at 7's worth of
 // "still multi" because scripts/maintenance/capture-static-primaries.mjs is out of this lane's write set
