@@ -335,6 +335,21 @@ test("preflightOrRefuse: no metrics URL/key given never calls fetch, logs, and d
   assert.ok(logs.some((l) => l.includes("metrics unavailable")));
 });
 
+test("preflightOrRefuse: a PASS logs its numbers (cooldown state, busy fraction, MB/s) so the thresholds can be calibrated", async () => {
+  const finishedAt = new Date(NOW.getTime() - 90 * 60000).toISOString();
+  const row = { run_id: "brief-apply-run-031", mode: "apply", started_at: new Date(NOW.getTime() - 95 * 60000).toISOString(), finished_at: finishedAt };
+  const { sb } = fakeApplyRunsClient({ selectResult: { data: [row], error: null } });
+  const logs = [];
+  const sampleFn = async () => ({ ok: true, device: "nvme0n1", readMbps: 3.2, busyFraction: 0.041, elapsedSeconds: 30 });
+  const r = await preflightOrRefuse({ sb, now: NOW, metricsUrl: "https://x.supabase.co/customer/v1/privileged/metrics", serviceRoleKey: "k", sampleFn, log: (m) => logs.push(m) });
+  assert.equal(r.ok, true);
+  const pass = logs.find((l) => l.startsWith("pre-flight: pass"));
+  assert.ok(pass, "a pass line is logged: " + JSON.stringify(logs));
+  assert.match(pass, /90 min ago/);
+  assert.match(pass, /busy 0.041/);
+  assert.match(pass, /3.2 MB/s/);
+});
+
 test("preflightOrRefuse: metrics available and clean, no prior run - passes", async () => {
   const { sb } = fakeApplyRunsClient({ selectResult: { data: [], error: null } });
   const sampleFn = async () => ({ ok: true, device: "nvme0n1", readMbps: 1, busyFraction: 0.01, elapsedSeconds: 30 });

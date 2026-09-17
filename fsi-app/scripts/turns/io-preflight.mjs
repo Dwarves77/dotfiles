@@ -318,5 +318,19 @@ export async function preflightOrRefuse({
     log("pre-flight: metrics unavailable (no metrics URL/service-role key given), continuing on cooldown alone");
   }
 
-  return decidePreflight({ now, lastRun, cooldownMinutes, sample, busyMax, readMbpsMax });
+  const decision = decidePreflight({ now, lastRun, cooldownMinutes, sample, busyMax, readMbpsMax });
+  // A PASS prints its numbers too (2026-09-16, first metered apply): the run 35174140834 log showed only a
+  // 30 s gap between "selected" and "io budget" where the sample ran, so nothing could be calibrated from
+  // it. The three thresholds are [HYPOTHESIS] constants until real passes have been read back.
+  if (decision.ok) {
+    const sinceLast =
+      lastRun && lastRun.finished_at
+        ? `last apply finished ${Math.round((now.getTime() - new Date(lastRun.finished_at).getTime()) / 60000)} min ago`
+        : "no finished apply on record";
+    const disk = sample
+      ? `disk ${sample.device}: busy ${sample.busyFraction.toFixed(3)} (max ${busyMax}), read ${sample.readMbps.toFixed(1)} MB/s (max ${readMbpsMax}) over ${sample.elapsedSeconds.toFixed(0)} s`
+      : "no disk sample";
+    log(`pre-flight: pass; cooldown ${cooldownMinutes} min, ${sinceLast}; ${disk}`);
+  }
+  return decision;
 }

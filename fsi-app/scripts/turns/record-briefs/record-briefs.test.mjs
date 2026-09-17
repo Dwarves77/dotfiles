@@ -1022,6 +1022,32 @@ describe("validateRecordBriefsClaim", () => {
     assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
   });
 
+  test("figureCheckText: batch 006's locator shapes (Sec. abbreviation, keyword lists, numbered entries, titled instruments) are pointers", () => {
+    const out = figureCheckText(
+      "[substantive_requirement] Corrected Sec. 60.4305(e) (Subpart KKKK) and Secs. 60.4331a(b)(1), Articles 7, 11, 12 and 14, Regulations 9 to 15, Annex XVII entry 61, the 2020 Amendment Order and the five 2019 EU-Exit instruments, verbatim: a limit of 24 calendar months and 0,1 mg/kg"
+    );
+    for (const gone of ["60.4305", "60.4331", "11", "12", "14", "15", "61", "2020", "2019"]) {
+      assert.ok(!out.includes(gone), "pointer removed: " + gone + " in " + out);
+    }
+    assert.ok(out.includes("24 calendar months"), "the figure in the quote is kept");
+    assert.ok(out.includes("0,1 mg/kg"), "the amount in the quote is kept");
+  });
+
+  test("numeric-figure mirror: a restated figure the span spells in words (12-month vs twelve months) is still refused", () => {
+    const span = "Determinations are to be made in respect of the likely supply and use of energy over the twelve months which follow the supply";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[section11] The Explanatory Note's own 12-month determination window, verbatim: '" + span + "'",
+        source_span: span,
+        section: "11",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"12"')));
+  });
+
   test("figureCheckText: strips one leading slot tag and every legal locator, keeps amounts and dates", () => {
     const out = figureCheckText("[section10] Section 60(1) and Schedule 2, s. 61(6), Regulation (EU) No 510/2011: a fee of EUR 6,800 applies from 2026-09-13; Article 12(3)(a) too");
     for (const gone of ["10", "60", "61", "510", "2011", "12"]) {

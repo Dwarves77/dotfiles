@@ -30,6 +30,16 @@ items, left as an authored record). The 10 remaining record-grade items (ids 139
 by a grade read) are re-cut as `record-briefs-004b.json` with three label edits and one body row reworded to
 the source's own words; the file validates clean under the new validator.
 
+### Same PR, after the first metered apply (2026-09-16, later)
+
+Batch 004b applied on this ref (run 35174140834): 10 of 10 verified, bytes_read 2,336,238, brief_apply_runs
+row brief-apply-run-004, ten UPDATED change records. Batch 006 (49 entries, wt-finishmig) measured under the
+new mirror: 21 errors, 19 of them four more locator shapes (`Sec. 60.4305(e)`, `Articles 7, 11, 12 and 14`,
+`Annex XVII entry 61`, `the 2020 Amendment Order`), now stripped by the same helper (two more tests, 77 in
+the file); the two left (`pre-2013`, `12-month`) are label restatements the batch lane edits. The pre-flight
+now prints its numbers on a PASS (cooldown state, busy fraction, MB/s), because the first metered apply
+logged nothing to calibrate the three [HYPOTHESIS] thresholds from.
+
 ## 2026-09-16, W9 lane L22: local gate runs the fitness runner; harness hash ignores line endings (first-push-red class fix)
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l22-local-ci-parity-2026-09-16, cut from

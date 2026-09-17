@@ -259,10 +259,19 @@ export function figureCheckText(claimText) {
 }
 /** An instrument's short title ("the 2012 Regulations", "the 2010 Act") names WHICH instrument, not a
  *  figure: the year is part of the title, the span quotes a provision, not the title. */
-const INSTRUMENT_TITLE_RE = /\b(?:19|20)\d{2}\s+(?:Regulations|Act|Order|Rules|Scheme)\b/g;
+const INSTRUMENT_TITLE_RE = /\b(?:19|20)\d{2}(?:\s+[A-Z][A-Za-z-]*){0,3}\s+(?:Regulations|Act|Order|Rules|Scheme|[Ii]nstruments?)\b/g;
 const SLOT_TAG_PREFIX_RE = /^\s*\[[a-z][a-z0-9_]*\]\s*/i;
-const LEGAL_LOCATOR_RE =
-  /\b(?:sections?|articles?|regulations?|directives?|decisions?|parts?|schedules?|annex(?:es)?|chapters?|rules?|paragraphs?|points?|clauses?|recitals?|s\.|art\.|reg\.|para\.)\s*(?:\((?:EU|EC|EEC)\)\s*)?(?:No\.?\s*)?\d+(?:[./-]\d+)*(?:\s*\(\d+\))*(?:\([a-z]\))?/gi;
+// Batch 006 (2026-09-16) added four locator shapes the first cut missed: the "Sec." abbreviation, a list of
+// numbers after one keyword ("Articles 7, 11, 12 and 14", "Regulations 9 to 15"), a numbered entry ("Annex
+// XVII entry 61"), and an instrument title with words between the year and the noun ("the 2020 Amendment
+// Order", "the five 2019 EU-Exit instruments"). LOCATOR_LIST is one number with its sub-parts; the keyword
+// consumes a comma/and/to/or-separated run of them.
+const LOCATOR_NUM = String.raw`\d+(?:[./-]\d+)*(?:\s*\(\d+\))*(?:\s*\([a-z]\))?(?:[a-z](?![a-z]))?`;
+const LOCATOR_LIST = LOCATOR_NUM + String.raw`(?:\s*(?:,|and|to|or|&)\s*` + LOCATOR_NUM + String.raw`)*`;
+const LEGAL_LOCATOR_RE = new RegExp(
+  String.raw`\b(?:sections?|secs?\.|ss\.|s\.|articles?|arts?\.|regulations?|regs?\.|directives?|decisions?|parts?|schedules?|annex(?:es)?|chapters?|rules?|paragraphs?|paras?\.|points?|entr(?:y|ies)|clauses?|recitals?|subparts?)\s*(?:\((?:EU|EC|EEC)\)\s*)?(?:No\.?\s*)?` + LOCATOR_LIST,
+  "gi",
+);
 
 /** Numeric figures in `text` significant enough to require span support: a digit run whose stripped core
  *  carries >= 2 digits (a bare single digit -- a footnote marker, an inline article number -- is not a
