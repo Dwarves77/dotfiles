@@ -29,7 +29,7 @@
 
 import { htmlToText } from "../text/html-to-text.mjs";
 import { cleanCtl } from "./charset-decode.mjs";
-import { apiEndpointFor } from "./transport-escalation.mjs";
+import { apiEndpointFor, FEDERAL_REGISTER_API_BASE, ECFR_API_BASE } from "./transport-escalation.mjs"; // F46: one home (lane L35)
 // hostFromUrl — the entity spine's ONE host normalizer (F30's url_host_derivation ratchet,
 // docs/specs/08-flywheel-design.md §1.3): lowercased, www-stripped, never throws — reused here instead of
 // a second hand-rolled `new URL(url).hostname.replace(/^www\./, "")` that could drift from it.
@@ -56,7 +56,7 @@ function clip(full, max) {
  *   `null` when no document_number can be derived from the URL (the caller's HTML transports hold instead
  *   — the honest exhaustion path, never a silent success on a wall). */
 export async function fetchFederalRegisterDocument(url, opts) {
-  const { fetchImpl = fetch, max, apiBase = "https://www.federalregister.gov/api/v1" } = opts ?? {};
+  const { fetchImpl = fetch, max, apiBase = FEDERAL_REGISTER_API_BASE } = opts ?? {};
   if (typeof max !== "number") throw new Error("fetchFederalRegisterDocument requires opts.max (a char cap) — never defaulted.");
   const u = new URL(url);
   const segs = u.pathname.split("/").filter(Boolean);
@@ -92,7 +92,7 @@ export async function fetchFederalRegisterDocument(url, opts) {
  * @param {string} url @param {{fetchImpl?: typeof fetch, max: number, apiBase?: string}} opts
  * @returns {Promise<{status:number,text:string,truncated:boolean,fullLength:number,cap:number}|null>} */
 export async function fetchEcfrTitle(url, opts) {
-  const { fetchImpl = fetch, max, apiBase = "https://www.ecfr.gov/api" } = opts ?? {};
+  const { fetchImpl = fetch, max, apiBase = ECFR_API_BASE } = opts ?? {};
   if (typeof max !== "number") throw new Error("fetchEcfrTitle requires opts.max (a char cap) — never defaulted.");
   const u = new URL(url);
   const titleM = u.pathname.match(/title-(\d+)/);

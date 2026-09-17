@@ -18,6 +18,9 @@ import { extractPortalLinks } from "./portal-links.mjs";
 // file's own callers and test keep importing ojDailyViewUrl from register-walk.mjs.
 import { ojDailyViewUrl } from "./identifier-variants.mjs";
 export { ojDailyViewUrl };
+// F46 (lane L35): www.federalregister.gov's one home is transport-escalation.mjs's apiEndpointFor + its
+// base constant; frDocumentsUrl below composes off it rather than templating the host string again.
+import { FEDERAL_REGISTER_API_BASE } from "./transport-escalation.mjs";
 
 // ── pure builders ────────────────────────────────────────────────────────────────────────────────────
 
@@ -37,7 +40,7 @@ export function frDocumentsUrl({ from, to, page = 1, perPage = 100, types = ["RU
   q.set("page", String(page));
   q.set("order", "oldest");
   for (const f of ["html_url", "title", "type", "publication_date", "document_number"]) q.append("fields[]", f);
-  return `https://www.federalregister.gov/api/v1/documents.json?${q.toString()}`;
+  return `${FEDERAL_REGISTER_API_BASE}/documents.json?${q.toString()}`;
 }
 
 /** FR API results → the ledger's PortalLink shape (html_url + title as the anchor hint).

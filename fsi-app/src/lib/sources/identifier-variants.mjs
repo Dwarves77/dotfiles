@@ -19,6 +19,10 @@
 // where the key-deriver stays NULL. Candidate SCORING (SC-13) is a pure ranker that takes injected
 // host-class + registry lookups, so the .ts host-authority module is not imported here.
 
+// F46 (lane L35): www.federalregister.gov and www.ecfr.gov's one home is transport-escalation.mjs's
+// apiEndpointFor + its base constants; usCandidates below composes off them rather than re-templating.
+import { FEDERAL_REGISTER_API_BASE, FEDERAL_REGISTER_PORTAL_URL, ECFR_PORTAL_URL } from "./transport-escalation.mjs";
+
 /** PURE. Extract {year, number} from an identifier with any common separator (2024_1610, 2024/1610,
  *  2024-1610, "2024 1610", CELEX/ELI embedded). Returns null when no year/number pair is present.
  *  @param {string|null|undefined} s @returns {{year:number,number:number}|null} */
@@ -172,10 +176,10 @@ export function ukCandidates({ identifier, title } = {}) {
 export function usCandidates({ identifier, title } = {}) {
   const urls = [], searchUrls = [];
   const docm = String(identifier || "").match(/\b(\d{4}-\d{4,6})\b/); // FR doc number e.g. 2024-12345
-  if (docm) urls.push(`https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=${docm[1]}`,
-    `https://www.federalregister.gov/api/v1/documents.json?conditions%5Bterm%5D=${docm[1]}`);
-  if (title) searchUrls.push(`https://www.federalregister.gov/api/v1/documents.json?conditions%5Bterm%5D=${encodeURIComponent(title)}`,
-    `https://www.ecfr.gov/search?search%5Bquery%5D=${encodeURIComponent(title)}`);
+  if (docm) urls.push(`${FEDERAL_REGISTER_PORTAL_URL}/documents/search?conditions%5Bterm%5D=${docm[1]}`,
+    `${FEDERAL_REGISTER_API_BASE}/documents.json?conditions%5Bterm%5D=${docm[1]}`);
+  if (title) searchUrls.push(`${FEDERAL_REGISTER_API_BASE}/documents.json?conditions%5Bterm%5D=${encodeURIComponent(title)}`,
+    `${ECFR_PORTAL_URL}/search?search%5Bquery%5D=${encodeURIComponent(title)}`);
   return { urls: [...new Set(urls)], searchUrls };
 }
 

@@ -32,9 +32,17 @@ the same module instead of defining it locally. Both are the one-host-one-home c
 drives (F46); no change to the URL VALUES either function returns, the walk logic, or persistence, and
 the sweep test in `src/lib/sources/identifier-variants.test.mjs` proves the EUR-Lex URL shapes are unchanged.
 
-**harness_version at write time:** `sha256:932dfde526cdabad`
+**Re-stamped again (lane L35, same session, F46 continued): www.federalregister.gov + www.ecfr.gov.**
+`scripts/turns/run-source-sweep.mjs`'s `portalFor` now imports `FEDERAL_REGISTER_PORTAL_URL` from
+`src/lib/sources/transport-escalation.mjs` instead of the literal `"https://www.federalregister.gov"`,
+and `src/lib/sources/register-walk.mjs`'s `frDocumentsUrl` now composes its endpoint from the imported
+`FEDERAL_REGISTER_API_BASE` instead of the literal `"https://www.federalregister.gov/api/v1"`. Again no
+change to the URL VALUES, the walk logic, or persistence; proven by the sweep test in
+`src/lib/sources/transport-escalation.test.mjs`.
+
+**harness_version at write time:** `sha256:32161a97c0405906`
 
 **The planned run that supersedes this marker:** the next real `node scripts/turns/run-source-sweep.mjs`
 dispatch (dry or apply) will land `source-sweep-run-019.json` with `harness_version:
-sha256:932dfde526cdabad`, and this marker is deleted the moment that artifact lands (or updated to a new
+sha256:32161a97c0405906`, and this marker is deleted the moment that artifact lands (or updated to a new
 hash, per rule (c), if the governing files change again before that run lands).

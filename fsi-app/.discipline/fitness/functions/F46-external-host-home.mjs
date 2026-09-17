@@ -41,10 +41,16 @@ export const NOT_EXTERNAL_RE = /(^|\.)(localhost|example\.com|example\.org|w3\.o
 /** Consolidated hosts: exactly one home each. Add a host here in the commit that consolidates it. */
 export const HOST_HOMES = {
   'publications.europa.eu': 'fsi-app/scripts/lib/eurlex-cellar.mjs',
+  'www.federalregister.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
+  'www.ecfr.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
 };
 
 /** Committed ceiling: multi-home hosts outside HOST_HOMES on the tree this file ships on. Only re-seed DOWN. */
-export const MULTI_HOME_CEILING = 7; // measured 2026-09-17 on the L31 tree after the Cellar host was homed
+export const MULTI_HOME_CEILING = 5; // lane L35, 2026-09-17: federalregister.gov + ecfr.gov homed together
+// (both hosts are served by the SAME api-transport.mjs / identifier-variants.mjs usCandidates edits, so
+// this ceiling moved 7 -> 5 in one lane commit rather than two; eur-lex.europa.eu stayed at 7's worth of
+// "still multi" because scripts/maintenance/capture-static-primaries.mjs is out of this lane's write set
+// -- see docs/ops/session-log.md, lane L35.
 
 const URL_RE = /https?:\/\/([a-z0-9.-]+\.[a-z]{2,})(?::\d+)?(?=[/\s"'`<>)\]?#,]|$)/gi;
 
