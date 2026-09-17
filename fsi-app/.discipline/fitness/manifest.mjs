@@ -227,6 +227,7 @@ import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
 // may only fall, and a new copy anywhere in src or scripts reds the build naming the clone pair.
 import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
 import { fitnessFunction as F46 } from './functions/F46-external-host-home.mjs';
+import { fitnessFunction as F47 } from './functions/F47-db-object-reference.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -269,6 +270,7 @@ export const fitnessFunctions = [
   F44,
   F45,
   F46,
+  F47,
 ];
 
 export function getFunctionById(id) {

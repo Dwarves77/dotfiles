@@ -47,20 +47,20 @@ Tables: 39 hold zero rows. 36 of those are referenced by code (unbuilt or idle f
 
 | Table | Rows | Live through the database? | Disposition |
 |---|---|---|---|
-| `_snapshot_gapflags_20260831` | 3 | nothing references it | remove |
-| `drain_worklist` | 66 | nothing references it | remove (superseded by the D26 record-only intake; migrations 219 and 254 name it as retired) |
-| `intelligence_summaries` | 2,040 | policies only (captured undeclared in migration 009) | remove after a read-back that no surface renders it |
-| `intelligence_item_versions` | 4,082 (26 MB) | written by trigger `trg_intelligence_items_version_snapshot`, read by nothing | decision: keep as an audit trail named in the producer-consumer allowlist with a reason, or drop the trigger and the table; write-only today |
-| `case_studies`, `case_study_endorsements` | 6, 0 | trigger and policies from the community layer, no code | decision: wire (community case studies are in the platform intent) or remove |
-| `community_topic_groups` | 0 | policies only | decision with the community rebuild |
-| `taxonomy_nodes` | 38 | policies only | decision with the community rebuild |
+| `_snapshot_gapflags_20260831` | 3 | nothing references it; it had no migration either (live-only, RD-49's class) | DONE (L32): dropped by migration 325, applied 2026-09-17 after the live check (3 rows, 0 triggers, 0 foreign keys in, 0 policies) |
+| `drain_worklist` | 66 | nothing references it | DONE (L32): dropped by migration 324, applied 2026-09-17. [CORRECTED] the first draft said migrations 219 and 254 retired it; they retired other tables in its favour. The drop rests on the live verification instead: 0 triggers, 0 foreign keys in, 0 code references, 0 SQL references beyond its DDL; its reader, the drain-first-fetch worker, was dissolved 2026-07-12 |
+| `intelligence_summaries` | 2,040 | policies only (captured undeclared in migration 009) | KEEP [CORRECTED, same day]: "remove after a read-back" contradicted the operator's 2026-04-30 decision (`.claude/CLAUDE.md`, Sector Activation: SHELVE, not retire; the rows stay for per-sector reporting). F47 allowlist entry with that reason and date |
+| `intelligence_item_versions` | 4,082 (26 MB) | written by trigger `trg_intelligence_items_version_snapshot` | keep: F47's replay found a SQL reader (it is not in the unread set), so "read by nothing" was the hand census's miss; the trigger-written class is now measured by F47's unread count instead of by hand |
+| `case_studies`, `case_study_endorsements` | 6, 0 | trigger and policies from the community layer, no code | keep-with-reason (L32): `case_studies` is referenced (its trigger); `case_study_endorsements` is written by nothing and read by nothing, carried in the F47 allowlist as the unbuilt half of a core surface with review at the community rebuild dispatch, which ships case studies or drops both tables |
+| `community_topic_groups` | 0 | policies only | referenced (F47: policies and a foreign key count as SQL references); stays with the community rebuild, no gate row |
+| `taxonomy_nodes` | 38 | policies only | referenced (F47: foreign keys from the community tables); stays with the community rebuild, no gate row |
 | `coverage_gap_census_findings` | 116 | read by view `census_rollup_by_surface` | keep |
-| `gate_a_health_cache` | 1 | `gate_a_health`, `gate_a_health_refresh` | keep |
+| `gate_a_health_cache` | 1 | `gate_a_health`, `gate_a_health_refresh` | keep; `gate_a_health_refresh` itself has no caller anywhere: deliberately unscheduled by operator ruling 2026-08-10 (migration 256), run by hand, last computed 2026-08-10 09:20 UTC; F47 function allowlist with that reason |
 | `mutation_leases` | 0 | the lease functions | keep |
-| `pending_first_fetch` | 1,388 | trigger `enqueue_pending_first_fetch`; read by the listings RPC | keep |
+| `pending_first_fetch` | 1,388 | trigger `enqueue_pending_first_fetch`; [CORRECTED] no reader: the drain-first-fetch worker was dissolved 2026-07-12 and the population is re-homed to the cadence-flip wiring unit (`mint-item.ts` header) | keep as a writer preceding a named-later reader (build mode holds the cadence off, rule 16); F47 allowlist entry, live 2026-09-17: done 1,235, error 136, queued 12, skipped 5 |
 | `system_state_flag_audit` | 8 | trigger `guard_pause_flag_writer` | keep |
 
-Gap in the existing gate: the producer-consumer orphan check (F14) sees only application writers, so a table written by a trigger and read by nothing (`intelligence_item_versions`) was invisible to it. The database census above becomes the second standing number (tables and functions with no code or database reference), with F14 extended to trigger writers.
+Gap in the existing gate, closed by L32: the producer-consumer orphan check (F14) saw only application writers, so a trigger-written table nothing reads was invisible to it. F47 `db-object-reference` (RD-71) is the standing number: the committed schema replayed statement by statement (equal to the live catalog, 120 tables, 6 views, 95 functions) against every reference in code and SQL; unreferenced tables and unread tables are both-ways ratchets seeded at 0 after L32's drop and dated allowlist entries; dead functions are strict zero. F14's schema scan now reads the same replay, so a dropped table no longer survives as a phantom. One more write-only table surfaced by F47 that the hand census missed: `community_promotion_transitions` (0 rows, the promote-to-public audit trail), allowlisted as a terminal sink until the community rebuild's moderation history view reads it.
 
 ## 4. Files
 
@@ -69,7 +69,7 @@ The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byt
 ## 5. The gates
 
 - **F45 duplicate-code** (lane L30, RD-69): both-ways ratchet on duplicated normalized lines, ceiling 8,061 on `ed2ee7c9`; a new copy anywhere in src or scripts reds the build naming the clone pair. Re-seeded to 7,600 by lane L31 (the route-guard extraction).
-- **Database census** (next lane): tables and functions with no code and no database reference, ratchet at the count after the removals above; F14 extended to trigger writers.
+- **Database census** (lane L32, F47 db-object-reference, RD-71, LANDED): unreferenced tables, unread tables and dead functions, from a statement-ordered replay of the migrations; attack-proven (a planted table, a planted function, a planted trigger sink, each red then green).
 - **One home per external route** (lane L31, F46 external-host-home, RD-70, LANDED): every external host that code builds URLs for is named in exactly one route module. Consolidated hosts (`HOST_HOMES`: publications.europa.eu in `scripts/lib/eurlex-cellar.mjs`, which also gained the OJ-issue endpoint the provenance healer had built on its own) may appear only in their home, and the count of other multi-home hosts is a both-ways ratchet seeded at 7 (eur-lex.europa.eu 7 files, www.federalregister.gov 6, www.ecfr.gov 3, api.anthropic.com 2, ec.europa.eu 2, www.legislation.gov.uk 2, www.linkedin.com 2). Removal order item 4 consolidates them one host per commit. [CORRECTED 2026-09-17, same day, before merge: the first draft of this line said the gate was folded into F45. That was wrong. F45 catches copied lines; the EUR-Lex case was three different implementations of one route, which F45 would not have caught. Until F46 lands, only the per-host sweep test in `capture-static-primaries.test.mjs` covers that one host, and re-implementations of any other host are not gated.]
 - **Lane contract**: the binding prior-art step (search the repo first; cite what is reused).
 
@@ -80,7 +80,7 @@ The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byt
 3. Detail-surface and admin-view primitives (15 files).
 4. One route module per external host (Federal Register, eCFR, legislation.gov.uk, Eurostat, the oil bulletin, Anthropic).
 5. Maintenance scripts onto `runCli`.
-6. Database removals and decisions from section 3, with a migration per removal and the census gate seeded after.
+6. DONE (lane L32): `drain_worklist` dropped (migration 324), the decisions in section 3 resolved with reasons, F47 seeded at 0 and 0. `_snapshot_gapflags_20260831` dropped by migration 325 the same day.
 7. Snapshot files out of the index.
 
 Each lane re-seeds F45 downward in its own commit; the number in this document is the starting point, not a target.
