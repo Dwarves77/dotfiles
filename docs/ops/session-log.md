@@ -539,6 +539,20 @@ Review (`review-l20.md`) returned CONDITIONAL FAIL on three findings, all closed
 **UX compliance (fix round 1):** N/A -- no `.tsx`/`.css` under `fsi-app/src` touched.
 
 ---
+## 2026-09-13, brief-lane 006 (batch branch): 49 record-grade regulation-family items, second batch under the 6.2b contract
+
+**What.** Batch 006 (export 34753002527, selection record, after 16432987, limit 50) holds 49 entries
+written by ten parallel authors from the stored pools; one market_signal item in the export was skipped
+(the non-regulatory formats are authored separately under their own brief, exemplars validated the same day).
+Every entry validated (VALID. entries: 49). Authors corrected truncated, mis-slotted or under-mined prior
+record claims (several premature GAP claims upgraded to grounded FACT claims) and recorded one capture
+corruption finding (a currency glyph rendered as the replacement character in 1edabc17). This branch is an
+apply target and is never merged; this entry exists because the memory gate counts the batch file as code
+until plan D20 lands.
+
+### UX compliance (batch 006)
+
+Not a UI change; no customer surface touched by this branch.
 
 ## 2026-09-12, W9 lane L10: D15 and D17 families 4/5, zero-proposal, drift and anomaly flags decided
 

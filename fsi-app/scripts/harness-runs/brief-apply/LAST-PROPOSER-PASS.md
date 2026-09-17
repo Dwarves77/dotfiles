@@ -1,8 +1,63 @@
 # Last proposer pass -- brief-apply
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **four** artifacts
-(`brief-apply-run-001` to `brief-apply-run-004`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-004**. Newest pass first.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **six** artifacts
+(`brief-apply-run-001` to `brief-apply-run-006`); F28's rule (d) requires this file to name the latest
+verbatim: **brief-apply-run-006**. Newest pass first.
+
+## Pass over brief-apply-run-005 and brief-apply-run-006 (2026-09-16, batch 006, the first 49-item metered apply)
+
+**Artifacts read:** brief-apply-run-005 (dry, run 35178608102, config.execute=false, briefs
+scripts/turns/record-briefs/batches/record-briefs-006.json, 49 items all outcome "would_apply", zero
+defects_found) and brief-apply-run-006 (apply, run 35178716211, config.execute=true, metrics.selected 49,
+metrics.applied 48, metrics.quarantined 1, metrics.generate_failed 0, metrics.bytes_read 7784367,
+metrics.io_budget_bytes 419430400, metrics.stop_reason null, unscoped_flywheel deriveObligations over 1318
+forward events, revalidate applied true, zero defects_found). Both committed back to the branch by the
+workflow (commits 65ef71ee and 8d30f369).
+
+**Full traces read:** the committed record-briefs-006.json (49 entries), the run logs, the per_item step
+records of run-006 (the one ground_failed entry: 1bb72c94-a196-4182-ad75-0f368b781841#ground, error
+"validation failed [missing_required_slot]: penalty_summary, criterion 5, item_type regulation", then
+#provenance-status quarantined), and the live database after the apply: brief_apply_runs row
+brief-apply-run-006 (started 03:35:41Z, finished 03:41:34Z, bytes_read 7784367, items_applied 48), 48 items
+brief-grade verified, 48 item_changelog rows detected_by record-briefs.
+
+**Hypotheses (verified, with basis):**
+
+1. **A 49-item apply on the resized tier costs about 7.4 MB of driver-visible reads and 5 minutes 18 s,
+   with the disk idle before it.** The pre-flight pass line (the first ever printed) read busy 0.000 and
+   0.0 MB/s over its 30 s sample; the run finished with no stop and no refusal. Basis: the run-006 log
+   lines at 03:36:16 and 03:41:34 and the artifact metrics. The 2026-09-13 outage shape (a 49-item apply
+   plus two corpus-wide length scans on the small tier) did not recur; the budget and cooldown held with
+   room to spare, and the [HYPOTHESIS] thresholds (busy 0.5, 40 MB/s) have their first data point: an idle
+   disk before an apply reads as zero, so a non-zero pre-flight sample means another reader is active.
+2. **The pre-write validator does not mirror criterion 5 (required slots).** 1bb72c94's entry carried no
+   penalty_summary claim; the validator accepted the file (run-005 dry: 49 would_apply) and the ground step
+   quarantined the item, the exact "catch it after the cost" shape the D30 mirror exists to prevent for
+   figures. Basis: run-006's per_item record and schema.mjs, whose only slot rule is that slot_key be a
+   string or null. Batch 004b had no such item, so the gap was invisible until a regulation without a
+   penalty claim came through.
+3. **The quarantine is a type gap, not an author gap.** 1bb72c94 is Council Decision 84/358/EEC (the
+   conclusion of the North Sea oil-pollution cooperation agreement), typed `regulation`; its one stored
+   capture (CELEX 31984D0358, 20,023 chars) contains no penalty language at all (zero occurrences of
+   "penalt"). For `regulation` the penalty_summary slot is HARD (no GAP, migrations 131/132/137), so no
+   author can fill it honestly and the ground step must quarantine. Basis: a read of the item's own pool
+   row and its type's slot list (effective_date, primary_deadline, jurisdictional_scope, penalty_summary).
+   The disposition is a type decision for that item (a Decision concluding an agreement is not a
+   penalty-bearing regulation), not a validator change and not a made-up claim.
+
+**Proposal:** (a) a required-slot mirror in validateRecordBriefsFile: the driver already reads each item's
+pool for the FACT-verbatim check; it can read item_type_required_slots (48 rows) and each batch item's
+item_type once, pass them in, and the validator refuses an entry that lacks a claim (FACT or GAP where the
+type allows a GAP) for any required slot, naming the slot, before any write. (b) an author pass on
+1bb72c94's entry (penalty_summary from its pool) and a re-apply with allow_brief_overwrite. (c) keep the
+budget at 400 MB and the cooldown at 30 minutes; record the pass line of every apply here.
+
+**Family gates status:** GREEN on master fadc976f (lanes L21 to L24 merged today); this branch carries the
+batch and the two committed-back artifacts only.
+
+**Standing metric (PROPOSER-RUNBOOK.md section 3).** Schema-step refusals 0 of 49; ground-step quarantines
+1 of 49 (criterion 5). Pre-flight sample before the apply: busy 0.000, 0.0 MB/s; bytes_read 7784367.
+
 
 ## Pass over brief-apply-run-003 and brief-apply-run-004 (2026-09-16, lane L23, the first metered applies after D32)
 

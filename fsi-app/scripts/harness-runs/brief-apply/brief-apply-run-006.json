@@ -1,0 +1,2734 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:b9238d18d4059046",
+  "run_id": "brief-apply-run-006",
+  "started_at": "2026-09-17T03:35:41.990Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-006.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false,
+    "recordBriefsSchemaVersion": "rb1-2026-09-16.1"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-006.json"
+  ],
+  "per_item": [
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#forward-events",
+      "outcome": "forward-events:5",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#forward-events",
+      "outcome": "forward-events:3",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#ground",
+      "outcome": "ground_failed",
+      "error": "validation failed [missing_required_slot]: [{\"reason\":\"missing_required_slot\",\"slot_key\":\"penalty_summary\",\"criterion\":5,\"item_type\":\"regulation\"}]"
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#provenance-status",
+      "outcome": "quarantined",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#forward-events",
+      "outcome": "forward-events:13",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#compliance-deadline",
+      "outcome": "compliance-deadline:2030-12-31",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#compliance-deadline",
+      "outcome": "compliance-deadline:2027-09-01",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#forward-events",
+      "outcome": "forward-events:3",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f#entities",
+      "outcome": "entities:0",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 49,
+    "selected": 49,
+    "skipped_stale_hash": 0,
+    "applied": 48,
+    "quarantined": 1,
+    "generate_failed": 0,
+    "bytes_read": 7784367,
+    "io_budget_bytes": 419430400,
+    "stop_reason": null,
+    "last_item_id": "212ba202-13c1-4fac-89e4-ac5bc227294f",
+    "would_stop_at_item_id": null,
+    "applied_item_ids": [
+      "16460382-62e7-48cb-abd3-6fbdc5091ec9",
+      "167176f3-f6aa-4c67-a20f-9c44f268e771",
+      "16734818-62ad-4641-9b3a-70a19b0911bf",
+      "169f6724-344c-47a2-9021-5945c819f6d1",
+      "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87",
+      "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba",
+      "17a265e5-ae84-49a4-b7fd-218304645c3e",
+      "17b4ab61-72f1-463a-8bf5-230a6b6e788b",
+      "17b81070-0240-43a2-b969-5d490a1b9928",
+      "17f86de2-f389-4484-aca1-27256743bc4d",
+      "181db6b8-fff2-4bda-ab7b-46cc98f64cac",
+      "1831c5c9-5c61-41a2-8baa-ca0ce0178def",
+      "18b21273-4277-4ca2-8390-bb76f2d16334",
+      "18eb5d1d-7f8d-4c91-acff-daf799be8d76",
+      "19407267-909d-485d-9944-f446787e34c0",
+      "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe",
+      "1ad3e78e-26ca-4817-aa8f-61d68d2061fa",
+      "1ad41a82-836d-4646-87f8-323ed75202c1",
+      "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c",
+      "1af22fc8-5553-4378-91cf-2943982b295e",
+      "1b296150-f72f-42e8-a364-69cab2be6976",
+      "1b390855-a37c-4900-aa77-9ab4a9229237",
+      "1bb72c94-a196-4182-ad75-0f368b781841",
+      "1bcfaa75-fbcc-456c-aea8-ed6cd818d963",
+      "1bfb762d-0281-4312-9045-b08b74285c99",
+      "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb",
+      "1c83e662-3f90-46be-bb6e-d50939dea543",
+      "1d3a42a6-d54f-4467-ae8a-e3908aa348bf",
+      "1d7a6706-f7df-4708-b0b7-529a63d3deac",
+      "1e51fe2f-eb34-4b55-9272-f4619b7a607f",
+      "1e844146-b3eb-49c5-b75c-df2d766a4c1c",
+      "1ea08653-9a21-4d16-8e3b-f993d2f2bc71",
+      "1edabc17-fbf4-4616-9745-f3cab47bd748",
+      "1ee59d99-0d31-4f71-ac66-66beb7e26f4b",
+      "1f4e7090-529f-4547-b9fc-36a55b161835",
+      "1f9b070c-e173-4790-83c2-0d5cbefd91c7",
+      "1fbb6729-0383-4e03-9603-50f63d15ce1f",
+      "1fc186bd-3533-45d0-ba9e-b0f755c5c292",
+      "1fd233cd-f538-4e35-96da-e7ffac09d990",
+      "20008a38-9523-4791-b8d2-96dff5fcdc81",
+      "200b850b-9de9-4760-b541-949e345b3020",
+      "20378bed-2e2f-43a1-8b37-d9e0fd2d652f",
+      "2040f4ee-c130-4e82-a28a-92f49b34d2d1",
+      "204ad1d9-c293-4da3-a813-6beb151c406f",
+      "20a1205a-7939-40fe-b60c-23daba68074b",
+      "20acdaeb-df99-45b9-8254-28ba20a292ea",
+      "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da",
+      "211aaee0-db87-46b0-ba15-5a69a4f93357",
+      "212ba202-13c1-4fac-89e4-ac5bc227294f"
+    ],
+    "unscoped_flywheel": {
+      "analyzeCorpus": {
+        "execute": true,
+        "signals": true
+      },
+      "deriveObligations": {
+        "step": "derive-obligations",
+        "mode": "apply",
+        "counts": {
+          "forward_events": 1318,
+          "derived": 1318,
+          "skipped_no_item": 0,
+          "already_registered": 1276,
+          "to_insert": 42,
+          "binding_position_breakdown": {
+            "unclassified": 1186,
+            "direct_duty": 98,
+            "carrier_passthrough": 22,
+            "customer_contract": 12
+          }
+        },
+        "applied": 42,
+        "read_back": {
+          "obligations_total": 1318,
+          "active": 1314,
+          "by_binding_position": {
+            "null": 1188,
+            "carrier_passthrough": 22,
+            "customer_contract": 12,
+            "direct_duty": 96
+          }
+        },
+        "exitCode": 0
+      },
+      "tagProposals": {
+        "step": "tag-proposals",
+        "mode": "apply",
+        "counts": {
+          "selection": {
+            "mode": "ids",
+            "ids": [
+              "16460382-62e7-48cb-abd3-6fbdc5091ec9",
+              "167176f3-f6aa-4c67-a20f-9c44f268e771",
+              "16734818-62ad-4641-9b3a-70a19b0911bf",
+              "169f6724-344c-47a2-9021-5945c819f6d1",
+              "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87",
+              "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba",
+              "17a265e5-ae84-49a4-b7fd-218304645c3e",
+              "17b4ab61-72f1-463a-8bf5-230a6b6e788b",
+              "17b81070-0240-43a2-b969-5d490a1b9928",
+              "17f86de2-f389-4484-aca1-27256743bc4d",
+              "181db6b8-fff2-4bda-ab7b-46cc98f64cac",
+              "1831c5c9-5c61-41a2-8baa-ca0ce0178def",
+              "18b21273-4277-4ca2-8390-bb76f2d16334",
+              "18eb5d1d-7f8d-4c91-acff-daf799be8d76",
+              "19407267-909d-485d-9944-f446787e34c0",
+              "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe",
+              "1ad3e78e-26ca-4817-aa8f-61d68d2061fa",
+              "1ad41a82-836d-4646-87f8-323ed75202c1",
+              "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c",
+              "1af22fc8-5553-4378-91cf-2943982b295e",
+              "1b296150-f72f-42e8-a364-69cab2be6976",
+              "1b390855-a37c-4900-aa77-9ab4a9229237",
+              "1bb72c94-a196-4182-ad75-0f368b781841",
+              "1bcfaa75-fbcc-456c-aea8-ed6cd818d963",
+              "1bfb762d-0281-4312-9045-b08b74285c99",
+              "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb",
+              "1c83e662-3f90-46be-bb6e-d50939dea543",
+              "1d3a42a6-d54f-4467-ae8a-e3908aa348bf",
+              "1d7a6706-f7df-4708-b0b7-529a63d3deac",
+              "1e51fe2f-eb34-4b55-9272-f4619b7a607f",
+              "1e844146-b3eb-49c5-b75c-df2d766a4c1c",
+              "1ea08653-9a21-4d16-8e3b-f993d2f2bc71",
+              "1edabc17-fbf4-4616-9745-f3cab47bd748",
+              "1ee59d99-0d31-4f71-ac66-66beb7e26f4b",
+              "1f4e7090-529f-4547-b9fc-36a55b161835",
+              "1f9b070c-e173-4790-83c2-0d5cbefd91c7",
+              "1fbb6729-0383-4e03-9603-50f63d15ce1f",
+              "1fc186bd-3533-45d0-ba9e-b0f755c5c292",
+              "1fd233cd-f538-4e35-96da-e7ffac09d990",
+              "20008a38-9523-4791-b8d2-96dff5fcdc81",
+              "200b850b-9de9-4760-b541-949e345b3020",
+              "20378bed-2e2f-43a1-8b37-d9e0fd2d652f",
+              "2040f4ee-c130-4e82-a28a-92f49b34d2d1",
+              "204ad1d9-c293-4da3-a813-6beb151c406f",
+              "20a1205a-7939-40fe-b60c-23daba68074b",
+              "20acdaeb-df99-45b9-8254-28ba20a292ea",
+              "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da",
+              "211aaee0-db87-46b0-ba15-5a69a4f93357",
+              "212ba202-13c1-4fac-89e4-ac5bc227294f"
+            ],
+            "since": null
+          },
+          "corpus_count": 1431,
+          "targets_count": 48,
+          "missing_ids": [
+            "1bb72c94-a196-4182-ad75-0f368b781841"
+          ],
+          "flag_candidates_count": 0,
+          "with_proposals_count": 0,
+          "existing_open_count": 0,
+          "plan": {
+            "new_count": 0,
+            "stale_count": 0,
+            "unchanged": 0
+          },
+          "preview": [],
+          "apply_command": "node scripts/maintenance/tag-proposals.mjs --mode apply --arg ids:16460382-62e7-48cb-abd3-6fbdc5091ec9,167176f3-f6aa-4c67-a20f-9c44f268e771,16734818-62ad-4641-9b3a-70a19b0911bf,169f6724-344c-47a2-9021-5945c819f6d1,16fc5f4b-ce08-4c19-8d39-b5d3a4217d87,170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba,17a265e5-ae84-49a4-b7fd-218304645c3e,17b4ab61-72f1-463a-8bf5-230a6b6e788b,17b81070-0240-43a2-b969-5d490a1b9928,17f86de2-f389-4484-aca1-27256743bc4d,181db6b8-fff2-4bda-ab7b-46cc98f64cac,1831c5c9-5c61-41a2-8baa-ca0ce0178def,18b21273-4277-4ca2-8390-bb76f2d16334,18eb5d1d-7f8d-4c91-acff-daf799be8d76,19407267-909d-485d-9944-f446787e34c0,1995db5f-9b69-4cf0-80e5-5e89e44fb1fe,1ad3e78e-26ca-4817-aa8f-61d68d2061fa,1ad41a82-836d-4646-87f8-323ed75202c1,1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c,1af22fc8-5553-4378-91cf-2943982b295e,1b296150-f72f-42e8-a364-69cab2be6976,1b390855-a37c-4900-aa77-9ab4a9229237,1bb72c94-a196-4182-ad75-0f368b781841,1bcfaa75-fbcc-456c-aea8-ed6cd818d963,1bfb762d-0281-4312-9045-b08b74285c99,1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb,1c83e662-3f90-46be-bb6e-d50939dea543,1d3a42a6-d54f-4467-ae8a-e3908aa348bf,1d7a6706-f7df-4708-b0b7-529a63d3deac,1e51fe2f-eb34-4b55-9272-f4619b7a607f,1e844146-b3eb-49c5-b75c-df2d766a4c1c,1ea08653-9a21-4d16-8e3b-f993d2f2bc71,1edabc17-fbf4-4616-9745-f3cab47bd748,1ee59d99-0d31-4f71-ac66-66beb7e26f4b,1f4e7090-529f-4547-b9fc-36a55b161835,1f9b070c-e173-4790-83c2-0d5cbefd91c7,1fbb6729-0383-4e03-9603-50f63d15ce1f,1fc186bd-3533-45d0-ba9e-b0f755c5c292,1fd233cd-f538-4e35-96da-e7ffac09d990,20008a38-9523-4791-b8d2-96dff5fcdc81,200b850b-9de9-4760-b541-949e345b3020,20378bed-2e2f-43a1-8b37-d9e0fd2d652f,2040f4ee-c130-4e82-a28a-92f49b34d2d1,204ad1d9-c293-4da3-a813-6beb151c406f,20a1205a-7939-40fe-b60c-23daba68074b,20acdaeb-df99-45b9-8254-28ba20a292ea,20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da,211aaee0-db87-46b0-ba15-5a69a4f93357,212ba202-13c1-4fac-89e4-ac5bc227294f"
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "wrote": null,
+        "resolved": null,
+        "note": "Wrote 0 new integrity_flags PROPOSAL row(s); resolved 0 stale row(s). This writes integrity_flags proposals ONLY; it never writes intelligence_items tags (operator rule: NO assumptions, NEVER silent auto-tagging). Ratify each with resolution_note containing \"ratify:tags\", then run the tag-ratification MAINT step to apply."
+      },
+      "tagRatification": {
+        "step": "tag-ratification",
+        "mode": "apply",
+        "counts": {
+          "open_candidates": 0,
+          "threshold": "high",
+          "decidable_count": 0,
+          "zero_proposal_count": 0,
+          "not_adoptable_count": 0,
+          "adopt_count": 0,
+          "decline_count": 0,
+          "adopted_sample": [],
+          "declined_sample": [],
+          "re_derived_and_adopted_count": 0,
+          "re_derived_and_declined_count": 0,
+          "no_derivable_tags_count": 0,
+          "re_derived_and_adopted_sample": [],
+          "re_derived_and_declined_sample": [],
+          "no_derivable_tags_sample": [],
+          "apply_results": [],
+          "rederive_apply_results": []
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "note": "Decided 0/0 open flag(s) at threshold \"high\" (0 of them zero-proposal, re-derived per D15); every flag closed (no residue stays open, task 7.2 / D15). Discovery NOT re-run by this step (orchestration only, per this file's header); fallback: node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute."
+      }
+    },
+    "revalidate": {
+      "applied": true,
+      "tags": [
+        "public-items",
+        "item:16460382-62e7-48cb-abd3-6fbdc5091ec9",
+        "item:167176f3-f6aa-4c67-a20f-9c44f268e771",
+        "item:16734818-62ad-4641-9b3a-70a19b0911bf",
+        "item:169f6724-344c-47a2-9021-5945c819f6d1",
+        "item:16fc5f4b-ce08-4c19-8d39-b5d3a4217d87",
+        "item:170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba",
+        "item:17a265e5-ae84-49a4-b7fd-218304645c3e",
+        "item:17b4ab61-72f1-463a-8bf5-230a6b6e788b",
+        "item:17b81070-0240-43a2-b969-5d490a1b9928",
+        "item:17f86de2-f389-4484-aca1-27256743bc4d",
+        "item:181db6b8-fff2-4bda-ab7b-46cc98f64cac",
+        "item:1831c5c9-5c61-41a2-8baa-ca0ce0178def",
+        "item:18b21273-4277-4ca2-8390-bb76f2d16334",
+        "item:18eb5d1d-7f8d-4c91-acff-daf799be8d76",
+        "item:19407267-909d-485d-9944-f446787e34c0",
+        "item:1995db5f-9b69-4cf0-80e5-5e89e44fb1fe",
+        "item:1ad3e78e-26ca-4817-aa8f-61d68d2061fa",
+        "item:1ad41a82-836d-4646-87f8-323ed75202c1",
+        "item:1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c",
+        "item:1af22fc8-5553-4378-91cf-2943982b295e",
+        "item:1b296150-f72f-42e8-a364-69cab2be6976",
+        "item:1b390855-a37c-4900-aa77-9ab4a9229237",
+        "item:1bb72c94-a196-4182-ad75-0f368b781841",
+        "item:1bcfaa75-fbcc-456c-aea8-ed6cd818d963",
+        "item:1bfb762d-0281-4312-9045-b08b74285c99",
+        "item:1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb",
+        "item:1c83e662-3f90-46be-bb6e-d50939dea543",
+        "item:1d3a42a6-d54f-4467-ae8a-e3908aa348bf",
+        "item:1d7a6706-f7df-4708-b0b7-529a63d3deac",
+        "item:1e51fe2f-eb34-4b55-9272-f4619b7a607f",
+        "item:1e844146-b3eb-49c5-b75c-df2d766a4c1c",
+        "item:1ea08653-9a21-4d16-8e3b-f993d2f2bc71",
+        "item:1edabc17-fbf4-4616-9745-f3cab47bd748",
+        "item:1ee59d99-0d31-4f71-ac66-66beb7e26f4b",
+        "item:1f4e7090-529f-4547-b9fc-36a55b161835",
+        "item:1f9b070c-e173-4790-83c2-0d5cbefd91c7",
+        "item:1fbb6729-0383-4e03-9603-50f63d15ce1f",
+        "item:1fc186bd-3533-45d0-ba9e-b0f755c5c292",
+        "item:1fd233cd-f538-4e35-96da-e7ffac09d990",
+        "item:20008a38-9523-4791-b8d2-96dff5fcdc81",
+        "item:200b850b-9de9-4760-b541-949e345b3020",
+        "item:20378bed-2e2f-43a1-8b37-d9e0fd2d652f",
+        "item:2040f4ee-c130-4e82-a28a-92f49b34d2d1",
+        "item:204ad1d9-c293-4da3-a813-6beb151c406f",
+        "item:20a1205a-7939-40fe-b60c-23daba68074b",
+        "item:20acdaeb-df99-45b9-8254-28ba20a292ea",
+        "item:20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da",
+        "item:211aaee0-db87-46b0-ba15-5a69a4f93357",
+        "item:212ba202-13c1-4fac-89e4-ac5bc227294f"
+      ],
+      "status": 200
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-006.json"
+  ],
+  "proposer_notes": ""
+}
