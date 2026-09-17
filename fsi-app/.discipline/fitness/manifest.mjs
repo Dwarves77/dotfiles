@@ -222,6 +222,10 @@ import { fitnessFunction as F43 } from './functions/F43-default-open-disclosure.
 // either tree; scripts/lib/is-main.mjs's isMainModule() is the fix, and its own is-main.test.mjs carries
 // the identical regression check at the no-npm-ci pre-push layer (belt-and-suspenders).
 import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
+// Duplicate code (2026-09-17, lane L30): the operator found the same EUR-Lex route written three times, and a
+// clone scan then measured 8,061 duplicated lines across 970 source files. F45 is the ratchet: the count
+// may only fall, and a new copy anywhere in src or scripts reds the build naming the clone pair.
+import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -262,6 +266,7 @@ export const fitnessFunctions = [
   F42,
   F43,
   F44,
+  F45,
 ];
 
 export function getFunctionById(id) {
