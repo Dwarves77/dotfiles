@@ -78,7 +78,7 @@ import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 import { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } from "../../../src/lib/agent/formats/timeline-section.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-13.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-16.1";
 // 2026-09-13.1 (D30, defect-fix-plan-2026-09-12, lane L19): the numeric-figure mirror. A FACT claim whose
 // claim_text states a significant number (digits, optionally currency-prefixed / percent-suffixed /
 // thousands-separated / decimal) absent from that SAME claim's own source_span is now refused at author
@@ -241,19 +241,59 @@ function normalizeFigure(token) {
   return String(token).replace(CURRENCY_OR_PERCENT_RE, "").replace(/[\s,]/g, "");
 }
 
+/** The slice of a FACT claim's claim_text the numeric-figure mirror measures (lane L23, 2026-09-16). Two
+ *  kinds of number in claim_text are PROVENANCE POINTERS, never figures the reader takes as fact, and the
+ *  span legitimately lacks them: (1) the leading slot tag the record-briefs contract requires
+ *  ("[section12] ...", "[effective_date] ..."), whose digits are the section key; (2) a legal locator
+ *  citing WHERE the quote sits ("Section 61(6)", "Article 8(2)", "Regulation (EU) No 510/2011",
+ *  "Schedule 2", "s. 60(1)"), which names the source's own numbering. Batch 004 (49 entries, authored
+ *  before D30's mirror) was refused whole on 260 such pointers, 134 of them the slot tag alone; not one
+ *  was a wrong figure. Everything else in claim_text (amounts, dates, counts, "28-day") is still measured
+ *  against the span exactly as D30 requires, so a mis-cited figure keeps failing.
+ *  @param {string} claimText @returns {string} */
+export function figureCheckText(claimText) {
+  return String(claimText ?? "")
+    .replace(SLOT_TAG_PREFIX_RE, "")
+    .replace(LEGAL_LOCATOR_RE, " ")
+    .replace(INSTRUMENT_TITLE_RE, " ");
+}
+/** An instrument's short title ("the 2012 Regulations", "the 2010 Act") names WHICH instrument, not a
+ *  figure: the year is part of the title, the span quotes a provision, not the title. */
+const INSTRUMENT_TITLE_RE = /\b(?:19|20)\d{2}(?:\s+[A-Z][A-Za-z-]*){0,3}\s+(?:Regulations|Act|Order|Rules|Scheme|[Ii]nstruments?)\b/g;
+const SLOT_TAG_PREFIX_RE = /^\s*\[[a-z][a-z0-9_]*\]\s*/i;
+// Batch 006 (2026-09-16) added four locator shapes the first cut missed: the "Sec." abbreviation, a list of
+// numbers after one keyword ("Articles 7, 11, 12 and 14", "Regulations 9 to 15"), a numbered entry ("Annex
+// XVII entry 61"), and an instrument title with words between the year and the noun ("the 2020 Amendment
+// Order", "the five 2019 EU-Exit instruments"). LOCATOR_LIST is one number with its sub-parts; the keyword
+// consumes a comma/and/to/or-separated run of them.
+const LOCATOR_NUM = String.raw`\d+(?:[./-]\d+)*(?:\s*\(\d+\))*(?:\s*\([a-z]\))?(?:[a-z](?![a-z]))?`;
+const LOCATOR_LIST = LOCATOR_NUM + String.raw`(?:\s*(?:,|and|to|or|&)\s*` + LOCATOR_NUM + String.raw`)*`;
+const LEGAL_LOCATOR_RE = new RegExp(
+  String.raw`\b(?:sections?|secs?\.|ss\.|s\.|articles?|arts?\.|regulations?|regs?\.|directives?|decisions?|parts?|schedules?|annex(?:es)?|chapters?|rules?|paragraphs?|paras?\.|points?|entr(?:y|ies)|clauses?|recitals?|subparts?)\s*(?:\((?:EU|EC|EEC)\)\s*)?(?:No\.?\s*)?` + LOCATOR_LIST,
+  "gi",
+);
+
 /** Numeric figures in `text` significant enough to require span support: a digit run whose stripped core
  *  carries >= 2 digits (a bare single digit -- a footnote marker, an inline article number -- is not a
  *  "figure" this mirror requires sourced; the same noise floor defect-signatures.mjs's own extractNumbers
  *  uses), optionally currency-prefixed, percent-suffixed, thousands-separated, or carrying a decimal point.
  *  @param {string} text @returns {string[]} the matched tokens, trimmed, not yet normalized */
 function numericFiguresIn(text) {
+  // Lane L23 (2026-09-16): a dotted date ("30.6.2014", "31.12.2020", "11.7.2024", the legislation.gov.uk and
+  // Official Journal datelines) is split into its parts BEFORE the figure regex runs, because that regex
+  // would otherwise read "30.6" as a decimal figure and leave "2014" bare, so a claim citing "30 June 2014"
+  // against a span carrying "30.6.2014" could never match. Split, the date behaves exactly like an ISO
+  // date (see the header comment above): its parts must appear on both sides. A single dot between digit
+  // runs stays a decimal ("3.5%").
   const out = [];
-  for (const m of String(text ?? "").matchAll(NUMERIC_FIGURE_RE)) {
+  const flattened = String(text ?? "").replace(DOTTED_DATE_RE, "$1 $2 $3");
+  for (const m of flattened.matchAll(NUMERIC_FIGURE_RE)) {
     const digitCount = normalizeFigure(m[0]).replace(/\./g, "").length;
     if (digitCount >= 2) out.push(m[0].trim());
   }
   return out;
 }
+const DOTTED_DATE_RE = /\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/g;
 
 /** True when some claim in `claims` has a `source_span` containing `keywordRe`, with no negation token
  *  (no/not/none/never/nor) in the `NEGATION_WINDOW_CHARS` immediately before the match.
@@ -618,7 +658,7 @@ export function validateRecordBriefsClaim(claim, i, itemId, poolText) {
     // never merely appear as a substring of the concatenated span text.
     if (typeof claim.claim_text === "string") {
       const spanFigures = new Set(numericFiguresIn(claim.source_span).map(normalizeFigure));
-      for (const figure of numericFiguresIn(claim.claim_text)) {
+      for (const figure of numericFiguresIn(figureCheckText(claim.claim_text))) {
         if (!spanFigures.has(normalizeFigure(figure))) {
           at(
             `claim_text figure ${JSON.stringify(figure)} does not appear in this claim's own source_span ` +

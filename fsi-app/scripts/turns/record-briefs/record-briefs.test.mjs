@@ -10,6 +10,7 @@ import {
   validateRecordBriefsClaim,
   buildSyntheticFrontmatter,
   buildSyntheticRawText,
+  figureCheckText,
 } from "./schema.mjs";
 
 const ITEM_ID = "11111111-1111-1111-1111-111111111111";
@@ -958,7 +959,105 @@ describe("validateRecordBriefsClaim", () => {
     assert.ok(mismatched.some((e) => e.includes("numeric-figure mirror") && e.includes("6,800")), "the mismatched figure is named in the error");
   });
 
-  test("a FACT claim whose claim_text figure appears in its own source_span passes the numeric-figure mirror", () => {
+  // ── Lane L23 (2026-09-16): provenance pointers are not figures. Batch 004 (49 entries, authored before the
+// mirror) was refused whole on 260 numbers that were the slot tag ("[section12]") or a legal locator
+// ("Section 61(6)", "Article 8(2)"); none was a mis-cited figure. figureCheckText strips exactly those two
+// kinds before the mirror measures; everything else is still measured (the "28-day" case below).
+  test("numeric-figure mirror: the leading slot tag's digits ([section12]) are not a figure the span must carry", () => {
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[section12] China precious-metals carve-out, verbatim: 'Precious metals (except for gold, platinum)'",
+        source_span: "Precious metals (except for gold, platinum)",
+        section: "12",
+      }),
+      0,
+      ITEM_ID,
+      "Precious metals (except for gold, platinum)"
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
+
+  test("numeric-figure mirror: a legal locator in the label (Section 61(6), Article 8(2), Regulation (EU) No 510/2011) is a pointer, not a figure", () => {
+    const span = "The local authority shall inform the applicant of its decision within twenty-eight days from receipt of the application";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[primary_deadline] Section 61(6)'s decision window, read with Article 8(2) of Regulation (EU) No 510/2011, verbatim: '" + span + "'",
+        source_span: span,
+        section: "3",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
+
+  test("numeric-figure mirror: a restated figure outside a locator (28-day) is still measured and refused when the span spells it out", () => {
+    const span = "The local authority shall inform the applicant of its decision within twenty-eight days from receipt of the application";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[primary_deadline] Section 61(6)'s 28-day decision window, verbatim: '" + span + "'",
+        source_span: span,
+        section: "3",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"28"')), "28 is a figure the span does not carry as digits");
+  });
+
+  test("numeric-figure mirror: a dotted date in the span (30.6.2014) is measured as its parts, so '30 June 2014' in claim_text matches", () => {
+    const span = "Ss. 63-67 repealed (S.) (30.6.2014) by Regulatory Reform (Scotland) Act 2014";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[section12] Textual Amendments note confirming the repeal in Scotland on 30 June 2014, verbatim: '" + span + "'",
+        source_span: span,
+        section: "12",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.deepEqual(errors.filter((e) => e.includes("numeric-figure mirror")), []);
+  });
+
+  test("figureCheckText: batch 006's locator shapes (Sec. abbreviation, keyword lists, numbered entries, titled instruments) are pointers", () => {
+    const out = figureCheckText(
+      "[substantive_requirement] Corrected Sec. 60.4305(e) (Subpart KKKK) and Secs. 60.4331a(b)(1), Articles 7, 11, 12 and 14, Regulations 9 to 15, Annex XVII entry 61, the 2020 Amendment Order and the five 2019 EU-Exit instruments, verbatim: a limit of 24 calendar months and 0,1 mg/kg"
+    );
+    for (const gone of ["60.4305", "60.4331", "11", "12", "14", "15", "61", "2020", "2019"]) {
+      assert.ok(!out.includes(gone), "pointer removed: " + gone + " in " + out);
+    }
+    assert.ok(out.includes("24 calendar months"), "the figure in the quote is kept");
+    assert.ok(out.includes("0,1 mg/kg"), "the amount in the quote is kept");
+  });
+
+  test("numeric-figure mirror: a restated figure the span spells in words (12-month vs twelve months) is still refused", () => {
+    const span = "Determinations are to be made in respect of the likely supply and use of energy over the twelve months which follow the supply";
+    const errors = validateRecordBriefsClaim(
+      validClaim({
+        claim_text: "[section11] The Explanatory Note's own 12-month determination window, verbatim: '" + span + "'",
+        source_span: span,
+        section: "11",
+      }),
+      0,
+      ITEM_ID,
+      span
+    );
+    assert.ok(errors.some((e) => e.includes("numeric-figure mirror") && e.includes('"12"')));
+  });
+
+  test("figureCheckText: strips one leading slot tag and every legal locator, keeps amounts and dates", () => {
+    const out = figureCheckText("[section10] Section 60(1) and Schedule 2, s. 61(6), Regulation (EU) No 510/2011: a fee of EUR 6,800 applies from 2026-09-13; Article 12(3)(a) too");
+    for (const gone of ["10", "60", "61", "510", "2011", "12"]) {
+      assert.ok(!new RegExp("\\b" + gone + "\\b").test(out), "pointer digits removed: " + gone + " in " + out);
+    }
+    assert.ok(out.includes("6,800"), "amount kept");
+    assert.ok(out.includes("2026-09-13"), "date kept");
+  });
+
+test("a FACT claim whose claim_text figure appears in its own source_span passes the numeric-figure mirror", () => {
     const errors = validateRecordBriefsClaim(
       validClaim({
         claim_text: "[effective_date] The captured source states, verbatim: «at least 20% by 2030»",

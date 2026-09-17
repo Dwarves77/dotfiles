@@ -1,0 +1,670 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:08fedeed507d763b",
+  "run_id": "brief-apply-run-004",
+  "started_at": "2026-09-17T02:22:40.404Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-004b.json",
+    "execute": true,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false,
+    "recordBriefsSchemaVersion": "rb1-2026-09-16.1"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-004b.json"
+  ],
+  "per_item": [
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#forward-events",
+      "outcome": "forward-events:1",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#forward-events",
+      "outcome": "forward-events:6",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#compliance-deadline",
+      "outcome": "compliance-deadline:2027-01-01",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#forward-events",
+      "outcome": "forward-events:2",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d#entities",
+      "outcome": "entities:0",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#generate",
+      "outcome": "generated",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#section",
+      "outcome": "sectioned",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#ground",
+      "outcome": "grounded",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#provenance-status",
+      "outcome": "verified",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#changelog",
+      "outcome": "changelog:written",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#grow",
+      "outcome": "grown",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#discovery",
+      "outcome": "discovery:12",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#forward-events",
+      "outcome": "forward-events:0",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#compliance-deadline",
+      "outcome": "compliance-deadline:unchanged",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f#entities",
+      "outcome": "entities:0+instrument",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 10,
+    "skipped_stale_hash": 0,
+    "applied": 10,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "bytes_read": 2336238,
+    "io_budget_bytes": 419430400,
+    "stop_reason": null,
+    "last_item_id": "16432987-a1e9-4da0-b883-282e92691e2f",
+    "would_stop_at_item_id": null,
+    "applied_item_ids": [
+      "139f823b-8dc6-4fc3-a640-ad0210c5e615",
+      "144ebdf4-caa0-48cd-8d99-5c59074a5ec6",
+      "1456f4a6-c979-49cb-ad23-c74fa413d651",
+      "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+      "14f115e2-4768-4171-b4d5-313e722a199c",
+      "15839a86-e2e2-4d9b-93cf-23331c6979e0",
+      "15b1c540-2be8-4576-a723-859c6b6853a8",
+      "1615aa92-bc94-4a38-ba71-cf51c6edf748",
+      "16204b00-72e4-4923-ad30-7be5de7b900d",
+      "16432987-a1e9-4da0-b883-282e92691e2f"
+    ],
+    "unscoped_flywheel": {
+      "analyzeCorpus": {
+        "execute": true,
+        "signals": true
+      },
+      "deriveObligations": {
+        "step": "derive-obligations",
+        "mode": "apply",
+        "counts": {
+          "forward_events": 1276,
+          "derived": 1276,
+          "skipped_no_item": 0,
+          "already_registered": 1234,
+          "to_insert": 42,
+          "binding_position_breakdown": {
+            "unclassified": 1157,
+            "direct_duty": 85,
+            "carrier_passthrough": 22,
+            "customer_contract": 12
+          }
+        },
+        "applied": 42,
+        "read_back": {
+          "obligations_total": 1276,
+          "active": 1272,
+          "by_binding_position": {
+            "null": 1159,
+            "carrier_passthrough": 22,
+            "customer_contract": 12,
+            "direct_duty": 83
+          }
+        },
+        "exitCode": 0
+      },
+      "tagProposals": {
+        "step": "tag-proposals",
+        "mode": "apply",
+        "counts": {
+          "selection": {
+            "mode": "ids",
+            "ids": [
+              "139f823b-8dc6-4fc3-a640-ad0210c5e615",
+              "144ebdf4-caa0-48cd-8d99-5c59074a5ec6",
+              "1456f4a6-c979-49cb-ad23-c74fa413d651",
+              "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+              "14f115e2-4768-4171-b4d5-313e722a199c",
+              "15839a86-e2e2-4d9b-93cf-23331c6979e0",
+              "15b1c540-2be8-4576-a723-859c6b6853a8",
+              "1615aa92-bc94-4a38-ba71-cf51c6edf748",
+              "16204b00-72e4-4923-ad30-7be5de7b900d",
+              "16432987-a1e9-4da0-b883-282e92691e2f"
+            ],
+            "since": null
+          },
+          "corpus_count": 1432,
+          "targets_count": 10,
+          "missing_ids": [],
+          "flag_candidates_count": 0,
+          "with_proposals_count": 0,
+          "existing_open_count": 0,
+          "plan": {
+            "new_count": 0,
+            "stale_count": 0,
+            "unchanged": 0
+          },
+          "preview": [],
+          "apply_command": "node scripts/maintenance/tag-proposals.mjs --mode apply --arg ids:139f823b-8dc6-4fc3-a640-ad0210c5e615,144ebdf4-caa0-48cd-8d99-5c59074a5ec6,1456f4a6-c979-49cb-ad23-c74fa413d651,14cfdaa9-aca7-4714-8456-1891d29c82e2,14f115e2-4768-4171-b4d5-313e722a199c,15839a86-e2e2-4d9b-93cf-23331c6979e0,15b1c540-2be8-4576-a723-859c6b6853a8,1615aa92-bc94-4a38-ba71-cf51c6edf748,16204b00-72e4-4923-ad30-7be5de7b900d,16432987-a1e9-4da0-b883-282e92691e2f"
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "wrote": null,
+        "resolved": null,
+        "note": "Wrote 0 new integrity_flags PROPOSAL row(s); resolved 0 stale row(s). This writes integrity_flags proposals ONLY; it never writes intelligence_items tags (operator rule: NO assumptions, NEVER silent auto-tagging). Ratify each with resolution_note containing \"ratify:tags\", then run the tag-ratification MAINT step to apply."
+      },
+      "tagRatification": {
+        "step": "tag-ratification",
+        "mode": "apply",
+        "counts": {
+          "open_candidates": 0,
+          "threshold": "high",
+          "decidable_count": 0,
+          "zero_proposal_count": 0,
+          "not_adoptable_count": 0,
+          "adopt_count": 0,
+          "decline_count": 0,
+          "adopted_sample": [],
+          "declined_sample": [],
+          "re_derived_and_adopted_count": 0,
+          "re_derived_and_declined_count": 0,
+          "no_derivable_tags_count": 0,
+          "re_derived_and_adopted_sample": [],
+          "re_derived_and_declined_sample": [],
+          "no_derivable_tags_sample": [],
+          "apply_results": [],
+          "rederive_apply_results": []
+        },
+        "applied": 0,
+        "read_back": {},
+        "exitCode": 0,
+        "note": "Decided 0/0 open flag(s) at threshold \"high\" (0 of them zero-proposal, re-derived per D15); every flag closed (no residue stays open, task 7.2 / D15). Discovery NOT re-run by this step (orchestration only, per this file's header); fallback: node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute."
+      }
+    },
+    "revalidate": {
+      "applied": true,
+      "tags": [
+        "public-items",
+        "item:139f823b-8dc6-4fc3-a640-ad0210c5e615",
+        "item:144ebdf4-caa0-48cd-8d99-5c59074a5ec6",
+        "item:1456f4a6-c979-49cb-ad23-c74fa413d651",
+        "item:14cfdaa9-aca7-4714-8456-1891d29c82e2",
+        "item:14f115e2-4768-4171-b4d5-313e722a199c",
+        "item:15839a86-e2e2-4d9b-93cf-23331c6979e0",
+        "item:15b1c540-2be8-4576-a723-859c6b6853a8",
+        "item:1615aa92-bc94-4a38-ba71-cf51c6edf748",
+        "item:16204b00-72e4-4923-ad30-7be5de7b900d",
+        "item:16432987-a1e9-4da0-b883-282e92691e2f"
+      ],
+      "status": 200
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-004b.json"
+  ],
+  "proposer_notes": ""
+}

@@ -1,0 +1,91 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:08fedeed507d763b",
+  "run_id": "brief-apply-run-003",
+  "started_at": "2026-09-17T02:21:07.472Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-004b.json",
+    "execute": false,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false,
+    "recordBriefsSchemaVersion": "rb1-2026-09-16.1"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-004b.json"
+  ],
+  "per_item": [
+    {
+      "id": "139f823b-8dc6-4fc3-a640-ad0210c5e615",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "144ebdf4-caa0-48cd-8d99-5c59074a5ec6",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1456f4a6-c979-49cb-ad23-c74fa413d651",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "14f115e2-4768-4171-b4d5-313e722a199c",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "15839a86-e2e2-4d9b-93cf-23331c6979e0",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "15b1c540-2be8-4576-a723-859c6b6853a8",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1615aa92-bc94-4a38-ba71-cf51c6edf748",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16204b00-72e4-4923-ad30-7be5de7b900d",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16432987-a1e9-4da0-b883-282e92691e2f",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 10,
+    "selected": 10,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "bytes_read": 778746,
+    "io_budget_bytes": 419430400,
+    "stop_reason": null,
+    "last_item_id": null,
+    "would_stop_at_item_id": null,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null,
+    "revalidate": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-004b.json"
+  ],
+  "proposer_notes": ""
+}
