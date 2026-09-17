@@ -46,14 +46,19 @@ export const HOST_HOMES = {
   'api.anthropic.com': 'fsi-app/src/lib/agent/anthropic-stream.mjs', // lane L35
   'ec.europa.eu': 'fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs', // lane L35
   'www.legislation.gov.uk': 'fsi-app/src/lib/sources/identifier-variants.mjs', // lane L35
+  'www.linkedin.com': 'fsi-app/src/app/api/auth/linkedin/start/logic.ts', // lane L35
 };
 
 /** Committed ceiling: multi-home hosts outside HOST_HOMES on the tree this file ships on. Only re-seed DOWN. */
-export const MULTI_HOME_CEILING = 2; // lane L35, 2026-09-17: federalregister.gov + ecfr.gov homed together
-// (both hosts are served by the SAME api-transport.mjs / identifier-variants.mjs usCandidates edits, so
-// this ceiling moved 7 -> 5 in one lane commit rather than two; eur-lex.europa.eu stayed at 7's worth of
-// "still multi" because scripts/maintenance/capture-static-primaries.mjs is out of this lane's write set
-// -- see docs/ops/session-log.md, lane L35.
+export const MULTI_HOME_CEILING = 1; // lane L35, 2026-09-17: 7 -> 1 across six commits (see below + session log)
+// Lane L35 (2026-09-17) worked the removal order (docs/audits/system-health-audit-2026-09-17.md section 2)
+// one host per commit: www.federalregister.gov + www.ecfr.gov homed TOGETHER in one commit (7 -> 5, both
+// served by the same api-transport.mjs / identifier-variants.mjs usCandidates edits, not two separable
+// edits), then api.anthropic.com (5 -> 4), ec.europa.eu (4 -> 3), www.legislation.gov.uk (3 -> 2),
+// www.linkedin.com (2 -> 1). eur-lex.europa.eu stayed OUT of HOST_HOMES and the ceiling stayed at its
+// remaining share of 1 (never reaching 0): scripts/maintenance/capture-static-primaries.mjs also builds
+// eur-lex.europa.eu URLs and is explicitly out of this lane's write set ("other lanes own them" -- see
+// docs/ops/session-log.md, lane L35, and identifier-variants.test.mjs's own sweep-test comment).
 
 const URL_RE = /https?:\/\/([a-z0-9.-]+\.[a-z]{2,})(?::\d+)?(?=[/\s"'`<>)\]?#,]|$)/gi;
 
