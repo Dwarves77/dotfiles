@@ -346,8 +346,8 @@ test("preflightOrRefuse: a PASS logs its numbers (cooldown state, busy fraction,
   const pass = logs.find((l) => l.startsWith("pre-flight: pass"));
   assert.ok(pass, "a pass line is logged: " + JSON.stringify(logs));
   assert.match(pass, /90 min ago/);
-  assert.match(pass, /busy 0.041/);
-  assert.match(pass, /3.2 MB/s/);
+  assert.match(pass, /busy 0[.]041/);
+  assert.match(pass, /3[.]2 MB[/]s/);
 });
 
 test("preflightOrRefuse: metrics available and clean, no prior run - passes", async () => {
