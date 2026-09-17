@@ -3965,6 +3965,25 @@ The `directFetch` closure also gates itself with `assertFetchAllowed` (defense i
 **Ruling**: D25 (defect-fix-plan-2026-09-12.md), operator rulings 2026-09-13 quoted above; coordinator
 correction 2026-09-13 (transport-runtime `renderAllowed`, superseding the plan's original part (a)).
 
+**EUR-Lex through Cellar (lanes L28 and L28b, 2026-09-17).** eur-lex.europa.eu answers every plain GET of
+the legal-content pages (the landing page and the TXT/HTML clean-text form alike) with HTTP 202 and an
+empty body, its anti-bot holding response, from a workstation and from the runner alike; the first live
+apply (run 35202933168) roadblocked 130 of 131 items on that host and captured the one legislation.gov.uk
+item. The step now makes a third attempt for eur-lex items through the Publications Office Cellar
+resource, `https://publications.europa.eu/resource/celex/<CELEX>` with the combined Accept
+`text/html,application/xhtml+xml` and `Accept-Language: en`, one request, content negotiated (acts since
+about 2004 come back as XHTML, older acts such as 31992L0106 as HTML). A CELEX with an OJ sequence suffix
+is served only with the parentheses percent-encoded (`celex/32000Y0229(01)` 404,
+`celex/32000Y0229%2801%29` 200). All of this lives in ONE module, `scripts/lib/eurlex-cellar.mjs`
+(`cellarEndpointForCelex`, `CELLAR_ACCEPT`, `isEurlexRobotGate`), which the census exporter had carried
+since 2026-09-02 and which this step and the exporter now both import. The pool row keeps the item's own EUR-Lex URL as `result_url` (tier resolution and the own-URL
+target match depend on it) and records the Cellar URL in `result_title`; `summary.json`'s
+`per_item[].fetched_from` names it too. A capture cut at the 400,000-char cap is reported per item
+(`truncated`, `full_length`, `cap`) and counted in `counts.truncated` and the note. Second apply with the
+XHTML-only cut (run 35207120876): 103 captured, 27 left (20 older acts, 7 suffixed keys), which the
+combined Accept and the encoding recover. Re-dispatch recipe: `mode=dry` (expect the current uncaptured count), then
+`mode=apply`, then read back `counts.captured`, `counts.truncated` and the roadblock flag.
+
 **Dispatch**: `arg` optionally `ids:<uuid,uuid,...>`; blank runs the unscoped selection. `mode=dry` lists
 every selected item with its host and the action it would take, fetching and writing nothing. `mode=apply`
 fetches and writes as described above.

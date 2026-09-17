@@ -81,6 +81,7 @@
 import { escalateToFetchResult } from "../../src/lib/sources/transport-runtime.mjs";
 import { assertFetchAllowed, holdEngaged } from "../../src/lib/sources/fetch-hold.mjs";
 import { deriveKey } from "../lib/canonical-key.mjs";
+import { cellarEndpointForCelex, isCellarUrl, CELLAR_ACCEPT, CELLAR_CELEX_PREFIX } from "../lib/eurlex-cellar.mjs";
 import { hostOf } from "../lib/institution-key.mjs";
 import { readAll, readAllByIds, guardedInsert } from "../lib/db.mjs";
 import { runCli } from "./lib/cli.mjs";
@@ -144,30 +145,24 @@ export function deriveCelexTxtHtmlUrl(sourceUrl, instrumentIdentifier) {
   return `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${key}`;
 }
 
-/** The Publications Office Cellar resource for an EUR-Lex act (lane L28, 2026-09-17). eur-lex.europa.eu
- *  answers every plain GET of legal-content/EN/TXT/HTML/?uri=CELEX:... with HTTP 202 and an EMPTY body (its
- *  anti-bot holding response; the same from a workstation and from the runner), so the free direct transport
- *  could never read it: the first live apply (maintenance run 35202933168) roadblocked 130 of 131 items, all
- *  on this host. Cellar serves the same act to a plain GET with content negotiation:
- *  http://publications.europa.eu/resource/celex/<CELEX> with Accept: application/xhtml+xml answers HTTP 200,
- *  application/xhtml+xml, 52,653 bytes for 32016R0103 (probed 2026-09-17); text/html and text/plain answer
- *  404 there. The CELEX comes from scripts/lib/canonical-key.mjs's deriveKey (the one mirror of the SQL
- *  derivation, never a second parser). A key carrying an OJ sequence suffix "(NN)" is not resolved here
- *  ([HYPOTHESIS]: Cellar's celex resource for suffixed keys is unprobed), so such an item stays roadblocked
- *  with its reason rather than fetching the wrong act. Pure. */
-export const CELLAR_CELEX_PREFIX = "http://publications.europa.eu/resource/celex/";
+/** The Cellar resource for an EUR-Lex act, through the ONE home for that knowledge
+ *  (scripts/lib/eurlex-cellar.mjs, moved there from the census exporter which had carried it since
+ *  2026-09-02). The CELEX comes from scripts/lib/canonical-key.mjs's deriveKey (the one mirror of the SQL
+ *  derivation, never a second parser); an OJ-sequence-suffixed key is kept and percent-encoded by the
+ *  shared helper. Pure. */
+export { CELLAR_CELEX_PREFIX };
 export function deriveCellarUrl(sourceUrl, instrumentIdentifier) {
   const key = deriveKey(instrumentIdentifier ?? null, sourceUrl ?? null);
-  if (!key || /\(/.test(key)) return null;
-  return CELLAR_CELEX_PREFIX + key;
+  if (!key) return null;
+  return cellarEndpointForCelex(key);
 }
 
-/** Request headers for one URL on the free direct transport. Cellar needs the XHTML content type to serve
- *  the act body (see deriveCellarUrl); every other host keeps the HTML-first Accept the transport always
- *  sent. Pure. */
+/** Request headers for one URL on the free direct transport: the shared combined Accept for a Cellar
+ *  resource (content negotiated: XHTML where it exists, HTML for older acts, one request), the HTML-first
+ *  Accept the transport always sent for every other host. Pure. */
 export function headersFor(url, userAgent) {
-  if (String(url || "").startsWith(CELLAR_CELEX_PREFIX)) {
-    return { "User-Agent": userAgent, Accept: "application/xhtml+xml", "Accept-Language": "en" };
+  if (isCellarUrl(url)) {
+    return { "User-Agent": userAgent, Accept: CELLAR_ACCEPT, "Accept-Language": "en" };
   }
   return { "User-Agent": userAgent, Accept: "text/html,application/xhtml+xml,*/*;q=0.8" };
 }
@@ -177,7 +172,12 @@ export function headersFor(url, userAgent) {
  *  "Just a moment"/CDN-block/soft-404 interstitial detection (detectRoadblock) -- this function does not
  *  re-check any of that, it only translates the ladder's outcome into this step's own shape. Pure. */
 export function classifyCaptureOutcome(v) {
-  if (v?.outcome === "content") return { ok: true, text: v.text, reason: null };
+  // truncated / fullLength / cap ride along (no-silent-truncation rule): a capture cut at MAX_CHARS is
+  // reported per item and counted in the run note, never stored as if it were the whole document. Two
+  // captures in run 35207120876 (32017R0654, 32024L1788) landed at exactly 400,000 chars with no notice.
+  if (v?.outcome === "content") {
+    return { ok: true, text: v.text, reason: null, truncated: !!v.truncated, fullLength: v.fullLength ?? null, cap: v.cap ?? null };
+  }
   const reason = v?.outcome === "seek_more" ? (v.reason || "not_found") : (v?.holdReason || v?.reason || "no_reachable_source");
   return { ok: false, text: "", reason };
 }
@@ -357,6 +357,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   }
 
   let captured = 0;
+  let truncatedCount = 0;
   const roadblocked = [];
   for (const item of toCapture) {
     const host = hostOf(item.source_url);
@@ -393,7 +394,11 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
       const row = buildRow(item.id, capturedUrl, verdict.text, undefined, fetchedFrom);
       const ins = await deps.insertRow(row);
       captured += 1;
-      summary.per_item.push({ id: item.id, host, result_url: capturedUrl, fetched_from: fetchedFrom, action: "captured", chars: verdict.text.length, inserted_id: ins?.id ?? null });
+      if (verdict.truncated) truncatedCount += 1;
+      summary.per_item.push({
+        id: item.id, host, result_url: capturedUrl, fetched_from: fetchedFrom, action: "captured", chars: verdict.text.length,
+        truncated: !!verdict.truncated, full_length: verdict.fullLength ?? null, cap: verdict.cap ?? null, inserted_id: ins?.id ?? null,
+      });
     } else {
       roadblocked.push({ id: item.id, host, url: capturedUrl, reason: verdict.reason });
       summary.per_item.push({ id: item.id, host, url: capturedUrl, action: "roadblocked", reason: verdict.reason });
@@ -409,6 +414,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 
   summary.applied = captured;
   summary.counts.captured = captured;
+  summary.counts.truncated = truncatedCount;
   summary.counts.roadblocked = roadblocked.length;
   summary.counts.roadblock_flag_written = flagWritten;
 
@@ -417,7 +423,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const readBackMax = maxPoolLenByItem(readBackRows);
   const stillMissing = readBackIds.filter((id) => (readBackMax.get(id) ?? 0) <= 200).length;
   summary.read_back = { pool_now_present: readBackIds.length - stillMissing, still_missing: stillMissing };
-  summary.note = `Captured ${captured}/${toCapture.length}; roadblocked ${roadblocked.length}.` +
+  summary.note = `Captured ${captured}/${toCapture.length} (${truncatedCount} cut at the ${MAX_CHARS}-char cap, full length recorded per item); roadblocked ${roadblocked.length}.` +
     (flagWritten ? " 1 summary integrity flag written." : " No roadblocks.");
 
   return summary;

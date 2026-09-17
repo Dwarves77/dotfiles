@@ -348,31 +348,61 @@ test("deriveCellarUrl: CELEX from a landing-page URL, from an ELI path, from ins
   assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/eli/reg/2016/103/oj", null), CELLAR_CELEX_PREFIX + "32016R0103");
   assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/some/other/path", "32023R1115"), CELLAR_CELEX_PREFIX + "32023R1115");
   assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/nothing", null), null);
-  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22008A0221(02)", null), null, "a suffixed key is not resolved");
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22008A0221(02)", null), CELLAR_CELEX_PREFIX + "22008A0221%2802%29", "a suffixed key keeps its suffix, percent-encoded by the shared helper");
 });
 
-test("headersFor: the Cellar resource asks for XHTML in English; every other URL keeps the HTML-first Accept", () => {
+test("headersFor: the Cellar resource sends the shared combined Accept in English; every other URL keeps the HTML-first Accept", () => {
   const c = headersFor(CELLAR_CELEX_PREFIX + "32016R0103", "UA/1");
-  assert.equal(c.Accept, "application/xhtml+xml");
+  assert.match(c.Accept, /text\/html,application\/xhtml\+xml/);
   assert.equal(c["Accept-Language"], "en");
   const h = headersFor("https://legislation.gov.uk/x", "UA/1");
   assert.equal(h.Accept, "text/html,application/xhtml+xml,*/*;q=0.8");
   assert.equal(h["Accept-Language"], undefined);
 });
 
-test("makeDirectFetch: a Cellar URL is fetched with the XHTML Accept header (stubbed fetch)", async () => {
+test("makeDirectFetch: a Cellar URL is fetched once with the shared combined Accept header (stubbed fetch)", async () => {
   let seen = null;
   const stub = async (url, init) => { seen = { url, headers: init.headers }; return { status: 200, text: async () => "<html><body>" + "act text ".repeat(60) + "</body></html>" }; };
   const directFetch = makeDirectFetch({ fetchImpl: stub, max: 100000 });
   const r = await directFetch(CELLAR_CELEX_PREFIX + "32016R0103");
   assert.equal(r.status, 200);
-  assert.equal(seen.headers.Accept, "application/xhtml+xml");
+  assert.match(seen.headers.Accept, /text\/html,application\/xhtml\+xml/);
+});
+
+test("makeDirectFetch: a Cellar URL is one request (Cellar negotiates XHTML or HTML itself); a 404 is returned as-is", async () => {
+  const calls = [];
+  const stub = async (url, init) => { calls.push(init.headers.Accept); return { status: 404, text: async () => "no datastream" }; };
+  const r = await makeDirectFetch({ fetchImpl: stub, max: 100000 })(CELLAR_CELEX_PREFIX + "31992L0106");
+  assert.equal(r.status, 404);
+  assert.equal(calls.length, 1, "one request, no Accept walk");
+});
+
+test("classifyCaptureOutcome: a capped capture reports truncated with its full length (no silent truncation)", () => {
+  const v = classifyCaptureOutcome({ outcome: "content", text: "x".repeat(400000), truncated: true, fullLength: 612345, cap: 400000 });
+  assert.equal(v.ok, true);
+  assert.equal(v.truncated, true);
+  assert.equal(v.fullLength, 612345);
+  assert.equal(classifyCaptureOutcome({ outcome: "content", text: "short but fine" }).truncated, false);
+});
+
+test("main: a capped capture is counted and reported per item and in the note", async () => {
+  const items = [{ id: "c", source_url: "https://www.legislation.gov.uk/ukpga/2008/27", instrument_identifier: null }];
+  const d = baseDeps({
+    readUnscopedCandidates: async () => items,
+    fetchViaLadder: async () => ({ outcome: "content", text: "x".repeat(400000), truncated: true, fullLength: 612345, cap: 400000 }),
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.captured, 1);
+  assert.equal(r.counts.truncated, 1);
+  assert.equal(r.per_item[0].truncated, true);
+  assert.equal(r.per_item[0].full_length, 612345);
+  assert.match(r.note, /1 cut at the 400000-char cap/);
 });
 
 test("buildRow: fetchedFrom is recorded in result_title while result_url keeps the item's own EUR-Lex identity", () => {
   const row = buildRow("item-1", "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103", "x".repeat(300), "2026-09-17T00:00:00.000Z", CELLAR_CELEX_PREFIX + "32016R0103");
   assert.equal(row.result_url, "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103");
-  assert.match(row.result_title, /fetched via http:\/\/publications\.europa\.eu\/resource\/celex\/32016R0103 \(Cellar/);
+  assert.match(row.result_title, /fetched via https:\/\/publications\.europa\.eu\/resource\/celex\/32016R0103 \(Cellar/);
   assert.equal(buildRow("item-1", "https://x", "y").result_title, "source");
 });
 
@@ -697,4 +727,26 @@ test("CITE: carries the governing skill + reason (guardedInsert requires it)", (
   assert.equal(typeof CITE.skill, "string");
   assert.ok(CITE.skill.length > 0);
   assert.ok(CITE.reason.length > 0);
+});
+
+// ── Two-homes guard (lane L28b): the Cellar URL construction and the EUR-Lex robot-gate regex live in ONE
+// module, scripts/lib/eurlex-cellar.mjs. The census exporter carried them from 2026-09-02; the capture step
+// (2026-09-13) and lane L28 (2026-09-17) each rebuilt them instead of importing, the drift class
+// remediation-discipline exists to kill. This sweep fails the build the moment a second copy appears in
+// any tracked source file (tests and docs may mention the strings; only source may not build them).
+import { execFileSync } from "node:child_process";
+test("ONE home for the Cellar route: no tracked source file other than scripts/lib/eurlex-cellar.mjs builds a Cellar CELEX URL or matches the EUR-Lex robot-gate text", () => {
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+  const files = execFileSync("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
+  const buildsUrl = /resource\/celex\/(\$\{|"\s*\+|'\s*\+|`\s*\+)|resource\/celex\/\$\{/;
+  const robotGate = /not a robot\//; // the regex literal's tail, never a comment
+  const offenders = [];
+  for (const f of files) {
+    if (f === "fsi-app/scripts/lib/eurlex-cellar.mjs") continue;
+    const src = readFileSync(resolve(root, f), "utf8");
+    if (buildsUrl.test(src) || robotGate.test(src)) offenders.push(f);
+  }
+  assert.deepEqual(offenders, [], "import scripts/lib/eurlex-cellar.mjs instead of rebuilding the Cellar route in: " + offenders.join(", "));
 });
