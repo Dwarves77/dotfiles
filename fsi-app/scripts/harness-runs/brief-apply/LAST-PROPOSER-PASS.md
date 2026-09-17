@@ -1,8 +1,59 @@
 # Last proposer pass -- brief-apply
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **two** artifacts
-(`brief-apply-run-001` and `brief-apply-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **brief-apply-run-002**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `brief-apply` now has **four** artifacts
+(`brief-apply-run-001` to `brief-apply-run-004`); F28's rule (d) requires this file to name the latest
+verbatim: **brief-apply-run-004**. Newest pass first.
+
+## Pass over brief-apply-run-003 and brief-apply-run-004 (2026-09-16, lane L23, the first metered applies after D32)
+
+**Artifacts read:** brief-apply-run-003 (dry, started_at 2026-09-17T02:21:09Z, config.execute=false,
+config.recordBriefsSchemaVersion rb1-2026-09-16.1, briefs scripts/turns/record-briefs/batches/record-briefs-004b.json,
+10 items all outcome "would_apply", metrics.bytes_read 778746, metrics.io_budget_bytes 419430400,
+metrics.stop_reason null, zero defects_found) and brief-apply-run-004 (apply, started_at 2026-09-17T02:22:40Z,
+config.execute=true, 10 of 10 items generated with provenance_status verified, metrics.applied 10,
+metrics.quarantined 0, metrics.generate_failed 0, metrics.bytes_read 2336238, metrics.stop_reason null,
+metrics.last_item_id 16432987-a1e9-4da0-b883-282e92691e2f, unscoped_flywheel deriveObligations applied 42 of
+1276 derived, revalidate applied true with the public-items tag and ten item tags, zero defects_found).
+Both artifacts committed back to this branch by the workflow (commits e3946484 and 2146ab23).
+
+**Full traces read:** both artifacts' full_trace_refs, the committed record-briefs-004b.json (10 entries, the
+ten record-grade items batch 004 never reached), read together with the run logs (35174036050 and
+35174140834) and the live database after the apply: brief_apply_runs row brief-apply-run-004 (finished
+2026-09-17T02:25:44Z, bytes_read 2336238, items_applied 10), the ten items now brief-grade verified, ten
+item_changelog rows change_type UPDATED detected_by record-briefs.
+
+**Hypotheses (verified, with basis):**
+
+1. **The driver-visible pool bytes are a small fraction of what an apply reads.** run-003 measured 0.74 MB
+   for the ten pools in the pre-check and run-004 2.2 MB with the re-read estimate, against a 400 MB
+   budget; yet the 2026-09-13 outage was a 49-item apply of the same shape. Basis: the artifact metrics
+   above, the D32 evidence (54,662 edge requests in fifteen minutes during that apply), and the driver's own
+   header naming the pipeline's generate and ground reads as unobservable from the driver. The budget on
+   driver-visible bytes will rarely trigger; the pre-flight disk sample is the guard that can.
+2. **The pre-flight passed silently.** The run-004 log shows a 31 s gap between "10 item(s) selected" and
+   "io budget = 400 MB" where the two disk samples ran, and no line with the measured busy fraction or
+   read throughput, so the three [HYPOTHESIS] thresholds could not be calibrated from this run. Basis: the
+   log lines' own timestamps (02:22:42 and 02:23:13) and the absence of any "pre-flight" line.
+3. **The numeric-figure mirror refused provenance pointers, not wrong figures.** The dry run over batch 004
+   before this lane (run 35154461843) refused the file whole on 260 mirror errors; every one was a slot tag,
+   a legal locator, an instrument title or a dotted dateline. Basis: the per-error classification in this
+   lane's session-log entry and the 260 to 0 result on the ten-item cut after the helper landed.
+
+**Proposal:** Hypotheses 2 and 3 are implemented in this same lane (the pre-flight logs its numbers on a
+pass; figureCheckText strips the pointer classes; tests pin both). Hypothesis 1 is proposed, not
+implemented: meter the pipeline's own pool reads (generate and ground read result_content through the
+canonical pipeline) so bytes_read describes the apply, not the driver's pre-check, and drop the
+PIPELINE_POOL_REREADS estimate once the real number exists; until then, calibrate --io-busy-max and
+--io-read-mbps-max from the pass lines of the next applies and keep the 30-minute cooldown.
+
+**Family gates status:** GREEN on this branch: `record-briefs.test.mjs` 77/77, `io-preflight.test.mjs` 33/33,
+`apply-record-briefs.test.mjs` 67/67, `npx tsc --noEmit` clean; the pre-push hook (with step 3d, the fitness
+runner) passed on the push that carried run-003/run-004's own fixes.
+
+**Standing metric (PROPOSER-RUNBOOK.md section 3), first real measurement.** Validation-refusal rate at the
+schema step versus ground-step quarantine rate: over the ten items of run-003/run-004, schema refusals 0
+(after the pointer fix; 260 before it, all false), ground quarantines 0 of 10 applied. The metric to watch
+next is the pre-flight pass line's busy fraction and read MB/s per apply, recorded here from run-005 on.
 
 ## Pass over brief-apply-run-001 and brief-apply-run-002 (2026-09-12, task 6.1b)
 
