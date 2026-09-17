@@ -1,0 +1,286 @@
+{
+  "harness_family": "brief-apply",
+  "harness_version": "sha256:b9238d18d4059046",
+  "run_id": "brief-apply-run-005",
+  "started_at": "2026-09-17T03:33:46.950Z",
+  "config": {
+    "briefs": "scripts/turns/record-briefs/batches/record-briefs-006.json",
+    "execute": false,
+    "limit": null,
+    "afterId": null,
+    "allowBriefOverwrite": false,
+    "recordBriefsSchemaVersion": "rb1-2026-09-16.1"
+  },
+  "inputs_ref": [
+    "scripts/turns/record-briefs/batches/record-briefs-006.json"
+  ],
+  "per_item": [
+    {
+      "id": "16460382-62e7-48cb-abd3-6fbdc5091ec9",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "167176f3-f6aa-4c67-a20f-9c44f268e771",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16734818-62ad-4641-9b3a-70a19b0911bf",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "169f6724-344c-47a2-9021-5945c819f6d1",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "16fc5f4b-ce08-4c19-8d39-b5d3a4217d87",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "17a265e5-ae84-49a4-b7fd-218304645c3e",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "17b4ab61-72f1-463a-8bf5-230a6b6e788b",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "17b81070-0240-43a2-b969-5d490a1b9928",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "17f86de2-f389-4484-aca1-27256743bc4d",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "181db6b8-fff2-4bda-ab7b-46cc98f64cac",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1831c5c9-5c61-41a2-8baa-ca0ce0178def",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "18b21273-4277-4ca2-8390-bb76f2d16334",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "18eb5d1d-7f8d-4c91-acff-daf799be8d76",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "19407267-909d-485d-9944-f446787e34c0",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1995db5f-9b69-4cf0-80e5-5e89e44fb1fe",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1ad3e78e-26ca-4817-aa8f-61d68d2061fa",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1ad41a82-836d-4646-87f8-323ed75202c1",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1af22fc8-5553-4378-91cf-2943982b295e",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1b296150-f72f-42e8-a364-69cab2be6976",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1b390855-a37c-4900-aa77-9ab4a9229237",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1bcfaa75-fbcc-456c-aea8-ed6cd818d963",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1bfb762d-0281-4312-9045-b08b74285c99",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1c3b42c9-bd30-4314-b69c-6ec2dcdebdbb",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1c83e662-3f90-46be-bb6e-d50939dea543",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1d3a42a6-d54f-4467-ae8a-e3908aa348bf",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1d7a6706-f7df-4708-b0b7-529a63d3deac",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1e51fe2f-eb34-4b55-9272-f4619b7a607f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1e844146-b3eb-49c5-b75c-df2d766a4c1c",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1edabc17-fbf4-4616-9745-f3cab47bd748",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1ee59d99-0d31-4f71-ac66-66beb7e26f4b",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1f4e7090-529f-4547-b9fc-36a55b161835",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1f9b070c-e173-4790-83c2-0d5cbefd91c7",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1fbb6729-0383-4e03-9603-50f63d15ce1f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1fc186bd-3533-45d0-ba9e-b0f755c5c292",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "1fd233cd-f538-4e35-96da-e7ffac09d990",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "20008a38-9523-4791-b8d2-96dff5fcdc81",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "200b850b-9de9-4760-b541-949e345b3020",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "2040f4ee-c130-4e82-a28a-92f49b34d2d1",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "204ad1d9-c293-4da3-a813-6beb151c406f",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "20acdaeb-df99-45b9-8254-28ba20a292ea",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "20f0b2cd-a9a6-4ecf-a9a3-422a0ff779da",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "211aaee0-db87-46b0-ba15-5a69a4f93357",
+      "outcome": "would_apply",
+      "error": null
+    },
+    {
+      "id": "212ba202-13c1-4fac-89e4-ac5bc227294f",
+      "outcome": "would_apply",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "file_valid": true,
+    "entries_in_file": 49,
+    "selected": 49,
+    "skipped_stale_hash": 0,
+    "applied": 0,
+    "quarantined": 0,
+    "generate_failed": 0,
+    "bytes_read": 2594789,
+    "io_budget_bytes": 419430400,
+    "stop_reason": null,
+    "last_item_id": null,
+    "would_stop_at_item_id": null,
+    "applied_item_ids": [],
+    "unscoped_flywheel": null,
+    "revalidate": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/turns/record-briefs/batches/record-briefs-006.json"
+  ],
+  "proposer_notes": ""
+}
