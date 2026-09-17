@@ -5,6 +5,27 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L28: EUR-Lex through the Cellar endpoint on the free static transport
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l28-eurlex-cellar-transport-2026-09-17, cut
+from master e6bbe849. `capture-static-primaries` apply (maintenance run 35202933168) captured 1 of 131 and
+roadblocked 130, every one eur-lex.europa.eu with NO_REACHABLE_SOURCE. Cause [CONFIRMED by curl from a
+workstation]: eur-lex.europa.eu answers plain GETs of legal-content/EN/TXT/HTML/?uri=CELEX:... with HTTP 202
+and an empty body regardless of user agent, so the free direct transport cannot read it anywhere. Free route
+[CONFIRMED by curl]: `http://publications.europa.eu/resource/celex/32016R0103` with `Accept:
+application/xhtml+xml` and `Accept-Language: en` answers HTTP 200, application/xhtml+xml, 52,653 bytes;
+text/html and text/plain answer 404.
+
+**Fix.** `scripts/maintenance/capture-static-primaries.mjs`: `deriveCellarUrl` (CELEX through the one
+canonical-key mirror, suffixed keys left unresolved), `headersFor` (the XHTML Accept for Cellar only), a third
+attempt in the apply loop after both EUR-Lex attempts fail, `buildRow` keeping the item's EUR-Lex URL as
+`result_url` (tier resolution by host and the own-URL target match depend on it) and recording the Cellar URL
+in `result_title` and `per_item[].fetched_from`. Runbook section 56 documents the route and the re-dispatch.
+Guards: six tests (derivation incl. ELI and the suffixed refusal; headers; the stubbed fetch sends the XHTML
+Accept; buildRow identity; the apply loop captures through Cellar with the EUR-Lex identity; a non-EUR-Lex
+host never tries Cellar). capture-static-primaries.test.mjs 49 to 55. One [HYPOTHESIS] in code: Cellar's
+resource for suffixed CELEX keys is unprobed, so those stay roadblocked rather than fetching the wrong act.
+
 ## 2026-09-17, W9 lane L27: id-chunked reads on a foreign-key column accept several rows per id
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l27-many-rows-per-id-2026-09-17, cut

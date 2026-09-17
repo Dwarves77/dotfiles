@@ -144,6 +144,34 @@ export function deriveCelexTxtHtmlUrl(sourceUrl, instrumentIdentifier) {
   return `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${key}`;
 }
 
+/** The Publications Office Cellar resource for an EUR-Lex act (lane L28, 2026-09-17). eur-lex.europa.eu
+ *  answers every plain GET of legal-content/EN/TXT/HTML/?uri=CELEX:... with HTTP 202 and an EMPTY body (its
+ *  anti-bot holding response; the same from a workstation and from the runner), so the free direct transport
+ *  could never read it: the first live apply (maintenance run 35202933168) roadblocked 130 of 131 items, all
+ *  on this host. Cellar serves the same act to a plain GET with content negotiation:
+ *  http://publications.europa.eu/resource/celex/<CELEX> with Accept: application/xhtml+xml answers HTTP 200,
+ *  application/xhtml+xml, 52,653 bytes for 32016R0103 (probed 2026-09-17); text/html and text/plain answer
+ *  404 there. The CELEX comes from scripts/lib/canonical-key.mjs's deriveKey (the one mirror of the SQL
+ *  derivation, never a second parser). A key carrying an OJ sequence suffix "(NN)" is not resolved here
+ *  ([HYPOTHESIS]: Cellar's celex resource for suffixed keys is unprobed), so such an item stays roadblocked
+ *  with its reason rather than fetching the wrong act. Pure. */
+export const CELLAR_CELEX_PREFIX = "http://publications.europa.eu/resource/celex/";
+export function deriveCellarUrl(sourceUrl, instrumentIdentifier) {
+  const key = deriveKey(instrumentIdentifier ?? null, sourceUrl ?? null);
+  if (!key || /\(/.test(key)) return null;
+  return CELLAR_CELEX_PREFIX + key;
+}
+
+/** Request headers for one URL on the free direct transport. Cellar needs the XHTML content type to serve
+ *  the act body (see deriveCellarUrl); every other host keeps the HTML-first Accept the transport always
+ *  sent. Pure. */
+export function headersFor(url, userAgent) {
+  if (String(url || "").startsWith(CELLAR_CELEX_PREFIX)) {
+    return { "User-Agent": userAgent, Accept: "application/xhtml+xml", "Accept-Language": "en" };
+  }
+  return { "User-Agent": userAgent, Accept: "text/html,application/xhtml+xml,*/*;q=0.8" };
+}
+
 /** Adapt escalateToFetchResult's verdict to { ok, text, reason }. The ladder's own classifyTransportResult
  *  ALREADY enforces the >200-char floor (STUB_MIN_CHARS, primary-fallback.mjs) and the Cloudflare/CAPTCHA/
  *  "Just a moment"/CDN-block/soft-404 interstitial detection (detectRoadblock) -- this function does not
@@ -183,12 +211,17 @@ export function partitionByPoolState(items, poolMax) {
 
 /** The pool row shape the export and the driver read (dispatch anchors: canonical-pipeline.ts:1689,
  *  export-corpus-for-extraction.mjs:572). Pure. */
-export function buildRow(itemId, capturedUrl, text, nowIso = new Date().toISOString()) {
+export function buildRow(itemId, capturedUrl, text, nowIso = new Date().toISOString(), fetchedFrom = null) {
+  // result_url stays the item's OWN EUR-Lex URL even when the bytes came from Cellar (lane L28): the
+  // grounding chain resolves a claim's tier through the host that CONTAINS the span (source-credibility-model,
+  // one tier per institution) and verifyPoolTargetMatch matches the pool row to the item by URL identity, so
+  // a publications.europa.eu result_url would NULL-stamp every FACT and fail the own-URL match. The fetched
+  // location is recorded in result_title so a reader of the row still learns where the text was read from.
   return {
     intelligence_item_id: itemId,
     search_query: "canonical ground",
     result_url: capturedUrl,
-    result_title: "source",
+    result_title: fetchedFrom ? `source; fetched via ${fetchedFrom} (Cellar, application/xhtml+xml)` : "source",
     result_index: 0,
     result_content: text,
     searched_at: nowIso,
@@ -250,7 +283,7 @@ export function makeDirectFetch({ fetchImpl = fetch, timeoutMs = 20000, max = MA
       const res = await fetchImpl(url, {
         method: "GET",
         redirect: "follow",
-        headers: { "User-Agent": userAgent, Accept: "text/html,application/xhtml+xml,*/*;q=0.8" },
+        headers: headersFor(url, userAgent),
         signal: controller.signal,
       });
       const html = await res.text();
@@ -332,6 +365,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     let verdict = classifyCaptureOutcome(await deps.fetchViaLadder(item.source_url));
     let capturedUrl = item.source_url;
 
+    let fetchedFrom = null;
     if (!verdict.ok && host === "eur-lex.europa.eu") {
       const derived = deriveCelexTxtHtmlUrl(item.source_url, item.instrument_identifier);
       if (derived) {
@@ -340,13 +374,26 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
         verdict = v2;
         capturedUrl = derived;
       }
+      // Third attempt (lane L28): the same act through Cellar, which serves what eur-lex.europa.eu's holding
+      // response withholds. capturedUrl stays the EUR-Lex identity (see buildRow); the Cellar URL is recorded.
+      if (!verdict.ok) {
+        const cellar = deriveCellarUrl(item.source_url, item.instrument_identifier);
+        if (cellar) {
+          await deps.paceHost(hostOf(cellar));
+          const v3 = classifyCaptureOutcome(await deps.fetchViaLadder(cellar));
+          if (v3.ok) {
+            verdict = v3;
+            fetchedFrom = cellar;
+          }
+        }
+      }
     }
 
     if (verdict.ok) {
-      const row = buildRow(item.id, capturedUrl, verdict.text);
+      const row = buildRow(item.id, capturedUrl, verdict.text, undefined, fetchedFrom);
       const ins = await deps.insertRow(row);
       captured += 1;
-      summary.per_item.push({ id: item.id, host, result_url: capturedUrl, action: "captured", chars: verdict.text.length, inserted_id: ins?.id ?? null });
+      summary.per_item.push({ id: item.id, host, result_url: capturedUrl, fetched_from: fetchedFrom, action: "captured", chars: verdict.text.length, inserted_id: ins?.id ?? null });
     } else {
       roadblocked.push({ id: item.id, host, url: capturedUrl, reason: verdict.reason });
       summary.per_item.push({ id: item.id, host, url: capturedUrl, action: "roadblocked", reason: verdict.reason });
