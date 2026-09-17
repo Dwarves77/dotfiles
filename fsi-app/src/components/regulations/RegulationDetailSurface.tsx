@@ -41,7 +41,6 @@ import { recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
-import { FactCard } from "@/components/ui/FactCard";
 import { Absence } from "@/components/ui/Absence";
 import { StateNote } from "@/components/ui/StateNote";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
@@ -75,15 +74,16 @@ import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource } from "@/lib/scoring";
-import { extractRegulationSections, type SourceEntry } from "@/lib/agent/extract-regulation-sections";
+import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";
+import { sourceEntriesOf, SourcesGrid, clampTier } from "@/components/detail/SourcesGrid";
+import { jurisLabelOf, RecordFactCard } from "@/components/detail/primitives";
 import {
   parseRecordSections,
   splitKeyDateFacts,
   type RecordFactRow,
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
-import { JURISDICTIONS, type PriorityKey } from "@/lib/constants";
-import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+import { type PriorityKey } from "@/lib/constants";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type {
@@ -125,11 +125,6 @@ interface Props {
   nowIso?: string;
 }
 
-/** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT). */
-function clampTier(n: number): number {
-  return Math.min(7, Math.max(1, Math.round(n)));
-}
-
 const CANONICAL_HEADINGS: Record<string, string> = {
   "3": "Obligations — issues requiring action",
   "4": "Compliance chain",
@@ -167,13 +162,7 @@ export function RegulationDetailSurface({
   // within 30 days of render time.
   const regen = useMemo(() => recentRegenInfo(r.lastRegeneratedAt, nowFrom(nowIso)), [r.lastRegeneratedAt, nowIso]);
 
-  const jurisdictionLabels =
-    r.jurisdictionIso && r.jurisdictionIso.length > 0
-      ? r.jurisdictionIso.map(isoToDisplayLabel)
-      : r.jurisdiction
-      ? [JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction]
-      : ["Global"];
-  const jurisLabel = jurisdictionLabels.join(" · ");
+  const jurisLabel = jurisLabelOf(r);
   // COUNTS-61: same class as the market sub-line — `groupLabel` is "<jurisdiction> · <publisher>"
   // and `deck` repeats both the publisher and the jurisdiction, because regulations/[slug]/page.tsx
   // builds them from the same two fields. joinMetaSegments keeps the first occurrence of each.
@@ -484,87 +473,6 @@ function RecordGradeSections({
         </div>
       )}
     </>
-  );
-}
-
-function RecordFactCard({ fact }: { fact: RecordFactRow }) {
-  if (fact.kind !== "FACT" || !fact.span) {
-    return (
-      <p style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, color: "var(--ink-2)", margin: "0 0 8px" }}>
-        <strong style={{ color: "var(--ink-3)" }}>{fact.label}:</strong> {fact.text || <Absence reason="not in primary source" />}
-      </p>
-    );
-  }
-  return (
-    <FactCard
-      variant="sourced"
-      text={fact.span}
-      source={{ title: fact.label, issuer: fact.sourceName ?? null, date: null, url: fact.sourceUrl ?? null, tier: fact.tier ?? null }}
-    />
-  );
-}
-
-// ── Sources ──────────────────────────────────────────────────────────────
-
-function sourceEntriesOf(r: Resource): SourceEntry[] {
-  let parsedList: SourceEntry[] = [];
-  if (r.fullBrief) {
-    const map = extractRegulationSections(r.fullBrief);
-    for (const section of Object.values(map)) {
-      if (section && section.kind === "sources_list") {
-        parsedList = section.entries;
-        break;
-      }
-    }
-  }
-  return parsedList.length > 0
-    ? parsedList
-    : r.url
-    ? [{ tier: typeof r.sourceTier === "number" ? r.sourceTier : null, name: r.sourceName || r.url, meta: r.enforcementBody || "", url: r.url }]
-    : [];
-}
-
-function SourcesGrid({ rows }: { rows: SourceEntry[] }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {rows.map((s, i) => {
-        const inner = (
-          <>
-            {typeof s.tier === "number" ? (
-              <span style={{ fontSize: "var(--fs-10)", fontWeight: 800, padding: "3px 7px", borderRadius: 4, border: "1px solid var(--line-1)", color: "var(--ink-2)" }}>
-                T{clampTier(s.tier)}
-              </span>
-            ) : (
-              <span aria-hidden style={{ width: 24 }} />
-            )}
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: "var(--fs-125)", fontWeight: 700, margin: 0, color: "var(--ink)", overflowWrap: "anywhere" }}>{s.name}</p>
-              {s.meta && <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: "2px 0 0" }}>{s.meta}</p>}
-            </div>
-          </>
-        );
-        const cellStyle: React.CSSProperties = {
-          display: "grid",
-          gridTemplateColumns: "auto 1fr",
-          gap: 12,
-          alignItems: "baseline",
-          padding: "11px 0",
-          borderBottom: i < rows.length - 1 ? "1px solid var(--line-3)" : "none",
-          textDecoration: "none",
-          color: "inherit",
-          minHeight: 44,
-        };
-        return s.url ? (
-          <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={cellStyle}>
-            {inner}
-          </a>
-        ) : (
-          <div key={i} style={cellStyle}>
-            {inner}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

@@ -2,6 +2,13 @@
 
 import { formatLocaleDate } from "@/lib/format";
 import { formatNumber } from "@/lib/format";
+import {
+  AdminPanelFrame,
+  AdminPanelMetaText,
+  AdminEmptyDashedFrame,
+  adminThStyle,
+  adminTdStyle,
+} from "@/components/admin/AdminTableView";
 
 // AssumptionRegisterPanel — admin Runtime -> Assumptions surface (WO-20 spec §4's minimum first reader,
 // wired by lane W71-WIRE, 2026-09-05, plan §W7.1).
@@ -61,62 +68,27 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
   const subsystems = [...groups.keys()].sort();
 
   return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 20px",
-          background: "var(--raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12.5,
-            fontWeight: 800,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--text)",
-          }}
-        >
-          Assumption register
-        </span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
+    <AdminPanelFrame
+      title="Assumption register"
+      right={
+        <AdminPanelMetaText>
           {formatNumber(rows.length)} constant{rows.length === 1 ? "" : "s"} · {formatNumber(subsystems.length)} subsystem
           {subsystems.length === 1 ? "" : "s"} · WO-20
-        </span>
-      </div>
-
+        </AdminPanelMetaText>
+      }
+    >
       {rows.length === 0 ? (
-        <div
-          style={{
-            margin: 16,
-            border: "1px dashed var(--color-border-strong)",
-            background: "var(--color-background)",
-            borderRadius: 8,
-            padding: "14px 16px",
-          }}
-        >
-          <p style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)", margin: "0 0 4px" }}>
-            No assumptions catalogued yet.
-          </p>
-          <p style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--text-2)", margin: 0 }}>
-            The register (migration 271) is live with 0 rows — the 10-constant seed
-            (scripts/gen/assumption-register-seed.mjs, docs/plans/wo20-assumption-register-spec.md §2)
-            has not been dispatched with --apply yet, or migration 271 is not applied in this
-            environment. Empty here means not-yet-seeded, never a silent failure.
-          </p>
-        </div>
+        <AdminEmptyDashedFrame title="No assumptions catalogued yet.">
+          {
+            // Text below is relocated verbatim from the pre-extraction inline JSX (byte-identical
+            // rendered string; each `+` join reproduces the single-space line-collapse JSX itself
+            // performed on the original multi-line text node).
+            "The register (migration 271) is live with 0 rows — the 10-constant seed " + // glyph:verbatim
+            "(scripts/gen/assumption-register-seed.mjs, docs/plans/wo20-assumption-register-spec.md §2) " + // glyph:verbatim
+            "has not been dispatched with --apply yet, or migration 271 is not applied in this " +
+            "environment. Empty here means not-yet-seeded, never a silent failure."
+          }
+        </AdminEmptyDashedFrame>
       ) : (
         <div style={{ padding: "4px 0 8px" }}>
           {subsystems.map((subsystem) => (
@@ -137,18 +109,18 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr style={{ textAlign: "left", color: "var(--text-2)" }}>
-                      <th style={thStyle}>Assumption</th>
-                      <th style={thStyle}>Value</th>
-                      <th style={thStyle}>Governing decision</th>
-                      <th style={thStyle}>Code location</th>
-                      <th style={thStyle}>As at</th>
-                      <th style={thStyle}>Status</th>
+                      <th style={adminThStyle}>Assumption</th>
+                      <th style={adminThStyle}>Value</th>
+                      <th style={adminThStyle}>Governing decision</th>
+                      <th style={adminThStyle}>Code location</th>
+                      <th style={adminThStyle}>As at</th>
+                      <th style={adminThStyle}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {groups.get(subsystem)!.map((r) => (
                       <tr key={r.assumption_key} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
-                        <td style={tdStyle}>
+                        <td style={adminTdStyle}>
                           <span style={{ display: "block", fontWeight: 700, color: "var(--text)" }}>
                             {r.label}
                           </span>
@@ -162,10 +134,10 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
                             {r.assumption_key}
                           </span>
                         </td>
-                        <td style={{ ...tdStyle, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                        <td style={{ ...adminTdStyle, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
                           {r.value_numeric === null ? "—" : `${r.value_numeric}${r.unit ? ` ${r.unit}` : ""}`}
                         </td>
-                        <td style={tdStyle}>
+                        <td style={adminTdStyle}>
                           {r.governing_decision ? (
                             <span
                               style={{
@@ -198,7 +170,7 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
                         </td>
                         <td
                           style={{
-                            ...tdStyle,
+                            ...adminTdStyle,
                             color: "var(--text-2)",
                             fontFamily: "var(--font-mono, monospace)",
                             fontSize: 10.5,
@@ -206,10 +178,10 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
                         >
                           {r.code_location}
                         </td>
-                        <td style={{ ...tdStyle, color: "var(--text-2)" }}>
+                        <td style={{ ...adminTdStyle, color: "var(--text-2)" }}>
                           {r.as_at_date ? formatLocaleDate(new Date(r.as_at_date)) : "—"}
                         </td>
-                        <td style={tdStyle}>
+                        <td style={adminTdStyle}>
                           <span
                             style={{
                               fontSize: 10,
@@ -233,19 +205,6 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
           ))}
         </div>
       )}
-    </div>
+    </AdminPanelFrame>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: "9px 16px",
-  fontSize: 10.5,
-  fontWeight: 800,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "9px 16px",
-  verticalAlign: "middle",
-};

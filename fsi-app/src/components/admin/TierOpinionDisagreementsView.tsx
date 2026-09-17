@@ -31,12 +31,18 @@ import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import {
-  RefreshCw,
   ExternalLink,
   Check,
   X,
   Clock,
 } from "lucide-react";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminStatusBanner,
+  AdminTh,
+  AdminTd,
+} from "@/components/admin/AdminTableView";
 
 interface DisagreementItem {
   source_id: string;
@@ -184,63 +190,26 @@ export function TierOpinionDisagreementsView() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Tier-opinion disagreements
-          </h2>
-          <p
-            className="text-sm mt-1 max-w-3xl"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Tier-opinion disagreements"
+        descriptionMaxWidthClassName="max-w-3xl"
+        description={
+          <>
             Sources where the brief-generation agent has produced 5+ tier
             opinions in the last 90 days that disagree with the source&apos;s
             current base tier. Accept overrides the effective tier using the
             modal analyst opinion (writes to tier_override per ADR-002, leaves
             base_tier untouched). Reject dismisses the opinions without
             changing the tier. Defer hides the row until the next refresh.
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
-      {status && (
-        <div
-          className="text-xs p-2 rounded"
-          style={{
-            color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-            backgroundColor:
-              status.kind === "ok"
-                ? "rgba(22,163,74,0.04)"
-                : "rgba(220,38,38,0.04)",
-            border:
-              status.kind === "ok"
-                ? "1px solid rgba(22,163,74,0.2)"
-                : "1px solid rgba(220,38,38,0.2)",
-          }}
-        >
-          {status.text}
-        </div>
-      )}
+      <AdminStatusBanner status={status} />
 
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {!loading && !error && items.length === 0 && (
         <div
@@ -270,14 +239,14 @@ export function TierOpinionDisagreementsView() {
           <table className="w-full text-[12.5px] border-collapse">
             <thead style={{ background: "var(--color-surface-raised)" }}>
               <tr>
-                <Th>Source</Th>
-                <Th>Base</Th>
-                <Th>Effective</Th>
-                <Th>Analyst (modal)</Th>
-                <Th>Delta</Th>
-                <Th>Opinion count</Th>
-                <Th>Reviewer reason</Th>
-                <Th>Actions</Th>
+                <AdminTh>Source</AdminTh>
+                <AdminTh>Base</AdminTh>
+                <AdminTh>Effective</AdminTh>
+                <AdminTh>Analyst (modal)</AdminTh>
+                <AdminTh>Delta</AdminTh>
+                <AdminTh>Opinion count</AdminTh>
+                <AdminTh>Reviewer reason</AdminTh>
+                <AdminTh>Actions</AdminTh>
               </tr>
             </thead>
             <tbody>
@@ -289,7 +258,7 @@ export function TierOpinionDisagreementsView() {
                     key={row.source_id}
                     style={{ borderTop: "1px solid var(--color-border)" }}
                   >
-                    <Td>
+                    <AdminTd>
                       <div className="flex flex-col gap-0.5 max-w-[260px]">
                         <span
                           className="font-semibold"
@@ -319,14 +288,14 @@ export function TierOpinionDisagreementsView() {
                           </span>
                         )}
                       </div>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <TierChip tier={row.base_tier} kind="base" />
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <TierChip tier={row.effective_tier} kind="effective" />
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <TierChip tier={row.analyst_tier} kind="analyst" />
                       <div
                         className="text-[10px] mt-0.5 tabular-nums"
@@ -334,11 +303,11 @@ export function TierOpinionDisagreementsView() {
                       >
                         {row.opined_tiers.join(", ")}
                       </div>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <DeltaBadge delta={row.delta} />
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <span
                         className="text-sm font-semibold tabular-nums"
                         style={{ color: "var(--color-text-primary)" }}
@@ -351,8 +320,8 @@ export function TierOpinionDisagreementsView() {
                       >
                         {row.distinct_disagreeing_tiers} distinct disagreeing
                       </div>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <input
                         type="text"
                         value={reasonVal}
@@ -371,8 +340,8 @@ export function TierOpinionDisagreementsView() {
                           color: "var(--color-text-primary)",
                         }}
                       />
-                    </Td>
-                    <Td align="right">
+                    </AdminTd>
+                    <AdminTd align="right">
                       <div className="flex flex-col gap-1.5 items-end">
                         <Button
                           variant="primary"
@@ -402,7 +371,7 @@ export function TierOpinionDisagreementsView() {
                           Defer
                         </Button>
                       </div>
-                    </Td>
+                    </AdminTd>
                   </tr>
                 );
               })}
@@ -417,34 +386,6 @@ export function TierOpinionDisagreementsView() {
         </div>
       )}
     </div>
-  );
-}
-
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th
-      className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider"
-      style={{ color: "var(--color-text-muted)" }}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({
-  children,
-  align,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-}) {
-  return (
-    <td
-      className="px-3 py-2 align-top"
-      style={{ textAlign: align ?? "left" }}
-    >
-      {children}
-    </td>
   );
 }
 

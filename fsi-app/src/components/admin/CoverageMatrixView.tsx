@@ -37,10 +37,14 @@ import { formatLocaleDate, formatLocaleDateTime } from "@/lib/format";
 import {
   AlertTriangle,
   CheckCircle,
-  RefreshCw,
   PlusCircle,
 } from "lucide-react";
 import { formatNumber } from "@/lib/format";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminIconEmptyState,
+} from "@/components/admin/AdminTableView";
 
 // ── Types matching /api/admin/coverage response ─────────────────────────────
 
@@ -299,27 +303,17 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Coverage matrix
-          </h2>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Coverage matrix"
+        description={
+          <>
             Jurisdictions × item types. Cells are coloured by coverage state;
             empty cells with no source show a warning icon.
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
       {/* Stat strip */}
       <div
@@ -426,18 +420,7 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
       </div>
 
       {/* Error */}
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {/* Empty state */}
       {!loading && data && displayJurisdictions.length === 0 && !error && (
@@ -780,28 +763,17 @@ function CellTd({
 
 function EmptyState() {
   return (
-    <div
-      className="flex flex-col items-center justify-center py-12 text-center rounded-lg"
-      style={{
-        border: "1px dashed var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <CheckCircle size={28} style={{ color: "var(--color-text-muted)" }} />
-      <h3
-        className="mt-3 text-sm font-medium"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        No jurisdictions in scope yet
-      </h3>
-      <p
-        className="mt-1 text-xs max-w-md"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        Run a discovery agent or bulk-import sources to populate this matrix.
-        Once intelligence_items rows have populated jurisdiction_iso arrays,
-        rows will appear here automatically.
-      </p>
-    </div>
+    <AdminIconEmptyState
+      icon={<CheckCircle size={28} />}
+      iconColor="var(--color-text-muted)"
+      title="No jurisdictions in scope yet"
+      description={
+        <>
+          Run a discovery agent or bulk-import sources to populate this matrix.
+          Once intelligence_items rows have populated jurisdiction_iso arrays,
+          rows will appear here automatically.
+        </>
+      }
+    />
   );
 }

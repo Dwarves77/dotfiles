@@ -195,6 +195,73 @@ database access, no network fetches, no push, no PR, per the lane brief. The agg
 were killed by an environment reset unrelated to this lane's edits, not a test failure); every touched
 module's own `node --test` run is independently green (enumerated in the final report), and the fitness
 runner's synchronous, un-backgrounded final run passed 40/40 with 0 violations.
+## 2026-09-17, W9 lane L34: detail-surface primitives and the admin table-view primitive
+
+Coordinator (Fable) lane, worktree wt-l34-detail-admin-primitives, branch
+lane/w9-l34-detail-admin-primitives-2026-09-17, cut from master 94e219b5. Removal order item 3 of the
+system health audit (2026-09-17 section 2, the two "wire" rows after the route-guard and community-shell
+lanes already done).
+
+**Detail-surface primitives [CONFIRMED by tsc + full-file review].** `src/components/detail/primitives.tsx`
+(new): `jurisLabelOf` (the jurisdiction-label derivation block), `RecordFactCard` (the record-grade
+single-fact renderer), `RecordFactsBody` (the "Key dates" / "Verbatim facts" / tags body, the 107-line
+block the audit named as the first cut). `MarketSignalDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`
+and `RegulationDetailSurface.tsx` import `jurisLabelOf` and `RecordFactCard`; Market and Research (the
+107-line block) additionally import `RecordFactsBody`. Regulation's own `RecordGradeSections` stays local
+(a gaps-count line and a different tag treatment the other two don't have, so merging would have redesigned
+it, not extracted it) but drops its `RecordFactCard` copy onto the shared one. Prior art: Regulation also
+carried a full byte-identical inline copy of `clampTier`/`sourceEntriesOf`/`SourcesGrid`, the exact debt
+`SourcesGrid.tsx`'s own header comment named as deferred from lane uidetails2, and now imports all three from
+the existing shared `src/components/detail/SourcesGrid.tsx` (`clampTier` exported for reuse; no second
+copy created). Operations was left alone: it does not share a byte-identical block with the other three.
+
+**Admin table-view primitive [CONFIRMED by tsc + full-file review].** `src/components/admin/AdminTableView.tsx`
+(new), eleven consumers: `IngestRejectionsView`, `PendingJurisdictionReviewView`,
+`TierOpinionDisagreementsView`, `IntegrityFlagsView`, `PlatformIntegrityFlagsView`, `CoverageMatrixView`,
+`AssumptionRegisterPanel`, `ErrorGroupsView`, `CorpusTurnPanel`, `admin/redesign/FlagsRejectionsQueue`,
+`SourceAdminControls`. Two visual families extracted separately (merging them would have changed rendered
+output): the Tailwind-card family (`AdminSectionHeader`, `AdminErrorBanner`, `AdminStatusBanner`,
+`AdminFixedToast`, `AdminStatCard`, `AdminStatCellLarge`, `AdminIconEmptyState`, `AdminTh`/`AdminTd`) and
+the inline-style panel family (`AdminPanelFrame`, `AdminPanelMetaText`, `AdminEmptyDashedFrame`,
+`adminThStyle`/`adminTdStyle`). `AdminInlineStatusText` covers `SourceAdminControls`' own two internal
+copies of its minimal inline status line. Prior art checked (`src/components/ui/Toast.tsx`, `ErrorState.tsx`,
+`SystemErrorBanner.tsx`, `RowTable.tsx`, `StatBlock.tsx`, read in full): none matches the DOM these ten
+views already render, so none was a byte-identical substitute; `PlatformIntegrityFlagsView`'s own
+`StatCell` and `CoverageMatrixView`'s own `StatCell`/`Th`/`Td` were checked against every sibling and found
+NOT byte-identical to any of them (different padding, font size, or a `tone` system none of the others
+have), so they stay local rather than being force-merged, a same-file mistake caught and corrected before
+commit (see Corrections below).
+
+**Corrections.** First pass wired `PlatformIntegrityFlagsView`'s stat-card calls onto `AdminStatCellLarge`
+on the (wrong) assumption its `StatCell` matched `IntegrityFlagsView`'s byte-for-byte; a re-read showed
+different padding/font-size/spacing. Reverted to `PlatformIntegrityFlagsView`'s own local `StatCell`
+before running tsc. Separately, the first `AdminIconEmptyState` draft wrapped the icon in a `<span
+style={{color}}>`, an extra DOM node the three original inline empty-states never had. Fixed to
+`cloneElement` the caller's icon element in place (no wrapper), verified against `IntegrityFlagsView`,
+`PlatformIntegrityFlagsView` and `CoverageMatrixView`'s original markup.
+
+**F45 duplicate-code**: 7,569 to 6,966 (measured before any edit and after all edits, both via the exact
+command the brief specifies). `DUPLICATED_LINES_CEILING` re-seeded to 6,966 on the lane's own base; after the rebase onto master c5279274 (L33 merged, gitignored files excluded from the scan) the combined tree measures 6,227, and the ceiling is re-seeded to 6,227 in this same commit in the same commit.
+`node --test .discipline/fitness/functions/F45-duplicate-code.test.mjs`: 5/5 pass, LIVE ratchet confirms
+the tree measures exactly the committed ceiling. `node .discipline/fitness/runner.mjs`: 40 functions
+checked, 0 violations. `npx tsc --noEmit`: clean throughout (checked after every file group, not only at
+the end). Touched-component `*.npmtest.mjs`/`*.test.mjs` sweep (`SourcesGrid.npmtest.mjs`,
+`SourceStateStrips.npmtest.mjs`, `ActionRow.npmtest.mjs`, `SectionRule.coverage.npmtest.mjs`,
+`row-fields.npmtest.mjs`, `taxonomy.npmtest.mjs`, the three `src/__tests__/*.test.mjs`): 71 pass, 2 fail,
+both fails in `SectionRule.coverage.npmtest.mjs` against `SectionCard.tsx`/`ListSurfaceShell.tsx`,
+neither touched by this lane (last modified PR #615/#612, 2026-09-08/09, before this lane existed);
+[CONFIRMED] pre-existing and out of this lane's write set. `bash .discipline/run-test-suite.sh` (the full
+lane-common-contract gate, run as an extra check beyond this brief's own narrower list): `tests 7198,
+suites 61, pass 7193, fail 0, cancelled 0, skipped 5, todo 0`.
+
+**UX compliance.** No customer-visible or operator-visible markup changed: every primitive extracted here
+renders the exact JSX structure, `className` strings and `style` objects its caller already rendered
+inline, verified by a full-file read of each touched component before and after the edit (not a diff
+tool: this repo has no rendered-output snapshot for these components). The one place that would have
+changed the DOM (`AdminIconEmptyState`'s first draft) was caught in review and fixed before commit, per
+the Corrections note above. No new screen, no new primary action, no new async state: this is extraction
+of existing render code into shared modules, not a design change, so the per-screen goal/path/primary-
+action/feedback-state enumeration the UX contract asks for a new or revised screen does not apply here.
 
 ---
 

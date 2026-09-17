@@ -40,7 +40,7 @@ export const WINDOW = 8;
 
 /** Committed ceiling: total duplicated normalized lines measured by detectClones over the scope on the
  *  tree this file ships on. Re-seed DOWN in the same commit that removes duplication; never up. */
-export const DUPLICATED_LINES_CEILING = 6830; // seeded 8061 on master ed2ee7c9 (lane L30); 7569 after L31 (route guard, 89 routes); re-seeded 6866 by lane L33 (community shell context, route skeleton frames); gitignored files excluded from the scan, CI parity, lane L33 second push (6866 to 6830); only re-seed DOWN
+export const DUPLICATED_LINES_CEILING = 6227; // seeded 8061 on master ed2ee7c9 (lane L30); 7569 after L31 (route guard, 89 routes); re-seeded 6866 by lane L33 (community shell context, route skeleton frames); gitignored files excluded from the scan, CI parity, lane L33 second push (6866 to 6830); re-seeded by lane L34 after rebase onto master c5279274, detail and admin primitives (6830 to 6227); only re-seed DOWN
 
 export function inScope(f) {
   const p = String(f).replace(/\\/g, '/');
