@@ -1049,6 +1049,10 @@ export function inWidenedScope(f, manifest) {
     // evidence / regenerable working state) — tracked exceptions there are data, not modules to wire.
     !f.includes('/scripts/_snapshots/') &&
     !f.includes('/scripts/_plans/') &&
+    // scripts/tmp/: the third gitignored scratch directory (.gitignore: fsi-app/scripts/tmp/), where lane
+    // authors keep extract/validate helpers. CI never has these files; the local runner (pre-push step
+    // 3d, lane L22) walks the working tree and refused batch 006's push on 292 of them (2026-09-16).
+    !f.includes('/scripts/tmp/') &&
     // Any directory named `fixtures`, by RULE, not a per-file LEGACY_ALLOWLIST entry (defect-fix-plan-
     // 2026-09-12.md, D7 Fix round 1, review-l3.md): a fixture module (e.g. a deliberately-wrong-value
     // fixture consumed only by reading its own file content in a test, never imported) is test scaffolding

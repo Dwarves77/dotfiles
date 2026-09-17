@@ -394,6 +394,12 @@ test('a dead module inside a fixtures/ directory passes; the identical module ou
   assert.ok(problems[0].includes(outsideFixtures));
 });
 
+test('inWidenedScope exempts the gitignored scripts/tmp/ scratch directory (lane L24) and not a sibling that merely starts with tmp', () => {
+  assert.equal(inWidenedScope('fsi-app/scripts/tmp/build-entry-1af22fc8.mjs', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/scripts/tmp/nested/helper.mjs', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/scripts/tmpl/render.mjs', NO_MANIFEST), true);
+});
+
 test('inWidenedScope exempts a fixtures/ segment at any depth, and does not false-match a "myfixtures" substring', () => {
   assert.equal(inWidenedScope('fsi-app/src/lib/sources/fixtures/x.mjs', NO_MANIFEST), false);
   assert.equal(inWidenedScope('fsi-app/.discipline/fixtures/check-vocabulary/x.mjs', NO_MANIFEST), false);

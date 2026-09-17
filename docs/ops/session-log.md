@@ -5,6 +5,18 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-16, W9 lane L24: F25 exempts the gitignored scripts/tmp scratch directory
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l24-f25-scratch-dir-2026-09-16, cut from
+master b7f3516a. With hook step 3d (lane L22) the fitness runner now runs locally over the working tree.
+Batch 006's push was refused on F25: "fsi-app/scripts/tmp/build-entry-1af22fc8.mjs has no production
+importer", one of 292 authoring scratch files in that worktree. `fsi-app/scripts/tmp/` is gitignored
+(.gitignore line 25); CI never has those files. F25 already exempted the two other gitignored scratch
+directories (scripts/_snapshots, scripts/_plans) and not this one, so the local gate was stricter than
+CI in the one direction L22 did not cover [CONFIRMED]. Fix: one exemption line in
+`inWidenedScope`, with a test that the directory is exempt at any depth and a sibling that merely
+starts with "tmp" is not. F25 test file 47 to 48 tests.
+
 ## 2026-09-16, W9 lane L23: provenance pointers are not figures (numeric-figure mirror), batch 004b
 
 Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l23-slot-tag-figure-mirror-2026-09-16, cut
