@@ -5,6 +5,32 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L28b: Cellar content-type walk, suffixed CELEX keys, truncation reported
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l28b-cellar-html-fallback-truncation-2026-09-17,
+cut from master 1e5da0de. The first Cellar apply (maintenance run 35207120876) captured 103 of 130 and left 27
+EUR-Lex items: 20 older acts (1981 to 2004) where Cellar answers 404 to application/xhtml+xml and 200 to
+text/html, and 7 acts whose CELEX carries an OJ sequence suffix, which Cellar serves only with the parentheses
+URL-encoded (celex/32000Y0229(01) 404, celex/32000Y0229%2801%29 200) [CONFIRMED by curl]. Two captures also
+sat at the 400,000-char cap with no notice in the run, against the no-silent-truncation rule. Also found: the
+L28 runbook paragraph never landed (its insert script mistook an older Cellar mention in the runbook for its
+own), so section 56 gets the whole EUR-Lex-through-Cellar paragraph here.
+
+**Fix (class, one home).** Reading the census exporter showed it had carried the whole answer since
+2026-09-02: `cellarEndpointForCelex` (https, parentheses percent-encoded after the 2026-09-03 held
+evidence), one request with the combined Accept `text/html,application/xhtml+xml`, and the 202 robot-gate
+detector `isEurlexRobotGate`. The D25 capture step and lane L28 both re-derived it (L28 with http and an
+XHTML-first walk). Both helpers moved to `scripts/lib/eurlex-cellar.mjs` with `CELLAR_ACCEPT` and
+`isCellarUrl`; the exporter re-exports them under their old names; `capture-static-primaries.mjs` imports
+them, so `deriveCellarUrl` is `cellarEndpointForCelex(deriveKey(...))` and the request is one, content
+negotiated. `classifyCaptureOutcome` carries
+`truncated`, `fullLength` and `cap`; the apply loop reports them per item (`truncated`, `full_length`, `cap`),
+counts them (`counts.truncated`) and names the count in the note. Runbook section 56 carries the route,
+the probe numbers and the re-dispatch recipe. Guards: three tests (the Accept walk in order and only for
+Cellar; the outcome carries truncation; a capped capture is counted and reported), the suffixed-key test
+flipped to the encoded URL; capture-static-primaries.test.mjs 55 to 59 (the two-homes sweep included: no source file other than the
+module may build a Cellar URL or match the gate text; a planted twin fails it); the Accept walk removed fails its test.
+
 ## 2026-09-17, W9 lane L28: EUR-Lex through the Cellar endpoint on the free static transport
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l28-eurlex-cellar-transport-2026-09-17, cut

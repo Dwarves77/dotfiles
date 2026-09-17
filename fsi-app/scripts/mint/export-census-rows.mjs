@@ -782,28 +782,11 @@ export function buildTitleForRow({ capture, source, identifier, allowBodyLeadFal
 // paragraphs instead and joins them with single spaces, which is exactly how stripHtmlToText renders
 // them in captured_text, so the identity FACT (record-facts.mjs) finds the title verbatim.
 
-/** Cellar's CELEX resolver URL for one key. Pure. `encodeURIComponent` leaves `(` and `)` LITERAL (they
- *  are in its own unreserved set — confirmed: `encodeURIComponent("22004A0806(01)")` === the input,
- *  unchanged) — Cellar's own resolver 404s a literal-paren OJ-sequence-suffixed key (confirmed live,
- *  2026-09-03: `.../celex/22004A0806(01)` → 404 "Resource ... not found"; the SAME key with `(`/`)`
- *  percent-encoded → 302 to a real cellar resource). Encoded explicitly here, after encodeURIComponent, so
- *  every OJ-sequence-suffixed CELEX key (the ten held `capture_blocked` in population-turn run #14) gets a
- *  request Cellar actually resolves, not the request its own JS encoder would build unmodified. */
-export function cellarEndpointForCelex(canonicalKey) {
-  const encoded = encodeURIComponent(String(canonicalKey)).replace(/\(/g, "%28").replace(/\)/g, "%29");
-  return `https://publications.europa.eu/resource/celex/${encoded}`;
-}
-
-/** EUR-Lex's own JS bot-gate interstitial: HTTP 202 with the "verify that you're not a robot" marker text
- *  (population-turn run #14's own held evidence, byte-for-byte). Detected by status + marker text, never
- *  by byte count alone (a real short act could coincidentally be near 2,035 bytes). Pure. Used by
- *  `resolveRowCapture`'s celex branch to tell "EUR-Lex permanently refuses this exact request" (worth
- *  holding `no_capture_path`, never retried) apart from any other capture failure (worth retrying,
- *  `capture_blocked`). */
-const EURLEX_ROBOT_GATE_RE = /verify that you.?re not a robot/i;
-export function isEurlexRobotGate(status, head) {
-  return Number(status) === 202 && EURLEX_ROBOT_GATE_RE.test(String(head ?? ""));
-}
+// cellarEndpointForCelex and isEurlexRobotGate moved to scripts/lib/eurlex-cellar.mjs (lane L28b): the
+// capture step needs the same two facts, and two homes for one fact drift. Re-exported here so every
+// existing importer and test keeps its name.
+import { cellarEndpointForCelex, isEurlexRobotGate } from "../lib/eurlex-cellar.mjs";
+export { cellarEndpointForCelex, isEurlexRobotGate };
 
 /** Title for a Cellar XHTML act: the `p.oj-doc-ti` lines joined by a space ("COUNCIL DECISION of 14
  *  October 2004 concerning ... (2006/507/EC)"), origin `cellar_doc_title`; falls back to the body-lead
