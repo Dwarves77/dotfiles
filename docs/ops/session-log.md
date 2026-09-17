@@ -5,6 +5,38 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L30: system health audit (duplicated code, database objects, files) and the duplicate-code gate F45
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l30-duplication-audit-and-gate-2026-09-17,
+cut from master ed2ee7c9. Operator rulings the same day: "This isn't just about EUR-Lex. It's about recurring
+doubling of work and code." "You should already have this as a rule and a skill. Why isn't it wired and
+working?" "Why is a human the one that caught this?" "Wire or remove the dead code audit."
+
+**Why nothing caught it [CONFIRMED].** Every gate was built after one incident for that incident; no
+standing number measured duplication, unreferenced database objects, or routes with a second home; the
+two-homes rule lived only in prose. The EUR-Lex route was written three times (2026-09-02, 2026-09-13,
+2026-09-17) with no search in between.
+
+**Measurements [CONFIRMED], all on master ed2ee7c9.** Code clones (jscpd 4, tests, fixtures, archive, run
+artifacts and snapshots excluded): 381 blocks, 7,716 lines, 236 files; src/app 3,502, src/components 2,790,
+scripts/maintenance 558. In-repo scan (F45, 8-line windows): 8,061 duplicated normalized lines across 970
+files, 372 clone pairs. Clone families: 26 admin API routes, 22 community routes, 10 workspace routes, 7
+community page shells, 8 identical loading pages, 5 detail surfaces, 10 admin views, 9 maintenance scripts.
+77 comments admit a copied constant. 63 external hosts in code, 14 in more than one module. Database:
+121 tables (exact counts; the planner estimates were reset by the resize and read zero, an estimate is never
+reported as a count), 39 empty, 13 with no code reference of which 6 are live through functions, triggers
+or a view and 7 are removal or build decisions; 95 application functions, 0 dead (12 flagged by the code
+scan are trigger-bound); 218 policies. The 2026-08-11 dead-code manifest (495 files) is fully applied;
+byte-identical files are all tracked snapshot data (24 groups, 53 files).
+
+**Landed here.** `docs/audits/system-health-audit-2026-09-17.md` (every finding with remove, wire, or
+keep-with-reason; the removal order). `fsi-app/.discipline/fitness/functions/F45-duplicate-code.mjs`, a
+dependency-free clone scan as a both-ways ratchet (ceiling 8,061; over fails as new duplication, under fails
+naming the value to re-seed), registered in the manifest, five tests including the LIVE ratchet; the fitness
+runner reports 39 functions, 0 violations. The lane contract gains a binding prior-art step (search the repo
+first; cite what is reused; a second copy is a review FAIL). Removal lanes follow the order in the audit,
+each re-seeding F45 downward in its own commit. Correction before merge (same day): the audit first claimed the one-home-per-external-route gate was folded into F45; F45 catches copies, not re-implementations, so the EUR-Lex incident itself would have passed it. The host-home gate is F46, lane L31, and the audit says so now.
+
 ## 2026-09-17, W9 lane L28b: Cellar content-type walk, suffixed CELEX keys, truncation reported
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l28b-cellar-html-fallback-truncation-2026-09-17,

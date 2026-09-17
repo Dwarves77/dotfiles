@@ -186,7 +186,12 @@ export const PINNED_MANIFEST = {
     // claim (reviewer-confirmed: 31 of the 36 files silently exited 0, the other 5 carried a working
     // endsWith fallback and were fragile, not silent) - a text correction inside the same section, not
     // a new one. No citingFiles change.
-    contentHash: 'b4c319ee3b8f6e3aaa1f9f5246952e79c27f59dea6fce96931ca5b50d2949b0b',
+        // 2026-09-17 (lane L30, coordinator): re-pinned for Section 4 category 45 (one home per concept and
+    // the count of copied code can only fall; invariant RD-69, F45 duplicate-code ratchet), a new section
+    // APPENDED before Section 9 after the operator found the EUR-Lex route written three times. No
+    // citingFiles change: the files below cite the skill as a whole, its content hash moving is what this
+    // re-pin acknowledges, same posture as the category 42 re-pin.
+    contentHash: '93438616723721c9dcd481cf1f5e0380236d05c37bed8e2c4718178d35271502',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/candidate-dwell-audit.mjs',

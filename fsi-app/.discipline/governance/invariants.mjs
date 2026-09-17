@@ -223,7 +223,8 @@ export const SKILL_MARKER_BASELINE = {
   // (enforcedBy fitness:F43 + its selftest + the rendering guard's no-default-open leg). Not an
   // instance of an existing rule: the two shapes of this defect are invisible to different tools and
   // the second one has no source-level tell at all, which is why it needs both halves.
-  'remediation-discipline': 53,
+  // 53→54 (2026-09-17, lane L30): category 45, the duplicated-code ratchet (one MUST line). TRIAGE: new invariant RD-69 (fitness F45).
+  'remediation-discipline': 54,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1504,5 +1505,17 @@ export const INVARIANTS = [
       'selftest:fsi-app/scripts/lib/is-main.test.mjs',
     ],
     residual: 'F44 and is-main.test.mjs are both LEXICAL scanners (regex over file content, comment lines skipped) matching the exact broken idiom, with or without a trailing `|| process.argv[1]?.endsWith(...)` fallback some call sites had already grown as a partial workaround; a guard rewritten into some other broken shape not carrying that literal text would not be caught by either. Both scan the same two trees (fsi-app/scripts/** and fsi-app/.discipline/**) for redundancy across the two lanes that exercise them (F44 in the fitness runner, is-main.test.mjs in the no-npm-ci pre-push suite) rather than for independent coverage. isMainModule() itself (scripts/lib/is-main.mjs) is unit-tested by both a real `node <file>` spawn (proving Windows argv[1]/import.meta.url parity, not a mocked in-process override) and direct-call cases for the false branches. `.discipline/governance/skill-map.mjs` and `skill-contract-map.mjs` inline the equivalent pathToFileURL/resolve comparison rather than importing scripts/lib/is-main.mjs, since `.discipline/governance/` carries no precedent for importing scripts/lib as an ES import (unlike `.discipline/fitness/functions/`, which already does via F28); a future change establishing that precedent could switch them to the shared import without changing behavior.',
+  },
+  {
+    id: 'RD-69',
+    skill: 'remediation-discipline',
+    section: 'Section 4 - category 45: one home per concept, and the count of copied code can only fall',
+    text: 'The total of duplicated normalized lines across fsi-app/src and fsi-app/scripts (tests, fixtures, archive, run artifacts and snapshots excluded) must equal the committed ceiling in F45-duplicate-code.mjs: above it the build fails naming the clone pair, below it the build fails naming the value to re-seed, so the ceiling only moves down and in the same commit that removes the duplication.',
+    anchor: '### Section 4 - category 45: one home per concept, and the count of copied code can only fall',
+    enforcedBy: [
+      'fitness:F45',
+      'selftest:fsi-app/.discipline/fitness/functions/F45-duplicate-code.test.mjs',
+    ],
+    residual: 'F45 is an exact-window clone scan (8 normalized lines): it catches copies, not re-implementations that share no lines (the EUR-Lex incident itself would have passed it). The host-home gate F46 (lane L31) covers external routes; the database census gate covers tables and functions with no reference; both are owed and named in docs/audits/system-health-audit-2026-09-17.md. The ceiling is a count, not a disposition: green says duplication did not grow, not that the families in the audit were removed.',
   },
 ];

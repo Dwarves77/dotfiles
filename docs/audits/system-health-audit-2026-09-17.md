@@ -1,0 +1,86 @@
+# System health audit, 2026-09-17: duplicated code, unreferenced database objects, files
+
+Operator rulings that triggered this audit (2026-09-17, verbatim gist): "This isn't just about EUR-Lex. It's about recurring doubling of work and code." "Why is a human the one that caught this?" "Wire or remove the dead code audit. If I sell this product to a top development team and they look at everything we built, will you be embarrassed by the amount of dead, unwired, duplicate or non-functioning code?"
+
+Every number below is [CONFIRMED] by the named measurement on master `ed2ee7c9` unless marked otherwise. Every finding carries one of three dispositions: **remove**, **wire**, or **keep** with a written reason. "Candidate" is not a disposition; a row still marked decision is owed a decision in the lane that takes it.
+
+## 1. Why nothing caught it
+
+The repository carries 44 fitness functions, three consistency checks, an invariant meta-gate, a producer-consumer orphan check and a module-liveness check. Each was built after one incident, for that incident. No standing number ever said how much code is duplicated, how many database objects nothing references, or how many routes have a second home. The two-homes rule lived only in prose (the remediation-discipline skill, the lane contract, coordinator memory), and prose binds an agent in the moment and nothing else. The EUR-Lex case is the proof: the census exporter carried a Cellar route from 2026-09-02, the capture step rebuilt it on 2026-09-13, and a coordinator lane rebuilt it again on 2026-09-17, each time without searching.
+
+The fix is structural, not another reminder: three standing numbers with both-ways ratchet gates (the count may only fall, and an improvement must re-seed the ceiling in the same commit), reported at every session close.
+
+## 2. Duplicated code
+
+Measurement: a dependency-free clone scan (`fsi-app/.discipline/fitness/functions/F45-duplicate-code.mjs`, windows of 8 normalized lines, comments, blanks and import lines dropped) over `fsi-app/src` and `fsi-app/scripts`, excluding tests and proofs, fixtures, `_archive`, `scripts/harness-runs` (run records, similar by design), `scripts/_snapshots` (data) and generated `.d.ts`. Cross-checked against an independent tool (jscpd 4, min 8 lines / 60 tokens) on the same scope: 381 clone blocks, 7,716 duplicated lines across 236 files; the in-repo scan reads 8,061 duplicated normalized lines across 970 files in 372 clone pairs. The in-repo number is the ratchet (F45, ceiling 8,061).
+
+By directory (jscpd, code only): `src/app` 3,502 lines, `src/components` 2,790, `scripts/maintenance` 558, `scripts/spec09` 179, `scripts/producers` 135, `src/stores` 108, `src/lib` 88, `scripts/connections` 77, `scripts/turns` 60, `scripts/review` 55. By extension: tsx 4,056, ts 2,369, mjs 1,291.
+
+The clone families (files that share clone blocks with each other), each one extraction:
+
+| Family | Files | Disposition |
+|---|---|---|
+| Admin API routes sharing the same guard-and-respond boilerplate (`src/app/api/admin/**/route.ts`) | 26 | wire: one `adminRoute()` handler helper (auth, org resolution, error envelope), routes keep only their own logic |
+| Community API routes (`src/app/api/community/**/route.ts`) | 22 | wire: the same helper, community variant |
+| Workspace and user-state routes (`src/app/api/workspace/**`, `watchlist`, `user/list-order`) | 10 | wire: the same helper |
+| Community page shells (`src/app/community/{benchmarks,profile,directory,discover,moderation,[slug],browse}/page.tsx`) | 7 | wire: one `CommunityPageShell` component; the largest single clone pairs in the tree (96, 89, 89, 86 shared windows) |
+| Identical `loading.tsx` pages across the surfaces | 8 | wire: one shared loading component |
+| Detail surfaces (`MarketSignalDetailSurface`, `ResearchFindingDetailSurface`, `RegulationDetailSurface`, `OperationsDetailSurface`, `SourcesGrid`) | 5 | wire: shared detail primitives; the 107-line block shared by Market and Research is the first cut |
+| Admin views (`IngestRejectionsView`, `TierOpinionDisagreementsView`, `PendingJurisdictionReviewView`, `SourceAdminControls`, ...) | 10 | wire: one admin table view primitive |
+| Maintenance and classification scripts sharing one read-plan-write scaffold (`propose-classifications`, `ratify-flag-to-census`, `generate-theme-brief`, `apply-tags`, `canonical-key-dedup`, `record-hollow-sweep`, ...) | 9 | wire: the scaffold already exists as `scripts/maintenance/lib/cli.mjs` (`runCli`); the scripts that do not use it move onto it |
+| Two recommend-classification routes (`canonical-sources` and `sources`) sharing 85 windows | 2 | wire: one handler, two thin routes |
+| `src/lib/supabase-server.ts` repeating its own RPC-paging block (66 windows within the file) | 1 | wire: one paging helper |
+
+Admitted mirrors: 77 comments in source say a constant or helper was copied rather than imported. Some are legitimate client-bundle boundaries (a browser component cannot import a Node-only module) and say so; each will be listed with keep-or-wire in the removal lanes. The JS mirrors of SQL functions (`url-canon`, `source-blocks`, `effective-confidence`, `aggregate-safeguards`, `canonical-key`) are deliberate and drift-tested; they stay.
+
+External hosts with more than one home (63 hosts appear in code; 14 in more than one module): the EUR-Lex CELEX text URL was built in four modules (now one, `scripts/lib/eurlex-cellar.mjs`, lanes L28 and L28b); the Federal Register API base in five (`api-transport`, `transport-escalation`, `register-walk`, `identifier-variants`, `export-census-rows`); eCFR in three; legislation.gov.uk in two; the Eurostat API base in two producers; the Anthropic messages endpoint in two; the weekly oil bulletin URL in four. Data tables that cite URLs (`source-licence.mjs`, `intake-url-corpus.mjs`, `url-canon.mjs` examples) are references, not routes. Disposition: wire, one route module per host under `src/lib/sources`, every other file imports it; F45 catches a new copy.
+
+## 3. Database objects
+
+Measurement: exact `count(*)` per table (the planner's row estimates were reset by the compute resize and read zero for populated tables; an estimate is never reported as a count), `pg_proc`, `pg_trigger`, `pg_policy`, `pg_views`, and a reference scan of every table and function name across non-test code, `.github`, and the migration tree.
+
+Public schema: 121 tables, 1,561 columns, 95 application functions (204 including the ltree and pg_trgm extension functions), 6 views, 42 triggers, 218 row-level-security policies, 481 MB.
+
+Functions: 65 referenced from code, 18 referenced only from SQL (triggers, callees, policies), 12 flagged by the code scan as unreferenced, all 12 bound to triggers in `pg_trigger`. **No dead functions.**
+
+Tables: 39 hold zero rows. 36 of those are referenced by code (unbuilt or idle features: community posts and moderation, notifications, user state, OEM roadmaps, custody chains, EUDR plot claims, statutory computations, aggregate query log); they are not dead but they are unfinished, and each belongs to a surface that must either ship or be cut. 13 tables have no code reference at all:
+
+| Table | Rows | Live through the database? | Disposition |
+|---|---|---|---|
+| `_snapshot_gapflags_20260831` | 3 | nothing references it | remove |
+| `drain_worklist` | 66 | nothing references it | remove (superseded by the D26 record-only intake; migrations 219 and 254 name it as retired) |
+| `intelligence_summaries` | 2,040 | policies only (captured undeclared in migration 009) | remove after a read-back that no surface renders it |
+| `intelligence_item_versions` | 4,082 (26 MB) | written by trigger `trg_intelligence_items_version_snapshot`, read by nothing | decision: keep as an audit trail named in the producer-consumer allowlist with a reason, or drop the trigger and the table; write-only today |
+| `case_studies`, `case_study_endorsements` | 6, 0 | trigger and policies from the community layer, no code | decision: wire (community case studies are in the platform intent) or remove |
+| `community_topic_groups` | 0 | policies only | decision with the community rebuild |
+| `taxonomy_nodes` | 38 | policies only | decision with the community rebuild |
+| `coverage_gap_census_findings` | 116 | read by view `census_rollup_by_surface` | keep |
+| `gate_a_health_cache` | 1 | `gate_a_health`, `gate_a_health_refresh` | keep |
+| `mutation_leases` | 0 | the lease functions | keep |
+| `pending_first_fetch` | 1,388 | trigger `enqueue_pending_first_fetch`; read by the listings RPC | keep |
+| `system_state_flag_audit` | 8 | trigger `guard_pause_flag_writer` | keep |
+
+Gap in the existing gate: the producer-consumer orphan check (F14) sees only application writers, so a table written by a trigger and read by nothing (`intelligence_item_versions`) was invisible to it. The database census above becomes the second standing number (tables and functions with no code or database reference), with F14 extended to trigger writers.
+
+## 4. Files
+
+The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byte-identical files: 24 groups, 53 files, all tracked snapshot data under `scripts/_snapshots` (disposition: those snapshots are gitignored scratch by rule 5 and should not be tracked; remove from the index in the snapshot-cleanup lane). Module liveness (F25) and orphaned proofs (F23) already ratchet the source tree at zero.
+
+## 5. The gates
+
+- **F45 duplicate-code** (this lane): both-ways ratchet on duplicated normalized lines, ceiling 8,061 on `ed2ee7c9`; a new copy anywhere in src or scripts reds the build naming the clone pair.
+- **Database census** (next lane): tables and functions with no code and no database reference, ratchet at the count after the removals above; F14 extended to trigger writers.
+- **One home per external route** (lane L31, F46 external-host single-home): every external host that code builds URLs for is named in exactly one route module, and a second file that builds a URL for that host fails the build. [CORRECTED 2026-09-17, same day, before merge: the first draft of this line said the gate was folded into F45. That was wrong. F45 catches copied lines; the EUR-Lex case was three different implementations of one route, which F45 would not have caught. Until F46 lands, only the per-host sweep test in `capture-static-primaries.test.mjs` covers that one host, and re-implementations of any other host are not gated.]
+- **Lane contract**: the binding prior-art step (search the repo first; cite what is reused).
+
+## 6. Removal order
+
+1. Route-handler helper for the 58 API routes (three families, largest by lines).
+2. Community page shell and the shared loading page (15 files).
+3. Detail-surface and admin-view primitives (15 files).
+4. One route module per external host (Federal Register, eCFR, legislation.gov.uk, Eurostat, the oil bulletin, Anthropic).
+5. Maintenance scripts onto `runCli`.
+6. Database removals and decisions from section 3, with a migration per removal and the census gate seeded after.
+7. Snapshot files out of the index.
+
+Each lane re-seeds F45 downward in its own commit; the number in this document is the starting point, not a target.

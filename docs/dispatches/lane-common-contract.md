@@ -48,6 +48,14 @@ The coordinator (a separate session) designs lanes, gates output, lands PRs thro
 4. `grep -ril <identifier> docs/decisions/` before changing any cap, threshold, schema shape, or vocabulary token; an ADR that names it is binding.
 5. `fsi-app/scripts/harness-runs/CONVENTION.md` if you touch any harness governing file (mint: MINT-RUNBOOK.md, validate-mint-payload.mjs, payload-schema.json, item-type-required-slots.json, gate-a-scan/match, canonicalize-citation-url, record-facts.mjs; screen: screen-rules.mjs, screen-worklist.mjs). A governing-file change requires re-stamping that family's `PENDING-RUN.md` per the convention so F28 stays green.
 
+6. **Prior art (added 2026-09-17, binding).** Before building anything that touches an external host, a
+   vendor, a transport, a parser, a validator rule, a URL builder or a shared constant, search the repo for it
+   first: `git grep -n -i <host or vendor or concept>` across `fsi-app/src`, `fsi-app/scripts`,
+   `fsi-app/supabase/migrations` and `docs/decisions`. Your report names the file you reused, or states that
+   nothing applied and what you searched. Building a second copy of something the repo already has is a
+   review FAIL (the census exporter carried the EUR-Lex-through-Cellar route from 2026-09-02; the capture
+   step and a later lane each rebuilt it). Fitness function F45 (duplicate-code) reds the build on a new copy.
+
 ## Write set
 Your brief names an exact write set. Files outside it: do not touch. If the work cannot be completed without a file outside the set, stop that sub-task and put "NEEDS WRITE-SET EXPANSION: <file> because <reason>" in the report. Never write `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md`, or `docs/INDEX.md` (coordinator only). New docs only where the brief allows.
 
