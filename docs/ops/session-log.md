@@ -35,7 +35,7 @@ dependency-free clone scan as a both-ways ratchet (ceiling 8,061; over fails as 
 naming the value to re-seed), registered in the manifest, five tests including the LIVE ratchet; the fitness
 runner reports 39 functions, 0 violations. The lane contract gains a binding prior-art step (search the repo
 first; cite what is reused; a second copy is a review FAIL). Removal lanes follow the order in the audit,
-each re-seeding F45 downward in its own commit.
+each re-seeding F45 downward in its own commit. Correction before merge (same day): the audit first claimed the one-home-per-external-route gate was folded into F45; F45 catches copies, not re-implementations, so the EUR-Lex incident itself would have passed it. The host-home gate is F46, lane L31, and the audit says so now.
 
 ## 2026-09-17, W9 lane L28b: Cellar content-type walk, suffixed CELEX keys, truncation reported
 

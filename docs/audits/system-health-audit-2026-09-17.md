@@ -70,7 +70,7 @@ The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byt
 
 - **F45 duplicate-code** (this lane): both-ways ratchet on duplicated normalized lines, ceiling 8,061 on `ed2ee7c9`; a new copy anywhere in src or scripts reds the build naming the clone pair.
 - **Database census** (next lane): tables and functions with no code and no database reference, ratchet at the count after the removals above; F14 extended to trigger writers.
-- **One home per external route** (folded into F45 through the clone scan, plus the two-homes sweep test in `capture-static-primaries.test.mjs` for the Cellar route).
+- **One home per external route** (lane L31, F46 external-host single-home): every external host that code builds URLs for is named in exactly one route module, and a second file that builds a URL for that host fails the build. [CORRECTED 2026-09-17, same day, before merge: the first draft of this line said the gate was folded into F45. That was wrong. F45 catches copied lines; the EUR-Lex case was three different implementations of one route, which F45 would not have caught. Until F46 lands, only the per-host sweep test in `capture-static-primaries.test.mjs` covers that one host, and re-implementations of any other host are not gated.]
 - **Lane contract**: the binding prior-art step (search the repo first; cite what is reused).
 
 ## 6. Removal order
