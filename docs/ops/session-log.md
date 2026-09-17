@@ -23121,3 +23121,31 @@ landing-page-to-full-text re-home, the unchanged fallbacks. tsc clean.
 
 **Consequence.** Batch 003b re-applies for 87ed781c after this merges; the P8 and P9 batches land on a
 linker that cannot repeat the defect.
+## 2026-09-17, W9 lane P4 (Part 7 row 11): batch 007 assembled, 12 regulatory entries
+
+Sonnet lane, worktree wt-landdocs-0911, branch brief-lane/007-2026-09-13 rebased onto master 94e219b5. Batch
+file only; validator, README and src untouched. `record-briefs.test.mjs` 79/79.
+
+**Result [CONFIRMED by the validator].** `record-briefs-007.json`: 39b5dc20, 3c22f667, 3e756291, 3e9c3ebe,
+3f7e1aed, 40c05a1e, 42b8bfee, 4547e8c5, 45f85547, 474ab4cd, 4929e6a9, 4f4f85c9, VALID as a whole. Seven were
+valid as built; five builders repaired without weakening a claim: 39b5dc20 (computed and cited figures not
+in their spans dropped), 3e9c3ebe (a non-standard `[forward_event, event_date ...]` tag normalised to
+`[forward_event]`), 40c05a1e (a dotted date cited without its trailing "COM(2023) 445 final", the same
+dotted-date-plus-acronym shape the P2 entry records), 42b8bfee (an aside outside its span dropped), 4f4f85c9
+(21 Annex-row claims re-anchored to the zone name instead of a row number and year not in the cell).
+
+**Correction [CONFIRMED by counting the export].** The P4 brief said 33 regulatory items; export 34753007993
+holds 50 records of which 12 are regulatory (9 regulation, 2 framework, 1 guidance, no directive, no
+standard). The coordinator's count came from the batch plan, not the export. The other 18 entries the lane
+built or repaired (0658844a, 0781a8c0, 3ed4f908, 45006684, 0980d468, 2648d4ad, 388b2ce8, 3373d06e, 0a8b8ef0,
+262ac5f2, 340ddf31, 45dab7a6, 11794ed7, 237b3cc1, 2fc50445, 01126119, 13af7040, 2943632e) are non-regulatory
+and excluded from this file; lanes P5a and P5b own those items in their own worktrees. Their builders in
+this worktree's scripts/tmp stay as read-only references. The four non-regulatory exemplars (0658844a,
+0781a8c0, 3ed4f908, 45006684) were failing the per-format timeline mirror since L20 (dated milestones under a
+regulatory heading their format does not carry); repaired here in scripts/tmp only.
+
+**Next.** Dry run then apply under the IO budget with `--allow-brief-overwrite`.
+
+### UX compliance (P4)
+
+Not a UI change; no customer surface touched by this branch.
