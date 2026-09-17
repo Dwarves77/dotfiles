@@ -49,6 +49,42 @@ foreign keys. Audit section 3 corrected row by row.
 
 **Standing numbers after this lane.** F45 7,569 (unchanged here). F46 7. F47 0 unreferenced, 0 unread, 0
 dead functions, 6 allowlist entries with reasons and dates. Next in Part 7 order: P1 (L25), then L33.
+## 2026-09-17, W9 lane L33 (Part 7 row 5): one community shell context; one home for the route skeleton frames
+
+Coordinator (Fable) lane, worktree wt-finishmig-0911, branch lane/w9-l33-community-shell-2026-09-17,
+rebased onto master 94e219b5 (L31). Removal order item 2 of the system health audit. No migration.
+
+**Community shell context [CONFIRMED by tsc and the loader test].** `src/lib/community/shell-context.ts`:
+`loadCommunityShellContext(supabase, user, { regionCountsArgs? })` and `COMMUNITY_REGIONS`. The seven
+/community/* page shells (benchmarks, profile, directory, discover, moderation, browse, [slug]) each
+assembled the same context by hand: four parallel reads (memberships with groups, pending invitations,
+owned topics, the region-count RPC), two profile reads (profile row, org membership for the employer),
+the mapping to the typed arrays, the region list with zero-fill, and the current-user block. That was the
+audit's largest clone family (96, 89, 89, 86 shared windows between pairs). Each page now authenticates,
+calls the loader, and spreads its result into CommunityShell. browse and [slug] keep their perf-lane
+batching: the loader runs inside the same Promise.all as the page's own group query (browse passes
+`{ p_privacy: "public" }` for public-only counts, the one difference the census found between the seven
+copies). Test `shell-context.npmtest.mjs`: the mapping, the zero-fill, the current-user fallbacks, the
+RPC arguments.
+
+**Route skeleton frames [CONFIRMED by tsc].** `src/components/ui/skeleton-page.tsx`: `skeletonBox` and
+`SkeletonPage`, the pulsing page frame and the proportioned placeholder the eight loading.tsx files
+(market, operations, regulations, research, index and detail) each redefined. The existing
+`src/components/ui/Skeleton.tsx` (component skeletons in final geometry, "use client") is the wrong home
+for these because a loading.tsx calls the box helper during server render; the two modules name each
+other. Retrieval failure caught by the gate, recorded here on purpose: the first draft of this lane
+OVERWROTE Skeleton.tsx with a new file of the same name without searching; tsc failed on the three
+importers of the existing exports, the original was restored from git, and the route-level primitives
+went into a new server-safe module. Search first is the rule this whole track exists for, and the
+coordinator broke it on the fifth lane.
+
+**Standing numbers after this lane.** F45 7,569 to 6,866 (re-seeded in this commit). F46 7. F47 0/0/0.
+
+**UX compliance.** No row component and no customer-visible markup changed: the seven pages render the
+same CommunityShell with the same props from the same reads; the eight skeletons render byte-identical
+markup and styles (the frame div and the box style object are the same values, now imported). Loading
+priority item 6 read (ux-laws.md, design-principles.md); nothing in this lane adds a choice, a target, a
+grouping or a default. F35 and the rendering guard measure unchanged components.
 
 ## 2026-09-17, W9 lane L31: one route guard for every API route, and F46 (one home per external host)
 
@@ -22743,3 +22779,20 @@ again, `git status --short` clean apart from the pre-existing untracked `.superp
 --noEmit` from `fsi-app`: clean. `node .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`
 from `fsi-app`: OK. Push gate (`.discipline/hooks/pre-push`, `run-test-suite.sh`): not run here; the
 coordinator runs it at push, per this lane's own scope.
+
+### L33 second push: F45 counts only what CI can see
+
+[CONFIRMED by the CI log of PR #695 and a local re-measure] the first push failed the Fitness job with
+"IMPROVEMENT: 6830 duplicated lines, ceiling 6866". The 36-line gap is three gitignored generated files
+(`src/app/.well-known/workflow/v1/{flow,step,webhook/[token]}/route.js`, the Vercel workflow routes)
+that F45's file-system glob counted locally and the CI checkout never has. The same defect then hit lane
+P2's push from the other side: its worktree carries 39 gitignored builder scripts under scripts/tmp, and
+F45 and F46 both counted them (F46 saw two hosts, emsa.europa.eu and ifrs.org, that exist in no commit).
+Class fix in the shared helper `.discipline/fitness/lib/glob.mjs`: `globFiles` drops every path
+`git ls-files --others --ignored --exclude-standard --directory --full-name` lists (`ignoredPaths`,
+`isIgnored`, memoised per process), so every fitness function measures the same tree locally and on CI
+by construction. F45 re-exports the helpers and its test plants a gitignored copy of a tracked file under
+scripts/tmp and asserts the count does not move (rule 15, attack not presence); ceiling re-seeded to
+6,830, the CI number. Coordinator tooling: scratchpad `reseed-f45.mjs` re-measures after every rebase,
+because three lanes (L33, L34, L36) re-seed F45 from the same base and only the first to merge can be
+right without a re-measure.

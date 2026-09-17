@@ -58,6 +58,9 @@ export const GOVERNED = [
     why: 'the binding five-surface model; no new customer surface outside the five',
     files: [
       'fsi-app/src/app/', // any new page.tsx route
+      // Community surface shell context (lane L33, 2026-09-17): the one loader behind every /community/* page's
+      // CommunityShell props; it reads the same rows the pages read, so it is governed as the pages are.
+      'fsi-app/src/lib/community/shell-context.ts',
       'fsi-app/src/components/Sidebar.tsx', // nav entry = surface exposure
     ],
     ops: [],

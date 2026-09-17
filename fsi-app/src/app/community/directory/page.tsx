@@ -2,29 +2,15 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { CommunityShell } from "@/components/community/CommunityShell";
+import { loadCommunityShellContext } from "@/lib/community/shell-context";
 import {
   PeerOrgDirectoryTable,
   type OrgTypeRegionRow,
   type SectorRow,
 } from "@/components/community/PeerOrgDirectoryTable";
-import type {
-  CommunityMembership,
-  CommunityInvitation,
-  CommunityTopicSummary,
-} from "@/components/community/types";
 
 export const dynamic = "force-dynamic";
 
-const REGIONS = [
-  { code: "EU", label: "EU / Europe" },
-  { code: "UK", label: "United Kingdom" },
-  { code: "US", label: "United States" },
-  { code: "LATAM", label: "Latin America" },
-  { code: "APAC", label: "Asia Pacific" },
-  { code: "HK", label: "Hong Kong" },
-  { code: "MEA", label: "Middle East & Africa" },
-  { code: "GLOBAL", label: "Global / Cross-jurisdictional" },
-];
 
 const UNSPECIFIED = "Unspecified";
 
@@ -49,97 +35,7 @@ export default async function CommunityDirectoryPage() {
   if (!user) redirect("/login?redirect=/community/directory");
 
   // ── Shell context (mirrors the other /community/* pages) ────────────────
-  const [{ data: membershipsRaw }, { data: invitationsRaw }, { data: topicsRaw }, { data: regionRows }] =
-    await Promise.all([
-      supabase
-        .from("community_group_members")
-        .select(
-          `group_id, role, starred, muted, joined_at,
-           community_groups ( id, name, slug, region, privacy, member_count, weekly_post_count, last_active_at )`
-        )
-        .eq("user_id", user.id),
-      supabase
-        .from("community_group_invitations")
-        .select(
-          `id, group_id, inviter_user_id, status, created_at,
-           community_groups ( id, name, slug, region, privacy )`
-        )
-        .eq("invitee_user_id", user.id)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("community_topics")
-        .select("id, label, community_topic_groups ( group_id )")
-        .eq("owner_user_id", user.id),
-      supabase.rpc("community_region_counts"),
-    ]);
-
-  const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap((m: any) => {
-    if (!m.community_groups) return [];
-    return [
-      {
-        group_id: m.group_id,
-        role: m.role,
-        starred: !!m.starred,
-        muted: !!m.muted,
-        joined_at: m.joined_at,
-        group: {
-          id: m.community_groups.id,
-          name: m.community_groups.name,
-          slug: m.community_groups.slug,
-          region: m.community_groups.region,
-          privacy: m.community_groups.privacy,
-          member_count: m.community_groups.member_count ?? 0,
-          weekly_post_count: m.community_groups.weekly_post_count ?? 0,
-          last_active_at: m.community_groups.last_active_at,
-        },
-      },
-    ];
-  });
-
-  const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap((inv: any) => {
-    if (!inv.community_groups) return [];
-    return [
-      {
-        id: inv.id,
-        group_id: inv.group_id,
-        inviter_user_id: inv.inviter_user_id,
-        created_at: inv.created_at,
-        group: {
-          id: inv.community_groups.id,
-          name: inv.community_groups.name,
-          slug: inv.community_groups.slug,
-          region: inv.community_groups.region,
-          privacy: inv.community_groups.privacy,
-        },
-      },
-    ];
-  });
-
-  const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: any) => ({
-    id: t.id,
-    label: t.label,
-    group_count: Array.isArray(t.community_topic_groups) ? t.community_topic_groups.length : 0,
-  }));
-
-  const regionCounts: Record<string, number> = {};
-  for (const r of REGIONS) regionCounts[r.code] = 0;
-  for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
-    regionCounts[row.region] = Number(row.count) || 0;
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name:full_name, headshot_url:avatar_url, is_platform_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-  const { data: orgRow } = await supabase
-    .from("org_memberships")
-    .select("organizations(name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-  const employer = (orgRow?.organizations as { name?: string } | null)?.name ?? "";
+  const shell = await loadCommunityShellContext(supabase, user);
 
   // ── Aggregate peer-org data ───────────────────────────────────────────
   // Counts only, computed server-side from columns that are themselves never a name or company
@@ -198,19 +94,7 @@ export default async function CommunityDirectoryPage() {
 
   return (
     <CommunityShell
-      currentUser={{
-        id: user.id,
-        email: user.email ?? "",
-        name: profile?.name ?? user.email?.split("@")[0] ?? "",
-        headshotUrl: profile?.headshot_url ?? null,
-        employer,
-        isPlatformAdmin: !!profile?.is_platform_admin,
-      }}
-      memberships={memberships}
-      invitations={invitations}
-      topics={topics}
-      regions={REGIONS}
-      regionCounts={regionCounts}
+      {...shell}
       initialRegion="EU"
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

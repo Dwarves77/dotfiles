@@ -40,7 +40,7 @@ export const WINDOW = 8;
 
 /** Committed ceiling: total duplicated normalized lines measured by detectClones over the scope on the
  *  tree this file ships on. Re-seed DOWN in the same commit that removes duplication; never up. */
-export const DUPLICATED_LINES_CEILING = 7569; // seeded 8061 on master ed2ee7c9 (lane L30); re-seeded 7569 by lane L31 (route guard, 89 route files); only re-seed DOWN
+export const DUPLICATED_LINES_CEILING = 6830; // seeded 8061 on master ed2ee7c9 (lane L30); 7569 after L31 (route guard, 89 routes); re-seeded 6866 by lane L33 (community shell context, route skeleton frames); gitignored files excluded from the scan, CI parity, lane L33 second push (6866 to 6830); only re-seed DOWN
 
 export function inScope(f) {
   const p = String(f).replace(/\\/g, '/');
@@ -117,6 +117,12 @@ export function changedFiles() {
   for (const line of run(['status', '--porcelain', '--untracked-files=all']).split(/\r?\n/)) if (line.length > 3) out.add(line.slice(3).trim().replace(/\\/g, '/'));
   return out;
 }
+
+// CI parity: gitignored paths never reach any fitness function; the exclusion lives in lib/glob.mjs
+// (globFiles) since lane L33, 2026-09-17, when F45 measured 6866 locally and 6830 on CI over three
+// generated src/app/.well-known/workflow route.js files. Re-exported here so this function's own test
+// pins the property.
+export { ignoredPaths as ignoredFiles, isIgnored, resetIgnoredCache } from '../lib/glob.mjs';
 
 export function scanTree() {
   const files = globFiles(SCOPE_GLOBS).filter(inScope);

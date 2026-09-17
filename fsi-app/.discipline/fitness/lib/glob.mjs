@@ -12,6 +12,7 @@
 //   - 'exact/path/file.ts'   exact match
 
 import { readdirSync, statSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, relative, sep } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
 
@@ -21,12 +22,41 @@ import { getRepoRoot } from '../../lib/context.mjs';
 // lands at fsi-app/coverage/, add a path-based exclusion instead of a name-based one.
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', '.vercel']);
 
+// CI parity: the walk is over the file system, so a gitignored file counts locally and never on the CI
+// checkout. Lane L33 (2026-09-17) measured F45 at 6866 locally and 6830 on CI (three generated
+// src/app/.well-known/workflow route.js files), and the brief lanes' gitignored scripts/tmp builders made
+// F46 count two extra hosts that exist in no commit. Gitignored paths never come back from globFiles.
+// `--directory` collapses an ignored directory (node_modules) to one entry; `--full-name` keeps paths
+// repo-relative whatever the cwd. Memoised per process: forty functions call globFiles in one run.
+let ignoredCache = null;
+export function ignoredPaths() {
+  if (ignoredCache) return ignoredCache;
+  try {
+    const out = execFileSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '--full-name', '-z'], {
+      cwd: getRepoRoot(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024,
+    });
+    ignoredCache = out.split('\0').filter(Boolean).map((f) => f.replace(/\\/g, '/'));
+  } catch {
+    ignoredCache = [];
+  }
+  return ignoredCache;
+}
+
+// Tests plant files after the first scan; a fresh hook or CI process never needs this.
+export function resetIgnoredCache() { ignoredCache = null; }
+
+export function isIgnored(path, ignored = ignoredPaths()) {
+  const p = path.replace(/\\/g, '/');
+  return ignored.some((e) => e === p || (e.endsWith('/') && p.startsWith(e)));
+}
+
 export function globFiles(patterns) {
   const root = getRepoRoot();
+  const ignored = ignoredPaths();
   const all = new Set();
   for (const pattern of patterns) {
     for (const file of expandPattern(root, pattern)) {
-      all.add(file);
+      if (!isIgnored(file, ignored)) all.add(file);
     }
   }
   return Array.from(all).sort();
