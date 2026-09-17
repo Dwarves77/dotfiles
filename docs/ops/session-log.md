@@ -15,7 +15,7 @@ importer", one of 292 authoring scratch files in that worktree. `fsi-app/scripts
 directories (scripts/_snapshots, scripts/_plans) and not this one, so the local gate was stricter than
 CI in the one direction L22 did not cover [CONFIRMED]. Fix: one exemption line in
 `inWidenedScope`, with a test that the directory is exempt at any depth and a sibling that merely
-starts with "tmp" is not. F25 test file 48 to 49 tests.
+starts with "tmp" is not. F25 test file 47 to 48 tests.
 
 ## 2026-09-16, W9 lane L23: provenance pointers are not figures (numeric-figure mirror), batch 004b
 
