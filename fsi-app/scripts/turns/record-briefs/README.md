@@ -328,6 +328,19 @@ source rather than writing something the ground step will quarantine anyway.
    implies:** cite every figure in `claim_text` exactly as it appears in the claim's own `source_span`
    (currency marks, percent signs, and thousands separators may differ; the digits and any decimal point
    may not), or drop the figure from `claim_text` and let the span alone carry it.
+   **Provenance pointers are not figures (lane L23, 2026-09-16):** the mirror measures `claim_text` AFTER
+   stripping the leading slot tag (`[section12]`, `[effective_date]`) and every legal locator that names
+   where the quote sits (`Section 61(6)`, `Article 8(2)`, `Regulation (EU) No 510/2011`, `Schedule 2`,
+   `s. 60(1)`), because those digits point at the source, they do not state a fact. A dotted date in
+   either text (`30.6.2014`, `31.12.2020`) is measured as its parts, like an ISO date. Everything else
+   (`28-day`, `1974`, `EUR 6,800`) is still measured: write it as the span writes it, or leave it out.
+   Batch 004 was refused whole on 260 pointers before this rule; `figureCheckText` in `schema.mjs` is
+   the one place the exemption lives, and `record-briefs.test.mjs` pins both halves.
+   **Named limitation (words versus digits):** when the source spells a date or amount in words ("the
+   first day of April in the year two thousand and fifteen"), no claim can carry it in digits, and the body
+   cannot state it in digits either (Gate A needs a covering claim). Write it in the text's own words in
+   both places, as batch 004b does for 15b1c540. A words-to-digits equivalence in the mirror is a later
+   lane, not a workaround here.
 
 **The `allow_brief_overwrite` flag.** Task 3.3's own write site refuses to re-generate a non-`record`-grade
 item (an existing brief) unless `--allow-brief-overwrite` is passed explicitly; `.github/workflows/brief-

@@ -5,6 +5,31 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-16, W9 lane L23: provenance pointers are not figures (numeric-figure mirror), batch 004b
+
+Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l23-slot-tag-figure-mirror-2026-09-16, cut
+from master 18eb8f85. First brief-apply dry run after D32 (run 35154461843, batch 004 on master) refused the
+whole file: 260 numeric-figure mirror errors (D30, lane L19).
+
+**Cause [CONFIRMED].** The mirror measured every two-digit run in `claim_text`, including numbers that point
+at the source rather than state a fact: the leading slot tag (`[section12]`, 134 of the 260), legal locators
+in the author's label (`Section 61(6)`, `Article 8(2)`, `Regulation (EU) No 510/2011`, `point 2.1.2`), an
+instrument's short title (`the 2012 Regulations`), and dotted datelines the figure regex read as decimals
+(`30.6.2014` as `30.6`). Not one of the 260 was a wrong figure. Every batch with a claim in sections 10 and
+up fails this way, so it blocked all population.
+
+**Fix.** `scripts/turns/record-briefs/schema.mjs`: `figureCheckText` strips the slot tag, legal locators and
+instrument short titles before the mirror measures; `numericFiguresIn` splits a dotted date into its parts
+so it behaves like an ISO date. Everything else in `claim_text` (amounts, `28-day`, bare years) is still
+measured. Schema version `rb1-2026-09-16.1`. README rule 7 documents the exemption and a named limitation
+(a source that spells a date in words cannot be restated in digits anywhere in the brief).
+
+**Guards.** `record-briefs.test.mjs` 70 to 75 tests: slot tag passes, locators pass, `28-day` still refused,
+dotted date passes, `figureCheckText` unit. Batch 004 mirror errors 260 to 21 (all in the 39 already applied
+items, left as an authored record). The 10 remaining record-grade items (ids 139f823b to 16432987, confirmed
+by a grade read) are re-cut as `record-briefs-004b.json` with three label edits and one body row reworded to
+the source's own words; the file validates clean under the new validator.
+
 ## 2026-09-16, W9 lane L22: local gate runs the fitness runner; harness hash ignores line endings (first-push-red class fix)
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l22-local-ci-parity-2026-09-16, cut from
