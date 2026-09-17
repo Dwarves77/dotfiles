@@ -16,7 +16,7 @@
 // migrated legacy call sites; any NEW ungated call site is F15-RED.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
+import { streamMessagesText, ANTHROPIC_MESSAGES_URL } from "@/lib/agent/anthropic-stream.mjs"; // F46: api.anthropic.com's one home (lane L35)
 import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
 import { costUsdForModel, inputUsdPerMtokForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
 import { cacheSavingsUsd } from "@/lib/agent/prompt-cache.mjs";
@@ -114,7 +114,7 @@ export async function spendMessage(
   assertBudget(ticket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
   guardPricedLine(ticket);                 // operator-priced-line authorization (when the ticket carries one)
   const model = opts.model;
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch(ANTHROPIC_MESSAGES_URL, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -146,7 +146,7 @@ export async function spendSearch(
   assertBudget(ticket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
   guardPricedLine(ticket);                 // operator-priced-line authorization (when the ticket carries one)
   const model = opts.model ?? "claude-sonnet-4-6";
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch(ANTHROPIC_MESSAGES_URL, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "anthropic-beta": WEB_SEARCH_BETA },
     body: JSON.stringify({ model, max_tokens: opts.maxTokens ?? 4000, tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: opts.maxUses ?? 6 }], system: opts.system, messages: [{ role: "user", content: opts.user }] }),

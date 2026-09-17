@@ -4,7 +4,10 @@
 // idle watchdog as TRANSIENT (retryable), never fatal. CI-gated via discipline.yml.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createSSEAccumulator, streamMessagesText } from "./anthropic-stream.mjs";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { createSSEAccumulator, streamMessagesText, ANTHROPIC_MESSAGES_URL } from "./anthropic-stream.mjs";
 import { isFatalAnthropic } from "./anthropic-error.mjs";
 
 const enc = new TextEncoder();
@@ -164,4 +167,27 @@ test("accumulator: cache_read tokens captured on a cache-hit call; absent fields
   legacy.feed('event: message_start\ndata: {"type":"message_start","message":{"id":"m","usage":{"input_tokens":500,"output_tokens":1}}}\n\n');
   assert.equal(legacy.state.usage.cache_creation_input_tokens, 0);
   assert.equal(legacy.state.usage.cache_read_input_tokens, 0);
+});
+
+// ── api.anthropic.com one-home constant (lane L35, F46).
+test("ANTHROPIC_MESSAGES_URL: the one exported constant every Anthropic caller composes from", () => {
+  assert.equal(ANTHROPIC_MESSAGES_URL, "https://api.anthropic.com/v1/messages");
+});
+
+// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep). Fails the build the
+// moment a second copy of the host string appears anywhere in scope.
+test("ONE home for api.anthropic.com: no other in-scope source file builds this host's URL", () => {
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+  const files = execFileSync("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
+  const EXCEPTIONS = new Set(["fsi-app/src/lib/agent/anthropic-stream.mjs"]);
+  const hostRe = /https?:\/\/api\.anthropic\.com/;
+  const offenders = [];
+  for (const f of files) {
+    if (EXCEPTIONS.has(f)) continue;
+    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    if (hostRe.test(src)) offenders.push(f);
+  }
+  assert.deepEqual(offenders, [], "import src/lib/agent/anthropic-stream.mjs's ANTHROPIC_MESSAGES_URL instead of building an api.anthropic.com URL in: " + offenders.join(", "));
 });
