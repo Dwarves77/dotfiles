@@ -505,6 +505,23 @@ test('readAllByIds: an extra `match` filter is re-applied on top of the id filte
   assert.ok(calls.every((c) => c.ops.some((o) => o[0] === 'eq' && o[1] === 'status' && o[2] === 'active')));
 });
 
+test('readAllByIds: a non-id idColumn (a foreign key) accepts several rows per id by default (lane L27, capture-static-primaries run 35198723124)', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].flatMap((id) => [{ intelligence_item_id: id, result_chars: 300 }, { intelligence_item_id: id, result_chars: 12 }]), error: null };
+  }, []));
+  const rows = await readAllByIds('agent_run_searches', 'intelligence_item_id, result_chars', ['a', 'b'], { idColumn: 'intelligence_item_id' });
+  assert.equal(rows.length, 4);
+});
+
+test('readAllByIds: manyPerId:false on a non-id column keeps the fail-closed throw', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: [...inOp[2], 'extra'].map((u) => ({ document_url: u })), error: null };
+  }, []));
+  await assert.rejects(() => readAllByIds('census_worklist', 'document_url', ['u1', 'u2'], { idColumn: 'document_url', manyPerId: false }), /more rows.*than ids/);
+});
+
 test('readAllByIds: throws if a chunk somehow returns more rows than ids requested (fail-closed, not a silent over-read)', async () => {
   __setWriteClientForTest(() => makeClient((s) => {
     const inOp = s.ops.find((o) => o[0] === 'in');

@@ -269,7 +269,10 @@ export async function readAll(table, columns = "*", { match, orderBy = "id", cli
  * module) builds on the identical core instead of a second hand-rolled chunking loop (IN-CHUNK,
  * 2026-09-06). This function is that core's `.mjs`/readAll-shaped twin.
  */
-export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client } = {}) {
+// manyPerId (lane L27): a filter on any column other than the primary key "id" may return several rows per
+// id (a foreign key such as intelligence_item_id), so the over-read throw in fetchAllByIdChunks is skipped
+// for those by default; pass manyPerId:false to keep it for a non-id column that is unique.
+export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client, manyPerId = idColumn !== "id" } = {}) {
   return fetchAllByIdChunks(
     ids,
     (slice) =>
@@ -280,7 +283,7 @@ export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk
           return match ? match(qi) : qi;
         },
       }),
-    { chunk },
+    { chunk, manyPerId },
   );
 }
 

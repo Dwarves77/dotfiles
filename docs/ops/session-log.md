@@ -5,6 +5,25 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L27: id-chunked reads on a foreign-key column accept several rows per id
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l27-many-rows-per-id-2026-09-17, cut
+from master b19dea84. The first live dispatch of `capture-static-primaries` (maintenance run 35198723124,
+dry) threw before any work: `fetchAllByIdChunks: got 1655 rows back for 1279 requested ids`. The helper's
+over-read throw is a primary-key invariant ("impossible for a same-column id filter"); the capture step
+filters `agent_run_searches` by `intelligence_item_id`, a foreign key under which an item legitimately
+holds several capture rows [CONFIRMED by the run log and the helper's own text]. The same shape sits at
+every other foreign-key caller (`section_claim_provenance.intelligence_item_id` in record-hollow-sweep and
+migration-299-precheck, `item_cross_references` in generate-theme-brief, `census_worklist.document_url`,
+the census exporter's generic key column), latent until an id carries more than one row.
+
+**Fix (class, one place):** `src/lib/db/paginate.mjs` `fetchAllByIdChunks` takes `manyPerId`; when true the
+over-read throw is skipped. `scripts/lib/db.mjs` `readAllByIds` defaults `manyPerId` to `idColumn !== "id"`
+(a non-primary-key column may repeat), overridable with `manyPerId:false` for a unique non-id column. No
+call site changes. Guards: two paginate tests (manyPerId accepts, default still throws) and two db tests
+(a foreign-key column accepts by default; `manyPerId:false` keeps the throw). paginate.test.mjs 11 to 13,
+db.test.mjs 30 to 32; capture-static-primaries.test.mjs 49 unchanged and green.
+
 ## 2026-09-17, W9 lane L26: batch 005's pointer shapes in the numeric-figure mirror (third cut)
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l26-pointer-shapes-batch-005-2026-09-17,
