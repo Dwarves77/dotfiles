@@ -85,6 +85,118 @@ same CommunityShell with the same props from the same reads; the eight skeletons
 markup and styles (the frame div and the box style object are the same values, now imported). Loading
 priority item 6 read (ux-laws.md, design-principles.md); nothing in this lane adds a choice, a target, a
 grouping or a default. F35 and the rendering guard measure unchanged components.
+## 2026-09-17, W9 lane L35: one home per external host (removal order item 4)
+
+Lane brief, worktree wt-l35-one-home-per-host, branch lane/w9-l35-one-home-per-host-2026-09-17, cut from
+master 94e219b5. Removal order item 4 of the 2026-09-17 system health audit: consolidate the seven
+multi-home hosts F46 seeded a both-ways ratchet for at lane L31 (eur-lex.europa.eu 7 files,
+www.federalregister.gov 6, www.ecfr.gov 3, api.anthropic.com 2, ec.europa.eu 2, www.legislation.gov.uk 2,
+www.linkedin.com 2), one host per commit, in that order.
+
+**Per-host homes [CONFIRMED, six commits, 34786560..86013835].**
+- **eur-lex.europa.eu** onto `src/lib/sources/identifier-variants.mjs` (already owned the bulk of the
+  build via `euCandidates`). Added `celexTxtHtmlUrl`, `celexTxtUrl`, `eliPathUrl`, `eliUrl`,
+  `eurlexSearchUrl`, `ojDailyViewUrl` (moved from `register-walk.mjs`), `EUR_LEX_PORTAL_URL`,
+  `EUR_LEX_KNOWN_DEAD_OJ_TXT_URL`. Moved onto it: `register-walk.mjs`, `seek-more.mjs`,
+  `scripts/mint/export-census-rows.mjs`, `scripts/turns/run-source-sweep.mjs`,
+  `scripts/verify/wave-acceptance-audit.mjs`. **NOT fully consolidated**:
+  `scripts/maintenance/capture-static-primaries.mjs` also builds eur-lex.europa.eu URLs
+  (`deriveCelexTxtHtmlUrl`, `STATIC_TEXT_HOSTS`) and is explicitly out of this lane's write set (lane
+  brief: "Do not touch ... scripts/maintenance ... other lanes own them"). F46 therefore still counts
+  eur-lex.europa.eu as multi-home (2 files) and it is NOT added to `HOST_HOMES`; `MULTI_HOME_CEILING`
+  could only reach 1, not 0, because of this one file. [CONFIRMED] by `hostsByFile` scan before and after
+  every other file's edit.
+- **www.federalregister.gov + www.ecfr.gov** homed TOGETHER in one commit onto
+  `src/lib/sources/transport-escalation.mjs` (its `apiEndpointFor` was already the reused-not-rederived
+  host predicate every other consumer deferred to). Both hosts left the multi-home set in the same edit
+  because they are served by the same functions in the same files (`api-transport.mjs`'s two fetchers,
+  `identifier-variants.mjs`'s `usCandidates`), not two separable changes: splitting them into two commits
+  would have meant committing one host's fix while the working tree already carried the other's. Exported
+  `FEDERAL_REGISTER_API_BASE`, `FEDERAL_REGISTER_PORTAL_URL`, `ECFR_API_BASE`, `ECFR_PORTAL_URL`. Moved
+  onto it: `api-transport.mjs`, `identifier-variants.mjs`, `register-walk.mjs`, `run-source-sweep.mjs`,
+  `export-census-rows.mjs`. `register-walk.mjs`/`run-source-sweep.mjs` are source-sweep's governing files;
+  `scripts/harness-runs/source-sweep/PENDING-RUN.md` re-stamped twice (once for eur-lex.europa.eu's
+  register-walk/run-source-sweep edits, once here) to `sha256:32161a97c0405906`, no behaviour change.
+- **api.anthropic.com** onto `src/lib/agent/anthropic-stream.mjs` (already "the sanctioned transport" per
+  `spend-client.ts`'s own header). Exported `ANTHROPIC_MESSAGES_URL`. Moved onto it: `spend-client.ts`'s
+  `spendMessage` and `spendSearch` (the two non-streaming raw-fetch call sites). Pre-commit rule 016
+  (canonical Anthropic path) flagged the new sweep test for containing the literal host string; fixed by
+  adding `anthropic-stream.test.mjs` to the rule's `PERMITTED` list with the same "references the pattern
+  to enforce it" reasoning the rule already applies to `.discipline/`.
+- **ec.europa.eu** onto `scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs`. **[CONFIRMED]
+  finding, not fixed (out of scope): its sibling `eurostat-nrg-pc-205-producer.mjs` runs
+  `runEnvelopeProducer` UNCONDITIONALLY at module top level (no `IS_MAIN` guard, unlike its sibling): an
+  import of that file executes a live producer run as a side effect.** The home was chosen the other way
+  round (nrg-pc-205 imports the constant FROM lc-lci-lev, never the reverse) specifically to avoid
+  triggering this. Exported `EUROSTAT_DISSEMINATION_API_BASE`. New test
+  `eurostat-lc-lci-lev-producer.test.mjs` (no prior coverage existed for either producer file); covered by
+  the existing `scripts/producers/*/*.test.mjs` glob, no wiring needed. No live run of either producer:
+  both fetch ec.europa.eu and this lane's rules forbid network fetches.
+- **www.legislation.gov.uk** onto `src/lib/sources/identifier-variants.mjs` (continuation of the same
+  file; its `ukCandidates` already owned the fuller builder). Exported `LEGISLATION_UK_PORTAL_URL`,
+  `legislationUkUrl`. Moved onto it: `seek-more.mjs`'s own (differently-matching) `ukCandidates`.
+- **www.linkedin.com** onto `src/app/api/auth/linkedin/start/logic.ts`, already the shared import site
+  between `start/route.ts` and `callback/route.ts` per its own header; neither route owned more of the
+  host than the other. Exported `LINKEDIN_OAUTH_BASE_URL`. New test `logic.test.mjs` (no prior coverage
+  existed); no `src/app/api/**` glob existed in `run-test-suite.sh` before this lane, added
+  `fsi-app/src/app/api/auth/linkedin/start/*.test.mjs`; `glob-portability.test.mjs` re-verified green.
+  `api.linkedin.com` (the profile/email REST calls) and the bare `linkedin.com` vanity-URL are DIFFERENT
+  hosts, out of this host's scope, left as-is.
+
+**URL shapes.** Every distinct shape kept its own named builder; none were silently collapsed. Where two
+files built what LOOKED like the same shape via different derivation logic (seek-more.mjs's free-text
+CELEX/ELI extraction vs. identifier-variants.mjs's identifier-parsed derivation), the underlying URL
+STRING was identical so one builder correctly serves both; where the shapes actually differed (seek-more's
+variable-length ELI path vs. euCandidates' fixed `{kind}/{year}/{num}/oj/eng` shape), both stayed distinct
+named builders (`eliPathUrl` vs. `eliUrl`) composing off the same host prefix.
+
+**F46: 7 multi-home hosts to 1 (eur-lex.europa.eu only, see above).** `HOST_HOMES` gained all six other
+hosts; `MULTI_HOME_CEILING` re-seeded 7 -> 5 -> 4 -> 3 -> 2 -> 1 across the six commits. F46 tests 5/5 at
+the final state (LIVE ratchet: multi count 1 == ceiling 1).
+
+**F45: 7,569 before, 7,569 after, no re-seed.** Measured exactly at the committed ceiling both before
+and after (new sweep-test boilerplate across seven files offset the removed URL-building duplication); F45
+live test passes with no ratchet action needed.
+
+**Removal order item 4 ["Federal Register, eCFR, legislation.gov.uk, Eurostat, the oil bulletin,
+Anthropic"]: DONE for the six hosts this lane fully consolidated; eur-lex.europa.eu partially (blocked by
+the write-set boundary above).** The "oil bulletin" clause in item 4's own text refers to
+`energy.ec.europa.eu` (fetch-oil-bulletin.mjs), a DIFFERENT host string from `ec.europa.eu` (the two
+Eurostat producers this lane homed) and never part of F46's tracked multi-home list: [CONFIRMED] via
+`hostsByFile` scan, `energy.ec.europa.eu` already resolves to exactly one non-reference file
+(`fetch-oil-bulletin.mjs`; its other two appearances, `source-licence.mjs` and `series-item-map.mjs`, are
+already F46 `REFERENCE_FILES`), already single-homed by construction, not touched by this lane.
+
+**Gates, final committed state:** `node --test` over every touched module (identifier-variants,
+register-walk, seek-more, transport-escalation, api-transport, anthropic-stream, spend-client.npmtest,
+eurostat-lc-lci-lev-producer, linkedin logic) all green; `npx tsc --noEmit` clean at every commit;
+`node .discipline/fitness/runner.mjs` 0 violations at the final state.
+
+**Corrections made in-session:** the first attempt at the eur-lex.europa.eu commit assumed
+`capture-static-primaries.mjs` could be imported from; re-read the lane brief's do-not-touch list, reverted,
+left it as a named, documented exception instead. The first attempt at ec.europa.eu wired the import the
+WRONG direction (lc-lci-lev importing FROM nrg-pc-205), which would have executed a live network fetch on
+every future import of the safe file; caught by reading `run-envelope-producer.mjs`'s own `process.argv`
+usage before running anything, reversed before any test ran.
+
+**F27 follow-up commit [CONFIRMED, 8bfc306e].** The ec.europa.eu commit's import of
+`eurostat-lc-lci-lev-producer.mjs` into `eurostat-nrg-pc-205-producer.mjs` gave that producer a third
+first-party seam; F27 (producer-seam-proof) correctly flagged that no single proof file imported all
+three seams together. Fixed by extending the existing
+`regional-eurostat-nrg-pc-205-composition.test.mjs` to also import `EUROSTAT_DISSEMINATION_API_BASE` and
+assert both producers compose their dataset URL from it, proving this lane's actual change rather than
+importing for coverage alone. `node .discipline/fitness/runner.mjs` re-run synchronously after this fix:
+0 violations.
+
+**Not done:** eur-lex.europa.eu's second home (blocked by write-set boundary, see above, needs either a
+write-set expansion or a follow-on lane once `scripts/maintenance` is not locked by another lane). No
+database access, no network fetches, no push, no PR, per the lane brief. The aggregate
+`run-test-suite.sh` invocation did not return a result inside this session (background-task processes
+were killed by an environment reset unrelated to this lane's edits, not a test failure); every touched
+module's own `node --test` run is independently green (enumerated in the final report), and the fitness
+runner's synchronous, un-backgrounded final run passed 40/40 with 0 violations.
+
+---
 
 ## 2026-09-17, W9 lane L31: one route guard for every API route, and F46 (one home per external host)
 
