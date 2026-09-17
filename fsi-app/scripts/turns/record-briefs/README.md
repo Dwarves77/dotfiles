@@ -336,6 +336,16 @@ source rather than writing something the ground step will quarantine anyway.
    (`28-day`, `1974`, `EUR 6,800`) is still measured: write it as the span writes it, or leave it out.
    Batch 004 was refused whole on 260 pointers before this rule; `figureCheckText` in `schema.mjs` is
    the one place the exemption lives, and `record-briefs.test.mjs` pins both halves.
+   The pointer classes, each learned from a real batch and pinned by a test (lanes L23 and L26): the
+   leading slot tag including custom keys with hyphens (`[annual-report-10]`); legal locators with a
+   keyword and one number or a list (`Section 61(6)`, `Sec. 60.4305(e)`, `Articles 7, 11, 12 and 14`,
+   `Regulations 9 to 15`, `Annex XVII entry 61`, `point 2.1.2`, `Target 9.1`, `SDG 9.4`); an instrument
+   title built from a year and a noun or acronym (`the 2012 Regulations`, `the 2020 Amendment Order`,
+   `the IMO 2023 GHG Strategy`, `the 2027 TFMP`); a code citation (`17 CRR-NY Part 8`, `40 CFR 60`);
+   a hyphenated identifier (`COVID-19`). Not pointers, still measured: a date the label computes or
+   cites from elsewhere in the pool (`30 December 2024 (the third day after its 27 December 2024
+   publication)`), a threshold (`sub-10,000 GT`), an amount (`EUR 100 per tonne`), a period name
+   (`NEPN 2030-2040`): give each its own claim with its own span, or leave it out of claim_text.
    **Named limitation (words versus digits):** when the source spells a date or amount in words ("the
    first day of April in the year two thousand and fifteen"), no claim can carry it in digits, and the body
    cannot state it in digits either (Gate A needs a covering claim). Write it in the text's own words in

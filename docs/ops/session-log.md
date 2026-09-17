@@ -5,6 +5,22 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L26: batch 005's pointer shapes in the numeric-figure mirror (third cut)
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l26-pointer-shapes-batch-005-2026-09-17,
+cut from master 4454d2d0. Batch 005 (26 regenerated briefs, wt-renorm, never applied) measured under the
+merged validator: 71 mirror errors in 16 items. Five more pointer classes, each a name or a locator and
+never a figure the reader takes as fact [CONFIRMED by reading every error with its span]: a custom slot
+tag with hyphens (`[annual-report-10]`), a numbered target or goal (`Target 9.1`, `SDG 9.4`), an
+instrument title built from a year and a noun or acronym (`the IMO 2023 GHG Strategy`, `the 2027 TFMP`),
+a code citation (`17 CRR-NY Part 8`, `40 CFR 60`), a hyphenated identifier (`COVID-19`).
+`figureCheckText` strips them; two tests pin the shapes and keep a computed or elsewhere-cited date
+refused (`30 December 2024 (the third day after its 27 December 2024 publication)`). Batch 005 errors 71
+to 45; batches 004b and 006 stay at 0 (no regression). The 46 left are label restatements
+(dates cited from elsewhere in the pool, computed dates, a threshold, an amount, a period name) and need
+an author pass before batch 005 can apply. `record-briefs.test.mjs` 77 to 79 tests. README rule 7 now
+lists every pointer class and the residue that is not one.
+
 ## 2026-09-16, W9 lane L24: F25 exempts the gitignored scripts/tmp scratch directory
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l24-f25-scratch-dir-2026-09-16, cut from
