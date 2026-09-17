@@ -11,6 +11,7 @@ import {
   ukCandidates, usCandidates, genericSearchQueries, discoverCandidateUrls, detectScheme, rankCandidates,
   celexTxtHtmlUrl, celexTxtUrl, eliPathUrl, eliUrl, eurlexSearchUrl, ojDailyViewUrl,
   EUR_LEX_PORTAL_URL, EUR_LEX_KNOWN_DEAD_OJ_TXT_URL,
+  legislationUkUrl, LEGISLATION_UK_PORTAL_URL,
 } from "./identifier-variants.mjs";
 
 test("MANDATED GOLDEN: eu_clean_trucking_2024_1610 identifier → CELEX 32024R1610 + fetchable TXT URL + ELI", () => {
@@ -134,4 +135,35 @@ test("ONE home for eur-lex.europa.eu (except the write-set-excluded maintenance 
     if (hostRe.test(src)) offenders.push(f);
   }
   assert.deepEqual(offenders, [], "import src/lib/sources/identifier-variants.mjs instead of building an eur-lex.europa.eu URL in: " + offenders.join(", "));
+});
+
+// ── www.legislation.gov.uk one-home builders (lane L35, F46): every URL shape callers used, preserved.
+test("www.legislation.gov.uk builders: each named shape matches what callers built before consolidation", () => {
+  assert.equal(LEGISLATION_UK_PORTAL_URL, "https://www.legislation.gov.uk");
+  assert.equal(legislationUkUrl("uksi/2023/123"), "https://www.legislation.gov.uk/uksi/2023/123");
+  assert.equal(legislationUkUrl("uksi/2023/123/made"), "https://www.legislation.gov.uk/uksi/2023/123/made");
+  const uk = ukCandidates({ identifier: "uksi/2024/1234" });
+  assert.deepEqual(uk.urls, [
+    "https://www.legislation.gov.uk/uksi/2024/1234",
+    "https://www.legislation.gov.uk/uksi/2024/1234/made",
+    "https://www.legislation.gov.uk/uksi/2024/1234/contents",
+  ]);
+});
+
+// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep).
+import { execFileSync as execFileSyncUk } from "node:child_process";
+test("ONE home for www.legislation.gov.uk: no other in-scope source file builds this host's URL", () => {
+  const root = execFileSyncUk("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+  const files = execFileSyncUk("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
+  const EXCEPTIONS = new Set(["fsi-app/src/lib/sources/identifier-variants.mjs"]);
+  const hostRe = /https?:\/\/www\.legislation\.gov\.uk/;
+  const offenders = [];
+  for (const f of files) {
+    if (EXCEPTIONS.has(f)) continue;
+    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    if (hostRe.test(src)) offenders.push(f);
+  }
+  assert.deepEqual(offenders, [], "import src/lib/sources/identifier-variants.mjs instead of building a www.legislation.gov.uk URL in: " + offenders.join(", "));
 });

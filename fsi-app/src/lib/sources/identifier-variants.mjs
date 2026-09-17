@@ -152,6 +152,14 @@ export function euCandidates({ identifier, canonicalKey, itemType, instrumentTyp
   return { celex: [...celex], urls: [...new Set(urls)], eliPaths, searchUrls };
 }
 
+// www.legislation.gov.uk -- ONE HOME (lane L35, F46 external-host-home).
+export const LEGISLATION_UK_PORTAL_URL = "https://www.legislation.gov.uk";
+/** Any already-resolved legislation.gov.uk path (e.g. "uksi/2023/123", "uksi/2023/123/made"). PURE.
+ *  @param {string} path @returns {string} */
+export function legislationUkUrl(path) {
+  return `${LEGISLATION_UK_PORTAL_URL}/${path}`;
+}
+
 /** PURE. UK candidate set. legislation.gov.uk paths are identifier-derivable (uksi/2024/1234 → /uksi/2024/
  *  1234[/made|/contents]); a bare year/number tries the common instrument types; plus the site search.
  *  @param {{identifier?:string|null, title?:string|null}} [a] @returns {{urls:string[], searchUrls:string[]}} */
@@ -160,12 +168,12 @@ export function ukCandidates({ identifier, title } = {}) {
   const idm = String(identifier || "").match(/\b(uksi|ukpga|ukssi|ssi|wsi|nisr)\/(\d{4})\/(\d+)/i);
   if (idm) {
     const path = `${idm[1].toLowerCase()}/${idm[2]}/${idm[3]}`;
-    urls.push(`https://www.legislation.gov.uk/${path}`, `https://www.legislation.gov.uk/${path}/made`, `https://www.legislation.gov.uk/${path}/contents`);
+    urls.push(legislationUkUrl(path), legislationUkUrl(`${path}/made`), legislationUkUrl(`${path}/contents`));
   } else {
     const yn = parseYearNumber(identifier);
-    if (yn) for (const t of ["uksi", "ukpga"]) urls.push(`https://www.legislation.gov.uk/${t}/${yn.year}/${yn.number}`);
+    if (yn) for (const t of ["uksi", "ukpga"]) urls.push(legislationUkUrl(`${t}/${yn.year}/${yn.number}`));
   }
-  if (title) searchUrls.push(`https://www.legislation.gov.uk/all?title=${encodeURIComponent(title)}`);
+  if (title) searchUrls.push(`${LEGISLATION_UK_PORTAL_URL}/all?title=${encodeURIComponent(title)}`);
   return { urls: [...new Set(urls)], searchUrls };
 }
 

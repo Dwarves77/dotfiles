@@ -20,7 +20,7 @@
 // remediation-discipline (category 13, RD-14; no-shadow) + source-credibility-model (qualification).
 
 import { apiEndpointFor } from "./transport-escalation.mjs";
-import { discoverCandidateUrls, celexTxtHtmlUrl, eliPathUrl } from "./identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
+import { discoverCandidateUrls, celexTxtHtmlUrl, eliPathUrl, legislationUkUrl } from "./identifier-variants.mjs"; // F46: eur-lex.europa.eu + www.legislation.gov.uk's one home (lane L35)
 
 /** @param {unknown} u */
 const httpsOnly = (u) => typeof u === "string" && /^https:\/\//i.test(u);
@@ -51,7 +51,7 @@ export function eurlexCandidates({ identifier, sourceUrl } = {}) {
 export function ukCandidates({ identifier } = {}) {
   const id = String(identifier || "");
   const m = id.match(/uksi\/(\d{4})\/(\d+)/i) || id.match(/\bS\.?I\.?\s*(\d{4})\/(\d+)/i) || id.match(/^(\d{4})\s*No\.?\s*(\d+)$/i);
-  return m ? [`https://www.legislation.gov.uk/uksi/${m[1]}/${m[2]}`] : [];
+  return m ? [legislationUkUrl(`uksi/${m[1]}/${m[2]}`)] : [];
 }
 
 /** Norway (THE DESIGN FIXTURE): a forskrift citation "FOR-YYYY-MM-DD-N" — or the bare "YYYY-MM-DD-N" when the
