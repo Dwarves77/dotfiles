@@ -23,9 +23,8 @@
 // returns 204 regardless.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit } from "@/lib/api/rate-limit";
 import { captureError } from "@/lib/telemetry/capture-error";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +33,8 @@ export const dynamic = "force-dynamic";
 const BODY_MAX_BYTES = 32 * 1024;
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let payload: { message?: unknown; stack?: unknown; path?: unknown } = {};
   try {

@@ -25,11 +25,8 @@
 // itself).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute, type ServiceSupabase } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const NO_STORE = "no-store";
 
@@ -48,23 +45,10 @@ function withNoStore(resp: NextResponse): NextResponse {
 }
 
 async function requireAdmin(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return { error: withNoStore(auth) } as const;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return { error: withNoStore(limited) } as const;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return { error: withNoStore(auth) } as const;
+  const { supabase } = auth;
 
-  const supabase = getServiceSupabase();
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return {
-      error: withNoStore(
-        NextResponse.json(
-          { error: "Platform admin access required" },
-          { status: 403, headers: rateLimitHeaders(auth.userId) }
-        )
-      ),
-    } as const;
-  }
   return { userId: auth.userId, supabase } as const;
 }
 
@@ -73,7 +57,7 @@ async function requireAdmin(request: NextRequest) {
  *  `column` is the value collected per row (e.g. "id" for intelligence_items, "intelligence_item_id" for
  *  corpus_turn_requests — the two tables' own row identity is not the value this route needs from them). */
 async function readAllValues(
-  supabase: ReturnType<typeof getServiceSupabase>,
+  supabase: ServiceSupabase,
   table: string,
   column: string,
   applyFilter: (q: any) => any

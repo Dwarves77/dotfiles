@@ -26,11 +26,8 @@
 //   - 401/403 responses: see above. Admin status is sticky for the session.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 // PERF-9 (2026-09-04, item 5, ADR-026 §4): AttentionCounts/EMPTY_COUNTS/fetchAttentionCounts moved
 // to a sibling logic.ts so /api/workspace/bootstrap/route.ts can share the SAME unstable_cache entry
 // (same key, same tag) instead of registering a second, independent cache for the identical RPC.
@@ -49,31 +46,9 @@ export async function GET(request: NextRequest) {
   // returns 401 on missing/invalid token before the rate limiter or any
   // DB query touches. Stamp negative-cache on the 401 so a non-admin
   // browser doesn't keep refetching on every navigation.
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return withCacheHeader(auth, NEGATIVE_CACHE);
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return withCacheHeader(limited, NEGATIVE_CACHE);
-
-  const supabase = getServiceSupabase();
-
-  // Platform-admin gate. Service-role client bypasses RLS so the role
-  // lookup works regardless of the caller's session scoping. Stamp the
-  // 403 with negative-cache so authenticated non-admins don't re-query
-  // org_memberships every navigation.
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      {
-        status: 403,
-        headers: {
-          ...rateLimitHeaders(auth.userId),
-          "Cache-Control": NEGATIVE_CACHE,
-        },
-      }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return withCacheHeader(auth, NEGATIVE_CACHE);
+  const { supabase } = auth;
 
   const { row, rpcError } = await fetchAttentionCounts(auth.userId);
 

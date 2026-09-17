@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { revalidateTag } from "next/cache";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
@@ -47,11 +46,8 @@ async function resolveItemUuid(
 // → { items: [{ itemId, legacyId, title, isArchived, archiveNote, archivedAt }] }
 // The caller's personally-archived items, for the Archive settings surface.
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
 
@@ -102,11 +98,8 @@ async function handleGET(request: NextRequest) {
 // Body: { itemId: string, isArchived: boolean, archiveNote?: string|null }
 // Upserts (user_id, item_id) into user_item_state.
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
 
@@ -180,11 +173,8 @@ async function handlePOST(request: NextRequest) {
 // DELETE /api/workspace/personal-state
 // Body: { itemId: string } — removes the caller's row entirely.
 async function handleDELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
 

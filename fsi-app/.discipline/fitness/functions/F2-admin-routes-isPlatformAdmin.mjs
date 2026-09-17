@@ -10,7 +10,9 @@
 // and correctly does not reference isPlatformAdmin or x-worker-secret — the auth gate still lives
 // in route.ts, which still calls the moved decision function. Scanning logic.ts here would be a
 // false positive on every admin route BUILDGATE (or a future lane) splits this way.)
-// Check: each route file must contain isPlatformAdmin reference (call or import).
+// Check: each route file must contain an isPlatformAdmin reference (call or import) OR call the shared
+// admin guard requireAdminRoute (src/lib/api/route-guard.ts, lane L31 2026-09-17): the ONE home of the
+// authenticate + rate-limit + isPlatformAdmin sequence the routes used to inline by hand.
 //
 // Known exceptions: worker-secret-gated routes use x-worker-secret header instead.
 // These are explicitly allowlisted per the precedent established in Track B-code:
@@ -32,7 +34,7 @@ const WORKER_SECRET_ALLOWLIST = new Set([
 export const fitnessFunction = {
   id: 'F2',
   name: 'admin-routes-isPlatformAdmin',
-  description: 'Every API route under src/app/api/admin/ must call isPlatformAdmin (or be on the worker-secret allowlist).',
+  description: 'Every API route under src/app/api/admin/ must call isPlatformAdmin or the shared requireAdminRoute guard (or be on the worker-secret allowlist).',
   source: 'sprint-followups-discipline § Sweep-discipline rule (OBS-17 precedent)',
 
   enumerate() {
@@ -49,8 +51,8 @@ export const fitnessFunction = {
       return PASS;
     }
 
-    // Standard admin route: must contain isPlatformAdmin reference
-    if (/\bisPlatformAdmin\b/.test(content)) return PASS;
+    // Standard admin route: must contain the gate, inline (isPlatformAdmin) or through the shared guard
+    if (/\b(isPlatformAdmin|requireAdminRoute)\b/.test(content)) return PASS;
 
     // Check for per-line override (rare; should only be used for narrow exceptions)
     const lines = content.split(/\r?\n/);
@@ -60,7 +62,7 @@ export const fitnessFunction = {
 
     return [violation(
       1,
-      'Admin API route does not call isPlatformAdmin. Add the gate, OR if this is a worker-secret-gated cron route, add the file path to F2.mjs WORKER_SECRET_ALLOWLIST.',
+      'Admin API route does not call isPlatformAdmin or requireAdminRoute. Add the shared guard (src/lib/api/route-guard.ts), OR if this is a worker-secret-gated cron route, add the file path to F2.mjs WORKER_SECRET_ALLOWLIST.',
     )];
   },
 };

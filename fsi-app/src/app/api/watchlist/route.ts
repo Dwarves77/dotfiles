@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { revalidateTag } from "next/cache";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
@@ -122,10 +121,8 @@ const noOrgError = () =>
 // this item_type, personal and team, both scopes in one round trip — same shape as the single-item
 // GET below, just unfiltered by item_id.
 async function handleGETList(request: NextRequest, itemType: string) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
@@ -176,10 +173,8 @@ async function handleGET(request: NextRequest) {
     return handleGETList(request, itemTypeOnly);
   }
 
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const p = readParams(request);
   if (!p) return paramError();
@@ -226,10 +221,8 @@ async function handleGET(request: NextRequest) {
 // Body: { itemType, itemId, scope?: "personal"|"team", note?: string }
 // → { watched: true, scope }
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let body: Record<string, unknown>;
   try {
@@ -312,10 +305,8 @@ async function handlePOST(request: NextRequest) {
 // DELETE /api/watchlist?item_type=reg&item_id=<id>&scope=personal|team
 // → { watched: false, scope }
 async function handleDELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const p = readParams(request);
   if (!p) return paramError();

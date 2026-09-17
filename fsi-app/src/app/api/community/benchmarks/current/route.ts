@@ -35,11 +35,8 @@
 // to reach the extra DB-side defences degrades to that floor, never to "publish anything."
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   scopeBenchmarksForReader,
@@ -95,11 +92,8 @@ interface InstrumentRow {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { searchParams } = new URL(request.url);
   const sectorProfile = (searchParams.get("sector_profile") ?? "")

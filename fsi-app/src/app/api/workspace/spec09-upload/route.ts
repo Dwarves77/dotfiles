@@ -28,10 +28,10 @@
 // the request body).
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgMembershipFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import {
   parseCsvUpload,
   entityRefValuesForTable,
@@ -48,11 +48,8 @@ import {
 } from "./logic";
 
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
 

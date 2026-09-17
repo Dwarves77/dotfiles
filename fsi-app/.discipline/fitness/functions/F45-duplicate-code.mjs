@@ -21,10 +21,16 @@
 // the number stays honest. Deleting duplication is the only way the ceiling moves, and it moves in the
 // same commit.
 //
+// NAMING THE CULPRIT. A regression message lists the clone pairs that touch files changed on the branch
+// (against origin/master, plus the working tree's modified and untracked files) before the largest pairs
+// in the tree, so a small new copy is named and not buried under the 100-window families that predate it
+// (lane L31's attack proof found the first message naming only the largest pairs).
+//
 // SCOPE. fsi-app/src/** and fsi-app/scripts/** (.mjs/.js/.ts/.tsx), minus tests and proofs (they may
 // legitimately repeat fixtures), fixtures/, _archive/ (inert by construction), scripts/harness-runs/ and
 // scripts/_snapshots/ (run records and data, similar by design), and generated .d.ts. Every exclusion is
 // named here; nothing is excluded silently.
+import { execFileSync } from 'node:child_process';
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { readFile } from '../lib/file-content.mjs';
@@ -34,7 +40,7 @@ export const WINDOW = 8;
 
 /** Committed ceiling: total duplicated normalized lines measured by detectClones over the scope on the
  *  tree this file ships on. Re-seed DOWN in the same commit that removes duplication; never up. */
-export const DUPLICATED_LINES_CEILING = 8061; // measured 2026-09-17 on master ed2ee7c9 (970 files, 372 clone pairs); only re-seed DOWN
+export const DUPLICATED_LINES_CEILING = 7569; // seeded 8061 on master ed2ee7c9 (lane L30); re-seeded 7569 by lane L31 (route guard, 89 route files); only re-seed DOWN
 
 export function inScope(f) {
   const p = String(f).replace(/\\/g, '/');
@@ -66,7 +72,7 @@ export function normalizeLines(content) {
   return out;
 }
 
-/** Pure clone scan over {path, content} entries. Returns {duplicatedLines, clones:[{a,b,lines}], byFile}. */
+/** Pure clone scan over {path, content} entries. Returns {duplicatedLines, clones:[{a,b,windows}], byFile}. */
 export function detectClones(entries, window = WINDOW) {
   const index = new Map(); // hash -> [{path, start}]
   const normalized = new Map();
@@ -100,6 +106,18 @@ export function detectClones(entries, window = WINDOW) {
   return { duplicatedLines, clones, byFile };
 }
 
+/** Files changed on this branch (against origin/master when it resolves) plus the working tree's modified
+ *  and untracked files, repo-relative with forward slashes. Used only to NAME the clone pairs a regression
+ *  most likely came from; the measurement itself never depends on git. Empty when git is unavailable. */
+export function changedFiles() {
+  const out = new Set();
+  const run = (args) => { try { return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return ''; } };
+  const base = run(['merge-base', 'origin/master', 'HEAD']).trim();
+  if (base) for (const f of run(['diff', '--name-only', base, 'HEAD']).split(/\r?\n/)) if (f) out.add(f.trim());
+  for (const line of run(['status', '--porcelain', '--untracked-files=all']).split(/\r?\n/)) if (line.length > 3) out.add(line.slice(3).trim().replace(/\\/g, '/'));
+  return out;
+}
+
 export function scanTree() {
   const files = globFiles(SCOPE_GLOBS).filter(inScope);
   const entries = files.map((path) => ({ path, content: readFile(path) }));
@@ -122,9 +140,12 @@ export const fitnessFunction = {
 
   check() {
     const r = scanTree();
-    const top = r.clones.slice(0, 12).map((c) => `${c.windows}w ${c.a} <-> ${c.b}`).join('; ');
+    const fmt = (c) => `${c.windows}w ${c.a} <-> ${c.b}`;
+    const top = r.clones.slice(0, 12).map(fmt).join('; ');
     if (r.duplicatedLines > DUPLICATED_LINES_CEILING) {
-      return [violation(1, `REGRESSION: ${r.duplicatedLines} duplicated lines across ${r.files} files, ceiling ${DUPLICATED_LINES_CEILING} (+${r.duplicatedLines - DUPLICATED_LINES_CEILING}). New duplication landed: extract the shared home and import it. Largest clone pairs (shared ${WINDOW}-line windows): ${top}`)];
+      const changed = changedFiles();
+      const mine = r.clones.filter((c) => changed.has(c.a) || changed.has(c.b)).slice(0, 20).map(fmt).join('; ');
+      return [violation(1, `REGRESSION: ${r.duplicatedLines} duplicated lines across ${r.files} files, ceiling ${DUPLICATED_LINES_CEILING} (+${r.duplicatedLines - DUPLICATED_LINES_CEILING}). New duplication landed: extract the shared home and import it. Clone pairs touching files changed on this branch: ${mine || '(none attributed; see the largest pairs)'}. Largest clone pairs in the tree (shared ${WINDOW}-line windows): ${top}`)];
     }
     if (r.duplicatedLines < DUPLICATED_LINES_CEILING) {
       return [violation(1, `IMPROVEMENT: ${r.duplicatedLines} duplicated lines, ceiling ${DUPLICATED_LINES_CEILING}. Re-seed DUPLICATED_LINES_CEILING to ${r.duplicatedLines} in this same commit so the ratchet keeps the gain.`)];

@@ -22,11 +22,8 @@
 // workload that would benefit from caching.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const NO_STORE = "no-store";
 
@@ -43,10 +40,9 @@ function parseCsvFilter(raw: string | null, allowed: Set<string>): string[] | nu
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return withNoStore(auth);
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return withNoStore(limited);
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return withNoStore(auth);
+  const { supabase } = auth;
 
   const { searchParams } = new URL(request.url);
   const fromRaw = searchParams.get("from");
@@ -55,16 +51,6 @@ export async function GET(request: NextRequest) {
   const precisionFilter = parseCsvFilter(searchParams.get("precision"), VALID_PRECISIONS);
   const limitRaw = searchParams.get("limit");
   const limit = limitRaw ? Math.min(500, Math.max(1, parseInt(limitRaw, 10) || 100)) : 100;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: { ...rateLimitHeaders(auth.userId), "Cache-Control": NO_STORE } }
-    );
-  }
 
   let q = supabase
     .from("item_forward_events")

@@ -1,30 +1,20 @@
 // /api/admin/promotion-policy — the promotion policy engine's operator control (P2, ADMIN-ONLY).
 //
 // Promotion is admin-only (dispatch 3): this endpoint is the ONLY authorized way to read or set the
-// promotion policy, and it is server-side gated — requireAuth (401 unauthenticated) + isPlatformAdmin
-// (403 non-admin), matching every other /api/admin/** route. The policy table is RLS-enabled deny-all;
+// promotion policy, and it is server-side gated through the shared route guard (401 unauthenticated, 429 rate-limited, 403
+// non-admin), matching every other /api/admin/** route. The policy table is RLS-enabled deny-all;
 // even a leaked anon key cannot reach it. The policy IS the authorization for promotion spend — fail-
 // closed: with no active/unexpired policy, GET reports none and the engine authorizes nothing.
 //
 //   GET  → the current active policy + spend-against-envelope, or {policy:null} when none (fail-closed).
 //   POST → create + activate a policy (operator approval of the proposal). Validated + capped.
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { getServiceSupabase } from "@/lib/supabase-service";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 async function gate(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return { error: auth as NextResponse };
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return { error: limited };
-  const sb = getServiceSupabase();
-  const admin = await isPlatformAdmin(auth.userId, sb);
-  if (!admin) {
-    return { error: NextResponse.json({ error: "Platform admin access required" }, { status: 403 }) };
-  }
-  return { userId: auth.userId, sb };
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return { error: auth };
+  return { userId: auth.userId, sb: auth.supabase };
 }
 
 export async function GET(request: NextRequest) {

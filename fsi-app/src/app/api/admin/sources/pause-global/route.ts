@@ -11,11 +11,8 @@
 // the saved cadence/start_date (so a panic-stop preserves the plan). isGloballyPaused() = off OR emergency.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { nextScrapeDate, type ScrapeCadence } from "@/lib/sources/scrape-schedule";
 
 const CADENCES: ScrapeCadence[] = ["off", "weekly", "monthly"];
@@ -40,11 +37,9 @@ function stateResponse(
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   let body: { paused?: boolean; cadence?: string; start_date?: string | null };
   try {
@@ -88,16 +83,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
-
   const { data, error } = await supabase.rpc("admin_set_pause_state", {
     p_actor: `admin:${auth.userId}`,
     p_paused: hasPaused ? (body.paused as boolean) : null,
@@ -117,21 +102,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   const { data, error } = await supabase
     .from("system_state")

@@ -31,12 +31,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { asDomain, domainForItemType, ALL_DOMAINS, type Domain } from "@/lib/domains";
 
 // ──────────────────────────────────────────────────────────────
@@ -184,11 +180,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // ── 1. Auth + rate limit ───────────────────────────────────────
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   // ── 2. Validate post id ───────────────────────────────────────
   const { id: postId } = await params;

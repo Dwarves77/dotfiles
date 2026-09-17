@@ -14,15 +14,14 @@
 // Request shape, auth, cooldown gate, rate limit, and response
 // schema are unchanged.
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { spendSearch } from "@/lib/llm/spend-client";
 import { asDomain, domainForItemType, type Domain } from "@/lib/domains";
 import { pausedResponse } from "@/lib/api/pause";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 // Closed enum from intelligence_items.item_type CHECK constraint
 // (migration 004). Used to validate the per-regulation item_type the
@@ -62,27 +61,12 @@ const SCAN_COOLDOWN_KEY = "admin_scan";
  * Results are staged for admin review — never auto-published.
  */
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   if (!ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
-  }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
   }
 
   // Phase 0.1 global-pause gate: scan uses web_search (outbound fetch); honor the hold even though

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { resolveItemUuid } from "@/lib/tags/server";
@@ -17,11 +16,8 @@ interface RouteContext {
 // — applying twice is a no-op, not an error (matches the popover's
 // multi-select-stays-open behaviour).
 async function handlePUT(request: NextRequest, context: RouteContext) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id: tagId } = await context.params;
   const supabase = getServiceSupabase();
@@ -79,11 +75,8 @@ async function handlePUT(request: NextRequest, context: RouteContext) {
 // DELETE /api/workspace/tags/[id]/items — remove a tag from one item.
 // Body: { itemId: string }
 async function handleDELETE(request: NextRequest, context: RouteContext) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { id: tagId } = await context.params;
   const supabase = getServiceSupabase();

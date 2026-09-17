@@ -43,11 +43,8 @@
 // Auth: cookie session. Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCommunityAuth,
-  isCommunityAuthError,
-} from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   isOpenForResponses,
@@ -69,11 +66,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ key: string }> }
 ) {
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const { key } = await params;
 

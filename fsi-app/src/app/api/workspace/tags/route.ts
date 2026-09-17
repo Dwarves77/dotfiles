@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { normalizeTagName, buildTagCountsMap, resolveItemUuid } from "@/lib/tags/server";
@@ -20,11 +19,8 @@ import type { WorkspaceTag } from "@/lib/tags/types";
 // a checkmark instead of a count next to an applied tag without a second
 // round trip (R6).
 async function handleGET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
@@ -107,11 +103,8 @@ async function handleGET(request: NextRequest) {
 // stays open — creating something that already exists is not an error the
 // operator wants surfaced to the user).
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
@@ -179,11 +172,8 @@ async function handlePOST(request: NextRequest) {
 // CASCADE (migration 313) removes its item_workspace_tags links in the same
 // statement — never a soft-hide, so facet counts stay truthful.
 async function handleDELETE(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);

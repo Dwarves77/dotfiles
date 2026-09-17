@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides, loadNavCounts } from "./logic";
 // PERF-ARCH (2026-09-04, docs/decisions/ADR-027-*.md): Server-Timing instrumentation, wired here
@@ -38,11 +37,8 @@ import { timePhase, recordSerializedBytes, withServerTiming, PERF_PHASES } from 
 // authenticated (there is no per-user data to partially degrade without an
 // identity) and a single 429 if rate-limited.
 async function handleGET(request: NextRequest) {
-  const auth = await timePhase(PERF_PHASES.AUTH, () => requireAuth(request));
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await timePhase(PERF_PHASES.AUTH, () => requireUserRoute(request));
+  if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
 

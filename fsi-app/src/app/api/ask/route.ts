@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
 import { spendStreamRaw, setSpendTicket, resetSpendTicket } from "@/lib/llm/spend-client";
 import { buildOperationsAskContext } from "@/lib/agent/operations-ask-context.mjs";
+import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -142,11 +142,8 @@ type Citation = {
 // POST /api/ask — Intelligence Assistant (research helper, not decision engine).
 // Tier 3 closes OBS-27 (skill loading) and OBS-28 (citation surfacing).
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireUserRoute(request);
+  if (isRefusal(auth)) return auth;
 
   // Enablement gate BEFORE the key check and before any spend path is touched: a disabled Assistant
   // must be indistinguishable from an unbuilt one from the caller's side, and must reach no paid call.

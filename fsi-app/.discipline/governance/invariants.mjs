@@ -224,7 +224,8 @@ export const SKILL_MARKER_BASELINE = {
   // instance of an existing rule: the two shapes of this defect are invisible to different tools and
   // the second one has no source-level tell at all, which is why it needs both halves.
   // 53→54 (2026-09-17, lane L30): category 45, the duplicated-code ratchet (one MUST line). TRIAGE: new invariant RD-69 (fitness F45).
-  'remediation-discipline': 54,
+  // 54→55 (2026-09-17, lane L31): category 45 gains the host-home bullet (one MUST line). TRIAGE: new invariant RD-70 (fitness F46).
+  'remediation-discipline': 55,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1517,5 +1518,17 @@ export const INVARIANTS = [
       'selftest:fsi-app/.discipline/fitness/functions/F45-duplicate-code.test.mjs',
     ],
     residual: 'F45 is an exact-window clone scan (8 normalized lines): it catches copies, not re-implementations that share no lines (the EUR-Lex incident itself would have passed it). The host-home gate F46 (lane L31) covers external routes; the database census gate covers tables and functions with no reference; both are owed and named in docs/audits/system-health-audit-2026-09-17.md. The ceiling is a count, not a disposition: green says duplication did not grow, not that the families in the audit were removed.',
+  },
+  {
+    id: 'RD-70',
+    skill: 'remediation-discipline',
+    section: 'Section 4 - category 45: one home per concept, and the count of copied code can only fall',
+    text: 'An external host that code builds URLs for has exactly one home module. A host in HOST_HOMES may appear only in its home (a second file fails regardless of any count); the number of other hosts with more than one home equals the committed ceiling in F46-external-host-home.mjs, above it a host gained a home, below it the ceiling is re-seeded down in the commit that consolidates the host.',
+    anchor: 'An external host that code builds URLs for MUST name exactly one home module',
+    enforcedBy: [
+      'fitness:F46',
+      'selftest:fsi-app/.discipline/fitness/functions/F46-external-host-home.test.mjs',
+    ],
+    residual: 'F46 attributes URL LITERALS to hosts. A URL assembled from a host held in a variable or an env value, or a host reached through a client library with no literal in scope, is not attributed; the ratchet is seeded at 7 multi-home hosts (eur-lex, federalregister, ecfr, anthropic, ec.europa.eu, legislation.gov.uk, linkedin) and green means none gained a home, not that those seven are consolidated. Reference files are a named list; adding a file to it is a review decision, not a wildcard.',
   },
 ];

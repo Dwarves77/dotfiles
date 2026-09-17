@@ -26,13 +26,11 @@
 // touch the database.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { pausedResponse } from "@/lib/api/pause";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 // Pure decision logic lives in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
@@ -313,21 +311,9 @@ async function loadVerificationModule(): Promise<VerificationModule | null> {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   // Phase 0.1 global-pause gate: bulk-import does HEAD/Browserless reachability checks (outbound
   // fetch) on apply; honor the hold. Lift system_state.global_processing_paused to import.

@@ -8,11 +8,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { CURRENT_SKILL_CONTRACT_VERSION } from "@/lib/agent/contract-version.mjs";
 
 // SSOT (flag-system item 2): was a stale hand-pinned "2026-04-29" while the generator stamped "2026-05-27".
@@ -20,20 +17,9 @@ const CURRENT_SKILL_VERSION = CURRENT_SKILL_CONTRACT_VERSION;
 
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceSupabase();
-
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   // PAGINATED (case-file 9): the whole non-archived corpus can exceed PostgREST's 1000-row cap (Track B pushes
   // it past 1000), and a truncated read would bias every progress % / by-format / by-priority count below.

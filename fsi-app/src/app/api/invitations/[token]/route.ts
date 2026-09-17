@@ -12,8 +12,8 @@
 // Workstream B (Multi-Tenant Foundation) — 2026-05-15.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireCommunityAuth, isCommunityAuthError } from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 
 const TOKEN_RE = /^[0-9a-f]{64}$/i; // 32-byte hex
 
@@ -27,11 +27,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid token format" }, { status: 400 });
   }
 
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   // lookup_invitation() is SECURITY DEFINER and granted to authenticated.
   // It returns the lazy-computed status (no write).

@@ -20,11 +20,8 @@
 // Returns a per-candidate result so the UI can surface partial successes.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { classTierForHost } from "@/lib/sources/host-authority";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
@@ -37,10 +34,9 @@ interface BulkBody {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase } = auth;
 
   let body: BulkBody;
   try {
@@ -54,18 +50,6 @@ export async function POST(request: NextRequest) {
   }
   if (body.candidateIds.length > 300) {
     return NextResponse.json({ error: "Maximum 300 candidates per bulk operation" }, { status: 400 });
-  }
-
-  const supabase = getServiceSupabase();
-
-  // Platform-admin gate (OBS-17, Sprint 2 Build 6). Service-role client
-  // bypasses RLS so the profiles lookup works regardless of caller scoping.
-  const admin = await isPlatformAdmin(auth.userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
   }
 
   const now = new Date().toISOString();

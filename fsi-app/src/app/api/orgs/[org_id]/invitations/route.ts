@@ -18,9 +18,9 @@
 // Workstream B (Multi-Tenant Foundation) — 2026-05-15; d3 seam 2026-07-11.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireCommunityAuth, isCommunityAuthError } from "@/lib/api/community-auth";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { sendInvitationEmail } from "@/lib/email/send-invitation-email";
+import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,11 +36,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid org_id" }, { status: 400 });
   }
 
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   let body: { email?: string; role?: string };
   try {
@@ -141,11 +138,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid org_id" }, { status: 400 });
   }
 
-  const auth = await requireCommunityAuth(request);
-  if (isCommunityAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  const auth = await requireCommunityRoute(request);
+  if (isRefusal(auth)) return auth;
 
   // RLS enforces visibility (admin/owner of org_id only).
   const { data, error } = await auth.supabase

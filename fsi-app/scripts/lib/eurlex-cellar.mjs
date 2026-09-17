@@ -42,3 +42,12 @@ const EURLEX_ROBOT_GATE_RE = /verify that you.?re not a robot/i;
 export function isEurlexRobotGate(status, head) {
   return Number(status) === 202 && EURLEX_ROBOT_GATE_RE.test(String(head ?? ""));
 }
+
+/** (moved here from scripts/mint/heal-provenance.mjs by lane L31: F46 gives this host one home) The Publications Office's own OJ-issue resource URL for one `{series,year,issue}` + edition letter ,
+ *  the exact shape the dispatch names (`.../resource/oj/JOL_2025_040_R`). Pure. NOT independently
+ *  confirmed live this session (this lane's egress is denied to publications.europa.eu, see this file's
+ *  FIFTH PASS header); [HYPOTHESIS], sourced from the dispatch's own text. */
+export function cellarEndpointForOj({ series, year, issue }, edition) {
+  const prefix = series === "L" ? "JOL" : "JOC";
+  return `https://publications.europa.eu/resource/oj/${prefix}_${year}_${issue}_${edition}`;
+}

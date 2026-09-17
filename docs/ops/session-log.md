@@ -5,6 +5,57 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-09-17, W9 lane L31: one route guard for every API route, and F46 (one home per external host)
+
+Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l31-route-handler-helper-2026-09-17, on
+top of L30. Removal order item 1 of the system health audit, plus the gate the EUR-Lex incident actually
+needed. Operator, same day: "You HAVE to be confident this will not happen again and the tools in place
+AND wired prevent it."
+
+**Route guard [CONFIRMED by tsc, the route-guard unit tests and F45].** `src/lib/api/route-guard.ts` is
+the one home of the sequence every authenticated route repeated by hand: `requireUserRoute` (Bearer auth
++ rate limit), `requireCommunityRoute` (cookie auth + rate limit, returns the cookie-bound client that is
+the RLS boundary), `requireAdminRoute` (auth + rate limit + service client + platform-admin gate, one 403
+shape with the rate-limit headers); `isRefusal` narrows. Order is fixed (no rate-limit slot for an
+unauthenticated call, no service-role lookup for a rate-limited one), dependencies are injectable for the
+tests only. 89 route files moved onto it: 35 admin routes (four had grown a private `requireAdminRole`
+copy each, deleted), the admin-gated agent-run and coverage routes, 39 community, invitation and org
+routes, 16 user and workspace routes (the timed bootstrap auth composes the guard inside its timer,
+promotion-policy's own gate() delegates). Routes whose gate sat after body parsing now gate first: a
+non-admin gets 403 where it used to get 400 on a malformed body, the stricter order. F2 accepts the guard
+as the admin gate (F2 tests 10/10). Route-guard tests 8/8 (every refusal passes through, a later step never
+runs after an earlier refusal, the resolved context carries what routes read). F45 re-seeded 8,061 to
+7,569 in this commit.
+
+**F46 external-host-home [CONFIRMED, RD-70, remediation category 45].** F45 catches copies; the EUR-Lex
+route was three different implementations, which F45 passes. F46 attributes every URL literal in scope
+to its host and file (comments ignored, platform hosts excluded, four named reference-data files excluded
+because they describe URLs without building requests): consolidated hosts in `HOST_HOMES` may appear only
+in their home (a second file is red regardless of any count), and the count of other multi-home hosts is
+a both-ways ratchet seeded at 7 (eur-lex.europa.eu in 7 files, www.federalregister.gov 6, www.ecfr.gov 3,
+api.anthropic.com, ec.europa.eu, www.legislation.gov.uk, www.linkedin.com 2 each). The first strict host
+is publications.europa.eu, home `scripts/lib/eurlex-cellar.mjs`; the census found the provenance healer
+had built the OJ-issue endpoint for the same host on its own, so `cellarEndpointForOj` moved into the
+module (healer tests 268/268). F46 tests 5/5 including the LIVE ratchet.
+
+**Proven by attack (rule 15) [CONFIRMED by `attack-gates.mjs`, output in the PR].** A copied 20-line block
+in a new file: F45 red naming the pair. A second file naming publications.europa.eu: F46 red naming the
+home. A new host given two files: F46 red with the ratchet at 8 against 7. An admin route on the user
+guard only: F2 red. Each gate green again once the plant is removed. Both gates run in pre-push step 3d
+(the fitness runner over the manifest) and in the CI Fitness job; their tests run through the discipline
+test glob. F40 (authed API fetch) recognizes the Bearer guards requireUserRoute and requireAdminRoute as
+guarded routes (the cookie-session community guard is not Bearer and stays out), found when the hook
+refused the first push: F40 had stopped seeing the workspace routes as guarded. The CI npm-dependent test step then caught a second thing the local runs had not: the tags route
+test stubs the auth module with plain Response refusals, and `isRefusal` checked `instanceof NextResponse`;
+it checks the web-standard Response now, and the guard imports its auth modules through the `@/` alias so
+such stubs apply to it exactly as they applied to the routes.
+
+**Remaining, in the audit's order.** Community page shell and loading page; detail-surface and admin-view
+primitives; one host per commit until the F46 ratchet reads 0; maintenance scripts onto `runCli`; the
+database census gate (a live-catalog verifier: the static migration parse under-counts live functions by
+22 because drop-then-recreate order within a file is not honored) with the removals of section 3;
+snapshots out of the index.
+
 ## 2026-09-17, W9 lane L30: system health audit (duplicated code, database objects, files) and the duplicate-code gate F45
 
 Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l30-duplication-audit-and-gate-2026-09-17,

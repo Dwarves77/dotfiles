@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { isPlatformAdmin } from "@/lib/auth/admin";
-import { checkRateLimit } from "@/lib/api/rate-limit";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
+import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 // Thin wrapper over the durable generate-brief workflow (Vercel Workflow DevKit) —
 // the ONE canonical generation path.
@@ -25,33 +23,9 @@ import { generateBriefWorkflow } from "@/workflows/generate-brief";
 // citations, compound trust). Callers poll via the workflow inspect/run APIs or the
 // agent_runs cost ledger the steps write.
 async function handlePOST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  // Wave-α A3 (2026-07-11, P1 finding 8 / CODE-3 F-03): this is the only
-  // spend-triggering route; requireAuth alone let ANY authenticated user
-  // (incl. viewer-role members) start paid generation workflows. Every
-  // legitimate caller is a platform admin: the admin regenerate routes
-  // forward an admin Bearer token, and the machine-gated intake cycle
-  // (run-intake-cycle) runs under the F16-signed manual caller. (The former
-  // drain-first-fetch worker and the staged-updates approve path were retired
-  // 2026-07-12 / Unit 0c; they are no longer callers.) Gate accordingly,
-  // plus the standard per-user limiter (the per-item 1h cooldown below is
-  // per-ITEM and did not stop cross-corpus iteration).
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const gateClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  const admin = await isPlatformAdmin(auth.userId, gateClient);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403 }
-    );
-  }
+  const auth = await requireAdminRoute(request);
+  if (isRefusal(auth)) return auth;
+  const { supabase: gateClient } = auth;
 
   let itemId: string | undefined;
   let sourceUrl: string | undefined;
