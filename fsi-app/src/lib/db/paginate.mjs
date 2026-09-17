@@ -86,12 +86,13 @@ export async function exactCount(countQuery) {
  * @param {(slice: string[]) => Promise<T[]>} readChunk given one chunk (<= `chunk` ids), returns that
  *   chunk's rows however the caller's transport reads a page (a raw Supabase `.in()` call, or a
  *   further-paginated `fetchAllRows` call when a single chunk could itself exceed 1000 rows).
- * @param {{ chunk?: number }} [opts] chunk size (default 50 — same default readAllByIds uses).
+ * @param {{ chunk?: number, manyPerId?: boolean }} [opts] chunk size (default 50, the same default readAllByIds
+ *   uses); manyPerId=true when the filtered column is not unique (a foreign key), which disables the over-read throw.
  * @returns {Promise<T[]>} every row across every chunk, concatenated. THROWS if more rows come back
  *   than ids were requested (impossible for a same-column id filter; a match() that widened the
  *   filter, or duplicate rows, is the likely cause upstream).
  */
-export async function fetchAllByIdChunks(ids, readChunk, { chunk = 50 } = {}) {
+export async function fetchAllByIdChunks(ids, readChunk, { chunk = 50, manyPerId = false } = {}) {
   const list = [...new Set(ids ?? [])];
   if (!list.length) return [];
   const out = [];
@@ -100,7 +101,13 @@ export async function fetchAllByIdChunks(ids, readChunk, { chunk = 50 } = {}) {
     const rows = await readChunk(slice);
     out.push(...rows);
   }
-  if (out.length > list.length) {
+  // manyPerId (lane L27, 2026-09-17): the over-read check below is a PRIMARY-KEY invariant. A filter on a
+  // foreign-key column (agent_run_searches.intelligence_item_id, section_claim_provenance.intelligence_item_id,
+  // item_cross_references.source_item_id) legitimately returns several rows per id, and the first live
+  // capture-static-primaries dispatch (maintenance run 35198723124) threw here on 1,655 pool rows for 1,279
+  // items. A caller filtering on a non-unique column says so and the check is skipped; a widened match()
+  // on a primary-key filter still throws.
+  if (!manyPerId && out.length > list.length) {
     throw new Error(
       `fetchAllByIdChunks: got ${out.length} rows back for ${list.length} requested ids — more rows ` +
       `than ids is impossible for a same-column id filter; something is wrong upstream (duplicate rows, ` +

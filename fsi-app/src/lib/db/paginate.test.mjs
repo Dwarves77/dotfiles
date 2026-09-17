@@ -2,7 +2,7 @@
 // case runs against a fake pageFactory/countQuery. Run: node --test fsi-app/src/lib/db/paginate.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fetchAllRows, assertBound, exactCount } from "./paginate.mjs";
+import { fetchAllRows, assertBound, exactCount, fetchAllByIdChunks } from "./paginate.mjs";
 
 test("fetchAllRows: walks every page until a short page, default pageSize 1000", async () => {
   const calls = [];
@@ -82,4 +82,18 @@ test("exactCount: throws when count is missing (query wasn't built with count:'e
     () => exactCount(Promise.resolve({ count: null, error: null })),
     /was the query built with/
   );
+});
+
+// Lane L27 (2026-09-17): the over-read throw is a primary-key invariant. A foreign-key filter returns several
+// rows per id by design (agent_run_searches.intelligence_item_id); the first live capture-static-primaries
+// dispatch threw here on 1,655 pool rows for 1,279 items.
+test("fetchAllByIdChunks: manyPerId=true accepts more rows than ids (a foreign-key filter)", async () => {
+  const readChunk = async (slice) => slice.flatMap((id) => [{ intelligence_item_id: id, n: 1 }, { intelligence_item_id: id, n: 2 }]);
+  const rows = await fetchAllByIdChunks(["a", "b"], readChunk, { manyPerId: true });
+  assert.equal(rows.length, 4);
+});
+
+test("fetchAllByIdChunks: without manyPerId, more rows than ids still throws (a primary-key filter that widened)", async () => {
+  const readChunk = async (slice) => [...slice.map((id) => ({ id })), { id: "extra" }];
+  await assert.rejects(() => fetchAllByIdChunks(["a", "b"], readChunk), /more rows.*than ids/);
 });
