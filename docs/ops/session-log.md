@@ -136,6 +136,45 @@ primitives; one host per commit until the F46 ratchet reads 0; maintenance scrip
 database census gate (a live-catalog verifier: the static migration parse under-counts live functions by
 22 because drop-then-recreate order within a file is not honored) with the removals of section 3;
 snapshots out of the index.
+## 2026-09-17, W9 lane L25 (Part 7 row P1): the record-briefs validator mirrors criterion 5 before any write
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l25-required-slot-mirror-2026-09-17,
+from master 1b5315de. No migration. No `.tsx` touched.
+
+**Why [CONFIRMED from the run artifact].** Batch 006's apply (brief-apply-run-006) quarantined 1bb72c94 at
+the ground step with `missing_required_slot penalty_summary (criterion 5, item_type regulation)` after
+the pre-write validator had accepted the file: its only slot rule was that `slot_key` be a string or
+null. The same "catch it at the author's commit, not after the paid step" class D30 closed for figures.
+
+**What criterion 5 is [CONFIRMED by reading migration 207].** `validate_item_provenance` counts, per
+required slot of the item's type (`item_type_required_slots`, 48 rows live), the claims of kind FACT or
+GAP whose `claim_text ILIKE '%slot_key%'`; zero is a quarantine. The slot descriptions carry the GAP
+policy (migrations 128, 131, 132, 137, 299): a GAP form is named exactly where a GAP is honest.
+
+**Landed.** `scripts/turns/record-briefs/schema.mjs`: `requiredSlotErrors(entry, i, opts)` and
+`slotAllowsGap(slot)` (pure); `validateRecordBriefsFile` runs the mirror when both new maps are given
+(`requiredSlotsByItemType`, `itemTypeByItemId`); errors name the item, the slot, the item_type, whether a
+GAP would have been accepted, and the quarantine reason it prevents; `RECORD_BRIEFS_SCHEMA_VERSION`
+`rb1-2026-09-17.1`. Named divergence, deliberate: the SQL count accepts any GAP; the mirror refuses a GAP
+where the description names no GAP form (regulation and directive on all four binding-law slots,
+effective_date and jurisdictional_scope on every reg-family type), so a batch never lands a GAP the
+descriptions forbid. `scripts/turns/apply-record-briefs.mjs`: `buildRequiredSlotMaps(slotRows, itemRows)`
+(pure, exported) and `readRequiredSlotContext(sb, itemIds)` (one select of the slot table through
+`readAll`; the batch ids through `readAllByIds`, chunked, category 39); both maps passed to the
+validator; `metrics.slot_refusals` on a refused file. README: header, refusal 8 with the GAP allowance
+table read from the live rows (regulation and directive HARD on all four; standard, framework, guidance
+GAP-ok on penalty_summary and primary_deadline; market_signal and initiative GAP-ok on action_now;
+research_finding HARD on all four; technology, innovation, tool GAP-ok on procurement_window;
+regional_data GAP-ok on all four), title "eight pre-write refusals".
+
+**Tests [CONFIRMED].** `record-briefs.test.mjs` 79 to 86 (no FACT refused naming the slot; FACT passes; GAP
+on standard passes and the same GAP on regulation is refused; effective_date GAP refused on every reg-
+family type; coverage is by claim_text mention, not the slot_key field; maps absent skips; slotAllowsGap
+reads the description). `apply-record-briefs.test.mjs` 67 to 68 (the map builder). tsc clean.
+
+**Next in Part 7.** P2 (batch 005 author pass) and P3 (batch 003's three quarantined items; 1bb72c94
+retyped by task 5.5's script or its penalty slot recorded as the source characterises it) now run
+through this mirror before any apply.
 
 ## 2026-09-17, W9 lane L30: system health audit (duplicated code, database objects, files) and the duplicate-code gate F45
 

@@ -78,7 +78,20 @@ import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 import { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } from "../../../src/lib/agent/formats/timeline-section.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-16.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-17.1";
+// 2026-09-17.1 (lane L25, brief-chain-build-plan Part 7 row P1): the criterion-5 mirror. Batch 006's apply
+// quarantined 1bb72c94 at the ground step with missing_required_slot penalty_summary (criterion 5,
+// item_type regulation) after this validator had accepted the file: its only slot rule was that slot_key
+// be a string or null. validate_item_provenance's criterion 5 (migration 207, the live shape) counts, per
+// required slot of the item's type, the claims of kind FACT or GAP whose claim_text ILIKE '%slot_key%';
+// zero is a quarantine. requiredSlotErrors below mirrors that count exactly and adds the GAP policy the
+// slot DESCRIPTIONS carry (migrations 128, 131, 132, 137, 299): a GAP covers a slot only where the
+// description itself names a GAP claim form; where it does not (regulation and directive on all four
+// binding-law slots, effective_date and jurisdictional_scope on every reg-family type), only a FACT
+// covers it. The SQL count alone would accept any GAP; this mirror is deliberately STRICTER on that one
+// axis, so a batch never lands a GAP the descriptions forbid. Both maps come from the driver's own reads
+// of item_type_required_slots and intelligence_items; without them the check is skipped (the pure
+// validator has no DB), which is why the driver always passes them.
 // 2026-09-13.1 (D30, defect-fix-plan-2026-09-12, lane L19): the numeric-figure mirror. A FACT claim whose
 // claim_text states a significant number (digits, optionally currency-prefixed / percent-suffixed /
 // thousands-separated / decimal) absent from that SAME claim's own source_span is now refused at author
@@ -1015,9 +1028,12 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
  * around. Per-entry/per-claim violations are collected across every entry (not stopped at the first) so
  * a producer sees every problem in one pass.
  * @param {unknown} json the JSON.parse'd file content
- * @param {{poolTextByItemId?: Record<string,string>}} [opts] `poolTextByItemId`: the pool text (task
- *   3.1's `pool: [{url, text}]`, concatenated by the caller) each item's FACT spans are checked against.
- *   The caller (task 3.4's driver) supplies it from the export parts task 3.1 produced.
+ * @param {{poolTextByItemId?: Record<string,string>, requiredSlotsByItemType?: Record<string, Array<{slot_key:string, description?:string}>>, itemTypeByItemId?: Record<string,string>}} [opts]
+ *   `poolTextByItemId`: the pool text (task 3.1's `pool: [{url, text}]`, concatenated by the caller)
+ *   each item's FACT spans are checked against. `requiredSlotsByItemType` and `itemTypeByItemId` (lane
+ *   L25): the item_type_required_slots rows grouped by item_type, and each entry's item_type; when BOTH are
+ *   given, every entry is checked against criterion 5 (requiredSlotErrors). The caller (task 3.4's driver)
+ *   supplies all three from its own reads.
  * @returns {{ok: true, entries: object[]} | {ok: false, errors: string[]}}
  */
 export function validateRecordBriefsFile(json, opts = {}) {
@@ -1035,7 +1051,55 @@ export function validateRecordBriefsFile(json, opts = {}) {
   }
   json.entries.forEach((entry, i) => {
     errors.push(...validateRecordBriefsEntry(entry, i, opts));
+    if (opts.requiredSlotsByItemType && opts.itemTypeByItemId) errors.push(...requiredSlotErrors(entry, i, opts));
   });
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, entries: json.entries };
+}
+
+/** Does this slot's description name a GAP claim form? The descriptions are the policy source (migrations
+ *  128/131/132/137/299 wrote "Emit ... a GAP claim (claim_kind=GAP, slot_key=...)" exactly where a GAP is
+ *  honest); a description without it is a HARD slot. Pure. */
+export function slotAllowsGap(slot) {
+  const d = String(slot?.description ?? "");
+  return /claim_kind\s*=\s*GAP/i.test(d) || /\bGAP claim\b/i.test(d);
+}
+
+/**
+ * Criterion-5 mirror for one entry (pure). For each required slot of the entry's item_type: at least one
+ * claim of kind FACT, or GAP where slotAllowsGap, whose claim_text contains the slot_key (case-insensitive,
+ * the same ILIKE the live validate_item_provenance uses). Errors name the item, the slot, the item_type and
+ * whether a GAP would have been accepted. An entry whose item_type is unknown to the map, or has no required
+ * slots, produces no error (criterion 5 has nothing to check).
+ * @param {object} entry @param {number} i
+ * @param {{requiredSlotsByItemType: Record<string, Array<{slot_key:string, description?:string}>>, itemTypeByItemId: Record<string,string>}} opts
+ * @returns {string[]}
+ */
+export function requiredSlotErrors(entry, i, opts) {
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return [];
+  const itemId = isNonEmptyString(entry.item_id) ? entry.item_id : `entries[${i}]`;
+  const itemType = opts.itemTypeByItemId?.[entry.item_id];
+  if (!isNonEmptyString(itemType)) return [];
+  const slots = opts.requiredSlotsByItemType?.[itemType] ?? [];
+  const claims = Array.isArray(entry.claims) ? entry.claims.filter((c) => c && typeof c === "object") : [];
+  const errors = [];
+  for (const slot of slots) {
+    const key = String(slot?.slot_key ?? "").toLowerCase();
+    if (!key) continue;
+    const mentions = claims.filter((c) => typeof c.claim_text === "string" && c.claim_text.toLowerCase().includes(key));
+    const facts = mentions.filter((c) => c.claim_kind === "FACT");
+    const gaps = mentions.filter((c) => c.claim_kind === "GAP");
+    const gapOk = slotAllowsGap(slot);
+    if (facts.length > 0 || (gapOk && gaps.length > 0)) continue;
+    if (gaps.length > 0 && !gapOk) {
+      errors.push(
+        `item ${itemId}: required slot "${key}" for item_type ${itemType} is covered only by a GAP claim, and the slot's description names no GAP form (a binding-law slot: migration 137 keeps it HARD); emit a FACT claim whose claim_text names "${key}" with a verbatim source_span, or leave the item for the retype/GAP decision instead of landing it`,
+      );
+    } else {
+      errors.push(
+        `item ${itemId}: required slot "${key}" for item_type ${itemType} has no covering claim (criterion 5 needs a FACT${gapOk ? " or GAP" : ""} claim whose claim_text names "${key}"); the ground step would quarantine this item with missing_required_slot`,
+      );
+    }
+  }
+  return errors;
 }
