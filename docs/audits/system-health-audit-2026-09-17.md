@@ -47,7 +47,7 @@ Tables: 39 hold zero rows. 36 of those are referenced by code (unbuilt or idle f
 
 | Table | Rows | Live through the database? | Disposition |
 |---|---|---|---|
-| `_snapshot_gapflags_20260831` | 3 | nothing references it; it has no migration either (live-only, RD-49's class) | remove: dropped with `drain_worklist`'s sibling migration once the schema-drift audit's allowlist is checked (L32 follow-up; F47 cannot see a table with no migration, RD-49 can) |
+| `_snapshot_gapflags_20260831` | 3 | nothing references it; it had no migration either (live-only, RD-49's class) | DONE (L32): dropped by migration 325, applied 2026-09-17 after the live check (3 rows, 0 triggers, 0 foreign keys in, 0 policies) |
 | `drain_worklist` | 66 | nothing references it | DONE (L32): dropped by migration 324, applied 2026-09-17. [CORRECTED] the first draft said migrations 219 and 254 retired it; they retired other tables in its favour. The drop rests on the live verification instead: 0 triggers, 0 foreign keys in, 0 code references, 0 SQL references beyond its DDL; its reader, the drain-first-fetch worker, was dissolved 2026-07-12 |
 | `intelligence_summaries` | 2,040 | policies only (captured undeclared in migration 009) | KEEP [CORRECTED, same day]: "remove after a read-back" contradicted the operator's 2026-04-30 decision (`.claude/CLAUDE.md`, Sector Activation: SHELVE, not retire; the rows stay for per-sector reporting). F47 allowlist entry with that reason and date |
 | `intelligence_item_versions` | 4,082 (26 MB) | written by trigger `trg_intelligence_items_version_snapshot` | keep: F47's replay found a SQL reader (it is not in the unread set), so "read by nothing" was the hand census's miss; the trigger-written class is now measured by F47's unread count instead of by hand |
@@ -80,7 +80,7 @@ The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byt
 3. Detail-surface and admin-view primitives (15 files).
 4. One route module per external host (Federal Register, eCFR, legislation.gov.uk, Eurostat, the oil bulletin, Anthropic).
 5. Maintenance scripts onto `runCli`.
-6. DONE (lane L32): `drain_worklist` dropped (migration 324), the decisions in section 3 resolved with reasons, F47 seeded at 0 and 0. Left: `_snapshot_gapflags_20260831` (no migration, RD-49's class) in the schema-drift allowlist check.
+6. DONE (lane L32): `drain_worklist` dropped (migration 324), the decisions in section 3 resolved with reasons, F47 seeded at 0 and 0. `_snapshot_gapflags_20260831` dropped by migration 325 the same day.
 7. Snapshot files out of the index.
 
 Each lane re-seeds F45 downward in its own commit; the number in this document is the starting point, not a target.

@@ -37,7 +37,7 @@ planted trigger sink, each red naming the plant, green after removal.
 
 **Dispositions, all from live evidence (SQL 2026-09-17) [CONFIRMED].** `drain_worklist`: 66 rows, 0
 triggers, 0 foreign keys in, 0 code references, 0 SQL references beyond its DDL, reader dissolved
-2026-07-12: DROPPED, migration 324, applied through the management API before this code merges (rule 3).
+2026-07-12: DROPPED, migration 324, applied through the management API before this code merges (rule 3). `_snapshot_gapflags_20260831` (3 rows, no migration, no trigger, no foreign key, no policy, no code reference): DROPPED, migration 325, applied the same way.
 `gate_a_health_refresh`: the cache writer, deliberately unscheduled by operator ruling 2026-08-10, last
 run 2026-08-10 09:20 UTC: allowlisted with that ruling. `pending_first_fetch`: 1,388 rows (done 1,235,
 error 136, queued 12, skipped 5), written by the sources triggers, its reader re-homed to the cadence-flip
