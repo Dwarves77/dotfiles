@@ -8,7 +8,7 @@ import { normalizeLines, detectClones, inScope, scanTree, DUPLICATED_LINES_CEILI
 const body = (tag) => Array.from({ length: 12 }, (_, i) => `const value${i} = compute(${tag}, ${i}) + offset;`).join('\n');
 
 test('normalizeLines: drops blank, comment-only and import lines, collapses whitespace, keeps logic', () => {
-  const lines = normalizeLines('import x from "y";\n\n// a comment\n/* block\n comment */\nconst   a =  1;\n  return a + 1;\n');
+  const lines = normalizeLines('import x from "node:fs";\n\n// a comment\n/* block\n comment */\nconst   a =  1;\n  return a + 1;\n');
   assert.deepEqual(lines, ['const a = 1;', 'return a + 1;']);
 });
 
