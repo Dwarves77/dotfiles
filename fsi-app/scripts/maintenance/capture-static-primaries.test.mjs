@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
   isStaticTextHost, htmlToText, deriveCelexTxtHtmlUrl, classifyCaptureOutcome, maxPoolLenByItem,
+  deriveCellarUrl, headersFor, CELLAR_CELEX_PREFIX,
   partitionByPoolState, buildRow, buildRoadblockSummaryFlag, computeHostWaitMs, paceHost, parseIdsArg,
   makeDirectFetch, main, buildDeps, CITE, STATIC_TEXT_HOSTS, REG_FAMILY_ITEM_TYPES,
 } from "./capture-static-primaries.mjs";
@@ -339,6 +340,78 @@ test("main: an eur-lex item whose first attempt fails retries the CELEX TXT/HTML
   assert.equal(r.applied, 1);
   const insertCall = d.calls.find((c) => c[0] === "insertRow");
   assert.equal(insertCall[1].result_url, attempts[1]);
+});
+
+// ── Lane L28 (2026-09-17): EUR-Lex through Cellar ──────────────────────────────────────────────────
+test("deriveCellarUrl: CELEX from a landing-page URL, from an ELI path, from instrument_identifier; null otherwise", () => {
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0103", null), CELLAR_CELEX_PREFIX + "32016R0103");
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/eli/reg/2016/103/oj", null), CELLAR_CELEX_PREFIX + "32016R0103");
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/some/other/path", "32023R1115"), CELLAR_CELEX_PREFIX + "32023R1115");
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/nothing", null), null);
+  assert.equal(deriveCellarUrl("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22008A0221(02)", null), null, "a suffixed key is not resolved");
+});
+
+test("headersFor: the Cellar resource asks for XHTML in English; every other URL keeps the HTML-first Accept", () => {
+  const c = headersFor(CELLAR_CELEX_PREFIX + "32016R0103", "UA/1");
+  assert.equal(c.Accept, "application/xhtml+xml");
+  assert.equal(c["Accept-Language"], "en");
+  const h = headersFor("https://legislation.gov.uk/x", "UA/1");
+  assert.equal(h.Accept, "text/html,application/xhtml+xml,*/*;q=0.8");
+  assert.equal(h["Accept-Language"], undefined);
+});
+
+test("makeDirectFetch: a Cellar URL is fetched with the XHTML Accept header (stubbed fetch)", async () => {
+  let seen = null;
+  const stub = async (url, init) => { seen = { url, headers: init.headers }; return { status: 200, text: async () => "<html><body>" + "act text ".repeat(60) + "</body></html>" }; };
+  const directFetch = makeDirectFetch({ fetchImpl: stub, max: 100000 });
+  const r = await directFetch(CELLAR_CELEX_PREFIX + "32016R0103");
+  assert.equal(r.status, 200);
+  assert.equal(seen.headers.Accept, "application/xhtml+xml");
+});
+
+test("buildRow: fetchedFrom is recorded in result_title while result_url keeps the item's own EUR-Lex identity", () => {
+  const row = buildRow("item-1", "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103", "x".repeat(300), "2026-09-17T00:00:00.000Z", CELLAR_CELEX_PREFIX + "32016R0103");
+  assert.equal(row.result_url, "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103");
+  assert.match(row.result_title, /fetched via http:\/\/publications\.europa\.eu\/resource\/celex\/32016R0103 \(Cellar/);
+  assert.equal(buildRow("item-1", "https://x", "y").result_title, "source");
+});
+
+test("main: an eur-lex item that fails both EUR-Lex attempts is captured through Cellar, with the EUR-Lex identity as result_url", async () => {
+  const items = [{ id: "a", source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0103", instrument_identifier: null }];
+  const urls = [];
+  const inserted = [];
+  const d = baseDeps({
+    readUnscopedCandidates: async () => items,
+    fetchViaLadder: async (url) => {
+      urls.push(url);
+      if (url.startsWith(CELLAR_CELEX_PREFIX)) return { outcome: "content", text: "act text ".repeat(60) };
+      return { outcome: "no_reachable_source", holdReason: "NO_REACHABLE_SOURCE" };
+    },
+    insertRow: async (row) => { inserted.push(row); return { id: "row-1" }; },
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.captured, 1);
+  assert.equal(r.counts.roadblocked, 0);
+  assert.deepEqual(urls, [
+    "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0103",
+    "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103",
+    CELLAR_CELEX_PREFIX + "32016R0103",
+  ]);
+  assert.equal(inserted[0].result_url, "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0103");
+  assert.match(inserted[0].result_title, /Cellar/);
+  assert.equal(r.per_item[0].fetched_from, CELLAR_CELEX_PREFIX + "32016R0103");
+});
+
+test("main: a non-EUR-Lex item never tries Cellar", async () => {
+  const items = [{ id: "b", source_url: "https://www.legislation.gov.uk/wsi/2018/1302", instrument_identifier: null }];
+  const urls = [];
+  const d = baseDeps({
+    readUnscopedCandidates: async () => items,
+    fetchViaLadder: async (url) => { urls.push(url); return { outcome: "no_reachable_source", holdReason: "NO_REACHABLE_SOURCE" }; },
+  });
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.counts.roadblocked, 1);
+  assert.ok(urls.every((x) => !x.startsWith(CELLAR_CELEX_PREFIX)), "no Cellar URL was tried: " + urls.join(", "));
 });
 
 test("main: an eur-lex item that fails BOTH attempts is roadblocked on the second attempt's reason", async () => {
