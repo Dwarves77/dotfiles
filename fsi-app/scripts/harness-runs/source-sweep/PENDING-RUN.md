@@ -24,9 +24,17 @@ persistence, and metrics are computed exactly as before; a run against a sitemap
 (every run to date, per `source-sweep-run-001` through `-018`'s own `metrics`) produces byte-identical
 output to the un-chunked call it replaces, since chunking a list of 50 into one chunk of 50 is a no-op.
 
-**harness_version at write time:** `sha256:3e2c4f2d0563eee1`
+**Re-stamped (lane L35, 2026-09-17, F46 external-host-home).** The governing files moved bytes again:
+`scripts/turns/run-source-sweep.mjs` now imports `EUR_LEX_PORTAL_URL` from
+`src/lib/sources/identifier-variants.mjs` instead of the literal `"https://eur-lex.europa.eu"` in
+`portalFor`, and `src/lib/sources/register-walk.mjs` now imports (and re-exports) `ojDailyViewUrl` from
+the same module instead of defining it locally. Both are the one-host-one-home consolidation lane L35
+drives (F46); no change to the URL VALUES either function returns, the walk logic, or persistence, and
+the sweep test in `src/lib/sources/identifier-variants.test.mjs` proves the EUR-Lex URL shapes are unchanged.
+
+**harness_version at write time:** `sha256:932dfde526cdabad`
 
 **The planned run that supersedes this marker:** the next real `node scripts/turns/run-source-sweep.mjs`
 dispatch (dry or apply) will land `source-sweep-run-019.json` with `harness_version:
-sha256:3e2c4f2d0563eee1`, and this marker is deleted the moment that artifact lands (or updated to a new
+sha256:932dfde526cdabad`, and this marker is deleted the moment that artifact lands (or updated to a new
 hash, per rule (c), if the governing files change again before that run lands).

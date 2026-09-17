@@ -54,6 +54,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { walkEurlexOj, walkFederalRegister } from "../../src/lib/sources/register-walk.mjs";
+import { EUR_LEX_PORTAL_URL } from "../../src/lib/sources/identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
 import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 // walkSource (lane SITEMAP, 2026-09-04): the third walker, added by CALLING an unmodified module —
 // same "driver calls, never edits, the walker modules" posture register-walk.mjs/feed-walk.mjs already
@@ -311,7 +312,7 @@ export function parseArgs(argv) {
  *  have one fixed home each. */
 export function portalFor({ walker, feedUrl, sourceName }) {
   if (walker === "register-eurlex") {
-    return { url: "https://eur-lex.europa.eu", name: sourceName || "EUR-Lex Official Journal" };
+    return { url: EUR_LEX_PORTAL_URL, name: sourceName || "EUR-Lex Official Journal" };
   }
   if (walker === "register-federal-register") {
     return { url: "https://www.federalregister.gov", name: sourceName || "Federal Register" };

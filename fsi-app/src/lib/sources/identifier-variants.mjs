@@ -57,6 +57,66 @@ export function euTypeLetters(itemType, instrumentType) {
 
 const ELI_KIND = { R: "reg", L: "dir", D: "dec" };
 
+// ── eur-lex.europa.eu -- ONE HOME (lane L35, F46 external-host-home). Every URL this host serves is
+// built HERE; every other file in scope imports these builders rather than templating the host string
+// again (the class the EUR-Lex Cellar incident named). Distinct shapes stay distinct named builders --
+// this module never collapses two different endpoints into one just because they share a host.
+
+/** The EUR-Lex CELEX clean-text page, HTML rendering (the enacted-text shape most callers want). PURE.
+ *  @param {string} celex @returns {string} */
+export function celexTxtHtmlUrl(celex) {
+  return `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${celex}`;
+}
+
+/** The EUR-Lex CELEX clean-text page, bare /TXT rendering (soft-404s for many ids; kept as its own
+ *  shape because callers that want it want it specifically, never silently swapped for /TXT/HTML). PURE.
+ *  @param {string} celex @returns {string} */
+export function celexTxtUrl(celex) {
+  return `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${celex}`;
+}
+
+/** The EUR-Lex ELI path, base builder: any already-resolved `/eli/...` path (variable shape -- a bare
+ *  "reg/2023/1115", "reg/2023/1115/oj", or the fixed "kind/year/num/oj/eng" form below all pass through
+ *  here so the "https://eur-lex.europa.eu/eli/" prefix is built in exactly one place). PURE.
+ *  @param {string} eliPath @returns {string} */
+export function eliPathUrl(eliPath) {
+  return `https://eur-lex.europa.eu/eli/${eliPath}`;
+}
+
+/** The EUR-Lex ELI URL for a resolved {kind, year, number} triple -- the fixed "/oj/eng" shape
+ *  euCandidates derives from a CELEX id. PURE.
+ *  @param {string} kind @param {number|string} year @param {number|string} num @returns {string} */
+export function eliUrl(kind, year, num) {
+  return eliPathUrl(`${kind}/${year}/${num}/oj/eng`);
+}
+
+/** The EUR-Lex full-text search page for a query term (a CELEX id in practice). PURE.
+ *  @param {string} text @returns {string} */
+export function eurlexSearchUrl(text) {
+  return `https://eur-lex.europa.eu/search.html?scope=EURLEX&lang=en&text=${text}`;
+}
+
+/** EUR-Lex OJ daily-view URL for an ISO date (the register page for that day's Official Journal). PURE.
+ *  Moved here from register-walk.mjs by lane L35 (F46: one home per host); register-walk.mjs imports it.
+ *  @param {string} isoDate YYYY-MM-DD @param {string} [series] L (legislation) | C (information)
+ *  @returns {string} */
+export function ojDailyViewUrl(isoDate, series = "L") {
+  const m = String(isoDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) throw new Error(`ojDailyViewUrl: bad ISO date ${isoDate}`);
+  const [, y, mo, d] = m;
+  return `https://eur-lex.europa.eu/oj/daily-view/${series}-series/default.html?ojDate=${d}${mo}${y}`;
+}
+
+/** The EUR-Lex portal root -- the parent-source URL the register walkers attach discovered links to.
+ *  Moved here from run-source-sweep.mjs's portalFor by lane L35. */
+export const EUR_LEX_PORTAL_URL = "https://eur-lex.europa.eu";
+
+/** A specific EUR-Lex OJ /TXT URL CONFIRMED DEAD (404, source S1) -- wave-acceptance-audit's negative-test
+ *  fixture for detecting known-dead source rows still live in the registry. Not a builder: a fixed
+ *  historical URL, moved here so the host string has one home even as a literal. [CONFIRMED] 404 per the
+ *  inline comment at its prior site (scripts/verify/wave-acceptance-audit.mjs). */
+export const EUR_LEX_KNOWN_DEAD_OJ_TXT_URL = "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040";
+
 /** PURE. EU candidate set from an identifier (or a pre-derived canonical CELEX key). Produces CELEX ids,
  *  ELI paths, the fetchable /legal-content/EN/TXT/HTML URLs (the enacted text), ELI URLs, and the EUR-Lex
  *  search URL.
@@ -74,17 +134,17 @@ export function euCandidates({ identifier, canonicalKey, itemType, instrumentTyp
 
   const urls = [], eliPaths = [];
   for (const c of celex) {
-    urls.push(`https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${c}`);
-    urls.push(`https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${c}`);
+    urls.push(celexTxtHtmlUrl(c));
+    urls.push(celexTxtUrl(c));
     const letter = /** @type {keyof typeof ELI_KIND} */ (c.charAt(5));
     const kind = ELI_KIND[letter];
     if (kind) {
       const year = c.slice(1, 5), num = Number(c.slice(6));
       eliPaths.push(`${kind}/${year}/${num}/oj`);
-      urls.push(`https://eur-lex.europa.eu/eli/${kind}/${year}/${num}/oj/eng`);
+      urls.push(eliUrl(kind, year, num));
     }
   }
-  const searchUrls = [...celex].map((c) => `https://eur-lex.europa.eu/search.html?scope=EURLEX&lang=en&text=${c}`);
+  const searchUrls = [...celex].map((c) => eurlexSearchUrl(c));
   return { celex: [...celex], urls: [...new Set(urls)], eliPaths, searchUrls };
 }
 

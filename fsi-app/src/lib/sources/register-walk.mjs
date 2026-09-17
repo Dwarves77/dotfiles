@@ -14,18 +14,12 @@
 // BOUNDED BY CONSTRUCTION: an explicit from/to date range, per-page cap, maxPages cap, and a per-walk
 // summary that reports what was NOT collected (pages beyond the cap) — no silent truncation of a walk.
 import { extractPortalLinks } from "./portal-links.mjs";
+// F46 (lane L35): eur-lex.europa.eu's one home is identifier-variants.mjs; re-exported here so this
+// file's own callers and test keep importing ojDailyViewUrl from register-walk.mjs.
+import { ojDailyViewUrl } from "./identifier-variants.mjs";
+export { ojDailyViewUrl };
 
 // ── pure builders ────────────────────────────────────────────────────────────────────────────────────
-
-/** EUR-Lex OJ daily-view URL for an ISO date (the register page for that day's Official Journal).
- *  @param {string} isoDate YYYY-MM-DD @param {string} [series] L (legislation) | C (information)
- *  @returns {string} */
-export function ojDailyViewUrl(isoDate, series = "L") {
-  const m = String(isoDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) throw new Error(`ojDailyViewUrl: bad ISO date ${isoDate}`);
-  const [, y, mo, d] = m;
-  return `https://eur-lex.europa.eu/oj/daily-view/${series}-series/default.html?ojDate=${d}${mo}${y}`;
-}
 
 /** Federal Register documents.json index URL (public API, no key).
  *  @param {{from:string, to:string, page?:number, perPage?:number, types?:string[], term?:string}} p
