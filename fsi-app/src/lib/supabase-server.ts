@@ -1979,6 +1979,32 @@ async function fetchAllCategoryRows(
   );
 }
 
+// Prior art (lane L36, 2026-09-17): runCategoryRpc and runCategoryRpcPublic below were two near-identical
+// copies of the same fetchAllCategoryRows (fetchAllRows-backed) fetch-and-enrich sequence, the exact
+// "repeated RPC-paging block" system-health-audit-2026-09-17.md section 2 names for this file (66
+// self-duplicated windows). runCategoryRpcCore is the one shared body both now call; each keeps its own
+// distinct pre-check (org-required vs config-only) and its own rpcArgs shape, so behaviour is unchanged:
+// same rows, same order, same fail-soft-to-empty contract, same error logging.
+async function runCategoryRpcCore(
+  rpcName: string,
+  rpcArgs: Record<string, unknown>,
+  opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
+): Promise<CategoryRoutedResult> {
+  try {
+    const serviceClient = getServiceSupabase();
+    const rows = await fetchAllCategoryRows(serviceClient, rpcName, rpcArgs);
+    if (!rows.length) {
+      return { resources: [], total: 0 };
+    }
+    const resources = rows.map(rpcRowToResource);
+    await enrichCategoryRows(serviceClient, resources, rpcName, opts);
+    return { resources, total: resources.length };
+  } catch (e) {
+    console.error(`[category-routing] ${rpcName} failed:`, e);
+    return { resources: [], total: 0 };
+  }
+}
+
 // Internal helper. Calls the category-routing RPC; projects rows to
 // Resource[]. The RPC body itself enforces routing via sources.category
 // (migration 084); no src-side filtering needed.
@@ -1994,19 +2020,7 @@ async function runCategoryRpc(
   if (!isSupabaseConfigured() || !orgId) {
     return { resources: [], total: 0 };
   }
-  try {
-    const serviceClient = getServiceSupabase();
-    const rows = await fetchAllCategoryRows(serviceClient, rpcName, { p_org_id: orgId });
-    if (!rows.length) {
-      return { resources: [], total: 0 };
-    }
-    const resources = rows.map(rpcRowToResource);
-    await enrichCategoryRows(serviceClient, resources, rpcName, opts);
-    return { resources, total: resources.length };
-  } catch (e) {
-    console.error(`[category-routing] ${rpcName} failed:`, e);
-    return { resources: [], total: 0 };
-  }
+  return runCategoryRpcCore(rpcName, { p_org_id: orgId }, opts);
 }
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
@@ -2017,7 +2031,7 @@ async function runCategoryRpc(
 // (the org resolution — resolveOrgIdFromCookies — that runCategoryRpc's `orgId` parameter required
 // is simply not needed here). Same enrichment pass (enrichCategoryRows), same Resource[] projection,
 // same fail-soft-to-empty contract — the ONLY difference from runCategoryRpc is which RPC is called
-// and that it takes no org-derived argument at all.
+// and that it takes no org-derived argument at all. Both now share runCategoryRpcCore above.
 async function runCategoryRpcPublic(
   rpcName: "get_market_intel_items_public" | "get_operations_items_public" | "get_research_items_public",
   opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
@@ -2025,19 +2039,7 @@ async function runCategoryRpcPublic(
   if (!isSupabaseConfigured()) {
     return { resources: [], total: 0 };
   }
-  try {
-    const serviceClient = getServiceSupabase();
-    const rows = await fetchAllCategoryRows(serviceClient, rpcName, {});
-    if (!rows.length) {
-      return { resources: [], total: 0 };
-    }
-    const resources = rows.map(rpcRowToResource);
-    await enrichCategoryRows(serviceClient, resources, rpcName, opts);
-    return { resources, total: resources.length };
-  } catch (e) {
-    console.error(`[category-routing] ${rpcName} failed:`, e);
-    return { resources: [], total: 0 };
-  }
+  return runCategoryRpcCore(rpcName, {}, opts);
 }
 
 // /market fetcher. RPC filters on sources.category = 'market_news'.

@@ -34,9 +34,16 @@
 //     --execute  actually upsert the theme_briefs row (explicit opt-in)
 // Exit 0 done · 1 bad args / validation failure · 2 no DB creds (--theme/--write both need a DB read).
 
-import { resolve, dirname, extname } from "node:path";
+import { resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+// Prior art (lane L36, 2026-09-17): runCli (scripts/maintenance/lib/cli.mjs) is the shared bootstrap
+// (argv scaffold, .env.local load, DB-creds-check-and-exit(2), IS_MAIN pattern) every scripts/maintenance/
+// *.mjs wrapper already uses. This script hand-rolled the same boilerplate; runCli replaces it below. Its
+// own --theme/--write/--execute flags and console lines are unchanged; the maintenance.yml
+// generate-theme-brief step keeps calling this script's own flags directly (system-health-audit-2026-09-17.md
+// section 2 names this script in the clone family).
+import { runCli } from "../maintenance/lib/cli.mjs";
 import { computeMemberHash } from "../../src/lib/connections/brief-staleness.mjs";
 
 /**
@@ -137,14 +144,13 @@ export function validateAgainstLiveMembers(payload, liveMemberIds) {
   };
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (IS_MAIN) await main();
+if (IS_MAIN) {
+  await runCli({ step: "generate-theme-brief", main, needsDb: true });
+}
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
-
 const args = process.argv.slice(2);
 const themeIdRaw = args[args.indexOf("--theme") + 1];
 const themeId = args.includes("--theme") && themeIdRaw && !themeIdRaw.startsWith("--") ? themeIdRaw : null;
@@ -159,11 +165,6 @@ if (!themeId && !writePath) {
 if (themeId && writePath) {
   console.error("generate-theme-brief: pass --theme OR --write, not both.");
   process.exit(1);
-}
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("generate-theme-brief: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
 }
 
 const { readAll, readAllByIds, guardedInsert, guardedUpdate } = await import("../lib/db.mjs");

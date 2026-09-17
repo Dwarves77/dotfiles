@@ -49,8 +49,15 @@
 //     --execute  actually create the census_worklist row (explicit opt-in)
 // Exit 0 done (including "already exists, skipped") · 1 bad args / flag not ratifiable · 2 no DB creds.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+// Prior art (lane L36, 2026-09-17): runCli (scripts/maintenance/lib/cli.mjs) is the shared bootstrap
+// (argv scaffold, .env.local load, DB-creds-check-and-exit(2), IS_MAIN pattern) that record-hollow-sweep.mjs,
+// canonical-key-dedup.mjs and every scripts/maintenance/*.mjs wrapper already use. This script hand-rolled
+// the same boilerplate; runCli replaces it below. Its own --flag/--execute flags and console lines are
+// unchanged; the maintenance.yml ratify-flag-to-census step keeps calling this script's own --flag/--execute
+// flags directly (system-health-audit-2026-09-17.md section 2 names this script in the clone family).
+import { runCli } from "../maintenance/lib/cli.mjs";
 
 export const RATIFY_TOKEN = "ratify:census";
 
@@ -173,14 +180,13 @@ export async function ratifyFlag(deps, flagId, { execute } = {}) {
   return { status: "ratified", row, insertedId: ins.inserted.id, snapshot: ins.snapshot };
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (IS_MAIN) await main();
+if (IS_MAIN) {
+  await runCli({ step: "ratify-flag-to-census", main, needsDb: true });
+}
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
-
 const args = process.argv.slice(2);
 const flagIdRaw = args[args.indexOf("--flag") + 1];
 const flagId = args.includes("--flag") && flagIdRaw && !flagIdRaw.startsWith("--") ? flagIdRaw : null;
@@ -189,11 +195,6 @@ const EXECUTE = args.includes("--execute");
 if (!flagId) {
   console.error("ratify-flag-to-census: --flag <integrity_flags-id> is required.");
   process.exit(1);
-}
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("ratify-flag-to-census: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
 }
 
 const { readClient, guardedInsert } = await import("../lib/db.mjs");
