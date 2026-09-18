@@ -311,8 +311,9 @@ that carries the merged table.
 | S6 gates and harness | cross-cutting: harness, discipline, memory, transport | execution-wiring and F1 to F48 reachability, the closure gate and its STALE-NEXT entries, harness families and their artifacts, maintenance.yml steps, the memory hooks (ledger, done, vault-sync) | loop-harness file; skills-rules file; findings 8, 9, 10 |
 | D1 parts inventory | (design) | `docs/design/parts-inventory.md` per the parts brief 1.1: for each part in its section 2, the component path or NONE, and every route rendering the equivalent UI without it (file and line) | SHARED-PART-REPORT-2026-09-08, AUDIT-2026-09-07 |
 
-Sign-off: the operator reads the merged table and rules per row (finish, delete, or keep-with-reason). A row
-with no ruling is not started in 5.2.
+Sign-off, superseded the same day: the operator ruled "make a build plan to fix it ALL"; section 6 decides every
+row from doctrine (finish unless a rule says delete) and the operator's word overrides any line. The audit landed as
+`docs/audits/stage-audit-2026-09-18/README.md`.
 
 ### 5.2 Gap closure, in loop order
 
@@ -377,3 +378,82 @@ bundle before the FactCard lane starts; the fitness number is F49.
 | D | 5.3 data passes, once each | C per stage |
 | E | W10 part lanes in the brief's order, each signed off by the operator | A (D1), C where a part reads a field the machine must first produce |
 | F | P7 re-measure and /done with the three standing numbers, the board row, and the stage table re-run green | D, E |
+
+## 6. Build plan 2026-09-18: fix it all (the machine, then a proof run, then the data, with the parts program alongside)
+
+**Operator ruling, 2026-09-18, verbatim intent:** "the system is the focus right now, NOT the data; then after
+we fix the system and make sure it works, we fix the data." And: "after this audit is complete, make a build
+plan to fix it ALL." This section is that plan. It replaces section 5.1's per-row sign-off: every row of the
+stage audit (`docs/audits/stage-audit-2026-09-18/README.md`) is decided here from doctrine, finish unless a
+rule says delete; the operator's word overrides any line.
+
+### 6.0 What "fixed" means
+
+The loop in section 1 runs from one dispatch at its head through every hop to the customer surface with no
+person in between, and leaves a harness artifact at every hop. No schedule (rule 16 and the build-mode ruling:
+`scrape_cadence` stays off; nothing runs on a clock). The head is one human dispatch; everything after it is
+`workflow_run`. Every lane below lands with all six section 0 criteria and names its evidence; a lane that
+cannot meet one says so in its report and the criterion stays red on the board until it does.
+
+### 6.1 Lanes, in loop order
+
+Lane contract: `docs/plans/brief-chain-build-plan-2026-09-11.md` Part 7.2 (tests, tsc, memory gate, glyph
+rule, never the pre-push hook, one writer per worktree, grep for prior art before building, stage explicit
+paths). **Execution rule (operator, 2026-09-18): the lanes are Sonnet and Haiku sub-agents, dispatched
+by the coordinator with a self-contained brief; a lane does exactly what its brief says and nothing beyond it.
+A lane that meets a problem the brief does not address, a choice the brief does not make, or a failure it
+cannot explain STOPS, writes the problem in its report (what, where, the evidence) and returns; it does not
+work around it, does not widen scope, does not pick an answer. The coordinator (Fable) solves the problem,
+amends the plan or the brief, and re-dispatches. Deviation is a defect of the lane, not initiative.** Read-only SQL for probes; any corpus write is a bounded probe of one row read back, never a pass.
+Each lane's commit carries its harness artifact, its gate, its runbook section and its session-log entry.
+
+| Lane | Gap (audit) | What lands | Files (start list) | Acceptance (section 0, named evidence) | Depends on |
+|---|---|---|---|---|---|
+| M0 housekeeping (coordinator) | L39 code unmerged; migration 299 unapplied; nine lane PRs open | merge train drains #704 to #712; migration 299 applied by the coordinator before its dependent code merges (rule 3); `docs/inventories/migrations.md` rows | the open PRs; `supabase/migrations/299_*.sql` | PRs merged; `select count(*)` of pre-kit items at 0 read back; inventory row | none |
+| M1 head of the loop | S1: nothing starts a sweep or a fetch drain; fetch-drain has no workflow | `fetch-drain.yml` (dispatch plus `workflow_run` after "Source sweep"), replacing the hand `pg_net` call; `source-sweep.yml` becomes the loop head with one input (`scope`: all-hosts, changed, or a host list) and a `loop_run_id` it passes downstream; harness family `fetch-drain` commits artifacts like every other family | `.github/workflows/source-sweep.yml`, new `.github/workflows/fetch-drain.yml`, `scripts/turns/run-fetch-drain.mjs` (extract the pg_net call from the runbook into a script with a harness artifact), `scripts/harness-runs/CONVENTION.md` | reachable: both workflows have `run:` lines; run: `fetch-drain-run-004` from a `workflow_run` firing, not a dispatch; populated: `pending_first_fetch` queued count moves; visible: population-report line; gated: the loop manifest (M9); documented: runbook section | none |
+| M2 ledger-consume apply | S2 finding 1: the apply half has never fired | apply mode wired as the `workflow_run` hop after the sweep with a bounded cap (`max_promote` input, default 50) and a plan-then-apply pair in one run; the promoted rows carry `loop_run_id`; `LEDGER_CONSUME_APPLY_ENABLED` retired as a constant (the cap is the guard) | `.github/workflows/ledger-consume.yml`, `scripts/turns/run-ledger-consume.mjs` | run: an artifact with `config.mode:"apply"` and `promoted > 0`; populated: `portal_link_candidates.status='promoted'` count moves from 3 and `census_worklist` gains rows with that run id; gated: golden that fails if apply is unreachable from the workflow (grep of the yml in the test); documented | M1 |
+| M3 turns chained and proven | S2: corpus-turn has no upstream; downstream-chain never fired; apply-mint-batch skips rule 16 on the batch path | `corpus-turn.yml` gains `workflow_run` after "Ledger consume" (tickets present) alongside its dispatch; `population-turn` un-pauses behind the M2 cap (the cap bounds the mint, not a flag); the batch mint path runs discovery and forward-events inline like the single-item path (finding 4 closed); harness family `downstream-chain` with a committed artifact | `.github/workflows/corpus-turn.yml`, `population-turn.yml`, `downstream-chain.yml`, `scripts/mint/apply-mint-batch.mjs`, `src/lib/intake/mint-item.ts` (shared enrichment helper, one home) | run: `mint-run-030` and `downstream-chain-run-001` both from `workflow_run`; populated: new items minted at record grade with obligations, tags and tier opinions rows keyed to the same `loop_run_id`; gated: F13 chokepoint stays green; a test that the batch path calls the shared enrichment; documented | M2 |
+| M4 brief chain wired at mint | S3: mint leaves a stub; export and apply are hand hops | `brief-export.yml` gains `workflow_run` after "Population turn" for the run's minted ids (the export lands as a committed batch skeleton on a `brief-lane/` branch, so the authoring lane starts from it); `brief-apply.yml` runs its dry mode automatically on a batch-file merge to master (`push` path filter on `scripts/turns/record-briefs/batches/`) and its apply mode on dispatch only (handoff rule 4: no production apply on merge without a human), under the IO budget with the overwrite flag; a `briefs owed` line in the population report (record-grade items with a stub `full_brief`, by age) so a stub is never silent | `.github/workflows/brief-export.yml`, `brief-apply.yml`, `scripts/turns/record-briefs/`, `scripts/maintenance/population-report.mjs` | run: an export artifact from `workflow_run`; a dry-run artifact from a batch merge; populated: the owed line goes down when a batch applies; gated: golden on the yml triggers; documented (README of record-briefs) | M3 |
+| M5 market-series edges | S4: wired code authors zero edges | traced apply run of `ecb-fx` with the authorship path logged (`--trace`); the defect fixed at its cause; the producer harness artifact asserts `edges_authored > 0` whenever `rows_changed > 0` and fails the run otherwise (the run is the gate) | `scripts/producers/market/*.mjs`, `scripts/producers/lib/run-envelope-producer.mjs`, `authorMarketSeriesDeltaEdges` | run: a producer artifact with `edges_authored > 0`; populated: `derivation_edges from_table='market_series'` > 0; then one drain run that reports `recomputed > 0` from those edges; gated: the artifact assertion plus the existing static contract test; documented | none (parallel with M1 to M3) |
+| M6 evaluate invokers | S3: Gate A bulk re-scan and the quarantine disposition verifier have no invoker but a dispatch | `gate-a-rescan` runs as a `workflow_run` hop after "Brief apply" and after "Population turn" (scope: items whose `gate_a_version` differs from the constant), so the corpus never carries two versions; `quarantine-disposition-audit.mjs` runs in the CI data-audit lane and fails on any undispositioned past-bound item (RD-6 measured, not only registered); `attach-found-sources` re-dispatched to finish the 94 open worklist rows and its step chained after brief-apply for new orphans | `.github/workflows/maintenance.yml` (or a `gate-a.yml`), `scripts/verify/quarantine-disposition-audit.mjs`, `scripts/verify/run-data-audit-lane.mjs`, `scripts/maintenance/attach-found-sources.mjs` | run: a re-scan artifact from `workflow_run`; populated: `distinct(gate_a_version) = 1` read back; the disposition audit red-then-green in CI with the 53 items dispositioned or deferred with valid deferrals (write-time guard); gated: the CI lane; documented | M4 |
+| M7 last mile | S5, S4: grade badge unmounted; notices unfed; computed-values writers without input | the grade renders on every list row and detail masthead from the shared parts (the parts brief has no grade slot: it renders as a kind chip in the title meta line per brief 2.10 unless the operator draws otherwise, recorded as a case not drawn); `NoticesRail` proven with one superseded pair from M5's drain; the statutory writer's input path becomes an admin-uploaded, schema-validated rows-file (spec-09 upload flow reused, one home) instead of a fixture path, so the writer is reachable from the product; `estimated_values` gets its first writer for the one case W4 specifies, or W4 is amended to say the table is retired (no third state) | `src/components/ui/ListRow.tsx`, `Masthead.tsx`, `src/components/shell/RecordGradeBadge.tsx` (folded into Chips), `src/app/api/notices/route.ts`, `scripts/propagation/write-statutory.mjs`, spec-09 upload route, `docs/plans/complete-system-build-plan-2026-09-04.md` W4 | visible: the grade on every list route at 1440 through the rendering audit; run: a notices response with one real notice; populated: `statutory_computations > 0` from an uploaded file, or the retirement migration; gated: F49 (parts) and the presence report; documented | M5, and the FactCard lane for the chip |
+| M8 collect completeness | S1: sitemap backfill never completed; feed walker failed once; research walker never ran | dispatch runs to 100% of hosts under the sweep head from M1, in bounded slices with artifacts; the feed walker's one failure diagnosed and fixed or the feed retired with reason; the research walker's first run; the inaccessible-source triage ladder leaves a committed artifact | `src/lib/sources/sitemap-walk.mjs`, `scripts/turns/research-sweep.mjs`, `scripts/sources/inaccessible-triage.mjs` | run: artifacts `source-sweep-run-019+` until the never-walked bucket reads 0; populated: `sources` walked counts; gated: the loop manifest; documented | M1 |
+| M9 loop manifest and harness truth | S6: wired-but-never-fired is invisible; dispatch ledger dark; maintenance family has no committed artifacts; closure gate too slow locally; community promotion A and B both dormant; rooms hardcode GLOBAL | `.discipline/governance/loop-manifest.mjs`: the hops of section 1 as data (producer workflow, consumer workflow, trigger kind, harness family); gate F50 loop-wiring: every hop's `workflow_run` edge exists in the yml, every family has an artifact newer than its governing-files hash, every hop has fired at least once (an artifact whose `trigger` reads `workflow_run`); the dispatch ledger appended by a workflow step, never by hand; maintenance.yml commits its artifacts like the other families; closure gate finishes locally under a budget (cache the merge-base scan); community promotion mechanism A (`community_promotion_transitions`, 0 rows, no importer) retired by migration and its module deleted, B kept; rooms bind region from the creating workspace (W6.2) | `.discipline/governance/`, `.discipline/fitness/functions/F50-loop-wiring.mjs`, `docs/ops/dispatch-ledger.jsonl` writer step, `maintenance.yml`, `closure-gate.mjs`, a migration dropping the dormant table, `src/app/api/community/.../route.ts` | gated: F50 red on today's tree, green after M1 to M6 land; run: ledger rows appear from workflow runs; documented: runbook | none for the gate (it lands first and stays red until the hops land); M1 to M6 for green |
+
+### 6.2 The proof run (the "make sure it works" step)
+
+When M1 to M6 and M9 are merged: one dispatch at the head (`source-sweep.yml`, scope `changed`, a
+`loop_run_id`). Pass criteria, read from artifacts and SELECT only: an artifact at every hop carrying that
+run id and `trigger: workflow_run` (sweep, fetch-drain, ledger-consume apply, population-turn, downstream-chain,
+propagation-drain, brief-export, gate-a-rescan); the population report shows the run's items minted, enriched,
+exported and owed a brief; F50 green. A hop that does not fire reopens its lane. Nothing in 6.3 starts before
+this passes. The proof run is recorded as `docs/audits/loop-proof-run-<date>.md` with the artifact paths.
+
+### 6.3 The data, once (unchanged from 5.3)
+
+After the proof run: the authored W9 batches in PR order through brief-apply (dry automatic, apply on
+dispatch, IO budget, overwrite flag); the Gate A re-scan is already automatic from M6; the provenance heals;
+the refetch-capped apply when the operator hands the GUARD-1 token; the statutory rows-file through M7's
+upload path; the sitemap backfill slices from M8 until 100%. A pass that fails on the machine reopens the
+lane; it is not re-run against a patched path.
+
+### 6.4 The parts program (W10), alongside
+
+Independent of the machine lanes because the files are disjoint. Order from section 5.4: F49
+parts-not-pages and the impact meter fix first, then FactCard, ItemGroup with SectionHeader, Masthead with
+ActionCard, CommandBar, ListRow with Absence and Chips (the grade chip from M7 lands here), StateNote,
+RailCard with StatBlock, NavCard. The parts inventory (`docs/design/parts-inventory.md`) is the backlog and its
+section 4 lists the eight cases not drawn; those go to the operator as they are reached, never invented.
+Artboard 21 is owed to the bundle before FactCard starts.
+
+### 6.5 Sequence
+
+| Step | Contents | Runs |
+|---|---|---|
+| A | this audit and plan land; M0 (train, migration 299) | now |
+| B | M9 gate lands red; M1, M5 start; W10 F49 and impact meter start | after A |
+| C | M2, then M3, then M4, then M6, then M7; M8 slices as M1 lands | in order |
+| D | proof run 6.2 | after C |
+| E | data once 6.3 | after D |
+| F | W10 part lanes continue in order, each signed off by the operator | from B |
+| G | P7 re-measure and /done: the three standing numbers, F50 green, the stage table re-run with every row COMPLETE or retired with reason | after E and F |
