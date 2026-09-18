@@ -1,0 +1,515 @@
+{
+  "batch": "record-briefs-008-mintholds",
+  "generated_at": "2026-09-18T02:34:15.539Z",
+  "entries": [
+    {
+      "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+      "source_pool_hash": "79ea0722d02e6b205f9565a2003374200e3a1951a7817fc433864b55c950a22f",
+      "body": "# 1. What's Moving and What Triggered It\n\nFACT: \"125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\n*Operational implication:* the consortium restructured from an original 150-truck, 9-country target (below) to the current 125-truck, six-country programme; this record captures the current programme as the live signal.\n\nFACT: \"Scania Pilot Partner, Hyundai Hydrogen Mobility Germany, and Hyliko have recently joined the consortium, bringing additional sector expertise and momentum to the project.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\nFACT: \"Deploy 150 fuel cell trucks between 41 and 44 tons in 9 European countries by the end of 2029.\" *Source: H2Accelerate TRUCKS periodic reporting, period 1. https://cordis.europa.eu/project/id/101101446\n\nFACT: \"the project aims at deploying 125 hydrogen trucks in six European Member States/Associated Countries.\" *Source: H2Accelerate TRUCKS project page. https://cordis.europa.eu/project/id/101101446\n\n*Analytical inference:* the periodic-reporting figure above (150 trucks, 9 countries, end of 2029) is the project's ORIGINAL stated objective as of its first reporting period; the current project page states the revised, smaller programme (125 trucks, six countries) quoted above. Both are recorded here so the trajectory of the signal itself is visible.\n\nFACT: \"Start date 1 February 2023 End date 31 July 2030\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\nFACT: \"EC signature date 27 January 2023 Start date 1 February 2023\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\nFACT: \"The funding granted by the Clean Hydrogen Partnership of €30M will enable the coordinated roll-out of heavy-duty, zero-emission vehicles fuelled by green hydrogen, bringing zero emission targets for transport closer.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\nFACT: \"The H2Accelerate collaboration secured funding for two of their primary initiatives: the deployment of eight heavy-duty hydrogen refuelling stations under the Connecting Europe Facility and a 150 fuel cell truck project funded by the Clean Hydrogen Partnership.\" *Source: H2Accelerate project page. https://h2accelerate.eu/trucks/\n\nFACT: \"deployment of eight hydrogen refuelling stations in France and the Netherlands.\" *Source: H2Accelerate project page. https://h2accelerate.eu/trucks/\n\n*Operational implication:* the Connecting Europe Facility award funds eight hydrogen refuelling stations located in France and the Netherlands specifically; it is not a commercial refuelling network available on arbitrary EU corridors.\n\n# 2. Who's Driving It and What They Want\n\nFACT: \"125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\n*Industry interpretation:* the driving parties fall into three groups: the OEM vehicle manufacturers and one retrofitter (Volvo Group, Scania, Hyundai Hydrogen Mobility Germany, Hyliko) supplying the trucks; over 20 European truck operators as the OEMs' customers deploying and operating them; and hydrogen infrastructure partners (TotalEnergies, Everfuel, TEAL Mobility) supplying refuelling capacity.\n\nFACT: \"Coordinated by SINTEF AS Norway\" *Source: H2Accelerate TRUCKS project page. https://cordis.europa.eu/project/id/101101446\n\nFACT: \"The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\nFACT: \"the Union submitted in October 2023 an updated nationally determined contribution (NDC) of the Union and its Member States to the UNFCCC, confirming that the Union will cut its net greenhouse gas emissions by at least 55 % by 2030 compared to 1990 levels.\" *Source: Regulation (EU) 2024/1610, recital citing the Union's NDC. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610\n\n*Analytical inference:* the European Commission's own driving interest, stated through its Fit for 55 architecture and the Union's UNFCCC nationally determined contribution, is the Union-wide 55 percent net GHG reduction target by 2030 against 1990 levels; the H2Accelerate TRUCKS programme is one demonstration project within that broader policy push, not itself a regulatory requirement.\n\n# 3. Expected Trajectory and Conversion Triggers\n\nFACT: \"One Hydrogen Refuelling Station (HRS) every 200km on the TEN-T Core network by the end of 2030.\" *Source: H2Accelerate project page, citing AFIR. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"REGULATION (EU) 2023/1804 OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL of 13&nbsp;September 2023 on the deployment of alternative fuels infrastructure, and repealing Directive&nbsp;2014/94/EU\" *Source: Regulation (EU) 2023/1804 (AFIR), EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO 2 emission performance standards for new heavy-duty vehicles\" *Source: Regulation (EU) 2024/1610, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610\n\nFACT: \"New strengthened CO 2 emissions reduction targets should be set for new heavy-duty vehicles from 2030 onwards.\" *Source: Regulation (EU) 2024/1610, recital. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610\n\n*Legal Confirmation Required:* the conversion trigger for road carriers is regulatory, not this project's own timeline: Regulation (EU) 2024/1610 (amending Regulation (EU) 2019/1242) tightens fleet-average CO2 emission targets for new heavy-duty vehicles from 2030 onward, creating structural commercial pressure on carriers to transition away from diesel; the obligation runs to vehicle manufacturers and Member States, not to freight forwarders, per the captured text (Section 4).\n\nFACT: \"The final NPF document must be submitted before 1 st January 2026.\" *Source: H2Accelerate project page, citing AFIR National Policy Framework requirement. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n- 1 February 2023: H2Accelerate TRUCKS project start date (EC signature 27 January 2023).\n- 13&nbsp;September 2023: Regulation (EU) 2023/1804 (AFIR) adopted, setting the hydrogen-refuelling-station target this programme cites.\n- 14 May 2024: Regulation (EU) 2024/1610 (amending the HDV CO2 standards) published, tightening 2030-onward fleet-average targets.\n- 1 st January 2026: deadline for EU Member States' final AFIR National Policy Framework submissions.\n- End of 2030: AFIR's own target of one hydrogen refuelling station every 200km on the TEN-T Core network.\n- 31 July 2030: H2Accelerate TRUCKS project end date.\n\n*Source for timeline entries: H2Accelerate TRUCKS project page (https://h2accelerate.eu/trucks/); Regulation (EU) 2023/1804, Regulation (EU) 2024/1610, EUR-Lex.*\n\n# 4. Operational and Cost Implications If It Materializes\n\nFACT: \"The trucks to be deployed in the first stage are expected to be either 4x2 or 6x2, with up to 44 tonne capacity and long ranges of at least 600km.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\n*Operational implication:* the first-stage trucks are 4x2 or 6x2 configuration, up to 44-tonne capacity, with a minimum 600 km range; this is a long-haul specification, not a regional or last-mile one.\n\nFACT: \"Operators of hydrogen refuelling points shall clearly show information on the ad hoc price per kg at the publicly accessible hydrogen refuelling stations operated by them, so that that information is known to end users before they initiate a refuelling session and price comparison is facilitated.\" *Source: Regulation (EU) 2023/1804 (AFIR). https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Legal Confirmation Required:* AFIR's price-transparency and reporting obligations fall on hydrogen refuelling-point operators and EU Member States (National Policy Frameworks); none of the captured text states an obligation running to a freight forwarder procuring hydrogen-truck capacity from a carrier.\n\nFACT: \"Monitoring and reporting by manufacturers and Member States is an essential precondition for the implementation of Regulation (EU) 2019/1242.\" *Source: Regulation (EU) 2019/1242, recital. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242\n\n*Analytical inference:* the CO2-standards monitoring and reporting duty runs to vehicle manufacturers and Member States, not to freight forwarders or transport buyers; a workspace's exposure is commercial (carrier pricing and capacity), not a direct reporting obligation.\n\nFACT: \"This Regulation applies to any entity providing or organising freight and passenger services in the Union that calculates greenhouse gas emissions of a transport service starting or ending on the Union territory and discloses disaggregated information on those emissions to any third party for commercial or regulatory purposes.\" *Source: proposal COM(2023) 441 (transport GHG-emissions accounting). https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=COM:2023:441:FIN\n\n*Legal Confirmation Required:* whether the workspace itself falls within this proposal's scope (an entity calculating and disclosing disaggregated transport-service GHG emissions to a third party for commercial or regulatory purposes) is a fact-specific question outside this brief's scope; if it does, hydrogen-truck capacity from carriers such as those in this programme would be a data input to that disclosure, not a purchasing requirement this record grounds.\n\n# 5. Competitive Implications\n\n*Industry interpretation:* the OEM roster (Volvo Group as anchor, Scania, Hyundai Hydrogen Mobility Germany, and retrofitter Hyliko) represents the current hydrogen heavy-duty-truck supply base this programme is proving out; a carrier the workspace engages that is NOT among the \"over 20 European truck operators\" deploying these vehicles has no demonstrated participation in this specific demonstration fleet, though it may still operate hydrogen trucks through other programmes this record's pool does not cover.\n\nFACT: \"deployment of eight hydrogen refuelling stations in France and the Netherlands.\" *Source: H2Accelerate project page. https://h2accelerate.eu/trucks/\n\n*Operational implication:* because the CEF-funded refuelling stations are concentrated in France and the Netherlands, a carrier's ability to offer hydrogen-truck capacity credibly on OTHER European corridors depends on infrastructure this record's pool does not confirm exists yet; competitive claims about hydrogen-truck availability on non-French/Dutch corridors should be verified against the carrier's own fleet and route data before being repeated to a client.\n\n# 6. Client Conversation Talking Points\n\n*Operational implication:* this is a mid-decade demonstration signal, not a live procurement option. Client-facing talking points should distinguish: (1) the H2Accelerate TRUCKS programme is a 125-truck demonstration across six EU member states/associated countries, running to 31 July 2030, not a general commercial hydrogen-trucking service; (2) the regulatory pressure driving carrier fleet transition (Regulation (EU) 2024/1610's 2030-onward CO2 targets) applies to vehicle manufacturers, not to the workspace or its clients directly; (3) AFIR's hydrogen-refuelling-station buildout (one per 200km on the TEN-T Core network by end of 2030) is the infrastructure precondition for any broader hydrogen-trucking option, and is itself a 2030-horizon target, not a present-day network.\n\nFACT: \"It will generate a comprehensive data set, which will be analysed to produce a publicly accessible report on fleet performance.\" *Source: H2Accelerate TRUCKS project page. https://h2accelerate.eu/trucks/\n\n*Analytical inference:* the project's own commitment to a publicly accessible fleet-performance report is a future data point clients interested in verified hydrogen-truck performance can be pointed to once published; no publication date is stated in the captured text.\n\n# 7. What the Workspace Should Do Now\n\n*Analytical inference:* actions here are sequenced by lead time, not by urgency; this is a mid-decade signal, not an immediate compliance event. No sourced action deadline exists in the captured text.\n\nGAP: no verbatim source_span in the captured text states a specific internal action deadline for the workspace; the recommended actions below follow from the dated milestones in Section 3 rather than from a source-stated action requirement.\n\n1. Track H2Accelerate TRUCKS' own fleet-performance report (Section 6) once published, as an independent data point on real-world hydrogen-truck viability.\n2. Monitor AFIR National Policy Framework submissions (due 1 st January 2026, Section 3) for early signal on which EU corridors are prioritised for hydrogen-refuelling buildout.\n3. Ask carriers directly whether they participate in this or a comparable hydrogen-truck demonstration programme, rather than assuming hydrogen-truck capacity is generally available before the AFIR 2030 network target is met.\n\n# 8. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | H2Accelerate TRUCKS project page | Industry consortium page | https://h2accelerate.eu/trucks/ |\n| 2 | CORDIS, Grant Agreement 101101446 | EU project registry | https://cordis.europa.eu/project/id/101101446 |\n| 3 | Regulation (EU) 2023/1804 (AFIR), EUR-Lex | EU Official Journal act | https://eur-lex.europa.eu/eli/reg/2023/1804/oj |\n| 4 | Regulation (EU) 2024/1610 (HDV CO2 standards amendment), EUR-Lex | EU Official Journal act | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610 |\n| 5 | Regulation (EU) 2019/1242 (HDV CO2 emission performance standards), EUR-Lex | EU Official Journal act | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242 |\n| 6 | Proposal COM(2023) 441 (transport GHG-emissions accounting), EUR-Lex | EU legislative proposal | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=COM:2023:441:FIN |\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "market_signal_brief",
+        "topic_tags": [
+          "fuels",
+          "transport"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "H2Accelerate TRUCKS, a 125-hydrogen-fuel-cell-truck demonstration programme (Grant Agreement 101101446) across six EU member states/associated countries, running to 31 July 2030, alongside AFIR's hydrogen-refuelling-station buildout and the EU's tightened HDV CO2 standards.",
+        "why_matters": "It signals the pace at which hydrogen heavy-duty trucking becomes commercially credible on European corridors, gated by AFIR's 2030 refuelling-network target and by the 2030-onward manufacturer CO2 standards that create the underlying carrier transition pressure.",
+        "key_data": [
+          "125 hydrogen fuel cell trucks across six EU member states/associated countries",
+          "one hydrogen refuelling station every 200 km on the TEN-T core network by end of 2030",
+          "EUR 30 million Clean Hydrogen Partnership grant for the truck deployment",
+          "eight CEF-funded hydrogen refuelling stations located in France and the Netherlands",
+          "project runs 1 February 2023 to 31 July 2030"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": {
+          "steps": [
+            {
+              "date": "2023",
+              "value": "project start",
+              "label": "original target: 150 trucks, 9 countries, by end of 2029 (periodic report period 1)"
+            },
+            {
+              "date": "2026",
+              "value": "consortium restructured",
+              "label": "revised target: 125 trucks, six countries; AFIR National Policy Framework deadline 1 January 2026"
+            },
+            {
+              "date": "2030",
+              "value": "project end / AFIR network target",
+              "label": "project end 31 July 2030; AFIR hydrogen refuelling station network target end of 2030"
+            }
+          ],
+          "note": "the captured text shows the programme's own target shrinking from 150 trucks/9 countries to 125 trucks/6 countries between its first periodic report and its current project page"
+        },
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "freight-forwarder",
+          "road-fleet-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-17"
+      },
+      "claims": [
+        {
+          "slot_key": "signal_event",
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[signal_event] The captured source states, verbatim: '125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.'",
+          "source_span": "125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": "driving_parties",
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[driving_parties] The captured source states, verbatim: '125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.'",
+          "source_span": "125 hydrogen fuel cell trucks from three truck OEMs (Volvo Group, Scania and Hyundai) and one truck retrofitter (Hyliko) will be deployed across six EU member states/associated countries. The truck manufacturers will supply vehicles able to achieve a 400/600 km minimum range between refuels for 350/700 bar storage, respectively. 41-44 tonne articulated trucks will be included among the types of trucks to deploy, covering the longest haul road freight. The trucks will be deployed with over 20 European truck operators and operate in a wide range of conditions and day-to-day operations, across the European member states/associated countries. The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": "conversion_trigger",
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[conversion_trigger] The captured source states, verbatim: 'New strengthened CO 2 emissions reduction targets should be set for new heavy-duty vehicles from 2030 onwards.'",
+          "source_span": "New strengthened CO 2 emissions reduction targets should be set for new heavy-duty vehicles from 2030 onwards.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610"
+        },
+        {
+          "slot_key": "action_now",
+          "claim_kind": "GAP",
+          "section": "7",
+          "claim_text": "[action_now] No verbatim source_span in the captured text states a specific internal action deadline or action requirement for the workspace; the actions this record recommends follow from the dated milestones in Section 3, not from a source-stated action.",
+          "source_span": null,
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Consortium partner addition, verbatim: 'Scania Pilot Partner, Hyundai Hydrogen Mobility Germany, and Hyliko have recently joined the consortium, bringing additional sector expertise and momentum to the project.'",
+          "source_span": "Scania Pilot Partner, Hyundai Hydrogen Mobility Germany, and Hyliko have recently joined the consortium, bringing additional sector expertise and momentum to the project.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Revised deployment target, verbatim: 'the project aims at deploying 125 hydrogen trucks in six European Member States/Associated Countries.'",
+          "source_span": "the project aims at deploying 125 hydrogen trucks in six European Member States/Associated Countries.",
+          "source_url": "https://cordis.europa.eu/project/id/101101446"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Original deployment target (periodic report), verbatim: 'Deploy 150 fuel cell trucks between 41 and 44 tons in 9 European countries by the end of 2029.'",
+          "source_span": "Deploy 150 fuel cell trucks between 41 and 44 tons in 9 European countries by the end of 2029.",
+          "source_url": "https://cordis.europa.eu/project/id/101101446"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Project start/end dates, verbatim: 'Start date 1 February 2023 End date 31 July 2030'",
+          "source_span": "Start date 1 February 2023 End date 31 July 2030",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] EC signature and start date, verbatim: 'EC signature date 27 January 2023 Start date 1 February 2023'",
+          "source_span": "EC signature date 27 January 2023 Start date 1 February 2023",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Clean Hydrogen Partnership grant amount, verbatim: 'The funding granted by the Clean Hydrogen Partnership of €30M will enable the coordinated roll-out of heavy-duty, zero-emission vehicles fuelled by green hydrogen, bringing zero emission targets for transport closer.'",
+          "source_span": "The funding granted by the Clean Hydrogen Partnership of €30M will enable the coordinated roll-out of heavy-duty, zero-emission vehicles fuelled by green hydrogen, bringing zero emission targets for transport closer.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] CEF and Clean Hydrogen Partnership funding, verbatim: 'The H2Accelerate collaboration secured funding for two of their primary initiatives: the deployment of eight heavy-duty hydrogen refuelling stations under the Connecting Europe Facility and a 150 fuel cell truck project funded by the Clean Hydrogen Partnership.'",
+          "source_span": "The H2Accelerate collaboration secured funding for two of their primary initiatives: the deployment of eight heavy-duty hydrogen refuelling stations under the Connecting Europe Facility and a 150 fuel cell truck project funded by the Clean Hydrogen Partnership.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] CEF station locations, verbatim: 'deployment of eight hydrogen refuelling stations in France and the Netherlands.'",
+          "source_span": "deployment of eight hydrogen refuelling stations in France and the Netherlands.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] Project coordinator, verbatim: 'Coordinated by SINTEF AS Norway'",
+          "source_span": "Coordinated by SINTEF AS Norway",
+          "source_url": "https://cordis.europa.eu/project/id/101101446"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] Hydrogen refuelling infrastructure partners, verbatim: 'The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.'",
+          "source_span": "The trucks will operate on a developing network of hydrogen refuelling stations (HRS), designed specifically for trucks with the help of project Associated Partners, TotalEnergies, Everfuel and TEAL Mobility.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] EU NDC 55 percent target, verbatim: 'the Union submitted in October 2023 an updated nationally determined contribution (NDC) of the Union and its Member States to the UNFCCC, confirming that the Union will cut its net greenhouse gas emissions by at least 55 % by 2030 compared to 1990 levels.'",
+          "source_span": "the Union submitted in October 2023 an updated nationally determined contribution (NDC) of the Union and its Member States to the UNFCCC, confirming that the Union will cut its net greenhouse gas emissions by at least 55 % by 2030 compared to 1990 levels.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[section3] AFIR hydrogen refuelling station target, verbatim: 'One Hydrogen Refuelling Station (HRS) every 200km on the TEN-T Core network by the end of 2030.'",
+          "source_span": "One Hydrogen Refuelling Station (HRS) every 200km on the TEN-T Core network by the end of 2030.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[section3] AFIR title/adoption citation, verbatim: 'REGULATION (EU) 2023/1804 OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL of 13&nbsp;September 2023 on the deployment of alternative fuels infrastructure, and repealing Directive&nbsp;2014/94/EU'",
+          "source_span": "REGULATION (EU) 2023/1804 OF THE EUROPEAN PARLIAMENT AND OF THE COUNCIL of 13&nbsp;September 2023 on the deployment of alternative fuels infrastructure, and repealing Directive&nbsp;2014/94/EU",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[section3] Regulation (EU) 2024/1610 title, verbatim: 'Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO 2 emission performance standards for new heavy-duty vehicles'",
+          "source_span": "Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO 2 emission performance standards for new heavy-duty vehicles",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[section3] AFIR National Policy Framework deadline, verbatim: 'The final NPF document must be submitted before 1 st January 2026.'",
+          "source_span": "The final NPF document must be submitted before 1 st January 2026.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] First-stage truck specification, verbatim: 'The trucks to be deployed in the first stage are expected to be either 4x2 or 6x2, with up to 44 tonne capacity and long ranges of at least 600km.'",
+          "source_span": "The trucks to be deployed in the first stage are expected to be either 4x2 or 6x2, with up to 44 tonne capacity and long ranges of at least 600km.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] AFIR hydrogen price-transparency obligation, verbatim: 'Operators of hydrogen refuelling points shall clearly show information on the ad hoc price per kg at the publicly accessible hydrogen refuelling stations operated by them, so that that information is known to end users before they initiate a refuelling session and price comparison is facilitated.'",
+          "source_span": "Operators of hydrogen refuelling points shall clearly show information on the ad hoc price per kg at the publicly accessible hydrogen refuelling stations operated by them, so that that information is known to end users before they initiate a refuelling session and price comparison is facilitated.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] CO2 monitoring falls on manufacturers, verbatim: 'Monitoring and reporting by manufacturers and Member States is an essential precondition for the implementation of Regulation (EU) 2019/1242.'",
+          "source_span": "Monitoring and reporting by manufacturers and Member States is an essential precondition for the implementation of Regulation (EU) 2019/1242.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] GHG-accounting proposal scope, verbatim: 'This Regulation applies to any entity providing or organising freight and passenger services in the Union that calculates greenhouse gas emissions of a transport service starting or ending on the Union territory and discloses disaggregated information on those emissions to any third party for commercial or regulatory purposes.'",
+          "source_span": "This Regulation applies to any entity providing or organising freight and passenger services in the Union that calculates greenhouse gas emissions of a transport service starting or ending on the Union territory and discloses disaggregated information on those emissions to any third party for commercial or regulatory purposes.",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=COM:2023:441:FIN"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "6",
+          "claim_text": "[section6] Fleet-performance report commitment, verbatim: 'It will generate a comprehensive data set, which will be analysed to produce a publicly accessible report on fleet performance.'",
+          "source_span": "It will generate a comprehensive data set, which will be analysed to produce a publicly accessible report on fleet performance.",
+          "source_url": "https://h2accelerate.eu/trucks/"
+        }
+      ]
+    },
+    {
+      "item_id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+      "source_pool_hash": "f2c7d518a31112b9a9084a5e2c8b6af2967545f3b11328282535e61f30a7dc7b",
+      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks Regulation (EU) 2023/1804 on the deployment of alternative fuels infrastructure (AFIR), which supersedes Directive 2014/94/EU (AFID). It gives a freight-forwarding workspace a record of AFIR's Member State infrastructure-deployment targets, its own entry-into-force/application dates, and where the workspace does and does not carry a direct compliance obligation.\n\nFACT: \"OJ L 234, 22.9.2023, pp. 1–47\" *Source: Regulation (EU) 2023/1804, EUR-Lex/Official Journal. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.\" *Source: Regulation (EU) 2023/1804, Article 26, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Analytical inference:* the regulation was published 22 September 2023 (OJ citation above) and, per its own Article 26, entered into force on the twentieth day following publication and applies from 13 April 2024.\n\n**Convention notes.** This brief applies the regulation's provisions to the workspace's operational profile: a freight forwarder with road as a mode among others, on European trade lanes. The workspace is assessed in its freight-forwarder role, not as a Member State, infrastructure operator, or vehicle manufacturer.\n\n**Scope limitation.** AFIR's direct compliance obligations fall on EU Member States (infrastructure deployment) and, for a small number of provisions, on infrastructure operators. **The workspace, as a freight forwarder, bears no direct compliance obligation under this regulation.** Its relevance is indirect: infrastructure deployed under AFIR determines when zero-emission road carriers become operationally viable on the corridors the workspace's carriers use.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.\" *Source: Regulation (EU) 2023/1804, Article 1(1), EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Operational implication:* AFIR is a supply-side infrastructure mandate directed at Member States; it does not itself impose a vehicle-use or fuel-purchase obligation on a freight forwarder. Its relevance to the workspace runs through the road carriers it engages.\n\nFACT: \"Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO2 emission performance standards for new heavy-duty vehicles\" *Source: Regulation (EU) 2024/1610, EUR-Lex/Official Journal. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610\n\nFACT: \"ean Parliament and of the Council of 20&nbsp;June 2019 setting CO 2 emission performance standards for new heavy-du\" *Source: Regulation (EU) 2019/1242, EUR-Lex. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242\n\n*Legal Confirmation Required:* Regulation (EU) 2024/1610 (amending Regulation (EU) 2019/1242) sets CO2 emission-performance standards for new heavy-duty vehicles; whether and how quickly a specific carrier the workspace engages must transition its fleet under that separate regulation is a carrier-specific, fact-specific question outside this brief's scope. AFIR is the infrastructure precondition for that transition, not its legal trigger.\n\n# 3. Issues Requiring Immediate Action\n\n*Analytical inference:* because AFIR's own compliance duties run to Member States and not to freight forwarders, there is no immediate AFIR compliance action item for the workspace. The commercial monitoring item is carrier capability on European corridors ahead of client commitments on zero-emission road transport.\n\nFACT: \"by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW\" *Source: Regulation (EU) 2023/1804, Article 4, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Operational implication:* the end-2025 heavy-duty electric recharging target on the TEN-T road network is the first infrastructure milestone that determines whether battery-electric trucks are viable on the workspace's core European corridors; see Section 8 for the full deployment timeline.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nFACT: \"The regulation sets a number of mandatory national targets for the deployment of alternative fuels infrastructure in the EU, for road vehicles, vessels and stationary aircraft.\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"This Regulation should lay down mandatory minimum targets for the deployment of publicly accessible recharging and refuelling infrastructures for road vehicles.\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Legal Confirmation Required:* the captured text's obligations run from this Regulation to EU Member States (infrastructure deployment) and from Member States to the Commission (progress reporting, Section 6). No obligation running from this Regulation to a freight-forwarding workspace, carrier, or logistics intermediary is stated anywhere in the captured text.\n\n*Analytical inference:* the workspace's position in this chain is that of a downstream user of infrastructure Member States deploy, through the road carriers it engages, not a party to the compliance mechanism itself.\n\n# 5. Authoritative Guidance Document Analysis\n\n*No content for this section as of the date of this brief. No implementing act, delegated regulation, or formal Commission guidance document under Regulation (EU) 2023/1804 is present in the captured source pool.*\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\nFACT: \"Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.\" *Source: Regulation (EU) 2023/1804, Article 18(2), EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Operational implication:* Member State annual progress reports (due 31 March each year under Article 18(1)) are the mechanism the Commission uses to find a Member State at risk of missing its national targets and to recommend corrective measures, without prejudice to the general TFEU Article 258 infringement procedure. The workspace should treat published Member State progress reports as the primary early-warning signal for infrastructure delay on corridors it uses.\n\nFACT: \"a possible extension of the scope of this Regulation to other ship types following relevant adjustments in other relevant Union legal acts\" *Source: Regulation (EU) 2023/1804, Article, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Analytical inference:* the regulation contemplates its own future review, including a possible extension of scope to other ship types; no date for that review is stated in the captured text beyond the review clause itself.\n\n# 7. Threshold Questions\n\n**Q1: Does the workspace have any obligation to register, report, or notify under AFIR?**\n\n*Analytical inference:* No. AFIR's reporting obligations (Article 18) run from Member States to the Commission; no registration, notification, or reporting obligation running to a freight-forwarding workspace is stated in the captured text.\n\n**Q2: Does the workspace route road freight on infrastructure AFIR governs?**\n\n*Legal Confirmation Required:* whether a specific corridor the workspace's road carriers use falls on the TEN-T core or comprehensive network, and whether AFIR's deployment targets are being met on that corridor by the relevant date, is a corridor-specific and carrier-specific question outside this brief's scope.\n\n**Q3: Does AFIR's airport exemption affect the workspace's air-mode operations?**\n\nFACT: \"Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.\" *Source: Regulation (EU) 2023/1804, Article, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Analytical inference:* smaller airports (fewer than 10,000 commercial flight movements per year) may be exempted from the stationary-aircraft electricity-supply obligation; this is an infrastructure-deployment exemption running to Member States and airport operators, not a duty or exemption running to the workspace.\n\n# 8. Substantive Requirements\n\n*As established above, the workspace bears no direct substantive compliance obligations under Regulation (EU) 2023/1804. This section documents the regulation's substantive provisions as captured, with the required slots stated first.*\n\n**Required slots.**\n\nFACT: \"This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.\" *Source: Regulation (EU) 2023/1804, Article 1(1), EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW\" *Source: Regulation (EU) 2023/1804, Article 4, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.\" *Source: Regulation (EU) 2023/1804, Article 18(2), EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.\" *Source: Regulation (EU) 2023/1804, Article 26, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n**Heavy-duty electric recharging deployment.** FACT: \"with an individual power output of at least 350 kW; (b) by 31&nbsp;December 2027, along at least 50&nbsp;% of the\" *Source: Regulation (EU) 2023/1804, Article 4, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"f at least 150 kW; (iii) by 31&nbsp;December 2035, each recharging pool offers a power output of at least 600 kW an\" *Source: Regulation (EU) 2023/1804, Article 4, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Operational implication:* the regulation phases heavy-duty recharging pool power output upward across successive deadlines (2025, 2027, 2030, 2035); the exact figures above are the operative-text milestones this record's pool contains.\n\n**Hydrogen refuelling stations.** FACT: \"For hydrogen, publicly accessible hydrogen refuelling stations must be deployed with a maximum distance of 200 km in between them along the TEN-T core and the TEN-T comprehensive network and at least one must be available in every urban node.\" *Source: Regulation (EU) 2023/1804, Article 6, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n**Liquefied methane (LNG/LBG) refuelling.** FACT: \"It also contains provisions for EU Member States to ensure minimum coverage of publicly accessible refuelling points for liquefied methane dedicated to heavy-duty vehicles on the TEN-T core and comprehensive network\" *Source: Regulation (EU) 2023/1804, Article 7, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n**User-friendliness and interoperability.** FACT: \"all publicly accessible recharging and refuelling points should accept payment instruments that are widely used in the Union, and in particular electronic payments through terminals and devices used for payment services\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"The regulation also includes provisions for ensuring user-friendliness of recharging infrastructure (e.g. payment options, price transparency and consumer information, non-discriminatory practices, smart recharging).\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"All recharging points built or renovated after 13 April 2024 should therefore support smart recharging.\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\nFACT: \"Regardless of the brand of their vehicle, end users should be able to access and use publicly accessible recharging stations in a user-friendly and non-discriminatory way.\" *Source: Regulation (EU) 2023/1804, Recital, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n**Airport electricity-supply exemption.** FACT: \"Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.\" *Source: Regulation (EU) 2023/1804, Article, EUR-Lex. https://eur-lex.europa.eu/eli/reg/2023/1804/oj\n\n*Legal Confirmation Required:* no phase-in schedule beyond the dated deployment milestones above is stated in the captured text for the provisions this record extracts.\n\nNo exceptions are stated in Article beyond the airport electricity-supply exemption captured above, which is recorded as a FACT claim rather than an absence.\n\nNo scope limits are stated in Article beyond the scope-extension review clause captured in Section 6, which is recorded as a FACT claim rather than an absence.\n\nObligations surveyed: 10; workspace-adjacent: 2; extracted as FACT: 10.\n\n# 9. Product-Specific Compliance Status\n\n*No content for this section: the workspace does not sell products under its own name that fall within AFIR's scope of alternative fuels infrastructure.*\n\n# 10. Registration and Reporting Obligations\n\n*Analytical inference:* no registration, reporting, or notification obligation running to a freight-forwarding workspace is stated in the captured text. Member State progress reporting to the Commission (Article 18) is the reporting mechanism the captured text does name.\n\n# 11. Operational System Requirements\n\n*Analytical inference:* the captured text does not call for the workspace to operate any reporting, monitoring, or registration system. Corridor-level infrastructure mapping against TEN-T deployment deadlines is a commercially prudent internal action, not a regulatory requirement AFIR imposes on the workspace.\n\n# 12. Exemptions and Edge Cases\n\n*No content for this section beyond the airport electricity-supply exemption already captured in Section 7 and Section 8; the workspace does not occupy a position in the AFIR compliance chain from which any other captured exemption is directly relevant.*\n\n# 13. Adjacent Industry Research and Alternatives\n\n*No authoritative published research directly linking AFIR implementation to freight-forwarder operational costs or competitive positioning is present in the source pool provided.*\n\n# 14. Confirmed Regulatory Timeline\n\n- 22 September 2023: Regulation (EU) 2023/1804 published in the Official Journal.\n- 13 April 2024: AFIR applies, per its own Article 26 (twenty days after publication, application from this date), superseding Directive 2014/94/EU (AFID).\n- 31&nbsp;December 2025: publicly accessible heavy-duty electric recharging pools deployed along at least 15&nbsp;% of the TEN-T road network, each pool at least 1&nbsp;400 kW with at least one recharging point of at least 350 kW.\n- 31&nbsp;December 2027: heavy-duty electric recharging pools extended to at least 50&nbsp;% of the network in each direction of travel, per the captured Article 4 provisions.\n- 31&nbsp;December 2035: recharging pool power output milestones reach at least 600 kW, per the captured Article 4 provisions.\n- Annually, by 31 March: Member States report to the Commission on recharging deployment progress (Article 18(1)); the Commission may issue a finding and recommend corrective measures where a Member State is at risk of missing its national targets (Article 18(2), Section 6).\n\n*Source for timeline entries: Regulation (EU) 2023/1804, EUR-Lex (https://eur-lex.europa.eu/eli/reg/2023/1804/oj).*\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Regulation (EU) 2023/1804, Official Journal, EUR-Lex | EU Official Journal act (CELEX 32023R1804) | https://eur-lex.europa.eu/eli/reg/2023/1804/oj |\n| 2 | European Commission DG MOVE, Alternative Fuels Infrastructure page | Regulator guidance | https://transport.ec.europa.eu/transport-themes/clean-transport/alternative-fuels-sustainable-mobility-europe/alternative-fuels-infrastructure_en |\n| 3 | Regulation (EU) 2024/1610 (HDV CO2 standards amendment), EUR-Lex | EU Official Journal act | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610 |\n| 4 | Regulation (EU) 2019/1242 (HDV CO2 emission performance standards), EUR-Lex | EU Official Journal act | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242 |\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "stable",
+        "format_type": "regulatory_fact_document",
+        "topic_tags": [
+          "transport",
+          "fuels"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "The EU Alternative Fuels Infrastructure Regulation (AFIR, Regulation (EU) 2023/1804), setting Member State deployment targets for electric recharging, hydrogen refuelling, and LNG/LBG refuelling infrastructure on the TEN-T network.",
+        "why_matters": "AFIR's infrastructure deployment deadlines determine when zero-emission road carriers become operationally viable on European corridors the workspace's carriers use; the workspace carries no direct compliance obligation under the regulation itself.",
+        "key_data": [
+          "31 December 2025: heavy-duty recharging pools along at least 15 percent of the TEN-T road network",
+          "31 December 2027: heavy-duty recharging extended to at least 50 percent of the network",
+          "31 December 2035: recharging pool power output milestones reach at least 600 kW",
+          "hydrogen refuelling stations at maximum 200 km intervals on TEN-T core and comprehensive networks",
+          "annual Member State progress reporting due 31 March each year"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": {
+          "steps": [
+            {
+              "date": "2025",
+              "value": "15 percent TEN-T coverage",
+              "label": "heavy-duty recharging pools at 1,400 kW per pool"
+            },
+            {
+              "date": "2027",
+              "value": "50 percent TEN-T coverage",
+              "label": "extended heavy-duty recharging deployment"
+            },
+            {
+              "date": "2030",
+              "value": "hydrogen HRS network",
+              "label": "200 km maximum gap on TEN-T core and comprehensive networks"
+            },
+            {
+              "date": "2035",
+              "value": "600 kW power output",
+              "label": "recharging pool power output milestone"
+            }
+          ],
+          "note": "the captured Article 4 provisions phase heavy-duty recharging deployment across four dated milestones (2025, 2027, 2030, 2035)"
+        },
+        "penalty_range": null,
+        "enforcement_body": "The European Commission, via Member State progress reporting (Article 18) and, where a Member State risks missing its national targets, a Commission finding and recommendation for corrective measures, without prejudice to the general TFEU Article 258 infringement procedure.",
+        "operational_scenario_tags": [],
+        "compliance_object_tags": [
+          "freight-forwarder",
+          "road-fleet-operator"
+        ],
+        "related_items": [],
+        "intersection_summary": null,
+        "sources_used": [],
+        "regeneration_skill_version": "2026-09-17"
+      },
+      "claims": [
+        {
+          "slot_key": "jurisdictional_scope",
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: 'This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.'",
+          "source_span": "This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": "primary_deadline",
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[primary_deadline] The captured source states, verbatim: 'by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW'",
+          "source_span": "by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": "penalty_summary",
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[penalty_summary] The captured source states, verbatim: 'Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.'",
+          "source_span": "Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": "effective_date",
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[effective_date] The captured source states, verbatim: 'This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.'",
+          "source_span": "This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] OJ publication citation, verbatim: 'OJ L 234, 22.9.2023, pp. 1–47'",
+          "source_span": "OJ L 234, 22.9.2023, pp. 1–47",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "1",
+          "claim_text": "[section1] Entry into force/application, verbatim: 'This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.'",
+          "source_span": "This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union . It shall apply from 13&nbsp;April 2024.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] Subject matter, verbatim: 'This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.'",
+          "source_span": "This Regulation establishes mandatory national targets leading to the deployment of sufficient alternative fuels infrastructure in the Union for road vehicles, trains, vessels and stationary aircraft.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] HDV CO2 amendment title, verbatim: 'Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO2 emission performance standards for new heavy-duty vehicles'",
+          "source_span": "Regulation (EU) 2024/1610 of the European Parliament and of the Council of 14 May 2024 amending Regulation (EU) 2019/1242 as regards strengthening the CO2 emission performance standards for new heavy-duty vehicles",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "2",
+          "claim_text": "[section2] HDV CO2 original regulation fragment, verbatim: 'ean Parliament and of the Council of 20&nbsp;June 2019 setting CO 2 emission performance standards for new heavy-du'",
+          "source_span": "ean Parliament and of the Council of 20&nbsp;June 2019 setting CO 2 emission performance standards for new heavy-du",
+          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "3",
+          "claim_text": "[section3] 2025 heavy-duty deployment deadline, verbatim: 'by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW'",
+          "source_span": "by 31&nbsp;December 2025, along at least 15&nbsp;% of the length of the TEN-T road network, publicly accessible recharging pools dedicated to heavy-duty electric vehicles are deployed in each direction of travel and that each recharging pool offers a power output of at least 1&nbsp;400 kW and includes at least one recharging point with an individual power output of at least 350 kW",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] Member State infrastructure obligation, verbatim: 'The regulation sets a number of mandatory national targets for the deployment of alternative fuels infrastructure in the EU, for road vehicles, vessels and stationary aircraft.'",
+          "source_span": "The regulation sets a number of mandatory national targets for the deployment of alternative fuels infrastructure in the EU, for road vehicles, vessels and stationary aircraft.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "4",
+          "claim_text": "[section4] Member State minimum targets, verbatim: 'This Regulation should lay down mandatory minimum targets for the deployment of publicly accessible recharging and refuelling infrastructures for road vehicles.'",
+          "source_span": "This Regulation should lay down mandatory minimum targets for the deployment of publicly accessible recharging and refuelling infrastructures for road vehicles.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "6",
+          "claim_text": "[section6] Progress tracking / corrective measures, verbatim: 'Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.'",
+          "source_span": "Without prejudice to the procedure laid down in Article&nbsp;258 TFEU, where it is evident from the report referred to in paragraph 1 of this Article or from any information available to the Commission that a Member State is at risk of not achieving its national targets set out in Article&nbsp;3(1) of this Regulation, the Commission may issue a finding to that effect and recommend the Member State concerned to take corrective measures to achieve the national targets.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "6",
+          "claim_text": "[section6] Scope-extension review clause, verbatim: 'a possible extension of the scope of this Regulation to other ship types following relevant adjustments in other relevant Union legal acts'",
+          "source_span": "a possible extension of the scope of this Regulation to other ship types following relevant adjustments in other relevant Union legal acts",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "7",
+          "claim_text": "[section7] Airport electricity-supply exemption, verbatim: 'Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.'",
+          "source_span": "Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] 2027 heavy-duty deployment extension, verbatim: 'with an individual power output of at least 350 kW; (b) by 31&nbsp;December 2027, along at least 50&nbsp;% of the'",
+          "source_span": "with an individual power output of at least 350 kW; (b) by 31&nbsp;December 2027, along at least 50&nbsp;% of the",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] 2035 recharging pool power output, verbatim: 'f at least 150 kW; (iii) by 31&nbsp;December 2035, each recharging pool offers a power output of at least 600 kW an'",
+          "source_span": "f at least 150 kW; (iii) by 31&nbsp;December 2035, each recharging pool offers a power output of at least 600 kW an",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] Hydrogen refuelling stations, verbatim: 'For hydrogen, publicly accessible hydrogen refuelling stations must be deployed with a maximum distance of 200 km in between them along the TEN-T core and the TEN-T comprehensive network and at least one must be available in every urban node.'",
+          "source_span": "For hydrogen, publicly accessible hydrogen refuelling stations must be deployed with a maximum distance of 200 km in between them along the TEN-T core and the TEN-T comprehensive network and at least one must be available in every urban node.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] LNG/LBG refuelling coverage, verbatim: 'It also contains provisions for EU Member States to ensure minimum coverage of publicly accessible refuelling points for liquefied methane dedicated to heavy-duty vehicles on the TEN-T core and comprehensive network'",
+          "source_span": "It also contains provisions for EU Member States to ensure minimum coverage of publicly accessible refuelling points for liquefied methane dedicated to heavy-duty vehicles on the TEN-T core and comprehensive network",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] Payment instrument requirement, verbatim: 'all publicly accessible recharging and refuelling points should accept payment instruments that are widely used in the Union, and in particular electronic payments through terminals and devices used for payment services'",
+          "source_span": "all publicly accessible recharging and refuelling points should accept payment instruments that are widely used in the Union, and in particular electronic payments through terminals and devices used for payment services",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] User-friendliness provisions, verbatim: 'The regulation also includes provisions for ensuring user-friendliness of recharging infrastructure (e.g. payment options, price transparency and consumer information, non-discriminatory practices, smart recharging).'",
+          "source_span": "The regulation also includes provisions for ensuring user-friendliness of recharging infrastructure (e.g. payment options, price transparency and consumer information, non-discriminatory practices, smart recharging).",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] Smart recharging support, verbatim: 'All recharging points built or renovated after 13 April 2024 should therefore support smart recharging.'",
+          "source_span": "All recharging points built or renovated after 13 April 2024 should therefore support smart recharging.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] Non-discriminatory access, verbatim: 'Regardless of the brand of their vehicle, end users should be able to access and use publicly accessible recharging stations in a user-friendly and non-discriminatory way.'",
+          "source_span": "Regardless of the brand of their vehicle, end users should be able to access and use publicly accessible recharging stations in a user-friendly and non-discriminatory way.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "section": "8",
+          "claim_text": "[section8] Airport electricity-supply exemption, verbatim: 'Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.'",
+          "source_span": "Member States may exempt airports of the TEN-T network with fewer than 10&nbsp;000 commercial flight movements per year, averaged over the last three years, from the obligation to supply electricity to stationary aircraft at all aircraft remote stands.",
+          "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+        }
+      ]
+    }
+  ]
+}

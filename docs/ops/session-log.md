@@ -23404,3 +23404,46 @@ and lanes P9 reg-a, reg-b, market, research-ops (57 items, export 35297253710); 
 
 **Standing numbers.** 1,431 verified, 87 quarantined, 1,248 archived by ruling. F45 6,830 on master
 (6,227 pending L34); F46 7 on master (1 pending L35, PR #696); F47 0/0/0.
+## 2026-09-17, W9 lane P8: two mint-hold items re-authored from their newest captures; the third waits for an uncapped capture
+
+Sonnet lane, worktree wt-part3-0911, branch brief-lane/008-mintholds-2026-09-17 from master caa08198. Batch
+file only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator].** `record-briefs-008-mintholds.json`, 2 entries, VALID. 5eed63be (H2
+Accelerate): all 64 prior FACT claims verbatim in the newest captures (the two held claims were resolved
+by a newer capture in the export); re-authored under the market_signal_brief section set (the stored
+sections carried a 15-section regulatory layout); action_now an allowed GAP. ff95b385 (AFIR): all 27 prior
+FACT claims verbatim; the 191,954-character capture is the regulation's full text through Article 26,
+which the prior pass never used; three operative-Article claims added so every required slot grounds on
+Article text.
+
+**Dropped from the batch by the coordinator [CONFIRMED].** 859faf76 (Net-Zero Industry Act): the item's own
+Official Journal capture is truncated at exactly 40,002 characters, mid-recital 28, before any operative
+Article; four prior FACT claims no longer verify and the lane's entry could only offer a GAP for
+penalty_summary. A GAP is licensed by the source's own statement that there is no penalty (migration 326),
+not by a capture that stops before the penalty article, so that entry is withheld. Disposition: the
+refetch-capped maintenance step fetches the uncapped text, then the item is re-authored. Nothing weakened
+to pass.
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget, after lane L40 (span
+attribution by content) merges.
+
+### UX compliance (P8)
+
+Not a UI change; no customer surface touched by this branch.
+
+### P8 follow-on: batch 008b, the Net-Zero Industry Act from its full Official Journal text
+
+[CONFIRMED by the validator, with the criterion-5 mirror engaged] `record-briefs-008b-nzia.json`, one entry.
+The provenance-heal step captured the item's own instrument through Cellar (CELEX 32024R1735, 263,269
+characters, Articles 1 to 49 present), and the four previously unverifiable facts now ground on operative
+text: the auction supply-concentration trigger on Article 26(2) with its Article 26(7) default kept distinct
+from the recital's aspiration, the procurement charge on Article 25(7)(d), penalty_summary on Article
+23(13) as a FACT, primary_deadline on Article 49(4). Every obligation-bearing sentence sits inside a
+verbatim FACT quote, which also clears the live legal_claim_mislabeled_analysis finding.
+
+[CONFIRMED, lane finding] the same heal run stored a second Cellar capture under this item, CELEX 32025R0040
+(the packaging regulation, 448,363 characters), which is not this instrument; the lane read it only far
+enough to identify it and grounded nothing on it. The capture step's instrument selection for this item
+is a follow-on to inspect; the pool row itself is inert for grounding because attribution now follows the
+span (lane L40).
