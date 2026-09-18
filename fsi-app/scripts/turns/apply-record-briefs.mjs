@@ -103,6 +103,7 @@ import { isMainModule } from "../lib/is-main.mjs";
 import { claimRunId, writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { validateRecordBriefsFile, RECORD_BRIEFS_SCHEMA_VERSION } from "./record-briefs/schema.mjs";
+import { readAll, readAllByIds } from "../lib/db.mjs";
 import { runUnscopedFlywheelSteps } from "./run-population-flywheel.mjs";
 import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-extract.mjs";
@@ -443,6 +444,28 @@ async function buildPoolContext(sb, itemIds) {
     poolBytesByItemId[itemId] = bytes;
   }
   return { poolTextByItemId, currentHashByItemId, poolBytesByItemId };
+}
+
+/** Lane L25: the two maps validateRecordBriefsFile's criterion-5 mirror needs, built from rows the driver
+ *  reads itself (item_type_required_slots, all rows, one catalog-sized select; intelligence_items id and
+ *  item_type for the batch ids, chunked through readAllByIds so the .in() list never exceeds the URL
+ *  budget). Pure over rows so the shape is unit-tested without a client. */
+export function buildRequiredSlotMaps(slotRows, itemRows) {
+  const requiredSlotsByItemType = {};
+  for (const r of slotRows ?? []) {
+    if (!r || typeof r.item_type !== "string" || typeof r.slot_key !== "string") continue;
+    (requiredSlotsByItemType[r.item_type] ??= []).push({ slot_key: r.slot_key, description: r.description ?? "" });
+  }
+  const itemTypeByItemId = {};
+  for (const r of itemRows ?? []) if (r && typeof r.id === "string" && typeof r.item_type === "string") itemTypeByItemId[r.id] = r.item_type;
+  return { requiredSlotsByItemType, itemTypeByItemId };
+}
+
+/** The driver's own reads for buildRequiredSlotMaps. @param {object} sb @param {string[]} itemIds */
+async function readRequiredSlotContext(sb, itemIds) {
+  const slotRows = await readAll("item_type_required_slots", "item_type, slot_key, description", { client: sb });
+  const itemRows = itemIds.length ? await readAllByIds("intelligence_items", "id, item_type", itemIds, { client: sb }) : [];
+  return buildRequiredSlotMaps(slotRows, itemRows);
 }
 
 /** Dynamic import of task 1.1's entity-linking writer - see the module header's PRE-FLIGHT note. Returns
@@ -918,10 +941,14 @@ async function main() {
       });
     }
     const { poolTextByItemId, currentHashByItemId, poolBytesByItemId } = await buildPoolContext(sb, rawItemIds);
+    // Lane L25: criterion 5 before any write. The same maps the live validator reads, so a slot the ground
+    // step would quarantine on is refused here, naming the slot.
+    const { requiredSlotsByItemType, itemTypeByItemId } = rawItemIds.length > 0 ? await readRequiredSlotContext(sb, rawItemIds) : { requiredSlotsByItemType: {}, itemTypeByItemId: {} };
 
-    const validated = validateRecordBriefsFile(raw, { poolTextByItemId });
+    const validated = validateRecordBriefsFile(raw, { poolTextByItemId, requiredSlotsByItemType, itemTypeByItemId });
     if (!validated.ok) {
-      metrics = { file_valid: false, error_count: validated.errors.length };
+      const slotRefusals = validated.errors.filter((e) => /required slot "/.test(e)).length;
+      metrics = { file_valid: false, error_count: validated.errors.length, slot_refusals: slotRefusals };
       console.error(`apply-record-briefs: file failed validation (${validated.errors.length} error(s)):`);
       for (const e of validated.errors) console.error(`  - ${e}`);
       throw new Error(

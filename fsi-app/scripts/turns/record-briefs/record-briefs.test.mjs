@@ -11,6 +11,8 @@ import {
   buildSyntheticFrontmatter,
   buildSyntheticRawText,
   figureCheckText,
+  requiredSlotErrors,
+  slotAllowsGap,
 } from "./schema.mjs";
 
 const ITEM_ID = "11111111-1111-1111-1111-111111111111";
@@ -1213,5 +1215,82 @@ describe("buildSyntheticRawText", () => {
     const r = validateRecordBriefsFile(validFile([validEntry({ body })]), { poolTextByItemId: POOL });
     assert.equal(r.ok, true, `expected ok, got errors: ${JSON.stringify(r.ok ? [] : r.errors)}`);
     assert.match(raw, /---\nseverity: MONITORING/);
+  });
+});
+
+
+// ── Lane L25: criterion-5 mirror (refusal 8) ─────────────────────────────────────────────────────────
+// The live validate_item_provenance (migration 207) counts FACT or GAP claims whose claim_text names the
+// slot; the descriptions (migrations 128/131/132/137/299) say where a GAP is honest. These tests force
+// each branch with the real fixtures: no FACT -> refused naming the slot; FACT -> passes; GAP where the
+// description names a GAP form -> passes; GAP where it does not -> refused; missing maps -> skipped.
+describe("criterion-5 mirror (lane L25)", () => {
+  const gapDesc = "penalty_summary. Emit a FACT claim (claim_kind=FACT, slot_key=penalty_summary) when the source states a penalty, or a GAP claim (claim_kind=GAP, slot_key=penalty_summary) that SAYS SO on that basis.";
+  const SLOTS = {
+    regulation: [
+      { slot_key: "effective_date", description: "effective_date: when it takes effect" },
+      { slot_key: "penalty_summary", description: "penalty_summary: what non-compliance costs" },
+    ],
+    standard: [
+      { slot_key: "effective_date", description: "effective_date: when it takes effect" },
+      { slot_key: "penalty_summary", description: gapDesc },
+    ],
+  };
+  const penaltyFact = () => validClaim({
+    slot_key: "penalty_summary",
+    claim_text: "[penalty_summary] The captured source states, verbatim: «shall enter into force on 1 January 2027»",
+  });
+  const penaltyGap = () => ({ slot_key: "penalty_summary", claim_kind: "GAP", claim_text: "[penalty_summary] No penalty: the source presents this instrument as voluntary.", section: "2" });
+  const opts = (itemType) => ({ poolTextByItemId: POOL, requiredSlotsByItemType: SLOTS, itemTypeByItemId: { [ITEM_ID]: itemType } });
+
+  test("a regulation entry with no penalty_summary claim is refused naming the slot and the item_type", () => {
+    const r = validateRecordBriefsFile(validFile([validEntry()]), opts("regulation"));
+    assert.equal(r.ok, false);
+    const e = r.errors.find((x) => /required slot "penalty_summary" for item_type regulation/.test(x));
+    assert.ok(e, JSON.stringify(r.errors));
+    assert.match(e, /needs a FACT claim/);
+    assert.doesNotMatch(e, /or GAP/);
+    assert.match(e, /missing_required_slot/);
+  });
+
+  test("the same entry with a FACT claim naming penalty_summary passes", () => {
+    const r = validateRecordBriefsFile(validFile([validEntry({ claims: [validClaim(), penaltyFact()] })]), opts("regulation"));
+    assert.equal(r.ok, true, JSON.stringify(r.ok ? [] : r.errors));
+  });
+
+  test("a standard entry with a GAP claim for penalty_summary passes (the description names a GAP form); a regulation entry with the same GAP is refused", () => {
+    const ok = validateRecordBriefsFile(validFile([validEntry({ claims: [validClaim(), penaltyGap()] })]), opts("standard"));
+    assert.equal(ok.ok, true, JSON.stringify(ok.ok ? [] : ok.errors));
+    const refused = validateRecordBriefsFile(validFile([validEntry({ claims: [validClaim(), penaltyGap()] })]), opts("regulation"));
+    assert.equal(refused.ok, false);
+    assert.ok(refused.errors.some((x) => /covered only by a GAP claim/.test(x) && /penalty_summary/.test(x)), JSON.stringify(refused.errors));
+  });
+
+  test("effective_date GAP is refused on every reg-family type (HARD everywhere)", () => {
+    const gap = { slot_key: "effective_date", claim_kind: "GAP", claim_text: "[effective_date] not stated by the source.", section: "2" };
+    for (const t of ["regulation", "standard"]) {
+      const r = validateRecordBriefsFile(validFile([validEntry({ claims: [gap, penaltyFact()] })]), opts(t));
+      assert.equal(r.ok, false, t);
+      assert.ok(r.errors.some((x) => /required slot "effective_date"/.test(x) && /only by a GAP claim/.test(x)), t + ": " + JSON.stringify(r.errors));
+    }
+  });
+
+  test("coverage is by claim_text mention (the live ILIKE), not by the slot_key field alone", () => {
+    const mislabeled = validClaim({ slot_key: "penalty_summary", claim_text: "The captured source states, verbatim: «shall enter into force on 1 January 2027»" });
+    const r = validateRecordBriefsFile(validFile([validEntry({ claims: [validClaim(), mislabeled] })]), opts("regulation"));
+    assert.equal(r.ok, false);
+    assert.ok(r.errors.some((x) => /required slot "penalty_summary"/.test(x)), JSON.stringify(r.errors));
+  });
+
+  test("without the two maps the mirror is skipped (the pure validator has no DB); an item_type with no required slots produces no error", () => {
+    assert.equal(validateRecordBriefsFile(validFile([validEntry()]), { poolTextByItemId: POOL }).ok, true);
+    assert.equal(validateRecordBriefsFile(validFile([validEntry()]), opts("guidance_with_no_rows")).ok, true);
+    assert.deepEqual(requiredSlotErrors(validEntry(), 0, { requiredSlotsByItemType: SLOTS, itemTypeByItemId: {} }), []);
+  });
+
+  test("slotAllowsGap reads the description, the policy source, not the slot name", () => {
+    assert.equal(slotAllowsGap({ slot_key: "penalty_summary", description: gapDesc }), true);
+    assert.equal(slotAllowsGap({ slot_key: "penalty_summary", description: "penalty_summary: what non-compliance costs" }), false);
+    assert.equal(slotAllowsGap({ slot_key: "cost_baseline", description: "... a GAP claim that names the region ..." }), true);
   });
 });

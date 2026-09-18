@@ -109,7 +109,7 @@ committed `scripts/turns/record-briefs/record-briefs-NNN.json` file, and `valida
    not look far enough", per item, at a glance. Example line: `b7135a5b: pool sufficed for all required
    slots; per-year trajectory genuinely absent from the captured text.`
 
-## `validateRecordBriefsFile(json, { poolTextByItemId })`
+## `validateRecordBriefsFile(json, { poolTextByItemId, requiredSlotsByItemType, itemTypeByItemId })`
 
 ```
 validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, errors: string[] }
@@ -122,12 +122,15 @@ validateRecordBriefsFile(json, opts?) -> { ok: true, entries } | { ok: false, er
   which every `FACT` claim's `source_span` is checked against. The caller (task 3.4's driver) builds this
   from task 3.1's export parts (`pool: [{url, text}]`, concatenated per item) -- this module never fetches
   or reads anything itself; it is pure.
+- `opts.requiredSlotsByItemType` and `opts.itemTypeByItemId` (lane L25): the `item_type_required_slots`
+  rows grouped by item_type (`{slot_key, description}`) and each entry's item_type. When BOTH are given,
+  refusal 8 runs; the driver always passes them (its own reads). Omitted, the check is skipped.
 - Every error string names the item (`item <id>: ...`) and the offending field or claim index
   (`item <id> claims[2]: ...`), never a bare "invalid entry".
 - Per-entry AND per-claim violations are collected across the WHOLE file in one pass (not stopped at the
   first bad entry), so a producer sees every problem at once.
 
-## The seven pre-write refusals (task 6.1b + task 6.2b, fix round 1; numeric-figure mirror added D30, lane L19)
+## The eight pre-write refusals (task 6.1b + task 6.2b, fix round 1; numeric-figure mirror added D30, lane L19; criterion-5 mirror added lane L25)
 
 A 10-item pilot batch (brief-apply run 34688130473) generated and sectioned cleanly, then quarantined
 10/10 at the ground step for defects the validator now catches before any grounding cost is spent.
@@ -358,6 +361,28 @@ apply.yml` carries an `allow_brief_overwrite` boolean input (default `false`) ma
 validator has no opinion on `item_grade` itself (that is a live-DB read the driver's own validate step
 performs, per "What task 3.4's driver is expected to do with a validated file" below) -- the flag only
 ever matters at the driver, never inside `validateRecordBriefsFile`.
+
+8. **Criterion-5 mirror (lane L25, brief-chain-build-plan Part 7 row P1).** Batch 006's apply quarantined
+   1bb72c94 with `missing_required_slot penalty_summary (criterion 5, item_type regulation)` after this
+   validator had accepted the file. The live `validate_item_provenance` (migration 207) counts, per required
+   slot of the item's type, the claims of kind FACT or GAP whose `claim_text ILIKE '%slot_key%'`; zero is a
+   quarantine. `requiredSlotErrors` mirrors that count and adds the GAP policy the slot descriptions carry:
+   a GAP covers a slot only where the description names a GAP claim form (`slotAllowsGap`); elsewhere only a
+   FACT does. The SQL count alone accepts any GAP; this mirror is stricter on that one axis so a batch never
+   lands a GAP the descriptions forbid. Errors name the item, the slot, the item_type and whether a GAP would
+   have been accepted. The allowance, read from the live rows on 2026-09-17 (48 rows):
+
+   | item_type | FACT only (HARD) | FACT or GAP | source |
+   |---|---|---|---|
+   | regulation, directive | effective_date, jurisdictional_scope, penalty_summary, primary_deadline | none | migration 113 (seeded HARD), 137 (kept HARD: binding instruments) |
+   | standard, framework, guidance | effective_date, jurisdictional_scope | penalty_summary, primary_deadline | migration 137 (GAP only when the fetched source characterises the instrument as voluntary or sets no deadline or penalty) |
+   | market_signal, initiative | signal_event, driving_parties, conversion_trigger | action_now | migration 299 |
+   | research_finding | finding, decision_relevance, does_not_resolve, methodology_limits | none | migrations 128, 299 |
+   | technology, innovation, tool | deployment_reality, operational_fit, supplier_access | procurement_window | migration 129 family |
+   | regional_data | none | region_jurisdiction, cost_baseline, feasibility_choice, pending_change | migrations 131, 132 |
+
+   A GAP is authorised only by the fetched source's own characterisation, never by the item_type label
+   (migration 137's integrity note); the mirror checks the claim exists, the ground step checks the span.
 
 ## Reuse, not reimplementation
 

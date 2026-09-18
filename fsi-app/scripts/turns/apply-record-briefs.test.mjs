@@ -27,6 +27,7 @@ import {
   runApplyLoop,
   PIPELINE_POOL_REREADS,
   IO_BUDGET_STOP_REASON,
+  buildRequiredSlotMaps,
 } from "./apply-record-briefs.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
@@ -1115,4 +1116,23 @@ test("brief-apply.yml: RUN_IO_BUDGET_MB is threaded from inputs.io_budget_mb and
   const yml = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "brief-apply.yml"), "utf8");
   assert.match(yml, /RUN_IO_BUDGET_MB:\s*\$\{\{\s*inputs\.io_budget_mb\s*\}\}/);
   assert.match(yml, /--io-budget-mb \$RUN_IO_BUDGET_MB/);
+});
+
+
+// ── Lane L25: the driver builds the criterion-5 maps from its own reads ──────────────────────────────
+test("buildRequiredSlotMaps (lane L25): groups slot rows by item_type with their descriptions and maps batch ids to item_type; malformed rows are skipped", () => {
+  const { requiredSlotsByItemType, itemTypeByItemId } = buildRequiredSlotMaps(
+    [
+      { item_type: "regulation", slot_key: "penalty_summary", description: "HARD" },
+      { item_type: "regulation", slot_key: "effective_date", description: null },
+      { item_type: "standard", slot_key: "penalty_summary", description: "... a GAP claim (claim_kind=GAP) ..." },
+      { item_type: 7, slot_key: "x" },
+      null,
+    ],
+    [{ id: "item-1", item_type: "regulation" }, { id: "item-2", item_type: "standard" }, { id: 3, item_type: "tool" }],
+  );
+  assert.deepEqual(Object.keys(requiredSlotsByItemType).sort(), ["regulation", "standard"]);
+  assert.deepEqual(requiredSlotsByItemType.regulation.map((s) => s.slot_key), ["penalty_summary", "effective_date"]);
+  assert.equal(requiredSlotsByItemType.regulation[1].description, "");
+  assert.deepEqual(itemTypeByItemId, { "item-1": "regulation", "item-2": "standard" });
 });
