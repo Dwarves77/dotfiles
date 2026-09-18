@@ -4,16 +4,11 @@
 // detail routes). Shape mirrors RegulationsLedger's own section order
 // (masthead, severity tiles, banded rows) — reuses the SAME cl-reg-tiles /
 // cl-row-grid classes the real ledger renders, so layout does not jump.
-const box = (h: number, w: string | number = "100%") => ({
-  height: h,
-  width: w,
-  borderRadius: 6,
-  background: "var(--color-surface-raised)",
-});
+import { skeletonBox as box, SkeletonPage } from "@/components/ui/skeleton-page";
 
 export default function Loading() {
   return (
-    <div className="animate-pulse" style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 32px" }}>
+    <SkeletonPage>
       <div style={{ ...box(34, "50%"), marginBottom: 10 }} />
       <div style={{ ...box(13, "60%"), marginBottom: 20 }} />
       <div className="cl-reg-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
@@ -28,6 +23,6 @@ export default function Loading() {
           <div style={box(16, 60)} />
         </div>
       ))}
-    </div>
+    </SkeletonPage>
   );
 }

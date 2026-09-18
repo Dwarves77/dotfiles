@@ -3,7 +3,10 @@
 // below it fails naming the value to re-seed (an improvement that must be kept). No DB, no network.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeLines, detectClones, inScope, scanTree, DUPLICATED_LINES_CEILING, WINDOW, fitnessFunction } from './F45-duplicate-code.mjs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { getRepoRoot } from '../../lib/context.mjs';
+import { normalizeLines, detectClones, inScope, scanTree, ignoredFiles, isIgnored, resetIgnoredCache, DUPLICATED_LINES_CEILING, WINDOW, fitnessFunction } from './F45-duplicate-code.mjs';
 
 const body = (tag) => Array.from({ length: 12 }, (_, i) => `const value${i} = compute(${tag}, ${i}) + offset;`).join('\n');
 
@@ -38,6 +41,30 @@ test('inScope: tests, fixtures, archive, run artifacts, snapshots and .d.ts are 
   assert.equal(inScope('fsi-app/scripts/turns/y.ts'), true);
   for (const f of ['fsi-app/src/lib/x.test.mjs', 'fsi-app/src/lib/x.npmtest.mjs', 'fsi-app/src/lib/fixtures/x.mjs', 'fsi-app/scripts/_archive/x.mjs', 'fsi-app/scripts/harness-runs/mint/x.mjs', 'fsi-app/scripts/_snapshots/x.mjs', 'fsi-app/src/types.d.ts']) {
     assert.equal(inScope(f), false, f);
+  }
+});
+
+test('gitignored paths never count (CI parity): a file under an ignored directory entry and an exact ignored path are both excluded', () => {
+  const ignored = ['fsi-app/node_modules/', 'fsi-app/src/app/.well-known/workflow/v1/flow/route.js'];
+  assert.equal(isIgnored('fsi-app/node_modules/x/index.js', ignored), true);
+  assert.equal(isIgnored('fsi-app/src/app/.well-known/workflow/v1/flow/route.js', ignored), true);
+  assert.equal(isIgnored('fsi-app/src/app/page.tsx', ignored), false);
+  assert.ok(Array.isArray(ignoredFiles()));
+});
+
+test('attack: a gitignored duplicate planted under scripts/tmp does not move the live count (CI parity)', () => {
+  const before = scanTree().duplicatedLines;
+  const dir = join(getRepoRoot(), 'fsi-app', 'scripts', 'tmp');
+  mkdirSync(dir, { recursive: true });
+  const plant = join(dir, 'f45-attack-plant.mjs');
+  writeFileSync(plant, readFileSync(join(getRepoRoot(), 'fsi-app', 'src', 'lib', 'api', 'route-guard.ts'), 'utf8'));
+  resetIgnoredCache();
+  try {
+    assert.equal(isIgnored('fsi-app/scripts/tmp/f45-attack-plant.mjs'), true, 'scripts/tmp must be gitignored for this attack to mean anything');
+    assert.equal(scanTree().duplicatedLines, before, 'a gitignored copy of a tracked file must not count');
+  } finally {
+    rmSync(plant, { force: true });
+    resetIgnoredCache();
   }
 });
 

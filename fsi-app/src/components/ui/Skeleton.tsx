@@ -5,6 +5,10 @@
  * "Nav and masthead render immediately; tiles and rows arrive as skeletons
  * in their final geometry so nothing jumps. A count still loading shows a
  * skeleton, never 0 — a zero is a fact, not a placeholder."
+ *
+ * Route-level loading frames (the pulsing page and the proportioned box every loading.tsx composes)
+ * live in skeleton-page.tsx, a server-safe module: a loading.tsx calls the box helper during server
+ * render and this file is "use client" (lane L33, 2026-09-17).
  */
 
 function shimmer(): React.CSSProperties {
