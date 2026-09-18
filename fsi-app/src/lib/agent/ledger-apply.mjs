@@ -32,7 +32,13 @@ export function normText(t) { return String(t == null ? "" : t).trim().replace(/
 
 /** Do two claim rows share the same attribution (so a match is UNCHANGED, not a change)? */
 export function sameAttribution(a, b) {
+  // Lane L42 (2026-09-18): the pool row is part of the attribution. Before this, a reproduced claim whose
+  // incoming link pointed at a DIFFERENT agent_run_searches row (lane L40 re-homing a span from a stub row
+  // to the row that contains it) still compared equal here because source_id and tier matched, so the
+  // apply kept the stale row and criterion 3 kept refusing (87ed781c after two applies). A different row is
+  // a change: the prior state is versioned first, then the row is updated, as every change is.
   return (a.source_id ?? null) === (b.source_id ?? null)
+    && (a.search_result_id ?? null) === (b.search_result_id ?? null)
     && (a.source_tier_at_grounding ?? null) === (b.source_tier_at_grounding ?? null)
     && normText(a.source_span) === normText(b.source_span)
     && (a.section_row_id ?? null) === (b.section_row_id ?? null)

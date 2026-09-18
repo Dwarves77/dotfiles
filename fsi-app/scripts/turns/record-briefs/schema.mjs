@@ -1061,8 +1061,13 @@ export function validateRecordBriefsFile(json, opts = {}) {
  *  128/131/132/137/299 wrote "Emit ... a GAP claim (claim_kind=GAP, slot_key=...)" exactly where a GAP is
  *  honest); a description without it is a HARD slot. Pure. */
 export function slotAllowsGap(slot) {
+  // Lane L42 (2026-09-18): the live descriptions name the GAP form in four spellings. The 131/132/137/326
+  // family writes "emit a GAP claim (claim_kind=GAP ...)"; the market_signal and initiative rows write "GAP
+  // acceptable when ..." and "GAP when ..."; regional_data writes "emit a GAP claim". The earlier two-pattern
+  // read treated the market rows as FACT-only, against their own text (lane P9 market, 2026-09-17). A GAP is
+  // still licensed only by the fetched source's own statement; this decides only whether the slot admits one.
   const d = String(slot?.description ?? "");
-  return /claim_kind\s*=\s*GAP/i.test(d) || /\bGAP claim\b/i.test(d);
+  return /claim_kind\s*=\s*GAP/i.test(d) || /\bGAP claim\b/i.test(d) || /\bGAP\s+(acceptable|accepted|allowed|permitted|when|where|if)\b/i.test(d) || /\bemit a GAP\b/i.test(d);
 }
 
 /**
@@ -1086,6 +1091,9 @@ export function requiredSlotErrors(entry, i, opts) {
   for (const slot of slots) {
     const key = String(slot?.slot_key ?? "").toLowerCase();
     if (!key) continue;
+    // Coverage is by claim_text naming the key (the README's `[slot_key]` form, stricter than the live ILIKE
+    // only in that a mislabeled slot_key field alone does not count). The apply path no longer prefixes the
+    // key a second time when claim_text already carries it (lane L42, 2026-09-18).
     const mentions = claims.filter((c) => typeof c.claim_text === "string" && c.claim_text.toLowerCase().includes(key));
     const facts = mentions.filter((c) => c.claim_kind === "FACT");
     const gaps = mentions.filter((c) => c.claim_kind === "GAP");

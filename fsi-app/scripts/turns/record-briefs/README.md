@@ -374,15 +374,17 @@ ever matters at the driver, never inside `validateRecordBriefsFile`.
 
    | item_type | FACT only (HARD) | FACT or GAP | source |
    |---|---|---|---|
-   | regulation, directive | effective_date, jurisdictional_scope, penalty_summary, primary_deadline | none | migration 113 (seeded HARD), 137 (kept HARD: binding instruments) |
+   | regulation, directive | effective_date, jurisdictional_scope | penalty_summary, primary_deadline | migration 113 (seeded HARD), 137 (kept HARD), 326 (2026-09-17: a GAP only when the fetched source itself states no penalty or no compliance deadline, for example a Council Decision concluding an agreement) |
    | standard, framework, guidance | effective_date, jurisdictional_scope | penalty_summary, primary_deadline | migration 137 (GAP only when the fetched source characterises the instrument as voluntary or sets no deadline or penalty) |
-   | market_signal, initiative | signal_event, driving_parties, conversion_trigger | action_now | migration 299 |
+   | market_signal, initiative | none | signal_event, driving_parties, conversion_trigger, action_now | migration 299; the descriptions name the GAP form as "GAP acceptable when ..." and "GAP when ...", which `slotAllowsGap` reads since lane L42 (2026-09-18); a GAP still needs the source's own basis in its claim_text |
    | research_finding | finding, decision_relevance, does_not_resolve, methodology_limits | none | migrations 128, 299 |
    | technology, innovation, tool | deployment_reality, operational_fit, supplier_access | procurement_window | migration 129 family |
    | regional_data | none | region_jurisdiction, cost_baseline, feasibility_choice, pending_change | migrations 131, 132 |
 
    A GAP is authorised only by the fetched source's own characterisation, never by the item_type label
    (migration 137's integrity note); the mirror checks the claim exists, the ground step checks the span.
+   A claim covers a slot by naming the key in `claim_text` (the `[slot_key] ` prefix); since lane L42 the
+   apply path does not add that prefix a second time when `claim_text` already carries it.
 
 ## Reuse, not reimplementation
 

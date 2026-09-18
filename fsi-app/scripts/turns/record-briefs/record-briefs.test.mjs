@@ -1293,4 +1293,13 @@ describe("criterion-5 mirror (lane L25)", () => {
     assert.equal(slotAllowsGap({ slot_key: "penalty_summary", description: "penalty_summary: what non-compliance costs" }), false);
     assert.equal(slotAllowsGap({ slot_key: "cost_baseline", description: "... a GAP claim that names the region ..." }), true);
   });
+
+  test("L42: slotAllowsGap reads the market rows' own wording (GAP acceptable when / GAP when) and emit-a-GAP", () => {
+    assert.equal(slotAllowsGap({ slot_key: "signal_event", description: "The named triggering event. Grounded by a verbatim span; GAP acceptable when event detail is not yet public." }), true);
+    assert.equal(slotAllowsGap({ slot_key: "driving_parties", description: "The named parties. Grounded by verbatim span; GAP when parties are not named in the source." }), true);
+    assert.equal(slotAllowsGap({ slot_key: "pending_change", description: "at least one sourced pending change OR emit a GAP claim when none are scheduled" }), true);
+    assert.equal(slotAllowsGap({ slot_key: "finding", description: "The headline finding, stated with its source" }), false);
+    assert.equal(slotAllowsGap({ slot_key: "x", description: "the gap between current state and the requirement" }), false);
+  });
+
 });
