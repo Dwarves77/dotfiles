@@ -23183,3 +23183,11 @@ skipped.
 ### UX compliance (P5b)
 
 Not a UI change; no customer surface touched by this branch.
+
+### P5b follow-on: batch 007-nonreg-b on the live criterion-5 check; six research summaries withheld
+
+[CONFIRMED by a local run of requiredSlotErrors with the live slot table] 58 required-slot errors across all
+15 entries; 229 claims carrying slot_key now name it in claim_text (no fact changed). Six research summaries
+(02ad37c7, 0c2c1ec1, 0e6e82cb, 319f785d, 3373d06e, 45dab7a6) cover does_not_resolve only with a GAP claim,
+and research_finding slots admit none; withheld for an author pass that grounds the finding's own stated
+limits as a FACT. 388b2ce8 and the eight operations profiles remain, 9 entries, VALID, 0 slot errors.
