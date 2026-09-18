@@ -72,7 +72,7 @@ function makeFakeSb(initialClaims, opts = {}) {
 
 const claim = (id, text, kind, tier, extra = {}) => ({ id, intelligence_item_id: "item-1", section_row_id: "sec-1", claim_text: text, claim_kind: kind, source_span: `span:${text}`, source_id: `src-${tier}`, search_result_id: `sr-${id}`, source_tier_at_grounding: tier, mint_hold_reason: null, ...extra });
 // incoming rows carry no id (not yet in the ledger)
-const inc = (text, kind, tier, extra = {}) => ({ intelligence_item_id: "item-1", section_row_id: "sec-1", claim_text: text, claim_kind: kind, source_span: `span:${text}`, source_id: `src-${tier}`, search_result_id: `sr-inc`, source_tier_at_grounding: tier, ...extra });
+const inc = (text, kind, tier, extra = {}) => ({ intelligence_item_id: "item-1", section_row_id: "sec-1", claim_text: text, claim_kind: kind, source_span: `span:${text}`, source_id: `src-${tier}`, search_result_id: null, source_tier_at_grounding: tier, ...extra }); // L42: an unlinked incoming row carries null; crossLinkClaimSources sets it, and only two DIFFERENT rows make a change
 
 // ============================ PURE DIFF ============================
 {
@@ -81,6 +81,12 @@ const inc = (text, kind, tier, extra = {}) => ({ intelligence_item_id: "item-1",
   const d = diffLedger(existing, incoming);
   check("diff: new claim -> add", d.add.length === 1 && d.add[0].claim_text === "gamma fact");
   check("diff: identical claim -> unchanged", d.unchanged.length === 1 && d.unchanged[0].existing.id === "A");
+  // L42 (2026-09-18): the pool row is part of the attribution; a span re-homed to a different row (the row
+  // that contains it, lane L40) is a CHANGE (versioned, then updated), never a silent keep of the stale row.
+  {
+    const rehomed = diffLedger([claim("A", "alpha fact", "FACT", 2)], [inc("alpha fact", "FACT", 2, { search_result_id: "sr-full" })]);
+    check("diff: same text, re-homed pool row -> change (L42)", rehomed.change.length === 1 && rehomed.unchanged.length === 0);
+  }
   check("diff: prior claim absent from new -> notReproduced (KEPT, not removed)", d.notReproduced.length === 1 && d.notReproduced[0].id === "B");
   check("diff: NEVER produces a delete set (no such key)", !("delete" in d) && !("remove" in d));
 }

@@ -176,3 +176,18 @@ test("D29 fail-closed: an archive-write failure keeps the claim in the current l
   assert.equal(sb.deletes.length, 0, "never deletes the current row when its prior state was not durably archived");
   assert.ok(res.currentIds.includes("old-1"));
 });
+
+// Lane L42 (2026-09-18): the pool row is part of the attribution, so a span re-homed to the row that contains
+// it (lane L40) is a CHANGE (versioned, then updated), never "unchanged" with the stale row kept.
+test("L42: a reproduced claim whose incoming link points at a different pool row is a CHANGE", () => {
+  const existing = [{ id: "c1", claim_text: "[penalty_summary] the fine", claim_kind: "FACT", source_span: "the fine", source_id: "s1", search_result_id: "stub-row", source_tier_at_grounding: 2, section_row_id: "sec" }];
+  const incoming = [{ claim_text: "[penalty_summary] the fine", claim_kind: "FACT", source_span: "the fine", source_id: "s1", search_result_id: "full-row", source_tier_at_grounding: 2, section_row_id: "sec" }];
+  const d = diffLedger(existing, incoming);
+  assert.equal(d.change.length, 1);
+  assert.equal(d.unchanged.length, 0);
+  assert.equal(d.change[0].incoming.search_result_id, "full-row");
+  const same = diffLedger(existing, [{ ...incoming[0], search_result_id: "stub-row" }]);
+  assert.equal(same.unchanged.length, 1);
+  const unlinked = diffLedger(existing, [{ ...incoming[0], search_result_id: null }]);
+  assert.equal(unlinked.unchanged.length, 1, "a null incoming row is no opinion, not a re-home");
+});

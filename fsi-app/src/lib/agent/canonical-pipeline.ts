@@ -1942,7 +1942,9 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   const nullTierHosts = new Map<string, { factCount: number; samples: string[] }>();
   for (const c2 of linked) {
     const sectionRowId = sectionMap[String(c2.section)] || secs[0].id;
-    const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
+    // L42: an author-prefixed claim_text (`[slot_key] ...`, the README's own form) is not prefixed again.
+    const alreadyTagged = !!c2.slot_key && typeof c2.claim_text === "string" && c2.claim_text.trimStart().toLowerCase().startsWith(`[${String(c2.slot_key).toLowerCase()}]`);
+    const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key && !alreadyTagged) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
     const isFact = c2.claim_kind === "FACT";
     const spanUrl = c2.search_result_id ? urlBySearchId.get(c2.search_result_id) : undefined;
     // R1 (two-kinds-of-ANALYSIS): resolve + stamp the canonical institutional tier whenever the claim

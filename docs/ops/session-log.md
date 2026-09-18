@@ -23191,3 +23191,38 @@ Not a UI change; no customer surface touched by this branch.
 (02ad37c7, 0c2c1ec1, 0e6e82cb, 319f785d, 3373d06e, 45dab7a6) cover does_not_resolve only with a GAP claim,
 and research_finding slots admit none; withheld for an author pass that grounds the finding's own stated
 limits as a FACT. 388b2ce8 and the eight operations profiles remain, 9 entries, VALID, 0 slot errors.
+
+## 2026-09-18, W9 lane L42: a re-homed pool row is a change; the GAP allowance reads the descriptions' own wording; no double slot prefix
+
+Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l42-slot-mirror-wording-2026-09-18 from master
+7fbc5e3b (L40). No migration.
+
+**Defect 1 [CONFIRMED by SQL after the second 003b apply].** Lane L40 made the linker attribute a FACT to the
+pool row that contains its span, but 87ed781c stayed at criterion 3 after a re-apply on the merged code:
+its ten claims still pointed at the stub rows, extracted 2026-09-13. `sameAttribution` in ledger-apply.mjs
+compared source_id, tier, span, section and kind but not the pool row, so a reproduced claim whose incoming
+link had moved to the full-text row read as "unchanged" and the stale row was kept. The pool row is now part
+of the attribution: a re-home is a change, versioned first and then updated, like every change. Test added
+(ledger-apply.test.mjs, 12/12 across the file).
+
+**Defect 2 [CONFIRMED by the lane P9 market report and by reading schema.mjs].** `slotAllowsGap` accepted a
+GAP only where the description said "claim_kind=GAP" or "GAP claim"; the live market_signal and initiative
+rows say "GAP acceptable when event detail is not yet public" and "GAP when parties are not named", so the
+mirror read three of their four slots as FACT-only against the rows' own text. The mirror now reads the
+four spellings the live rows use ("GAP acceptable / when / where / if", "emit a GAP"); a GAP still needs the
+source's own basis in its claim_text. README allowance table corrected for migration 326 (regulation and
+directive penalty and deadline) and for the market rows. Tests added (record-briefs.test.mjs, 96/96).
+
+**Defect 3 [CONFIRMED in batch 003b's ledger].** The apply path prefixed `[slot_key] ` to every slot claim
+even when the author had already written it (the README's own form), so the ledger read `[slot] [slot]
+...`. The prefix is written once. The L25 rule that coverage is by claim_text naming the key stands (a
+mislabeled slot_key field alone does not count).
+
+**Golden [CONFIRMED by the CI Fitness job on the first push, then locally].** `non-destructive-grounding.golden.mjs`
+fed identical incoming claims with a placeholder row id, so the pool-row rule read them as re-homes and four
+of its checks went red. An unlinked incoming claim now carries a null row (the linker sets it), a null on
+either side is no opinion, and the golden gains the re-home check itself: same text, different row, a
+versioned change. Golden 13 of 13 passing checks.
+
+**Consequence.** Batch 003b re-applies once more for 87ed781c; the seven market items authored under the
+stricter reading lose nothing (all four slots FACT).
