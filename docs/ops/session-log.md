@@ -22987,6 +22987,45 @@ already wrote; the clear-flags-when-satisfied rule applies to state, not only fl
 **Next.** Dry run then apply 003b with `--allow-brief-overwrite` under the IO budget.
 
 ### UX compliance (P3)
+## 2026-09-13, brief-lane 005 (batch branch): 26 existing briefs regenerated under the 6.2b contract
+
+**What.** Batch 005 (export 34746031812, 49 existing verified briefs regenerated before W9) holds the
+26 items that carry a stored pool; the other 23 have no capture (plan D25, the free capture step) and
+are excluded. Six parallel authors re-verified every prior claim against the pool; one fabricated prior
+claim (2d2cd311, an SB 253 quotation never captured) and two invented figure sets (3581c084) were dropped;
+355af9e8 is mistitled (a data_quality flag is owed). Validator: VALID, 26 entries. Apply waits for plan
+D29 (the overwrite must retire prior claims) and D30 (no synthesis cap on mechanical grounding). This
+branch is an apply target and is never merged; this entry exists because the memory gate counts the
+batch file as code until plan D20 lands.
+
+### UX compliance (batch 005)
+
+Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-17, W9 lane P2 (Part 7 row 6): batch 005 author pass, 45 residues resolved
+
+Sonnet lane, worktree wt-renorm-0911, branch brief-lane/005-2026-09-13. Batch file only; validator, README
+and src untouched. `record-briefs.test.mjs` 79/79.
+
+**Result [CONFIRMED by the validator].** `record-briefs-005.json`, 26 entries, 45 errors to 0 (VALID). 13 items
+touched: 30 claims narrowed or re-spanned to what their own span carries, 1 dropped, 3 FACT claims added
+(each a verbatim pool span, added only where one well-sourced fact would otherwise have needed many body
+edits), 0 GAP recorded. Body edits removed computed or day-precision dates the pool does not ground
+(0b6537ea, 0c9b2364, 14590299, 3581c084).
+
+**Findings.** [CONFIRMED] 219945bb carried a quote that was not verbatim in the pool; replaced with the pool
+text. [CONFIRMED] 27dfbe4c carried a 28 KB JSON artifact inside its body; stripped. [CONFIRMED] 27dfbe4c said
+"five Parts" where the source says five chapters; corrected. [HYPOTHESIS] the numeric-figure mirror
+mis-splits a dotted European date followed by a 2 to 6 letter acronym ("6.2.2014 EN", "11.7.2023 COM"): the
+instrument-title strip consumes "2014 EN" as a title, the dotted-date splitter then sees "6.2" as a decimal
+figure, on the claim_text side only. Two instances (2ed61b63, 355af9e8), worked around by restructuring the
+claim; the P4 lane hit the same shape on 40c05a1e. Candidate validator lane (a sibling of L26), not changed
+here.
+
+**Next.** Dry run then apply under the IO budget with `--allow-brief-overwrite`, so the entry ledger replaces
+the prior generation's claims (the P3 entry below records why).
+
+### UX compliance (P2)
 
 Not a UI change; no customer surface touched by this branch.
 
