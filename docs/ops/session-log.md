@@ -23470,3 +23470,40 @@ PASS (130 invariants, 63 doctrines). F45 unchanged at 6,830.
 
 **Next.** Re-run the refetch-capped dry sizing once this merges; the apply side stays behind the operator's
 GUARD-1-accepted token (ADR-016).
+## 2026-09-17, W9 lane P9 reg-a: 16 quarantined regulatory items re-authored from their stored pools
+
+Sonnet lane (twelve authoring sub-agents, every entry re-validated by the lane itself), worktree wt-p9-reg-a,
+branch brief-lane/009-reg-a-2026-09-17 from master caa08198. Batch file only; validator, README and src
+untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator, whole file].** `record-briefs-009-reg-a.json`, 16 entries, VALID:
+8fb37a9e, cd5c84e3, cc0958fb, 5511a87f, 78b711f5, bfb6a9fe, 120529b8, 576554b3, 1bb72c94, 5b2c6655,
+93c344a1, 8c186db2, f0833999, 7a0ead55, 55f90df0, d91f76f0. Every prior FACT span was re-checked byte for
+byte against the pool (none failed); the repairs were the Gate A orphans (figures re-grounded on fuller
+spans or removed), the unlabeled ANALYSIS paragraphs, the mid-word `[gate-a-backfill]` fragments replaced
+by sentence spans, and required slots covered by FACT where the prior draft had templated GAPs (CSRD's
+sanctions text, EEXI/CII's corrective-action consequence, the Clean Fuel Regulations' penalty mechanism
+were all in the pools, unmined). 1bb72c94 carries the two migration-326 GAP claims (the Decision states no
+penalty and no compliance deadline). Two derived figures the source never states were dropped (FuelEU's
+absolute intensity limits); the CSRD pool's two conflicting assurance dates are reproduced, not resolved.
+
+**SKIPPED [CONFIRMED].** 8de055dc (Brazil Logistica Reversa, PNRS): no penalty text in any of its 11
+captures and the source does not state that none exists; a regulation may not carry an unlicensed GAP.
+Disposition: capture the penalty instrument (Decreto 6.514/2008 or Lei 9.605/1998), then author. Its
+builder, entry and discovery files stay in scripts/tmp.
+
+**Findings.** [CONFIRMED] 5511a87f's forward_events export rows carry truncated JSON-ledger fragments as
+obligation_text (not carried into the body; the extractor for that item needs a look). [CONFIRMED] the
+local run-validate-007 wrapper does not exercise criterion 5; the lane mirrored requiredSlotErrors itself
+and found ten entries whose slot claims did not name the slot key in claim_text, fixed by the README's
+`[slot_key]` prefix. Because the apply path prefixes `[slot_key]` again when the claim carries slot_key,
+those claims will read `[slot] [slot] ...` in the ledger, the same shape batch 003b produced; the L25
+mirror should accept the slot_key field itself, a small follow-on (L42). [HYPOTHESIS] cd5c84e3's pool has
+no primary Executive Order issuance text, only agency summaries; its penalty_summary is the enforcement
+consequence of a related directive, framed as such.
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget, after L40 merges.
+
+### UX compliance (P9 reg-a)
+
+Not a UI change; no customer surface touched by this branch.
