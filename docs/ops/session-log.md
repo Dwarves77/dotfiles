@@ -23373,3 +23373,34 @@ present, which is why the integration test is the one that counts. After the fix
 (same reported path, different ids) still blocks and leaves HEAD where it was. On the live vault:
 `d3c2fb6f..96e5007e`, two phantom files restored, git then reports zero modified, and a second run is a clean
 no-op, not a lockout. Cause-unknown phantoms may recur; the hook now handles them and reports their count.
+## 2026-09-17, W9 lane L39: quarantine release; migrations 326 and 328 applied; the quarantine census corrected in place
+
+Coordinator (Fable) lane, worktree wt-finishmig-0911, branch lane/w9-l39-quarantine-release from master
+caa08198. Operator rulings the same evening: resume all paused work; Gate A re-scan; stale-claim fix;
+1bb72c94 per the recommendation; activate the three provisional sources; "every other defect is fixable,
+fix them now".
+
+**Migrations [CONFIRMED by read-back].** 326: the `item_type_required_slots` descriptions for
+penalty_summary and primary_deadline on regulation and directive now name the source-says-so GAP form
+that migration 137 gave standard, guidance and framework; a GAP is licensed only by the source's own text
+(a Council Decision concluding an agreement, enforcement or dates in national transposition), never by
+the item type; a real penalty or deadline still forces the FACT. 328: sources b0d81570 (clean-trucking.eu,
+tier 4), b06a7c81 (napa.fi, tier 5) and 3e3a2d5f (bsr.org, tier 6) set active, one manual_review trust
+event each; tiers unchanged. Both applied through the management API before this commit.
+
+**Census correction [REFUTED in place, rule 14].** Earlier the same evening the coordinator reported
+"58 of the 87 quarantined items have zero defects and are held only by a stale Gate A re-scan" and
+"81 items carry 3,594 stale claims from a second generation". Both were wrong. item_gate_a_state shows 84
+of the 87 at the current version 2026-09-04.1 with 75 carrying orphans (352 prose figures or dates that no
+FACT claim proves) and only 3 at the old version 2026-07-30.1: `gate_a_unproven_or_stale` means orphans
+OR stale, and the coordinator read it as stale. Claim ledgers accrete across passes (0ea6a710 carries claims
+from 07-15, 07-17, 07-31, 09-03 and 09-04); the precise criterion-4 defect is 76 unlabeled ANALYSIS
+claims across 20 items, not a generation to archive. The zero-defect items were held by nothing; there
+are none. The correct disposition is author work: 25 of the 87 are repaired in batches already queued
+(003b, 005, 007, 007-nonreg-b, P5a); the other 62 go to lane P8 (3 mint-hold items, export 35296963645)
+and lanes P9 reg-a, reg-b, market, research-ops (57 items, export 35297253710); the two source-only items
+(58bf0406, 0781a8c0) go through the provenance-heal step now that their sources are active; c4ad4cc5
+(China operations profile) has no captured content and needs a capture, not an author pass.
+
+**Standing numbers.** 1,431 verified, 87 quarantined, 1,248 archived by ruling. F45 6,830 on master
+(6,227 pending L34); F46 7 on master (1 pending L35, PR #696); F47 0/0/0.
