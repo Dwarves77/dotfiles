@@ -7,7 +7,7 @@
 // what_is_it rule (parse-output.ts ~:622-626): absence is an honest answer, never a parse failure.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseAgentOutput, AgentOutputParseError } from "./parse-output.ts";
+import { parseAgentOutput, AgentOutputParseError, crossLinkClaimSources } from "./parse-output.ts";
 
 // Every key required by parseYamlFrontmatter's required[] list, with values that satisfy the
 // severity->priority mapping and the signal_band/theme null-unless-format-matches gates.
@@ -115,4 +115,43 @@ test("key_data: emitted inline array passes through; absence is an empty array, 
 
   const { metadata: absent } = parseAgentOutput(buildOutput());
   assert.deepEqual(absent.key_data, []);
+});
+
+// Lane L40 (2026-09-17): crossLinkClaimSources attributes a FACT to the pool row that CONTAINS its span.
+const SPAN = "State Freight Plans developed pursuant to 49 U.S.C. 70202 are multimodal in scope.";
+const fact = (source_url, source_span = SPAN) => ({ section: "2", claim_text: "x", claim_kind: "FACT", source_span, source_id: null, source_url, slot_key: null });
+
+test("L40: two rows share a URL; the FACT goes to the row whose capture contains the span, not the stub", () => {
+  const rows = [
+    { id: "stub", result_url: "https://a.example/doc.pdf", result_content: "Wisconsin 2023 State Freight Plan" },
+    { id: "full", result_url: "https://a.example/doc.pdf", result_content: "... " + SPAN + " ..." },
+  ];
+  const [out] = crossLinkClaimSources([fact("https://a.example/doc.pdf")], rows);
+  assert.equal(out.search_result_id, "full");
+  assert.equal(out.source_url, "https://a.example/doc.pdf");
+});
+
+test("L40: the cited URL's rows lack the span but another pool row carries it verbatim; the FACT is re-homed to that row and its URL", () => {
+  const rows = [
+    { id: "landing", result_url: "https://fr.example/documents/2026-03648", result_content: "landing page, 1118 chars of chrome" },
+    { id: "fulltext", result_url: "https://fr.example/documents/full_text/2026-03648.txt", result_content: "GUIDANCE " + SPAN },
+  ];
+  const [out] = crossLinkClaimSources([fact("https://fr.example/documents/2026-03648")], rows);
+  assert.equal(out.search_result_id, "fulltext");
+  assert.equal(out.source_url, "https://fr.example/documents/full_text/2026-03648.txt");
+});
+
+test("L40: no row contains the span; the URL match applies as before (criterion 3 refuses downstream), and rows without content keep the URL behaviour", () => {
+  const rows = [
+    { id: "r1", result_url: "https://a.example/p", result_content: "nothing relevant" },
+    { id: "r2", result_url: "https://a.example/p", result_content: "still nothing" },
+  ];
+  const [out] = crossLinkClaimSources([fact("https://a.example/p")], rows);
+  assert.equal(out.search_result_id, "r2");
+  const [noContent] = crossLinkClaimSources([fact("https://a.example/p")], [{ id: "r3", result_url: "https://a.example/p" }]);
+  assert.equal(noContent.search_result_id, "r3");
+  const [gap] = crossLinkClaimSources([{ ...fact("https://a.example/p", null), claim_kind: "GAP" }], rows);
+  assert.equal(gap.search_result_id, "r2");
+  const [unmatched] = crossLinkClaimSources([fact("https://elsewhere.example/q")], rows);
+  assert.equal(unmatched.search_result_id, null);
 });

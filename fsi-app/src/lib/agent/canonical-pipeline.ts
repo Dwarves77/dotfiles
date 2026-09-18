@@ -1691,7 +1691,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("id, result_url, result_content, result_index").eq("intelligence_item_id", itemId).order("result_index");
   if (poolErr) console.warn(`[canonical] ground pool read failed for ${itemId}; falling back to section/source URL fetch: ${poolErr.message}`);
   let fetched: Array<{ url: string; text: string }>;
-  let searchRows: Array<{ id: string; result_url: string }>;
+  let searchRows: Array<{ id: string; result_url: string; result_content: string }>;
   const searchIds: string[] = [];
   let ownSearches = false;
   if (pool && pool.length) {
@@ -1713,7 +1713,8 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
         });
       } catch { /* best-effort; the warn above is the floor */ }
     }
-    searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
+    // L40: carry the stored capture so crossLinkClaimSources attributes each FACT to the row that CONTAINS its span.
+    searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string, result_content: (r.result_content as string) || "" }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
     const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, STORAGE_MAX_CHARS, caller) }))).filter((b) => b.text.length > 200);
@@ -1727,7 +1728,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     for (let i = 0; i < fetched.length; i++) {
       const { data: r, error: rErr } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
       if (rErr) console.warn(`[canonical] ground fallback search insert failed for ${itemId} (${fetched[i].url}): ${rErr.message}`);
-      if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url }); }
+      if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url, result_content: fetched[i].text }); }
     }
   }
   if (!fetched.length) return { ok: false, detail: "no grounding content (no generate pool; nothing fetchable)" };

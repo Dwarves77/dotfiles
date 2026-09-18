@@ -22989,3 +22989,29 @@ already wrote; the clear-flags-when-satisfied rule applies to state, not only fl
 ### UX compliance (P3)
 
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-17, W9 lane L40: a FACT is attributed to the pool row that contains its span
+
+Coordinator (Fable) lane, worktree wt-session-c, branch lane/w9-l40-span-attribution-2026-09-17 from master
+be1e3f14. No migration.
+
+**Defect [CONFIRMED by SQL on 87ed781c after the batch 003b apply].** `crossLinkClaimSources`
+(parse-output.ts) attributed each injected FACT to a pool row by URL alone, one row per URL, the last
+one loaded. Item 87ed781c's pool holds two rows for the Wisconsin plan PDF (a 58-character stub from June
+and the 354,931-character document from July) and the batch cited the Federal Register landing page
+(1,118 characters) while its ten spans sit in that host's full-text capture (114,753 characters). Every
+span was verbatim in the pool, the lane's validator passed, the apply grounded, and the item stayed
+quarantined at criterion 3 (fact_span_not_in_source) because the attributed row was the wrong one. The
+doctrine comment two hundred lines below already said "a FACT claim is attributed to the source that
+CONTAINS ITS SPAN"; the linker did not do that.
+
+**Fix.** `AgentRunSearchLink` may carry `result_content`; the linker attributes a FACT to the first row
+sharing the cited URL whose capture contains the span, else to any pool row that contains it (the claim's
+source_url is re-pointed to that row's URL, so the attribution and the tier stamp follow the text), and
+only when no row contains it does the URL match apply as before, so criterion 3 refuses honestly. Rows
+loaded without content behave exactly as before. groundBrief now passes the stored capture on both its
+pool and fallback paths. Three tests in parse-output.test.mjs (12/12): the duplicate-URL stub, the
+landing-page-to-full-text re-home, the unchanged fallbacks. tsc clean.
+
+**Consequence.** Batch 003b re-applies for 87ed781c after this merges; the P8 and P9 batches land on a
+linker that cannot repeat the defect.

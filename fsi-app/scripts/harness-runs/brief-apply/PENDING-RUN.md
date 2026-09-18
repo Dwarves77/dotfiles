@@ -23,6 +23,14 @@ marker is deleted the moment it does (or updated to a new hash if the governing 
 
 **What changed.** The recorded hash `sha256:ee502456353366ce` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:6051c508d9d12da4` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 3):** `sha256:6051c508d9d12da4` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 3 (coordinator, 2026-09-18, at push after rebase: lane/w9-l40-span-attribution-2026-09-17)
+
+**What changed.** The recorded hash `sha256:6051c508d9d12da4` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing files changed on this branch: `src/lib/agent/canonical-pipeline.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:5219d3eb0947e065` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
