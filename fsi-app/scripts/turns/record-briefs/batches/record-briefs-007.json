@@ -458,7 +458,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"(b) Scope. This part applies to all SLTT law enforcement and correctional agencies, and their personnel seeking to exercise or exercising authority under 6 U.S.C. 124n(a)(2). This part does not govern Federal agency operations under 6 U.S.C. 124n(a)(1)\"",
+          "claim_text": "[jurisdictional_scope] [section2] The captured source states, verbatim: \"(b) Scope. This part applies to all SLTT law enforcement and correctional agencies, and their personnel seeking to exercise or exercising authority under 6 U.S.C. 124n(a)(2). This part does not govern Federal agency operations under 6 U.S.C. 124n(a)(1)\"",
           "source_span": "(b) Scope. This part applies to all SLTT law enforcement and correctional agencies, and their personnel seeking to exercise or exercising authority under 6 U.S.C. 124n(a)(2). This part does not govern Federal agency operations under 6 U.S.C. 124n(a)(1)",
           "source_url": "https://www.federalregister.gov/documents/2026/07/06/2026-13609/counter-uas-authority-for-state-local-tribal-and-territorial-law-enforcement-and-correctional",
           "section": "2"
@@ -466,7 +466,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"This interim final rule is effective July 1, 2026.\"",
+          "claim_text": "[effective_date] [section2] The captured source states, verbatim: \"This interim final rule is effective July 1, 2026.\"",
           "source_span": "This interim final rule is effective July 1, 2026.",
           "source_url": "https://www.federalregister.gov/documents/2026/07/06/2026-13609/counter-uas-authority-for-state-local-tribal-and-territorial-law-enforcement-and-correctional",
           "section": "2"
@@ -490,7 +490,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "[section4] The captured source states, verbatim: \"The Act was signed into law on December 18, 2025, placing the statutory deadline in mid-June 2026.\"",
+          "claim_text": "[primary_deadline] [section4] The captured source states, verbatim: \"The Act was signed into law on December 18, 2025, placing the statutory deadline in mid-June 2026.\"",
           "source_span": "The Act was signed into law on December 18, 2025, placing the statutory deadline in mid-June 2026.",
           "source_url": "https://www.federalregister.gov/documents/2026/07/06/2026-13609/counter-uas-authority-for-state-local-tribal-and-territorial-law-enforcement-and-correctional",
           "section": "4"
@@ -618,7 +618,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"A civil penalty will not be assessed for a first violation of a procedural reporting or notification requirement when the agency demonstrates a good-faith effort to comply and voluntarily self-reports the deficiency.\"",
+          "claim_text": "[penalty_summary] [section8] The captured source states, verbatim: \"A civil penalty will not be assessed for a first violation of a procedural reporting or notification requirement when the agency demonstrates a good-faith effort to comply and voluntarily self-reports the deficiency.\"",
           "source_span": "A civil penalty will not be assessed for a first violation of a procedural reporting or notification requirement when the agency demonstrates a good-faith effort to comply and voluntarily self-reports the deficiency.",
           "source_url": "https://www.federalregister.gov/documents/2026/07/06/2026-13609/counter-uas-authority-for-state-local-tribal-and-territorial-law-enforcement-and-correctional",
           "section": "8"
@@ -1150,253 +1150,6 @@
       ]
     },
     {
-      "item_id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
-      "source_pool_hash": "16731c50a92c1cfe0e249c3dcf1f531de88db527f3ffb587461a090a7fa59228",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks Colombia's national sustainable-transport policy framework as it bears on a freight forwarder with Colombia road-transport exposure. It draws on the accessible material this item's own captures provide: the UN Environment Programme's (UNEP) Colombia active-mobility country page, and a GIZ/TRANSfer III project report on public transport electrification in Colombia.\n\nFACT: \"The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information.\" *Source: mintransporte.gov.co (blocked at capture time). https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible*\n\n*Analytical inference:* because the Ministry's own publication pages carry the operative legal text this framework would otherwise be assessed against, this document's required-slot statements (Section 2) are recorded as honest gaps rather than derived from primary law text.\n\n**Convention notes:** \"the workspace\" refers to the freight forwarding and logistics operation this brief is prepared for, never the Ministry or any named entity. Claims drawn from the Ministry's own publication pages are impossible in this entry because those pages returned a blocked response at capture time; every claim below is sourced to UNEP or GIZ/TRANSfer III corroborating material instead.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"Key policies and plans for sustainable transportation in Colombia are the National Development Plan, the National Urban Transport Policy, and the Action Plan for Sector Mitigation (Transportation).\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\nFACT: \"The 2014-2018 National Development Plan (Law 1753 of 2015) made explicit mention of NMT in article 31 (noting financing needs and investment plans for NMT) and article 32, where the state committed to acting to increase the use of NMT modes (journeys on foot, bicycle or tricycle). Article 204 commits the Ministry of Transportation to designing a strategy to include bicycle and NMT facilities in future road projects.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\n*Operational implication:* Article 204's own planning commitment runs to the Ministry of Transportation itself, not to a private freight forwarder; see Section 8 for why this is surveyed but not counted as workspace-adjacent.\n\nFACT: \"This proposal was integrated into the 2022 Climate Action Law (2169).\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\nFACT: \"Colombia’s current NDC foresees six main actions to reduce transport-sector greenhouse gas (GHG) emissions up to 2030, including transport electrification, support for active mobility and demand management, fluvial and train corridor development, and performance-based plane navigation.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n**Effective date (required slot).** [effective_date] No verbatim statement of a single consolidated effective date for Colombia's sustainable-transport framework was found in this item's accessible captures (the four mintransporte.gov.co Ministry pages, which would carry the operative legal text, were blocked at capture time). Law 1753 of 2015 and Law 2169 of 2022 are each in force from the years the accessible corroborating sources state, but neither source states an effective-date clause for the instrument itself.\n\n**Primary compliance deadline (required slot).** [primary_deadline] No single statutory compliance deadline with a stated consequence for a freight operator or transport intermediary was found in this item's accessible captures. The NDC references a 2030 horizon for transport-sector GHG reduction actions, and the Aburra Valley bicycle-mode-share target is dated to 2030 (see Section 6 and Section 14), but neither is a compliance deadline running to a private party.\n\n**Jurisdictional scope (required slot).** [jurisdictional_scope] No source in this item's accessible captures states an explicit jurisdictional-scope clause for the framework as a whole. The accessible material describes national-level Colombian policy instruments (Law 1753, Law 2169, the NDC) and city-level programs in Bogota and Medellin; whether any instrument's own text defines a scope reaching freight forwarders, logistics operators, or cargo principals cannot be determined without the blocked Ministry pages.\n\n**Penalty summary (required slot).** [penalty_summary] No source in this item's accessible captures states a penalty, fine, or enforcement mechanism directed at a freight forwarder, carrier, or transport intermediary. The accessible material describes an investment-fund mechanism (Law 2169) and policy targets (the NDC), neither of which carries a stated sanction.\n\n*Legal Confirmation Required:* whether freight forwarders, logistics operators, importers, or exporters operating in Colombia fall within the defined obligated parties of any specific instrument in this framework requires legal review; the accessible corpus does not define \"freight forwarder,\" \"logistics operator,\" or \"cargo principal\" as regulated entities under these instruments.\n\n# 3. Issues Requiring Immediate Action\n\nFACT: \"These buses emit some 1.3 million-tons of CO 2 e per year, which represents 6% of the national transport-related GHG emissions.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n*Operational implication:* the national push toward e-bus adoption, backed by Law 2169's investment fund, will progressively alter the carrier cost base and fleet availability on urban routes; workspaces using road carriers in Bogota and Medellin should assess whether current carrier contracts account for fleet-transition costs.\n\nFACT: \"Bogotá also schedules the Día sin Carro every year, a car free day which began in 2001; in 2015, the city’s 15th annual car-free day, Bogotá also kept the streets motorcycle-free for the first time (Rogala, 2015)\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\n*Operational implication:* Bogota's annual car-free day, extended to motorcycles in 2015, signals an administrative culture receptive to further vehicle-access restrictions; workspaces relying on drayage in Bogota should verify current access rules.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\n*Legal Confirmation Required:* whether any specific provision of Law 2169 (2022), the National Urban Transport Policy, or the NDC transport sector action plan imposes a direct compliance obligation on freight forwarders, logistics operators, or cargo principals operating in Colombia requires legal review by counsel with expertise in Colombian transport and environmental law.\n\n*Operational implication:* the workspace's most direct exposure is indirect, as a buyer of road transport services in Colombia. Changes to carrier operating costs, driven by e-bus investment requirements and charging-infrastructure build-out, are expected to be passed through carrier pricing rather than to create a direct duty running to the workspace itself.\n\n# 5. Authoritative Guidance Document Analysis\n\nFACT: \"It has been funded by the German government’s International Climate Initiative (IKI) since 2010.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\nFACT: \"the Colombian Ministry of Transport developed a proposal for a national investment fund that would promote the modernisation of public transport and light freight.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\nFACT: \"While e-buses have lower operating costs than their conventional counterparts, they have significantly higher upfront costs.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n*Analytical inference:* the higher upfront cost of e-buses relative to conventional buses, combined with the need for charging-infrastructure investment, is the structural barrier the Law 2169 investment fund is designed to close; until it is fully implemented, urban carrier fleets in Colombia are likely to electrify unevenly.\n\nFACT: \"The report estimates that e-bus adoption has an aggregate mitigation potential of 1.8 Mt CO 2 e up to 2030 and recommends investment of 791 million euros.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n1. **Medellin Aburra Valley 10% bicycle-trip target, 2030.** FACT: \"The goal is that by 2030, 10% of total trips in the Aburra Valley are by bicycle.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\n*Analytical inference:* this is the one forward-dated item this export carries for this item; it is a modal-share policy target for Medellin's metropolitan area, not a compliance deadline running to a freight operator, and it is also carried into Section 14 as a timeline milestone.\n\n2. **CAF Development Bank programme.** A CAF Development Bank railway and sustainable-mobility programme, referenced by the prior record for this item, does not appear in any URL captured for this item; its content, including the prior record's own funding-amount figure, is not used as a FACT source in this entry.\n\n3. **Ministry of Transport publication pages.** The four mintransporte.gov.co Ministry of Transport publication pages were blocked at capture time (see Section 1); a re-pull is the only way to confirm whether they carry instrument text, compliance deadlines, or guidance not reflected in this brief. *Analytical inference:* a re-pull of these pages is recommended within 30 days.\n\n# 7. Threshold Questions\n\n| Question | Status |\n|---|---|\n| Does the Colombian sustainable-transport framework impose direct compliance obligations on international freight forwarders operating in Colombia? | *Legal Confirmation Required* |\n| Does Law 2169 (2022) create reporting or registration duties for logistics operators or cargo principals? | *Legal Confirmation Required* |\n| Does the NDC transport-sector action plan bind private-sector freight operators, or only public entities and carriers? | *Legal Confirmation Required* |\n| Does Bogota's Dia sin Carro or an equivalent access restriction reach freight vehicle operation on affected days? | *Legal Confirmation Required* |\n| Do the technical guidelines for bus electrification reach freight-vehicle electrification, or only passenger bus operators? | *Legal Confirmation Required* |\n| Is the workspace's Colombia road-transport activity subject to an urban or low-emission zone restriction under current Bogota or Medellin regulation? | *Legal Confirmation Required* |\n\n# 8. Substantive Requirements\n\n*Note: the operative legal text for this framework (the four mintransporte.gov.co Ministry pages) was blocked at capture time; the accessible corpus is corroborating secondary material (UNEP, GIZ/TRANSfer III), not the primary instruments themselves. \"Substantive requirements\" here is therefore assessed against what that corroborating material itself states about obligation-shaped provisions, not the primary law's own operative text.*\n\n**Ministry planning commitment (Law 1753, Article 204).** The captured source states, verbatim, that \"The 2014-2018 National Development Plan (Law 1753 of 2015) made explicit mention of NMT in article 31 (noting financing needs and investment plans for NMT) and article 32, where the state committed to acting to increase the use of NMT modes (journeys on foot, bicycle or tricycle). Article 204 commits the Ministry of Transportation to designing a strategy to include bicycle and NMT facilities in future road projects.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\n*Analytical inference:* this is the one obligation-shaped statement found in the accessible corpus: it commits the Ministry of Transportation itself to a planning task. It does not run to a private freight forwarder, carrier, or logistics operator, and it is surveyed here but not extracted as a separate FACT claim under this section (it is already declared under Section 2).\n\n**Qualification accounting.** Per-year trajectory: no phase-in schedule is stated in the accessible corpus for either Law 1753 or Law 2169; the only dated horizon stated is the NDC's own 2030 target year (Section 2), which is a policy horizon, not a phase-in schedule. No phase-in is stated in Sections covering Colombia's accessible transport-policy corroborators. Exceptions and carve-outs: no exception, exemption, or carve-out language appears anywhere in either accessible capture. No exceptions are stated in Sections covering Colombia's accessible transport-policy corroborators. Scope limits: no scope-limiting clause (\"scope,\" \"does not apply,\" \"applies only,\" \"limited to\") appears in either accessible capture in a form describing this framework's own reach. No scope limits are stated in Sections covering Colombia's accessible transport-policy corroborators.\n\nObligations surveyed: 1; workspace-adjacent: 0; extracted as FACT: 0.\n\n# 10. Registration and Reporting Obligations\n\nSpecific registration or reporting obligations on freight forwarders, logistics operators, or cargo principals under the Colombian sustainable-transport framework are not stated in this item's accessible captures.\n\n*Legal Confirmation Required:* whether any Colombian environmental or transport reporting regime, including under the NDC transport action plan or Law 2169, imposes Scope 1 or Scope 3 emissions-reporting duties on transport intermediaries operating in Colombia requires legal confirmation; this gap is material because the Ministry's own publication pages, which may state a reporting requirement, were inaccessible at capture time.\n\n# 11. Operational System Requirements\n\n*No direct operational system requirement reaching freight forwarders was found in this item's accessible captures.* The following forward-looking operational considerations are noted:\n\nFACT: \"TRANSfer developed a special guide to energy supply for electric vehicles in Colombia\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n*Analytical inference:* for a workspace operating owned or leased vehicles on Colombia road corridors, this guide is the relevant operational reference for electricity procurement and charging-infrastructure planning, if the workspace's operations reach that guide's target audience.\n\nFACT: \"Together with the National Training Service (SENA), a driver and maintenance curriculum was developed and will be offered by SENA at its vehicle training centers in Bogotá and Bucaramanga.\" *Source: Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport, 24 May 2023. https://changing-transport.org/transforming-public-transport-through-electrification/*\n\n*Operational implication:* workspaces managing road operations in Colombia with employed drivers should assess whether SENA-aligned electric-vehicle training is relevant to their own driver workforce as carrier fleet electrification proceeds.\n\n# 12. Exemptions and Edge Cases\n\nNo exemption, carve-out, or edge-case provision reaching a freight forwarder, carrier, or logistics operator was found in this item's accessible captures.\n\n# 13. Adjacent Industry Research and Alternatives\n\nFACT: \"Bogotá, the capital of Colombia with almost 8 million people, is internationally recognised for its sustainable transport actions, in particular the 55 km TransMilenio BRT.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\nFACT: \"The city also has an impressive network of bicycle lanes, of around 350 km) and a mode share of cycling trips of around 3.3%.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\nFACT: \"Bogotá having constructed 500 km of bike paths, known locally as ‘ ciclorrutas ’\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\nFACT: \"Medellin has a free public bike system, EnCicla, with has 50 stations, and 1 300 bicycles, integrated to the mass transport system of the city through the Metro and Metropla’s stations.\" *Source: Active Mobility, Colombia, UN Environment Programme. https://www.unep.org/topics/transport/active-mobility/colombia*\n\n*Analytical inference:* the combination of a fragmented but still-expanding cycling network and a metropolitan mode-share target (Section 6) means non-motorised-transport policy in Bogota and Medellin, while directionally significant, has not yet displaced road freight corridors as the primary channel for the workspace's Colombia drayage.\n\nFACT: \"Since 1999, GEF has so far supported 59 sustainable urban transport projects\" *Source: Global Environment Facility, Changing Transport. https://changing-transport.org/global-environment-facility/*\n\n# 14. Confirmed Regulatory Timeline\n\n| Date | Milestone | Status |\n|---|---|---|\n| 2001 | Bogota's Dia sin Carro (car-free day) begins | Recurring |\n| 2015 | Law 1753 (National Development Plan 2014-2018) enacted, including Articles 31, 32, and 204 on non-motorised transport | In force |\n| 2015 | Dia sin Carro extended to motorcycles for the first time | In force |\n| 2016 | Sustainable Urban Mobility Unit publishes a guideline for cycle infrastructure in Colombian cities | Published |\n| 2019 | Colombian Ministry of Transport and GIZ identify public transport electrification as a key GHG-reduction measure; TRANSfer III project begins | In force |\n| 2022 | Climate Action Law 2169 enacted, integrating the public-investment-fund proposal for e-bus and light-freight electrification | In force |\n| 2030 | NDC transport-sector GHG-reduction target horizon; Medellin Aburra Valley 10% bicycle modal-share goal | Target |\n| 2030 | TRANSfer III's own estimated e-bus adoption mitigation potential of 1.8 Mt CO2e, with a recommended 791 million euro investment | Projection |\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Active Mobility, Colombia, UN Environment Programme | Intergovernmental body country profile | https://www.unep.org/topics/transport/active-mobility/colombia |\n| 2 | Transforming Public Transport Through Electrification in Colombia, GIZ/TRANSfer III, Changing Transport | Industry/project report | https://changing-transport.org/transforming-public-transport-through-electrification/ |\n| 3 | Global Environment Facility, Changing Transport | Industry/project reference (general, not Colombia-specific) | https://changing-transport.org/global-environment-facility/ |\n| 4-7 | mintransporte.gov.co publication pages (4 URLs) | Primary government source, inaccessible at capture time | https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible (and 3 sibling URLs) |",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "stable",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "transport",
-          "emissions"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "what_is_it": "Colombia's national sustainable-transport policy framework (Law 1753 of 2015, Climate Action Law 2169 of 2022, and the NDC transport-sector actions), as described in accessible UNEP and GIZ/TRANSfer III corroborating material; the Ministry of Transport's own publication pages were blocked at capture time.",
-        "why_matters": "It shapes urban carrier costs, fleet electrification timing, and access restrictions in Bogota and Medellin, which pass through to a workspace buying road-transport services in Colombia, even though the accessible material states no direct obligation running to a freight forwarder.",
-        "key_data": [
-          "1.3 million tons CO2e per year from Colombia's 15000 buses (6% of national transport GHG)",
-          "791 million euro recommended e-bus investment through 2030",
-          "10% Aburra Valley bicycle mode-share target by 2030"
-        ],
-        "cost_mechanism": null,
-        "requirement_trajectory": null,
-        "penalty_range": null,
-        "enforcement_body": null,
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "freight-forwarder",
-          "motor-carrier"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13"
-      },
-      "claims": [
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "All four mintransporte.gov.co Ministry of Transport publication pages returned this response during capture: The captured source states, verbatim: \"The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information.\"",
-          "source_span": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information.",
-          "source_url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"The 2014-2018 National Development Plan (Law 1753 of 2015) made explicit mention of NMT in article 31 (noting financing needs and investment plans for NMT) and article 32, where the state committed to acting to increase the use of NMT modes (journeys on foot, bicycle or tricycle). Article 204 commits the Ministry of Transportation to designing a strategy to include bicycle and NMT facilities in future road projects.\"",
-          "source_span": "The 2014-2018 National Development Plan (Law 1753 of 2015) made explicit mention of NMT in article 31 (noting financing needs and investment plans for NMT) and article 32, where the state committed to acting to increase the use of NMT modes (journeys on foot, bicycle or tricycle). Article 204 commits the Ministry of Transportation to designing a strategy to include bicycle and NMT facilities in future road projects.",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Key policies and plans for sustainable transportation in Colombia are the National Development Plan, the National Urban Transport Policy, and the Action Plan for Sector Mitigation (Transportation).\"",
-          "source_span": "Key policies and plans for sustainable transportation in Colombia are the National Development Plan, the National Urban Transport Policy, and the Action Plan for Sector Mitigation (Transportation).",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"This proposal was integrated into the 2022 Climate Action Law (2169).\"",
-          "source_span": "This proposal was integrated into the 2022 Climate Action Law (2169).",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Colombia’s current NDC foresees six main actions to reduce transport-sector greenhouse gas (GHG) emissions up to 2030, including transport electrification, support for active mobility and demand management, fluvial and train corridor development, and performance-based plane navigation.\"",
-          "source_span": "Colombia’s current NDC foresees six main actions to reduce transport-sector greenhouse gas (GHG) emissions up to 2030, including transport electrification, support for active mobility and demand management, fluvial and train corridor development, and performance-based plane navigation.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "2"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "GAP",
-          "claim_text": "[effective_date] No verbatim statement of a single consolidated effective date for Colombia's sustainable-transport framework was found in this item's accessible captures (the four mintransporte.gov.co Ministry pages, which would carry the operative legal text, were blocked at capture time). Law 1753 of 2015 and Law 2169 of 2022 are each in force from the years the accessible corroborating sources state, but neither source states an effective-date clause for the instrument itself.",
-          "source_span": null,
-          "source_url": null,
-          "section": "2"
-        },
-        {
-          "slot_key": "primary_deadline",
-          "claim_kind": "GAP",
-          "claim_text": "[primary_deadline] No single statutory compliance deadline with a stated consequence for a freight operator or transport intermediary was found in this item's accessible captures. The NDC references a 2030 horizon for transport-sector GHG reduction actions, and the Aburra Valley bicycle-mode-share target is dated to 2030 (see Section 6 and Section 14), but neither is a compliance deadline running to a private party.",
-          "source_span": null,
-          "source_url": null,
-          "section": "2"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "GAP",
-          "claim_text": "[jurisdictional_scope] No source in this item's accessible captures states an explicit jurisdictional-scope clause for the framework as a whole. The accessible material describes national-level Colombian policy instruments (Law 1753, Law 2169, the NDC) and city-level programs in Bogota and Medellin; whether any instrument's own text defines a scope reaching freight forwarders, logistics operators, or cargo principals cannot be determined without the blocked Ministry pages.",
-          "source_span": null,
-          "source_url": null,
-          "section": "2"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "[penalty_summary] No source in this item's accessible captures states a penalty, fine, or enforcement mechanism directed at a freight forwarder, carrier, or transport intermediary. The accessible material describes an investment-fund mechanism (Law 2169) and policy targets (the NDC), neither of which carries a stated sanction.",
-          "source_span": null,
-          "source_url": null,
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Assess carrier fleet transition exposure on Colombia road lanes.** The captured source states, verbatim: \"These buses emit some 1.3 million-tons of CO 2 e per year, which represents 6% of the national transport-related GHG emissions.\"",
-          "source_span": "These buses emit some 1.3 million-tons of CO 2 e per year, which represents 6% of the national transport-related GHG emissions.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "3"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Verify urban-zone access assumptions for drayage and last-mile delivery in Bogota and Medellin.** The captured source states, verbatim: \"Bogotá also schedules the Día sin Carro every year, a car free day which began in 2001; in 2015, the city’s 15th annual car-free day, Bogotá also kept the streets motorcycle-free for the first time (Rogala, 2015)\"",
-          "source_span": "Bogotá also schedules the Día sin Carro every year, a car free day which began in 2001; in 2015, the city’s 15th annual car-free day, Bogotá also kept the streets motorcycle-free for the first time (Rogala, 2015)",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "3"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"It has been funded by the German government’s International Climate Initiative (IKI) since 2010.\"",
-          "source_span": "It has been funded by the German government’s International Climate Initiative (IKI) since 2010.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"the Colombian Ministry of Transport developed a proposal for a national investment fund that would promote the modernisation of public transport and light freight.\"",
-          "source_span": "the Colombian Ministry of Transport developed a proposal for a national investment fund that would promote the modernisation of public transport and light freight.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"While e-buses have lower operating costs than their conventional counterparts, they have significantly higher upfront costs.\"",
-          "source_span": "While e-buses have lower operating costs than their conventional counterparts, they have significantly higher upfront costs.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"The report estimates that e-bus adoption has an aggregate mitigation potential of 1.8 Mt CO 2 e up to 2030 and recommends investment of 791 million euros.\"",
-          "source_span": "The report estimates that e-bus adoption has an aggregate mitigation potential of 1.8 Mt CO 2 e up to 2030 and recommends investment of 791 million euros.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[forward_event] Per this item's exported forward_events row (medium confidence). The captured source states, verbatim: \"The goal is that by 2030, 10% of total trips in the Aburra Valley are by bicycle.\"",
-          "source_span": "The goal is that by 2030, 10% of total trips in the Aburra Valley are by bicycle.",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "6"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "GAP",
-          "claim_text": "A CAF Development Bank railway and sustainable-mobility programme, referenced by the prior record for this item, does not appear in any URL captured for this item; its content, including the prior record's own funding-amount figure, is not used as a FACT source in this entry.",
-          "source_span": null,
-          "source_url": null,
-          "section": "6"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "GAP",
-          "claim_text": "The four mintransporte.gov.co Ministry of Transport publication pages were blocked at capture time (see Section 1); a re-pull is the only way to confirm whether they carry instrument text, compliance deadlines, or guidance not reflected in this brief.",
-          "source_span": null,
-          "source_url": null,
-          "section": "6"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "GAP",
-          "claim_text": "Specific registration or reporting obligations on freight forwarders, logistics operators, or cargo principals under the Colombian sustainable-transport framework are not stated in this item's accessible captures.",
-          "source_span": null,
-          "source_url": null,
-          "section": "10"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Charging-infrastructure awareness for fleet-operated vehicles.** The captured source states, verbatim: \"TRANSfer developed a special guide to energy supply for electric vehicles in Colombia\"",
-          "source_span": "TRANSfer developed a special guide to energy supply for electric vehicles in Colombia",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "11"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Driver and maintenance training curriculum awareness.** The captured source states, verbatim: \"Together with the National Training Service (SENA), a driver and maintenance curriculum was developed and will be offered by SENA at its vehicle training centers in Bogotá and Bucaramanga.\"",
-          "source_span": "Together with the National Training Service (SENA), a driver and maintenance curriculum was developed and will be offered by SENA at its vehicle training centers in Bogotá and Bucaramanga.",
-          "source_url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
-          "section": "11"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Bogotá, the capital of Colombia with almost 8 million people, is internationally recognised for its sustainable transport actions, in particular the 55 km TransMilenio BRT.\"",
-          "source_span": "Bogotá, the capital of Colombia with almost 8 million people, is internationally recognised for its sustainable transport actions, in particular the 55 km TransMilenio BRT.",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"The city also has an impressive network of bicycle lanes, of around 350 km) and a mode share of cycling trips of around 3.3%.\"",
-          "source_span": "The city also has an impressive network of bicycle lanes, of around 350 km) and a mode share of cycling trips of around 3.3%.",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Bogotá having constructed 500 km of bike paths, known locally as ‘ ciclorrutas ’\"",
-          "source_span": "Bogotá having constructed 500 km of bike paths, known locally as ‘ ciclorrutas ’",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Medellin has a free public bike system, EnCicla, with has 50 stations, and 1 300 bicycles, integrated to the mass transport system of the city through the Metro and Metropla’s stations.\"",
-          "source_span": "Medellin has a free public bike system, EnCicla, with has 50 stations, and 1 300 bicycles, integrated to the mass transport system of the city through the Metro and Metropla’s stations.",
-          "source_url": "https://www.unep.org/topics/transport/active-mobility/colombia",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "As a general adjacent financing mechanism (not specific to Colombia in this capture): The captured source states, verbatim: \"Since 1999, GEF has so far supported 59 sustainable urban transport projects\"",
-          "source_span": "Since 1999, GEF has so far supported 59 sustainable urban transport projects",
-          "source_url": "https://changing-transport.org/global-environment-facility/",
-          "section": "13"
-        }
-      ]
-    },
-    {
       "item_id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
       "source_pool_hash": "3523f0586eede17903ba7b7bc62c0c631919763a5584a54e1593be18f58dd674",
       "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks Japan's Green Transformation (GX) League framework and the GX-ETS emissions trading system nested within it, as they apply to freight transport operations. \"GX League\" is the voluntary framework launched in FY2023 under the Ministry of Economy, Trade and Industry (METI); \"GX-ETS\" is the emissions trading system evolving from it. Phase 1 (FY2023-FY2025) is voluntary; Phase 2 (FY2026-FY2032) is mandatory; Phase 3 (from FY2033) introduces auctioning for the power sector. Monetary figures below are Japanese Yen (JPY) unless otherwise noted.\n\nFACT: \"The GX League is a framework in which a group of internationally competitive companies that are boldly taking on the challenge of transitioning to carbon neutrality will drive GX.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"Jurisdictions Japan Sectoral coverage Maritime Domestic Aviation Transport Industry Power\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\nFACT: \"Japan started its GX-ETS as a voluntary baseline-and-credit system during its first phase spanning FY2023 and FY2025.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\nFACT: \"In the FY2026, which started in April 2026, the GX-ETS transitioned to a mandatory baseline-and-credit system.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Operational implication:* the covered entity under Phase 2 is most likely the carrier operating freight automobile, domestic marine, or air transport, not the freight forwarder or shipper directly, unless the forwarder itself operates covered transport assets.\n\n*Legal Confirmation Required:* whether any role the workspace occupies (freight forwarder, importer, logistics coordinator) constitutes a \"covered entity\" under the amended GX Promotion Act, or whether compliance obligations pass through contractually from carrier to customer, requires counsel review.\n\n# 3. Issues Requiring Immediate Action\n\n*Operational implication:* the mandatory Phase 2 obligation began in April 2026 (Section 14); a workspace with Japan transport-lane exposure should confirm now whether its own operations or its carrier partners' operations meet the inclusion threshold below.\n\nFACT: \"Companies with annual CO 2 emissions of 100,000 tonnes or more in power, industry, transport and aviation as well as in other sectors if their annual CO 2&nbsp; emissions exceed the 100,000 tonnes threshold.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Legal Confirmation Required:* whether a freight forwarder or logistics operator acting on behalf of carrier clients meets this threshold, or whether obligations pass through to the freight principal, requires counsel review and cannot be determined from the sourced materials alone.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nThe GX League and GX-ETS are company-level frameworks; covered entities are companies meeting emissions thresholds, not cargo principals or freight forwarders acting as intermediaries per se.\n\nFACT: \"Freight automobile transportation •&nbsp;&nbsp;&nbsp;&nbsp;Domestic marine transportation •&nbsp;&nbsp;&nbsp;&nbsp;Air transportation\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Operational implication:* carrier compliance costs under the GX-ETS (allowance purchases, MRV costs) are likely to be incorporated into freight pricing on Japan lanes over FY2026-FY2032; workspace clients operating under CSRD, ISSB, or equivalent disclosure frameworks may separately request Japan transport emissions data at carrier-activity level for Scope 3 accounting.\n\nFACT: \"active discussions on and proposals for rulemaking, which is difficult for individual companies to undertake, have been held regarding areas such as emissions reductions throughout the supply chain and the input of green products into the market.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\nFACT: \"the NYK Group set a long-term goal of reducing greenhouse gas (GHG) emissions in the Group’s oceangoing shipping business to achieve net-zero emissions by 2050\" *Source: NYK to Join Japanese Ministry's GX League, NYK Line, 9 June 2023. https://www.nyk.com/english/news/2023/20230607_01.html\n\n*Operational implication:* ocean carrier partners on Japan trade lanes who are GX League participants are subject to self-set emission-reduction targets today and, from Phase 2, mandatory compliance obligations; Japan-lane ocean freight procurement should factor in carrier compliance posture.\n\n# 5. Authoritative Guidance Document Analysis\n\nFACT: \"A place where companies actively engaged in GX are invited to collaborate with government, academia, and financial institutions to take up the challenge of GX, and engage in discussions for the transformation of the entire economic and social system and the creation of new markets.\" *Source: NYK to Join Japanese Ministry's GX League, NYK Line, 9 June 2023 (quoting METI's GX League Basic Concept). https://www.nyk.com/english/news/2023/20230607_01.html\n\nFACT: \"In May 2025, the amended GX Promotion Act (Officially named as: Bill for the Act for Partially Amending the Act on the Promoting Transition to the Decarbonized Growth Economic Structure and Act on the Promotion of Effective Utilization of Resources) was passed and enacted at the House of Councillors plenary session, obliging companies that emit at least 100,000 metric tons of carbon dioxide a year to participate in the emissions trading system to be introduced in fiscal (FY) 2026.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\n*Operational implication:* the amended GX Promotion Act is the binding statutory instrument for Phase 2; GX League membership is the voluntary, reputational, supply-chain-facing predecessor structure, distinct from statutory GX-ETS compliance.\n\nFACT: \"REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\nFACT: \"VERIFICATION:&nbsp; Emissions reports require third-party verification by an accredited verifier.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\nFACT: \"On December 19, 2025, the subcommittee released its final report and requested that the Minister of Economy, Trade and Industry establish the Reference Upper Limit Transaction Price and the Adjustment Standard Transaction Price based on the following opinions: For fiscal year 2026, the Reference Upper Limit Transaction Price shall be set at 4,300 yen per carbon-dioxide-emission-quota unit for decarbonized growth-oriented investment, which is equivalent to one ton of CO2 emissions.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\nFACT: \"For the period from fiscal year 2027 to fiscal year 2030, the Reference Upper Limit Transaction Price and the Adjustment Standard Transaction Price shall be updated and determined annually in accordance with the law; these prices shall be adjusted by applying a 3% increase to the projected consumer price index for the relevant fiscal year, using the price of the previous fiscal year as the baseline.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\n*Operational implication:* resolution of banking rules in FY2027 (Section 8) will affect allowance-management strategy for covered transport-sector entities; workspace carrier partners should be asked about allowance position and banking exposure once rules are finalized.\n\nFACT: \"a carbon levy (GX-Surcharge) to be introduced from 2028 on fossil fuel importers and domestic fossil fuel extractors.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Operational implication:* the GX-Surcharge, once introduced in FY2028, is a distinct, additional carbon-pricing layer on fossil fuel costs for Japan transport operators, separate from GX-ETS allowance costs.\n\nFACT: \"From FY2033, auctioning will be introduced for high-emitting corporations in the power sector.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Analytical inference:* auctioning is currently scoped to the power sector only; no sourced evidence places transport-sector auctioning on the current Phase 2 (FY2026-FY2032) policy trajectory.\n\n# 7. Threshold Questions\n\n**Q1: Is the workspace a \"covered entity\" under Phase 2?**\n\n*Legal Confirmation Required:* Phase 2 coverage turns on whether a company's annual CO2 emissions meet or exceed the 100,000-tonne threshold under the amended GX Promotion Act (Section 3). Whether freight forwarding or logistics coordination activity itself generates emissions meeting this threshold, or whether the threshold applies only to the asset operator, requires counsel and emissions-accounting review.\n\n**Q2: Does the workspace's transport mode trigger transport-sector benchmarking?**\n\nFACT: benchmarking applies to \"Freight automobile transportation •&nbsp;&nbsp;&nbsp;&nbsp;Domestic marine transportation •&nbsp;&nbsp;&nbsp;&nbsp;Air transportation\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Legal Confirmation Required:* whether the workspace or its carrier partners fall into one of these named benchmark categories, or into the residual grandfathering category, requires assessment against actual transport operations and legal review.\n\n**Q3: Does voluntary Phase 1 non-registration carry consequences?**\n\nFACT: \"The GX League will consider companies that have no intention to register their data and those that do not respond to the communications from the Secretariat as having withdrawn from the league as of the end of June 2024.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n*Analytical inference:* this is a reputational/participation consequence, not a statutory penalty, in the Phase 1 voluntary period.\n\n# 8. Substantive Requirements\n\n**1. Phase 1 participation basis (voluntary).** FACT: \"These companies have been making significant efforts to reduce emissions, upholding their own targets of emission reductions not only for FY2030 but also for FY2025, and have also decided to participate in an emissions trading system currently being operated on a trial basis.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n**2. Phase 1 data registration.** FACT: \"The GX League asks participants to register related data such as their emissions reduction targets.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n**3. Phase 1 non-response consequence.** FACT: \"The GX League will consider companies that have no intention to register their data and those that do not respond to the communications from the Secretariat as having withdrawn from the league as of the end of June 2024.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n**4. Phase 2 inclusion threshold (jurisdictional and organizational scope).** FACT: \"Companies with annual CO 2 emissions of 100,000 tonnes or more in power, industry, transport and aviation as well as in other sectors if their annual CO 2&nbsp; emissions exceed the 100,000 tonnes threshold.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**5. Phase 2 sectoral scope.** FACT: \"Jurisdictions Japan Sectoral coverage Maritime Domestic Aviation Transport Industry Power\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**6. Effective date of the mandatory phase.** FACT: \"In the FY2026, which started in April 2026, the GX-ETS transitioned to a mandatory baseline-and-credit system.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**7. Transport-sector benchmarking.** FACT: benchmarking applies for \"Freight automobile transportation •&nbsp;&nbsp;&nbsp;&nbsp;Domestic marine transportation •&nbsp;&nbsp;&nbsp;&nbsp;Air transportation\"; allocation based on grandparenting applies to other sectors. *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**8. Compliance mechanism.** FACT: \"Covered entities&nbsp; must surrender one compliance unit per tCO 2 &nbsp; that exceeds the facility’s annual emissions limit.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**9. Reporting deadline (primary compliance deadline).** FACT: \"REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**10. Third-party verification.** FACT: \"VERIFICATION:&nbsp; Emissions reports require third-party verification by an accredited verifier.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**11. Penalty for shortfall.** FACT: \"Penalties and enforcement If the required number of allowances cannot be surrendered, a payment equal to the shortfall in emission allowances ×&nbsp;upper price × 1.1 must be made.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**12. Upper price limit (compliance cost ceiling).** FACT: \"Upper price limit in FY2027: JPY 4300 (USD 28.73)\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**13. Lower price limit.** FACT: \"Lower price limit in FY2027: JPY 1700 (USD 11.36)\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**14. Offset credit cap.** FACT: \"The use of offset credits is capped at 10% of an entity’s compliance obligation.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**15. Banking and borrowing rules.** FACT: \"Banking: There are currently no regulations for banking in place, but the government is examining the possibility of implementing banking rules in FY2027. Borrowing is not allowed.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**16. No linking with other systems (scope limit).** FACT: \"The GX-ETS will not be linked with any other system.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**17. GX-Surcharge (upcoming, not yet in force).** FACT: \"a carbon levy (GX-Surcharge) to be introduced from 2028 on fossil fuel importers and domestic fossil fuel extractors.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n**18. MRV design scope (design-phase scope statement).** FACT: \"Scope of covered greenhouse gases, calculation methodologies, treatment of carbon credits, accreditation requirements for third-party verification bodies, and assurance levels.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\n*Operational implication:* obligations 1-3 bind Phase 1 GX League participants (voluntary, reputational); obligations 4-16 and 18 bind Phase 2 covered entities (statutory, mandatory from FY2026); obligation 17 is a distinct, not-yet-effective carbon levy. All 18 are workspace-adjacent: they define either the direct compliance chain a covered carrier partner sits in, or the cost/data signals a freight-forwarding workspace must track.\n\n*Per the workspace's reading:* no source in this brief's corpus states a penalty running directly to a freight forwarder, importer, or logistics coordinator; every penalty and compliance-cost mechanism above (obligations 11-14) runs to the \"covered entity\" as defined by the amended GX Promotion Act, which the sourced materials define by direct CO2 emissions volume, not by commercial intermediary role.\n\n*Per the workspace's reading:* No exceptions are stated in Sections covering the GX-ETS compliance mechanism, penalty provisions, and offset rules.\n\nObligations surveyed: 18; workspace-adjacent: 18; extracted as FACT: 18.\n\n# 9. Product-Specific Compliance Status\n\n*This section applies where the workspace itself operates covered transport assets in Japan (freight automobile, domestic marine, or air transport) rather than acting purely as an intermediary.*\n\n*Legal Confirmation Required:* if the workspace directly operates covered transport assets meeting the 100,000-tonne threshold (Section 8, obligation 4), it is itself a Phase 2 covered entity subject to the reporting, verification, and compliance-surrender obligations above; this determination requires counsel and emissions-accounting review on the workspace's specific asset operations.\n\n# 10. Registration and Reporting Obligations\n\nFACT: \"The GX League asks participants to register related data such as their emissions reduction targets.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\nFACT: \"the GX League has opened a special consultation counter on its official website as a measure to support such companies in registering their data, which provides services such as tailored consultations, including explanations on how to calculate emissions.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\nFACT: \"REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year. year.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Operational implication:* for workspace carrier partners who are Phase 2 covered entities, the annual reporting cycle (activity year to 31 January submission to third-party verification) creates a structured data-availability window; carrier-level data may not reach freight forwarders until the first quarter of the calendar year following the activity year.\n\n# 11. Operational System Requirements\n\n*Operational implication:* workspaces not directly covered should build capacity to request and receive verified CO2 data from Japan-based carrier partners, since this data underpins Scope 3 emissions reporting to clients operating under CSRD, ISSB, or equivalent disclosure frameworks.\n\nFACT: emissions reports require \"VERIFICATION:&nbsp; Emissions reports require third-party verification by an accredited verifier.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Operational implication:* Phase 2 covered carrier partners will need to engage accredited verifiers, which is a procurement and lead-time consideration; workspace procurement teams should factor verifier availability into carrier readiness assessments.\n\n# 12. Exemptions and Edge Cases\n\nFACT: \"The GX League will continue to provide meticulous support to participating companies, which vary in size and by industry, consisting of not only large enterprises but also SMEs and startups\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\n*Operational implication:* SME and startup freight operators voluntarily participating in the GX League have access to a special consultation counter and tailored support, reducing the barrier to voluntary participation for smaller transport operators.\n\nFACT: \"Banking: There are currently no regulations for banking in place, but the government is examining the possibility of implementing banking rules in FY2027. Borrowing is not allowed.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Analytical inference:* no banking is currently permitted and borrowing is not allowed at all; this is a scope limit on how covered entities may manage their compliance position across compliance periods.\n\n# 13. Adjacent Industry Research and Alternatives\n\nFACT: \"More than 700 companies, accounting for over 50% of national GHG emissions, participated in the voluntary ETS.\" *Source: Japan GX-ETS, ICAP. https://icapcarbonaction.com/en/ets/japan-gx-ets\n\n*Analytical inference:* Japan Climate Initiative and Japan Climate Leaders Partnership are assessed as supporting GX-ETS Phase 2 with active and strategic engagement respectively, while Japan Iron and Steel Federation, Japan Chemical Industry Association, and Electric Power Development are characterised as not supporting, per InfluenceMap's policy-engagement tracker; transport-adjacent industry associations present a mixed-to-not-supporting position, which may shift benchmark and grandfathering design during Phase 2. *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\n# 14. Confirmed Regulatory Timeline\n\n- February 1, 2022: GX League Basic Concept released by METI.\n- FY2023: GX League launched; Phase 1 voluntary period opens.\n- January 2024: call for FY2024 new GX League participants opened, including transport-sector companies.\n- March 27, 2024: 179 new companies join, bringing total participants to 747.\n- June 2024: METI treats non-responding FY2023 participants as withdrawn.\n- May 2025: amended GX Promotion Act passed and enacted by the House of Councillors.\n- July 2025: METI Subcommittee on Emissions Trading Systems holds its first meeting.\n- December 19, 2025: METI Subcommittee releases its final report and sets the FY2026 price limits.\n- April 2026: GX-ETS transitions to mandatory Phase 2.\n- January 31, 2027: first Phase 2 MRV deadline, for FY2026 emissions.\n- FY2027: banking rules under examination for potential introduction.\n- FY2028: GX-Surcharge introduced on fossil fuel importers and domestic extractors.\n- FY2033: Phase 3 begins; auctioning introduced for the power sector.\n- 2050: net-zero GHG emissions target (Japan NDC).\n\n*Source for timeline entries: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024 (https://www.meti.go.jp/english/press/2024/0327_003.html); Japan GX-ETS, ICAP (https://icapcarbonaction.com/en/ets/japan-gx-ets); GX-ETS Phase 2, InfluenceMap, December 2025 (https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560); NYK to Join Japanese Ministry's GX League, NYK Line, 9 June 2023 (https://www.nyk.com/english/news/2023/20230607_01.html).*\n\nFACT: \"In January 2024, the GX League opened a call for new companies that intend to participate in the league from FY2024 and received applications.\" *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html\n\nFACT: \"The first meeting was held in July 2025, and discussions are expected to conclude by the end of the year.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\nFACT: \"On December 19, 2025, the subcommittee released its final report and requested that the Minister of Economy, Trade and Industry establish the Reference Upper Limit Transaction Price and the Adjustment Standard Transaction Price based on the following opinions: For fiscal year 2026, the Reference Upper Limit Transaction Price shall be set at 4,300 yen per carbon-dioxide-emission-quota unit for decarbonized growth-oriented investment, which is equivalent to one ton of CO2 emissions.\" *Source: GX-ETS Phase 2, InfluenceMap, December 2025. https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560\n\n*Operational implication:* this final report is the design basis for the FY2026 price limits and the FY2027-FY2030 CPI-linked adjustment schedule (Section 8).\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | From FY2024, 179 Companies Newly Participate in the GX League, Bringing the Total Number of Participants to 747 | Regulator announcement (Tier 2) | https://www.meti.go.jp/english/press/2024/0327_003.html |\n| 2 | Japan GX-ETS | Intergovernmental body factsheet (Tier 3) | https://icapcarbonaction.com/en/ets/japan-gx-ets |\n| 3 | GX-ETS Phase 2 | Industry/analytical body (Tier 4) | https://japan.influencemap.org/policy/GX-ETS-Phase-2-5560 |\n| 4 | NYK to Join Japanese Ministry's GX League | Corporate announcement, operator-level (Tier 5) | https://www.nyk.com/english/news/2023/20230607_01.html |\n\n*Note: the METI PDF source (https://www.meti.go.jp/english/press/2023/pdf/0210_003b.pdf) returned a \"Page Not Found\" response and yielded no groundable content; excluded from claims. The generic ICAP homepage (https://icapcarbonaction.com/) and the generic Japanese-language METI homepage (https://www.meti.go.jp) captured under this item's pool are the wrong pages for this instrument (neither is Japan-GX-ETS-specific content) and were not cited for any claim.*\n",
@@ -1475,7 +1228,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"Jurisdictions Japan Sectoral coverage Maritime Domestic Aviation Transport Industry Power\"",
+          "claim_text": "[jurisdictional_scope] [section2] The captured source states, verbatim: \"Jurisdictions Japan Sectoral coverage Maritime Domestic Aviation Transport Industry Power\"",
           "source_span": "Jurisdictions Japan Sectoral coverage Maritime Domestic Aviation Transport Industry Power",
           "source_url": "https://icapcarbonaction.com/en/ets/japan-gx-ets",
           "section": "2"
@@ -1491,7 +1244,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"In the FY2026, which started in April 2026, the GX-ETS transitioned to a mandatory baseline-and-credit system.\"",
+          "claim_text": "[effective_date] [section2] The captured source states, verbatim: \"In the FY2026, which started in April 2026, the GX-ETS transitioned to a mandatory baseline-and-credit system.\"",
           "source_span": "In the FY2026, which started in April 2026, the GX-ETS transitioned to a mandatory baseline-and-credit system.",
           "source_url": "https://icapcarbonaction.com/en/ets/japan-gx-ets",
           "section": "2"
@@ -1675,7 +1428,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year.\"",
+          "claim_text": "[primary_deadline] [section8] The captured source states, verbatim: \"REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year.\"",
           "source_span": "REPORTING:&nbsp; Covered entities must submit their emissions reports annually by January 31 of the year following the reporting year.",
           "source_url": "https://icapcarbonaction.com/en/ets/japan-gx-ets",
           "section": "8"
@@ -1691,7 +1444,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"Penalties and enforcement If the required number of allowances cannot be surrendered, a payment equal to the shortfall in emission allowances ×&nbsp;upper price × 1.1 must be made.\"",
+          "claim_text": "[penalty_summary] [section8] The captured source states, verbatim: \"Penalties and enforcement If the required number of allowances cannot be surrendered, a payment equal to the shortfall in emission allowances ×&nbsp;upper price × 1.1 must be made.\"",
           "source_span": "Penalties and enforcement If the required number of allowances cannot be surrendered, a payment equal to the shortfall in emission allowances ×&nbsp;upper price × 1.1 must be made.",
           "source_url": "https://icapcarbonaction.com/en/ets/japan-gx-ets",
           "section": "8"
@@ -2594,7 +2347,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"The Taxonomy Regulation was published in the Official Journal of the European Union on 22 June 2020 and entered into force on 12 July 2020.\"",
+          "claim_text": "[effective_date] [section2] The captured source states, verbatim: \"The Taxonomy Regulation was published in the Official Journal of the European Union on 22 June 2020 and entered into force on 12 July 2020.\"",
           "source_span": "The Taxonomy Regulation was published in the Official Journal of the European Union on 22 June 2020 and entered into force on 12 July 2020.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex:32020R0852",
           "section": "2"
@@ -2626,7 +2379,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section2] The captured source states, verbatim: \"This Regulation applies to: (a) measures adopted by Member States or by the Union that set out requirements for financial market participants or issuers in respect of financial products or corporate bonds that are made available as environmentally sustainable; (b) financial market participants that make available financial products; (c) undertakings which are subject to the obligation to publish a non-financial statement or a consolidated non-financial statement pursuant to Article 19a or Article 29a of Directive 2013/34/EU of the European Parliament and of the Council&nbsp; ( 68 ) , respectively.\"",
+          "claim_text": "[jurisdictional_scope] [section2] The captured source states, verbatim: \"This Regulation applies to: (a) measures adopted by Member States or by the Union that set out requirements for financial market participants or issuers in respect of financial products or corporate bonds that are made available as environmentally sustainable; (b) financial market participants that make available financial products; (c) undertakings which are subject to the obligation to publish a non-financial statement or a consolidated non-financial statement pursuant to Article 19a or Article 29a of Directive 2013/34/EU of the European Parliament and of the Council&nbsp; ( 68 ) , respectively.\"",
           "source_span": "This Regulation applies to: (a) measures adopted by Member States or by the Union that set out requirements for financial market participants or issuers in respect of financial products or corporate bonds that are made available as environmentally sustainable; (b) financial market participants that make available financial products; (c) undertakings which are subject to the obligation to publish a non-financial statement or a consolidated non-financial statement pursuant to Article 19a or Article 29a of Directive 2013/34/EU of the European Parliament and of the Council&nbsp; ( 68 ) , respectively.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex:32020R0852",
           "section": "2"
@@ -2698,7 +2451,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "FACT",
-          "claim_text": "[section7] The captured source states, verbatim: \"Article 22 Measures and penalties Member States shall lay down the rules on measures and penalties applicable to infringements of Articles 5, 6 and 7. The measures and penalties provided for shall be effective, proportionate and dissuasive.\"",
+          "claim_text": "[penalty_summary] [section7] The captured source states, verbatim: \"Article 22 Measures and penalties Member States shall lay down the rules on measures and penalties applicable to infringements of Articles 5, 6 and 7. The measures and penalties provided for shall be effective, proportionate and dissuasive.\"",
           "source_span": "Article 22 Measures and penalties Member States shall lay down the rules on measures and penalties applicable to infringements of Articles 5, 6 and 7. The measures and penalties provided for shall be effective, proportionate and dissuasive.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex:32020R0852",
           "section": "7"
@@ -2754,7 +2507,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"Articles 4, 5, 6 and 7 and Article 8(1), (2) and (3) shall apply: (a) in respect of the environmental objectives referred to in points (a) and (b) of Article 9 from 1 January 2022; and (b) in respect of the environmental objectives referred to in points (c) to (f) of Article 9 from 1 January 2023.\"",
+          "claim_text": "[primary_deadline] [section8] The captured source states, verbatim: \"Articles 4, 5, 6 and 7 and Article 8(1), (2) and (3) shall apply: (a) in respect of the environmental objectives referred to in points (a) and (b) of Article 9 from 1 January 2022; and (b) in respect of the environmental objectives referred to in points (c) to (f) of Article 9 from 1 January 2023.\"",
           "source_span": "Articles 4, 5, 6 and 7 and Article 8(1), (2) and (3) shall apply: (a) in respect of the environmental objectives referred to in points (a) and (b) of Article 9 from 1 January 2022; and (b) in respect of the environmental objectives referred to in points (c) to (f) of Article 9 from 1 January 2023.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex:32020R0852",
           "section": "8"
@@ -3400,244 +3153,6 @@
       ]
     },
     {
-      "item_id": "474ab4cd-c157-4451-8c7f-f9c9ab0015b6",
-      "source_pool_hash": "34e6e94e77e893aec73a30ec989d3168748660432c60229b8ade88bb628d58f5",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document analyses The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 (the \"MEES Regulations\") as they appear in the ONE capture this item's own pool carries: a draft statutory instrument's table-of-contents page on legislation.gov.uk.\n\nFACT: \"Draft Legislation: This is a draft item of legislation and has not yet been made as a UK Statutory Instrument. This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Analytical inference:* the captured page carries only the instrument's own regulation numbers and headings (a table of contents), never the operative section-by-section text; every substantive threshold, deadline, or amount discussed below is therefore either a structural fact drawn directly from that table of contents, or an honest gap where the full enacted text would be required.\n\n**Convention notes:** \"the workspace\" refers to the freight forwarding and logistics operation this brief is prepared for. Freight forwarders lease commercial property, occupy warehousing, and in some instances hold sub-let or short-let agreements over storage and logistics premises in England and Wales; the MEES Regulations set minimum energy efficiency standards for privately rented property there, so a workspace occupying or leasing such property may face landlord obligations, tenant rights, or, if it sub-leases space, landlord compliance duties.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nThe table of contents confirms the regulation is structured in three Parts: Part 1 (citation, commencement, general interpretation, service of documents, duty to review), Part 2 (tenant rights), and Part 3 (prohibition on letting sub-standard property, enforcement, and penalties).\n\n**Jurisdictional scope (required slot).** FACT: \"The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**Effective date (required slot).** [effective_date] Specific effective date is not available from this item's captured source: the captured pool is the superseded draft's own table-of-contents page (ISBN 978-0-11-112835-0), which states only that it \"has been replaced by a new draft\" (ISBN 978-0-11-113243-2); it carries no commencement-date text of its own.\n\n**Primary compliance deadline (required slot).** [primary_deadline] No primary compliance deadline is stated in this item's captured source; the table of contents names regulation 1 (\"Citation and commencement\") and regulation 4 (\"Duty to review\") by heading only, without the operative dates those provisions contain.\n\nFACT: \"This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Analytical inference:* freight forwarding operations routinely occupy warehousing, office premises, and logistics hubs in England and Wales under commercial leases. If any such leases are structured as \"non-domestic PR property\" as defined in the regulation, the workspace, in its capacity as tenant, may benefit from Part 2 rights to request energy efficiency improvements, or, if it sub-lets space, may face Part 3 landlord duties.\n\n*Legal Confirmation Required:* whether any specific premises occupied by the workspace fall within the regulation's definition of \"domestic PR property\" or \"non-domestic PR property\" is a legal determination that depends on the precise lease terms and property classification; counsel review is required before asserting the regulation applies.\n\n# 3. Issues Requiring Immediate Action\n\n**Action:** retrieve the full enacted text of the replacement/enacted instrument from legislation.gov.uk and confirm the commencement date, the operative EPC band threshold, and the full penalty schedule before any lease review or exemption-registration action is taken.\n\n*Operational implication:* any compliance programme or lease negotiation that relies on this item's own captured draft table of contents, rather than the full enacted text, risks missing the material operative detail (thresholds, dates, and amounts) that the table of contents does not itself carry.\n\n**Action:** map all England-and-Wales commercial property holdings against the regulation's property scope, and engage property legal counsel to assess whether any premises occupied or sub-let by the workspace constitute \"non-domestic PR property\" within the regulation's own definitions.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nFACT: \"PART 1 1. Citation and commencement 2. General interpretation 3. Service of documents 4. Duty to review PART 2\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\nFACT: \"7. Landlord and tenant\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Legal Confirmation Required:* whether the workspace occupies any England-and-Wales premises as a \"tenant\" within the regulation's own defined meaning, or sub-lets premises such that it becomes a \"landlord\" within the regulation's own defined meaning, is a legal determination that must be made by counsel against the workspace's actual lease portfolio.\n\n*Analytical inference:* for workspaces that hold a head lease and sub-let portions of warehouse space to third parties in England and Wales, the sub-letting arrangement may bring the workspace within the landlord definition and expose it to the Part 3 obligations surveyed in Section 8. This is operationally material and warrants early counsel review.\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n*Analytical inference:* this item's own captured source (a superseded draft's table of contents) states no consultation, amendment, or reform activity of any kind; the source itself pre-dates the amending activity industry commentary typically associates with this instrument. No forward-dated regulatory event is asserted here without a source in this item's own pool to ground it, and this item's export carries no `forward_events` rows.\n\n*Operational implication:* workspaces holding long-term commercial leases in England and Wales should independently monitor legislation.gov.uk for the enacted instrument and any amending instruments, since this item's own pool cannot itself confirm whether or when the minimum EPC band threshold has changed.\n\n# 7. Threshold Questions\n\n| Question | Status |\n|---|---|\n| Does the workspace occupy or sub-let premises that constitute \"non-domestic PR property\" under regulation 20? | *Legal Confirmation Required:* depends on lease terms and property classification. FACT: \"20. Non-domestic PR property\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents* |\n| Does the workspace occupy premises that constitute \"domestic PR property\" under regulation 19? | *Legal Confirmation Required:* freight forwarding operations are unlikely to hold domestic tenancies, but mixed-use arrangements require verification. FACT: \"19. Domestic PR property\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents* |\n| Does any property occupied by the workspace constitute \"sub-standard property\" as defined in regulation 22? | *Legal Confirmation Required:* depends on the EPC rating of specific premises and the operative minimum band threshold, which requires the full enacted text. FACT: \"22. Sub-standard property\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents* |\n| Does any exemption under regulations 31-33 (Part 3, Chapter 4) apply? | *Legal Confirmation Required:* each exemption carries specific conditions that require the full enacted text to assess. FACT: \"31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents* |\n\n# 8. Substantive Requirements\n\n*Note: this item's captured source is a table of contents only, not the operative section-by-section text; \"substantive requirements\" here means the obligation categories the table of contents itself names, each flagged for the operative detail the full enacted text alone would supply.*\n\n**Tenant request procedure for energy efficiency improvements, including the landlord's duty of response (regulations 8-14).** The captured source states, verbatim: \"8. Request for consent to relevant energy efficiency improvements\"\n\nFACT: \"8. Request for consent to relevant energy efficiency improvements\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**Prohibition on letting sub-standard domestic property (regulation 23).** The captured source states, verbatim: \"23. Prohibition on letting of sub-standard property\"\n\nFACT: \"23. Prohibition on letting of sub-standard property\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**Prohibition on letting sub-standard non-domestic property (regulation 27).** The captured source states, verbatim: \"27. Prohibition on letting of sub-standard non-domestic PR property\"\n\nFACT: \"27. Prohibition on letting of sub-standard non-domestic PR property\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**PRS Exemptions Register duty (regulation 36).** The captured source states, verbatim: \"36. PRS Exemptions Register\"\n\nFACT: \"36. PRS Exemptions Register\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**Compliance notice power (regulation 37).** The captured source states, verbatim: \"37. Compliance notices\"\n\nFACT: \"37. Compliance notices\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n**Enforcement authorities and authorised officers (regulations 34-35).** The captured source states, verbatim: \"34. Enforcement authorities 35. Authorised officers\"\n\nFACT: \"34. Enforcement authorities 35. Authorised officers\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n[penalty_summary] **Penalty and breach provisions, by property type (regulations 38-42).** The captured source states, verbatim: \"38. Penalty notices 39. Publication penalty 40. Breaches in relation to domestic PR property 41. Breaches in relation to non-domestic PR property 42. Reviews, waiving and modification of penalties\"\n\nFACT: \"38. Penalty notices 39. Publication penalty 40. Breaches in relation to domestic PR property 41. Breaches in relation to non-domestic PR property 42. Reviews, waiving and modification of penalties\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n[penalty_summary] The captured table-of-contents source names regulations 38 to 42 (penalty notices, publication penalty, breaches in relation to domestic and non-domestic property, and reviews/waiving/modification of penalties) by heading only; specific penalty amounts are not stated in this item's captured source and require the full enacted text.\n\n**Qualification accounting.** Per-year trajectory: no phase-in schedule is stated anywhere in this item's own captured source (a table of contents carries no dated provisions of its own). No phase-in is stated in Sections 1 to 45 (the numbered regulations) of this instrument. Exceptions and carve-outs: the table of contents names regulations titled \"Consent exemption\" and \"Devaluation exemption\" (regulations 15, 16, 31, 32) and \"Temporary exemption in certain circumstances\" (regulation 33), but the word \"exemption\" itself, as captured, is not the unnegated word \"exempt\" the qualification test looks for, and none of these headings states the exemption's own operative conditions. No exceptions are stated in Sections 1 to 45 (the numbered regulations) of this instrument. Scope limits: no \"scope\"/\"does not apply\"/\"applies only\"/\"limited to\" language describing this instrument's own reach appears anywhere in this item's captured source (checked directly). No scope limits are stated in Sections 1 to 45 (the numbered regulations) of this instrument.\n\nObligations surveyed: 7; workspace-adjacent: 7; extracted as FACT: 7.\n\n# 10. Registration and Reporting Obligations\n\nFACT: \"SCHEDULE Information to be registered on the PRS Exemptions Register\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\nFACT: \"1. The information referred to in regulation 36(2) to be registered... 2. (1) The information referred to in regulation 36(2) to be... 3. The information referred to in regulation 36(2) to be registered...\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Specific fields and data required for each registration category are not available from this item's captured source; the full enacted text of the Schedule is required.*\n\n*Legal Confirmation Required:* whether the workspace, if it sub-lets commercial property in England and Wales, is obligated to register on the PRS Exemptions Register depends on whether it falls within the landlord definition and claims an applicable exemption; counsel review is required.\n\n# 11. Operational System Requirements\n\n*Operational implication:* for workspaces that hold or may hold a landlord position over commercial premises in England and Wales, the following operational capability gaps are structurally implied by the regulation's own design, pending retrieval of the full enacted text:\n\n1. **EPC tracking.** The prohibition on letting sub-standard property (Section 8) turns on the EPC band of each property let; a workspace that sub-lets premises needs a system to record the current EPC band of each sub-let unit. The specific minimum band threshold is not available from this item's captured source.\n\n2. **Exemption registration capability.** If an exemption is claimed (Section 12), the workspace must register the required information on the PRS Exemptions Register (Section 10). The specific registration fields and process are not available from this item's captured source.\n\n3. **Tenant request handling process.** If the workspace is a tenant, it needs an internal process to invoke the request-for-consent procedure (Section 8) and track landlord response timescales.\n\n4. **Lease portfolio audit.** Before any of the above applies, the workspace needs an audit of all England-and-Wales commercial leases to identify which, if any, fall within the regulation's own scope.\n\n# 12. Exemptions and Edge Cases\n\nFACT: \"15. Consent exemption 16. Devaluation exemption\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\nFACT: \"31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Specific conditions, evidence requirements, and duration for each exemption are not available from this item's captured source; the full enacted text of these regulations is required.*\n\n*Legal Confirmation Required:* whether any exemption is available to the workspace in respect of a specific property requires both the full enacted text and counsel review against the workspace's specific circumstances.\n\n# 13. Adjacent Industry Research and Alternatives\n\nNo adjacent industry research or alternative-source content was found in this item's own captured pool beyond the draft instrument's own table of contents; this section is honestly left without corroborating material rather than filled from outside this item's own captures.\n\n# 14. Confirmed Regulatory Timeline\n\n| Date | Milestone | Status |\n|---|---|---|\n| 18 February 2015 | King's Printer Version Correction Slip issued for the draft instrument (captured as 18/02/2015) | Historical |\n\nFACT: \"Correction Slip - 18/02/2015\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents*\n\n*Analytical inference: this item's own export also carried ten further timeline rows (the Regulations being \"made,\" and a run of well-known MEES phase-in milestones spanning multiple later years, plus one entry about assured shorthold tenancies that is not even about this instrument) -- none of those is grounded anywhere in this item's own 8,841-character captured pool (a draft table-of-contents page, checked directly), which states no date beyond the correction-slip date above and the bare year in the instrument's own title. They are not carried forward as asserted facts here (see the discovery note for this item); FACT: \"ISBN 978-0-11-112835-0\" *Source: The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, UK Draft Statutory Instrument table of contents, legislation.gov.uk. https://legislation.gov.uk/ukdsi/2015/9780111128350/contents**\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015, table of contents (draft instrument, superseded) | Binding law (draft, superseded) | https://legislation.gov.uk/ukdsi/2015/9780111128350/contents |",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "stable",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "emissions",
-          "reporting"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "what_is_it": "The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 (MEES), a UK statutory instrument setting minimum energy efficiency standards for privately rented property; this item's own captured source is a superseded draft's table-of-contents page only, not the operative enacted text.",
-        "why_matters": "A freight forwarder leasing, occupying, or sub-letting warehousing or office premises in England and Wales may hold tenant rights or face landlord duties under this instrument, but the operative thresholds, dates, and penalty amounts require retrieval of the full enacted text beyond what this item's own pool carries.",
-        "key_data": [
-          "44 numbered regulations across 3 Parts (structural count from the table of contents)",
-          "PRS Exemptions Register duty under regulation 36"
-        ],
-        "cost_mechanism": null,
-        "requirement_trajectory": null,
-        "penalty_range": null,
-        "enforcement_body": null,
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "freight-forwarder",
-          "warehouse-operator"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13"
-      },
-      "claims": [
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"Draft Legislation: This is a draft item of legislation and has not yet been made as a UK Statutory Instrument. This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2\"",
-          "source_span": "Draft Legislation: This is a draft item of legislation and has not yet been made as a UK Statutory Instrument. This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "1"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] The captured source states, verbatim: \"The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015\"",
-          "source_span": "The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2\"",
-          "source_span": "This draft has been replaced by a new draft, The Energy Efficiency (Private Rented Property) (England and Wales) Regulations 2015 ISBN 978-0-11-113243-2",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "2"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "GAP",
-          "claim_text": "[effective_date] Specific effective date is not available from this item's captured source: the captured pool is the superseded draft's own table-of-contents page (ISBN 978-0-11-112835-0), which states only that it \"has been replaced by a new draft\" (ISBN 978-0-11-113243-2); it carries no commencement-date text of its own.",
-          "source_span": null,
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "2"
-        },
-        {
-          "slot_key": "primary_deadline",
-          "claim_kind": "GAP",
-          "claim_text": "[primary_deadline] No primary compliance deadline is stated in this item's captured source; the table of contents names regulation 1 (\"Citation and commencement\") and regulation 4 (\"Duty to review\") by heading only, without the operative dates those provisions contain.",
-          "source_span": null,
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"PART 1 1. Citation and commencement 2. General interpretation 3. Service of documents 4. Duty to review PART 2\"",
-          "source_span": "PART 1 1. Citation and commencement 2. General interpretation 3. Service of documents 4. Duty to review PART 2",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "4"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"7. Landlord and tenant\"",
-          "source_span": "7. Landlord and tenant",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "4"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"19. Domestic PR property\"",
-          "source_span": "19. Domestic PR property",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"20. Non-domestic PR property\"",
-          "source_span": "20. Non-domestic PR property",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"22. Sub-standard property\"",
-          "source_span": "22. Sub-standard property",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances\"",
-          "source_span": "31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Enforcement authorities and authorised officers (regulations 34-35).** The captured source states, verbatim: \"34. Enforcement authorities 35. Authorised officers\"",
-          "source_span": "34. Enforcement authorities 35. Authorised officers",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Compliance notice power (regulation 37).** The captured source states, verbatim: \"37. Compliance notices\"",
-          "source_span": "37. Compliance notices",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**PRS Exemptions Register duty (regulation 36).** The captured source states, verbatim: \"36. PRS Exemptions Register\"",
-          "source_span": "36. PRS Exemptions Register",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Prohibition on letting sub-standard domestic property (regulation 23).** The captured source states, verbatim: \"23. Prohibition on letting of sub-standard property\"",
-          "source_span": "23. Prohibition on letting of sub-standard property",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Prohibition on letting sub-standard non-domestic property (regulation 27).** The captured source states, verbatim: \"27. Prohibition on letting of sub-standard non-domestic PR property\"",
-          "source_span": "27. Prohibition on letting of sub-standard non-domestic PR property",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "FACT",
-          "claim_text": "[penalty_summary] **Penalty and breach provisions, by property type (regulations 38-42).** The captured source states, verbatim: \"38. Penalty notices 39. Publication penalty 40. Breaches in relation to domestic PR property 41. Breaches in relation to non-domestic PR property 42. Reviews, waiving and modification of penalties\"",
-          "source_span": "38. Penalty notices 39. Publication penalty 40. Breaches in relation to domestic PR property 41. Breaches in relation to non-domestic PR property 42. Reviews, waiving and modification of penalties",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "**Tenant request procedure for energy efficiency improvements, including the landlord's duty of response (regulations 8-14).** The captured source states, verbatim: \"8. Request for consent to relevant energy efficiency improvements\"",
-          "source_span": "8. Request for consent to relevant energy efficiency improvements",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "[penalty_summary] The captured table-of-contents source names regulations 38 to 42 (penalty notices, publication penalty, breaches in relation to domestic and non-domestic property, and reviews/waiving/modification of penalties) by heading only; specific penalty amounts are not stated in this item's captured source and require the full enacted text.",
-          "source_span": null,
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"SCHEDULE Information to be registered on the PRS Exemptions Register\"",
-          "source_span": "SCHEDULE Information to be registered on the PRS Exemptions Register",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "10"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"1. The information referred to in regulation 36(2) to be registered... 2. (1) The information referred to in regulation 36(2) to be... 3. The information referred to in regulation 36(2) to be registered...\"",
-          "source_span": "1. The information referred to in regulation 36(2) to be registered... 2. (1) The information referred to in regulation 36(2) to be... 3. The information referred to in regulation 36(2) to be registered...",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "10"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"15. Consent exemption 16. Devaluation exemption\"",
-          "source_span": "15. Consent exemption 16. Devaluation exemption",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances\"",
-          "source_span": "31. Consent exemption 32. Devaluation exemption 33. Temporary exemption in certain circumstances",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The captured source states, verbatim: \"ISBN 978-0-11-112835-0\"",
-          "source_span": "ISBN 978-0-11-112835-0",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "14"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "(spelled out: 18 February 2015.) The captured source states, verbatim: \"Correction Slip - 18/02/2015\"",
-          "source_span": "Correction Slip - 18/02/2015",
-          "source_url": "https://legislation.gov.uk/ukdsi/2015/9780111128350/contents",
-          "section": "14"
-        }
-      ]
-    },
-    {
       "item_id": "4929e6a9-5f55-4eec-9c97-1e14caa75a52",
       "source_pool_hash": "44a96f01b8f978023ab0acd2570aa965cece80d893e6701170768f85b286a938",
       "body": "# 1. Purpose and Scope of This Document\n\nThis document synthesises sourced information from the CHP Commercial Vehicle Section, the California DMV Motor Carrier Permit program, Caltrans safety requirements, and the CHP Golden Gate Division Motor Carrier Safety Unit (MCSU). It applies the California commercial vehicle safety and compliance framework to the workspace's operational profile as a freight forwarder and logistics intermediary operating commercial vehicles or arranging transport by road in California.\n\n**What this document does not cover:** legal advice on any compliance determination. Items requiring legal determination are labeled *Legal Confirmation Required:*.\n\n**Source access note:** the FMCSA California FY23 CVSP source returned an access-denied response and the Justia CCR Title 13 section-1233 source returned a bot-verification wall; no claims are drawn from either (Section 15).\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nThe CHP Commercial Vehicle Section administers California's commercial vehicle safety and enforcement program.\n\nFACT: \"the CHP has established a goal of preventing the loss of life, injuries, and property damage through an innovative commercial vehicle safety program. &nbsp;This program encompasses enforcement, education, and partnerships to minimize the disastrous results from collisions involving commercial vehicles.\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\nFACT: \"The large presence of commercial vehicles in this state results in approximately 30 million miles of travel every day.\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\nFACT: \"The CHP’s Commercial Vehicle Section provides assistance regarding the safe operation and enforcement of commercial vehicles.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\nThe framework applies to the workspace because road transport is a core mode in the workspace's operational profile. Workspaces arranging or operating commercial vehicle movements in California -- including drayage for air-freight ground legs, event logistics trucking, and high-value cargo road transfers -- are within the scope of this program.\n\n*Analytical inference:* for workspaces with air-primary, road-secondary transport profiles, the road leg (drayage to and from airport, venue delivery, or warehouse transfer) is the primary point of CHP commercial vehicle compliance exposure.\n\n*Legal Confirmation Required:* whether the workspace, acting as freight forwarder arranging third-party carriage rather than operating vehicles directly, qualifies as a \"motor carrier\" subject to CHP permitting and inspection obligations under California Vehicle Code Section 34501 requires counsel review, as the answer turns on operational facts (who owns and operates the vehicles, who holds the CA#).\n\n**Effective status:** this is an active, enforced state program. No sunset date is identified in the source material.\n\n# 3. Issues Requiring Immediate Action\n\nFACT: \"The CA# is issued exclusively by the California Highway Patrol (CHP) to identify motor carriers and is used as the MCP number.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\nFACT: \"New carriers must apply for an MCP before they begin operations.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n*Operational implication:* for any workspace entity that operates, owns, or leases commercial vehicles in California and does not yet hold an active CA number and Motor Carrier Permit, operations are non-compliant from day one.\n\nFACT: \"CVC, Section 34520 requires both intrastate and interstate motor carriers to comply with the federal regulations.\" Applicable federal regulations cited include \"Part 40 - Procedures for Transportation Workplace Drug & Alcohol Testing Programs\" and \"Part 382 - Controlled Substances and Alcohol Use and Testing.\" *Source: Safety Requirements, Caltrans, current. https://dot.ca.gov/programs/traffic-operations/legal-truck-access/safety\n\nFACT: \"Levels of liability insurance vary from $300,000 to $5,000,000 combined single-limit coverage, depending on the type of vehicles and the property transported.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n*Operational implication:* for workspaces moving high-value cargo verticals (fine art, luxury goods, live events production equipment, high-value automotive), the applicable insurance threshold is at the upper end of this range.\n\nFACT: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n*Per the workspace's reading:* the specific penalty rate schedule is not available from the primary sources captured in this item's pool; the DMV references an MCP Fee and Penalty Chart whose own content was not part of the captured pages.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nThe California commercial vehicle compliance framework places obligations at the level of the motor carrier -- the entity that owns, leases, or operates commercial vehicles. The workspace's position in this chain depends on operational structure:\n\n**Scenario A -- Workspace operates own commercial vehicles in California:** *Analytical inference:* the workspace is the motor carrier of record and holds (or must hold) a CA# and MCP; all BIT, CSAT, vehicle inspection, and insurance obligations attach directly.\n\n**Scenario B -- Workspace arranges carriage by third-party California carriers:** *Analytical inference:* the workspace's direct obligations are reduced, but due-diligence exposure remains, particularly for high-value and hazardous cargo verticals.\n\n**Scenario C -- Workspace is a logistics intermediary that sometimes takes on motor carrier functions:** *Legal Confirmation Required:* whether the workspace's hybrid role creates motor carrier obligations under CVC Section 34501 and related sections, and which entity in a multi-party arrangement holds the compliance obligation, requires counsel review.\n\nFACT: Section 34623(h) of the California Vehicle Code states \"A motor carrier of property may not operate a commercial motor vehicle on any public highway in this state during any period its motor carrier of property permit is suspended pursuant to this division.\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\n*Operational implication:* suspension of a carrier partner's MCP during an active shipment would render continued road movement non-compliant; workspaces should include permit status verification in carrier onboarding and spot-check protocols.\n\n# 5. Authoritative Guidance Document Analysis\n\n*Per the workspace's reading:* this brief's own corpus is a set of current agency guidance pages, not a single numbered statute: the CHP Commercial Vehicle Section program page, the CHP Golden Gate Division Motor Carrier Safety Unit page, the California DMV Motor Carrier Permits program page and its FAQ page, and the Caltrans Legal Truck Access safety-requirements page. Each is cited inline against the specific claim it supports (Section 15 lists all five, plus the two inaccessible sources).\n\nFACT: \"Truck Terminal Inspections for those subject to the Biennial Inspection of Terminals ( BIT ) Program\" *Source: Motor Carrier Safety Unit (Golden Gate Division), California Highway Patrol, current. https://www.chp.ca.gov/find-an-office/golden-gate-division/motor-carrier-safety-unit/\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n*Per the workspace's reading:* the CHP Commercial Vehicle Section lists \"Intrastate Electronic Logging Devices\" as an active program, but the specific intrastate ELD implementation timeline and vehicle scope are not available from the primary sources captured in this item's pool. *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\n*Operational implication:* workspaces operating intrastate California commercial vehicle movements and relying on paper logs should treat the intrastate ELD program as a pending compliance obligation requiring investigation with the CHP Commercial Vehicle Section.\n\n*Per the workspace's reading:* hazardous-materials route guidance (HPH 84.5, HPH 84.3, cited in Section 8) carries its own caveat that route maps and stop lists are subject to updates through recent rulemaking; static copies may not reflect the currently approved routes.\n\n# 7. Threshold Questions\n\n**Q1: Does arranging third-party carriage (rather than operating vehicles) make the workspace a \"motor carrier\" under CVC Section 34501?**\n\n*Legal Confirmation Required:* the answer turns on operational facts -- who owns and operates the vehicles, and who holds the CA# -- and requires counsel review (Section 2).\n\n**Q2: Is a rental-truck move ever exempt from the MCP requirement?**\n\nFACT: \"The following types of drivers and/or vehicle operation do not require an MCP: Household goods and/or passenger carriers as defined in §5109 of the Public Utilities Code (PUC) (these vehicles operate under&nbsp; Public Utilities Commission &nbsp;authority). Household goods carriers transporting used office, store, and institutional furniture and fixtures when operated under a household goods carrier permit issued pursuant to §5137 of the PUC. Operators of: Pickup trucks with a GVWR of less than 11,500 pounds, an unladen weight of less than 8,001 pounds, and equipped with a box-type bed not exceeding nine feet in length, when operated in a non-commercial manner. Vehicles providing transportation for passengers and their baggage only. Two-axle daily rental trucks with a GVWR of less than 26,001 pounds, when operated non-commercially.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n*Legal Confirmation Required:* whether \"non-commercial\" operation covers a move where the workspace is performing a service for a fee-paying client, even if the vehicle itself is rented and not for hire, requires counsel review against CVC definitions.\n\n**Q3: Does a hybrid intermediary role (leasing vehicles, employing drivers for specific moves) create motor carrier obligations?**\n\n*Legal Confirmation Required:* whether the workspace's hybrid role creates motor carrier obligations under CVC Section 34501 and related sections, and which entity in a multi-party arrangement holds the compliance obligation, requires counsel review (Section 4, Scenario C).\n\n# 8. Substantive Requirements\n\n**1. Jurisdictional scope (CHP program).** FACT: \"The CHP’s Commercial Vehicle Section provides assistance regarding the safe operation and enforcement of commercial vehicles.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**2. Jurisdictional scope (CVC Section 34623(h)).** FACT: \"A motor carrier of property may not operate a commercial motor vehicle on any public highway in this state during any period its motor carrier of property permit is suspended pursuant to this division.\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\n**3. CA number issuance.** FACT: \"The CA# is issued exclusively by the California Highway Patrol (CHP) to identify motor carriers and is used as the MCP number.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**4. CA number application procedure.** FACT: \"CA# applicants must complete a Motor Carrier Profile (CHP 362) (PDF) and mail, fax, or deliver it in-person to their closest CHP Motor Carrier Safety Unit.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**5. CA number processing time.** FACT: \"When applying for a CA number, allow for ten working days after the Unit receives the application to issue a number.\" *Source: Motor Carrier Safety Unit (Golden Gate Division), California Highway Patrol, current. https://www.chp.ca.gov/find-an-office/golden-gate-division/motor-carrier-safety-unit/\n\n**6. MCP scope of required carriers.** FACT: the MCP is required for \"Any person or business entity that is paid to transport property in their motor vehicle regardless of vehicle size, type, or weight.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n**7. Pre-operations application deadline (primary compliance deadline).** FACT: \"New carriers must apply for an MCP before they begin operations.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n**8. MCP term length.** FACT: \"An MCP term is the 12-month period beginning on the first day of the month of the initial application and expiring on the last day of the 12th month.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n**9. Interstate MCP is non-expiring.** FACT: \"Interstate motor carriers are issued a non-expiring MCP and are not required to pay renewal fees, including the CIF.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**10. Seasonal MCP eligibility.** FACT: \"A Seasonal MCP, commonly referred to as a Seasonal Permit, can be issued to an intrastate motor carrier operating on a “For-Hire” basis for a period of no less than six months, but no more than 11 months in a 12 month term.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**11. Seasonal MCP is intrastate-only.** FACT: \"A seasonal MCP cannot be issued to an Interstate motor carrier.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**12. CSAT compliance requirement.** FACT: \"CVC, Section 34520 requires both intrastate and interstate motor carriers to comply with the federal regulations.\" *Source: Safety Requirements, Caltrans, current. https://dot.ca.gov/programs/traffic-operations/legal-truck-access/safety\n\n**13. Liability insurance thresholds.** FACT: \"Levels of liability insurance vary from $300,000 to $5,000,000 combined single-limit coverage, depending on the type of vehicles and the property transported.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n**14. MCP fee penalty accrual (required penalty summary).** FACT: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**15. BIT terminal inspection basis.** FACT: \"Under the BIT program, the CHP selects terminals for inspection based on the available carrier performance data or the commodity transported. Carriers must maintain and make available for inspection vehicles and records at the terminal(s) inspected as required by the California Vehicle Code (CVC) §§34501 and 34501.12.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**16. Not every MCP holder is subject to BIT.** FACT: \"Not all motor carriers who require an MCP need to participate in the Basic Inspection of Terminals (BIT) program\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**17. Workers' compensation proof requirement.** FACT: \"Yes, all motor carriers are required to provide proof of compliance with California’s Workers’ Compensation laws.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n**18. MCP exemption list (exceptions/carve-outs).** FACT: \"Vehicles which are exempt from vehicle registration fees.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n*Operational implication:* obligations 1-2 establish jurisdictional scope; 3-11 govern permit identity, scope, and term; 12-17 are standing operational requirements (CSAT, insurance, penalties, inspection, workers' compensation); obligation 18 is the Regulation's own exemption list, most relevant to workspaces occasionally using small rental vehicles for California moves.\n\n*Per the workspace's reading:* No scope limits are stated in Sections covering the MCP exemption list and the CA number/permit scope provisions beyond the exemption list itself (obligation 18).\n\n*Per the workspace's reading:* No phase-in is stated in Sections covering the MCP term, renewal, and penalty-accrual provisions. The penalty accrual framework (obligation 14) has a stated effective date but no stepped or per-year phase-in schedule.\n\nObligations surveyed: 18; workspace-adjacent: 18; extracted as FACT: 18.\n\n# 9. Product-Specific Compliance Status\n\n*This section applies where the workspace's cargo includes hazardous materials moving on the road leg in California.*\n\n*Legal Confirmation Required:* for cargo verticals that include IATA/IMDG-classified dangerous goods on the California road leg -- including lithium batteries, aerosols in event production kits, or automotive fluids -- a separate hazardous materials transportation licence is required in addition to the MCP, and CHP-approved routes apply; whether a specific commodity or vehicle configuration triggers this licence requires assessment against the CHP's own forms and route guidance (Section 8, Section 11).\n\n# 10. Registration and Reporting Obligations\n\nFACT: \"CHP 362 Motor Carrier Profile (Rev. 3-18) (5 Pages)(PDF)\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\nFACT: \"Click here to renew your Unified Carrier Registration (UCR).\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\nFACT: \"Click here for information on how to apply for a USDOT number. Click here for information on how to update your USDOT number. Click here for Data Quality Challenges.\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\n*Operational implication:* for workspaces with interstate operations, UCR registration is a parallel federal obligation that coordinates with but is distinct from the California MCP/CA# requirement; both must be current for compliant cross-border operations involving California.\n\nFACT: carriers are required to \"Get a valid Requester Code issued by the Employer Pull Notice (EPN) Program if you employ drivers with a Commercial Class A, Commercial Class B, or Class C driver license with a hazardous materials or any other applicable endorsement (required by&nbsp; California Vehicle Code (CVC) §15278).\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\nFACT: \"Yes, all motor carriers are required to provide proof of compliance with California’s Workers’ Compensation laws.\" Acceptable proof includes a Certificate of Insurance, a certificate from the State Compensation Insurance Fund, or a Certificate of Consent to Self-Insure. *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\nFACT: \"a motor carrier who employs only family members is required to provide workers’ compensation insurance.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n# 11. Operational System Requirements\n\nFACT: \"Under the BIT program, the CHP selects terminals for inspection based on the available carrier performance data or the commodity transported. Carriers must maintain and make available for inspection vehicles and records at the terminal(s) inspected as required by the California Vehicle Code (CVC) §§34501 and 34501.12.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\nFACT: \"Controlled Substances and Alcohol Testing Program Inspections\" *Source: Motor Carrier Safety Unit (Golden Gate Division), California Highway Patrol, current. https://www.chp.ca.gov/find-an-office/golden-gate-division/motor-carrier-safety-unit/\n\n*Analytical inference:* workspaces that garage and maintain vehicles at California terminal locations, and whose commodity profile (hazardous materials, high-value cargo) triggers CHP selection criteria, are at elevated BIT inspection risk; readiness documentation (vehicle maintenance records, CSAT records, driver logs) should be maintained at terminal level.\n\n**Gap from current operational baseline:** whether terminal-level documentation is maintained in the format and location required for BIT compliance is a gap requiring internal assessment.\n\n# 12. Exemptions and Edge Cases\n\nFACT: \"The following types of drivers and/or vehicle operation do not require an MCP: Household goods and/or passenger carriers as defined in §5109 of the Public Utilities Code (PUC) (these vehicles operate under&nbsp; Public Utilities Commission &nbsp;authority). Household goods carriers transporting used office, store, and institutional furniture and fixtures when operated under a household goods carrier permit issued pursuant to §5137 of the PUC. Operators of: Pickup trucks with a GVWR of less than 11,500 pounds, an unladen weight of less than 8,001 pounds, and equipped with a box-type bed not exceeding nine feet in length, when operated in a non-commercial manner. Vehicles providing transportation for passengers and their baggage only. Two-axle daily rental trucks with a GVWR of less than 26,001 pounds, when operated non-commercially.\" *Source: Motor Carrier Permits, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/\n\n*Analytical inference:* for workspaces that periodically use short-term rental trucks for small-volume California moves, the MCP exemption for two-axle rental trucks under 26,001 lbs GVWR when operated non-commercially may apply.\n\n*Legal Confirmation Required:* whether \"non-commercial\" operation covers moves where the workspace is performing a service for a fee-paying client, even if the vehicle itself is rented and not for hire, requires counsel review against CVC definitions.\n\nFACT: \"A Seasonal MCP, commonly referred to as a Seasonal Permit, can be issued to an intrastate motor carrier operating on a “For-Hire” basis for a period of no less than six months, but no more than 11 months in a 12 month term.\" *Source: Motor Carrier Permit FAQs, California DMV, current. https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/\n\n*Operational implication:* for workspaces with California intrastate operations concentrated in event seasons, the seasonal MCP pathway may offer a lower administrative burden than a full annual permit; this is an intrastate-only option (obligation 11, Section 8).\n\n# 13. Adjacent Industry Research and Alternatives\n\nFACT: \"Click here to renew your Unified Carrier Registration (UCR).\" *Source: CHP Commercial Vehicle Section, California Highway Patrol, current. https://chp.ca.gov/programs-services/programs/commercial-vehicle-section\n\n*Analytical inference:* the Unified Carrier Registration program is the adjacent federal framework a workspace with interstate California operations must also track alongside the state MCP/CA# requirement; the two programs are administered separately (federal UCR versus California CHP/DMV) but both must be current for compliant cross-border operations.\n\n# 14. Confirmed Regulatory Timeline\n\n- January 1, 2016: MCP penalty accrual framework (California Revenue and Taxation Code Section 7236) becomes effective for permits from this date onward.\n- Current (ongoing): CVC Section 34520 CSAT compliance requirement for intrastate and interstate carriers, in force.\n- Current (ongoing): BIT program under CVC Sections 34501 and 34501.12, in force.\n\n*Source for timeline entries: Motor Carrier Permit FAQs, California DMV (https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/); Safety Requirements, Caltrans (https://dot.ca.gov/programs/traffic-operations/legal-truck-access/safety).*\n\n*Per the workspace's reading:* the intrastate Electronic Logging Device program's own implementation scope and timeline are not available from the primary sources captured in this item's pool (Section 6); it is not entered as a dated timeline row for that reason.\n\n# 15. Sources\n\n| # | Title | Issuing Body | Type | URL |\n|---|---|---|---|---|\n| 1 | Commercial Vehicle Section | California Highway Patrol | Tier 2 - State agency program page | https://chp.ca.gov/programs-services/programs/commercial-vehicle-section |\n| 2 | Motor Carrier Safety Unit (Golden Gate Division) | California Highway Patrol | Tier 2 - State agency program page | https://www.chp.ca.gov/find-an-office/golden-gate-division/motor-carrier-safety-unit/ |\n| 3 | Motor Carrier Permits | California DMV | Tier 2 - State agency program page | https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/ |\n| 4 | Motor Carrier Permit FAQs | California DMV | Tier 2 - State agency guidance | https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/ |\n| 5 | Safety Requirements (Legal Truck Access) | Caltrans | Tier 2 - State agency program page | https://dot.ca.gov/programs/traffic-operations/legal-truck-access/safety |\n| 6 | California FY23 CVSP Final (FMCSA) | FMCSA | Source inaccessible - access denied. No claims drawn. | https://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-09/California%20FY23%20CVSP%20Final.pdf |\n| 7 | CCR Title 13 Section 1233 (Justia) | California OAL via Justia | Source inaccessible - bot verification wall. No claims drawn. | https://regulations.justia.com/states/california/title-13/division-2/chapter-6-5/article-6/section-1233/ |\n",
@@ -3737,7 +3252,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "FACT",
-          "claim_text": "[section3] The captured source states, verbatim: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\"",
+          "claim_text": "[penalty_summary] [section3] The captured source states, verbatim: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\"",
           "source_span": "California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.",
           "source_url": "https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/",
           "section": "3"
@@ -3769,7 +3284,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"The CHP’s Commercial Vehicle Section provides assistance regarding the safe operation and enforcement of commercial vehicles.\"",
+          "claim_text": "[jurisdictional_scope] [section8] The captured source states, verbatim: \"The CHP’s Commercial Vehicle Section provides assistance regarding the safe operation and enforcement of commercial vehicles.\"",
           "source_span": "The CHP’s Commercial Vehicle Section provides assistance regarding the safe operation and enforcement of commercial vehicles.",
           "source_url": "https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/",
           "section": "8"
@@ -3817,7 +3332,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"New carriers must apply for an MCP before they begin operations.\"",
+          "claim_text": "[primary_deadline] [section8] The captured source states, verbatim: \"New carriers must apply for an MCP before they begin operations.\"",
           "source_span": "New carriers must apply for an MCP before they begin operations.",
           "source_url": "https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/",
           "section": "8"
@@ -3873,7 +3388,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "[section8] The captured source states, verbatim: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\"",
+          "claim_text": "[effective_date] [section8] The captured source states, verbatim: \"California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.\"",
           "source_span": "California Revenue and Taxation Code (RTC) §7236 imposes new penalties for failure to pay MCP fees, when due, on permit terms with an effective date of January 1, 2016, and later. Penalties will increase and continue to accrue until all fees are paid.",
           "source_url": "https://www.dmv.ca.gov/portal/vehicle-industry-services/motor-carrier-services-mcs/motor-carrier-permits/motor-carrier-permits-mcp-faqs/",
           "section": "8"
@@ -4013,384 +3528,6 @@
           "source_span": null,
           "source_url": null,
           "section": "15"
-        }
-      ]
-    },
-    {
-      "item_id": "4f4f85c9-a212-4300-854a-66ec6eb49bbe",
-      "source_pool_hash": "86a936234739fb655048e0752554c21da1a5473bd7a3d9b405e5d9338e83b64b",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks Commission Implementing Decision (EU) 2015/670 of 27 April 2015 on the compliance of unit rates for charging zones for 2015 under Article 17 of Implementing Regulation (EU) No 391/2013 (notified under document C(2015) 2635), a retrospective compliance-confirmation Decision confirming that 20 Member States' proposed 2015 air navigation service unit rates comply with the EU's Single European Sky performance and charging scheme. It exists to give a freight forwarder or air-cargo operator routing through the EU's controlled airspace a single record of the 2015 en route unit rates the Commission confirmed as compliant, and the recalculation mechanism that could still change them.\n\nFACT: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\", and in particular Article 15(4) thereof. *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\nFACT: \"Done at Brussels, 27 April 2015.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n*Legal Confirmation Required:* this is a 2015-dated retrospective Decision; whether the specific rates it confirms remain the operative historical record for that year, or were superseded by the recalculation contemplated in recital 8 (Section 8 below), requires confirmation against any later Commission decision for the 2015-2016 charging period.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nImplementing Regulation (EU) No 391/2013 sets a common EU charging scheme for air navigation services, tied to the performance scheme's cost-efficiency targets for the second reference period (2015-2019); each year the Commission assesses Member States' proposed unit rates for their charging zones.\n\nFACT: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\nFACT: \"On the basis of that assessment, the Commission has found, in accordance with Article 17(1)(d) of Implementing Regulation (EU) No 391/2013, that the unit rates for charging zones for 2015 submitted by the United Kingdom, Ireland, Bulgaria, Romania, Cyprus, Greece, Malta, Croatia, the Czech Republic, Slovenia, Hungary, Poland, Lithuania, Denmark, Sweden, Estonia, Finland, Latvia, Portugal and Spain are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n*Operational implication:* This Decision applies to the workspace indirectly: it confirms per-country air navigation charges that flow through as en route charges to any operator (or its freight-forwarding intermediary) flying through the 20 confirmed charging zones' airspace in 2015; it does not itself regulate a freight forwarder's own conduct.\n\n# 3. Issues Requiring Immediate Action\n\n*No content for this section as of the export date: this is a retrospective 2015 compliance-confirmation Decision; no source in this corpus states a currently pending action item running to the workspace. The one forward-looking element this Decision itself contains -- the recalculation clause -- is a 2015-2016 recital, not a present-day action item, and is covered in Sections 8 and 12 below.*\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nThis Decision's compliance chain runs Member State to Commission, not Commission to private operator; the 20 addressee Member States submitted their proposed unit rates, and the Commission confirmed compliance.\n\nFACT: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\" *Source: Commission Implementing Decision (EU) 2015/670, Article 2.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n*Analytical inference:* Because this Decision addresses Member States rather than airlines or freight forwarders directly, a workspace's practical exposure is through the confirmed unit rates themselves (Section 8), which its air-carrier partners pay and typically pass through in freight and passenger charges.\n\n# 5. Authoritative Guidance Document Analysis\n\nFACT: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n*Per the workspace's reading:* the controlling framework instruments are Implementing Regulations (EU) No 390/2013 (the performance scheme) and (EU) No 391/2013 (the charging scheme), which this Decision applies but does not itself amend.\n\nFACT: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n*No content for this section as of the export date: no forward_events rows were exported for this item, and no source in this corpus states a pending regulatory event beyond the recalculation clause already covered in Sections 8 and 12.*\n\n# 7. Threshold Questions\n\n**Q1: Does this Decision itself set the unit rates, or only confirm them?**\n\n*Analytical inference:* Only confirm. FACT: \"The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670, Article 1.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 The rates originate from each Member State's own submission under Implementing Regulation (EU) No 391/2013, not from this Decision.\n\n**Q2: Could the confirmed 2015 rates still change?**\n\n*Analytical inference:* Yes. FACT: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 *Legal Confirmation Required:* whether a specific charging zone's rate was in fact recalculated during 2015 requires checking that Member State's own later filing, which is outside this corpus.\n\n# 8. Substantive Requirements\n\n*Note: this Decision is a compliance-confirmation instrument; the following covers the findings and confirmed 2015 unit rates it records, not newly-created obligations on private parties.*\n\n**Finding.** FACT: \"The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670, Article 1.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n**Addressees.** FACT: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\" *Source: Commission Implementing Decision (EU) 2015/670, Article 2.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n**Recalculation clause.** FACT: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n**Confirmed 2015 en route unit rates by charging zone (Annex).** The capture DOES include the Annex referenced in Article 1, in raw table form; every rate below is a verbatim cell value from that table.\n\n| Zone # | Charging zone | 2015 en route unit rate (national currency) |\n|---|---|---|\n| 1 | Bulgaria | FACT: \"60,40 BGN\" |\n| 2 | Croatia | FACT: \"351,00 HRK\" |\n| 3 | Cyprus | FACT: \"36,91 EUR\" |\n| 4 | Czech Republic | FACT: \"1 204,05  CZK\" |\n| 5 | Denmark | FACT: \"471,12 DKK\" |\n| 6 | Estonia | FACT: \"31,10 EUR\" |\n| 7 | Finland | FACT: \"56,23 EUR\" |\n| 8 | Greece | FACT: \"38,38 EUR\" |\n| 9 | Hungary | FACT: \"11 197,73  HUF\" |\n| 10 | Ireland | FACT: \"29,60 EUR\" |\n| 11 | Latvia | FACT: \"27,58 EUR\" |\n| 12 | Lithuania | FACT: \"46,82 EUR\" |\n| 13 | Malta | FACT: \"22,33 EUR\" |\n| 14 | Poland | FACT: \"143,89 PLN\" |\n| 15 | Portugal - Lisbon | FACT: \"37,13 EUR\" |\n| 16 | Romania | FACT: \"164,60 RON\" |\n| 17 | Slovenia | FACT: \"68,36 EUR\" |\n| 18 | Spain Canarias | FACT: \"58,36 EUR\" |\n| 19 | Spain Continental | FACT: \"71,69 EUR\" |\n| 20 | Sweden | FACT: \"609,06 SEK\" |\n| 21 | United Kingdom | FACT: \"73,11 GBP\" |\n\nNo exceptions are stated in Articles 1 and 2.\n\nNo scope limits are stated in Articles 1 and 2.\n\nObligations surveyed: 24; workspace-adjacent: 24; extracted as FACT: 24.\n\n# 9. Product-Specific Compliance Status\n\n*No content for this section as of the export date: this Decision confirms per-country air navigation service charges, not a product-specific compliance status; no source in this corpus states a product category this Decision governs.*\n\n# 10. Registration and Reporting Obligations\n\n*No content for this section as of the export date: no source in this corpus states a registration or reporting obligation running to airlines, freight forwarders, or any private party under this Decision; the only reporting obligation stated (Member States submitting unit rates to the Commission by 1 June 2014, Section 8 above) runs to Member States, not to private operators.*\n\n# 11. Operational System Requirements\n\n*Operational implication:* A workspace pricing EU-routed air freight should treat the confirmed 2015 unit rates (Section 8) as historical reference data for cost-modeling purposes, and should monitor for the corresponding annual Commission decision covering the current charging year rather than relying on this 2015 record for present-day rates.\n\n# 12. Exemptions and Edge Cases\n\nFACT: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\" *Source: Commission Implementing Decision (EU) 2015/670, Article 2.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 *Analytical inference:* this Decision does not apply to any EU or EEA Member State outside the 20 named in Article 2; a charging zone not listed there is outside this Decision's own confirmed set.\n\nFACT: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 *Analytical inference:* the confirmed rates in Section 8 are therefore provisional in the specific sense that a later-adopted final performance plan could trigger a recalculation carried into the 2016 unit-rate calculation.\n\n# 13. Adjacent Industry Research and Alternatives\n\nFACT: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 *Analytical inference:* Regulation (EC) No 550/2004 (the service provision Regulation) is the parent Single European Sky instrument this Decision's own charging-scheme framework sits under; a workspace researching the broader Single European Sky programme should start from that Regulation rather than this narrow annual compliance Decision.\n\n# 14. Confirmed Regulatory Timeline\n\n- 1 June 2014: Member States' proposed 2015 unit rates were due to the Commission.\n- 1 November 2014: the deadline recital 8 references for adoption of final second-reference-period performance plans (not met, triggering the recalculation clause).\n- 27 April 2015: this Decision adopted at Brussels, confirming the 2015 unit rates.\n\nFACT: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\nFACT: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\nFACT: \"Done at Brussels, 27 April 2015.\" *Source: Commission Implementing Decision (EU) 2015/670.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Commission Implementing Decision (EU) 2015/670 of 27 April 2015 on the compliance of unit rates for charging zones for 2015 under Article 17 of Implementing Regulation (EU) No 391/2013 (notified under document C(2015) 2635) | European Commission, Implementing Decision (primary source) | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670 |\n",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "stable",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "transport",
-          "fuels"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "what_is_it": "A 2015 EU Commission Implementing Decision confirming that 20 Member States' proposed 2015 en route air navigation service unit rates comply with the EU's Single European Sky charging and performance scheme (Implementing Regulations (EU) No 390/2013 and 391/2013).",
-        "why_matters": "The confirmed unit rates are the per-country air navigation service charges an aircraft operator pays when flying through each charging zone's airspace in 2015, which flow through to freight and passenger pricing; the Decision also flags that these rates could be recalculated for 2015-2016 if final performance plans were adopted late.",
-        "key_data": [
-          "20 Member States confirmed compliant covering 21 charging zones (Spain split into Canarias and Continental zones)",
-          "Member States' proposed 2015 unit rates were due to the Commission by 1 June 2014",
-          "final second-reference-period performance plans were not adopted before 1 November 2014 (triggering a recalculation clause)",
-          "Decision adopted 27 April 2015 at Brussels"
-        ],
-        "cost_mechanism": null,
-        "requirement_trajectory": {
-          "steps": [
-            {
-              "date": "2014-06-01",
-              "value": "rates submitted",
-              "label": "Member States submit proposed 2015 unit rates to the Commission"
-            },
-            {
-              "date": "2015-04-27",
-              "value": "compliance confirmed",
-              "label": "Commission confirms the 2015 unit rates are compliant"
-            },
-            {
-              "date": "2016",
-              "value": "carryover",
-              "label": "any difference from a later recalculation of the 2015 rates is carried into the 2016 unit-rate calculation"
-            }
-          ],
-          "note": "This is the Decision's own recital 8 recalculation-and-carryover mechanism; no other per-year phase-in is stated."
-        },
-        "penalty_range": null,
-        "enforcement_body": "The European Commission assesses and confirms Member State unit-rate submissions; no source in this corpus states a penalty or enforcement body acting against a private operator.",
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "freight-forwarder"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13"
-      },
-      "claims": [
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision's own legal basis, verbatim: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\"",
-          "source_span": "Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "1"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "FACT",
-          "claim_text": "[effective_date] The Decision itself states, verbatim: \"Done at Brussels, 27 April 2015.\"",
-          "source_span": "Done at Brussels, 27 April 2015.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision states, verbatim: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "2"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] The Decision states, verbatim: \"On the basis of that assessment, the Commission has found, in accordance with Article 17(1)(d) of Implementing Regulation (EU) No 391/2013, that the unit rates for charging zones for 2015 submitted by the United Kingdom, Ireland, Bulgaria, Romania, Cyprus, Greece, Malta, Croatia, the Czech Republic, Slovenia, Hungary, Poland, Lithuania, Denmark, Sweden, Estonia, Finland, Latvia, Portugal and Spain are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "On the basis of that assessment, the Commission has found, in accordance with Article 17(1)(d) of Implementing Regulation (EU) No 391/2013, that the unit rates for charging zones for 2015 submitted by the United Kingdom, Ireland, Bulgaria, Romania, Cyprus, Greece, Malta, Croatia, the Czech Republic, Slovenia, Hungary, Poland, Lithuania, Denmark, Sweden, Estonia, Finland, Latvia, Portugal and Spain are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "Article 2 states, verbatim: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\"",
-          "source_span": "This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "4"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision's own legal basis, verbatim: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\"",
-          "source_span": "Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision states, verbatim: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "Article 1 states, verbatim: \"The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision states, verbatim: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\"",
-          "source_span": "Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "7"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "Article 1 (the finding) states, verbatim: \"The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "The unit rates for charging zones for 2015 set out in the Annex are in compliance with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "Article 2 (addressees) states, verbatim: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\"",
-          "source_span": "This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The recalculation clause (recital 8) states, verbatim: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\"",
-          "source_span": "Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Bulgaria\" charging-zone row states, verbatim, its en route unit rate: \"60,40 BGN\"",
-          "source_span": "60,40 BGN",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Croatia\" charging-zone row states, verbatim, its en route unit rate: \"351,00 HRK\"",
-          "source_span": "351,00 HRK",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Cyprus\" charging-zone row states, verbatim, its en route unit rate: \"36,91 EUR\"",
-          "source_span": "36,91 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Czech Republic\" charging-zone row states, verbatim, its en route unit rate: \"1 204,05  CZK\"",
-          "source_span": "1 204,05  CZK",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Denmark\" charging-zone row states, verbatim, its en route unit rate: \"471,12 DKK\"",
-          "source_span": "471,12 DKK",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Estonia\" charging-zone row states, verbatim, its en route unit rate: \"31,10 EUR\"",
-          "source_span": "31,10 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Finland\" charging-zone row states, verbatim, its en route unit rate: \"56,23 EUR\"",
-          "source_span": "56,23 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Greece\" charging-zone row states, verbatim, its en route unit rate: \"38,38 EUR\"",
-          "source_span": "38,38 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Hungary\" charging-zone row states, verbatim, its en route unit rate: \"11 197,73  HUF\"",
-          "source_span": "11 197,73  HUF",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Ireland\" charging-zone row states, verbatim, its en route unit rate: \"29,60 EUR\"",
-          "source_span": "29,60 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Latvia\" charging-zone row states, verbatim, its en route unit rate: \"27,58 EUR\"",
-          "source_span": "27,58 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Lithuania\" charging-zone row states, verbatim, its en route unit rate: \"46,82 EUR\"",
-          "source_span": "46,82 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Malta\" charging-zone row states, verbatim, its en route unit rate: \"22,33 EUR\"",
-          "source_span": "22,33 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Poland\" charging-zone row states, verbatim, its en route unit rate: \"143,89 PLN\"",
-          "source_span": "143,89 PLN",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Portugal — Lisbon\" charging-zone row states, verbatim, its en route unit rate: \"37,13 EUR\"",
-          "source_span": "37,13 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Romania\" charging-zone row states, verbatim, its en route unit rate: \"164,60 RON\"",
-          "source_span": "164,60 RON",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Slovenia\" charging-zone row states, verbatim, its en route unit rate: \"68,36 EUR\"",
-          "source_span": "68,36 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Spain Canarias\" charging-zone row states, verbatim, its en route unit rate: \"58,36 EUR\"",
-          "source_span": "58,36 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Spain Continental\" charging-zone row states, verbatim, its en route unit rate: \"71,69 EUR\"",
-          "source_span": "71,69 EUR",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"Sweden\" charging-zone row states, verbatim, its en route unit rate: \"609,06 SEK\"",
-          "source_span": "609,06 SEK",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Annex table's own \"United Kingdom\" charging-zone row states, verbatim, its en route unit rate: \"73,11 GBP\"",
-          "source_span": "73,11 GBP",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "[penalty_summary] No penalty: the source text contains no penalty, fine, or enforcement provision anywhere in the 277,254-character capture; this Decision is a compliance-confirmation instrument, not an enforcement action, and sets no sanction for airline or freight operators.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "Article 2 states, verbatim: \"This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.\"",
-          "source_span": "This Decision is addressed to the Republic of Bulgaria, the Czech Republic, the Kingdom of Denmark, the Republic of Estonia, Ireland, the Hellenic Republic, the Kingdom of Spain, the Republic of Croatia, the Republic of Cyprus, the Republic of Latvia, the Republic of Lithuania, Hungary, the Republic of Malta, the Republic of Poland, the Portuguese Republic, Romania, the Republic of Slovenia, the Republic of Finland, the Kingdom of Sweden and the United Kingdom of Great Britain and Northern Ireland.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The recalculation clause states, verbatim: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\"",
-          "source_span": "Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision's own legal basis, verbatim: \"Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)\"",
-          "source_span": "Having regard to Regulation (EC) No 550/2004 of the European Parliament and of the Council of 10 March 2004 on the provision of air navigation services in the Single European Sky (the service provision Regulation)",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision states, verbatim: \"Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.\"",
-          "source_span": "Pursuant to Article 17(1)(b) and (c) of Implementing Regulation (EU) No 391/2013, the Commission is to assess the unit rates for charging zones for 2015 submitted by the Member States to the Commission by 1 June 2014 following the requirements of Article 9(1) and 9(2) of that Regulation. That assessment concerns the compliance of those unit rates with Implementing Regulations (EU) No 390/2013 and (EU) No 391/2013.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "14"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The recalculation clause states, verbatim: \"Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.\"",
-          "source_span": "Given that the final performance plans for the second reference period were not adopted before 1 November 2014, it is recalled that, in accordance with Article 17(2) of Implementing Regulation (EU) No 391/2013, the Member States are required to recalculate the unit rates for charging zones for 2015 where necessary on the basis of the final adopted performance plans and apply those recalculated rates as early as possible in the course of 2015 and to carry over any difference due to the temporary application of the unit rates set out in this Decision in the calculation of the unit rates for 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "14"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "The Decision itself states, verbatim: \"Done at Brussels, 27 April 2015.\"",
-          "source_span": "Done at Brussels, 27 April 2015.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D0670",
-          "section": "14"
         }
       ]
     }

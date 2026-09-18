@@ -23149,3 +23149,11 @@ regulatory heading their format does not carry); repaired here in scripts/tmp on
 ### UX compliance (P4)
 
 Not a UI change; no customer surface touched by this branch.
+
+### P4 follow-on: batch 007 on the live criterion-5 check; three regulations withheld
+
+[CONFIRMED by a local run of requiredSlotErrors with the live slot table] 20 required-slot errors across 7
+entries; 16 claims carrying slot_key now name it in claim_text (no fact changed). Withheld for an author
+pass: 3e9c3ebe (effective_date and jurisdictional_scope covered only by GAP claims), 474ab4cd
+(effective_date GAP), 4f4f85c9 (no primary_deadline claim); regulation slots admit no GAP unless the source
+states the absence. 9 entries remain, VALID, 0 slot errors.
