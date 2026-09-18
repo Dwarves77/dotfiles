@@ -23532,5 +23532,32 @@ with the `[slot_key]` prefix (see the reg-a entry: the apply path prefixes again
 **Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget.
 
 ### UX compliance (P9 research-ops)
+## 2026-09-17, W9 lane P9 reg-b: 10 quarantined regulatory items re-authored; 7 skipped with named reasons
+
+Sonnet lane, worktree wt-p9-reg-b, branch brief-lane/009-reg-b-2026-09-17 from master caa08198. Batch file
+only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator, whole file].** `record-briefs-009-reg-b.json`, 10 entries, VALID:
+f436708f, 68e05861, 96d8a3c1, d031e36e (a fabricated deadline table and a fee calculation removed
+[CONFIRMED]), 6a857887, bced4406, 782878c0, aea2e314 and 7d2f8d88 (standards; penalty and deadline as the
+sanctioned GAP), 9e594959. Prior spans re-checked byte for byte; unproven figures re-grounded or removed;
+required slots FACT except the two sanctioned standard-type GAPs.
+
+**SKIPPED [CONFIRMED], each with its reason in scripts/tmp/discovery-<id8>.md.** e65ec48d and ec55d661:
+penalty_summary and primary_deadline absent from every capture and the source silent on both. 6f1e6615:
+its capture stops at 14,000 characters, recitals only (refetch, then author). 9090a7c2: penalty_summary
+absent (three other slots' spans recorded for the follow-on). cfcf9e4c and 9ffa15d6: the captured pages are
+UAE strategy pages, not decrees; d2da85da: an UNFCCC long-term strategy filing, not a domestic regulation.
+[HYPOTHESIS] those three are mistyped as regulation and belong to framework or market_signal; a retype
+lane decides, not this one.
+
+**[HYPOTHESIS] carried from the lane.** 6a857887: a re-capture of planalto.gov.br with correct encoding
+would recover the Portuguese spans the mangled capture lost; PNRS Articles 51 to 53 likely state the
+penalty (grounded here on an adjacent state resolution with a Legal Confirmation Required callout).
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget; a retype decision on the
+three mistyped items; refetch for 6f1e6615 and 6a857887.
+
+### UX compliance (P9 reg-b)
 
 Not a UI change; no customer surface touched by this branch.
