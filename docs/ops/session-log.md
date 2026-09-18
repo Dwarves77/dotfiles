@@ -23280,3 +23280,58 @@ merge train, and the discipline test suite (`.claude/hooks/vault-sync.test.mjs`,
 repositories with per-command identity, no config writes). Operator direction the same morning: no further
 data applies or lanes until the collect, evaluate, publish pipeline is audited end to end for completeness;
 the resume order above is held behind that audit.
+
+## 2026-09-18, lane M5: market-series edge authorship traced and gated
+
+Brief: complete-system-build-plan-2026-09-04.md section 6.1 row M5. S4 propagate audit row 1: all three
+`market_series` producers call `authorMarketSeriesDeltaEdges` unconditionally after their guarded write, a
+static contract test passes, and `derivation_edges` held 0 `market_series` rows even after a fresh ecb-fx
+apply run on 2026-09-16.
+
+**Diagnosis (item 1), live SQL plus code reading, both confirmed.** Read the three producers, the shared
+author module, `author-edges.mjs`, `register-derivation.ts`, `methods/market-series-delta.ts`,
+`series-deltas.mjs`, and migration 285. Ran read-only SELECTs against the live project (per-series_key row
+counts and dates for `ecb-fx`, `eia-v2`, `eu-oil-bulletin`). Neither case (c) (insert runs and fails,
+swallowed) nor (d) (dry/plan branch) is what happened; the method is correctly registered and reachable, no
+constraint or trigger issue found. The true cause is (b) plus an unlisted sequencing fact I am calling out
+as its own finding, case (e): most of `market_series` (`eia-v2`, `eu-oil-bulletin`) was written 2026-09-04,
+two days BEFORE lane W4-DAG wired the authorship call into these files on 2026-09-06, so the call never ran
+for that data at all; the one run that did execute the wired call (`ecb-fx`, 2026-09-16) legitimately hit
+`insufficientHistory` because its two observations per currency are 6 days apart (2026-08-28, 2026-09-03),
+one day short of `series-deltas.mjs`'s "nearest at or before 7 days prior" window. `series-deltas.mjs` is
+behaving exactly as designed here, not a bug; no static fix exists inside the author or the envelope for
+this specific outcome (item 4's "fix the cause" does not apply; this is not case (c)-in-doubt or case (e)
+requiring a live trace to SEE, only to explain, and it is explained).
+
+**Landed (items 2, 3, 5).** `--trace` on all three producers, threaded into `authorMarketSeriesDeltaEdges`
+(the one home, market producers never call `run-envelope-producer.mjs`, that shared shell belongs to the
+regional family only): logs every step to stderr and attaches a `trace` array to the returned counts
+(absent when not requested, so existing counts-shape assertions are untouched). `assertEdgesAuthored`
+(pure, exported) fails the run (thrown Error, non-zero exit via each producer's existing `main().catch`)
+when `rowsChanged > 0` and `edgesAuthored === 0`, wired into all three producers right after their
+authorCounts log line. Eight new unit tests (15/15 passing) cover trace-off shape, trace content, and all
+three assertEdgesAuthored branches. Runbook: `docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md` new section
+"Tracing edge authorship".
+
+**Could not do, and why.** Item 3 asks for "the artifact records status: failed" and item 2 for
+`config.trace` written "into the artifact", no `scripts/harness-runs/market/` (or `regional/`) family
+exists; `scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` has 11 registered families and market/regional
+producers are not among them (confirmed: neither the three market producers nor
+`run-envelope-producer.mjs` import or call `writeRunArtifact`; `producers.yml` runs them as plain
+`node ...` steps with console output only). Registering a new harness family is a deliberate, documented
+act touching `run-artifact.mjs`, `scripts/harness-runs/governing-files.mjs`,
+`scripts/harness-runs/CONVENTION.md`'s family table, and `F28-harness-run-integrity.mjs`, all outside this
+lane's file list, and the M9 lane (loop manifest and harness truth) looks like its natural owner. I built
+the mechanically-equivalent, fully testable version within scope: stderr trace plus a non-zero exit on the
+gate violation (the run still fails the CI job either way), and left `counts.trace` structured so a future
+market/regional harness-family writer can read it directly. Flagging this for the coordinator rather than
+registering the family myself, per the execution rule.
+
+Evidence per section 0: reachable, the `--trace` flag and `assertEdgesAuthored` call are on the path every
+producer runs (quoted in the runbook). Run: not done this session (no `--apply` allowed under this brief);
+the coordinator's traced dispatch is the next step and will show which outcome bucket each producer's
+touched keys land in now that ecb-fx has 8 rows across 4 series and a growing gap since 2026-09-16.
+Populated: still 0 for `market_series` as of this session's SELECTs; expected to move on the next ecb-fx
+run once the gap since 2026-09-16 exceeds 7 days, or on a fresh eia-v2/eu-oil-bulletin run (deep history,
+should author immediately). Gated: `assertEdgesAuthored` plus the existing static contract test plus the 8
+new unit tests. Documented: the runbook section above.

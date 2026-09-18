@@ -105,7 +105,7 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // plan-completion audit's own finding, propagation-run-005's own "0 recomputed on 500 drained" measurement
 // for this exact producer's own output). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
-import { authorMarketSeriesDeltaEdges } from "./author-market-series-delta.mjs";
+import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane SURF). ────────────────────────
 // REVIEWED-CHANGE LOG (ADR-023 §4 gate 1 — "flipping ENABLED is a REVIEWED CODE CHANGE, shows in `git
@@ -273,6 +273,9 @@ function parseArgs(argv) {
   return {
     apply: args.includes("--apply"),
     inputPath: inputIdx >= 0 ? args[inputIdx + 1] : null,
+    // --trace (lane M5, 2026-09-18): logs every DAG-authorship step to stderr, see
+    // author-market-series-delta.mjs's own header ("TRACE + GATE") for what it records.
+    trace: args.includes("--trace"),
   };
 }
 
@@ -306,7 +309,7 @@ const cite = {
 };
 
 async function main() {
-  const { apply, inputPath } = parseArgs(process.argv);
+  const { apply, inputPath, trace } = parseArgs(process.argv);
 
   let json;
   if (inputPath) {
@@ -397,13 +400,17 @@ async function main() {
   // run's parsed rows touched, so a pair whose PRIOR observation was written by a past run (not this run's
   // own toCreate/toUpdate) is still authored. Never fatal to this producer's own already-committed write.
   const touchedSeriesKeys = new Set(parsedRows.map((r) => r.series_key));
-  const authorCounts = await authorMarketSeriesDeltaEdges(touchedSeriesKeys, "apply");
+  const authorCounts = await authorMarketSeriesDeltaEdges(touchedSeriesKeys, "apply", { trace });
   console.log(
     `eia-v2-petroleum-spot-producer: DAG authorship (market_series_delta): authored=${authorCounts.authored} ` +
     `already=${authorCounts.skippedAlready} insufficient-history=${authorCounts.insufficientHistory} ` +
     `unit-mismatch=${authorCounts.unitMismatch} refused=${authorCounts.refused} ` +
     `unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
   );
+
+  // The run is the gate (lane M5): real rows landed with zero edges authored is exactly the S4 propagate
+  // finding and must fail the run, not pass silently. See ecb-fx-producer.mjs's own copy of this note.
+  assertEdgesAuthored({ rowsChanged: created + updated, edgesAuthored: authorCounts.authored });
 
   process.exit(0);
 }

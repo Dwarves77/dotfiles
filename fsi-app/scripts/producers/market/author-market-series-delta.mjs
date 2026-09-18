@@ -31,6 +31,27 @@
 // insufficient-history / unit-mismatch / refused / unknown-method / errored) is counted and returned, never
 // thrown — this helper runs AFTER the producer's own primary write has already committed, so a DAG-
 // authorship failure must never look like the producer's own write failed.
+//
+// TRACE + GATE (lane M5, 2026-09-18, S4 propagate audit's own finding: all three producers call this
+// unconditionally, a static contract test passes, and the live table still holds 0 `derivation_edges`
+// rows for `market_series`). Two additions, both in this ONE home rather than copied into the three
+// producer scripts (the brief's own instruction):
+//   1. `deps.trace` (boolean), when true, every step (keys received, rows read per key, the delta1w
+//      outcome, the candidate pair attempted, the authorEdges result, every caught error verbatim) is
+//      logged to stderr AND collected into a `trace` array attached to the returned counts object (a
+//      future producer-artifact writer's `config.trace` field reads directly off this; see the M5 lane
+//      report for why no `scripts/harness-runs/market/` artifact exists yet to write it into today, no
+//      market/regional producer family is registered in `scripts/lib/run-artifact.mjs`'s
+//      `ALLOWED_FAMILIES`, and registering one is out of this lane's file list). Omitted entirely (no
+//      `trace` key on the return) when `deps.trace` is falsy, so every existing counts-shape assertion in
+//      this file's own test stays exact.
+//   2. `assertEdgesAuthored({ rowsChanged, edgesAuthored })`, pure, exported separately so a producer (or
+//      a test) can call it without going through a live run. Throws when the producer's own guarded write
+//      landed real rows (`rowsChanged > 0`) but authorship landed zero edges (`edgesAuthored === 0`),
+//      "wired, called, zero effect" is exactly the bug this lane exists to close, so a repeat of it must
+//      fail the run (non-zero exit), never pass silently the way it has for every producer run to date.
+//      `rowsChanged === 0` (nothing created or updated this run) never asserts, a no-op write has nothing
+//      to author edges FROM, and is not this bug.
 
 import { readAll, readClient } from "../../lib/db.mjs";
 import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
@@ -61,16 +82,26 @@ function isoCutoff(now, days) {
  * @param {{
  *   readAllFn?: typeof readAll, readClientFn?: typeof readClient, sb?: object,
  *   authorEdgesFn?: typeof authorEdges, computeSeriesDeltasFn?: typeof computeSeriesDeltas,
- *   now?: () => Date,
- * }} [deps] Injectable for tests; production callers omit this entirely.
+ *   now?: () => Date, trace?: boolean,
+ * }} [deps] Injectable for tests; production callers omit this entirely. `trace: true` turns on the
+ *   stderr + returned-array trace described in the file header.
  */
 export async function authorMarketSeriesDeltaEdges(seriesKeys, mode, deps = {}) {
   const counts = {
     authored: 0, skippedAlready: 0, insufficientHistory: 0, unitMismatch: 0,
     refused: 0, unknownMethod: 0, errored: 0,
   };
+  const tracing = deps.trace === true;
+  const traceLines = [];
+  const trace = (line) => {
+    if (!tracing) return;
+    traceLines.push(line);
+    console.error(`[trace] market_series_delta: ${line}`);
+  };
+
   const keys = [...new Set(seriesKeys)].filter(Boolean);
-  if (mode !== "apply" || !keys.length) return counts;
+  trace(`keys received: [${keys.join(", ")}] mode=${mode}`);
+  if (mode !== "apply" || !keys.length) return tracing ? { ...counts, trace: traceLines } : counts;
 
   const readAllFn = deps.readAllFn ?? readAll;
   const authorEdgesFn = deps.authorEdgesFn ?? authorEdges;
@@ -85,16 +116,19 @@ export async function authorMarketSeriesDeltaEdges(seriesKeys, mode, deps = {}) 
       const rows = await readAllFn("market_series", MARKET_SERIES_SELECT, {
         match: (qb) => qb.eq("series_key", seriesKey).gte("reference_period", cutoff),
       });
-      if (rows.length < 2) { counts.insufficientHistory += 1; continue; }
+      trace(`${seriesKey}: candidates computed, ${rows.length} row(s) in the ${LOOKBACK_DAYS}-day lookback window (cutoff ${cutoff})`);
+      if (rows.length < 2) { counts.insufficientHistory += 1; trace(`${seriesKey}: outcome=insufficientHistory (fewer than 2 rows)`); continue; }
 
       const deltas = computeSeriesDeltasFn(rows);
       const d = deltas.delta1w;
-      if (!d || d.insufficientHistory) { counts.insufficientHistory += 1; continue; }
-      if (d.unitMismatch) { counts.unitMismatch += 1; continue; }
+      if (!d || d.insufficientHistory) { counts.insufficientHistory += 1; trace(`${seriesKey}: outcome=insufficientHistory (delta1w: ${JSON.stringify(d)})`); continue; }
+      if (d.unitMismatch) { counts.unitMismatch += 1; trace(`${seriesKey}: outcome=unitMismatch (fromDate=${d.fromDate})`); continue; }
 
       const latestRow = rows.find((r) => pointDate(r) === deltas.latest?.date);
       const priorRow = rows.find((r) => pointDate(r) === d.fromDate);
-      if (!latestRow || !priorRow) { counts.insufficientHistory += 1; continue; } // defensive: should not happen
+      if (!latestRow || !priorRow) { counts.insufficientHistory += 1; trace(`${seriesKey}: outcome=insufficientHistory (latest/prior row id not resolvable, should not happen)`); continue; } // defensive: should not happen
+
+      trace(`${seriesKey}: rows attempted, latest=${latestRow.id}@${pointDate(latestRow)} prior=${priorRow.id}@${pointDate(priorRow)}`);
 
       const result = await authorEdgesFn(sb, {
         table: "market_series",
@@ -108,15 +142,42 @@ export async function authorMarketSeriesDeltaEdges(seriesKeys, mode, deps = {}) 
       });
       if (!result.ok) {
         if (result.action === "unknown-method") counts.unknownMethod += 1; else counts.refused += 1;
+        trace(`${seriesKey}: authorEdges refused, action=${result.action} reason=${result.reason}`);
       } else if (result.action === "skipped-already-authored") {
         counts.skippedAlready += 1;
+        trace(`${seriesKey}: authorEdges result, already authored, skipped`);
       } else {
         counts.authored += 1;
+        trace(`${seriesKey}: rows inserted, valueId=${result.valueId}`);
       }
     } catch (err) {
       counts.errored += 1;
       console.warn(`[author-edges] market_series_delta authorship failed for series_key ${seriesKey}: ${err.message}`);
+      trace(`${seriesKey}: ERROR ${err.message}`);
     }
   }
-  return counts;
+  return tracing ? { ...counts, trace: traceLines } : counts;
+}
+
+/**
+ * Fail-closed run gate (lane M5, see file header "TRACE + GATE" note). Pure, throws, never returns a
+ * boolean a caller could ignore. A producer calls this AFTER logging its own authorCounts, so the reason
+ * printed here is the last thing a failed run's log shows.
+ *
+ * @param {{ rowsChanged: number, edgesAuthored: number }} args
+ * @throws {Error} when rowsChanged > 0 and edgesAuthored === 0, real data landed, DAG authorship did
+ *   nothing, and (per this lane's own finding) that combination has shipped silently for every producer
+ *   run to date. rowsChanged === 0 never throws (nothing was written this run for edges to be authored
+ *   FROM, not this bug).
+ */
+export function assertEdgesAuthored({ rowsChanged, edgesAuthored }) {
+  if (rowsChanged > 0 && edgesAuthored === 0) {
+    throw new Error(
+      `assertEdgesAuthored: this run wrote ${rowsChanged} row(s) to market_series but authored 0 ` +
+      `derivation_edges, DAG authorship is wired and was called, but produced no effect. This is the ` +
+      `exact defect S4 propagate (docs/audits/stage-audit-2026-09-18/s4-propagate.md, row 1) found live: ` +
+      `code that looks correct and traces to nothing. Re-run with --trace to see which outcome bucket ` +
+      `every touched series_key landed in (insufficientHistory/unitMismatch/refused/unknownMethod/errored).`,
+    );
+  }
 }

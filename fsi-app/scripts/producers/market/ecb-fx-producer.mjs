@@ -146,7 +146,7 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
-import { authorMarketSeriesDeltaEdges } from "./author-market-series-delta.mjs";
+import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane P2); flipped TRUE 2026-09-02 by
 // Lane PROD (system-completion train) in the same commit as migration 281 — see the REVIEWED-CHANGE LOG
@@ -365,6 +365,9 @@ function parseArgs(argv) {
   return {
     apply: args.includes("--apply"),
     inputPath: inputIdx >= 0 ? args[inputIdx + 1] : null,
+    // --trace (lane M5, 2026-09-18): logs every DAG-authorship step to stderr, see
+    // author-market-series-delta.mjs's own header ("TRACE + GATE") for what it records.
+    trace: args.includes("--trace"),
   };
 }
 
@@ -411,7 +414,7 @@ const cite = {
 };
 
 async function main() {
-  const { apply, inputPath } = parseArgs(process.argv);
+  const { apply, inputPath, trace } = parseArgs(process.argv);
 
   let xmlText;
   let sourceMeta = null; // { status, contentType } — set only for a live HTTP fetch; null for --input/stdin
@@ -499,13 +502,19 @@ async function main() {
   // DAG authorship at write time (see author-market-series-delta.mjs's own header) — every series_key
   // this run's parsed rows touched. Never fatal to this producer's own already-committed write.
   const touchedSeriesKeys = new Set(parsedRows.map((r) => r.series_key));
-  const authorCounts = await authorMarketSeriesDeltaEdges(touchedSeriesKeys, "apply");
+  const authorCounts = await authorMarketSeriesDeltaEdges(touchedSeriesKeys, "apply", { trace });
   console.log(
     `ecb-fx-producer: DAG authorship (market_series_delta): authored=${authorCounts.authored} ` +
     `already=${authorCounts.skippedAlready} insufficient-history=${authorCounts.insufficientHistory} ` +
     `unit-mismatch=${authorCounts.unitMismatch} refused=${authorCounts.refused} ` +
     `unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
   );
+
+  // The run is the gate (lane M5): real rows landed (created + updated > 0) with zero edges authored is
+  // exactly the S4 propagate finding, and must fail the run rather than pass silently. Checked AFTER the
+  // producer's own write has already committed (never blocks or reverts it) and after the counts line
+  // above has printed (so a failed run's log still shows the full outcome breakdown, not just the error).
+  assertEdgesAuthored({ rowsChanged: created + updated, edgesAuthored: authorCounts.authored });
 
   process.exit(0);
 }
