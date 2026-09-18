@@ -23157,3 +23157,37 @@ entries; 16 claims carrying slot_key now name it in claim_text (no fact changed)
 pass: 3e9c3ebe (effective_date and jurisdictional_scope covered only by GAP claims), 474ab4cd
 (effective_date GAP), 4f4f85c9 (no primary_deadline claim); regulation slots admit no GAP unless the source
 states the absence. 9 entries remain, VALID, 0 slot errors.
+## 2026-09-17, W9 lane P5b (Part 7 row 13): batch 007 non-regulatory B, 15 research and operations briefs
+
+Sonnet lane, worktree wt-p5b-nonreg, branch brief-lane/007-nonreg-p5b-2026-09-17 from master 94e219b5. Batch
+file only; validator, README and src untouched. `record-briefs.test.mjs` 79/79.
+
+**Result [CONFIRMED by the validator].** `record-briefs-007-nonreg-b.json`, 15 entries, VALID as a whole
+file. Research summaries (7): 02ad37c7, 0c2c1ec1, 0e6e82cb, 319f785d, 3373d06e, 388b2ce8, 45dab7a6; all six
+sections populated, all four required slots covered by FACT. Operations profiles (8): 053123bc, 10f26f54,
+14fea5cd, 282e480c, 3f11f1fc, 42a0ebd5, 46914062, 496340f0; sections 3 and 4 (matrix-grounded) omitted with
+the README's note on every entry because one region's pool cannot ground a cross-regional comparison; slots
+covered by FACT or an honest GAP (14fea5cd feasibility_choice; 3f11f1fc's own IEA comparison). Three of the
+items were quarantined and are re-authored here (053123bc, 3f11f1fc, 319f785d); 053123bc's ungrounded
+gov.br URL is gone.
+
+**Findings.** [CONFIRMED] five span completions the author had extended past the pool text were caught by
+re-checking the pool before commit and corrected (0e6e82cb three, 282e480c one, 496340f0 one). [CONFIRMED]
+0e6e82cb's prior brief attributed a "world's first" certification claim to the Route to Net Zero page; the
+pool shows the statement on a different captured page, and the claim is re-attributed. Stubs are named per
+item in the discovery notes (Cloudflare walls on IEA and ITF PDFs, nav-only ministry pages); no item was
+skipped.
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget.
+
+### UX compliance (P5b)
+
+Not a UI change; no customer surface touched by this branch.
+
+### P5b follow-on: batch 007-nonreg-b on the live criterion-5 check; six research summaries withheld
+
+[CONFIRMED by a local run of requiredSlotErrors with the live slot table] 58 required-slot errors across all
+15 entries; 229 claims carrying slot_key now name it in claim_text (no fact changed). Six research summaries
+(02ad37c7, 0c2c1ec1, 0e6e82cb, 319f785d, 3373d06e, 45dab7a6) cover does_not_resolve only with a GAP claim,
+and research_finding slots admit none; withheld for an author pass that grounds the finding's own stated
+limits as a FACT. 388b2ce8 and the eight operations profiles remain, 9 entries, VALID, 0 slot errors.
