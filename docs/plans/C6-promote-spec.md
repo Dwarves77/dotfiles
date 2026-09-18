@@ -43,7 +43,7 @@ five-gate `promotion_state` machine (`community` to `community-corroborated` to 
 `src/lib/community/promotion.mjs`. The stage audit
 (`docs/audits/stage-audit-2026-09-18/s6-gates-harness.md`, findings 8 and 9) found `promotion.mjs` had
 zero production importers and both tables held 0 rows, so nothing had ever fired through either path.
-Migration 326 drops `community_promotion_transitions` and its module and test are deleted (lane m9c,
+Migration 329 drops `community_promotion_transitions` and its module and test are deleted (lane m9c,
 2026-09-18), per the build plan's "no built, dormant" rule
 (`docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1, lane M9). `community_posts`'s
 `promotion_state` and `stance` columns (also migration 295) are unaffected and stay live.

@@ -23702,7 +23702,7 @@ row M9, the community half), dispatched from stage-audit findings 8 and 9
 
 **Landed (part 1 of the brief, "retire mechanism A").** `community_promotion_transitions` (migration
 295's audit log for the unwired five-gate `promotion_state` machine) is dropped by new migration
-`326_drop_community_promotion_transitions.sql` (committed, not applied; the coordinator applies it
+`329_drop_community_promotion_transitions.sql` (committed, not applied; the coordinator applies it
 before this branch merges, two-track policy). Verified live, read-only SQL, before authoring the drop:
 0 rows in `community_promotion_transitions`, 0 rows in `post_promotions`, 0 foreign keys reference the
 table, its 2 RLS policies and 2 indexes exist only on it, its 4 triggers are internal FK

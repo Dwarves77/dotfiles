@@ -1,4 +1,4 @@
--- Migration 326 (lane m9c, 2026-09-18): drop community_promotion_transitions, retiring promotion
+-- Migration 329 (lane m9c, 2026-09-18): drop community_promotion_transitions, retiring promotion
 -- mechanism A. Stage audit findings 8/9 (docs/audits/stage-audit-2026-09-18/s6-gates-harness.md) and
 -- the build plan (docs/plans/complete-system-build-plan-2026-09-04.md section 6.1, lane M9) found two
 -- community promotion mechanisms coexisting: community_promotion_transitions (migration 295, the
@@ -35,5 +35,5 @@ BEGIN
   IF to_regclass('public.community_promotion_transitions') IS NOT NULL THEN
     RAISE EXCEPTION 'ABORT: community_promotion_transitions still exists after DROP TABLE';
   END IF;
-  RAISE NOTICE 'migration 326 OK: community_promotion_transitions dropped (promotion mechanism A retired, post_promotions is the one path)';
+  RAISE NOTICE 'migration 329 OK: community_promotion_transitions dropped (promotion mechanism A retired, post_promotions is the one path)';
 END $$;
