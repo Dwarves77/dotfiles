@@ -23447,3 +23447,26 @@ verbatim FACT quote, which also clears the live legal_claim_mislabeled_analysis 
 enough to identify it and grounded nothing on it. The capture step's instrument selection for this item
 is a follow-on to inspect; the pool row itself is inert for grounding because attribution now follows the
 span (lane L40).
+## 2026-09-17, W9 lane L41: the env-file load is guarded, and F48 keeps every live script on that form
+
+Coordinator (Fable) lane, worktree wt-session-b, branch lane/w9-l41-refetch-capped-env-2026-09-17 from master
+be1e3f14. No migration.
+
+**Defect [CONFIRMED by two runs].** The refetch-capped maintenance step's dry BUILD run (35300237193, then its
+re-run 35300526245) died with ENOENT at `scripts/remediation/refetch-capped-worklist.mjs:28`: an unguarded
+`process.loadEnvFile(".env.local")`. Every maintenance.yml and brief-apply dispatch injects the environment
+from repository secrets and carries no .env.local, so the script crashed before reading a row and the run
+read as a red that said nothing. holdings-audit.mjs had fixed the same defect for itself earlier and said so
+in its header; nothing kept the rest of the tree on the guarded form. Of the live scripts, only this one was
+unguarded; the unguarded loads under scripts/_archive, scripts/_reground and scripts/tmp are trees no lane
+runs.
+
+**Fix.** The load is wrapped (`try { process.loadEnvFile(...) } catch { /* CI: env injected */ }`), the form
+every other entry point already uses. Fitness F48 env-file-load-guarded (invariant RD-72, anchored on
+remediation-discipline category 1, batch resilience: an environment variation the platform absorbs, never a
+crash) scans fsi-app/scripts/** minus the archived and scratch trees and refuses any loadEnvFile outside a
+try block; its test carries the red and green forms, the scope, and a live scan of the tree (5/5). Meta-gate
+PASS (130 invariants, 63 doctrines). F45 unchanged at 6,830.
+
+**Next.** Re-run the refetch-capped dry sizing once this merges; the apply side stays behind the operator's
+GUARD-1-accepted token (ADR-016).

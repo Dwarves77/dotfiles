@@ -228,6 +228,9 @@ import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
 import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
 import { fitnessFunction as F46 } from './functions/F46-external-host-home.mjs';
 import { fitnessFunction as F47 } from './functions/F47-db-object-reference.mjs';
+// F48 (lane L41, 2026-09-17): a live script's process.loadEnvFile must sit inside a try block, or every
+// workflow dispatch (env injected from secrets, no .env.local) crashes with ENOENT before any work.
+import { fitnessFunction as F48 } from './functions/F48-env-file-load-guarded.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -271,6 +274,7 @@ export const fitnessFunctions = [
   F45,
   F46,
   F47,
+  F48,
 ];
 
 export function getFunctionById(id) {

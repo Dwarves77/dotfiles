@@ -25,7 +25,10 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { readClient, readAll, guardedUpdate, guardedInsert } from "../lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-process.loadEnvFile(resolve(ROOT, ".env.local"));
+// Guarded (lane L41, 2026-09-17): the maintenance.yml dispatch injects the env and carries no .env.local, and
+// the unguarded load crashed the dry BUILD run with ENOENT before it read a row (the same defect holdings-audit
+// fixed for itself). Fitness F48 keeps every live script on this form.
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
 const EXECUTE = process.argv.includes("--execute");
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
 
