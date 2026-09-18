@@ -64,6 +64,7 @@ node --test \
   fsi-app/.discipline/format-locale-sweep.test.mjs \
   fsi-app/.discipline/check-vocabulary.test.mjs \
   fsi-app/.discipline/hooks/pre-push-tmpdir.test.mjs \
+  .claude/hooks/vault-sync.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \

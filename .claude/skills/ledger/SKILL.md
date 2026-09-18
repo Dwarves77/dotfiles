@@ -33,6 +33,8 @@ echo "branch: $(git -C "$VAULT" rev-parse --abbrev-ref HEAD)  ahead/behind origi
 git -C "$VAULT" log -1 --format='origin/master %h %ad %s' --date=short origin/master
 ```
 
+**The operator's checkout is the Obsidian vault and is kept on master by `.claude/hooks/vault-sync.mjs`.** On the operator's machine `C:/Users/jason/dotfiles` is what Obsidian shows. The hook fast-forwards it to origin/master at every SessionStart, at the end of the done skill and after every merge on the coordinator's train; it acts only when the checkout is on master, has no modified tracked file and no local commit, and otherwise prints `SKIPPED (<reason>)` naming the fix. It never resets, never stashes and never touches untracked files. Nobody commits in that checkout; lanes commit in worktrees and the hook carries master back to it.
+
 **Read the memory files from `origin/master`, not from the working tree**, using `git show origin/master:<path>`. The working tree may sit on a stale or unmerged feature branch; `origin/master` is the shared memory. (Observed 2026-08-17: a Cowork container was on branch `dead-code-sweep`, ahead 1 and behind 7, and `git pull --ff-only` refused. Reading the working tree there would have returned three-day-old state presented as current.)
 
 Fallbacks, in order:

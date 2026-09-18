@@ -23266,3 +23266,17 @@ bd90c665); (2) push-queue.sh for p10 and L43; (3) applies in order with 30-minut
 009-research-ops (10) + 009b (1), 009-market (12), 010 (3); read the 007-nonreg-b quarantine reason; (4) after
 L36: capture-static-primaries onto identifier-variants to take F46 to 0; (5) P7 re-measure with F45, F46, F47.
 Every background process gets killed at each pause and the process table re-checked before reporting.
+
+**Vault fix, same close [CONFIRMED by git in the main checkout].** The Obsidian vault is the checkout at
+C:\Users\jason\dotfiles\docs and it sat at the 2026-08-17 commit: 231 commits and 211 session-log entries
+behind master, because every session works in a worktree and nothing ever fast-forwarded the checkout; since
+2026-09-11 its config also carried core.bare=true, which made git refuse to touch it. Fixed: core.bare back to
+false, the five stale tracked copies (all older than master, zero lines master lacked) backed up to the
+scratchpad and the checkout hard-reset to origin/master 384929ad; Obsidian now shows every entry through L42.
+Class fix so it never recurs: `.claude/hooks/vault-sync.mjs` locates the vault from any worktree through the
+shared .git and fast-forwards it to origin/master when it is on master, clean and not ahead, printing SKIPPED
+with the fix otherwise; wired into SessionStart (settings.json), the done skill (step 6), the coordinator's
+merge train, and the discipline test suite (`.claude/hooks/vault-sync.test.mjs`, five tests against throwaway
+repositories with per-command identity, no config writes). Operator direction the same morning: no further
+data applies or lanes until the collect, evaluate, publish pipeline is audited end to end for completeness;
+the resume order above is held behind that audit.
