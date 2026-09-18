@@ -445,6 +445,7 @@ ActionCard, CommandBar, ListRow with Absence and Chips (the grade chip from M7 l
 RailCard with StatBlock, NavCard. The parts inventory (`docs/design/parts-inventory.md`) is the backlog and its
 section 4 lists the eight cases not drawn; those go to the operator as they are reached, never invented.
 Artboard 21 is owed to the bundle before FactCard starts.
+Lane W10-A (F49 and the impact meter, 2026-09-18) found eight Anton-title sites the inventory missed (two auth pages, six community sub-routes, through the display-font variable) and left them under a dated `fitness-allow: F49` for the Masthead lane; that lane clears every one of them by mounting `Masthead` (no grandfathering: the allowlist entries expire with the Masthead lane, and the parts inventory gains those eight rows).
 
 ### 6.5 Sequence
 
