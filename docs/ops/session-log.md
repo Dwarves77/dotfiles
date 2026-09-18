@@ -23670,5 +23670,27 @@ effective_date is covered only by a GAP claim, and the slot admits none; the thr
 or shows the source states none. 23 entries remain, VALID, 0 slot errors on the live table.
 
 ### UX compliance (P2 follow-on)
+## 2026-09-18, W9 lane P10: the thirteen withheld slots; three grounded, ten honestly skipped
+
+Sonnet lane, worktree wt-p10-slots, branch brief-lane/010-slot-followons-2026-09-18 from master. Batch file
+only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator and a direct requiredSlotErrors run].** `record-briefs-010-slots.json`,
+3 entries: 128bc6c1 and 1917da73 (frameworks; effective_date grounded on each Decision's own closing
+dateline, "Done at Brussels, ..."), 319f785d (research; does_not_resolve grounded on an already-captured
+UNCTAD sentence on persisting knowledge gaps that had been tagged by section instead of by slot).
+
+**SKIPPED [CONFIRMED], each with a discovery note.** 007f42b1 (only a hosting-page footer date), 3e9c3ebe
+(primary pages firewall-blocked; scope and date absent from the secondaries), 474ab4cd (capture is a
+superseded draft's table of contents), 4f4f85c9 (primary_deadline grounded, but penalty_summary is genuinely
+absent from 277,000 characters and admits no GAP), 02ad37c7, 0c2c1ec1, 0e6e82cb, 3373d06e, 45dab7a6 (no
+source-stated limitation sentence in their pools), 120529b8 (Cloudflare stubs).
+
+**Finding [CONFIRMED].** Part of the "GAP-only" population was a tagging defect, not source silence: FACT
+claims existed and were grounded, but their claim_text carried `[sectionN]` instead of `[slot_key]`, so the
+criterion-5 substring check could not see them. The six research summaries are genuinely blocked on
+does_not_resolve.
+
+### UX compliance (P10)
 
 Not a UI change; no customer surface touched by this branch.
