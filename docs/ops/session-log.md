@@ -23431,3 +23431,19 @@ attribution by content) merges.
 ### UX compliance (P8)
 
 Not a UI change; no customer surface touched by this branch.
+
+### P8 follow-on: batch 008b, the Net-Zero Industry Act from its full Official Journal text
+
+[CONFIRMED by the validator, with the criterion-5 mirror engaged] `record-briefs-008b-nzia.json`, one entry.
+The provenance-heal step captured the item's own instrument through Cellar (CELEX 32024R1735, 263,269
+characters, Articles 1 to 49 present), and the four previously unverifiable facts now ground on operative
+text: the auction supply-concentration trigger on Article 26(2) with its Article 26(7) default kept distinct
+from the recital's aspiration, the procurement charge on Article 25(7)(d), penalty_summary on Article
+23(13) as a FACT, primary_deadline on Article 49(4). Every obligation-bearing sentence sits inside a
+verbatim FACT quote, which also clears the live legal_claim_mislabeled_analysis finding.
+
+[CONFIRMED, lane finding] the same heal run stored a second Cellar capture under this item, CELEX 32025R0040
+(the packaging regulation, 448,363 characters), which is not this instrument; the lane read it only far
+enough to identify it and grounded nothing on it. The capture step's instrument selection for this item
+is a follow-on to inspect; the pool row itself is inert for grounding because attribution now follows the
+span (lane L40).
