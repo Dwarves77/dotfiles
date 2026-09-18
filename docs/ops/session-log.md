@@ -23218,5 +23218,11 @@ even when the author had already written it (the README's own form), so the ledg
 ...`. The prefix is written once. The L25 rule that coverage is by claim_text naming the key stands (a
 mislabeled slot_key field alone does not count).
 
+**Golden [CONFIRMED by the CI Fitness job on the first push, then locally].** `non-destructive-grounding.golden.mjs`
+fed identical incoming claims with a placeholder row id, so the pool-row rule read them as re-homes and four
+of its checks went red. An unlinked incoming claim now carries a null row (the linker sets it), a null on
+either side is no opinion, and the golden gains the re-home check itself: same text, different row, a
+versioned change. Golden 13 of 13 passing checks.
+
 **Consequence.** Batch 003b re-applies once more for 87ed781c; the seven market items authored under the
 stricter reading lose nothing (all four slots FACT).

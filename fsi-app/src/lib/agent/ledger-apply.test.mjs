@@ -188,4 +188,6 @@ test("L42: a reproduced claim whose incoming link points at a different pool row
   assert.equal(d.change[0].incoming.search_result_id, "full-row");
   const same = diffLedger(existing, [{ ...incoming[0], search_result_id: "stub-row" }]);
   assert.equal(same.unchanged.length, 1);
+  const unlinked = diffLedger(existing, [{ ...incoming[0], search_result_id: null }]);
+  assert.equal(unlinked.unchanged.length, 1, "a null incoming row is no opinion, not a re-home");
 });

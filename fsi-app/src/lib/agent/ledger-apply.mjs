@@ -36,9 +36,11 @@ export function sameAttribution(a, b) {
   // incoming link pointed at a DIFFERENT agent_run_searches row (lane L40 re-homing a span from a stub row
   // to the row that contains it) still compared equal here because source_id and tier matched, so the
   // apply kept the stale row and criterion 3 kept refusing (87ed781c after two applies). A different row is
-  // a change: the prior state is versioned first, then the row is updated, as every change is.
+  // a change: the prior state is versioned first, then the row is updated, as every change is. A null on
+  // either side means the linker had no row to offer (the golden's fixtures, a fallback-fetched pool), not
+  // a different attribution, so only two DIFFERENT rows make the change.
   return (a.source_id ?? null) === (b.source_id ?? null)
-    && (a.search_result_id ?? null) === (b.search_result_id ?? null)
+    && (a.search_result_id == null || b.search_result_id == null || a.search_result_id === b.search_result_id)
     && (a.source_tier_at_grounding ?? null) === (b.source_tier_at_grounding ?? null)
     && normText(a.source_span) === normText(b.source_span)
     && (a.section_row_id ?? null) === (b.section_row_id ?? null)
