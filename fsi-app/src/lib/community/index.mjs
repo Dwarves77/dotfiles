@@ -23,7 +23,7 @@
 //
 // promotionState / buildTransition / originClassFor / PROMOTION_STATES (formerly re-exported here from
 // ./promotion.mjs, the community_promotion_transitions five-gate machine) were REMOVED, lane m9c,
-// 2026-09-18: migration 326 drops community_promotion_transitions (0 rows, 0 production importers of
+// 2026-09-18: migration 329 drops community_promotion_transitions (0 rows, 0 production importers of
 // promotion.mjs outside its own test; stage-audit-2026-09-18 findings 8/9). post_promotions (migration
 // 041, POST /api/community/posts/[id]/promote) is the one live promotion path; see docs/plans/C6-promote-spec.md.
 
