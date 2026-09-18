@@ -2,6 +2,13 @@
 
 import { formatRelativeCompact } from "@/lib/relative-time";
 import { formatNumber } from "@/lib/format";
+import {
+  AdminPanelFrame,
+  AdminPanelMetaText,
+  AdminEmptyDashedFrame,
+  adminThStyle,
+  adminTdStyle,
+} from "@/components/admin/AdminTableView";
 
 // ErrorGroupsView — admin Runtime → Errors surface (Wave-β R0.2).
 //
@@ -42,78 +49,43 @@ export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
   const totalOccurrences = groups.reduce((n, g) => n + (g.count || 0), 0);
 
   return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 20px",
-          background: "var(--raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12.5,
-            fontWeight: 800,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--text)",
-          }}
-        >
-          Runtime errors
-        </span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
+    <AdminPanelFrame
+      title="Runtime errors"
+      right={
+        <AdminPanelMetaText>
           {groups.length} group{groups.length === 1 ? "" : "s"} · {totalOccurrences} occurrence
           {totalOccurrences === 1 ? "" : "s"} · first-party
-        </span>
-      </div>
-
+        </AdminPanelMetaText>
+      }
+    >
       {groups.length === 0 ? (
-        <div
-          style={{
-            margin: 16,
-            border: "1px dashed var(--color-border-strong)",
-            background: "var(--color-background)",
-            borderRadius: 8,
-            padding: "14px 16px",
-          }}
-        >
-          <p style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)", margin: "0 0 4px" }}>
-            No runtime errors captured.
-          </p>
-          <p style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--text-2)", margin: 0 }}>
-            First-party capture (window.onerror + unhandled rejections client-side; wrapped API
-            routes server-side) writes grouped errors here. Empty means nothing captured yet — or
-            migration 195 (error_events) is not applied.
-          </p>
-        </div>
+        <AdminEmptyDashedFrame title="No runtime errors captured.">
+          {
+            // Text below is relocated verbatim from the pre-extraction inline JSX (byte-identical
+            // rendered string; each `+` join reproduces the single-space line-collapse JSX itself
+            // performed on the original multi-line text node).
+            "First-party capture (window.onerror + unhandled rejections client-side; wrapped API " +
+            "routes server-side) writes grouped errors here. Empty means nothing captured yet — or " + // glyph:verbatim
+            "migration 195 (error_events) is not applied."
+          }
+        </AdminEmptyDashedFrame>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ textAlign: "left", color: "var(--text-2)" }}>
-                <th style={thStyle}>Message</th>
-                <th style={thStyle}>Count</th>
-                <th style={thStyle}>Side</th>
-                <th style={thStyle}>Route</th>
-                <th style={thStyle}>Release</th>
-                <th style={thStyle}>Last seen</th>
+                <th style={adminThStyle}>Message</th>
+                <th style={adminThStyle}>Count</th>
+                <th style={adminThStyle}>Side</th>
+                <th style={adminThStyle}>Route</th>
+                <th style={adminThStyle}>Release</th>
+                <th style={adminThStyle}>Last seen</th>
               </tr>
             </thead>
             <tbody>
               {groups.map((g) => (
                 <tr key={g.id} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
-                  <td style={{ ...tdStyle, maxWidth: 380 }}>
+                  <td style={{ ...adminTdStyle, maxWidth: 380 }}>
                     <span
                       title={g.message}
                       style={{
@@ -128,10 +100,10 @@ export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
                       {g.message}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
+                  <td style={{ ...adminTdStyle, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
                     {formatNumber(g.count)}
                   </td>
-                  <td style={tdStyle}>
+                  <td style={adminTdStyle}>
                     <span
                       style={{
                         fontSize: 10,
@@ -146,30 +118,17 @@ export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
                       {g.side}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-2)" }}>{g.route || "—"}</td>
-                  <td style={{ ...tdStyle, color: "var(--text-2)", fontFamily: "var(--font-mono, monospace)" }}>
+                  <td style={{ ...adminTdStyle, color: "var(--text-2)" }}>{g.route || "—" /* glyph:verbatim */}</td>
+                  <td style={{ ...adminTdStyle, color: "var(--text-2)", fontFamily: "var(--font-mono, monospace)" }}>
                     {shortRelease(g.release)}
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-2)" }}>{formatRelativeCompact(g.last_seen_at)}</td>
+                  <td style={{ ...adminTdStyle, color: "var(--text-2)" }}>{formatRelativeCompact(g.last_seen_at)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
+    </AdminPanelFrame>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: "9px 16px",
-  fontSize: 10.5,
-  fontWeight: 800,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "9px 16px",
-  verticalAlign: "middle",
-};

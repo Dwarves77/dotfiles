@@ -28,11 +28,17 @@ import {
   AlertTriangle,
   CheckCircle,
   ExternalLink,
-  RefreshCw,
   RotateCcw,
   Link as LinkIcon,
   Eye,
 } from "lucide-react";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminStatCellLarge,
+  AdminIconEmptyState,
+  AdminFixedToast,
+} from "@/components/admin/AdminTableView";
 
 interface FlaggedItem {
   id: string;
@@ -147,37 +153,22 @@ export function IntegrityFlagsView() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Agent integrity flags
-          </h2>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Agent integrity flags"
+        description={
+          <>
             Briefs where the agent self-reported it could not verify the source
             URL or the source content didn&apos;t match the request. Each row
             is surfaced for review — the operator may resolve it.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={load}
-          disabled={loading}
-        >
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCell
+        <AdminStatCellLarge
           label="Unresolved"
           value={
             loading
@@ -188,13 +179,13 @@ export function IntegrityFlagsView() {
           }
           critical={!!data && data.stats.totalUnresolved > 0}
         />
-        <StatCell
+        <AdminStatCellLarge
           label="All-time flagged"
           value={
             loading ? "…" : data ? String(data.stats.totalFlagged) : "—"
           }
         />
-        <StatCell
+        <AdminStatCellLarge
           label="Oldest unresolved"
           value={
             loading
@@ -208,18 +199,7 @@ export function IntegrityFlagsView() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {/* Table */}
       {!loading && data && data.items.length === 0 && !error && (
@@ -403,67 +383,12 @@ export function IntegrityFlagsView() {
       )}
 
       {/* Toast */}
-      {toast && (
-        <div
-          className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg border text-sm font-medium shadow-lg"
-          style={{
-            borderColor: "var(--color-border)",
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-text-primary)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          }}
-        >
-          {toast}
-        </div>
-      )}
+      <AdminFixedToast toast={toast} />
     </div>
   );
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function StatCell({
-  label,
-  value,
-  critical,
-}: {
-  label: string;
-  value: string;
-  critical?: boolean;
-}) {
-  return (
-    <div
-      className="p-4 rounded-lg"
-      style={{
-        border: critical
-          ? "1px solid var(--color-warning)"
-          : "1px solid var(--color-border)",
-        backgroundColor: critical
-          ? "rgba(217, 119, 6, 0.05)"
-          : "var(--color-surface)",
-      }}
-    >
-      <div
-        className="text-[11px] font-bold uppercase tracking-wider mb-2"
-        style={{
-          color: critical ? "var(--color-warning)" : "var(--color-text-muted)",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        className="text-2xl font-semibold tabular-nums"
-        style={{
-          color: critical
-            ? "var(--color-warning)"
-            : "var(--color-text-primary)",
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
@@ -501,35 +426,23 @@ function Td({
 
 function EmptyState() {
   return (
-    <div
-      className="flex flex-col items-center justify-center py-12 text-center rounded-lg"
-      style={{
-        border: "1px dashed var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <CheckCircle size={28} style={{ color: "var(--color-success)" }} />
-      <h3
-        className="mt-3 text-sm font-medium"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        No unresolved integrity flags
-      </h3>
-      <p
-        className="mt-1 text-xs max-w-md"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        Every brief whose agent emitted an integrity concern phrase has been
-        resolved. New flags appear here automatically when the integrity rule
-        trigger fires.
-      </p>
-      <p
-        className="mt-3 text-[11px] inline-flex items-center gap-1.5"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        <AlertTriangle size={11} />
-        Powered by migration 035 — agent_integrity_flag column.
-      </p>
-    </div>
+    <AdminIconEmptyState
+      icon={<CheckCircle size={28} />}
+      iconColor="var(--color-success)"
+      title="No unresolved integrity flags"
+      description={
+        <>
+          Every brief whose agent emitted an integrity concern phrase has been
+          resolved. New flags appear here automatically when the integrity rule
+          trigger fires.
+        </>
+      }
+      footer={
+        <>
+          <AlertTriangle size={11} />
+          {"Powered by migration 035 — agent_integrity_flag column."/* glyph:verbatim */}
+        </>
+      }
+    />
   );
 }

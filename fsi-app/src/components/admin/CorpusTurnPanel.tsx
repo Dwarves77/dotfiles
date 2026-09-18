@@ -24,6 +24,7 @@ import { authHeaders } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { PlayCircle, ListPlus, RefreshCw } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import { AdminPanelFrame } from "@/components/admin/AdminTableView";
 
 interface OpenRequest {
   id: string;
@@ -146,42 +147,15 @@ export function CorpusTurnPanel() {
   return (
     <div style={{ display: "grid", gap: 16 }}>
       {/* ── Corpus-turn queue ── */}
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "12px 20px",
-            background: "var(--raised)",
-            borderBottom: "1px solid var(--color-border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 12.5,
-              fontWeight: 800,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              color: "var(--text)",
-            }}
-          >
-            Corpus turn queue
-          </span>
+      <AdminPanelFrame
+        title="Corpus turn queue"
+        right={
           <Button variant="ghost" size="sm" onClick={loadQueue} disabled={loading}>
             <RefreshCw size={12} />
             Refresh
           </Button>
-        </div>
-
+        }
+      >
         <div style={{ padding: 20, display: "grid", gap: 14 }}>
           <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.6 }}>
             Migration 277&rsquo;s trigger enqueues a request every time an item&rsquo;s verification, archive, or tag
@@ -262,7 +236,7 @@ export function CorpusTurnPanel() {
             </div>
           )}
         </div>
-      </div>
+      </AdminPanelFrame>
 
       {/* ── Run intake now ── */}
       <div

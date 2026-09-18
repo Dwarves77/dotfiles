@@ -24,8 +24,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
-import { RefreshCw, ExternalLink, Archive, RotateCw, Tag } from "lucide-react";
+import { ExternalLink, Archive, RotateCw, Tag } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminStatusBanner,
+  AdminStatCard,
+  AdminTh,
+  AdminTd,
+} from "@/components/admin/AdminTableView";
 
 interface RejectionItem {
   id: string;
@@ -123,33 +131,24 @@ export function IngestRejectionsView() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Ingest rejections
-          </h2>
-          <p
-            className="text-sm mt-1 max-w-3xl"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Ingest rejections"
+        descriptionMaxWidthClassName="max-w-3xl"
+        description={
+          <>
             Jurisdiction tokens the trigger could not normalize to a
             canonical entity: hydrological features, agency names,
             sub-jurisdictional fragments, unparseable strings. Reclassify
             when a canonical mapping should exist; retry to escalate for
             re-investigation; archive to drop the token.
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Stat
+        <AdminStatCard
           label="Untriaged total"
           value={
             loading
@@ -160,44 +159,16 @@ export function IngestRejectionsView() {
           }
           critical={(data?.total_untriaged ?? 0) > 0}
         />
-        <Stat
+        <AdminStatCard
           label="Showing"
           value={loading ? "..." : String(data?.items.length ?? 0)}
           meta={data?.list_capped ? "List capped at 200" : undefined}
         />
       </div>
 
-      {status && (
-        <div
-          className="text-xs p-2 rounded"
-          style={{
-            color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-            backgroundColor:
-              status.kind === "ok"
-                ? "rgba(22,163,74,0.04)"
-                : "rgba(220,38,38,0.04)",
-            border:
-              status.kind === "ok"
-                ? "1px solid rgba(22,163,74,0.2)"
-                : "1px solid rgba(220,38,38,0.2)",
-          }}
-        >
-          {status.text}
-        </div>
-      )}
+      <AdminStatusBanner status={status} />
 
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {!loading && !error && (data?.items ?? []).length === 0 && (
         <EmptyState />
@@ -211,12 +182,12 @@ export function IngestRejectionsView() {
           <table className="w-full text-[12.5px] border-collapse">
             <thead style={{ background: "var(--color-surface-raised)" }}>
               <tr>
-                <Th>Raw value</Th>
-                <Th>Reason</Th>
-                <Th>Source</Th>
-                <Th>Attempted</Th>
-                <Th>Notes</Th>
-                <Th>Actions</Th>
+                <AdminTh>Raw value</AdminTh>
+                <AdminTh>Reason</AdminTh>
+                <AdminTh>Source</AdminTh>
+                <AdminTh>Attempted</AdminTh>
+                <AdminTh>Notes</AdminTh>
+                <AdminTh>Actions</AdminTh>
               </tr>
             </thead>
             <tbody>
@@ -229,7 +200,7 @@ export function IngestRejectionsView() {
                     key={row.id}
                     style={{ borderTop: "1px solid var(--color-border)" }}
                   >
-                    <Td>
+                    <AdminTd>
                       <code
                         className="text-[11px] px-1.5 py-0.5 rounded"
                         style={{
@@ -240,8 +211,8 @@ export function IngestRejectionsView() {
                       >
                         {row.raw_value}
                       </code>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <span
                         className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase"
                         style={{
@@ -252,8 +223,8 @@ export function IngestRejectionsView() {
                       >
                         {row.rejection_reason}
                       </span>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       {row.source?.name ? (
                         <div className="flex flex-col gap-0.5 max-w-[220px]">
                           <span style={{ color: "var(--color-text-primary)" }}>
@@ -291,16 +262,16 @@ export function IngestRejectionsView() {
                           (no source)
                         </span>
                       )}
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <span
                         className="tabular-nums text-[11px]"
                         style={{ color: "var(--color-text-secondary)" }}
                       >
                         {when ? formatRelative(when) : row.ingest_attempted_at}
                       </span>
-                    </Td>
-                    <Td>
+                    </AdminTd>
+                    <AdminTd>
                       <input
                         type="text"
                         value={notesVal}
@@ -316,8 +287,8 @@ export function IngestRejectionsView() {
                           color: "var(--color-text-primary)",
                         }}
                       />
-                    </Td>
-                    <Td align="right">
+                    </AdminTd>
+                    <AdminTd align="right">
                       <div className="flex flex-col gap-1.5 items-end">
                         <Button
                           variant="secondary"
@@ -347,7 +318,7 @@ export function IngestRejectionsView() {
                           Archive
                         </Button>
                       </div>
-                    </Td>
+                    </AdminTd>
                   </tr>
                 );
               })}
@@ -359,75 +330,6 @@ export function IngestRejectionsView() {
       {loading && (
         <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
           Loading...
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th
-      className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider"
-      style={{ color: "var(--color-text-muted)" }}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({
-  children,
-  align,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-}) {
-  return (
-    <td className="px-3 py-2 align-top" style={{ textAlign: align ?? "left" }}>
-      {children}
-    </td>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  meta,
-  critical,
-}: {
-  label: string;
-  value: string;
-  meta?: string;
-  critical?: boolean;
-}) {
-  return (
-    <div
-      className="p-3 rounded-lg border"
-      style={{
-        borderColor: critical ? "var(--color-warning)" : "var(--color-border)",
-        backgroundColor: critical
-          ? "rgba(217,119,6,0.04)"
-          : "var(--color-surface)",
-      }}
-    >
-      <div
-        className="text-[10px] font-bold uppercase tracking-wider"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        {label}
-      </div>
-      <div
-        className="text-xl font-semibold tabular-nums mt-1"
-        style={{
-          color: critical ? "var(--color-warning)" : "var(--color-text-primary)",
-        }}
-      >
-        {value}
-      </div>
-      {meta && (
-        <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-          {meta}
         </div>
       )}
     </div>

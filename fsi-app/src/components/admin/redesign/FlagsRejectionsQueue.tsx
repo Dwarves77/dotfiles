@@ -25,6 +25,7 @@ import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
 import { formatNumber } from "@/lib/format";
+import { AdminPanelFrame, AdminPanelMetaText } from "@/components/admin/AdminTableView";
 
 type FlagKind = "integrity" | "platform" | "rejections";
 
@@ -77,41 +78,10 @@ export function FlagsRejectionsQueue() {
       : "one queue, three kinds";
 
   return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        overflow: "hidden",
-      }}
+    <AdminPanelFrame
+      title="Flags & rejections"
+      right={<AdminPanelMetaText>{metaLine}</AdminPanelMetaText>}
     >
-      <div
-        style={{
-          padding: "12px 20px",
-          background: "var(--raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12.5,
-            fontWeight: 800,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--text)",
-          }}
-        >
-          Flags &amp; rejections
-        </span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
-          {metaLine}
-        </span>
-      </div>
-
       {/* Three-way filter */}
       <div
         role="tablist"
@@ -188,6 +158,6 @@ export function FlagsRejectionsQueue() {
         One-click bulk resolve for the recurring seed-fallback trigger class lands
         with the flag-class batch endpoint.
       </p>
-    </div>
+    </AdminPanelFrame>
   );
 }

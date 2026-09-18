@@ -45,7 +45,6 @@ import { renderRequirementTrajectory } from "@/components/detail/RequirementTraj
 import { TagChip } from "@/components/ui/Chips";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { FactCard } from "@/components/ui/FactCard";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
@@ -67,6 +66,7 @@ import {
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
+import { jurisLabelOf, RecordFactsBody } from "@/components/detail/primitives";
 import {
   parseRecordSections,
   splitKeyDateFacts,
@@ -82,8 +82,6 @@ import {
 } from "@/lib/research/taxonomy.mjs";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { JURISDICTIONS } from "@/lib/constants";
-import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 
 interface RelatedFinding {
   id: string;
@@ -157,13 +155,7 @@ export function ResearchFindingDetailSurface({
   const themeKey = useMemo(() => assignTheme(r), [r]);
   const isRecord = r.itemGrade === "record";
 
-  const jurisdictionLabels =
-    r.jurisdictionIso && r.jurisdictionIso.length > 0
-      ? r.jurisdictionIso.map(isoToDisplayLabel)
-      : r.jurisdiction
-      ? [JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction]
-      : ["Global"];
-  const jurisLabel = jurisdictionLabels.join(" · ");
+  const jurisLabel = jurisLabelOf(r);
 
   const meta = [
     ["Research", themeKey ? THEME_LABELS[themeKey as keyof typeof THEME_LABELS] : null].filter(Boolean).join(" · "),
@@ -372,40 +364,11 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
     [parsed]
   );
   return (
-    <>
-      <StateNote>This finding was captured directly from its source document rather than synthesized into a research summary. Every fact below is quoted verbatim.</StateNote>
-      {dateFacts.length > 0 && (
-        <div style={{ margin: "14px 0" }}>
-          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Key dates</p>
-          {dateFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />)}
-        </div>
-      )}
-      <div style={{ margin: "14px 0" }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Verbatim facts</p>
-        {otherFacts.length > 0 ? otherFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />) : <Absence reason="not in primary source" />}
-      </div>
-      {tags && tags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {tags.map((t) => <TagChip key={t}>{t}</TagChip>)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function RecordFactCard({ fact }: { fact: RecordFactRow }) {
-  if (fact.kind !== "FACT" || !fact.span) {
-    return (
-      <p style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, color: "var(--ink-2)", margin: "0 0 8px" }}>
-        <strong style={{ color: "var(--ink-3)" }}>{fact.label}:</strong> {fact.text || <Absence reason="not in primary source" />}
-      </p>
-    );
-  }
-  return (
-    <FactCard
-      variant="sourced"
-      text={fact.span}
-      source={{ title: fact.label, issuer: fact.sourceName ?? null, date: null, url: fact.sourceUrl ?? null, tier: fact.tier ?? null }}
+    <RecordFactsBody
+      leadNote="This finding was captured directly from its source document rather than synthesized into a research summary. Every fact below is quoted verbatim."
+      dateFacts={dateFacts}
+      otherFacts={otherFacts}
+      tags={tags}
     />
   );
 }

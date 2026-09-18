@@ -7,6 +7,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { ActionButton } from "@/components/ui/ActionRow";
 import { band } from "@/lib/urgency/bands";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import { AdminInlineStatusText } from "@/components/admin/AdminTableView";
 
 interface ToastState { kind: "ok" | "err"; message: string }
 
@@ -393,11 +394,7 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
           {adminOnly ? "Admin only" : "Show in workspaces"}
         </button>
       </div>
-      {statusMsg && (
-        <div className="text-[11px]" style={{ color: statusMsg.kind === "ok" ? "var(--color-success)" : "var(--color-error)" }}>
-          {statusMsg.text}
-        </div>
-      )}
+      <AdminInlineStatusText status={statusMsg} />
     </div>
   );
 }
@@ -786,16 +783,7 @@ export function SourceTierOverrideControl({
             )}
           </div>
 
-          {status && (
-            <div
-              className="text-[11px]"
-              style={{
-                color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-              }}
-            >
-              {status.text}
-            </div>
-          )}
+          <AdminInlineStatusText status={status} />
 
           {/* Audit trail (recent override events for this source) */}
           {loaded && (

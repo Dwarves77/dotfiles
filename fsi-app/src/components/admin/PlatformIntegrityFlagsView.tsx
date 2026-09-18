@@ -29,12 +29,17 @@ import { formatLocaleDateTime } from "@/lib/format";
 import {
   AlertTriangle,
   CheckCircle,
-  RefreshCw,
   Archive,
   Eye,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminIconEmptyState,
+  AdminFixedToast,
+} from "@/components/admin/AdminTableView";
 
 const CATEGORIES = [
   "design_drift",
@@ -188,34 +193,20 @@ export function PlatformIntegrityFlagsView() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Platform integrity flags
-          </h2>
-          <p
-            className="text-sm mt-1 max-w-2xl"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Platform integrity flags"
+        descriptionMaxWidthClassName="max-w-2xl"
+        description={
+          <>
             Agent-surfaced concerns that aren&apos;t tied to a single brief —
             design drift, data quality gaps, source issues, coverage gaps, data
             integrity breaks, surface concerns. Distinct from per-brief flags
             (Integrity flags tab). Migration 048.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={load}
-          disabled={loading}
-        >
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
       {/* Stat strip — totals by status */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -270,18 +261,7 @@ export function PlatformIntegrityFlagsView() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {/* Empty */}
       {!loading && data && data.items.length === 0 && !error && (
@@ -482,19 +462,7 @@ export function PlatformIntegrityFlagsView() {
       )}
 
       {/* Toast */}
-      {toast && (
-        <div
-          className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg border text-sm font-medium shadow-lg"
-          style={{
-            borderColor: "var(--color-border)",
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-text-primary)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          }}
-        >
-          {toast}
-        </div>
-      )}
+      <AdminFixedToast toast={toast} />
     </div>
   );
 }
@@ -680,35 +648,23 @@ function StatCell({
 
 function EmptyState() {
   return (
-    <div
-      className="flex flex-col items-center justify-center py-12 text-center rounded-lg"
-      style={{
-        border: "1px dashed var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <CheckCircle size={28} style={{ color: "var(--color-success)" }} />
-      <h3
-        className="mt-3 text-sm font-medium"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        No platform integrity flags match the current filters
-      </h3>
-      <p
-        className="mt-1 text-xs max-w-md"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        When an agent surfaces a category-fitting concern it can&apos;t resolve,
-        a row appears here for owner review. Open status is the default for
-        unresolved flags.
-      </p>
-      <p
-        className="mt-3 text-[11px] inline-flex items-center gap-1.5"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        <AlertTriangle size={11} />
-        Powered by migration 048 — integrity_flags table.
-      </p>
-    </div>
+    <AdminIconEmptyState
+      icon={<CheckCircle size={28} />}
+      iconColor="var(--color-success)"
+      title="No platform integrity flags match the current filters"
+      description={
+        <>
+          When an agent surfaces a category-fitting concern it can&apos;t resolve,
+          a row appears here for owner review. Open status is the default for
+          unresolved flags.
+        </>
+      }
+      footer={
+        <>
+          <AlertTriangle size={11} />
+          {"Powered by migration 048 — integrity_flags table."/* glyph:verbatim */}
+        </>
+      }
+    />
   );
 }

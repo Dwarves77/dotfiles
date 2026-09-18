@@ -52,7 +52,6 @@ import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
-import { FactCard } from "@/components/ui/FactCard";
 import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
@@ -62,8 +61,6 @@ import { carbonIntensity } from "@/lib/market/carbon-intensity.mjs";
 import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/propagation/methods/carbon-intensity.ts";
 import { DerivedFigure } from "@/components/figures/EstimatedFigure";
 import type { Value } from "@/lib/propagation/types.ts";
-import { JURISDICTIONS } from "@/lib/constants";
-import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
@@ -89,6 +86,7 @@ import {
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
+import { jurisLabelOf, RecordFactsBody } from "@/components/detail/primitives";
 import {
   parseRecordSections,
   splitKeyDateFacts,
@@ -258,13 +256,7 @@ export function MarketSignalDetailSurface({
     [originClass, independentCiters]
   );
 
-  const jurisdictionLabels =
-    r.jurisdictionIso && r.jurisdictionIso.length > 0
-      ? r.jurisdictionIso.map(isoToDisplayLabel)
-      : r.jurisdiction
-      ? [JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction]
-      : ["Global"];
-  const jurisLabel = jurisdictionLabels.join(" · ");
+  const jurisLabel = jurisLabelOf(r);
   const crumbGroup = groupLabel || `B${BAND_NUM[signalBand]} · ${BAND_LABEL[signalBand]} · ${jurisLabel}`;
   // COUNTS-61 (production defect, click-through audit 2026-09-08): this line printed the source name
   // TWICE — once inside `crumbGroup` ("Market / <publisher>") and once as `deck`'s first part, since
@@ -632,40 +624,11 @@ function RecordGradeSections({ r, sections, claimTiers }: { r: Resource; section
     [parsed]
   );
   return (
-    <>
-      <StateNote>This item was captured directly from its source document rather than synthesized into a signal brief. Every fact below is quoted verbatim.</StateNote>
-      {dateFacts.length > 0 && (
-        <div style={{ margin: "14px 0" }}>
-          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Key dates</p>
-          {dateFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />)}
-        </div>
-      )}
-      <div style={{ margin: "14px 0" }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Verbatim facts</p>
-        {otherFacts.length > 0 ? otherFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />) : <Absence reason="not in primary source" />}
-      </div>
-      {r.tags && r.tags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {r.tags.map((t) => <TagChip key={t}>{t}</TagChip>)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function RecordFactCard({ fact }: { fact: RecordFactRow }) {
-  if (fact.kind !== "FACT" || !fact.span) {
-    return (
-      <p style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, color: "var(--ink-2)", margin: "0 0 8px" }}>
-        <strong style={{ color: "var(--ink-3)" }}>{fact.label}:</strong> {fact.text || <Absence reason="not in primary source" />}
-      </p>
-    );
-  }
-  return (
-    <FactCard
-      variant="sourced"
-      text={fact.span}
-      source={{ title: fact.label, issuer: fact.sourceName ?? null, date: null, url: fact.sourceUrl ?? null, tier: fact.tier ?? null }}
+    <RecordFactsBody
+      leadNote="This item was captured directly from its source document rather than synthesized into a signal brief. Every fact below is quoted verbatim."
+      dateFacts={dateFacts}
+      otherFacts={otherFacts}
+      tags={r.tags}
     />
   );
 }

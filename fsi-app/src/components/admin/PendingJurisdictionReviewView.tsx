@@ -26,8 +26,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
-import { RefreshCw, CheckCircle, Edit3, Trash2 } from "lucide-react";
+import { CheckCircle, Edit3, Trash2 } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import {
+  AdminSectionHeader,
+  AdminErrorBanner,
+  AdminStatusBanner,
+  AdminStatCard,
+} from "@/components/admin/AdminTableView";
 
 interface PjrItem {
   id: string;
@@ -131,33 +137,24 @@ export function PendingJurisdictionReviewView() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Pending jurisdiction review
-          </h2>
-          <p
-            className="text-sm mt-1 max-w-3xl"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
+      <AdminSectionHeader
+        title="Pending jurisdiction review"
+        descriptionMaxWidthClassName="max-w-3xl"
+        description={
+          <>
             Flagged jurisdiction tokens on intelligence_items rows that need
             operator reclassification: continents, region buckets, undefined
             groups. Confirm keeps the value as-is, manually-classify swaps
             in a canonical replacement, dismiss drops the value from the
             item&apos;s array.
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw size={12} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        onRefresh={load}
+        loading={loading}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Stat
+        <AdminStatCard
           label="Unresolved total"
           value={
             loading
@@ -168,44 +165,16 @@ export function PendingJurisdictionReviewView() {
           }
           critical={(data?.total_unresolved ?? 0) > 0}
         />
-        <Stat
+        <AdminStatCard
           label="Showing"
           value={loading ? "..." : String(data?.items.length ?? 0)}
           meta={data?.list_capped ? "List capped at 200" : undefined}
         />
       </div>
 
-      {status && (
-        <div
-          className="text-xs p-2 rounded"
-          style={{
-            color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-            backgroundColor:
-              status.kind === "ok"
-                ? "rgba(22,163,74,0.04)"
-                : "rgba(220,38,38,0.04)",
-            border:
-              status.kind === "ok"
-                ? "1px solid rgba(22,163,74,0.2)"
-                : "1px solid rgba(220,38,38,0.2)",
-          }}
-        >
-          {status.text}
-        </div>
-      )}
+      <AdminStatusBanner status={status} />
 
-      {error && (
-        <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            color: "var(--color-error)",
-            border: "1px solid var(--color-error)",
-            backgroundColor: "rgba(220,38,38,0.04)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <AdminErrorBanner error={error} />
 
       {!loading && !error && (data?.items ?? []).length === 0 && (
         <EmptyState />
@@ -370,50 +339,6 @@ export function PendingJurisdictionReviewView() {
       {loading && (
         <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
           Loading...
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  meta,
-  critical,
-}: {
-  label: string;
-  value: string;
-  meta?: string;
-  critical?: boolean;
-}) {
-  return (
-    <div
-      className="p-3 rounded-lg border"
-      style={{
-        borderColor: critical ? "var(--color-warning)" : "var(--color-border)",
-        backgroundColor: critical
-          ? "rgba(217,119,6,0.04)"
-          : "var(--color-surface)",
-      }}
-    >
-      <div
-        className="text-[10px] font-bold uppercase tracking-wider"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        {label}
-      </div>
-      <div
-        className="text-xl font-semibold tabular-nums mt-1"
-        style={{
-          color: critical ? "var(--color-warning)" : "var(--color-text-primary)",
-        }}
-      >
-        {value}
-      </div>
-      {meta && (
-        <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-          {meta}
         </div>
       )}
     </div>

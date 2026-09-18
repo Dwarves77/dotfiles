@@ -17,8 +17,10 @@
 import type { Resource } from "@/types/resource";
 import { extractRegulationSections, type SourceEntry } from "@/lib/agent/extract-regulation-sections";
 
-/** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT). */
-function clampTier(n: number): number {
+/** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT).
+ *  Exported (lane L34) so RegulationDetailSurface.tsx can drop its own
+ *  byte-identical copy and import this one instead of re-declaring it. */
+export function clampTier(n: number): number {
   return Math.min(7, Math.max(1, Math.round(n)));
 }
 
