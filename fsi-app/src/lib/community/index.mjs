@@ -20,11 +20,16 @@
 // Lane NOTICES addition (2026-09-05): publish_aggregate() (migration 287/294) runtime wiring —
 //   distinctOrganisationKeys(responses) -> string[] (the RPC's member_ids cohort)
 //   applyPublishAggregateGate(aggregate, gateResult) -> aggregate, refusal-overridden when the RPC refused
+//
+// promotionState / buildTransition / originClassFor / PROMOTION_STATES (formerly re-exported here from
+// ./promotion.mjs, the community_promotion_transitions five-gate machine) were REMOVED, lane m9c,
+// 2026-09-18: migration 326 drops community_promotion_transitions (0 rows, 0 production importers of
+// promotion.mjs outside its own test; stage-audit-2026-09-18 findings 8/9). post_promotions (migration
+// 041, POST /api/community/posts/[id]/promote) is the one live promotion path; see docs/plans/C6-promote-spec.md.
 
 export { evaluateAntitrustGuard, kAnonymity, dominanceCap, threeMonthLag, SENSITIVE_FIELDS } from "./antitrust.mjs";
 export { projectAuthorIdentity, ORG_TYPES } from "./identity.mjs";
 export { corroborationCount } from "./corroboration.mjs";
-export { promotionState, buildTransition, originClassFor, PROMOTION_STATES } from "./promotion.mjs";
 export { evidenceAge } from "./decay.mjs";
 export { isAdmissibleInCalculation, isCitableAsFact, filterOperationsAdmissible, recordsNotCitableAsFact } from "./lineage-guard.mjs";
 export {

@@ -45,10 +45,6 @@ export const ALLOWLIST = {
       reason: 'Queue written by the sources triggers (migration 065); its reader, the drain-first-fetch worker, was dissolved 2026-07-12 and the population is re-homed to the cadence-flip wiring unit (check-sources to runIntakeCycle; src/lib/intake/mint-item.ts header). A writer preceding a named-later reader; build mode holds the cadence off (rule 16). Live 2026-09-17: 1,388 rows (done 1,235, error 136, queued 12, skipped 5).',
       decidedOn: '2026-07-12',
     },
-    community_promotion_transitions: {
-      reason: 'Audit trail of the shipped promote-to-public workflow (caros-ledge-platform-intent, Community components shipped), written by the community layer SQL and read by nobody yet; 0 rows live 2026-09-17. Terminal sink until the community rebuild adds the moderation history view; review there.',
-      decidedOn: '2026-09-17',
-    },
     case_study_endorsements: {
       reason: 'Unbuilt half of the Community surface (a core surface per caros-ledge-platform-intent): case studies have 6 rows and a trigger, endorsements 0 rows and no writer. The community rebuild dispatch either ships case studies or drops case_studies and this table together; review there.',
       decidedOn: '2026-09-17',
@@ -64,7 +60,7 @@ export const ALLOWLIST = {
 
 /** Committed ceilings. Re-seed DOWN in the commit that drops or wires an object; never up. */
 export const UNREFERENCED_TABLES_CEILING = 0; // seeded 0 by lane L32 after migration 324 dropped drain_worklist (the one unreferenced table)
-export const UNREAD_TABLES_CEILING = 0; // seeded 0 by lane L32: the three write-only tables carry allowlist entries with their reasons above
+export const UNREAD_TABLES_CEILING = 0; // seeded 0 by lane L32: the write-only tables carry allowlist entries with their reasons above (down to two, lane m9c 2026-09-18: migration 326 dropped community_promotion_transitions rather than allowlisting it)
 
 export function scanTree() {
   const migrationTexts = globFiles(MIGRATION_GLOBS).sort().map((file) => ({ file, content: readFile(file) }));
