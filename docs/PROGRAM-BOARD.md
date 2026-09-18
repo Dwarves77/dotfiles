@@ -14,6 +14,13 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below — that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from (2026-09-18):** [docs/ops/HANDOFF-2026-09-18.md](./ops/HANDOFF-2026-09-18.md): the coordinator
+> handoff at the 2026-09-18 pause. It quotes the operator's rulings of that day (the system before the data; fix
+> all of it; sub-agents execute exactly the brief; lanes run the push gate), has a section for a session with no
+> access to the operator's machine, and gives the state and the ordered next steps of the machine build (sections
+> 5 and 6 of [the complete-system build plan](./plans/complete-system-build-plan-2026-09-04.md)). Read it before
+> the older handoffs named below.
+
 > **Resume from:** [docs/ops/handoff-2026-09-05.md](./ops/handoff-2026-09-05.md) — the
 > 2026-09-05 coordinator-session handoff (master `012b10a2`/train46, train47 folded but not
 > landed, migrations 308-311 written not applied, the next session's ordered worklist). This
