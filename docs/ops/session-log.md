@@ -23335,3 +23335,41 @@ Populated: still 0 for `market_series` as of this session's SELECTs; expected to
 run once the gap since 2026-09-16 exceeds 7 days, or on a fresh eia-v2/eu-oil-bulletin run (deep history,
 should author immediately). Gated: `assertEdgesAuthored` plus the existing static contract test plus the 8
 new unit tests. Documented: the runbook section above.
+
+## 2026-09-18, W9 lane L44b: vault-sync locked itself out after its first sync; dirtiness is now judged by content
+
+Coordinator (Fable) lane, worktree wt-l35-one-home-per-host, branch lane/l44b-vault-sync-phantom-dirty-2026-09-18
+from master 96e5007e. No migration.
+
+**Defect [CONFIRMED on the live vault].** Lane L44's hook (this morning) fast-forwarded the operator's checkout
+once and then refused every later run: `SKIPPED (3 tracked file(s) modified)`. The three files were byte-identical
+to HEAD (`cmp` clean, `git diff` empty, equal sizes). Obsidian would have silently stopped updating again, the
+exact failure the hook exists to prevent. The hook judged dirtiness from `git status --porcelain`, and on this
+checkout git reports identical files as modified.
+
+**Cause of git's report: NOT established.** Four explanations were tested against the live checkout and each was
+[REFUTED]: line endings (zero carriage returns in blob and working copy; core.autocrlf false), a stale stat cache
+(`git update-index --refresh` did not clear them), file mode (core.fileMode false, index mode 100644), and
+fsmonitor, split index or untracked cache (all unset). The fast-forward range had not touched the three files,
+yet their mtimes were the minute of the sync. Recorded as open; the fix below does not depend on it.
+
+**Fix.** `partitionByContent` splits what git reports into phantoms and real edits by git's own content rule: the
+id a working file WOULD store (`git hash-object`, through the repo's attribute and filter pipeline) against the
+id in the index. Equal means unmodified by definition, and restoring it is lossless by proof. Conservative by
+construction: only a plain worktree modification with two known, equal ids is a phantom; a staged change, a
+rename, a delete, a missing id or any difference is a real edit, is never touched, and blocks the sync as before.
+Status is parsed NUL-separated so an odd path cannot be misread.
+
+**A second defect, in the fix itself, caught before it shipped [CONFIRMED].** The first cut read porcelain status
+through the helper that trims output. A worktree modification prints as ` M path`, beginning with a space, and the
+trim stripped it from the FIRST entry only: two identical files read as one phantom and one real edit. The
+conservative rule turned that into a refusal, never a wrong restore. It was found by running the hook on the real
+vault BEFORE writing tests, and by measuring the two files again instead of assuming the hook was right.
+`git()` gains `opts.raw`; porcelain is read raw.
+
+**Verification, four-part.** The real-git regression test was run with the trim bug still present and FAILED
+with `actual: 'M '`, `expected: ' M'` (right failure forced); the pure parser unit test PASSED with the bug
+present, which is why the integration test is the one that counts. After the fix 11 of 11. The inverse test
+(same reported path, different ids) still blocks and leaves HEAD where it was. On the live vault:
+`d3c2fb6f..96e5007e`, two phantom files restored, git then reports zero modified, and a second run is a clean
+no-op, not a lockout. Cause-unknown phantoms may recur; the hook now handles them and reports their count.

@@ -8,7 +8,7 @@ import { mkdtempSync, writeFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { decide, locateVault, syncVault } from './vault-sync.mjs';
+import { decide, locateVault, syncVault, parsePorcelainZ, partitionByContent } from './vault-sync.mjs';
 
 const ID = ['-c', 'user.name=vault-sync-test', '-c', 'user.email=vault-sync-test@example.invalid'];
 const sh = (dir, args) =>
@@ -99,6 +99,95 @@ test('locateVault: a worktree resolves to the checkout that owns the shared .git
     assert.equal(norm(locateVault(wt)), norm(f.vault));
     assert.equal(norm(locateVault(f.vault)), norm(f.vault));
     sh(f.vault, ['worktree', 'remove', '--force', wt]);
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
+// ---- 2026-09-18: git reports byte-identical files as modified; the hook locked itself out -------------
+// The cause of git's phantom report is not established, so no fixture can honestly reproduce one. These tests
+// pin what THIS code decides: by content ids, conservatively, and never from a trimmed porcelain line.
+
+test('parsePorcelainZ: a leading-space first entry keeps its status and its whole path', () => {
+  const out = ' M docs/a b.md\0 M docs/c.md\0';
+  assert.deepEqual(parsePorcelainZ(out), [
+    { status: ' M', path: 'docs/a b.md' },
+    { status: ' M', path: 'docs/c.md' },
+  ]);
+  assert.deepEqual(parsePorcelainZ(''), []);
+  assert.deepEqual(parsePorcelainZ(null), []);
+});
+
+test('parsePorcelainZ: a rename consumes its origin token and keeps the R status', () => {
+  const out = 'R  new.md\0old.md\0 M other.md\0';
+  assert.deepEqual(parsePorcelainZ(out), [
+    { status: 'R ', path: 'new.md' },
+    { status: ' M', path: 'other.md' },
+  ]);
+});
+
+test('partitionByContent: only a plain worktree modification with two known, equal ids is a phantom', () => {
+  const A = 'a'.repeat(40);
+  const B = 'b'.repeat(40);
+  const r = partitionByContent([
+    { status: ' M', path: 'phantom.md', indexId: A, workingId: A },
+    { status: ' M', path: 'edited.md', indexId: A, workingId: B },
+    { status: 'M ', path: 'staged-same-ids.md', indexId: A, workingId: A },
+    { status: ' M', path: 'no-working-id.md', indexId: A, workingId: null },
+    { status: ' M', path: 'no-index-id.md', indexId: null, workingId: A },
+    { status: 'R ', path: 'renamed.md', indexId: A, workingId: A },
+    { status: ' D', path: 'deleted.md', indexId: A, workingId: null },
+  ]);
+  assert.deepEqual(r.phantom, ['phantom.md']);
+  assert.deepEqual(r.real, ['edited.md', 'staged-same-ids.md', 'no-working-id.md', 'no-index-id.md', 'renamed.md', 'deleted.md']);
+});
+
+test('reportedModified: against real git, the FIRST entry reads as " M" with its exact path (the trim bug)', async () => {
+  const { reportedModified } = await import('./vault-sync.mjs');
+  const f = fixture();
+  try {
+    writeFileSync(join(f.vault, 'README.md'), 'a real local edit\n');
+    const got = reportedModified(f.vault);
+    assert.equal(got.length, 1);
+    assert.equal(got[0].status, ' M', 'a trimmed porcelain line reads this as "M " (staged)');
+    assert.equal(got[0].path, 'README.md', 'a trimmed porcelain line cuts the first character of the path');
+    assert.match(got[0].indexId, /^[0-9a-f]{40}$/);
+    assert.match(got[0].workingId, /^[0-9a-f]{40}$/);
+    assert.notEqual(got[0].indexId, got[0].workingId, 'a real edit stores a different blob');
+    assert.deepEqual(partitionByContent(got), { phantom: [], real: ['README.md'] });
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
+test('syncVault: a file git reports as modified but identical by content does not block the sync', () => {
+  const f = fixture();
+  try {
+    writeFileSync(join(f.writer, 'README.md'), 'two\n');
+    sh(f.writer, ['commit', '-q', '-am', 'two']);
+    sh(f.writer, ['push', '-q']);
+    const id = sh(f.vault, ['hash-object', '--', 'README.md']);
+    const phantom = () => [{ status: ' M', path: 'README.md', indexId: id, workingId: id }];
+    const line = syncVault(f.vault, { reportedModified: phantom });
+    assert.match(line, /^vault-sync: [0-9a-f]+\.\.[0-9a-f]+ /, 'the sync must proceed');
+    assert.match(line, /1 phantom-modified file\(s\) restored, identical to HEAD by content/);
+    assert.equal(sh(f.vault, ['rev-parse', 'HEAD']), sh(f.writer, ['rev-parse', 'HEAD']));
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
+test('syncVault: the SAME reported path with different ids is a real edit and still blocks (the inverse)', () => {
+  const f = fixture();
+  try {
+    writeFileSync(join(f.writer, 'README.md'), 'two\n');
+    sh(f.writer, ['commit', '-q', '-am', 'two']);
+    sh(f.writer, ['push', '-q']);
+    const before = sh(f.vault, ['rev-parse', 'HEAD']);
+    const edited = () => [{ status: ' M', path: 'README.md', indexId: 'a'.repeat(40), workingId: 'b'.repeat(40) }];
+    const line = syncVault(f.vault, { reportedModified: edited });
+    assert.match(line, /^vault-sync: SKIPPED \(1 tracked file\(s\) modified/);
+    assert.equal(sh(f.vault, ['rev-parse', 'HEAD']), before, 'a real edit must leave the vault where it was');
   } finally {
     rmSync(f.root, { recursive: true, force: true });
   }
