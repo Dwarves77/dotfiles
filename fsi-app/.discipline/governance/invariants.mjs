@@ -1544,4 +1544,16 @@ export const INVARIANTS = [
     ],
     residual: 'F47 is static: it replays the committed migrations (equal to the live catalog on 2026-09-17: 120 tables, 6 views, 95 functions) and cannot see objects that exist live without a migration; that class is RD-49 (schema-drift-audit, the data-audit lane) and the two gates together cover both directions. References are textual: a table reached only through a dynamic name is invisible, and a bare-word mention in non-comment code counts as a reference, so the gate under-reports rather than cries wolf.',
   },
+  {
+    id: 'RD-72',
+    skill: 'remediation-discipline',
+    section: 'Section 4 - category 1: batch resilience (an environment variation the platform absorbs, never a crash)',
+    text: 'A live script under fsi-app/scripts/** loads the local env file only inside a try block (try { process.loadEnvFile(...) } catch { /* CI: env injected */ }); an unguarded load crashes with ENOENT on every workflow dispatch, where the environment is injected from secrets and no .env.local exists, before the script does any work. The archived, reground and scratch trees are out of scope.',
+    anchor: '1. **Batch resilience**',
+    enforcedBy: [
+      'fitness:F48',
+      'selftest:fsi-app/.discipline/fitness/functions/F48-env-file-load-guarded.test.mjs',
+    ],
+    residual: 'F48 reads the two preceding non-blank lines for the try; a try that opens further up the same block is read as unguarded and must be brought to the one-line form (a false red, never a false green). It does not cover src/** (no live env loads there) or scripts the dispatch never runs.',
+  },
 ];
