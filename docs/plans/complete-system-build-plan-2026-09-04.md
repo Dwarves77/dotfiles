@@ -463,3 +463,34 @@ Lane W10-A (F49 and the impact meter, 2026-09-18) found eight Anton-title sites 
 
 - Region-scoped community rooms: vertical groups are GLOBAL by design today; W6.2 speaks of a regional spine. Decide whether a second, region-scoped room type is wanted, and if so which field is a workspace's region (today `profiles.region` is a per-user array; `organizations` carries no region). Until decided, nothing changes (lane M9c, 2026-09-18).
 - Artboard 21 for the design bundle, and the eight cases not drawn in `docs/design/parts-inventory.md` section 4.
+
+### 6.7 Duplicates: the standing numbers and the remaining removals (operator, 2026-09-18: "we make sure this is a part of it")
+
+The review the operator asks about is `docs/audits/system-health-audit-2026-09-17.md` (W9 lane L30): duplicated
+code (8,061 normalized lines in 372 clone pairs), database objects with no code reference, and files with two
+homes, each with a remove, wire or keep-with-reason disposition, and the class fix: three standing numbers with
+both-ways ratchet gates that only fall and must be re-seeded down in the commit that removes duplication.
+
+What is wired today [CONFIRMED on master d3c2fb6f, 2026-09-18, the fitness runner]: F45 duplicate-code (ceiling
+6,227, down from 8,061), F46 external-host-home (1 remaining: the eur-lex second home), F47 db-object-reference
+(0 unreferenced tables, 0 dead functions, 0 dead policies), all three in CI and in the pre-push hook. Proof
+that the gate bites: lane M5's push on 2026-09-18 was refused by F45 because its refactor removed 11 duplicated
+lines without re-seeding the ceiling; the queue now re-seeds after every rebase. On the data side the
+canonical-instrument-key unique index (migration 200, invariant EP-11) forbids two verified live copies of one
+instrument. On the page side, F49 parts-not-pages (lane W10-A, 2026-09-18) forbids a route re-implementing a
+shared part. On the process side, M9a's loop manifest and F50 and M9b's machine-written ledger and artifacts
+make a run that was completed and forgotten impossible to hide.
+
+What is NOT finished from that audit, now lanes of this plan, in order:
+
+| Lane | Contents | Number it moves | Depends on |
+|---|---|---|---|
+| L36 (PR #712, on the train) | nine maintenance scripts onto `runCli`; two private pagers onto `fetchAllRows` | F45 6,227 to 6,185 | train |
+| L37 | the 53 byte-identical `scripts/_snapshots` files out of the index (gitignored scratch, rule 5) | files | none |
+| L38 | the 77 admitted mirrors: each keep-with-reason (a real client-bundle boundary) or wired to one import | F45 down | L34 (merged) |
+| L35h | the eur-lex second home onto `identifier-variants` (capture-static-primaries) | F46 1 to 0 | none |
+| D2 (read-only, Haiku) | the data duplicate census: verified live items sharing a canonical instrument key (must read 0 by EP-11, asserted), non-regulatory items sharing a normalized title and jurisdiction (reported with the pair list and the entity-identity rule from the dedup-before-grounding doctrine), sources sharing a registrable domain with more than one tier (must read 0 by SC-13, asserted); one file under `docs/audits/`, SELECT only under the IO budget | data | none |
+| P7 (the close) | re-measure the three standing numbers and D2's counts, F50 green, the board row | all | everything above |
+
+Rule for every lane in this plan, restated from the audit: a lane that removes duplication re-seeds F45 down
+in the same commit; a lane that adds a route, a host or a table adds it to its one home or the gate refuses it.
