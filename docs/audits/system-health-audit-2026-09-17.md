@@ -64,7 +64,7 @@ Gap in the existing gate, closed by L32: the producer-consumer orphan check (F14
 
 ## 4. Files
 
-The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byte-identical files: 24 groups, 53 files, all tracked snapshot data under `scripts/_snapshots` (disposition: those snapshots are gitignored scratch by rule 5 and should not be tracked; remove from the index in the snapshot-cleanup lane). Module liveness (F25) and orphaned proofs (F23) already ratchet the source tree at zero.
+The 2026-08-11 dead-code manifest (495 files) was applied; all 495 are gone. Byte-identical files: 24 groups, 53 files, all tracked snapshot data under `scripts/_snapshots` (disposition: those snapshots are gitignored scratch by rule 5 and should not be tracked; remove from the index in the snapshot-cleanup lane). Module liveness (F25) and orphaned proofs (F23) already ratchet the source tree at zero. DONE (lane L37, 2026-09-18): the 53 files are out of the index; the other tracked files under that folder are workflow-committed inputs (brief-export.yml, population-turn.yml) and were not touched.
 
 ## 5. The gates
 
