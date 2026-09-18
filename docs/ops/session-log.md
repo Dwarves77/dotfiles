@@ -23487,7 +23487,10 @@ were all in the pools, unmined). 1bb72c94 carries the two migration-326 GAP clai
 penalty and no compliance deadline). Two derived figures the source never states were dropped (FuelEU's
 absolute intensity limits); the CSRD pool's two conflicting assurance dates are reproduced, not resolved.
 
-**SKIPPED [CONFIRMED].** 8de055dc (Brazil Logistica Reversa, PNRS): no penalty text in any of its 11
+**SKIPPED [CONFIRMED].** 120529b8 (ITF 2019 General Rules, guidance): effective_date covered only by a GAP and
+the slot admits none; both primary URLs are Cloudflare stubs, so no FACT is possible until a real capture
+lands; removed from the batch by the coordinator after the live criterion-5 check (15 entries remain).
+8de055dc (Brazil Logistica Reversa, PNRS): no penalty text in any of its 11
 captures and the source does not state that none exists; a regulation may not carry an unlicensed GAP.
 Disposition: capture the penalty instrument (Decreto 6.514/2008 or Lei 9.605/1998), then author. Its
 builder, entry and discovery files stay in scripts/tmp.
