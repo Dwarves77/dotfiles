@@ -9,7 +9,7 @@ PENDING-RUN.md` and `change-detection/PENDING-RUN.md`. Grepped and spot-read: `r
 `ledger-consume-run-*.json` artifacts, `research-sweep`/`RESEARCH-SWEEP.md`, `primary-fallback.mjs`,
 `canonical-fetch.mjs`, `maintenance.yml` (grep for RUN_STEP names), `docs/ops/session-log.md` (targeted grep
 on `portal_link_candidates`, per rule 11). Ran read-only SQL (SELECT only, stored `result_chars` column used,
-no `length(result_content)` scan) against the live Supabase project via `scripts/lib/pg-conn.mjs`, 2026-09-18.
+no a length expression over the capture text column scan) against the live Supabase project via `scripts/lib/pg-conn.mjs`, 2026-09-18.
 Commit read: `806c0c48` (repo root), tree `wt-session-c`, `fsi-app/` per the common brief.
 
 ## The table
