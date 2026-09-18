@@ -213,6 +213,9 @@ export interface ParsedAgentOutput {
 export interface AgentRunSearchLink {
   id: string;
   result_url: string | null;
+  // Lane L40 (2026-09-17): the row's stored capture, when the caller has it. crossLinkClaimSources uses
+  // it to attribute a FACT to the row that CONTAINS its span, not merely the row that shares its URL.
+  result_content?: string | null;
 }
 
 export class AgentOutputParseError extends Error {
@@ -918,13 +921,33 @@ export function crossLinkClaimSources(
   claims: ClaimProvenanceRecord[],
   searches: AgentRunSearchLink[],
 ): ClaimProvenanceRecord[] {
-  const byUrl = new Map<string, string>();
+  // Lane L40 (2026-09-17): attribution by CONTENT first, URL second. The URL-only match had two failure
+  // shapes, both live on item 87ed781c after batch 003b: (a) two pool rows share one URL (a 58-character
+  // stub capture from June and the 355,000-character document from July) and the map kept one of them
+  // blindly, so a verbatim span "was not in the source"; (b) the author cited the landing-page URL while
+  // the text sits in the same host's full-text capture. A FACT is attributed to the row whose stored
+  // capture contains its span: first among the rows sharing the cited URL, then any row of the pool (the
+  // claim's source_url is re-pointed to that row's URL so the attribution is honest); only when no row
+  // contains the span does the URL match apply, exactly as before, and criterion 3 then refuses honestly.
+  // Rows without result_content (callers that never loaded it) behave exactly as before.
+  const byUrl = new Map<string, AgentRunSearchLink[]>();
   for (const s of searches) {
-    if (s.result_url) byUrl.set(s.result_url, s.id);
+    if (!s.result_url) continue;
+    const arr = byUrl.get(s.result_url) ?? [];
+    arr.push(s);
+    byUrl.set(s.result_url, arr);
   }
+  const contains = (s: AgentRunSearchLink, span: string): boolean =>
+    typeof s.result_content === "string" && s.result_content.length > 0 && s.result_content.includes(span);
   return claims.map((c) => {
-    if (c.source_url && byUrl.has(c.source_url)) {
-      return { ...c, search_result_id: byUrl.get(c.source_url)! };
+    const sameUrl = c.source_url ? byUrl.get(c.source_url) ?? [] : [];
+    const span = c.claim_kind === "FACT" && typeof c.source_span === "string" ? c.source_span : "";
+    if (span) {
+      const hit = sameUrl.find((s) => contains(s, span)) ?? searches.find((s) => contains(s, span));
+      if (hit) return { ...c, search_result_id: hit.id, source_url: hit.result_url ?? c.source_url };
+    }
+    if (sameUrl.length) {
+      return { ...c, search_result_id: sameUrl[sameUrl.length - 1].id };
     }
     return { ...c, search_result_id: c.search_result_id ?? null };
   });
