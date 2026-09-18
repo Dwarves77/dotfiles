@@ -23508,5 +23508,29 @@ consequence of a related directive, framed as such.
 **Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget, after L40 merges.
 
 ### UX compliance (P9 reg-a)
+## 2026-09-17, W9 lane P9 research-ops: 10 quarantined research and operations items re-authored
+
+Sonnet lane, worktree wt-p9-research-ops, branch brief-lane/009-research-ops-2026-09-17 from master
+caa08198. Batch file only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator, whole file, and by a direct requiredSlotErrors run].**
+`record-briefs-009-research-ops.json`, 10 entries, VALID. Research (7): 947e08f3, b2193d25, d131224a,
+ae628786, 88c3a053, ed6c5c76, b6fd00bf; all four slots FACT. Operations (3): de368414, 7e43c296, 6f39b6b9;
+sections 3 and 4 omitted with the README's note (single-region pools). Prior spans re-checked byte for
+byte; two claims in d131224a were browser-error and block-page fragments [CONFIRMED] and are gone; named
+individuals in the MIT, JOLT and WEO items genericised per the workspace-anchored rule; unproven figures
+removed (a "40 percent" in the hydrogen review, two bare dates in the electricity update).
+
+**SKIPPED [CONFIRMED].** c4ad4cc5 (China operations profile): 0 captures in the export; needs a capture, not
+an author pass. 0781a8c0 (Blue Visby): not in export 35297253710 (the coordinator left it off the id list);
+exports separately for a follow-on.
+
+**Finding.** [CONFIRMED] the local run-validate-007 wrapper does not exercise criterion 5; the lane called
+requiredSlotErrors directly and found every slot-tagged FACT claim's claim_text lacked the slot key; fixed
+with the `[slot_key]` prefix (see the reg-a entry: the apply path prefixes again, follow-on L42).
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget.
+
+### UX compliance (P9 research-ops)
 
 Not a UI change; no customer surface touched by this branch.
