@@ -38,6 +38,7 @@ const PERMITTED = [
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
   'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above; scripts/lib/anthropic.mjs, its former script-side caller, deleted lane DEAD-EXEC 2026-09-04 — never adopted)
   'fsi-app/src/lib/llm/spend-client.ts',               // THE spend chokepoint (2026-07-04) — spendStream/spendSearch; F15 enforces routing THROUGH it
+  'fsi-app/src/lib/agent/anthropic-stream.test.mjs',   // F46 (lane L35) one-home sweep test: references the host string pattern to ENFORCE it (same reasoning as the /.discipline/ exclusion above), never calls the API
 ];
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }

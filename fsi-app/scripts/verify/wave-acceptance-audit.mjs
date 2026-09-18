@@ -26,10 +26,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 import { readAllByIds } from '../lib/db.mjs';
+import { EUR_LEX_KNOWN_DEAD_OJ_TXT_URL } from '../../src/lib/sources/identifier-variants.mjs'; // F46: eur-lex.europa.eu's one home (lane L35)
 
 const N_PCT = Number(process.env.WAVE_ACCEPTANCE_N ?? 10); // ADR-014 proposed default
 const FLOOR = 3;
-const DEAD_URL = 'https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040'; // S1 (confirmed 404)
+const DEAD_URL = EUR_LEX_KNOWN_DEAD_OJ_TXT_URL; // S1 (confirmed 404)
 const NON_EN = new Set(['CN','JP','KR','BR','MX','VN','DE','ES','PT','DK','NO','CL','AR','FI','AT','CH','BE','SE','NL','EG']);
 
 function arg(flag) {

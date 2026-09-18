@@ -30,13 +30,17 @@ const ENABLED = true;
 // exercised end-to-end against a committed fixture instead; see that module's tests for the parse-layer
 // proof and this lane's report for a fixture-driven dry-run demonstration.
 const EUROSTAT_URL =
-  "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_pc_205" +
+  `${EUROSTAT_DISSEMINATION_API_BASE}/nrg_pc_205` +
   "?format=JSON&lang=EN&geo=EU27_2020&unit=KWH&currency=EUR&tax=I_TAX";
+// (see eurostat-lc-lci-lev-producer.mjs for EUROSTAT_DISSEMINATION_API_BASE's F46 one-home note)
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseNrgPc205 } from "../../../src/lib/regional/eurostat-nrg-pc-205-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
+// F46 (lane L35): ec.europa.eu's one home is eurostat-lc-lci-lev-producer.mjs (safe to import -- guards
+// its own run behind IS_MAIN); this producer composes off its exported base instead of a local literal.
+import { EUROSTAT_DISSEMINATION_API_BASE } from "./eurostat-lc-lci-lev-producer.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }

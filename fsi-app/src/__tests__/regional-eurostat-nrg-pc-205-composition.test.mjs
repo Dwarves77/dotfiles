@@ -43,6 +43,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parseNrgPc205 } from "../lib/regional/eurostat-nrg-pc-205-parser.mjs";
 import { toCandidateRows, latestPerNaturalKey } from "../../scripts/producers/regional/run-envelope-producer.mjs";
+// F46/F27 (lane L35, 2026-09-17): this producer's third first-party seam. ec.europa.eu's one home is
+// eurostat-lc-lci-lev-producer.mjs (safe to import -- guards its own CLI run behind IS_MAIN); this
+// producer's own EUROSTAT_URL now composes from its exported EUROSTAT_DISSEMINATION_API_BASE instead of
+// a local literal. F27 requires the whole seam set proven together in one file; this constant IS the seam.
+import { EUROSTAT_DISSEMINATION_API_BASE } from "../../scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs";
 // Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
 // deleted — zero production importers, only test-only re-exports of these two — per its own header's
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
@@ -156,4 +161,13 @@ test("every reduced candidate row satisfies the LIVE regional_data_facts constra
     assert.equal(typeof r.region_code, "string");
     assert.ok(r.region_code.length > 0, `row ${r.fact_label} is missing region_code (resolved to region_id one step later)`);
   }
+});
+
+// ── the THIRD seam (lane L35, F27 continued): eurostat-nrg-pc-205-producer.mjs's own EUROSTAT_URL is
+// built from the same EUROSTAT_DISSEMINATION_API_BASE eurostat-lc-lci-lev-producer.mjs exports and uses
+// for its own dataset URL -- one host, one base, two dataset paths composed correctly off it.
+test("both Eurostat producers compose their dataset URL from the SAME dissemination API base", () => {
+  assert.equal(EUROSTAT_DISSEMINATION_API_BASE, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data");
+  assert.equal(`${EUROSTAT_DISSEMINATION_API_BASE}/nrg_pc_205`, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_pc_205");
+  assert.equal(`${EUROSTAT_DISSEMINATION_API_BASE}/lc_lci_lev`, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lc_lci_lev");
 });

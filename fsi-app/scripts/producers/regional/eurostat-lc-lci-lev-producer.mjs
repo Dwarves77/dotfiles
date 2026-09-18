@@ -75,6 +75,14 @@
 const ENABLED = true; // Gate 1 — see the reviewed-change note above. Dated 2026-09-02.
 const KILL_SWITCH_ENV = "REGIONAL_PRODUCER_EUROSTAT_LC_LCI_LEV_ENABLED"; // Gate 2 — default OFF.
 
+// ec.europa.eu -- ONE HOME (lane L35, F46 external-host-home). This file is the safe import target of
+// the two Eurostat regional producers: it guards its own top-level run behind IS_MAIN (below), so
+// importing its exports triggers no side effect, unlike its sibling eurostat-nrg-pc-205-producer.mjs
+// (which runs runEnvelopeProducer unconditionally at module load -- [CONFIRMED] by reading that file;
+// out of this lane's scope to fix, noted in the session log). The sibling imports this constant instead
+// of templating the host string again.
+export const EUROSTAT_DISSEMINATION_API_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data";
+
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -90,7 +98,7 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env inj
 function buildLcLciLevUrl(geo) {
   const { unit, lcstruct, nace_r2 } = LC_LCI_LEV_REQUEST_FILTER;
   return (
-    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lc_lci_lev" +
+    `${EUROSTAT_DISSEMINATION_API_BASE}/lc_lci_lev` +
     `?format=JSON&lang=EN&geo=${geo}&unit=${unit}&lcstruct=${lcstruct}&nace_r2=${nace_r2}`
   );
 }

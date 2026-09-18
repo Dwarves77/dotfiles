@@ -16,7 +16,12 @@
 
 import { anthropicError } from "./anthropic-error.mjs";
 
-const API_URL = "https://api.anthropic.com/v1/messages";
+// api.anthropic.com -- ONE HOME (lane L35, F46 external-host-home). This is the sanctioned transport
+// every Anthropic call in the pipeline is meant to route through (spend-client.ts's own header); its two
+// non-streaming call sites (spendMessage, spendSearch) import ANTHROPIC_MESSAGES_URL from here instead of
+// templating the host string again.
+export const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+const API_URL = ANTHROPIC_MESSAGES_URL;
 const API_VERSION = "2023-06-01";
 
 /** Anthropic stream error frames carry {type, message}. Map the type to the HTTP status the classifier

@@ -26,9 +26,9 @@ import { randomBytes } from "node:crypto";
 // The cookie constants live in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
-import { STATE_COOKIE, STATE_COOKIE_MAX_AGE_SECONDS } from "./logic";
+import { STATE_COOKIE, STATE_COOKIE_MAX_AGE_SECONDS, LINKEDIN_OAUTH_BASE_URL } from "./logic"; // F46: www.linkedin.com's one home (lane L35)
 
-const AUTHORIZATION_ENDPOINT = "https://www.linkedin.com/oauth/v2/authorization";
+const AUTHORIZATION_ENDPOINT = `${LINKEDIN_OAUTH_BASE_URL}/authorization`;
 const REQUIRED_SCOPES = "r_liteprofile r_emailaddress";
 
 function resolveRedirectUri(origin: string): string {

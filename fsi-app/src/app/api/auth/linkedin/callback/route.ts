@@ -24,9 +24,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { STATE_COOKIE } from "../start/logic";
+import { STATE_COOKIE, LINKEDIN_OAUTH_BASE_URL } from "../start/logic"; // F46: www.linkedin.com's one home (lane L35)
 
-const TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
+const TOKEN_ENDPOINT = `${LINKEDIN_OAUTH_BASE_URL}/accessToken`;
 const PROFILE_ENDPOINT = "https://api.linkedin.com/v2/me";
 const EMAIL_ENDPOINT =
   "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))";

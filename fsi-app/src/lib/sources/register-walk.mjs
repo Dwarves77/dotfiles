@@ -14,18 +14,15 @@
 // BOUNDED BY CONSTRUCTION: an explicit from/to date range, per-page cap, maxPages cap, and a per-walk
 // summary that reports what was NOT collected (pages beyond the cap) — no silent truncation of a walk.
 import { extractPortalLinks } from "./portal-links.mjs";
+// F46 (lane L35): eur-lex.europa.eu's one home is identifier-variants.mjs; re-exported here so this
+// file's own callers and test keep importing ojDailyViewUrl from register-walk.mjs.
+import { ojDailyViewUrl } from "./identifier-variants.mjs";
+export { ojDailyViewUrl };
+// F46 (lane L35): www.federalregister.gov's one home is transport-escalation.mjs's apiEndpointFor + its
+// base constant; frDocumentsUrl below composes off it rather than templating the host string again.
+import { FEDERAL_REGISTER_API_BASE } from "./transport-escalation.mjs";
 
 // ── pure builders ────────────────────────────────────────────────────────────────────────────────────
-
-/** EUR-Lex OJ daily-view URL for an ISO date (the register page for that day's Official Journal).
- *  @param {string} isoDate YYYY-MM-DD @param {string} [series] L (legislation) | C (information)
- *  @returns {string} */
-export function ojDailyViewUrl(isoDate, series = "L") {
-  const m = String(isoDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) throw new Error(`ojDailyViewUrl: bad ISO date ${isoDate}`);
-  const [, y, mo, d] = m;
-  return `https://eur-lex.europa.eu/oj/daily-view/${series}-series/default.html?ojDate=${d}${mo}${y}`;
-}
 
 /** Federal Register documents.json index URL (public API, no key).
  *  @param {{from:string, to:string, page?:number, perPage?:number, types?:string[], term?:string}} p
@@ -43,7 +40,7 @@ export function frDocumentsUrl({ from, to, page = 1, perPage = 100, types = ["RU
   q.set("page", String(page));
   q.set("order", "oldest");
   for (const f of ["html_url", "title", "type", "publication_date", "document_number"]) q.append("fields[]", f);
-  return `https://www.federalregister.gov/api/v1/documents.json?${q.toString()}`;
+  return `${FEDERAL_REGISTER_API_BASE}/documents.json?${q.toString()}`;
 }
 
 /** FR API results → the ledger's PortalLink shape (html_url + title as the anchor hint).

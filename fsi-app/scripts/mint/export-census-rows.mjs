@@ -222,6 +222,8 @@ import { UK_TYPES } from "../../src/lib/coverage/identity.mjs";
 // checkM4 already imports the SAME two functions from here — never a local re-derivation in either file.
 import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+import { celexTxtHtmlUrl } from "../../src/lib/sources/identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
+import { FEDERAL_REGISTER_API_BASE } from "../../src/lib/sources/transport-escalation.mjs"; // F46: www.federalregister.gov's one home (lane L35)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1252,7 +1254,7 @@ export function makePoliteFetch({ gapMs = Number(process.env.POPULATION_FETCH_GA
  *  rawTextUrl, error }`. `bytes`/`head` are always populated (even on failure) so a hold built from this
  *  carries the same evidence shape `capture_blocked` requires elsewhere in this file. */
 export async function fetchFrDocumentMeta(documentNumber, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
-  const endpoint = `https://www.federalregister.gov/api/v1/documents/${documentNumber}.json`;
+  const endpoint = `${FEDERAL_REGISTER_API_BASE}/documents/${documentNumber}.json`;
   const res = await captureDocument(endpoint, { fetchImpl, timeoutMs });
   const bytes = Buffer.byteLength(res.html ?? "", "utf8");
   const head = (res.text ?? "").slice(0, 300);
@@ -1318,7 +1320,7 @@ export async function resolveRowCapture(censusRow, identity, { fetchImpl = fetch
     const first = await captureDocument(cellar, { fetchImpl: followUpgradingRedirects(fetchImpl), timeoutMs });
     const firstEnv = envelopeFromCaptureDocument(first, cellar, { titleFn: extractCellarTitle });
     if (firstEnv.usable) return firstEnv;
-    const endpoint = `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${identity.canonicalKey}`;
+    const endpoint = celexTxtHtmlUrl(identity.canonicalKey);
     const res = await captureDocument(endpoint, { fetchImpl, timeoutMs });
     const env = envelopeFromCaptureDocument(res, endpoint, {
       titleFn: extractEurlexTitle,

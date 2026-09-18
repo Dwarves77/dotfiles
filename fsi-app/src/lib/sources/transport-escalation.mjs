@@ -115,12 +115,22 @@ export const isCaptureFailure = (c) => c !== CLASS.OK;
 
 // ── HOST → TRANSPORT SELECTION ──────────────────────────────────────────────────────────────────────────
 // (d) API hosts: federalregister.gov + eCFR expose official JSON APIs; the HTML path returns "Request Access".
+//
+// www.federalregister.gov and www.ecfr.gov -- ONE HOME (lane L35, F46 external-host-home). apiEndpointFor
+// was already the reused-not-rederived predicate every other consumer (api-transport.mjs, seek-more.mjs's
+// apiCandidates) deferred to; these are its base constants, now exported so every URL any file builds for
+// either host composes from here rather than templating the host string again.
+export const FEDERAL_REGISTER_API_BASE = "https://www.federalregister.gov/api/v1";
+export const FEDERAL_REGISTER_PORTAL_URL = "https://www.federalregister.gov";
+export const ECFR_API_BASE = "https://www.ecfr.gov/api";
+export const ECFR_PORTAL_URL = "https://www.ecfr.gov";
+
 /** The official JSON API base for a host, or null if the host has no API transport. @param {string} url */
 export function apiEndpointFor(url) {
   try {
     const h = new URL(url).hostname;
-    if (/(^|\.)federalregister\.gov$/i.test(h)) return "https://www.federalregister.gov/api/v1";
-    if (/(^|\.)ecfr\.gov$/i.test(h)) return "https://www.ecfr.gov/api";
+    if (/(^|\.)federalregister\.gov$/i.test(h)) return FEDERAL_REGISTER_API_BASE;
+    if (/(^|\.)ecfr\.gov$/i.test(h)) return ECFR_API_BASE;
     return null;
   } catch { return null; }
 }

@@ -20,7 +20,7 @@
 // remediation-discipline (category 13, RD-14; no-shadow) + source-credibility-model (qualification).
 
 import { apiEndpointFor } from "./transport-escalation.mjs";
-import { discoverCandidateUrls } from "./identifier-variants.mjs";
+import { discoverCandidateUrls, celexTxtHtmlUrl, eliPathUrl, legislationUkUrl } from "./identifier-variants.mjs"; // F46: eur-lex.europa.eu + www.legislation.gov.uk's one home (lane L35)
 
 /** @param {unknown} u */
 const httpsOnly = (u) => typeof u === "string" && /^https:\/\//i.test(u);
@@ -34,14 +34,14 @@ export function eurlexCandidates({ identifier, sourceUrl } = {}) {
   const out = [];
   const hay = `${identifier || ""} ${sourceUrl || ""}`;
   const celex = hay.match(/CELEX[:\s]*(3\d{4}[A-Z]\d+)/i) || String(identifier || "").match(/^(3\d{4}[A-Z]\d+)$/i);
-  if (celex) out.push(`https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${celex[1].toUpperCase()}`);
+  if (celex) out.push(celexTxtHtmlUrl(celex[1].toUpperCase()));
   // ELI already in a URL: /eli/{reg|dir|...}/{year}/{number}[/oj]
   const eliInUrl = hay.match(/\/eli\/((?:reg|dir|dec|regdel|regimpl|dirdel|dirimpl)\/\d{4}\/\d+(?:\/[a-z]+)?)/i);
-  if (eliInUrl) out.push(`https://eur-lex.europa.eu/eli/${eliInUrl[1].toLowerCase()}`);
+  if (eliInUrl) out.push(eliPathUrl(eliInUrl[1].toLowerCase()));
   else {
     // an ELI-style bare identifier: "eli/reg/2023/1115" or "reg/2023/1115"
     const m = String(identifier || "").match(/^(?:eli\/)?((?:reg|dir|dec|regdel|regimpl|dirdel|dirimpl)\/\d{4}\/\d+)$/i);
-    if (m) out.push(`https://eur-lex.europa.eu/eli/${m[1].toLowerCase()}`);
+    if (m) out.push(eliPathUrl(m[1].toLowerCase()));
   }
   return out;
 }
@@ -51,7 +51,7 @@ export function eurlexCandidates({ identifier, sourceUrl } = {}) {
 export function ukCandidates({ identifier } = {}) {
   const id = String(identifier || "");
   const m = id.match(/uksi\/(\d{4})\/(\d+)/i) || id.match(/\bS\.?I\.?\s*(\d{4})\/(\d+)/i) || id.match(/^(\d{4})\s*No\.?\s*(\d+)$/i);
-  return m ? [`https://www.legislation.gov.uk/uksi/${m[1]}/${m[2]}`] : [];
+  return m ? [legislationUkUrl(`uksi/${m[1]}/${m[2]}`)] : [];
 }
 
 /** Norway (THE DESIGN FIXTURE): a forskrift citation "FOR-YYYY-MM-DD-N" — or the bare "YYYY-MM-DD-N" when the
