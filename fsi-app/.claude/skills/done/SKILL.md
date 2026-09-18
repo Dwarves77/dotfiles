@@ -25,6 +25,8 @@ The project's memory is `docs/` in the repo, and it only exists for other sessio
 
 5. **Verify**: `git status` shows the memory files staged/committed, and the addendum header carries today's date.
 
+6. **Sync the vault checkout once the memory lands on master.** Obsidian reads the checkout at `C:/Users/jason/dotfiles/docs`, and nothing else moves it (it sat 231 commits behind for a month, 2026-08-17 to 2026-09-18). After the PR merges run `node .claude/hooks/vault-sync.mjs` (the SessionStart hook and the merge train run the same script) and report the line it prints: `vault-sync: <before>..<after>` is done; `SKIPPED (<reason>)` names what the operator must clear (a dirty tracked file, a non-master branch, core.bare). Until that line reads synced, Obsidian is behind and the checkpoint is not visible there.
+
 ## What this skill is not
 
 It is not the enforcement. Enforcement is server-side: the discipline CI gate that fails a push touching code without touching memory files. This skill is the pen; CI is the rule. If the CI gate does not exist yet, say so in the addendum rather than assuming it.

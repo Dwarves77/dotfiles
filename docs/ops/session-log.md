@@ -23226,3 +23226,57 @@ versioned change. Golden 13 of 13 passing checks.
 
 **Consequence.** Batch 003b re-applies once more for 87ed781c; the seven market items authored under the
 stricter reading lose nothing (all four slots FACT).
+
+## 2026-09-18, W9 coordinator close (10:30 EDT): chain paused, process table cleared, state of the build
+
+Coordinator (Fable) session close; the operator paused all work and asked what was running. Ledger:
+`.superpowers/sdd/brief-chain-build-plan-2026-09-11/progress.md` (wt-datechain-0911) has the full resume order.
+
+**Accomplished since the 2026-09-17 evening pause.** Merged #692 L25, #695 L33 (with the shared-glob CI
+parity fix), #696 L35, #697 P3, #698 P4, #699 L40, #700 P2, #701 L34, #702 L42 (master 384929ad). Migrations
+326 (regulation and directive penalty_summary and primary_deadline become source-says-so GAP-satisfiable) and
+328 (three provisional sources active) applied and committed on lane L39. CI reds fixed at the class:
+gitignored generated files measured by F45 locally but not on CI (glob.mjs drops gitignored paths); an
+unguarded process.loadEnvFile crashing every maintenance dispatch (L41, F48, RD-72). Batch applies through
+brief-apply.yml under the IO budget: 003b 3 of 3 verified after the L42 attribution fix; 007 8 of 9 (4929e6a9
+refused by the write-side brief_failure_gate on its stub note); 007-nonreg-b run 35353961526, 8 of 9
+verified, one quarantined (reason not yet read). 58bf0406 verified through provenance-heal.
+
+**Decisions recorded (operator, 2026-09-17).** Resume all paused work; Gate A re-scan; stale-claim cleanup;
+migration 326 as recommended; activate the three sources; every remaining defect is fixable and is fixed,
+not held. Coordinator corrections in place: the 87 quarantined items were not zero-defect (75 carry Gate A
+orphans, 20 carry unlabeled ANALYSIS claims); "3,594 stale claims" was a max-date artefact.
+
+**State at the pause.** Nothing running: the merge train was killed inside the pre-push hook on #704 (L39,
+wt-finishmig-0911 rebased locally to bd90c665, not pushed, so #704 still reads CONFLICTING on GitHub), and
+three merge-watch.sh loops plus nine tail readers left over from the earlier flow were killed with it. Open
+PRs on the train: #704 L39, #705 P8, #706 L41, #707 reg-a, #708 research-ops, #709 reg-b, #710 market,
+#711 005c, #712 L36. Queued, not pushed: p10 (batch 010, wt-p10-slots). L43 (pre-write refusal mirroring
+checkBriefContent, plus batch 007b rewording 4929e6a9's note) has a branch and nothing written.
+
+**Blockers and operator items.** GUARD-1-accepted token for the refetch-capped apply (6f1e6615, 6a857887,
+the capped worklist); retype decision on cfcf9e4c, 9ffa15d6, d2da85da; penalty-instrument captures for
+8de055dc, e65ec48d, ec55d661, 9090a7c2, 4f4f85c9; captures for c4ad4cc5, 3e9c3ebe, 474ab4cd, 007f42b1,
+120529b8; does_not_resolve source text for 02ad37c7, 0c2c1ec1, 0e6e82cb, 3373d06e, 45dab7a6; main checkout
+`.git/config` core.bare=true (operator's call).
+
+**Next, on resume.** (1) merge-train.sh as one background task (skips merged PRs, re-pushes #704 from
+bd90c665); (2) push-queue.sh for p10 and L43; (3) applies in order with 30-minute cooldowns and
+--allow-brief-overwrite as each PR merges: 005 (23), 008 (2), 008b (1), 009-reg-a (15), 009-reg-b (10),
+009-research-ops (10) + 009b (1), 009-market (12), 010 (3); read the 007-nonreg-b quarantine reason; (4) after
+L36: capture-static-primaries onto identifier-variants to take F46 to 0; (5) P7 re-measure with F45, F46, F47.
+Every background process gets killed at each pause and the process table re-checked before reporting.
+
+**Vault fix, same close [CONFIRMED by git in the main checkout].** The Obsidian vault is the checkout at
+C:\Users\jason\dotfiles\docs and it sat at the 2026-08-17 commit: 231 commits and 211 session-log entries
+behind master, because every session works in a worktree and nothing ever fast-forwarded the checkout; since
+2026-09-11 its config also carried core.bare=true, which made git refuse to touch it. Fixed: core.bare back to
+false, the five stale tracked copies (all older than master, zero lines master lacked) backed up to the
+scratchpad and the checkout hard-reset to origin/master 384929ad; Obsidian now shows every entry through L42.
+Class fix so it never recurs: `.claude/hooks/vault-sync.mjs` locates the vault from any worktree through the
+shared .git and fast-forwards it to origin/master when it is on master, clean and not ahead, printing SKIPPED
+with the fix otherwise; wired into SessionStart (settings.json), the done skill (step 6), the coordinator's
+merge train, and the discipline test suite (`.claude/hooks/vault-sync.test.mjs`, five tests against throwaway
+repositories with per-command identity, no config writes). Operator direction the same morning: no further
+data applies or lanes until the collect, evaluate, publish pipeline is audited end to end for completeness;
+the resume order above is held behind that audit.
