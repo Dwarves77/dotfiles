@@ -23582,5 +23582,19 @@ Lane L42 widens the mirror to the live rows' own wording for the next batch.
 **Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget.
 
 ### UX compliance (P9 market)
+## 2026-09-18, W9 lane P2 follow-on: batch 005 passes the live criterion-5 check; three frameworks withheld
+
+Coordinator (Fable), worktree wt-renorm-0911, branch brief-lane/005c-slots-2026-09-18 from master ba1799a6.
+
+[CONFIRMED by the brief-apply dry run 35312918078 and by a local run of requiredSlotErrors with the live
+slot table] batch 005 as merged (#700) was refused by the pre-write validator: 25 required-slot errors across
+11 items. 22 of them were the README's `[slot_key]` form missing from claim_text on claims that carry the
+slot_key field (the P2 author pass predates lane L25); prefixed mechanically (24 claims), no fact changed.
+The other three cannot be fixed mechanically: 007f42b1, 128bc6c1 and 1917da73 are frameworks whose
+effective_date is covered only by a GAP claim, and the slot admits none; the three entries are withheld
+(their live briefs stay as they are) for an author pass that grounds the entry-into-force date on the pool
+or shows the source states none. 23 entries remain, VALID, 0 slot errors on the live table.
+
+### UX compliance (P2 follow-on)
 
 Not a UI change; no customer surface touched by this branch.
