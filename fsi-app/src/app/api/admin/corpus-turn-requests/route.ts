@@ -27,6 +27,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute, type ServiceSupabase } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 
 const NO_STORE = "no-store";
 
@@ -52,27 +53,23 @@ async function requireAdmin(request: NextRequest) {
   return { userId: auth.userId, supabase } as const;
 }
 
-/** Paginated single-column read matching a filter — the same "PostgREST caps at ~1000 rows" guard
- *  scripts/lib/db.mjs's readAll documents, reimplemented here (a route cannot import a scripts/ module).
- *  `column` is the value collected per row (e.g. "id" for intelligence_items, "intelligence_item_id" for
- *  corpus_turn_requests — the two tables' own row identity is not the value this route needs from them). */
+/** Paginated single-column read matching a filter, the same "PostgREST caps at ~1000 rows" guard
+ *  scripts/lib/db.mjs's readAll documents, built on the one shared paging helper: @/lib/db/paginate.mjs's
+ *  fetchAllRows (prior art, lane L36, 2026-09-17: a route CAN import a scripts-independent src/lib module;
+ *  the prior comment here claiming otherwise was wrong). `column` is the value collected per row (e.g. "id"
+ *  for intelligence_items, "intelligence_item_id" for corpus_turn_requests: the two tables' own row identity
+ *  is not the value this route needs from them). */
 async function readAllValues(
   supabase: ServiceSupabase,
   table: string,
   column: string,
   applyFilter: (q: any) => any
 ): Promise<string[]> {
-  const values: string[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    let q = supabase.from(table).select(column).order(column, { ascending: true }).range(from, from + PAGE_SIZE - 1);
-    q = applyFilter(q);
-    const { data, error } = await q;
-    if (error) throw new Error(`${table} read failed: ${error.message}`);
-    const rows = (data ?? []) as unknown as Array<Record<string, string>>;
-    for (const row of rows) values.push(row[column]);
-    if (!data || data.length < PAGE_SIZE) break;
-  }
-  return values;
+  const rows = await fetchAllRows<Record<string, string>>(
+    (from, to) => applyFilter(supabase.from(table).select(column).order(column, { ascending: true })).range(from, to),
+    { pageSize: PAGE_SIZE }
+  );
+  return rows.map((row) => row[column]);
 }
 
 export async function GET(request: NextRequest) {

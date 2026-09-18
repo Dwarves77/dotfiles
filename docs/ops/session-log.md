@@ -262,6 +262,80 @@ changed the DOM (`AdminIconEmptyState`'s first draft) was caught in review and f
 the Corrections note above. No new screen, no new primary action, no new async state: this is extraction
 of existing render code into shared modules, not a design change, so the per-screen goal/path/primary-
 action/feedback-state enumeration the UX contract asks for a new or revised screen does not apply here.
+## 2026-09-17, W9 lane L36: maintenance scripts onto runCli; the two private pagers onto fetchAllRows
+
+Executor lane, worktree wt-l36-maintenance-runcli, branch lane/w9-l36-maintenance-runcli-2026-09-17, on
+top of L31 (94e219b5). Removal order item 5 of the system health audit, plus the paging row in section 2.
+No database access this lane (refactor and unit-test only, per the brief).
+
+**Maintenance scripts onto runCli [CONFIRMED by node --test and by running each script's own CLI with no
+DB creds].** Prior art check first: `canonical-key-dedup.mjs`, `record-hollow-sweep.mjs`,
+`apply-classifications.mjs` and the rest of `scripts/maintenance/*.mjs` already call `runCli`
+(`scripts/maintenance/lib/cli.mjs`), so that scaffold is not new. Four scripts outside `scripts/maintenance/`
+still hand-rolled the same env-load/DB-creds-check/IS_MAIN boilerplate `runCli` already replaces:
+`scripts/classification/propose-classifications.mjs`, `scripts/connections/apply-tags.mjs`,
+`scripts/connections/ratify-flag-to-census.mjs`, `scripts/connections/generate-theme-brief.mjs`. Each now
+calls `runCli({ step, main, needsDb: true })`; each script's own `main()` keeps parsing its OWN flags from
+`process.argv` exactly as before (`--classify`/`--drift`/`--anomalies`/`--execute` for
+propose-classifications, `--flag`/`--auto`/`--all-ratified`/`--skip-discovery`/`--execute` for apply-tags,
+`--flag`/`--execute` for ratify-flag-to-census, `--theme`/`--write`/`--execute` for generate-theme-brief);
+`runCli`'s own `--mode`/`--arg`/`--out` fields go unused by these four, same posture their hand-rolled
+parsing already had. `.github/workflows/maintenance.yml` calls all four with their own native flags
+directly (its own comments document this, e.g. "--execute is that script's own apply flag, not
+[runCli's]"), so that workflow is untouched and its dispatch is unaffected. Verified end to end with no DB
+creds: all four now exit 2 with runCli's own canonical message
+(`<step>: no DB creds (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) - cannot run here (exit 2).`)
+instead of each script's own slightly different wording, the one behavioural change, and it only fires
+when creds are absent (never in CI, where the workflow injects them); every other output line and every
+flag is unchanged. `apply-tags.mjs`'s `ROOT`-based snapshot-dir fallback now uses the shared `fsiRoot()`.
+115/115 existing tests for the four scripts still pass unchanged (no exported pure function touched).
+
+**supabase-server.ts and corpus-turn-requests onto fetchAllRows [CONFIRMED by tsc, by
+supabase-server-category-rpc-paging.test.mjs, and by reading the diff].** The file's actual measured
+self-duplication (66 self-pair windows) was `runCategoryRpc`/`runCategoryRpcPublic`: two near-identical
+wrappers each hand-repeating the same try/catch to `fetchAllCategoryRows` (already `fetchAllRows`-backed) to
+map to `enrichCategoryRows` sequence, differing only in their pre-check (org-required vs config-only) and
+their RPC args (`{ p_org_id: orgId }` vs `{}`), exactly what the file's own PERF-10 comment already
+documented as "the ONLY difference". Both now call one shared `runCategoryRpcCore(rpcName, rpcArgs, opts)`;
+same rows, same order, same fail-soft-to-empty contract, same error logging. The file's OTHER large
+self-duplicated regions (row-mapper functions reshaping RPC rows into `Resource`, around L943-1001/
+L1744-1781/L3857-3893 and L1231-1401/L1588-1948/L2897-3080) are a separate, larger concern: sibling
+row-mappers for full/slim/dashboard/public RPC variants with documented column-availability differences
+("dormant passthrough" comments), not the paging block this lane's deliverable named, and not touched
+here; flagged below. `src/app/api/admin/corpus-turn-requests/route.ts`'s `readAllValues` now calls
+`fetchAllRows` from `@/lib/db/paginate.mjs` directly (same select column, same order column/direction, same
+filter, same page size: same rows, same order); the comment claiming "a route cannot import a scripts
+module" is deleted (`paginate.mjs` is `src/lib/db/`, not `scripts/`, and `supabase-server.ts` already
+imports it). `supabase-server-category-rpc-paging.test.mjs`'s two structural tests that asserted the OLD
+per-function body shape were updated to assert the new shared-core shape plus one new test on
+`runCategoryRpcCore` itself (5 tests before, 6 after, all pass); the other four supabase-server test files
+(rpc-scope 17/17, recent-changes-319, listings-order, watchlist, brief-backfill) are unaffected and were
+spot-checked green.
+
+**F45 [CONFIRMED, LIVE ratchet green].** Measured 7,569 (the committed ceiling, unchanged by this lane
+before its own edits), then 7,543 after the four maintenance scripts, then 7,527 after the supabase-server.ts
+consolidation and the route change. `DUPLICATED_LINES_CEILING` re-seeded from 7,569 to 7,527 on the lane's own base; after the rebase onto master 2f59c88b (L33, L34 and L35 merged, gitignored files excluded from the scan) the combined tree measures 6,185, and the ceiling is re-seeded to 6,185 in this same commit in this commit,
+one comment naming lane L36 and the before/after.
+
+**Tests, tsc, runner, suite.** Every touched script already carried a `*.test.mjs` (none needed a new
+one); no test asserted `main()`'s internal shape, so none needed changing except the one
+supabase-server-category-rpc-paging.test.mjs case above (5 tests before, 6 after). `node --test` on the
+four maintenance-script test files plus supabase-server-category-rpc-paging.test.mjs plus the F45
+self-test, combined: 126/126. tsc --noEmit: clean. `node .discipline/fitness/runner.mjs`: 40 function(s)
+checked, 0 violation(s). `sh .discipline/run-test-suite.sh` from the worktree root: tests 7199, suites 61,
+pass 7194, fail 0, skipped 5 (pre-existing, unrelated to this lane), duration_ms 3389525 (this Windows
+container runs the suite roughly 20 to 50 times slower per test than its documented approximately 22
+second baseline; not a regression this lane introduced).
+
+**Not done, and why.** The row-mapper self-duplication in supabase-server.ts named above (the bulk of the
+original 66 self-pair windows) is out of this lane's deliverable (a "paging block", not a row-mapper
+family) and risks behavioural drift across RPC variants with documented column differences, and there is
+no DB access this lane to verify against a live schema either. Left for a future lane alongside audit section 2's
+"Detail surfaces... shared detail primitives" / "Admin views" dispositions, which are the same class of
+work. `readAllValues`'s ordering-by-a-possibly-non-unique-column caveat (`intelligence_item_id` on
+`corpus_turn_requests`) is pre-existing (the original hand-rolled loop ordered the same way) and immaterial
+here (both call sites only use the result as a Set/length, never order-sensitively): not "fixed" as
+out of scope, named for the record.
 
 ---
 

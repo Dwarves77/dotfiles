@@ -111,8 +111,16 @@
 // Exit 0 done (including "already applied"/"no change needed") · 1 bad args / flag not applicable ·
 // 2 no DB creds.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+// Prior art (lane L36, 2026-09-17): runCli + fsiRoot (scripts/maintenance/lib/cli.mjs) are the shared
+// bootstrap (argv scaffold, .env.local load, DB-creds-check-and-exit(2), IS_MAIN pattern, fsi-app-root
+// resolution) every scripts/maintenance/*.mjs wrapper already uses. This script hand-rolled the same
+// boilerplate; runCli/fsiRoot replace it below. Its own --flag/--auto/--all-ratified/--execute/
+// --skip-discovery flags and console lines are unchanged (system-health-audit-2026-09-17.md section 2
+// names this script in the clone family; tag-ratification.mjs, which already uses runCli, calls this
+// script's exported functions directly, never its CLI, so that integration is unaffected).
+import { runCli, fsiRoot } from "../maintenance/lib/cli.mjs";
 import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
 import {
   deriveTags, FIELD_CAPS, meetsConfidence, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES,
@@ -603,14 +611,13 @@ export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_AD
   };
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (IS_MAIN) await main();
+if (IS_MAIN) {
+  await runCli({ step: "apply-tags", main, needsDb: true });
+}
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
-
 const args = process.argv.slice(2);
 const flagIdRaw = args[args.indexOf("--flag") + 1];
 const flagId = args.includes("--flag") && flagIdRaw && !flagIdRaw.startsWith("--") ? flagIdRaw : null;
@@ -634,11 +641,6 @@ if (AUTO && ALL_RATIFIED) {
 if (AUTO && !flagId) {
   console.error("apply-tags: --auto requires --flag <integrity_flags-id>.");
   process.exit(1);
-}
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("apply-tags: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
 }
 
 const { readClient, guardedUpdate } = await import("../lib/db.mjs");
@@ -698,7 +700,7 @@ async function rerunDiscovery(itemId) {
     console.log(`apply-tags: discovery re-run found 0 edges for ${itemId} (tags applied but no matching corpus items yet — not necessarily wrong).`);
     return;
   }
-  const SNAP_DIR = process.env.DISCIPLINE_SNAP_DIR ? resolve(process.env.DISCIPLINE_SNAP_DIR) : resolve(ROOT, "scripts", "_snapshots");
+  const SNAP_DIR = process.env.DISCIPLINE_SNAP_DIR ? resolve(process.env.DISCIPLINE_SNAP_DIR) : resolve(fsiRoot(), "scripts", "_snapshots");
   const w = await writeDiscoveredEdges(sb, plan.edges, { snapshot: { dir: SNAP_DIR, cite: CITE } });
   console.log(`apply-tags: DISCOVERY RE-RUN for ${itemId}: ${w.written} edge row(s) written (${w.inserted} new, ${w.refreshed} refreshed); ${w.skippedForeignOrigin} skipped (foreign origin).`);
 }

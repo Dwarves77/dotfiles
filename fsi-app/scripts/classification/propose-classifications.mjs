@@ -71,8 +71,18 @@
 //     --execute  actually write/resolve integrity_flags rows (explicit opt-in)
 // Exit 0 done · 2 no DB creds (cannot run here).
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+// Prior art (lane L36, 2026-09-17): scripts/maintenance/lib/cli.mjs's runCli is the shared
+// bootstrap (argv scaffold, .env.local load, DB-creds-check-and-exit(2), IS_MAIN pattern) every
+// scripts/maintenance/*.mjs wrapper already uses (grep hit: canonical-key-dedup.mjs, record-hollow-sweep.mjs,
+// apply-classifications.mjs, ...). This script re-implemented that same boilerplate by hand; runCli replaces
+// it below. Its own --classify/--drift/--anomalies/--execute flags and every console line are unchanged;
+// runCli's mode/arg/out fields are simply unused by this script's main(), same as before its own hand-rolled
+// argv parsing (system-health-audit-2026-09-17.md section 2 names this script in the clone family; the
+// maintenance.yml propose-classifications step invokes this script's own --execute flag directly, not
+// runCli's --mode/--arg/--out, so that invocation is unchanged).
+import { runCli } from "../maintenance/lib/cli.mjs";
 import { proposeSourceAxisClassification } from "../../src/lib/classification/classify-source.mjs";
 import { detectDrift, observedDistributionFromItems } from "../../src/lib/classification/routing.mjs";
 import { isValidDistribution } from "../../src/lib/classification/expected-output.mjs";
@@ -263,20 +273,14 @@ export function groupItemsBySource(items) {
   return map;
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (IS_MAIN) await main();
+if (IS_MAIN) {
+  await runCli({ step: "propose-classifications", main, needsDb: true });
+}
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
-
 const { execute: EXECUTE, modes } = parseArgs(process.argv.slice(2));
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("propose-classifications: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
-}
 
 const { readAll, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
 
