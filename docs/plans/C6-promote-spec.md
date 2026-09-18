@@ -33,6 +33,21 @@ linked to the new item via `community_posts.promoted_to_item_id`. For
 `staged`, that link stays `NULL` until the staged update is approved (Phase
 D follow-up — see below).
 
+## The one promotion mechanism (2026-09-18)
+
+`post_promotions` (migration 041, this file) is the only community promotion mechanism now in the
+tree, reached by `POST /api/community/posts/[id]/promote`. A second, unrelated mechanism existed
+alongside it: `community_promotion_transitions` (migration 295), the audit log for spec 05 section 4's
+five-gate `promotion_state` machine (`community` to `community-corroborated` to `under-review` to
+`verified`, with `retired` reachable from any non-terminal state) implemented in
+`src/lib/community/promotion.mjs`. The stage audit
+(`docs/audits/stage-audit-2026-09-18/s6-gates-harness.md`, findings 8 and 9) found `promotion.mjs` had
+zero production importers and both tables held 0 rows, so nothing had ever fired through either path.
+Migration 326 drops `community_promotion_transitions` and its module and test are deleted (lane m9c,
+2026-09-18), per the build plan's "no built, dormant" rule
+(`docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1, lane M9). `community_posts`'s
+`promotion_state` and `stance` columns (also migration 295) are unaffected and stay live.
+
 ## Migration order
 
 | Mig | Name                                | Notes                                                  |
