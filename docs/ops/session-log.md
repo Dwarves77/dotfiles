@@ -22947,3 +22947,45 @@ scripts/tmp and asserts the count does not move (rule 15, attack not presence); 
 6,830, the CI number. Coordinator tooling: scratchpad `reseed-f45.mjs` re-measures after every rebase,
 because three lanes (L33, L34, L36) re-seed F45 from the same base and only the first to merge can be
 right without a re-measure.
+## 2026-09-17, W9 lane P3 (Part 7 row 8): batch 003b, three quarantined entries repaired; two coordinator findings
+
+Sonnet lane, worktree wt-hashsep-0911, branch brief-lane/003-repair-2026-09-17 from master 94e219b5. Batch
+file only; validator, README and src untouched. `record-briefs.test.mjs` 79/79.
+
+**Result [CONFIRMED by the validator].** `record-briefs-003b.json`, the three entries under the current
+validator, 39 errors to 0 (VALID), all numeric-figure mirror. 87ed781c: one claim narrowed (a statutory
+citation tail not in its span), 32 claims. bec305e1: eleven claims narrowed (ISO-date parentheticals and
+platform-timeline dates not in each claim's own span) and body sections 5, 6 and 14 re-dated to the
+precision the pool grounds, 25 claims, all 10 timeline rows kept. fabda0e7: clean as authored, 58 claims.
+Nothing relabeled, nothing dropped.
+
+**Finding 1, mixed-generation ledgers [CONFIRMED by SQL, 2026-09-17].** The live quarantine reasons
+(analysis_missing_label_syntax on 16 claims of bec305e1, fact_span_not_in_source on 10 of 87ed781c) are not
+on the batch's claims. bec305e1 carries 16 unlabeled ANALYSIS and 9 GAP claims extracted 2026-07-14 beside
+the 28 FACT claims batch 003 wrote (2026-09-03 to 09-13). Across the corpus, 81 of the 87 quarantined
+non-archived items carry claims from two generations, 3,594 stale claims in total, and the 20 label-syntax
+failures are all on the older generation. D29 (2026-09-12) already built the fix: under
+`--allow-brief-overwrite`, `groundBrief` archives every prior claim the entry does not reproduce
+(`replaceLedger`, canonical-pipeline.ts, ledger-apply.mjs), and its doctrine comment names these three items
+as the instance. Batch 003 was applied before D29 landed. Re-applying 003b with the flag replaces the ledger;
+the other 78 mixed-generation items need the same replacement or a one-off archive of the stale generation,
+an operator decision because it changes live rows.
+
+**Finding 2, fixture identity leak [CONFIRMED by probe].** Every lane commit since 2026-09-11 17:33 was
+authored "Fixture <fixture@example.com>" (36 of 40 branch commits; master is unaffected because squash
+merges carry the PR author). Mechanism, reproduced in a throwaway repo: `assemble-train.test.mjs` builds a
+fixture repo with `git init -q work` then `git config user.name Fixture`; run inside the pre-push hook from a
+linked worktree, GIT_DIR is inherited, and both commands act on the REAL repo, writing the fixture identity
+into the shared `.git/config` (and `git init --bare` set `core.bare = true`). #624 added `unset GIT_DIR
+GIT_WORK_TREE GIT_INDEX_FILE` to the hook the same day and `install-hooks.test.mjs` asserts it, so the leak
+cannot recur through the hook; the damage it had already done was never repaired. Repair: `user.name` and
+`user.email` restored to the prior "Claude <noreply@anthropic.com>"; the P3 commit re-authored. Not changed:
+`core.bare` on the main checkout (operator's call), and the already-pushed branch commits (their PRs squash
+to the PR author). Lesson for the discipline: a class fix that stops a leak must also repair what the leak
+already wrote; the clear-flags-when-satisfied rule applies to state, not only flags.
+
+**Next.** Dry run then apply 003b with `--allow-brief-overwrite` under the IO budget.
+
+### UX compliance (P3)
+
+Not a UI change; no customer surface touched by this branch.
