@@ -23559,5 +23559,28 @@ penalty (grounded here on an adjacent state resolution with a Legal Confirmation
 three mistyped items; refetch for 6f1e6615 and 6a857887.
 
 ### UX compliance (P9 reg-b)
+## 2026-09-18, W9 lane P9 market: 12 quarantined market signals and initiatives re-authored
+
+Sonnet lane (twelve authoring sub-agents, every entry re-validated by the lane and checked against the
+criterion-5 rule with its own script), worktree wt-p9-market, branch brief-lane/009-market-2026-09-17 from
+master caa08198. Batch file only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator, whole file].** `record-briefs-009-market.json`, 12 entries, VALID:
+79e73a30, a4153234, 878294c8, 6b55b53d, c113dd5d, 5b37050b, 3ed4f908, 5fc45237, 88a2918c, 7fd6fbf1,
+7115c978, e34ad64e. signal_event, driving_parties and conversion_trigger are FACT on every entry; action_now
+is FACT on ten and a GAP with the source's own basis on two. Templated GAP placeholders from the record-tier
+drafts were dropped where the pools carried the facts; derived figures the sources never state were not
+asserted (an out-of-service complement, a rounded share, an arithmetic product); two prior drafts' framings
+were corrected from the pools' own later text (Air Products and Yara, Yara Eyde in captive service).
+
+**Findings.** [CONFIRMED] e34ad64e's stored format_type reads technology_profile while its item_type is
+market_signal; authored as market_signal_brief; an integrity_flags row (data_integrity) records it.
+[CONFIRMED] the coordinator's first slot instruction ("all four allow a GAP") contradicted the committed
+README; every sub-agent flagged it before acting, the README's rule governed, and no entry needed rework.
+Lane L42 widens the mirror to the live rows' own wording for the next batch.
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget.
+
+### UX compliance (P9 market)
 
 Not a UI change; no customer surface touched by this branch.
