@@ -261,3 +261,113 @@ does not land with a component that fails §0.
 No schedules or crons (rule 16). No metered API calls where a session lane or the browser does the work.
 No LLM in population or classification runtimes. No component left "built, not dispatched": every
 remaining one above is either finished or deleted, with the audit's evidence as the checklist.
+
+## 5. Revision 2026-09-18: the machine before the data (supersedes section 3's sequence for everything unfinished)
+
+**Operator ruling, 2026-09-18, verbatim intent:** "before we continue updating the data and eating tokens
+doing it, I want to make sure we have fully finished building the system that collects, evaluates and uses
+the data and puts it into the site; I do not think that is complete and we will just have to go back and
+fix the data again." Then: "Re-verify every stage against the six criteria on today's master with read-only
+checks, one table, one owner per stage, fixing nothing during the audit. Then close the machine gaps in loop
+order: mint gate, evaluate, propagate, publish. Only then run each data pass once." And in the same message,
+the site-wide parts brief for the design (section 5.4).
+
+**Why this revision exists.** Section 3 already carried this order: train T46, "one lane per loop stage
+re-checks every component against section 0", with "population slices stopped until T46 passes (operator,
+2026-09-04)". The 2026-09-05 audit was that check and scored 53 rows: 12 complete, 22 partial, 7 built but
+dormant, 11 not built, 1 unverified, with eleven machine findings. W9 then went to the data side (briefs for
+every item) while the apply path under it was still being corrected: three fixes in two days (L40 attribution
+by content, L42 pool-row and GAP allowance, L43 brief-failure mirror), each forcing re-applies. The session
+log since 2026-09-12 records work on two of the eleven findings and none on the other nine. That is data
+paying for machine work, which is the loop the ruling stops. [CONFIRMED by reading the audit README and the
+session log, 2026-09-18]
+
+### 5.0 Standing state while this revision runs
+
+- No batch apply, no provenance heal, no re-scan and no brief lane runs until 5.1 is signed and 5.2 is
+  done. The W9 batches already authored (005, 008, 008b, 009 reg-a, reg-b, research-ops, 009b, market, 010)
+  stay in their PRs; their PRs may merge (they are files, not data) but nothing applies them.
+- The open lane PRs on the merge train (#704 to #712) are code and batch files; they merge in order as
+  before. Nothing else is pushed until the audit reports are in.
+- Read-only means: no writes, no migrations, no workflow dispatches, no full builds, SQL SELECT only under the
+  IO budget (stored length columns, LIMIT, never a corpus-wide content scan), no LLM or paid calls.
+
+### 5.1 The stage audit (one table, one owner per stage, fixing nothing)
+
+Six stages, taken from the loop in section 1, plus the design inventory the parts brief demands before any
+design lane starts. Each owner produces one table against section 0's six criteria for every component in
+the stage, with the verdict vocabulary of the 2026-09-05 audit (COMPLETE, PARTIAL, BUILT-DORMANT, NOT BUILT,
+COULD NOT VERIFY) and rule 14's status token on every cell. The prior audit's file for the stage is a claim
+to re-check, never evidence. Reports land as `docs/audits/stage-audit-2026-09-18/<stage>.md` with a README
+that carries the merged table.
+
+| Stage | Loop boxes (section 1) | Components to score (start list; the owner extends it from the code) | Prior claims to re-check |
+|---|---|---|---|
+| S1 collect | sources, sweep, portal_link_candidates, change detection, monitoring_queue | register / feed / sitemap walkers, check-sources, source-sweep runs, monitoring_queue writers and readers, capture worker, snapshots | W1-W2 file, W1.5 rows |
+| S2 mint gate | consume, census_worklist, mint, enrich | classify and intake, corpus-turn and population-turn workflows, apply-mint-batch, the record-grade kit at mint, ledger-consume (both halves), corpus-turn-requests | W1-W2 file; findings 1, 4, 5 |
+| S3 evaluate | heal and grounding, Gate A, STEP SOURCE, tiers | brief runtime (W9 Parts 1 to 3: generate, ground, validate_item_provenance, Gate A, quarantine disposition, heal), attach-found-sources, tier-opinions, institution canonicalisation, every-figure-sourced (rule 18) | W3-W4 file; findings 2, 7; brief-chain plan Part 7 |
+| S4 propagate | outbox, DAG, drain, notices, producers | derivation_edges authorship per producer family, drain chaining, notices, market_series, emission_factors, regional producers, statutory_computations, estimated_values, spec-09 decisions and the CSV route | W3-W4 file; findings 6, 7, 11 |
+| S5 publish | customer surfaces | the five surfaces and the dashboard: listing and detail RPCs (verified-only, item_grade, migration 310), what each surface renders from which table, the rendering guard, the admin surfaces that operate the machine | W5-W6-W7 file; finding 3; the parts brief's acceptance list as the visible criterion |
+| S6 gates and harness | cross-cutting: harness, discipline, memory, transport | execution-wiring and F1 to F48 reachability, the closure gate and its STALE-NEXT entries, harness families and their artifacts, maintenance.yml steps, the memory hooks (ledger, done, vault-sync) | loop-harness file; skills-rules file; findings 8, 9, 10 |
+| D1 parts inventory | (design) | `docs/design/parts-inventory.md` per the parts brief 1.1: for each part in its section 2, the component path or NONE, and every route rendering the equivalent UI without it (file and line) | SHARED-PART-REPORT-2026-09-08, AUDIT-2026-09-07 |
+
+Sign-off: the operator reads the merged table and rules per row (finish, delete, or keep-with-reason). A row
+with no ruling is not started in 5.2.
+
+### 5.2 Gap closure, in loop order
+
+After sign-off, lanes close the machine gaps in the loop's own order so that each stage is complete before
+the next stage depends on it: S2 mint gate, then S3 evaluate, then S4 propagate, then S5 publish, with S1 and
+S6 fixes slotted where a later stage needs them. Every lane meets section 0 in full (reachable, run,
+populated, visible, gated, documented) and lands with the fitness function or golden that keeps it there. The
+eleven 2026-09-05 findings are the first entries of that list; the audit adds or retires entries with
+evidence. A lane that finds it must touch data to prove itself runs a bounded probe (one item, read back),
+never a pass.
+
+### 5.3 The data passes, once
+
+Only when 5.2 is complete for a stage's consumers does the corresponding data pass run, each once, in this
+order and each through the brief-apply workflow under the IO budget with the overwrite flag: the authored W9
+batches in their PR order; the Gate A re-scan; the provenance heals for the healed captures; the refetch-capped
+apply when the operator hands the GUARD-1 token. A pass that fails on the machine stops the passes and reopens
+5.2; it does not get re-run against a patched apply path.
+
+### 5.4 W10, the parts program (design)
+
+The operator's site-wide parts brief of 2026-09-18 is landed verbatim as
+[`docs/design/parts-brief-2026-09-18.md`](../design/parts-brief-2026-09-18.md) and governs every surface
+change from here. The rule of work is parts, not pages: a lane owns one shared part and every call site of it
+on all 17 routes plus /watchlist, /privacy and /invitations, and is done when the part renders from one file
+everywhere, proven by a presence report (route, file, line) and one fixture screenshot of the part with all
+its variants. The operator signs off parts; page screenshots are no longer the review unit.
+
+Order and gating, from the brief:
+
+1. D1 parts inventory (5.1) before any lane starts.
+2. The parts gate: the brief calls it F44; F44 is taken (`F44-broken-main-guard`), so it lands as **F49
+   parts-not-pages** with the brief's exact rule: a route's page.tsx may not contain the literal styles that
+   define a part (Anton title, card border and radius 10, 3px rule, fact card edge or band, chip padding,
+   state note edge); pages import parts; no grandfathering. It lands with the first part lane so every later
+   lane is measured by it.
+3. Lanes in the brief's order: FactCard (v2, artboard 21c) then ItemGroup and SectionHeader, then Masthead
+   and ActionCard, then CommandBar, then ListRow with Absence and Chips, then StateNote, then RailCard and
+   StatBlock, then NavCard. Each lane also removes the out-of-scope content its part touches (brief 2.15).
+4. Acceptance is the brief's section 3, measured at 1440 on every route through the existing rendering audit
+   machinery (`fsi-app/.discipline/rendering/audit/`), not on one page.
+5. Artboard wins over README; a case not drawn is asked, never invented; the operator answers the same day and
+   adds it to the README.
+
+Coordinator notes reported under the brief's rule 1.3: the bundle is `docs/design/handoff-2026-09-06/` (the
+brief names a 2026-09-07 folder that does not exist); artboard 21 and its README dimensions are owed to that
+bundle before the FactCard lane starts; the fitness number is F49.
+
+### 5.5 Sequence
+
+| Step | Contents | Depends on |
+|---|---|---|
+| A (now) | 5.1: seven read-only owners, one table each, merged README; merge train drains #704 to #712 | operator go, 2026-09-18 |
+| B | operator sign-off per row | A |
+| C | 5.2 lanes in loop order; F49 and D1 land with the first W10 lane | B |
+| D | 5.3 data passes, once each | C per stage |
+| E | W10 part lanes in the brief's order, each signed off by the operator | A (D1), C where a part reads a field the machine must first produce |
+| F | P7 re-measure and /done with the three standing numbers, the board row, and the stage table re-run green | D, E |
