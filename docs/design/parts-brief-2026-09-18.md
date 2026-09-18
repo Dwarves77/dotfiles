@@ -19,7 +19,8 @@ reported to the operator the same day under the brief's own rule 1.3:
    homes under `fsi-app/src/components/ui/` (FactCard, Masthead, CommandBar, ListRow, Absence,
    Chips, SectionCard, StatBlock, MilestoneTimeline, ActionRow and others); the defect is drift
    and call sites that bypass them, which is what the inventory measures.
-4. Lines below that carry an em dash, an en dash or a section sign keep them verbatim and carry
+4. Section 2.16 (impact meter, row variant) was added by the operator later the same day and is landed here verbatim.
+5. Lines below that carry an em dash, an en dash or a section sign keep them verbatim and carry
    the repo's disclosure marker in an invisible comment (pre-commit rule 022).
 
 ---
@@ -193,6 +194,40 @@ part; the pages follow. Page screenshots are no longer the review unit.
     DQI/aux/grid → profile S-sections. /community "Global room region" →
     remove. Disclaimer bar → remove from the frame (auth/onboarding keep the
     left-panel line).
+
+2.16 IMPACT METER — ROW VARIANT (revised 2026-09-18; artboard 0 legend, all <!-- glyph:verbatim -->
+    list screens re-captured). Every list row on Regulations, Market,
+    Research, Operations, Watchlist, Dashboard "Due next" / "What changed".
+
+    The four bars are a STEPPED FILL OF THE TOTAL N/12, not the four
+    dimensions. Two rows with the same total must look identical.
+
+    Geometry: four bars 8px wide, heights 6 / 9 / 12 / 15 px, gap 2, bottom-
+    aligned, radius 1.5. Track (unfilled) #E5E1DB. Each bar holds 3 points
+    and fills from the bottom, left to right:
+        fill_i = clamp(N − 3·i, 0, 3) / 3   for i = 0..3
+    So 1/12 = one low stub; 6/12 = bars 1–2 full, 3–4 empty; 8/12 = bars <!-- glyph:verbatim -->
+    1–2 full, bar 3 two-thirds, bar 4 empty; 12/12 = four full bars. <!-- glyph:verbatim -->
+
+    Colour: ALL filled bars in one colour, read off the severity ramp at N:
+        1 → #16A34A   4 → #CA8A04   7 → #F97316   12 → #DC2626
+    linear interpolation between stops (e.g. 3 → #8E921B, 5 → #DA820A,
+    9 → #ED541C). Never per-bar colours; never #16A34A on a bar in a 12/12.
+
+    Beside it: N/12, 11px, tabular numerals, N in bold, "/12" #7A6E6C.
+    Column header reads "Impact" only — remove "LOW → HIGH". <!-- glyph:verbatim -->
+    Unscored: the same four bars as 1px dashed rgba(0,0,0,.3) outlines,
+    no fill, and an em dash in the score slot. No word.
+    The legend row on every list uses this exact meter at 8/12.
+
+    The per-dimension breakdown lives ONLY in the full variant (detail
+    rail, dashboard rail): one continuous green→orange→red bar per
+    dimension, revealed from the left by the score, sorted by name, not
+    by value.
+
+    Acceptance: on any list route, group rows by N — every row in a group <!-- glyph:verbatim -->
+    renders byte-identical meter markup; 0 rows show "LOW → HIGH";
+    0 filled bars are green when N ≥ 7.
 
 ════════════════════════════════════════════════════════════════════════
 3. ACCEPTANCE — measured at 1440 on EVERY route, not one <!-- glyph:verbatim -->

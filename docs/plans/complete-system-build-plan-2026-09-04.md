@@ -349,12 +349,18 @@ Order and gating, from the brief:
    define a part (Anton title, card border and radius 10, 3px rule, fact card edge or band, chip padding,
    state note edge); pages import parts; no grandfathering. It lands with the first part lane so every later
    lane is measured by it.
-3. Lanes in the brief's order: FactCard (v2, artboard 21c) then ItemGroup and SectionHeader, then Masthead
+3. A fix lane first, disjoint from every part lane so it runs alongside FactCard: the impact meter row
+   variant (brief 2.16, added 2026-09-18): `ImpactMeter.tsx` renders the stepped fill of the total N/12 in one
+   ramp colour, identical markup for identical N, dashed outlines and an em dash when unscored, the "Impact"
+   header alone, the legend at 8/12; the per-dimension breakdown stays in the full variant only. Acceptance is
+   the brief's: on every list route, rows grouped by N render byte-identical meter markup, zero "LOW to HIGH"
+   headers, zero green bars at N of 7 or more.
+4. Lanes in the brief's order: FactCard (v2, artboard 21c) then ItemGroup and SectionHeader, then Masthead
    and ActionCard, then CommandBar, then ListRow with Absence and Chips, then StateNote, then RailCard and
    StatBlock, then NavCard. Each lane also removes the out-of-scope content its part touches (brief 2.15).
-4. Acceptance is the brief's section 3, measured at 1440 on every route through the existing rendering audit
+5. Acceptance is the brief's section 3, measured at 1440 on every route through the existing rendering audit
    machinery (`fsi-app/.discipline/rendering/audit/`), not on one page.
-5. Artboard wins over README; a case not drawn is asked, never invented; the operator answers the same day and
+6. Artboard wins over README; a case not drawn is asked, never invented; the operator answers the same day and
    adds it to the README.
 
 Coordinator notes reported under the brief's rule 1.3: the bundle is `docs/design/handoff-2026-09-06/` (the
