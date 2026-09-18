@@ -264,7 +264,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No source in this brief's corpus states a compliance deadline, fine, or penalty running to a freight forwarder, carrier, or logistics intermediary under the Blueprint or MSGI; every implementing programme identified is voluntary and incentive-based.",
+          "claim_text": "[penalty_summary] No source in this brief's corpus states a compliance deadline, fine, or penalty running to a freight forwarder, carrier, or logistics intermediary under the Blueprint or MSGI; every implementing programme identified is voluntary and incentive-based.",
           "source_span": null,
           "source_url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-green-initiative",
           "section": "8"
@@ -324,298 +324,6 @@
           "source_span": "The GETP aims to encourage Singapore-based maritime companies to develop and / or conduct pilot trials for green technologies that can help vessels meet the",
           "source_url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-green-initiative",
           "section": "8"
-        }
-      ]
-    },
-    {
-      "item_id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
-      "source_pool_hash": "fc6e0cc4eb24414b312072e5face6cf721b842fa97fe3f062006a12a4d4bd715",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks the Texas Department of Transportation (TxDOT) statewide freight planning framework -- the Texas Freight Mobility Plan (TFMP) and its supporting statutory, advisory, and programmatic architecture -- as a state government planning instrument, not a federal compliance regulation carrying shipper-facing penalties. It covers the current operative 2023 plan (\"Texas Delivers 2050\"), the in-progress 2027 TFMP update cycle, the Texas Freight Advisory Committee (TFAC), the multimodal programs inside TxDOT's Unified Transportation Program (UTP), and the archive of regional freight studies that define the operational planning landscape.\n\n*Analytical inference:* where a section addresses \"requirements\" or \"obligations\" below, this brief means TxDOT's own obligations as the plan-producing state agency under federal law, not a duty running to a private freight forwarder, shipper, or carrier -- see Section 4 for the compliance-chain distinction.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"TxDOT is developing its 2027 TFMP. This will be the four-year update of its 2023 plan, in accordance with requirements in the Fixing America’s Surface Transportation Act and 49 USC 70202.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\nFACT: \"TxDOT integrates multimodal freight, trade, and economic considerations into agency-wide planning and programming activities to maintain and improve freight-supportive infrastructure across the state.\" *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\nFACT: \"If Texas were a nation, it would be the 8 th largest economy in the world. It has been the #1 U.S. exporter for 23 years in a row, and it is the largest energy-producing state in the Nation.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\nFACT: \"Each year, Texas infrastructure moves billions of tons and trillions of dollars of freight, making Texas an essential link in the global supply chain.\" *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n*Analytical inference:* for a freight forwarder, shipper, importer, or logistics operator with Texas trade lanes -- Gulf Coast ports, Texas-Mexico gateways, or highway corridors -- this framework shapes infrastructure investment priorities, truck parking availability, and the technology and policy environment that affect operational cost and transit reliability. Engagement with the framework is an intelligence and advocacy channel, not a compliance obligation.\n\nFACT: the U.S. DOT hosts the approved 2023 Texas Freight Plan as the document \"texas-delivers-2050.pdf\", the current operative plan (page Last updated: Wednesday, December 6, 2023). *Source: Texas Freight Plan, U.S. Department of Transportation, updated December 6, 2023. https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan\n\n# 3. Issues Requiring Immediate Action\n\n*No mandatory shipper-facing compliance deadlines with penalty provisions are created by the TxDOT freight planning framework itself; the items below are participation and engagement actions during the 2027 TFMP development cycle, which is actively underway.*\n\n**MONITORING** -- the 2027 TFMP's public involvement window is open now. FACT: \"The TFMP will incorporate an active stakeholder engagement process to ensure appropriate representatives are involved in helping identify challenges and solutions to the State’s freight mobility. It will feature a multifaceted approach to ensure diverse perspectives, industries, and communities are represented and engaged.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n*Operational implication:* workspaces that surface Texas corridor bottlenecks, border-crossing capacity constraints, or truck parking gaps during this window can have them captured in the plan's bottleneck and network assessments; contact TxDOT Freight at TxDOT_Freight@txdot.gov to request inclusion in stakeholder workshops.\n\n**MONITORING** -- Texas Freight Advisory Committee participation. Workspaces or their industry associations without representation at the TFAC may find their operational priorities absent from the next investment cycle.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nThe TxDOT freight planning framework does not create a shipper-facing compliance chain in the regulatory sense; it is a state government planning instrument. The relevant chain is an influence-and-information chain: federal (USDOT/FHWA approves state freight plans under 49 USC 70202) to state (TxDOT develops and implements the TFMP) to advisory (TFAC identifies trends and guides investment) to regional (MPO freight advisory committees) to private sector (shippers, carriers, forwarders provide operational intelligence via workshops and surveys).\n\n*Operational implication:* a workspace in a freight forwarder, importer, or shipper role sits at the base of this influence chain; its leverage is exercised through stakeholder engagement, not regulatory compliance filings.\n\n*Legal Confirmation Required:* whether a specific workspace entity qualifies as a \"stakeholder\" with formal standing in TFAC proceedings, or whether any formal obligation to participate attaches to any private-sector entity, requires review against TxDOT's TFAC governance documents and the Texas Transportation Code.\n\n# 5. Authoritative Guidance Document Analysis\n\nFACT: \"The 2018 Texas Freight Mobility Plan (TFMP) provided Texas with a blueprint for facilitating continued economic growth through a comprehensive, multimodal strategy for addressing freight transportation. One major recommendation from the TFMP is for the TxDOT to develop and implement a statewide, technology-based freight safety and operations program... Based on this recommendation, the Freight Planning Branch within TxDOT's (TxDOT) Transportation Planning and Programming Division developed the Texas Freight Network Technology and Operations Plan (FNTOP), which outlines 12 technology based strategies, six of which were advanced to Concept of Operations, to help improve freight transportation safety and mobility in Texas.\" *Source: TxDOT Research Library, Texas Freight Network Technology and Operations Plan, 2020. https://library.ctr.utexas.edu/Presto/content/Detail.aspx?ctID=UHVibGljYXRpb25fMTE2MTA%3D&rID=MzM1NDM%3D&ssid=c2NyZWVuSURfMjEzMjI%3D\n\n*Operational implication:* the FNTOP's 12 technology strategies and 6 Concepts of Operations represent TxDOT's current technology posture for freight safety and mobility; workspaces operating on Texas corridors should track which are moving toward deployment.\n\nThe 2027 TFMP is structured to produce four categories of output. FACT: \"Policies: Specific courses of action that, if adopted, will shape the way Texas approaches freight.\" FACT: \"Programs: Collection of initiatives or activities to achieve desired outcomes.\" FACT: \"Technology &amp; Operations: Investments that improve safety and efficiency of existing systems and prepare Texas for the future of freight mobility.\" FACT: \"Projects: Capital investments under development, proposed, and strategic.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n*Analytical inference:* these four categories mean the 2027 TFMP will simultaneously produce policy recommendations, funding-allocation program designs, technology/operations deployment priorities, and project lists feeding the UTP and STIP -- all four are operationally relevant for workspaces with Texas infrastructure dependencies.\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n**MONITORING -- 2027 TFMP: USDOT approval pending.** FACT: \"In accordance with federal regulations, the updated Plan is scheduled to be approved by the U.S. Department of Transportation in early 2027.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n*Operational implication:* upon USDOT approval, the 2027 TFMP becomes the operative plan governing TxDOT freight investment priorities for the subsequent four-year cycle; workspaces should monitor TxDOT's freight planning webpage around the finalisation phase.\n\n**MONITORING -- Truck Parking Availability System (TPAS) and regional studies.** FACT: \"2024 Truck Parking Availability System (TPAS)\"[, alongside regional truck parking studies for El Paso/Far West Texas and Houston/Southeast Texas]. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n*Analytical inference:* no announcement of a follow-on statewide truck parking study or TPAS deployment timeline is present in the retrieved source pool; the 2027 TFMP process may generate updated recommendations.\n\n# 7. Threshold Questions\n\n**Q1: Does the TxDOT freight planning framework create enforceable compliance obligations for private-sector freight operators?** *Analytical inference:* no -- it is a state government planning instrument; it does not create shipper-facing penalty provisions or mandatory registration requirements for private operators.\n\n**Q2: Is there a federal requirement for Texas to maintain an approved state freight plan?** FACT: 49 USC 70202 is cited as the federal statutory requirement the TFMP satisfies (see Section 2's four-year-update quote). *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n**Q3: Does the workspace have standing to participate in TFAC or TFMP stakeholder processes?** *Legal Confirmation Required:* the TFAC is described in the source pool as comprised of diverse expert industry and contributor opinions, but the specific membership criteria, appointment process, and stakeholder eligibility for workshops and surveys are not detailed in the available source content.\n\n# 8. Substantive Requirements\n\n*Note: this section addresses the substantive requirements of the TxDOT freight planning framework as a state government programme, not shipper-facing obligations. Requirements here fall on TxDOT as the plan-producing agency, with participation design elements that affect how private-sector stakeholders can engage.*\n\n**1. Federal plan content requirement (49 USC 70202).** FACT: \"Texas freight transportation assets, conditions, current and future needs, and economic importance through the lens of critical supply chains as well as broader findings related to freight operations and international trade.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n*Analytical inference:* the full statutory text of 49 USC 70202 is not reproduced in the retrieved source pool; the quote above is TxDOT's own characterisation of what the plan will capture.\n\n**2. Stakeholder engagement design requirement.** FACT: \"The TFMP will incorporate an active stakeholder engagement process to ensure appropriate representatives are involved in helping identify challenges and solutions to the State’s freight mobility. It will feature a multifaceted approach to ensure diverse perspectives, industries, and communities are represented and engaged.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n**3. Engagement channel enumeration.** FACT: engagement channels include \"the Texas Freight Advisory Committee and Metropolitan Planning Organization freight advisory committees in the state, stakeholder workshops, interviews, project communications, surveys, and project webpage contents.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\n**4. Texas Freight Advisory Committee function.** FACT: \"The Texas Freight Advisory Committee is comprised of diverse expert industry and contributor opinions, who identify significant freight system trends, needs, and issues with respect to the State, that are critical to freight planning. These freight policies, strategies, and performance measures guide the freight-related transportation investment decisions. This long-range planning and coordination, serves as a forum for agency transportation decisions affecting the movement of goods and people.\" *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n**5. UTP Freight, Trade and Connectivity programme integration.** FACT: \"Freight, Trade and Connectivity : Integrating multimodal freight, international trade and corridor planning into TxDOT's statewide planning and project development processes.\" *Source: Multimodal transportation programs, TxDOT, 2026. https://www.txdot.gov/projects/planning/utp/multimodal-programs.html\n\n**6. USDOT approval schedule for the plan cycle.** FACT: \"In accordance with federal regulations, the updated Plan is scheduled to be approved by the U.S. Department of Transportation in early 2027.\" *Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html\n\nNo source in this pool states a compliance deadline, fine, or penalty running to a shipper, freight forwarder, or carrier for non-engagement with the TFMP process; the framework does not create shipper-facing penalties, and federal consequences of Texas failing to maintain an approved plan under 49 USC 70202 are not described in the available source content.\n\nNo exceptions are stated in Sections covering the TFMP's federal content requirements, stakeholder engagement design, and UTP programme structure.\n\nNo scope limits are stated in Sections covering the TFMP's federal content requirements, stakeholder engagement design, and UTP programme structure.\n\nObligations surveyed: 6; workspace-adjacent: 6; extracted as FACT: 6.\n\n# 10. Registration and Reporting Obligations\n\nNo shipper-facing registration or reporting obligations are created by the TxDOT freight planning framework.\n\n*Operational implication:* the closest analogue to \"registration\" is voluntary participation in TxDOT's stakeholder engagement process for the 2027 TFMP. Contact TxDOT_Freight@txdot.gov to request inclusion.\n\nFACT: \"Subscribe to updates\" -- TxDOT provides a subscription service (email and SMS/text) for freight planning updates. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n# 11. Operational System Requirements\n\n*This section addresses what the workspace should build in its internal intelligence and engagement systems -- not regulatory compliance systems, which do not apply here.*\n\n**Intelligence tracking.** *Operational implication:* map the workspace's Texas corridor exposure against TxDOT's published regional freight study archive (Section 13) and the 2027 TFMP development timeline (Section 14).\n\n**Subscription channel.** FACT: \"Subscribe to updates\" is the minimum-cost mechanism for tracking when the 2027 TFMP moves through its development phases. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n**Engagement protocol.** *Analytical inference:* assess which Texas corridors are operationally material, verify TFAC/MPO representation, and engage TxDOT Freight ahead of the bottleneck-assessment phase (Section 14).\n\n# 12. Exemptions and Edge Cases\n\n*Analytical inference:* no shipper-facing exemptions or carve-outs exist in this framework -- it does not impose obligations from which exemption is needed. The relevant edge cases are geographic-scope questions:\n\nFACT: the framework explicitly encompasses international trade and border planning, including the \"Texas-Mexico Border Transportation Master Plan update\" (a separate TxDOT planning track). *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\nFACT: \"Gulf Intracoastal Waterway\" is listed as a distinct TxDOT freight planning topic alongside the TFMP. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\nFACT: TxDOT maintains a separate \"Highway designations\" track and glossary within the freight planning framework. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n# 13. Adjacent Industry Research and Alternatives\n\nFACT: TxDOT's regional and topic-specific freight study archive names: \"2024 El Paso and Far West Texas Truck Parking 2024 Houston and Southeast Texas Truck Parking 2024 Truck Parking Availability System (TPAS) 2021 Freight Infrastructure Design Considerations Executive Summary 2021 Freight Infrastructure Design Considerations Final Report 2021 Freight Infrastructure Design Considerations Final Report Appendices 2021 The Economic Role of Freight in Texas 2021 Rio Grande Valley Freight and Trade Transportation Plan 2020 Permian Basin Regional Freight Plan 2020 Presidio Freight and Trade Transportation Plan 2020 Texas Freight Network Technology and Operations Plan 2020 Presidio Freight and Trade Transportation Plan Executive Summary 2020 State of Freight Infrastructure in the San Antonio Region 2020 Statewide Truck Parking Study\" *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\nFACT: \"2024 Truck Parking Availability System (TPAS)\" was published in 2024 alongside regional truck parking studies. *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\nFACT: TxDOT published \"2021 The Economic Role of Freight in Texas\". *Source: Freight planning page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning.html\n\n*Analytical inference:* this archive is the operational planning landscape a workspace should check for prior bottleneck findings overlapping its own Texas trade lanes; specific figures within these documents are not reproduced in the source pool and should be verified directly.\n\n# 14. Confirmed Regulatory Timeline\n\n| Date / Period | Milestone | Source |\n|---|---|---|\n| 2016 | I-45 Freight Corridor Plan published | TxDOT archive |\n| 2018 | Texas Freight Mobility Plan (first full cycle post-FAST Act) published | TxDOT archive / FNTOP source |\n| 2020 | Texas Freight Network Technology and Operations Plan (FNTOP) published | TxDOT Research Library |\n| 2021 | Freight Infrastructure Design Considerations, Economic Role of Freight in Texas, Rio Grande Valley plan published | TxDOT archive |\n| December 6, 2023 | 2023 Texas Freight Mobility Plan (\"Texas Delivers 2050\") approved by USDOT -- current operative plan | USDOT |\n| 2024 | El Paso/Far West Texas and Houston/Southeast Texas truck parking studies, TPAS published | TxDOT archive |\n| Late 2025 | 2027 TFMP project kickoff -- data assessment, analysis of trends, disruptors, and opportunities | TxDOT TFMP page |\n| Late 2025 to Late 2027 | Public involvement period for 2027 TFMP (open now) | TxDOT TFMP page |\n| Early 2026 | Multimodal data inventory, data needs assessment, supply chain review | TxDOT TFMP page |\n| Mid 2026 | Begin stakeholder engagement; conduct freight bottleneck and network assessments | TxDOT TFMP page |\n| Late 2026 | Finalize Texas freight mobility recommendations; finalize implementation plan | TxDOT TFMP page |\n| Early 2027 | 2027 TFMP scheduled for USDOT approval under 49 USC 70202 | TxDOT TFMP page |\n\n*Source for Late 2025-Early 2027 milestones: Texas Freight Mobility Plan page, TxDOT, 2026, https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html. Source for December 2023 USDOT approval: Texas Freight Plan, U.S. Department of Transportation, updated December 6, 2023, https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan.*\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Freight planning | TxDOT | https://www.txdot.gov/projects/planning/freight-planning.html |\n| 2 | Texas Freight Mobility Plan | TxDOT | https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html |\n| 3 | Texas Freight Plan | U.S. Department of Transportation | https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan |\n| 4 | Multimodal transportation programs | TxDOT | https://www.txdot.gov/projects/planning/utp/multimodal-programs.html |\n| 5 | Texas Freight Network Technology and Operations Plan (FNTOP) | TxDOT Research Library, UT Austin CTR | https://library.ctr.utexas.edu/Presto/content/Detail.aspx?ctID=UHVibGljYXRpb25fMTE2MTA%3D&rID=MzM1NDM%3D&ssid=c2NyZWVuSURfMjEzMjI%3D |\n",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "stable",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "transport",
-          "corridors"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "what_is_it": "TxDOT's statewide freight planning framework -- the Texas Freight Mobility Plan (current operative 2023 edition, 2027 update in progress) plus the Texas Freight Advisory Committee and UTP multimodal programmes -- a state planning instrument, not a shipper-facing regulation.",
-        "why_matters": "TFMP recommendations flow into the UTP and STIP funding programmes that determine Texas freight infrastructure investment for a four-year cycle, and the 2027 update's public-involvement window (through Late 2027) is the workspace's chance to shape which corridor, border, and truck-parking priorities get funded.",
-        "key_data": [
-          "2023 TFMP (Texas Delivers 2050) approved by USDOT 6 December 2023",
-          "2027 TFMP scheduled for USDOT approval early 2027",
-          "Bottleneck and network assessment phase scheduled Mid 2026",
-          "Public involvement period Late 2025 to Late 2027"
-        ],
-        "cost_mechanism": null,
-        "requirement_trajectory": {
-          "steps": [
-            {
-              "date": "2018",
-              "value": "TFMP cycle",
-              "label": "First full TFMP cycle post-FAST Act published"
-            },
-            {
-              "date": "2023",
-              "value": "TFMP cycle",
-              "label": "Texas Delivers 2050 approved by USDOT"
-            },
-            {
-              "date": "2025-2027",
-              "value": "TFMP cycle",
-              "label": "2027 TFMP development, public involvement, and USDOT approval"
-            }
-          ],
-          "note": "Four-year statutory update cycle under 49 USC 70202; no sub-cycle phase-in of individual plan elements is stated."
-        },
-        "penalty_range": null,
-        "enforcement_body": "USDOT/FHWA approve state freight plans under 49 USC 70202; no enforcement body for shipper-facing non-compliance is named because the framework creates no shipper-facing duty.",
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "freight-forwarder",
-          "shipper",
-          "importer"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13"
-      },
-      "claims": [
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] The four-year update basis for the 2027 TFMP, verbatim.",
-          "source_span": "TxDOT is developing its 2027 TFMP. This will be the four-year update of its 2023 plan, in accordance with requirements in the Fixing America’s Surface Transportation Act and 49 USC 70202.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] TxDOT's own statement of its planning-integration role, verbatim.",
-          "source_span": "TxDOT integrates multimodal freight, trade, and economic considerations into agency-wide planning and programming activities to maintain and improve freight-supportive infrastructure across the state.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] Texas's economic scale, verbatim.",
-          "source_span": "If Texas were a nation, it would be the 8 th largest economy in the world. It has been the #1 U.S. exporter for 23 years in a row, and it is the largest energy-producing state in the Nation.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] Texas freight volume, verbatim.",
-          "source_span": "Each year, Texas infrastructure moves billions of tons and trillions of dollars of freight, making Texas an essential link in the global supply chain.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "2"
-        },
-        {
-          "slot_key": "primary_deadline",
-          "claim_kind": "FACT",
-          "claim_text": "[primary_deadline] The 2027 TFMP's USDOT approval schedule, verbatim.",
-          "source_span": "In accordance with federal regulations, the updated Plan is scheduled to be approved by the U.S. Department of Transportation in early 2027.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "6"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] TxDOT's own regional and topic-specific freight study archive naming the sub-regions covered, verbatim.",
-          "source_span": "2024 El Paso and Far West Texas Truck Parking 2024 Houston and Southeast Texas Truck Parking 2024 Truck Parking Availability System (TPAS) 2021 Freight Infrastructure Design Considerations Executive Summary 2021 Freight Infrastructure Design Considerations Final Report 2021 Freight Infrastructure Design Considerations Final Report Appendices 2021 The Economic Role of Freight in Texas 2021 Rio Grande Valley Freight and Trade Transportation Plan 2020 Permian Basin Regional Freight Plan 2020 Presidio Freight and Trade Transportation Plan 2020 Texas Freight Network Technology and Operations Plan 2020 Presidio Freight and Trade Transportation Plan Executive Summary 2020 State of Freight Infrastructure in the San Antonio Region 2020 Statewide Truck Parking Study",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "13"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "GAP",
-          "claim_text": "[effective_date] No verbatim effective-date statement for the current TFMP cycle was located in the captured source text; the 2023 plan is operative and the 2027 update is in development.",
-          "source_span": null,
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "2"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "[penalty_summary] No shipper-facing registration or reporting obligations, and no compliance deadline, fine, or penalty running to a freight forwarder, carrier, or shipper, are stated anywhere in this framework's source pool.",
-          "source_span": null,
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The FNTOP's own origin and scope, verbatim.",
-          "source_span": "The 2018 Texas Freight Mobility Plan (TFMP) provided Texas with a blueprint for facilitating continued economic growth through a comprehensive, multimodal strategy for addressing freight transportation. One major recommendation from the TFMP is for the TxDOT to develop and implement a statewide, technology-based freight safety and operations program... Based on this recommendation, the Freight Planning Branch within TxDOT's (TxDOT) Transportation Planning and Programming Division developed the Texas Freight Network Technology and Operations Plan (FNTOP), which outlines 12 technology based strategies, six of which were advanced to Concept of Operations, to help improve freight transportation safety and mobility in Texas.",
-          "source_url": "https://library.ctr.utexas.edu/Presto/content/Detail.aspx?ctID=UHVibGljYXRpb25fMTE2MTA%3D&rID=MzM1NDM%3D&ssid=c2NyZWVuSURfMjEzMjI%3D",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The 2027 TFMP's Policies output category, verbatim.",
-          "source_span": "Policies: Specific courses of action that, if adopted, will shape the way Texas approaches freight.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The 2027 TFMP's Programs output category, verbatim.",
-          "source_span": "Programs: Collection of initiatives or activities to achieve desired outcomes.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The 2027 TFMP's Technology & Operations output category, verbatim.",
-          "source_span": "Technology &amp; Operations: Investments that improve safety and efficiency of existing systems and prepare Texas for the future of freight mobility.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The 2027 TFMP's Projects output category, verbatim.",
-          "source_span": "Projects: Capital investments under development, proposed, and strategic.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section6] The 2027 TFMP's USDOT approval schedule, verbatim.",
-          "source_span": "In accordance with federal regulations, the updated Plan is scheduled to be approved by the U.S. Department of Transportation in early 2027.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "6"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section6] TPAS's 2024 publication, verbatim.",
-          "source_span": "2024 Truck Parking Availability System (TPAS)",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "6"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] Federal plan content requirement, TxDOT's own characterisation, verbatim.",
-          "source_span": "Texas freight transportation assets, conditions, current and future needs, and economic importance through the lens of critical supply chains as well as broader findings related to freight operations and international trade.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] Stakeholder engagement design requirement, verbatim.",
-          "source_span": "The TFMP will incorporate an active stakeholder engagement process to ensure appropriate representatives are involved in helping identify challenges and solutions to the State’s freight mobility. It will feature a multifaceted approach to ensure diverse perspectives, industries, and communities are represented and engaged.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] Engagement channel enumeration, verbatim.",
-          "source_span": "the Texas Freight Advisory Committee and Metropolitan Planning Organization freight advisory committees in the state, stakeholder workshops, interviews, project communications, surveys, and project webpage contents.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] Texas Freight Advisory Committee function, verbatim.",
-          "source_span": "The Texas Freight Advisory Committee is comprised of diverse expert industry and contributor opinions, who identify significant freight system trends, needs, and issues with respect to the State, that are critical to freight planning. These freight policies, strategies, and performance measures guide the freight-related transportation investment decisions. This long-range planning and coordination, serves as a forum for agency transportation decisions affecting the movement of goods and people.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] UTP Freight, Trade and Connectivity programme integration, verbatim.",
-          "source_span": "Freight, Trade and Connectivity : Integrating multimodal freight, international trade and corridor planning into TxDOT's statewide planning and project development processes.",
-          "source_url": "https://www.txdot.gov/projects/planning/utp/multimodal-programs.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] USDOT approval schedule for the plan cycle, verbatim (also cited in Sections 2/6).",
-          "source_span": "In accordance with federal regulations, the updated Plan is scheduled to be approved by the U.S. Department of Transportation in early 2027.",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section10] TxDOT's subscription service, verbatim.",
-          "source_span": "Subscribe to updates",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "10"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section11] TxDOT's subscription service, verbatim (also cited in Section 10).",
-          "source_span": "Subscribe to updates",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "11"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section12] The Texas-Mexico Border Transportation Master Plan update, verbatim.",
-          "source_span": "Texas-Mexico Border Transportation Master Plan update",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section12] The Gulf Intracoastal Waterway topic listing, verbatim.",
-          "source_span": "Gulf Intracoastal Waterway",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section12] The Highway designations track, verbatim.",
-          "source_span": "Highway designations",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "12"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section13] The regional and topic-specific freight study archive, verbatim (also cited as the jurisdictional_scope claim).",
-          "source_span": "2024 El Paso and Far West Texas Truck Parking 2024 Houston and Southeast Texas Truck Parking 2024 Truck Parking Availability System (TPAS) 2021 Freight Infrastructure Design Considerations Executive Summary 2021 Freight Infrastructure Design Considerations Final Report 2021 Freight Infrastructure Design Considerations Final Report Appendices 2021 The Economic Role of Freight in Texas 2021 Rio Grande Valley Freight and Trade Transportation Plan 2020 Permian Basin Regional Freight Plan 2020 Presidio Freight and Trade Transportation Plan 2020 Texas Freight Network Technology and Operations Plan 2020 Presidio Freight and Trade Transportation Plan Executive Summary 2020 State of Freight Infrastructure in the San Antonio Region 2020 Statewide Truck Parking Study",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section13] TPAS's 2024 publication, verbatim.",
-          "source_span": "2024 Truck Parking Availability System (TPAS)",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "13"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section13] The Economic Role of Freight in Texas (2021), verbatim.",
-          "source_span": "2021 The Economic Role of Freight in Texas",
-          "source_url": "https://www.txdot.gov/projects/planning/freight-planning.html",
-          "section": "13"
         }
       ]
     },
@@ -1828,7 +1536,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section1] Part 814's own applicability and definition, verbatim from the regulation text reproduced in the NYS DOT Mover's Guide.",
+          "claim_text": "[jurisdictional_scope] [section1] Part 814's own applicability and definition, verbatim from the regulation text reproduced in the NYS DOT Mover's Guide.",
           "source_span": "This Part is applicable to the transportation of household goods, defined as personal effects and property used or to be used in a dwelling when a part of the equipment or supply of such dwelling and such other similar property.",
           "source_url": "https://www.dot.ny.gov/divisions/operating/osss/repository/HHG%20Binder-%20Updated%202-28-24.pdf",
           "section": "1"
@@ -1852,7 +1560,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "[section3] NYC DOT's cross-over mirror requirement, verbatim from its Trucks and Commercial Vehicles page.",
+          "claim_text": "[jurisdictional_scope] [section3] NYC DOT's cross-over mirror requirement, verbatim from its Trucks and Commercial Vehicles page.",
           "source_span": "Cross over mirrors must be installed on all trucks that Qualify as Commercial Vehicles , Are registered in New York State, and Operate in New York City (except for expressways).",
           "source_url": "http://nyc.gov/trucks",
           "section": "3"
@@ -2605,7 +2313,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No penalty, fine, or sanctions provision identified anywhere in this Regulation's captured text; full-document search for \"enalt\"/\"sanction\" returned zero matches.",
+          "claim_text": "[penalty_summary] No penalty, fine, or sanctions provision identified anywhere in this Regulation's captured text; full-document search for \"enalt\"/\"sanction\" returned zero matches.",
           "source_span": null,
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0815",
           "section": "8"
@@ -2613,176 +2321,9 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "GAP",
-          "claim_text": "No compliance deadline distinct from the Article 2 entry-into-force date was found in the captured text.",
+          "claim_text": "[primary_deadline] No compliance deadline distinct from the Article 2 entry-into-force date was found in the captured text.",
           "source_span": null,
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0815",
-          "section": "8"
-        }
-      ]
-    },
-    {
-      "item_id": "128bc6c1-d210-43f6-a4cd-4ce965c36b3d",
-      "source_pool_hash": "4d79ff12d7aa824e70f2bb9248133795db40409d606ea5a44801ddf1aa30d259",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks FACT: \"COMMISSION DECISION (EU) 2022/779 of 13 April 2022\" (CELEX 32022D0779), a consistency finding on the performance targets in Poland's draft RP3 (third reference period) performance plan for air navigation services, assessed under Regulation (EC) No 549/2004 and Implementing Regulation (EU) 2019/317. It exists to give a workspace with Polish airspace or airport exposure (transit, transhipment, or destination) a record of the Commission's own findings on Polish ANS capacity and cost-efficiency targets.\n\nFACT: \"The performance targets contained in the draft performance plan submitted by Poland, pursuant to Regulation (EC) No 549/2004, and listed in the Annex to this Decision, are consistent with the Union-wide performance targets for the third reference period set out in Implementing Decision (EU) 2021/891.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Analytical inference:* the overall consistency finding is positive, but the Commission's own recitals (Section 8) record specific capacity concerns at four named Polish airports -- the finding is not an unqualified clean bill.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"With regard to airports which fall within the scope of Implementing Regulation (EU) 2019/317\" the Commission complemented its en route capacity assessment with a review of terminal air navigation service capacity targets. *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Operational implication:* for a workspace routing air freight through or connecting via Polish airports, this Decision's recitals are the most current Commission-level assessment of expected air traffic flow management (ATFM) delay at those airports for the RP3 period.\n\n# 3. Issues Requiring Immediate Action\n\n**MONITORING** -- FACT: \"the airports of Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice and Katowice-Pyrzowice are expected to experience higher ATFM delays than those forecasted for similar airports.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Operational implication:* a workspace with time-critical air freight (live events, film & TV, fine art) transiting Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice, or Katowice-Pyrzowice should build in schedule buffer against the Commission's own higher-than-comparator ATFM delay expectation for RP3.\n\n# 4. How the Workspace Sits in the Compliance Chain\n\nThis Decision addresses only the Republic of Poland (Article 2); it creates no obligation running to a freight forwarder, carrier, or air navigation service provider directly. FACT: \"This Decision is addressed to the Republic of Poland.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Analytical inference:* the workspace's exposure is indirect -- through the ANS capacity and cost-efficiency outcomes this Decision records for Poland, which affect flight punctuality and en route charges on Polish-airspace routes, not through any duty this Decision itself imposes on the workspace.\n\n# 5. Authoritative Guidance Document Analysis\n\nFACT: \"Poland should further justify the terminal capacity targets for RP3 in light of the observations set out in recital 28, or should revise downwards those targets.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Legal Confirmation Required:* whether Poland has since justified or revised the terminal capacity targets referenced above, and the outcome of that step, is not addressed by this Decision itself and would need to be confirmed against Poland's finalised RP3 performance plan.\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n*No content for this section as of the export date -- the export's forward-events record is empty for this item, and the Decision's own text sets no further forward milestone beyond the RP3 period's own cost-efficiency targets already carried in Section 8.*\n\n# 7. Threshold Questions\n\n**Q1: Does this Decision create a direct obligation on freight or aviation operators?** *Analytical inference:* no -- Article 2 addresses only the Republic of Poland; it is a Member-State-facing consistency finding, not an operator-facing regulation.\n\n**Q2: Are the capacity concerns at the four named airports resolved?** *Legal Confirmation Required:* not addressed by this Decision itself; see Section 5.\n\n# 8. Substantive Requirements\n\n*Note: this Decision's own two Articles record a consistency finding and name the addressee; it creates no shipper-, carrier-, or operator-facing obligation. \"Substantive requirements\" here means the Commission's own recorded findings on Poland's RP3 performance targets, surveyed because each is operationally relevant to a workspace with Polish airspace or airport exposure.*\n\n**1. Overall consistency finding (Article 1).** FACT: \"The performance targets contained in the draft performance plan submitted by Poland, pursuant to Regulation (EC) No 549/2004, and listed in the Annex to this Decision, are consistent with the Union-wide performance targets for the third reference period set out in Implementing Decision (EU) 2021/891.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n**2. Terminal capacity concern at four named airports.** FACT: \"the airports of Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice and Katowice-Pyrzowice are expected to experience higher ATFM delays than those forecasted for similar airports.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n**3. Corrective step identified for Poland.** FACT: \"Poland should further justify the terminal capacity targets for RP3 in light of the observations set out in recital 28, or should revise downwards those targets.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n**4. En route cost-efficiency -- short-term DUC trend.** FACT: \"the en route DUC trend of Poland at charging zone level of -1,7 % per year over RP3 outperforms the Union-wide trend of +1,0 % over the same period.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Operational implication:* a faster-than-Union-average cost reduction trend is favourable for a workspace's en route charge exposure on Polish-airspace routes.\n\n**5. En route cost-efficiency -- long-term DUC trend.** FACT: \"the long-term en route DUC trend of Poland at charging zone level over RP2 and RP3 of -0,4 % per year underperforms the long-term Union-wide trend of -1,3 % over the same period.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\n*Operational implication:* over the longer RP2-RP3 horizon Poland's cost trend lags the Union-wide average, a countervailing signal to obligation 4 above.\n\n**6. En route cost-efficiency -- baseline DUC benchmark.** FACT: \"the baseline value for the DUC of EUR 41,07 of Poland in real terms at 2017 prices (‘EUR2017’) is 5,4 % higher than the average baseline value of EUR 38,96 in EUR2017 of the relevant comparator group.\" *Source: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779\n\nNo phase-in is stated in Articles 1 to 2.\n\nNo source in this pool states a penalty, fine, or sanction provision: this Decision is a consistency finding confirming that Poland's draft RP3 performance targets align with the Union-wide targets, with no enforcement provision of its own.\n\nNo exceptions are stated in Articles 1 to 2 (the recitals' own reference to COVID-19 \"exceptional measures\" for RP3 describes a separate derogation regime under Implementing Regulation (EU) 2020/1627, not an exception within this Decision's own two operative Articles).\n\nFACT: \"With regard to airports which fall within the scope of Implementing Regulation (EU) 2019/317\" is the only unnegated scope-limiting language in the captured recitals, and it describes the scope of a separate instrument (Implementing Regulation (EU) 2019/317), not a scope limit on this Decision's own two Articles.\n\nObligations surveyed: 6; workspace-adjacent: 6; extracted as FACT: 6.\n\n# 9. Product-Specific Compliance Status\n\n*No content for this section as of the export date -- this Decision addresses no product category.*\n\n# 10. Registration and Reporting Obligations\n\n*No content for this section as of the export date -- this Decision creates no registration or reporting obligation on any private party; Article 1's performance-plan submission is a Member-State-to-Commission process, already recorded in Section 8, obligation 1.*\n\n# 11. Operational System Requirements\n\n*No content for this section as of the export date -- this Decision creates no operational system requirement on any private party.*\n\n# 12. Exemptions and Edge Cases\n\n*No content for this section as of the export date -- this Decision imposes no obligation on a private party from which an exemption would be needed.*\n\n# 13. Adjacent Industry Research and Alternatives\n\n*No content for this section as of the export date -- the captured page carries no adjacent research or alternative-instrument content beyond this Decision's own recitals and two Articles.*\n\n# 14. Confirmed Regulatory Timeline\n\n- 1 October 2021: all Member States' draft RP3 performance plans, including Poland's, \"were submitted to the Commission for assessment by 1 October 2021\".\n- 13 April 2022: FACT: \"COMMISSION DECISION (EU) 2022/779 of 13 April 2022\" -- adopted.\n\n*Source for timeline entries: Commission Implementing Decision (EU) 2022/779, EUR-Lex CELEX 32022D0779, https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779.*\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Commission Implementing Decision (EU) 2022/779 of 13 April 2022 | EU legislative act (EUR-Lex) | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779 |\n",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "informational",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "transport"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "what_is_it": "Commission Implementing Decision (EU) 2022/779 (13 April 2022), a Commission consistency finding on Poland's draft RP3 (2020-2024, in practice assessed through 2024) air navigation services performance targets against the Union-wide RP3 targets, including specific terminal-capacity concerns at four named Polish airports.",
-        "why_matters": "The Decision itself binds only Poland, but its recitals record a Commission finding that four major Polish airports (Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice, Katowice-Pyrzowice) are expected to experience higher-than-comparator ATFM delays for RP3, and record Poland's en route cost-efficiency trend relative to the Union average -- both operationally relevant to a workspace routing air freight through Polish airspace.",
-        "key_data": [
-          "RP3 performance plans submitted to the Commission by 1 October 2021",
-          "Four named Polish airports flagged for higher-than-comparator ATFM delay",
-          "Poland's short-term en route DUC trend outperforms the Union average by roughly 2.7 percentage points per year"
-        ],
-        "cost_mechanism": "En route air navigation service charges are set via the determined unit cost (DUC) mechanism assessed in this Decision's recitals; a lower DUC trend favours lower en route charges on Polish-airspace routes.",
-        "requirement_trajectory": null,
-        "penalty_range": null,
-        "enforcement_body": null,
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "carrier-air",
-          "aircraft-operator",
-          "airport-operator"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13"
-      },
-      "claims": [
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] Article 2's own addressee clause, verbatim.",
-          "source_span": "This Decision is addressed to the Republic of Poland.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "4"
-        },
-        {
-          "slot_key": "primary_deadline",
-          "claim_kind": "FACT",
-          "claim_text": "[primary_deadline] The recitals' own record of the RP3 performance-plan submission deadline, verbatim (background context, not a forward deadline this Decision imposes).",
-          "source_span": "were submitted to the Commission for assessment by 1 October 2021",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "14"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section14] The instrument's own title and adoption date, verbatim.",
-          "source_span": "COMMISSION DECISION (EU) 2022/779 of 13 April 2022",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "14"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "GAP",
-          "claim_text": "[effective_date] This Decision contains no entry-into-force clause distinct from its own adoption date of 13 April 2022 recorded in the preamble.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "1"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "[penalty_summary] This Decision establishes no fine, penalty, or sanction regime: it is a consistency finding confirming that Poland's draft RP3 performance targets align with the Union-wide targets, with no enforcement provision of its own.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section1] Article 1's own consistency finding, verbatim.",
-          "source_span": "The performance targets contained in the draft performance plan submitted by Poland, pursuant to Regulation (EC) No 549/2004, and listed in the Annex to this Decision, are consistent with the Union-wide performance targets for the third reference period set out in Implementing Decision (EU) 2021/891.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] The recitals' own scope reference to Implementing Regulation (EU) 2019/317's terminal ANS review, verbatim.",
-          "source_span": "With regard to airports which fall within the scope of Implementing Regulation (EU) 2019/317",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section3] The recitals' own airport-level ATFM delay finding, verbatim.",
-          "source_span": "the airports of Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice and Katowice-Pyrzowice are expected to experience higher ATFM delays than those forecasted for similar airports.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "3"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section5] The recitals' own corrective-step language for Poland, verbatim.",
-          "source_span": "Poland should further justify the terminal capacity targets for RP3 in light of the observations set out in recital 28, or should revise downwards those targets.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "5"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] Article 1's own consistency finding, verbatim (also cited in Section 1).",
-          "source_span": "The performance targets contained in the draft performance plan submitted by Poland, pursuant to Regulation (EC) No 549/2004, and listed in the Annex to this Decision, are consistent with the Union-wide performance targets for the third reference period set out in Implementing Decision (EU) 2021/891.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] The recitals' own airport-level ATFM delay finding, verbatim (also cited in Section 3).",
-          "source_span": "the airports of Warszawa-Chopin, Warszawa-Modlin, Krakow-Balice and Katowice-Pyrzowice are expected to experience higher ATFM delays than those forecasted for similar airports.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] The recitals' own corrective-step language, verbatim (also cited in Section 5).",
-          "source_span": "Poland should further justify the terminal capacity targets for RP3 in light of the observations set out in recital 28, or should revise downwards those targets.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] The recitals' own short-term en route DUC trend finding, verbatim.",
-          "source_span": "the en route DUC trend of Poland at charging zone level of -1,7 % per year over RP3 outperforms the Union-wide trend of +1,0 % over the same period.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] The recitals' own long-term en route DUC trend finding, verbatim.",
-          "source_span": "the long-term en route DUC trend of Poland at charging zone level over RP2 and RP3 of -0,4 % per year underperforms the long-term Union-wide trend of -1,3 % over the same period.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[substantive_requirement] The recitals' own baseline DUC benchmark finding, verbatim.",
-          "source_span": "the baseline value for the DUC of EUR 41,07 of Poland in real terms at 2017 prices (‘EUR2017’) is 5,4 % higher than the average baseline value of EUR 38,96 in EUR2017 of the relevant comparator group.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] The recitals' own scope reference, verbatim (also cited in Section 2, used here for the qualification-accounting scope capture).",
-          "source_span": "With regard to airports which fall within the scope of Implementing Regulation (EU) 2019/317",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D0779",
           "section": "8"
         }
       ]
@@ -3962,7 +3503,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No penalty, fine, or sanctions provision identified anywhere in this rule's captured text; this is an EPA redesignation and maintenance-plan approval action, not a rule imposing new penalty-bearing obligations on private operators. Full-text search for \"penalt\"/\"sanction\" returned zero matches.",
+          "claim_text": "[penalty_summary] No penalty, fine, or sanctions provision identified anywhere in this rule's captured text; this is an EPA redesignation and maintenance-plan approval action, not a rule imposing new penalty-bearing obligations on private operators. Full-text search for \"penalt\"/\"sanction\" returned zero matches.",
           "source_span": null,
           "source_url": "https://www.federalregister.gov/documents/2026/07/09/2026-13843/air-plan-approval-michigan-redesignation-and-maintenance-plan-for-the-partial-st-clair-2010-1-hour",
           "section": "8"
@@ -3970,7 +3511,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "GAP",
-          "claim_text": "No compliance deadline on private operators, distinct from the effective date, is established; the only procedural deadline in the captured text is the September 8, 2026 judicial-review petition window, which runs to a party challenging the rule in court, not to a freight forwarder or its industrial clients as an operational compliance deadline.",
+          "claim_text": "[primary_deadline] No compliance deadline on private operators, distinct from the effective date, is established; the only procedural deadline in the captured text is the September 8, 2026 judicial-review petition window, which runs to a party challenging the rule in court, not to a freight forwarder or its industrial clients as an operational compliance deadline.",
           "source_span": null,
           "source_url": "https://www.federalregister.gov/documents/2026/07/09/2026-13843/air-plan-approval-michigan-redesignation-and-maintenance-plan-for-the-partial-st-clair-2010-1-hour",
           "section": "8"
@@ -3998,282 +3539,6 @@
           "source_span": "As required by the Clean Air Act, EPA finds that &nbsp;four &nbsp; states failed to submit complete State Implementation Plan (SIP) submissions for areas designated nonattainment for the 2010 1-hour primary National Ambient Air Quality Standard (NAAQS) for sulfur dioxide (SO2).",
           "source_url": "https://www.epa.gov/so2-pollution/2010-sulfur-dioxide-national-ambient-air-quality-standards-implementation-actions",
           "section": "13"
-        }
-      ]
-    },
-    {
-      "item_id": "1917da73-7c0b-4dde-b283-610fdef77599",
-      "source_pool_hash": "0894dcdef503971abb923e89c80d78a3a917494bbbd72bbacda4f9cdc3303603",
-      "body": "# 1. Purpose and Scope of This Document\n\nThis document tracks Council Decision (EU) 2016/807 of 15 March 2016, an internal EU procedural\ninstrument that authorises Member States to express the European Union's position, and to consent to be\nbound, at three International Maritime Organization (IMO) committee sessions: the 40th Facilitation\nCommittee, the 69th Marine Environment Protection Committee, and the 96th Maritime Safety Committee. It\nis not a rule imposing a direct obligation on a freight forwarder, carrier, or logistics operator; it\nexists so a workspace tracking how EU maritime-safety and environmental instruments absorb IMO-level\ntechnical amendments has a record of this procedural step.\n\nFACT: \"Action by the Union in the sector of maritime transport should aim at improving maritime safety, protecting the marine environment and facilitating international maritime traffic.\" *Source: Council Decision (EU) 2016/807, recital 1, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Done at Brussels, 15 March 2016.\" *Source: Council Decision (EU) 2016/807, closing clause, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Those amendments are expected to be adopted during the 40th session of the FAL to be held in April 2016.\" *Source: Council Decision (EU) 2016/807, recital 2, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Coverage note.** This authoring pass reviewed the Decision's stated policy rationale (recitals) and the\nfull operative text (Articles 1 to 6) and closing clause. It does not independently confirm whether the\namendments referenced (IMO documents FAL 40/3, MEPC 69/3/3, and the MSC 96 amendments) were in fact\nadopted at the referenced IMO sessions, nor the current in-force status of the FAL Convention, MARPOL\nAnnex IV, SOLAS, the FSS Code, or the 2011 ESP Code amendments that followed.\n\n# 2. What This Regulation Is and Why It Applies to the Workspace\n\nFACT: \"The Union is neither a member of the IMO nor a contracting party to the relevant conventions and codes. It is therefore necessary for the Council to authorise the Member States to express the position of the Union and express their consent to be bound by those amendments, to the extent that they fall under the exclusive competence of the Union,\" *Source: Council Decision (EU) 2016/807, recital 14, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 1 (FAL position).** FACT: \"The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.\" *Source: Council Decision (EU) 2016/807, Article 1,\nEUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 2 (MEPC position).** FACT: \"The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.\" *Source: Council Decision (EU) 2016/807, Article 2,\nEUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 3 (MSC position).** FACT: \"The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:\" *Source: Council Decision (EU) 2016/807,\nArticle 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nThe amendments listed under Article 3 are:\n\nFACT: \"SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 4 (how the position is expressed).** FACT: \"The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.\" *Source: Council Decision (EU)\n2016/807, Article 4(1), EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.\" *Source: Council Decision (EU) 2016/807, Article 4(2), EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 5 (jurisdictional_scope).** FACT: \"[jurisdictional_scope] Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.\" *Source: Council\nDecision (EU) 2016/807, Article 5, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**Article 6.** FACT: \"This Decision is addressed to the Member States.\" *Source: Council Decision (EU) 2016/807, Article 6, EUR-Lex\nCELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n*Operational implication:* this Decision creates no direct obligation on a freight forwarder, carrier, or\nlogistics operator; it authorises Member States, not private parties, to act at the IMO. Its practical\nrelevance is background context for how EU secondary legislation later absorbs IMO-level technical\namendments to SOLAS, MARPOL, the FSS Code, and the 2011 ESP Code.\n\n# 3. Issues Requiring Immediate Action\n\n*No content for this section: this Decision was adopted in 2016 and its own procedural effect (authorising\na Member State negotiating position at three now-concluded IMO sessions) is fully historical; nothing in\nthe captured text presents an open, time-sensitive action item for the workspace today.*\n\n# 4. How the Workspace Sits in the Compliance Chain\n\n*Legal Confirmation Required:* this Decision itself creates no compliance duty running to a freight\nforwarder, carrier, or logistics operator; it is an inter-institutional EU authorisation of a Member\nState negotiating position at the IMO. Whether the referenced IMO amendments were adopted as expected,\nand the current in-force status of the resulting SOLAS, MARPOL, FSS Code, and 2011 ESP Code text, has\nnot been independently confirmed in this authoring pass and would require checking the current IMO and\nEU consolidated instruments directly.\n\n# 5. Authoritative Guidance Document Analysis\n\n*No content for this section: the captured pool contains only this Decision's own recitals, operative\nArticles, and closing clause; the IMO documents it references (FAL 40/3, MEPC 69/3/3, MSC 95/22/add.2,\nSSE 2/20) are named but their own texts were not captured in this item's pool.*\n\n# 6. Anticipated Authoritative Guidance and Pending Regulatory Events\n\n*No content for this section: this item's export carries no forward_events, and the Decision's own\nanticipated event (the FAL amendments' expected adoption in April 2016) is now, as of the export date,\nfully historical rather than pending.*\n\n# 7. Threshold Questions\n\n**Q1: Does this Decision create a direct obligation on a freight forwarder or carrier?**\n\n*Analytical inference:* No. Per Article 4(1) and Article 5 above, the position and consent this Decision\nauthorises run to Member States acting jointly, not to a private operator.\n\n**Q2: Were the referenced IMO amendments in fact adopted, and are they now in force?**\n\n*Legal Confirmation Required:* whether the FAL, MARPOL Annex IV, SOLAS, FSS Code, and 2011 ESP Code\namendments referenced in Articles 1 to 3 were adopted as expected at the 40th FAL, 69th MEPC, and 96th\nMSC sessions, and their current in-force status, requires checking the current IMO and EU consolidated\ninstruments directly; this brief's own pool does not carry that confirmation.\n\n# 8. Substantive Requirements\n\n*Note: this is a procedural Council Decision authorising an EU negotiating position at the IMO, not a\nbinding regulatory instrument imposing duties on private parties. \"Substantive requirements\" here means\nthe Decision's own stated authorisations and procedural mechanics.*\n\n**1. FAL Committee position (Article 1).** FACT: \"The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.\" *Source: Council Decision (EU)\n2016/807, Article 1, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**2. MEPC position (Article 2).** FACT: \"The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.\" *Source: Council Decision (EU) 2016/807, Article\n2, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**3. MSC position (Article 3).** FACT: \"The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:\" *Source: Council Decision (EU) 2016/807,\nArticle 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**4. SOLAS Regulation II-2/13 amendment.** FACT: \"SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,\" *Source: Council Decision (EU)\n2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**5. SOLAS Regulation II-2/18 amendment.** FACT: \"SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,\" *Source: Council Decision (EU)\n2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**6. FSS Code Chapter 8 and Chapter 17 amendments.** FACT: \"Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,\" *Source: Council Decision\n(EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\nFACT: \"Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,\" *Source: Council Decision (EU) 2016/807, Article 3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**7. 2011 ESP Code amendment.** FACT: \"The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.\" *Source: Council Decision (EU) 2016/807, Article\n3, EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**8. Position expressed jointly by Member States (Article 4(1)).** FACT: \"The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.\" *Source:\nCouncil Decision (EU) 2016/807, Article 4(1), EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**9. Minor changes without further Council decision (Article 4(2)).** FACT: \"Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.\" *Source:\nCouncil Decision (EU) 2016/807, Article 4(2), EUR-Lex CELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**10. Consent authorisation, extent limited to exclusive Union competence (jurisdictional_scope).**\nFACT: \"[jurisdictional_scope] Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.\" *Source: Council Decision (EU) 2016/807, Article 5, EUR-Lex\nCELEX:32016D0807. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n**11. No penalty provision (penalty_summary).** GAP: this Decision is a procedural authorisation of the\nEU's negotiating position at IMO committee sessions and does not itself prescribe a penalty, fine, or\nsanctions regime applicable to carriers, operators, or Member States. A full-text search of the captured\npool for \"penalt\" and \"sanction\" returned zero matches.\n\n**12. No compliance deadline (primary_deadline).** GAP: the Decision imposes no compliance deadline on\ncarriers, operators, or Member States; the recitals reference an expected April 2016 IMO session date,\nbut the operative text (Articles 1 to 6) states no deadline for Member State action.\n\n**Qualification accounting.** Per-year trajectory: No phase-in is stated in Articles 1 to 6.\n\nExceptions and carve-outs: No exceptions are stated in Articles 1 to 6.\n\nScope limits: No scope limits are stated in Articles 1 to 6.\n\nObligations surveyed: 12; workspace-adjacent: 10; extracted as FACT: 10.\n\n# 9. Product-Specific Compliance Status\n\n*No content for this section: this Decision authorises an EU negotiating position at the IMO; it does not\naddress a specific product's compliance status.*\n\n# 10. Registration and Reporting Obligations\n\n*No content for this section: no registration or reporting obligation running to a freight forwarder,\ncarrier, or private operator appears anywhere in this Decision's own captured text; Article 4 addresses\nonly how Member States express the Union's position, not a registration or reporting duty.*\n\n# 11. Operational System Requirements\n\n*No content for this section: this Decision does not impose operational system requirements on freight\nforwarders or logistics operators; its own mechanics govern only how EU Member States act at the IMO.*\n\n# 12. Exemptions and Edge Cases\n\n*No content for this section: no exemption or edge-case provision was found anywhere in this Decision's\nown captured recitals, Articles, or closing clause.*\n\n# 13. Adjacent Industry Research and Alternatives\n\n*Analytical inference:* this Decision is the EU's internal mechanism for aligning Member State action at\nthe IMO with instruments the Union later absorbs into secondary legislation (for example, passenger-ship\nsafety and single-hull tanker phase-out rules that themselves track SOLAS and MARPOL amendments); the\ncaptured pool does not itself name or quote any such downstream EU instrument, so no FACT claim is made\nabout a specific one here.\n\n# 14. Confirmed Regulatory Timeline\n\n- March 15, 2016: Council Decision (EU) 2016/807 adopted (from the instrument title and closing clause).\n- April 2016: the FAL Convention amendments referenced in Article 1 were expected to be adopted at the 40th session of the IMO Facilitation Committee (not independently confirmed as adopted in this authoring pass).\n\n*Source for timeline entries: Council Decision (EU) 2016/807, EUR-Lex CELEX:32016D0807.* https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807\n\n# 15. Sources\n\n| # | Source | Type | URL |\n|---|---|---|---|\n| 1 | Council Decision (EU) 2016/807 of 15 March 2016, EUR-Lex legal-content page | EU legislative instrument (EUR-Lex) | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807 |\n",
-      "metadata": {
-        "severity": "MONITORING",
-        "priority": "LOW",
-        "urgency_tier": "stable",
-        "format_type": "regulatory_fact_document",
-        "topic_tags": [
-          "transport"
-        ],
-        "signal_band": null,
-        "theme": null,
-        "operational_scenario_tags": [],
-        "compliance_object_tags": [
-          "freight-forwarder"
-        ],
-        "related_items": [],
-        "intersection_summary": null,
-        "sources_used": [],
-        "regeneration_skill_version": "2026-09-13",
-        "what_is_it": "Council Decision (EU) 2016/807, authorising Member States to express the EU's position and consent at the 40th IMO Facilitation Committee, the 69th Marine Environment Protection Committee, and the 96th Maritime Safety Committee sessions on amendments to the Facilitation Convention, MARPOL Annex IV, SOLAS, the FSS Code, and the 2011 ESP Code.",
-        "why_matters": "It is background context for how EU secondary legislation later absorbs IMO-level technical amendments to maritime safety and environmental instruments; it creates no direct obligation on a freight forwarder, carrier, or logistics operator.",
-        "key_data": [
-          "Adopted 15 March 2016 at Brussels",
-          "Authorises positions at three IMO committee sessions"
-        ],
-        "cost_mechanism": null,
-        "requirement_trajectory": null,
-        "penalty_range": null,
-        "enforcement_body": null
-      },
-      "claims": [
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section1] verbatim: \"Action by the Union in the sector of maritime transport should aim at improving maritime safety, protecting the marine environment and facilitating international maritime traffic.\"",
-          "source_span": "Action by the Union in the sector of maritime transport should aim at improving maritime safety, protecting the marine environment and facilitating international maritime traffic.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section1] verbatim: \"Done at Brussels, 15 March 2016.\"",
-          "source_span": "Done at Brussels, 15 March 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section1] verbatim: \"Those amendments are expected to be adopted during the 40th session of the FAL to be held in April 2016.\"",
-          "source_span": "Those amendments are expected to be adopted during the 40th session of the FAL to be held in April 2016.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "1"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The Union is neither a member of the IMO nor a contracting party to the relevant conventions and codes. It is therefore necessary for the Council to authorise the Member States to express the position of the Union and express their consent to be bound by those amendments, to the extent that they fall under the exclusive competence of the Union,\"",
-          "source_span": "The Union is neither a member of the IMO nor a contracting party to the relevant conventions and codes. It is therefore necessary for the Council to authorise the Member States to express the position of the Union and express their consent to be bound by those amendments, to the extent that they fall under the exclusive competence of the Union,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,\"",
-          "source_span": "SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,\"",
-          "source_span": "SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,\"",
-          "source_span": "Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,\"",
-          "source_span": "Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.\"",
-          "source_span": "The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.\"",
-          "source_span": "The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.\"",
-          "source_span": "Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] verbatim: \"Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.\"",
-          "source_span": "Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section2] verbatim: \"This Decision is addressed to the Member States.\"",
-          "source_span": "This Decision is addressed to the Member States.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "2"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 40th session of the IMO Facilitation Committee shall be to agree to the adoption of the amendments to the Facilitation Convention as laid down in IMO document FAL 40/3.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 69th session of the IMO Marine Environment Protection Committee shall be to agree to the adoption of the amendments to Regulations 1 and 11 of MARPOL Annex IV, as laid down in the Annex to IMO Document MEPC 69/3/3.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:\"",
-          "source_span": "The position to be adopted on behalf of the Union at the 96th session of the IMO Maritime Safety Committee shall be to agree to the adoption of the following amendments to:",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,\"",
-          "source_span": "SOLAS Regulation II-2/13 as laid down in Annex 14 to IMO document MSC 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,\"",
-          "source_span": "SOLAS Regulation II-2/18 as laid down in Annex 2 to IMO document SSE 2/20,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,\"",
-          "source_span": "Chapter 8 of the FSS Code as laid down in point 1 of Annex 18 to IMO document 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,\"",
-          "source_span": "Chapter 17 of the FSS Code as laid down in point 2 of Annex 18 to IMO document 95/22/add.2,",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.\"",
-          "source_span": "The 2011 ESP Code as laid down in Annex 15 to IMO document 95/22/add.2.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.\"",
-          "source_span": "The position to be adopted on behalf of the Union as set out in Articles 1, 2 and 3 shall be expressed by the Member States, which are members of the IMO, acting jointly in the interest of the Union.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": null,
-          "claim_kind": "FACT",
-          "claim_text": "[section8] verbatim: \"Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.\"",
-          "source_span": "Minor changes to the positions referred to in Articles 1, 2 and 3 may be agreed upon without further decision of the Council.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": "jurisdictional_scope",
-          "claim_kind": "FACT",
-          "claim_text": "[jurisdictional_scope] verbatim: \"Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.\"",
-          "source_span": "Member States are hereby authorised to give their consent to be bound, in the interest of the Union, by the amendments referred to in Articles 1, 2 and 3, to the extent that they fall under the exclusive competence of the Union.",
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": "penalty_summary",
-          "claim_kind": "GAP",
-          "claim_text": "This Decision is a procedural authorisation of the EU's negotiating position at IMO committee sessions and does not itself prescribe a penalty, fine, or sanctions regime applicable to carriers, operators, or Member States.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": "primary_deadline",
-          "claim_kind": "GAP",
-          "claim_text": "The Decision imposes no compliance deadline on carriers, operators, or Member States; the recitals reference an expected April 2016 IMO session date but the operative text states no deadline for Member State action.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "8"
-        },
-        {
-          "slot_key": "effective_date",
-          "claim_kind": "GAP",
-          "claim_text": "The Decision contains no separate entry-into-force article; as a Council Decision under Article 218(9) TFEU authorising a negotiating position, it takes effect upon adoption (15 March 2016) with no distinct coming-into-force clause.",
-          "source_span": null,
-          "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0807",
-          "section": "1"
         }
       ]
     },
@@ -5975,7 +5240,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "The Code enters into force on August 15, 2026.",
+          "claim_text": "[effective_date] The Code enters into force on August 15, 2026.",
           "source_span": "It is set to take effect on Aug. 15, 2026.",
           "source_url": "https://english.www.gov.cn/news/202603/13/content_WS69b36ae1c6d00ca5f9a09d90.html",
           "section": "2"
@@ -5999,7 +5264,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "The Code's jurisdictional scope applies (verbatim, Chinese) to pollution prevention, ecological protection, and green low-carbon development activities within PRC territory and other sea areas under PRC jurisdiction.",
+          "claim_text": "[jurisdictional_scope] The Code's jurisdictional scope applies (verbatim, Chinese) to pollution prevention, ecological protection, and green low-carbon development activities within PRC territory and other sea areas under PRC jurisdiction.",
           "source_span": "中华人民共和国领域和中华人民共和国管辖的其他海域内的污染防治、生态保护、绿色低碳发展等生态环境保护相关活动，适用本法。",
           "source_url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2026/art_e81fe47c6817477da98d33f96fdd11a3.html",
           "section": "2"
@@ -6047,7 +5312,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "FACT",
-          "claim_text": "Article 1205 fine schedule for Key Controlled New Pollutant violations, verbatim.",
+          "claim_text": "[penalty_summary] Article 1205 fine schedule for Key Controlled New Pollutant violations, verbatim.",
           "source_span": "Fines: RMB 100,000 to 500,000. If the violation is not corrected, additional fines of RMB 500,000 to 1,000,000 may be imposed.",
           "source_url": "https://en.reach24h.com/news/insights/chemical/china-ecological-environment-code",
           "section": "8"
@@ -6095,7 +5360,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "The Code's framework anticipates a transition from intensity-based benchmarks to absolute emission caps by 2027.",
+          "claim_text": "[primary_deadline] The Code's framework anticipates a transition from intensity-based benchmarks to absolute emission caps by 2027.",
           "source_span": "The Code's framework anticipates a transition from intensity-based benchmarks to absolute emission caps by 2027",
           "source_url": "https://www.allbrightlaw.com/EN/10531/177523769611f595.aspx",
           "section": "3"
@@ -6222,7 +5487,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "This Directive is addressed to the Member States.",
+          "claim_text": "[jurisdictional_scope] This Directive is addressed to the Member States.",
           "source_span": "This Directive is addressed to the Member States.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32011L0037",
           "section": "4"
@@ -6270,7 +5535,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No penalty provisions are contained in this amending directive; enforcement of the ELV heavy-metal prohibition is a matter of Member State transposition of Directive 2000/53/EC.",
+          "claim_text": "[penalty_summary] No penalty provisions are contained in this amending directive; enforcement of the ELV heavy-metal prohibition is a matter of Member State transposition of Directive 2000/53/EC.",
           "source_span": null,
           "source_url": null,
           "section": "8"
@@ -6278,7 +5543,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.",
+          "claim_text": "[effective_date] This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.",
           "source_span": "This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32011L0037",
           "section": "1"
@@ -6318,7 +5583,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "FACT",
-          "claim_text": "Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.",
+          "claim_text": "[primary_deadline] Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.",
           "source_span": "Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.",
           "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32011L0037",
           "section": "3"
@@ -7131,7 +6396,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "GAP",
-          "claim_text": "No compliance deadline: the source presents this as a voluntary standard with no mandated compliance date as of December 2023. All timeline entries reflect industry adoption milestones and programme cycles, not statutory deadlines.",
+          "claim_text": "[primary_deadline] No compliance deadline: the source presents this as a voluntary standard with no mandated compliance date as of December 2023. All timeline entries reflect industry adoption milestones and programme cycles, not statutory deadlines.",
           "source_span": null,
           "source_url": null,
           "section": "3"
@@ -7139,7 +6404,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No penalty: the source presents this as a voluntary standard / non-binding framework with no enforcement mechanism as of December 2023.",
+          "claim_text": "[penalty_summary] No penalty: the source presents this as a voluntary standard / non-binding framework with no enforcement mechanism as of December 2023.",
           "source_span": null,
           "source_url": null,
           "section": "1"
@@ -7251,7 +6516,7 @@
         {
           "slot_key": "effective_date",
           "claim_kind": "FACT",
-          "claim_text": "Following its publication, we have integrated the provisions of ISO 14083:2023 back into the GLEC Framework. The outcome, GLEC Framework v3, is now in front of you: \"Following its publication, we have integrated the provisions of ISO 14083:2023 back into the GLEC Framework. The outcome, GLEC Framework v3, is now in front of you.\"",
+          "claim_text": "[effective_date] Following its publication, we have integrated the provisions of ISO 14083:2023 back into the GLEC Framework. The outcome, GLEC Framework v3, is now in front of you: \"Following its publication, we have integrated the provisions of ISO 14083:2023 back into the GLEC Framework. The outcome, GLEC Framework v3, is now in front of you.\"",
           "source_span": "Following its publication, we have integrated the provisions of ISO 14083:2023 back into the GLEC Framework. The outcome, GLEC Framework v3, is now in front of you.",
           "source_url": "https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
           "section": "2"
@@ -7435,7 +6700,7 @@
         {
           "slot_key": "jurisdictional_scope",
           "claim_kind": "FACT",
-          "claim_text": "It covers transport operations from national to international levels, anywhere in the world.",
+          "claim_text": "[jurisdictional_scope] It covers transport operations from national to international levels, anywhere in the world.",
           "source_span": "It covers transport operations from national to international levels, anywhere in the world.",
           "source_url": "https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
           "section": "2"
@@ -7978,7 +7243,7 @@
         {
           "slot_key": "penalty_summary",
           "claim_kind": "GAP",
-          "claim_text": "No penalty is stated in IFRS S2 itself; the standard operates as a voluntary global baseline with enforcement consequences arising only from a jurisdiction's own adoption of it into binding law.",
+          "claim_text": "[penalty_summary] No penalty is stated in IFRS S2 itself; the standard operates as a voluntary global baseline with enforcement consequences arising only from a jurisdiction's own adoption of it into binding law.",
           "source_span": null,
           "source_url": "https://www.ifrs.org/issued-standards/ifrs-sustainability-standards-navigator/ifrs-s2-climate-related-disclosures/",
           "section": "8"
@@ -7986,7 +7251,7 @@
         {
           "slot_key": "primary_deadline",
           "claim_kind": "GAP",
-          "claim_text": "No compliance deadline distinct from the standard's own effective date (1 January 2024, or 1 January 2027 for the December 2025 amendments) is stated in the captured text.",
+          "claim_text": "[primary_deadline] No compliance deadline distinct from the standard's own effective date (1 January 2024, or 1 January 2027 for the December 2025 amendments) is stated in the captured text.",
           "source_span": null,
           "source_url": "https://www.ifrs.org/issued-standards/ifrs-sustainability-standards-navigator/ifrs-s2-climate-related-disclosures/",
           "section": "8"
