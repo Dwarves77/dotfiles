@@ -1,0 +1,195 @@
+{
+  "batch": "record-briefs-009b-tool",
+  "generated_at": "2026-09-18T06:00:11.208Z",
+  "entries": [
+    {
+      "item_id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+      "source_pool_hash": "3c747208b4171cbbce60b49ea651a3c617df2fc589734bad4b42b88591ece074",
+      "body": "# Blue Visby Solution\n\n**Technology Profile** | September 2026\n**Item type:** tool\n\nThe workspace's transport mode priority places ocean freight third, behind air and road. The workspace's cargo verticals (live events, fine art, luxury goods, film and TV, high-value automotive, and humanitarian) generate ocean freight shipments, and the commercial clients controlling those shipments are increasingly subject to Scope 3 emissions reporting expectations. This profile evaluates the Blue Visby Solution, a privately developed maritime vessel-scheduling optimisation platform, against what the workspace needs to understand about its claims, its access model, and its competitive relevance. No individual person, company name, or internal product is named.\n\n## What's Being Tested or Deployed and By Whom\n\nMONITORING\n\n**What the platform is:** The consortium behind the platform describes it in its own terms: \"The Blue Visby Solution is not linked to any individual trade participant and is completely independent, so that the entire industry can trust it as a neutral and collaborative platform.\" *Source: Blue Visby Consortium, \"How does it work?\", bluevisby.com.*\n\nThe consortium also frames the scale of the problem it targets in its own words: \"The Blue Visby Solution provides the platform for self-regulation and co-operation amongst all stakeholders at the scale necessary to tackle the greatest single cause of GHG emissions in maritime trade.\" This is the platform developer's own framing of significance, not an independently verified measurement, and it is presented here as a sourced claim rather than as the workspace's own assessment.\n\n**The stated mechanism has four components**, each described on the captured page:\n\n- An algorithm: \"The Blue Visby algorithm assigns optimal arrival times to each vessel sailing to a specific destination by processing four sets of parameters.\"\n- An operations system: \"The Blue Visby Operations System monitors four sets of parameters in a dynamic way.\"\n- A sharing mechanism, Blue GA: \"Blue GA is a sharing mechanism inspired by general average, which enables the stakeholders on each voyage (shipowners, charterers and cargo interests) to share the costs and benefits of the implementation of the Blue Visby Solution.\"\n- A contractual architecture: \"The participants of the Blue Visby Solution incorporate into their charter parties and cargo sale contracts a set of terms that implement the Blue Visby Operations System and Blue GA\"\n\n**Consortium composition and a specific emissions-reduction percentage.** The platform's own site links to a separate \"The Consortium\" page and a separate \"The GHG reductions\" page; neither was part of the captured source pool for this brief. *Integrity note:* no consortium-member organisation name and no specific numeric GHG-reduction percentage target appears anywhere in the captured source material. A prior draft of this profile named specific co-ordinating organisations and a specific reduction percentage; neither span is verbatim-present in the captured pool, so both are omitted here rather than restated on trust. Before any reduction figure attributed to this platform is cited to a client or in a Scope 3 disclosure, the specific percentage and its independent verification status should be confirmed directly against the platform's own \"GHG reductions\" page or consortium disclosure, not assumed from this profile. **Legal Confirmation Required** before any Blue Visby-attributed emissions-reduction figure is cited in a client contract or emissions report.\n\n**Deployment reality:** \"The below visualisation compares the traffic to Port Hedland during 2019 with how it would have been if optimised by the Blue Visby algorithm.\" *Source: Blue Visby Consortium, \"How does it work?\", bluevisby.com.* This is presented on the platform's own site as an illustrative modelling comparison, not as a record of a live, operational deployment. No named vessel operator, no confirmed pilot programme, and no confirmed live fleet enrollment appears anywhere in the captured source material. *Analytical inference:* on the evidence captured, the platform is best read as operational in contractual architecture and concept, with modelling used to illustrate the mechanism, rather than as a service with confirmed live commercial-scale carrier participation.\n\n## What This Tells Us About Industry Trajectory\n\nMONITORING\n\n**The regulatory backdrop.** \"In 2023, IMO adopted the 2023 IMO GHG Strategy, building on the Initial GHG Strategy (2018).\" *Source: International Maritime Organization, \"IMO's work to cut GHG emissions from ships,\" imo.org.* The Strategy's headline target: \"Net-zero GHG emissions from international shipping by or around, i.e. close to 2050.\" Two indicative checkpoints sit beneath that target: \"The Strategy includes indicative check-points for international shipping to reach net-zero GHG emissions for 2030 (by at least 20%, striving for 30%) and 2040 (by at least 70%, striving for 80%) compared to 2008.\" The Strategy also envisages a carbon-intensity improvement: \"the 2023 IMO GHG Strategy envisages a reduction in carbon intensity of international shipping (to reduce CO2 emissions per transport work), as an average across international shipping, by at least 40% by 2030.\"\n\n**The short-term measure already in force.** \"IMO's short-term GHG reduction measures ( EEXI, CII rating ), developed to improve ship energy efficiency and reduce carbon intensity by at least 40% compared to 2008 levels by 2030, entered into force on 1 January 2023.\" In practical terms: \"On 1 January 2023 it became mandatory for all ships to calculate their Energy Efficiency Existing Ship Index (EEXI) and to establish their annual operational carbon intensity indicator (CII) and CII rating.\" *Source: International Maritime Organization, \"IMO's work to cut GHG emissions from ships,\" imo.org.*\n\n**Why this matters for a platform like Blue Visby.** *Analytical inference:* because IMO's Carbon Intensity Indicator rating already creates a recurring, mandatory per-vessel efficiency assessment tied to the 2030 and 2040 checkpoints above, a platform whose stated mechanism reduces fuel burn per voyage sits inside an active, tightening regulatory trajectory rather than a purely voluntary market experiment. This inference traces to the sourced checkpoints and the sourced CII/EEXI facts stated above; it introduces no new unsourced figure.\n\n**The broader ecosystem.** IMO's own Future Fuels and Technology Project situates this kind of tool within a wider institutional effort: \"The website has been developed by Future Fuels and Technology Project (FFT Project) supporting the implementation of the 2023 IMO GHG Strategy by facilitating relevant information sharing.\" *Source: IMO / Republic of Korea Partnership Project, \"Future Fuels and Technology,\" futurefuels.imo.org.* No named freight-forwarding competitor's engagement with Blue Visby specifically appears in the captured source material; that gap is carried forward to the Competitive Positioning section below rather than repeated here.\n\n## Supplier Access and Procurement Reality\n\nMONITORING\n\n**Access model:** \"The participants of the Blue Visby Solution incorporate into their charter parties and cargo sale contracts a set of terms that implement the Blue Visby Operations System and Blue GA.\" *Source: Blue Visby Consortium, \"How does it work?\", bluevisby.com.* Participants also join a governance body: \"They also become members of an association modelled on Protection and Indemnity Clubs, the Blue Visby Mutual Association, which regulates the relationships amongst participants, and administers Blue GA, with complete independence, neutrality and integrity.\"\n\n*Analytical inference:* the workspace, in its role as freight forwarder, does not itself operate vessels or sign charter parties as principal. The platform's contractual architecture requires shipowners, charterers, and cargo interests to incorporate its terms directly. For the workspace's clients to see any benefit attributable to this platform, the ocean carriers the workspace books with would need to be enrolled participants themselves; whether any carrier the workspace currently uses has done so does not appear in the captured source material. This is a research gap requiring direct carrier inquiry, not an assumption either way.\n\n**Pricing, membership cost, and enrollment scale.** None of these appear in the captured source material: no membership fee, no onboarding cost, and no participant or fleet count is stated on the captured page.\n\n**Intellectual property:** \"The Blue Visby Solution is protected by patents and trademarks.\" The scope and jurisdiction of that protection is not detailed in the captured source material.\n\n## Operational Fit by Transport Mode and Cargo Vertical\n\nMONITORING\n\n**Air (the workspace's primary mode) and road (secondary mode):** *Analytical inference:* the mechanism described in the sections above operates entirely through vessel arrival-timing, voyage-level fuel consumption, and ocean charter-party or cargo-sale contract terms; nothing in the captured source material describes an application to air or road carriage. On the evidence captured, the platform has no described relevance to the workspace's air or road operations.\n\n**Ocean (tertiary mode, but the mode this platform addresses):** This is the mode the platform's own mechanism targets. For the workspace's cargo verticals moving by ocean:\n\n- **Live events and film and TV:** these shipments are frequently schedule-critical (a venue opening date, a production start date). The sharing mechanism's own description includes \"the costs of the prolongation of the ocean passage\" as one of the things participants share. *Analytical inference:* if arrival-time optimisation under this mechanism extends transit time versus a vessel's fastest possible passage, that prolongation is in direct tension with a schedule-critical shipment unless the cost and schedule risk can be contractually managed. **Legal Confirmation Required** on how the platform's sharing mechanism treats voyage-prolongation liability in a schedule-critical cargo context, since that treatment does not appear in the captured source material.\n- **Fine art and luxury goods:** these shipments typically move on tight custody and insurance chains. *Analytical inference:* incorporating new contractual terms into a cargo sale contract, as this platform's architecture calls for, raises insurance and custody questions that would need review by the workspace's legal counsel and cargo underwriters before any client recommendation; the captured source material does not address cargo insurance treatment under this platform.\n- **High-value automotive:** *Analytical inference:* ocean automotive volumes are often less schedule-critical than live events or film and TV shipments, which may make this vertical more tolerant of voyage-timing changes than schedule-critical verticals; this is drawn from the general shipment-timing characteristics of the vertical, not from anything the captured source material states about automotive cargo specifically.\n- **Humanitarian:** humanitarian cargo often moves under UN or NGO logistics instruments with their own contract terms. Whether this platform's contractual architecture is compatible with those instruments does not appear in the captured source material. This is a research gap, not an assumption of compatibility or incompatibility.\n\n## Competitive Positioning Implications for the Workspace\n\nCOMPETITIVE EDGE\n\n**The opportunity, if it scales:** *Analytical inference:* sustainability credentials in ocean freight are a growing commercial differentiator as shippers face Scope 3 disclosure expectations. If this platform reaches confirmed enrollment among the ocean carriers the workspace books with, it would become a credential the workspace could reference in commercial conversations. This inference traces to the platform mechanism described above (What's Being Tested or Deployed) and introduces no new unsourced fact.\n\n**The current limitation:** because confirmed carrier enrollment does not appear in the captured source material, the workspace cannot yet point to this platform as an active service its bookings benefit from. Presenting the benefit before carrier enrollment is confirmed creates reputational and legal exposure, particularly where a client would rely on an emissions figure for its own Scope 3 reporting.\n\n**Named competitor positioning:** no sourced information about a named freight-forwarding competitor's engagement with this platform appears in the captured source material. This is carried forward from the Industry Trajectory section above as an open research gap, not treated as evidence either way.\n\n**An indirect competitive lever available today:** *Analytical inference:* the CII rating framework described above (What This Tells Us About Industry Trajectory) means a forwarder can already track carrier CII ratings, published under existing IMO reporting requirements, and factor them into carrier selection for clients where Scope 3 credibility matters, independent of whether any carrier has joined this specific platform. This traces to the sourced CII facts above and introduces no new unsourced figure.\n\n## Conversational and Strategic Talking Points\n\n**What the workspace can credibly say today:**\n\n- There is a maritime industry platform, the Blue Visby Solution, that targets the \"sail fast, then wait\" inefficiency in vessel scheduling through a multilateral contractual mechanism; the workspace is aware of it and will follow confirmed carrier enrollment on routes relevant to a client's shipments.\n- The workspace already tracks carrier CII ratings on ocean lanes under existing IMO reporting requirements and can factor vessel efficiency performance into carrier selection where Scope 3 credibility matters to a client's reporting.\n\n**What the workspace should not say:**\n\n- The workspace should not cite a specific numeric emissions-reduction figure for this platform: no such figure appears in the captured source material, and the platform's own site directs that claim to a separate page this profile could not capture.\n- The workspace should not present this platform as a service it currently delivers, or as something with confirmed carrier enrollment on its own trade lanes, absent direct confirmation from those carriers.\n\n**Questions to pose to clients:**\n\n- Does the client's ocean supply chain tolerate flexible transit windows, or are vessel arrival dates a hard contractual deadline? This determines whether a voyage-timing optimisation mechanism like this one is workable or a scheduling risk.\n- Are the client's ocean carriers reporting CII ratings the workspace can factor into carrier selection?\n\n**Pitfalls to avoid:**\n\n- Treating this platform as a regulatory compliance response: it is a voluntary commercial platform operating inside the regulatory environment the IMO GHG Strategy and CII rating system create, not a response to either.\n- Overstating the platform's current deployment maturity beyond what the captured source material supports (contractual architecture and concept described; live commercial-scale carrier participation not confirmed).\n\n## Time-to-Market, Procurement Window, and Action\n\nMONITORING\n\n**Action window:**\n- 2030: the IMO GHG Strategy's own indicative checkpoint (Section 2 above) is the earliest external deadline against which a workspace-contracted ocean carrier's own adoption timeline for this platform would be benchmarked.\n\n**Current availability:** the captured source material describes a contractual architecture and a governance body (the Blue Visby Mutual Association) as already defined; confirmed commercial-scale deployment across ocean carriers on the trade lanes relevant to the workspace does not appear in the captured source material.\n\n**When the workspace would need to decide anything:** *Analytical inference:* the workspace does not itself procure this platform, so no near-term procurement decision applies. A decision point would arrive only once an ocean carrier the workspace regularly books confirms participation, at which point the workspace should weigh: whether voyage-prolongation terms are compatible with schedule-critical client contracts (see Operational Fit above); whether any platform-attributed emissions figure can be used under the Scope 3 accounting standard a given client applies; and whether cargo insurance and liability terms for high-value verticals need review.\n\n**Specific actions the workspace can take now, without waiting on the platform:**\n\n1. Ask two or three primary ocean carriers directly whether they are enrolled participants in this platform or intend to enroll, and log the answers. This turns the open research gap above from silence into confirmed data, at no cost, and does not depend on this platform's own disclosures.\n2. Pull carrier CII rating data, already available under existing IMO reporting requirements, and use it as a carrier-selection input for clients with active Scope 3 reporting needs. This is deliverable today, independent of this platform, and traces to the CII facts already sourced above.\n3. Do not incorporate any specific Blue Visby-attributed reduction figure into a client proposal or Scope 3 report; none is grounded in the captured source material, and the platform's own site routes that specific claim to a page this profile could not capture.\n4. Flag the voyage-prolongation question (see Operational Fit above) to commercial leads covering schedule-critical verticals, so it is resolved before any client recommendation involving this platform.\n\n**Participation pathway:** *Analytical inference:* the captured source material describes participation as running through shipowners, charterers, and cargo interests incorporating contractual terms and joining the Mutual Association, not through a freight forwarder joining directly. No public route for a freight-forwarder role specifically to participate in this platform appears in the captured source material; the workspace's practical path to relevance runs through the ocean carriers it books with, per action 1 above, not through direct membership. Absence of a direct route is itself useful information, not a reason to omit this lens.\n\n## Confirmed Regulatory Timeline\n\n- 1 January 2023: the IMO's short-term GHG reduction measures (EEXI, CII rating) entered into force, the mandatory efficiency framework that creates ongoing pressure for tools that reduce per-voyage fuel burn.\n- 2019: the Blue Visby Consortium's own illustrative modelling compared actual Port Hedland vessel traffic against algorithm-optimised arrival timing; no live operator deployment is confirmed in the captured source material.\n- 2030: IMO's 2023 GHG Strategy indicative checkpoint for international shipping: at least 20% GHG emissions reduction versus 2008 (striving for 30%), alongside at least 40% carbon-intensity improvement.\n- 2040: IMO's 2023 GHG Strategy indicative checkpoint for international shipping: at least 70% GHG emissions reduction versus 2008 (striving for 80%).\n\n## Sources\n\n| # | Title | Issuing Body | Type | URL |\n|---|-------|-------------|------|-----|\n| 1 | How does it work? - Blue Visby Solution | Blue Visby Consortium | Tier 4, industry body / developer platform | https://bluevisby.com/how-does-it-work/ |\n| 2 | IMO's work to cut GHG emissions from ships | International Maritime Organization | Tier 3, intergovernmental body position | https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx |\n| 3 | Future Fuels and Technology | IMO / Republic of Korea Partnership Project | Tier 3, intergovernmental body | https://futurefuels.imo.org/ |\n\n**Research gaps flagged in this profile:** consortium-member organisation names; the specific numeric GHG-reduction percentage the platform targets; independent third-party verification of any reduction claim; named vessel operators or fleets confirmed enrolled; pricing and membership costs for the Blue Visby Mutual Association; named freight-forwarding competitor engagement with the platform; compatibility of the platform's contractual architecture with humanitarian procurement instruments; and voyage-prolongation liability treatment for schedule-critical cargo.\n",
+      "metadata": {
+        "severity": "MONITORING",
+        "priority": "LOW",
+        "urgency_tier": "watch",
+        "format_type": "technology_profile",
+        "topic_tags": [
+          "emissions",
+          "transport"
+        ],
+        "signal_band": null,
+        "theme": null,
+        "what_is_it": "A privately developed, patent-protected maritime vessel-scheduling optimisation platform combining an arrival-timing algorithm, an operations system, a cost-and-benefit sharing mechanism (Blue GA), and a contractual architecture for shipowners, charterers, and cargo interests.",
+        "why_matters": "It sits inside the IMO's active GHG reduction trajectory (CII rating in force, 2030 and 2040 checkpoints) and offers a Scope 3 talking point for ocean freight clients once carrier enrollment is confirmed, but no specific reduction figure or named carrier enrollment is grounded in the captured source material yet.",
+        "key_data": [
+          "IMO CII rating in force from 1 January 2023",
+          "IMO 2023 GHG Strategy 2030 and 2040 checkpoints",
+          "no independently verified operator deployment identified in the captured source material"
+        ],
+        "cost_mechanism": null,
+        "requirement_trajectory": null,
+        "penalty_range": null,
+        "enforcement_body": null,
+        "operational_scenario_tags": [
+          "ocean-freight",
+          "ghg-reduction",
+          "voyage-optimisation"
+        ],
+        "compliance_object_tags": [
+          "freight-forwarder",
+          "carrier-ocean"
+        ],
+        "related_items": [],
+        "intersection_summary": "Procurement relevance is driven by IMO's mandatory CII rating system (in force since 1 January 2023) and the 2023 IMO GHG Strategy's 2030 and 2040 emissions checkpoints, the same regulatory trajectory tracked on the Regulations surface.",
+        "sources_used": [
+          "b06a7c81-8e7c-4234-808f-4360e0f2ccb7"
+        ],
+        "regeneration_skill_version": "2026-09-18"
+      },
+      "claims": [
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The Blue Visby Consortium describes its own platform as neutral, independent, and collaborative.",
+          "source_span": "The Blue Visby Solution is not linked to any individual trade participant and is completely independent, so that the entire industry can trust it as a neutral and collaborative platform.",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The Blue Visby Consortium frames its platform as addressing the greatest single cause of GHG emissions in maritime trade, in its own words.",
+          "source_span": "The Blue Visby Solution provides the platform for self-regulation and co-operation amongst all stakeholders at the scale necessary to tackle the greatest single cause of GHG emissions in maritime trade.",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The Blue Visby algorithm assigns optimal arrival times to each vessel sailing to a specific destination.",
+          "source_span": "The Blue Visby algorithm assigns optimal arrival times to each vessel sailing to a specific destination by processing four sets of parameters",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The Blue Visby Operations System monitors four sets of parameters in a dynamic way.",
+          "source_span": "The Blue Visby Operations System monitors four sets of parameters in a dynamic way",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "Blue GA is the platform's cost-and-benefit sharing mechanism among shipowners, charterers, and cargo interests.",
+          "source_span": "Blue GA is a sharing mechanism inspired by general average, which enables the stakeholders on each voyage (shipowners, charterers and cargo interests) to share the costs and benefits of the implementation of the Blue Visby Solution",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": "deployment_reality",
+          "claim_kind": "FACT",
+          "claim_text": "[deployment_reality] The captured source presents an illustrative modelling comparison of Port Hedland vessel traffic during 2019 against algorithm-optimised arrival timing, not a record of live deployment.",
+          "source_span": "The below visualisation compares the traffic to Port Hedland during 2019 with how it would have been if optimised by the Blue Visby algorithm.",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The IMO adopted the 2023 IMO GHG Strategy, building on the Initial GHG Strategy.",
+          "source_span": "In 2023, IMO adopted the 2023 IMO GHG Strategy",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The 2023 IMO GHG Strategy targets net-zero GHG emissions from international shipping by or around 2050.",
+          "source_span": "Net-zero GHG emissions from international shipping by or around, i.e. close to 2050",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The 2023 IMO GHG Strategy sets indicative checkpoints of at least 20 percent reduction by 2030 and at least 70 percent reduction by 2040, versus 2008 levels.",
+          "source_span": "The Strategy includes indicative check-points for international shipping to reach net-zero GHG emissions for 2030 (by at least 20%, striving for 30%) and 2040 (by at least 70%, striving for 80%) compared to 2008",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The 2023 IMO GHG Strategy envisages a carbon-intensity reduction of at least 40 percent by 2030.",
+          "source_span": "the 2023 IMO GHG Strategy envisages a reduction in carbon intensity of international shipping (to reduce CO2 emissions per transport work), as an average across international shipping, by at least 40% by 2030",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "IMO's short-term GHG reduction measures (EEXI, CII rating) entered into force on 1 January 2023.",
+          "source_span": "IMO's short-term GHG reduction measures ( EEXI, CII rating ), developed to improve ship energy efficiency and reduce carbon intensity by at least 40% compared to 2008 levels by 2030, entered into force on 1 January 2023",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "From 1 January 2023 it became mandatory for ships to calculate their EEXI and establish an annual CII rating.",
+          "source_span": "On 1 January 2023 it became mandatory for all ships to calculate their Energy Efficiency Existing Ship Index (EEXI) and to establish their annual operational carbon intensity indicator (CII) and CII rating",
+          "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+          "section": "2"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The IMO Future Fuels and Technology Project website was developed to support implementation of the 2023 IMO GHG Strategy.",
+          "source_span": "The website has been developed by Future Fuels and Technology Project (FFT Project) supporting the implementation of the 2023 IMO GHG Strategy by facilitating relevant information sharing.",
+          "source_url": "https://futurefuels.imo.org/",
+          "section": "2"
+        },
+        {
+          "slot_key": "supplier_access",
+          "claim_kind": "FACT",
+          "claim_text": "[supplier_access] Access to the Blue Visby Solution runs through incorporating its contractual terms into charter parties and cargo sale contracts, not through a direct purchase.",
+          "source_span": "The participants of the Blue Visby Solution incorporate into their charter parties and cargo sale contracts a set of terms that implement the Blue Visby Operations System and Blue GA",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "3"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "Participants also join the Blue Visby Mutual Association, which administers Blue GA.",
+          "source_span": "the Blue Visby Mutual Association, which regulates the relationships amongst participants, and administers Blue GA, with complete independence, neutrality and integrity.",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "3"
+        },
+        {
+          "slot_key": null,
+          "claim_kind": "FACT",
+          "claim_text": "The Blue Visby Solution is protected by patents and trademarks.",
+          "source_span": "The Blue Visby Solution is protected by patents and trademarks",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "3"
+        },
+        {
+          "slot_key": "procurement_window",
+          "claim_kind": "GAP",
+          "claim_text": "[procurement_window] The captured source pool contains no statement describing a commercial-availability date, pricing, or a procurement or commitment window for the Blue Visby Solution; this is an honest gap under the integrity rule, not an inference from the item_type label.",
+          "source_span": null,
+          "source_url": null,
+          "section": "7"
+        },
+        {
+          "slot_key": "operational_fit",
+          "claim_kind": "FACT",
+          "claim_text": "[operational_fit] The captured source states, verbatim, that the platform's algorithm assigns optimal arrival times to vessels: this establishes the mechanism operates on ocean vessel voyages, not air or road carriage. No statement in the captured source material describes an application to air or road transport modes.",
+          "source_span": "The Blue Visby algorithm assigns optimal arrival times to each vessel sailing to a specific destination by processing four sets of parameters",
+          "source_url": "https://bluevisby.com/how-does-it-work/",
+          "section": "1"
+        }
+      ]
+    }
+  ]
+}
