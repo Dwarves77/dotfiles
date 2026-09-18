@@ -5,7 +5,7 @@
 // exercised directly so this test also proves the real wiring, not just a mock of it).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { authorMarketSeriesDeltaEdges } from "./author-market-series-delta.mjs";
+import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
 
 const NOW = () => new Date("2026-08-29T00:00:00Z");
 
@@ -127,6 +127,74 @@ test("apply: multiple series_keys are each authored independently, and a per-key
   );
   assert.equal(counts.authored, 1);
   assert.equal(counts.errored, 1);
+});
+
+// ── trace (lane M5, 2026-09-18) ───────────────────────────────────────────────────────────────────────
+
+test("trace disabled (default): no trace field on the returned counts", async () => {
+  const rows = [makeRow("ms-latest", "2026-08-28", 63.5), makeRow("ms-prior", "2026-08-21", 61.0)];
+  const counts = await authorMarketSeriesDeltaEdges(["eia-v2:wti-crude-rwtc"], "apply", {
+    readAllFn: async () => rows,
+    authorEdgesFn: async () => ({ ok: true, action: "authored", valueId: "v-1" }),
+    now: NOW,
+    sb: {},
+  });
+  assert.equal("trace" in counts, false);
+});
+
+test("trace enabled: records keys received, candidates, rows attempted, rows inserted", async () => {
+  const rows = [makeRow("ms-latest", "2026-08-28", 63.5), makeRow("ms-prior", "2026-08-21", 61.0)];
+  const counts = await authorMarketSeriesDeltaEdges(["eia-v2:wti-crude-rwtc"], "apply", {
+    readAllFn: async () => rows,
+    authorEdgesFn: async () => ({ ok: true, action: "authored", valueId: "v-1" }),
+    now: NOW,
+    sb: {},
+    trace: true,
+  });
+  assert.ok(Array.isArray(counts.trace));
+  assert.ok(counts.trace.some((l) => l.includes("keys received") && l.includes("eia-v2:wti-crude-rwtc")));
+  assert.ok(counts.trace.some((l) => l.includes("candidates computed") && l.includes("2 row(s)")));
+  assert.ok(counts.trace.some((l) => l.includes("rows attempted") && l.includes("latest=ms-latest") && l.includes("prior=ms-prior")));
+  assert.ok(counts.trace.some((l) => l.includes("rows inserted") && l.includes("v-1")));
+});
+
+test("trace enabled: an insufficientHistory outcome and a caught error both land in the trace verbatim", async () => {
+  let calls = 0;
+  const counts = await authorMarketSeriesDeltaEdges(
+    ["eia-v2:wti-crude-rwtc", "eia-v2:brent-crude-rbrte"],
+    "apply",
+    {
+      readAllFn: async () => {
+        calls += 1;
+        if (calls === 1) return [makeRow("ms-only", "2026-08-28", 63.5)]; // insufficientHistory
+        throw new Error("simulated read failure"); // errored
+      },
+      now: NOW,
+      sb: {},
+      trace: true,
+    },
+  );
+  assert.equal(counts.insufficientHistory, 1);
+  assert.equal(counts.errored, 1);
+  assert.ok(counts.trace.some((l) => l.includes("outcome=insufficientHistory")));
+  assert.ok(counts.trace.some((l) => l.includes("ERROR simulated read failure")));
+});
+
+// ── assertEdgesAuthored (lane M5, 2026-09-18: "the run is the gate") ─────────────────────────────────
+
+test("assertEdgesAuthored: rows changed, zero edges authored -> throws", () => {
+  assert.throws(
+    () => assertEdgesAuthored({ rowsChanged: 4, edgesAuthored: 0 }),
+    /wrote 4 row\(s\).*authored 0 derivation_edges/s,
+  );
+});
+
+test("assertEdgesAuthored: rows changed, edges authored -> passes (no throw)", () => {
+  assert.doesNotThrow(() => assertEdgesAuthored({ rowsChanged: 4, edgesAuthored: 2 }));
+});
+
+test("assertEdgesAuthored: zero rows changed, zero edges authored -> passes (no-op write, not this bug)", () => {
+  assert.doesNotThrow(() => assertEdgesAuthored({ rowsChanged: 0, edgesAuthored: 0 }));
 });
 
 test("dedupes a repeated series_key in the input iterable", async () => {

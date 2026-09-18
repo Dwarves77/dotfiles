@@ -64,6 +64,47 @@ requires); `APP_URL`/`WORKER_SECRET` for the cache-flush step (best-effort, `|| 
 `propagation/<run_id>` branch + PR (`deliver-artifact-branch.sh`, same pattern every other harness-run
 family in this repo uses) — read back the run's own `metrics` for exactly what it invalidated/recomputed.
 
+## Tracing edge authorship
+
+Lane M5 (2026-09-18, S4 propagate audit row 1): all three `market_series` producers
+(`scripts/producers/market/{ecb-fx,eia-v2-petroleum-spot,eu-weekly-oil-bulletin}-producer.mjs`) call
+`authorMarketSeriesDeltaEdges` (the one home: `scripts/producers/market/author-market-series-delta.mjs`)
+unconditionally after their own guarded write, and a static contract test passes, but the live
+`derivation_edges` table held zero `market_series` rows even after a fresh apply run. Read live: every
+`market_series` row this session inspected traces to exactly one of two causes, neither an insert failure
+nor a dry/plan branch. (1) Most of `market_series` was written BEFORE the DAG-authorship call existed in
+these files (the `eia-v2`/`eu-oil-bulletin` backfills all landed 2026-09-04, two days before lane W4-DAG
+wired the call in on 2026-09-06, so the call is unconditional in TODAY's code, but was never present at
+write time for those rows). (2) The one producer run that DID execute the wired call (`ecb-fx`,
+2026-09-16) legitimately hit `insufficientHistory`: its two observations for each currency are 6 days
+apart (2026-08-28, 2026-09-03), one day short of `series-deltas.mjs`'s `nearestAtOrBefore(latest.date - 7
+days)` window, so the earlier point falls AFTER the 7-day target and no prior point qualifies. This is
+`series-deltas.mjs` behaving exactly as designed (never match a point after the window target, see that
+file's own header), not a bug; it self-resolves once a producer run lands with a wider gap to its
+predecessor.
+
+**`--trace`**: every producer accepts it (`node scripts/producers/market/ecb-fx-producer.mjs --apply
+--trace`, same for the other two). When set, `authorMarketSeriesDeltaEdges` logs every step to stderr
+(`[trace] market_series_delta: ...`), keys received, rows read per key in the lookback window, the
+delta1w outcome, the candidate pair attempted, the authorEdges result, every caught error verbatim, and
+attaches the same lines as a `trace` array on its returned counts object (absent entirely when `--trace`
+is not passed, so the existing counts shape is unchanged). No `scripts/harness-runs/market/` artifact
+exists to write `config.trace` into today; no market/regional producer family is registered in
+`scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` (mint/screen/fetch-drain/meta-harness/forward-events/
+source-sweep/ledger-consume/change-detection/propagation/corpus-turn/brief-apply are; market and regional
+are not). Registering one is a separate, deliberate act touching `run-artifact.mjs`,
+`scripts/harness-runs/governing-files.mjs`, `scripts/harness-runs/CONVENTION.md`'s family table, and
+`F28-harness-run-integrity.mjs`, out of this lane's write set; the trace mechanism above is built so a
+future artifact writer can pick up `counts.trace` directly once that registration lands.
+
+**The run is the gate.** `assertEdgesAuthored({ rowsChanged, edgesAuthored })`
+(`author-market-series-delta.mjs`) is a pure, exported, unit-tested function every producer calls right
+after logging its own `authorCounts` line: it throws (and the producer's top-level `main().catch` turns
+that into a non-zero exit) when the run wrote real rows to `market_series` (`rowsChanged > 0`) but
+authored zero `derivation_edges` (`edgesAuthored === 0`), exactly the "wired, called, zero effect"
+combination this audit row found live. A no-op write (`rowsChanged === 0`) never asserts. Re-run with
+`--trace` to see which outcome bucket every touched `series_key` landed in.
+
 ## See also
 
 - `docs/runbooks/MAINTENANCE-RUNBOOK.md` §33 — the four steps `downstream-chain.yml` chains, and the
