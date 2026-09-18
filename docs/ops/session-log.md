@@ -23404,3 +23404,30 @@ and lanes P9 reg-a, reg-b, market, research-ops (57 items, export 35297253710); 
 
 **Standing numbers.** 1,431 verified, 87 quarantined, 1,248 archived by ruling. F45 6,830 on master
 (6,227 pending L34); F46 7 on master (1 pending L35, PR #696); F47 0/0/0.
+## 2026-09-17, W9 lane P8: two mint-hold items re-authored from their newest captures; the third waits for an uncapped capture
+
+Sonnet lane, worktree wt-part3-0911, branch brief-lane/008-mintholds-2026-09-17 from master caa08198. Batch
+file only; validator, README and src untouched. `record-briefs.test.mjs` 86/86.
+
+**Result [CONFIRMED by the validator].** `record-briefs-008-mintholds.json`, 2 entries, VALID. 5eed63be (H2
+Accelerate): all 64 prior FACT claims verbatim in the newest captures (the two held claims were resolved
+by a newer capture in the export); re-authored under the market_signal_brief section set (the stored
+sections carried a 15-section regulatory layout); action_now an allowed GAP. ff95b385 (AFIR): all 27 prior
+FACT claims verbatim; the 191,954-character capture is the regulation's full text through Article 26,
+which the prior pass never used; three operative-Article claims added so every required slot grounds on
+Article text.
+
+**Dropped from the batch by the coordinator [CONFIRMED].** 859faf76 (Net-Zero Industry Act): the item's own
+Official Journal capture is truncated at exactly 40,002 characters, mid-recital 28, before any operative
+Article; four prior FACT claims no longer verify and the lane's entry could only offer a GAP for
+penalty_summary. A GAP is licensed by the source's own statement that there is no penalty (migration 326),
+not by a capture that stops before the penalty article, so that entry is withheld. Disposition: the
+refetch-capped maintenance step fetches the uncapped text, then the item is re-authored. Nothing weakened
+to pass.
+
+**Next.** Dry run then apply with `--allow-brief-overwrite` under the IO budget, after lane L40 (span
+attribution by content) merges.
+
+### UX compliance (P8)
+
+Not a UI change; no customer surface touched by this branch.
