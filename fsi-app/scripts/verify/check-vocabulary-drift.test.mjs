@@ -29,6 +29,9 @@ function noCredEnv() {
   delete env.DATABASE_URL;
   delete env.SUPABASE_DB_PASSWORD;
   delete env.NEXT_PUBLIC_SUPABASE_URL;
+  // The script loads fsi-app's env file from disk at start. Stripping this process's env is not enough in
+  // a worktree that has that file: the child read the credentials back and "no credentials" was false.
+  env.CHECK_VOCAB_DRIFT_NO_ENV_FILE = "1";
   return env;
 }
 
