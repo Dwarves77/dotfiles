@@ -146,7 +146,7 @@ export function ListRowColumnHeader({
   // Every header cell is a grid item in the same fixed GRID the rows use (88px impact, 84px due,
   // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
   // auto`, which otherwise refuses to shrink below its content's intrinsic width — the exact
-  // mechanism that let "Impact low → high" push past its 88px column and collide with the DUE
+  // mechanism that let "Impact low-to-high" push past its 88px column and collide with the DUE
   // column's dates (operator report 2026-09-07, D1).
   //
   // DEFECT 2, lane opsclip (train 61, 2026-09-08). The D1 fix above was correct; the `whiteSpace:
@@ -169,6 +169,13 @@ export function ListRowColumnHeader({
   // NOTE FOR THE MOBILE LANE (mobfix61 is editing RESPONSIVE_CSS in this file concurrently): this
   // change adds `wrappingCellStyle`/`impactCellStyle` and uses them on header spans. It touches no
   // media query, no class name, and no line of RESPONSIVE_CSS.
+  //
+  // SUPERSEDED IN PART (parts brief 2026-09-18, section 2.16): the qualifier "low-to-high" is
+  // removed from the IMPACT header (the row meter no longer sorts dimensions low-to-high; it draws
+  // a stepped fill of the total N/12). "Impact" alone fits its 88px track on one line, so the
+  // header cell below uses plain `cellStyle`, not `impactCellStyle`; the D1/DEFECT 2 wrapping
+  // fix above is kept verbatim as the reason `impactCellStyle`/`wrappingCellStyle` still exist for
+  // the register-variant headers below, which still carry the two-line treatment.
   const cellStyle: CSSProperties = {
     fontSize: "var(--fs-95)",
     fontWeight: 700,
@@ -182,7 +189,7 @@ export function ListRowColumnHeader({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
   };
-  // Wraps at WORD boundaries only: the artboard breaks "IMPACT low → high" after IMPACT, and
+  // Wraps at WORD boundaries only: the artboard breaks "IMPACT low-to-high" after IMPACT, and
   // `overflowWrap: anywhere` would break inside the word ("IMPA / CT"), which is the same lost
   // legibility the truncation had, differently spelled. Confirmed by capture at 1440.
   const impactCellStyle: CSSProperties = {
@@ -249,13 +256,11 @@ export function ListRowColumnHeader({
       <span aria-hidden="true" />
       <span style={cellStyle}>Juris.</span>
       <span style={cellStyle}>{titleLabel}</span>
-      {/* dc.html p1 line 121 / p11 line 60: "low → high" is a nested span at
-          weight 400 / letter-spacing .04em inside the 700/.12em "Impact" label,
-          not one uniform run. */}
-      <span style={impactCellStyle}>
-        Impact&nbsp;
-        <span style={{ fontWeight: 400, letterSpacing: "0.04em" }}>low → high</span>
-      </span>
+      {/* Site-wide parts brief, docs/design/parts-brief-2026-09-18.md 2.16 asks for "Impact" alone,
+          dropping the retired low-to-high qualifier. The row variant no longer sorts dimensions
+          low-to-high (it draws a stepped fill of the total N/12, ImpactMeter.tsx's own 2026-09-18
+          rewrite), so the qualifier it labelled no longer describes what the column shows. */}
+      <span style={cellStyle}>Impact</span>
       <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>{dueLabel}</span>
       <span style={cellStyle}>Timeline</span>
       <span style={cellStyle}>Tier</span>

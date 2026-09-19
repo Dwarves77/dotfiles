@@ -30,6 +30,11 @@ export default async function CommunityBenchmarksPage() {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <header>
+          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: inventory's Anton grep missed
+              this var(--font-display) h2, same shape on 5 other CommunityShell sub-routes.
+              SectionHeading does not match (fixed 20px, padded, inline aside, not a block <p> below).
+              No matching part; same 7-route family as inventory case 4. Review-by: SectionHeader
+              lane / operator ruling.) */}
           <h2
             style={{
               fontFamily: "var(--font-display)",

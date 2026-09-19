@@ -195,10 +195,13 @@ window.__mount = () => {
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 1, compliance: 1, client: 2, operational: 3 } })),
       React.createElement('div', { 'data-audit': 'row-unscored' },
         React.createElement(ImpactMeter, { variant: 'row', scores: null })),
-      // Lane METERFIX (2026-09-08): the PARTIALLY scored case, [0,0,0,2], the operator's own
-      // example row ("meter with one bar and 2/12"). The artboard draws no partially scored meter
-      // anywhere (all 34 clusters in dc.html p1/p2/p4/p6/p8/p11 are fully scored, lowest sum 4/12),
-      // so impactmeter.json's rows for this mount are the derived treatment, labelled as such.
+      // REPURPOSED (parts brief 2026-09-18, section 2.16, lane w10a): this fixture predates the
+      // 2026-09-18 row-variant rewrite (lane METERFIX, 2026-09-08's own "partially scored [0,0,0,2]"
+      // note, superseded, the per-dimension model it described no longer exists). The same
+      // dimension vector (sum 2/12) is kept because it still demonstrates the NEW model's own
+      // partial-fill case well: N=2 fills only bar 1 two-thirds (fill_i = clamp(N-3i,0,3)/3) and
+      // leaves bars 2-4 empty, so impactmeter.json's row-partial entries assert the stepped-fill
+      // geometry, not the retired zero-dimension-stub geometry.
       React.createElement('div', { 'data-audit': 'row-partial' },
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },

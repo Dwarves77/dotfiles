@@ -11,6 +11,7 @@
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { Absence } from "@/components/ui/Absence";
 import { SkeletonRailDateRow } from "@/components/ui/Skeleton";
@@ -619,8 +620,12 @@ export function LegendRailCard() {
       <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <div>
           <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Impact</dt>
-          <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-            Four scored dimensions, sorted low to high: green left, red right. Height is the sum, score 1–3.
+          {/* Site-wide parts brief, docs/design/parts-brief-2026-09-18.md 2.16: "The legend row on
+              every list uses this exact meter at 8/12." Before this lane the legend drew no meter at
+              all, only prose describing the OLD per-dimension model (parts inventory finding: "no
+              legend anywhere mounts a live meter instance"). This mounts the real component. */}
+          <dd style={{ margin: "4px 0 0" }}>
+            <ImpactMeter total={8} />
           </dd>
         </div>
         <div>

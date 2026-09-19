@@ -208,14 +208,15 @@
       }
     },
     {
-      "name": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`.",
+      "name": "B3, unscored meter, SUPERSEDED 2026-09-18 (parts brief section 2.16, lane w10a): four dashed bar outlines, not a baseline",
+      "selector": "[data-audit=\"row-absent\"] .cl-impact-bar",
+      "note": "Was: the 30px dashed baseline, rgba(0,0,0,.3) (`.cl-impact-baseline`, dc.html p1 second row). The row variant no longer has a baseline element at all; it draws the same four bars as the scored row (8px wide, heights 6/9/12/15, gap 2, radius 1.5) as 1px dashed rgba(0,0,0,.3) outlines instead, per the site-wide parts brief's rewritten row variant.",
       "expect": {
-        "width": "30px",
-        "border-bottom-width": "1px",
-        "border-bottom-style": "dashed",
-        "border-bottom-color": "rgba(0,0,0,.3)"
+        "count": 4,
+        "width": "8px",
+        "border-width": "1px",
+        "border-style": "dashed",
+        "border-color": "rgba(0,0,0,.3)"
       }
     },
     {
