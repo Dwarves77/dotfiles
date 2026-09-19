@@ -1,3 +1,4 @@
+// data-audit: label=quarantine-disposition hard=true
 /** VERIFIER (read-only, 0 Browserless): RESEARCH-OR-ERASE / QUARANTINE-DISPOSITION INVARIANT over
  *  live data.
  *  GOVERNING SKILLS: remediation-discipline (§2/§4 — research-or-erase; quarantine is an OPEN

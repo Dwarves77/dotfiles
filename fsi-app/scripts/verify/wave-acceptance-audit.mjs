@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// data-audit: label=wave-acceptance hard=false
 // wave-acceptance-audit.mjs — the standing ground-truth QA pre-scan from ADR-014 (wave-acceptance
 // sampling). READ-ONLY. Computes the risk-weighted acceptance sample for a frame of items + the
 // mechanical pre-scan (provenance structure), then emits a manifest for the LIVE three-layer pass

@@ -1,3 +1,4 @@
+// data-audit: label=spec09-org-rls-adversarial hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline (rule 15 — a guard is
  *  proven by attack, not presence) + caros-ledge-platform-intent (tenancy integrity).
  *

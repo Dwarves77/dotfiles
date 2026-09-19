@@ -1,3 +1,4 @@
+// data-audit: label=admin-phrase-scan hard=false
 /** ADMIN HUMAN-GATE PHRASE SCAN — SOFT review signal (Unit 0c Part 4, operator ruling 2026-07-13).
  *  Scans admin (+ profile) component JSX for human-gate framing that contradicts RD-20 (the machine gates ARE
  *  the approval; admin copy states what the machine did / what's visible, never what a human must decide).

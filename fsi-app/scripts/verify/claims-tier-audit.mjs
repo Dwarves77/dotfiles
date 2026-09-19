@@ -1,3 +1,4 @@
+// data-audit: label=claims-tier hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: source-credibility-model + remediation-discipline.
  *
  *  INVARIANT SC-7 (claims-tier honesty) — D1 DERIVATION-CONSISTENCY basis (migration 145). Every FACT

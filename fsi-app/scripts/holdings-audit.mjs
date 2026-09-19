@@ -1,3 +1,4 @@
+// data-audit: label=holdings-audit hard=false
 /** HOLDINGS AUDIT — read-only classification of every stored capture (operator dispatch 2026-07-14).
  *  $0: no LLM, no Browserless, no paid fetch. Reads the corpus + snapshot bodies from Storage, classifies
  *  each capture against KNOWN DEFECT CLASSES (holdings-audit.mjs pure core), and — with --write — persists

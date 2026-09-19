@@ -1,3 +1,4 @@
+// data-audit: label=orphan-source hard=true
 /** VERIFIER (read-only, 0 Browserless): SOURCE-REGISTRATION INVARIANT over live data.
  *  GOVERNING SKILLS: source-credibility-model (§1/§5 — a source is registered + scannable) +
  *  remediation-discipline (classify-before-discard; never archive over a source bucket).

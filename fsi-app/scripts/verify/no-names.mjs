@@ -1,3 +1,4 @@
+// data-audit: label=no-names hard=true
 /** VERIFIER (read-only, 0 Browserless): workspace-anchoring / NO NAMES.
  *  GOVERNING SKILL: environmental-policy-and-innovation -> "The Workspace-Anchored Rule" + Seven
  *  Anchoring Principles #1: "The output never names the workspace, its company, or any individual

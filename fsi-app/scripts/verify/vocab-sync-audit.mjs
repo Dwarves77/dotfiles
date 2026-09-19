@@ -1,3 +1,4 @@
+// data-audit: label=vocab-sync hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: environmental-policy-and-innovation + source-credibility-model.
  *
  *  VOCAB SYNC: the in-code metadata vocabularies (src/lib/agent/metadata-vocab.ts DB_*_VALUES) MUST match

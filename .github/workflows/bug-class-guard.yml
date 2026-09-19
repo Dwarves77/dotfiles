@@ -47,7 +47,7 @@ jobs:
       - name: Detector + SSOT selftests (must pass)
         run: |
           node --test \
-            scripts/lib/inconclusive-probe.selftest.mjs \
+            scripts/lib/inconclusive-probe.npmtest.mjs \
             scripts/lib/type-consumer-probe.selftest.mjs \
             scripts/lib/reachability.selftest.mjs \
             scripts/lib/entity-gate.selftest.mjs \

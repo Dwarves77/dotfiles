@@ -1,3 +1,4 @@
+// data-audit: label=source-link hard=true
 /** VERIFIER (read-only, 0 Browserless): SOURCE-LINK LIVE-DATA INVARIANT (Fix A, RD-22) over live data.
  *  GOVERNING SKILLS: remediation-discipline (§4 — the intake-gate family: a mint cannot produce a
  *  source-less LIVE item, the sibling of the transport-hold RD-11 / url-canon RD-13 / staged-transit RD-20

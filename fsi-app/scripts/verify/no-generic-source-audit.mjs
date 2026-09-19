@@ -1,3 +1,4 @@
+// data-audit: label=no-generic-source hard=true
 /** no-generic-source-audit.mjs — hardening A1 seam 3 (no-generic-source, read-only detection).
  *  GOVERNING SKILLS: remediation-discipline (Section 4 category 24 — generic/dead source unselectable at
  *  ground / nothing-generic sourcing). Invariant RD-40.
