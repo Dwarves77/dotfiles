@@ -38,9 +38,9 @@ import {
   buildRunArtifact,
   defaultTraceDir,
   LEDGER_CONSUME_GOVERNING_FILES,
-  LEDGER_CONSUME_APPLY_ENABLED,
   PROMOTED_LIKE_DISPOSITIONS,
   REJECTED_LIKE_DISPOSITIONS,
+  ledgerStatusAfter,
   validateVerdictEntry,
   validateVerdictsFile,
   partitionVerdictsByPromptVersion,
@@ -58,6 +58,11 @@ import {
   findLatestExportArtifact,
   buildExportRunArtifact,
 } from "./run-ledger-consume.mjs";
+// applyPromoteCap (Lane M2, 2026-09-18) lives in src/lib/intake/promote-cap.mjs, not this driver: a
+// PURE, zero-import .mjs module (no bare npm import, same glob-portability discipline the file header
+// above explains for the jiti-load proof), imported here by relative path so the cap logic is
+// independently unit-testable without a DB, a jiti import, or the mint chokepoint.
+import { applyPromoteCap } from "../../src/lib/intake/promote-cap.mjs";
 
 const PV = "sha256:aaaaaaaaaaaaaaaa"; // a well-formed stand-in prompt_version for fixtures below
 
@@ -173,6 +178,81 @@ test("parseArgs: --with-text requires --export-candidates — refused loudly, ne
 
 // ── parseArgs: --record-only (D26 lane L17, 2026-09-13) ─────────────────────────────────────────────────
 
+// -- parseArgs: --max-promote (Lane M2, 2026-09-18, the guard that replaced LEDGER_CONSUME_APPLY_ENABLED) --
+
+test("parseArgs: --max-promote defaults to 50", () => {
+  const r = parseArgs([]);
+  assert.equal(r.ok, true);
+  assert.equal(r.maxPromote, 50);
+});
+
+test("parseArgs: --max-promote accepts a positive integer up to the hard ceiling of 200", () => {
+  assert.equal(parseArgs(["--max-promote", "1"]).maxPromote, 1);
+  assert.equal(parseArgs(["--max-promote", "200"]).maxPromote, 200);
+});
+
+test("parseArgs: --max-promote above the hard ceiling of 200 is refused, not silently clamped", () => {
+  const r = parseArgs(["--max-promote", "201"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--max-promote must not exceed the hard ceiling of 200/);
+});
+
+test("parseArgs: --max-promote rejects zero, negative, and non-integer values", () => {
+  assert.equal(parseArgs(["--max-promote", "0"]).ok, false);
+  assert.equal(parseArgs(["--max-promote", "-5"]).ok, false);
+  assert.equal(parseArgs(["--max-promote", "3.5"]).ok, false);
+  assert.equal(parseArgs(["--max-promote", "abc"]).ok, false);
+});
+
+// -- applyPromoteCap (src/lib/intake/promote-cap.mjs), the pure slicer the apply-mode mint branch uses --
+
+test("applyPromoteCap: a list of 60 with cap 50 promotes exactly the 50 oldest, defers the rest", () => {
+  const items = Array.from({ length: 60 }, (_, i) => ({ id: `c-${i}` }));
+  const { toPromote, deferred } = applyPromoteCap(items, 50);
+  assert.equal(toPromote.length, 50);
+  assert.equal(deferred.length, 10);
+  assert.deepEqual(toPromote, items.slice(0, 50));
+  assert.deepEqual(deferred, items.slice(50));
+  // "oldest" equals array order (the caller hands this function an already oldest-first list); the
+  // first promoted id is the first item in the input, never a reordering.
+  assert.equal(toPromote[0].id, "c-0");
+  assert.equal(toPromote[49].id, "c-49");
+  assert.equal(deferred[0].id, "c-50");
+});
+
+test("applyPromoteCap: a list smaller than the cap promotes everything, defers nothing", () => {
+  const items = Array.from({ length: 12 }, (_, i) => ({ id: `c-${i}` }));
+  const { toPromote, deferred } = applyPromoteCap(items, 50);
+  assert.equal(toPromote.length, 12);
+  assert.equal(deferred.length, 0);
+});
+
+test("applyPromoteCap: cap 0 promotes nothing, defers everything", () => {
+  const items = Array.from({ length: 5 }, (_, i) => ({ id: `c-${i}` }));
+  const { toPromote, deferred } = applyPromoteCap(items, 0);
+  assert.equal(toPromote.length, 0);
+  assert.equal(deferred.length, 5);
+});
+
+// -- ledgerStatusAfter, the per_item before/after status pair --------------------------------------------
+
+test("ledgerStatusAfter: plan mode never changes the ledger status, regardless of disposition", () => {
+  for (const d of ["would_mint", "would_reject", "promoted", "rejected", "exists", "not_an_item", "skipped"]) {
+    assert.equal(ledgerStatusAfter(d, "plan"), "candidate");
+  }
+});
+
+test("ledgerStatusAfter: apply mode maps promoted/exists to 'promoted', rejected/not_an_item to 'rejected'", () => {
+  assert.equal(ledgerStatusAfter("promoted", "apply"), "promoted");
+  assert.equal(ledgerStatusAfter("exists", "apply"), "promoted");
+  assert.equal(ledgerStatusAfter("rejected", "apply"), "rejected");
+  assert.equal(ledgerStatusAfter("not_an_item", "apply"), "rejected");
+});
+
+test("ledgerStatusAfter: apply mode leaves a skipped (incl. capped) row at 'candidate', untouched", () => {
+  assert.equal(ledgerStatusAfter("skipped", "apply"), "candidate");
+});
+
 test("parseArgs: --record-only defaults true (D26 - apply never grounds by omission)", () => {
   const r = parseArgs([]);
   assert.equal(r.ok, true);
@@ -190,33 +270,28 @@ test("parseArgs: --record-only rejects anything other than the literal strings t
   assert.match(r.error, /--record-only must be "true" or "false"/);
 });
 
-// -- isApplyArmed - the D26(b) arming rule, pure --------------------------------------------------------
+// -- isApplyArmed, corrected 2026-09-18 (coordinator ruling): armed whenever at least one committed
+// verdicts batch exists at all, auto-discovered or named explicitly. The only disarmed case is zero
+// batches. LEDGER_CONSUME_APPLY_ENABLED stays retired; the max-promote cap is the blast-radius guard. --
 
-test("isApplyArmed: both the reviewed-code gate AND an explicit --verdicts file must be true", () => {
-  assert.equal(isApplyArmed({ applyEnabledConst: true, verdictsGiven: true }), true);
+test("isApplyArmed: at least one auto-discovered batch arms apply, no explicit --verdicts needed", () => {
+  assert.equal(isApplyArmed({ verdictsFilesCount: 1 }), true);
+  assert.equal(isApplyArmed({ verdictsFilesCount: 3 }), true);
 });
 
-test("isApplyArmed: reviewed-code gate true but NO --verdicts given -> not armed (auto-discovery alone never arms apply)", () => {
-  assert.equal(isApplyArmed({ applyEnabledConst: true, verdictsGiven: false }), false);
+test("isApplyArmed: zero verdicts files (neither discovered nor named) -> not armed", () => {
+  assert.equal(isApplyArmed({ verdictsFilesCount: 0 }), false);
 });
 
-test("isApplyArmed: --verdicts given but the reviewed-code gate is false -> not armed", () => {
-  assert.equal(isApplyArmed({ applyEnabledConst: false, verdictsGiven: true }), false);
-});
-
-test("isApplyArmed: neither true -> not armed", () => {
-  assert.equal(isApplyArmed({ applyEnabledConst: false, verdictsGiven: false }), false);
-});
-
-test("D26(b) composition: apply requested with no --verdicts runs as plan and records apply_disarmed, even though LEDGER_CONSUME_APPLY_ENABLED is true", () => {
-  const armed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven: false });
+test("composition: apply requested with zero committed batches runs as plan and records apply_disarmed", () => {
+  const armed = isApplyArmed({ verdictsFilesCount: 0 });
   const gate = resolveApplyGate("apply", armed);
   assert.equal(gate.effectiveMode, "plan");
   assert.equal(gate.applyDisarmed, true);
 });
 
-test("D26(b) composition: apply requested WITH an explicit --verdicts file arms apply (given the reviewed-code gate is true)", () => {
-  const armed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven: true });
+test("composition: apply requested WITH at least one committed batch (auto-discovered) arms apply", () => {
+  const armed = isApplyArmed({ verdictsFilesCount: 2 });
   const gate = resolveApplyGate("apply", armed);
   assert.equal(gate.effectiveMode, "apply");
   assert.equal(gate.applyDisarmed, false);
@@ -241,23 +316,19 @@ test("resolveApplyGate: plan mode is never gated, const value irrelevant", () =>
   assert.equal(r2.applyDisarmed, false);
 });
 
-test("resolveApplyGate: apply requested + const false -> DISARMED, falls back to plan, names why", () => {
+test("resolveApplyGate: apply requested + not armed -> DISARMED, falls back to plan, names why", () => {
   const r = resolveApplyGate("apply", false);
   assert.equal(r.effectiveMode, "plan");
   assert.equal(r.applyDisarmed, true);
   assert.match(r.message, /APPLY DISARMED/);
-  assert.match(r.message, /LEDGER_CONSUME_APPLY_ENABLED/);
+  assert.match(r.message, /--verdicts/);
 });
 
-test("resolveApplyGate: apply requested + const true -> apply runs, no disarm message", () => {
+test("resolveApplyGate: apply requested + armed -> apply runs, no disarm message", () => {
   const r = resolveApplyGate("apply", true);
   assert.equal(r.effectiveMode, "apply");
   assert.equal(r.applyDisarmed, false);
   assert.equal(r.message, null);
-});
-
-test("the shipped LEDGER_CONSUME_APPLY_ENABLED const is true (operator ruling 2026-09-04, ADR-023 gate flipped in this diff)", () => {
-  assert.equal(LEDGER_CONSUME_APPLY_ENABLED, true);
 });
 
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────────
@@ -694,7 +765,7 @@ test("buildRunArtifact: an apply-disarmed run's proposer_notes names the disarm,
     harnessVersion: "sha256:0000000000000000",
     startedAt: "2026-09-02T00:00:00Z",
     finishedAt: "2026-09-02T00:00:05Z",
-    config: { requested_mode: "apply", mode: "plan", apply_disarmed: true, apply_enabled_const: false },
+    config: { requested_mode: "apply", mode: "plan", apply_disarmed: true, verdicts_given: false, max_promote: 50 },
     inputsRef: ["portal_link_candidates: status=candidate limit=4"],
     shaped,
     resultTracePath: "scripts/harness-runs/ledger-consume/traces/ledger-consume-run-003.result.json",
@@ -1056,6 +1127,8 @@ test("shapeConsumeResult: classify_source/confidence/mismatch surface per_item, 
   assert.equal(metrics.candidates, 4);
   assert.equal(metrics.with_verdict, 2);
   assert.equal(metrics.without_verdict_skipped, 1);
+  assert.equal(metrics.verdicts_owed, 1, "verdicts_owed is the same count as without_verdict_skipped, the human-facing name");
+  assert.equal(metrics.verdicts_owed, metrics.without_verdict_skipped);
   assert.equal(metrics.uncertain, 1, "only row-3 (entity-gate: uncertain) counts; row-4 (portal) does not");
   assert.equal(metrics.est_usd, 0);
   assert.equal(metrics.est_usd_total, 0);
@@ -1494,6 +1567,63 @@ test("runExportCandidates: never touches a database — selectPage (a read) and 
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
+});
+
+// -- workflow-text: ledger-consume.yml's workflow_run job invokes apply mode (Lane M2, 2026-09-18) --------
+// Attack form (rule 15): these fail if the chained apply step, or its trigger condition, is removed or
+// renamed, proving the mechanism S2 finding 1 named ("the apply half has never fired") stays reachable
+// from the automatic workflow_run chain, not merely from run-ledger-consume.mjs's exports in isolation.
+
+const LEDGER_CONSUME_YML_PATH = resolve(HERE, "..", "..", "..", ".github", "workflows", "ledger-consume.yml");
+
+test("ledger-consume.yml: a dedicated step invokes run-ledger-consume.mjs with --mode apply, gated on run_apply_chain", () => {
+  const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  assert.match(
+    yml,
+    /if: steps\.params\.outputs\.run_apply_chain == 'true'\s*\n\s*run: \|\s*\n\s*node scripts\/turns\/run-ledger-consume\.mjs --mode apply/,
+    "expected a step gated on run_apply_chain=='true' that invokes run-ledger-consume.mjs --mode apply " +
+      "immediately after. If this step or its gate is removed, the workflow_run chain can never reach " +
+      "apply mode again (S2 finding 1's regression)."
+  );
+  assert.match(yml, /--max-promote 50/, "the chained apply pass must be capped (Lane M2's own guard)");
+});
+
+test("ledger-consume.yml: run_apply_chain is armed from the SAME run_consume decision, workflow_run-only", () => {
+  const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  assert.match(
+    yml,
+    /run_apply_chain="\$run_consume"/,
+    "the workflow_run branch of 'Resolve dispatch parameters' must set run_apply_chain from run_consume"
+  );
+  assert.match(
+    yml,
+    /run_apply_chain="false"/,
+    "the workflow_dispatch branch must force run_apply_chain=false (its own mode input reaches the main step directly)"
+  );
+});
+
+test("ledger-consume.yml: workflow_dispatch gains a max_promote input, default '50', threaded to the main step", () => {
+  const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  assert.match(
+    yml,
+    /max_promote:\s*\n\s*description:[^\n]*\n\s*required: false\s*\n\s*default: '50'\s*\n\s*type: string/,
+    "expected max_promote: required:false, default:'50', type:string, in that order"
+  );
+  assert.match(yml, /--max-promote "\$\{\{ steps\.params\.outputs\.max_promote \}\}"/);
+});
+
+test("ledger-consume.yml: exports GITHUB_EVENT_WORKFLOW_RUN_ID from github.event.workflow_run.id", () => {
+  const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  assert.match(
+    yml,
+    /echo "GITHUB_EVENT_WORKFLOW_RUN_ID=\$\{\{ github\.event\.workflow_run\.id \}\}" >> "\$GITHUB_ENV"/
+  );
+});
+
+test("ledger-consume.yml: the mode input's own description names the max_promote cap as the live guard (LEDGER_CONSUME_APPLY_ENABLED retired, Lane M2)", () => {
+  const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  assert.match(yml, /is retired/i);
+  assert.match(yml, /max_promote cap/i);
 });
 
 // The jiti-load proof (consumePortalCandidates + first-fetch-classify.ts resolve cleanly through jiti,

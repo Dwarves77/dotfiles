@@ -1,0 +1,46 @@
+{
+  "mode": "plan",
+  "discovered": 5,
+  "fetched": 0,
+  "classified": 2,
+  "outcomes": [
+    {
+      "ledgerId": "4bbeb953-700e-483d-b63b-d69b51f7ba9b",
+      "url": "https://eur-lex.europa.eu/homepage.html?locale=en",
+      "disposition": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API"
+    },
+    {
+      "ledgerId": "93ab53e7-d0dd-4bf1-a99d-d86c6d5cfc48",
+      "url": "https://ww2.arb.ca.gov/rulemaking",
+      "disposition": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API"
+    },
+    {
+      "ledgerId": "5382cf66-61cc-48d5-ba6d-f18140b6e3a0",
+      "url": "https://ww2.arb.ca.gov/our-work/programs/truck-and-bus-regulation",
+      "disposition": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API"
+    },
+    {
+      "ledgerId": "270b6eb5-de28-447a-ba93-853d0ce37426",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html",
+      "disposition": "not_an_item",
+      "reason": "entity-gate: portal, Page is a navigational portal, homepage, or institution landing page rather than a specific regulatory document.",
+      "title": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html",
+      "surfaceTags": []
+    },
+    {
+      "ledgerId": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html",
+      "disposition": "not_an_item",
+      "reason": "entity-gate: portal, Page is a navigational portal, homepage, or institution landing page rather than a specific regulatory document.",
+      "title": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html",
+      "surfaceTags": []
+    }
+  ],
+  "nextCursor": {
+    "firstSeenAt": "2026-07-19T17:21:40.35763+00:00",
+    "id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d"
+  }
+}

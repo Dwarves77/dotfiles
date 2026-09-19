@@ -29,27 +29,34 @@ name: Ledger consume
 # secrets-registry side (Lane SPEND, 2026-09-02).
 #
 # MODES. `plan` classifies (from a verdict, or skips) every candidate that clears the fetch step, and
-# writes NOTHING to `portal_link_candidates` or the intake pipeline. `apply` is gated by TWO conditions,
-# both required (`isApplyArmed`, `run-ledger-consume.mjs`): `LEDGER_CONSUME_APPLY_ENABLED` - **`true`** as
-# of the 2026-09-04 diff (operator ruling, ADR-023's reviewed-change mechanism; see that file's header and
-# `docs/decisions/ADR-023-producer-execution-model.md`'s Consequences section) - AND, as of D26
-# (2026-09-13), this dispatch's `verdicts_file` input non-blank, naming ONE committed batch this dispatch
-# means to act on. Auto-discovery of every committed `ledger-verdicts-*.json` batch (`verdicts_file` left
-# blank) still feeds PLAN mode's own classify decisions unchanged, but no longer arms apply on its own - an
-# apply dispatch with a blank `verdicts_file` runs with PLAN semantics (`apply_disarmed: true` in its own
-# artifact), never mints, however many batches auto-discovery would have found. `record_only` (default
-# `true`) governs what an ARMED apply actually does: the would-mint set mints at record grade through the
-# UNCHANGED chokepoint (`runIntakeCycle`'s own `recordOnly` option) - its already-fetched text lands as the
-# item's own pool row, GROUND/VALIDATE are skipped entirely (no grounding spend), and the free
-# record-briefs fleet writes the `full_brief` later, like every other record item. An `apply` dispatch that
-# is armed but has nothing to mint (every candidate lacks a verdict, or every verdict is `not_an_item`)
-# mints nothing: a legal, honest no-op, not a silent downgrade (the driver logs and records this
-# explicitly). **DECISION, recorded here:** `apply` is
-# reachable ONLY via an explicit `workflow_dispatch` — the `workflow_run` auto-trigger below always forces
-# `plan`, regardless of its `mode` (there is no `mode` input on a `workflow_run` event to read in the
-# first place). A dispatch is what "the operator decided to write now" looks like; a source-sweep
-# completion is what "check whether there is new work" looks like — those are different decisions and
-# this workflow keeps them separate.
+# writes NOTHING to `portal_link_candidates` or the intake pipeline. `apply` is gated by ONE condition
+# (`isApplyArmed`, `run-ledger-consume.mjs`), corrected 2026-09-18 (coordinator ruling, same day this
+# workflow first landed the cap): armed whenever AT LEAST ONE committed `ledger-verdicts-*.json` batch
+# exists at all, whether auto-discovered (`verdicts_file` left blank, the union `discoverVerdictsFiles`
+# finds) or the one file an explicit `verdicts_file` names. The machine design this closes: session lanes
+# write verdict batches (the human judgment, committed under `scripts/turns/ledger-verdicts/`), and apply
+# promotes, by itself, every candidate that already has a committed verdict, capped, skipping the rest.
+# Requiring an EXPLICIT `verdicts_file` on every apply dispatch (this workflow's own earlier shape) kept a
+# person inside the hop, the exact defect this lane exists to close. The ONLY disarmed case is now zero
+# batches, neither discovered nor named. The OTHER historical gate, `LEDGER_CONSUME_APPLY_ENABLED` (a
+# source constant, ADR-023's reviewed-change mechanism), is RETIRED (Lane M2, 2026-09-18, `docs/audits/
+# stage-audit-2026-09-18/s2-mint-gate.md` finding 1: apply had never fired for real across two full audits
+# three weeks apart). THE MAX-PROMOTE CAP (`max_promote` input below, default 50, hard ceiling 200
+# enforced in `run-ledger-consume.mjs`) is what bounds a single armed run's blast radius, by COUNT PER
+# RUN, not a human flip: once armed, a single run promotes at most `max_promote` of the eligible
+# candidates, oldest-eligible first. `record_only` (default `true`) governs what an ARMED apply actually
+# does: the would-mint set mints at record grade through the UNCHANGED chokepoint (`runIntakeCycle`'s own
+# `recordOnly` option) - its already-fetched text lands as the item's own pool row, GROUND/VALIDATE are
+# skipped entirely (no grounding spend), and the free record-briefs fleet writes the `full_brief` later,
+# like every other record item. An `apply` dispatch that is armed but has nothing NEW to mint (every
+# eligible candidate lacks a verdict, or every verdict is `not_an_item`) mints nothing: a legal, honest
+# no-op, not a silent downgrade (the driver logs and records this explicitly). **DECISION, REVISED (Lane
+# M2, 2026-09-18):** the `workflow_run` chain below runs a PLAN pass then an APPLY pass (capped at
+# `max_promote=50`) in the SAME job, see "run-ledger-consume.mjs (chained apply after source-sweep)"
+# below. The chained apply pass names no explicit `verdicts_file` and needs none: whatever a session lane
+# has already committed under `scripts/turns/ledger-verdicts/` is what it arms on and promotes from, up to
+# the cap, automatically, on every source-sweep completion. It runs disarmed ONLY on the rare firing where
+# zero verdict batches have ever been committed yet.
 #
 # EVENT CHAINING, NOT A SCHEDULE (build plan W1.4; rule 16 is about `schedule:`/cron, not event chaining).
 # `workflow_run: workflows: ["Source sweep"]` fires this workflow automatically after every source-sweep
@@ -120,13 +127,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'plan = classify (verdict or skip) + write nothing. apply = writes through the guarded intake cycle when it has a verdicts_file or --allow-api (LEDGER_CONSUME_APPLY_ENABLED is true — see run-ledger-consume.mjs); with neither, apply mints nothing (every candidate skipped).'
+        description: 'plan = classify (verdict or skip) + write nothing. apply = writes through the guarded intake cycle whenever at least one committed ledger-verdicts batch exists (auto-discovered, or the one verdicts_file names below), capped by max_promote; with zero batches committed anywhere, apply mints nothing and runs disarmed (LEDGER_CONSUME_APPLY_ENABLED is retired, see run-ledger-consume.mjs; the max_promote cap is the guard now).'
         required: true
         default: 'plan'
         type: choice
         options: [plan, apply]
       verdicts_file:
-        description: 'Repo path to ONE session-verdict batch (e.g. scripts/turns/ledger-verdicts/ledger-verdicts-001.json, see fsi-app/scripts/turns/ledger-verdicts/README.md) to use INSTEAD of auto-discovery. A candidate matched here is classified for $0; one that is not is SKIPPED, never sent to the API. Leave blank (the default) to auto-discover and read EVERY committed ledger-verdicts-*.json batch, not only this one. D26 (2026-09-13): apply now ALSO requires this input non-blank to arm at all - see isApplyArmed in run-ledger-consume.mjs. Leaving it blank on an apply dispatch runs as plan (apply_disarmed), never mints, however many batches auto-discovery would have found.'
+        description: 'Repo path to ONE session-verdict batch (e.g. scripts/turns/ledger-verdicts/ledger-verdicts-001.json, see fsi-app/scripts/turns/ledger-verdicts/README.md) to use INSTEAD of auto-discovery. A candidate matched here is classified for $0; one that is not is SKIPPED, never sent to the API. Leave blank (the default) to auto-discover and read EVERY committed ledger-verdicts-*.json batch, not only this one; auto-discovered batches arm apply exactly the same as an explicit one names here (isApplyArmed in run-ledger-consume.mjs, corrected 2026-09-18) - this input only narrows WHICH batch(es) this run acts on, it is no longer required for apply to arm at all.'
         required: false
         type: string
       record_only:
@@ -134,6 +141,11 @@ on:
         required: false
         default: true
         type: boolean
+      max_promote:
+        description: 'Lane M2 (2026-09-18): caps how many eligible candidates ONE apply run may promote, oldest-eligible first, the guard that replaces the retired LEDGER_CONSUME_APPLY_ENABLED source constant. Hard ceiling 200, enforced in run-ledger-consume.mjs (--max-promote). No effect in plan mode.'
+        required: false
+        default: '50'
+        type: string
       limit:
         description: 'Max ledger candidates this run consumes (bounded runs, no unbounded sweeps).'
         required: false
@@ -216,6 +228,14 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
+      # THE UPSTREAM RUN ID (Lane M2, 2026-09-18): every run-ledger-consume.mjs invocation below reads
+      # this back as config.upstream_run_id (that script's own config object) so an artifact from the
+      # workflow_run chain names the source-sweep run that triggered it. github.event.workflow_run.id is
+      # empty on an explicit workflow_dispatch, run-ledger-consume.mjs treats an empty env var as null,
+      # never a literal empty-string upstream id.
+      - name: Export upstream run id (workflow_run chaining only)
+        run: echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+
       # ── resolve this run's parameters by trigger — see this file's header, "DECISION" and "EVENT
       # CHAINING" ─────────────────────────────────────────────────────────────────────────────────────
       # workflow_dispatch: use the inputs verbatim — export_candidates=true runs ONLY the export half
@@ -243,17 +263,23 @@ jobs:
             fi
             mode="${{ inputs.mode }}"
             limit="${{ inputs.limit }}"
+            max_promote="${{ inputs.max_promote }}"
             source_id="${{ inputs.source_id }}"
             verdicts_file="${{ inputs.verdicts_file }}"
             record_only="${{ inputs.record_only }}"
             export_limit="${{ inputs.export_limit }}"
             export_after="${{ inputs.export_after }}"
+            # The dedicated chained-apply step below is workflow_run-only (see that step's own comment).
+            # A workflow_dispatch's own mode input already reaches the main run-ledger-consume.mjs step
+            # directly, so this workflow never runs two consume passes for one dispatch.
+            run_apply_chain="false"
           else
             # D26 part g (docs/plans/defect-fix-plan-2026-09-12.md; "no unnecessary runs"): the export step
             # runs ONLY on an explicit workflow_dispatch -- a workflow_run firing never sets run_export.
             run_export="false"
             mode="plan"
             limit="$RESOLVE_CONSUME_LIMIT"
+            max_promote="50"
             source_id=""
             verdicts_file=""
             record_only="true"
@@ -293,11 +319,20 @@ jobs:
               run_consume="false"
               echo "::notice::D26 part g (no empty runs): no committed ledger-verdicts batch newer than the last apply ($last_apply_at) -- exiting at once, nothing new to consume."
             fi
+            # Lane M2 (2026-09-18, corrected same day by coordinator ruling): the chained apply pass
+            # (below) runs whenever the plan pass above has real work, same D26 part g "no empty runs"
+            # reasoning, one decision, not a second one to keep in sync. It ARMS ITSELF the moment at
+            # least one ledger-verdicts batch is committed (run-ledger-consume.mjs's own isApplyArmed) -
+            # this step names no verdicts_file and needs none; auto-discovery is what arms it now. It runs
+            # disarmed only on the rare firing where zero batches have ever been committed at all.
+            run_apply_chain="$run_consume"
           fi
           echo "run_consume=$run_consume" >> "$GITHUB_OUTPUT"
           echo "run_export=$run_export" >> "$GITHUB_OUTPUT"
+          echo "run_apply_chain=$run_apply_chain" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "limit=$limit" >> "$GITHUB_OUTPUT"
+          echo "max_promote=$max_promote" >> "$GITHUB_OUTPUT"
           echo "source_id=$source_id" >> "$GITHUB_OUTPUT"
           echo "verdicts_file=$verdicts_file" >> "$GITHUB_OUTPUT"
           echo "record_only=$record_only" >> "$GITHUB_OUTPUT"
@@ -310,13 +345,15 @@ jobs:
           echo "trigger      = ${{ github.event_name }}"
           echo "run_consume  = ${{ steps.params.outputs.run_consume }}"
           echo "run_export   = ${{ steps.params.outputs.run_export }}"
+          echo "run_apply_chain (workflow_run only) = ${{ steps.params.outputs.run_apply_chain }}"
           if [ "${{ steps.params.outputs.run_consume }}" = "true" ]; then
             echo "mode           = ${{ steps.params.outputs.mode }}"
             echo "limit          = ${{ steps.params.outputs.limit }}"
+            echo "max_promote    = ${{ steps.params.outputs.max_promote }}"
             echo "source_id      = ${{ steps.params.outputs.source_id }}"
             echo "verdicts_file  = ${{ steps.params.outputs.verdicts_file }}"
             echo "record_only    = ${{ steps.params.outputs.record_only }}"
-            echo "NOTE: verdicts_file blank -> auto-discovers EVERY committed ledger-verdicts-*.json batch for PLAN's own classify decisions, but D26 (2026-09-13) means apply does NOT arm on auto-discovery alone -- apply requires this input non-blank (isApplyArmed, run-ledger-consume.mjs). apply only writes when LEDGER_CONSUME_APPLY_ENABLED is true (it is, as of 2026-09-04) AND verdicts_file names a file. --allow-api is CLI-only; this workflow never sets it. record_only (default true) mints the would-mint set at record grade with no grounding spend -- see run-intake-cycle.ts."
+            echo "NOTE: verdicts_file blank -> auto-discovers EVERY committed ledger-verdicts-*.json batch, and (corrected 2026-09-18, coordinator ruling) auto-discovery ALONE now arms apply too -- isApplyArmed (run-ledger-consume.mjs) arms whenever at least one committed batch exists at all, named or discovered; verdicts_file only narrows WHICH batch(es) a run acts on. apply mints nothing only when zero batches exist anywhere (LEDGER_CONSUME_APPLY_ENABLED is retired, Lane M2 2026-09-18; max_promote is the guard now, bounding how many candidates ONE armed apply run may promote). --allow-api is CLI-only; this workflow never sets it. record_only (default true) mints the would-mint set at record grade with no grounding spend -- see run-intake-cycle.ts."
             if [ "${{ steps.params.outputs.mode }}" = "apply" ] && [ -z "$(ls scripts/turns/ledger-verdicts/ledger-verdicts-*.json 2>/dev/null)" ] && [ -n "${{ steps.params.outputs.verdicts_file }}" ] && [ ! -f "${{ steps.params.outputs.verdicts_file }}" ]; then
               echo "::warning::apply requested but the named verdicts_file does not exist — see run-ledger-consume.mjs's own fail-closed check (exit 4)."
             fi
@@ -355,6 +392,7 @@ jobs:
         if: steps.params.outputs.run_consume == 'true'
         run: |
           args=(--mode "${{ steps.params.outputs.mode }}" --limit "${{ steps.params.outputs.limit }}" \
+            --max-promote "${{ steps.params.outputs.max_promote }}" \
             --record-only "${{ steps.params.outputs.record_only }}")
           if [ -n "${{ steps.params.outputs.source_id }}" ]; then
             args+=(--source-id "${{ steps.params.outputs.source_id }}")
@@ -363,6 +401,24 @@ jobs:
             args+=(--verdicts "${{ steps.params.outputs.verdicts_file }}")
           fi
           node scripts/turns/run-ledger-consume.mjs "${args[@]}"
+
+      # -- run_apply_chain: the CHAINED APPLY PASS (Lane M2, 2026-09-18, build plan section 6.1 row M2,
+      # arming corrected the same day by coordinator ruling) -- workflow_run-only (see "Resolve dispatch
+      # parameters" above, a workflow_dispatch's own mode input already reaches the step above directly).
+      # Runs mode=apply, capped at max_promote=50, in the SAME job right after the plan pass above, closing
+      # S2 finding 1 ("the apply half has never fired") for real: this step names NO --verdicts file and
+      # needs none - isApplyArmed (run-ledger-consume.mjs) arms whenever at least one committed
+      # scripts/turns/ledger-verdicts/*.json batch exists at all, auto-discovered here exactly like the
+      # plan pass above discovers the same batches for its own classify decisions. A session lane
+      # committing its first verdict batch is what arms this step, no operator flip required; it runs
+      # disarmed (plan semantics, config.apply_disarmed:true in its own artifact) only on the rare firing
+      # where zero batches have ever been committed. Same source_id (blank = all sources) and record_only
+      # as the plan pass above.
+      - name: run-ledger-consume.mjs (chained apply after source-sweep, capped)
+        if: steps.params.outputs.run_apply_chain == 'true'
+        run: |
+          node scripts/turns/run-ledger-consume.mjs --mode apply --limit "${{ steps.params.outputs.limit }}" \
+            --max-promote 50 --record-only "${{ steps.params.outputs.record_only }}"
 
       # ── run_export: the export half (see this file's header) ─────────────────────────────────────────
       # --with-text fetches every listed candidate's URL through run-ledger-consume.mjs's OWN buildFetchDoc
@@ -433,8 +489,12 @@ jobs:
           {
             printf 'Automated ledger consume (run %s, trigger %s).\n\n' "${{ github.run_id }}" "${{ github.event_name }}"
             if [ "${{ steps.params.outputs.run_consume }}" = "true" ]; then
-              printf 'CONSUME — mode: %s\nLimit: %s\nSource id: %s\nVerdicts file: %s (blank = auto-discovered every committed batch)\n\nApply only writes when LEDGER_CONSUME_APPLY_ENABLED is true (it is, as of 2026-09-04) and this run had a usable verdict or --allow-api; check config.apply_disarmed and config.matched/verdict_batches_read in the artifact for exactly what happened.\n\n' \
-                "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" "${{ steps.params.outputs.source_id }}" "${{ steps.params.outputs.verdicts_file }}"
+              printf 'CONSUME, mode: %s\nLimit: %s\nMax promote: %s\nSource id: %s\nVerdicts file: %s (blank = auto-discovered every committed batch, which now also ARMS apply on its own)\n\nApply writes whenever at least one committed ledger-verdicts batch exists (named here or auto-discovered) and this run had a usable verdict for at least one candidate (LEDGER_CONSUME_APPLY_ENABLED is retired, Lane M2 2026-09-18; max_promote bounds how many candidates ONE armed apply run may promote); check config.apply_disarmed, config.max_promote, config.verdicts_files and config.matched/verdict_batches_read in the artifact for exactly what happened.\n\n' \
+                "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" "${{ steps.params.outputs.max_promote }}" "${{ steps.params.outputs.source_id }}" "${{ steps.params.outputs.verdicts_file }}"
+            fi
+            if [ "${{ steps.params.outputs.run_apply_chain }}" = "true" ]; then
+              printf 'CHAINED APPLY (after the plan pass above), mode: apply, limit: %s, max_promote: 50, record_only: %s. No --verdicts named by this automatic step; it arms itself off whatever has already been committed under scripts/turns/ledger-verdicts/ and runs disarmed (plan semantics) only when nothing has ever been committed there, see config.apply_disarmed in its own harness-run artifact.\n\n' \
+                "${{ steps.params.outputs.limit }}" "${{ steps.params.outputs.record_only }}"
             fi
             if [ "${{ steps.params.outputs.run_export }}" = "true" ]; then
               printf 'EXPORT — --export-candidates --with-text, limit=%s, after=%s (blank = auto-resumed past the previous export'"'"'s own next_cursor).\n\nLands %s: candidate rows from portal_link_candidates (status=candidate), each carrying its already-fetched page text (fetched by run-ledger-consume.mjs'"'"'s own buildFetchDoc — same politeness gap, same timeout a consume pass uses; no second fetcher). A classification lane reading this file must NOT fetch these URLs itself — see the file'"'"'s own note_on_fetched_text and run-ledger-consume.mjs'"'"'s header, "THE DEFECT THIS CLOSES". This dispatch'"'"'s own recorded next_cursor is what the NEXT export dispatch with no explicit export_after will auto-resume from.\n' \

@@ -22,16 +22,24 @@
 // $0: read-only, count-only. No writes, no model calls, no metered anything.
 
 import { resolve, dirname } from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { readClient, readAll } from "../lib/db.mjs";
+import { readClient, readAll, readAllByIds } from "../lib/db.mjs";
 import { STUB_BRIEF_MARKER } from "../../src/lib/intake/record-facts.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 import { readRunHistory } from "../lib/run-artifact.mjs";
 import { extractMintedItemIds } from "../turns/run-population-flywheel.mjs";
 import { TAG_NAMESPACE, SIGNAL_NAMESPACE, GAP_NAMESPACE, ANTICIPATE_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/classification/flags.mjs";
+// REUSE-ONLY (Lane M2 correction, 2026-09-18): discoverVerdictsFiles is the SAME "walk
+// scripts/turns/ledger-verdicts/ for every committed ledger-verdicts-*.json batch" function
+// run-ledger-consume.mjs's own auto-discovery path already uses, imported here rather than a second,
+// hand-rolled directory walk that could drift from it. Importing this module never runs its main() (the
+// IS_MAIN guard at that file's own bottom only fires when it is the direct entry point).
+import { discoverVerdictsFiles } from "../turns/run-ledger-consume.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+export const DEFAULT_LEDGER_VERDICTS_DIR = resolve(HERE, "..", "turns", "ledger-verdicts");
 // Task 3.5 (W9 brief-chain plan Part 3): the SAME two harness-run families run-population-flywheel.mjs
 // (mint) and apply-record-briefs.mjs (brief-apply) already read/write -- never a second, drifting copy of
 // either path.
@@ -458,6 +466,73 @@ export function describeCoverageReflectionsState(state, counts) {
   ];
 }
 
+// ── "ledger-consume: N candidates await a verdict" line (coordinator correction, 2026-09-18) ────────────
+// "The human half must never be silent." apply now promotes by itself whenever a committed verdict batch
+// exists (run-ledger-consume.mjs's own isApplyArmed), so the ONE thing that can still silently stall the
+// whole intake funnel is a session lane never writing the verdict batch in the first place. This line is
+// the visible queue depth for that: how many live portal_link_candidates rows (status='candidate') have
+// no verdict in ANY committed scripts/turns/ledger-verdicts/*.json batch. Corpus-wide, not one run's own
+// window (contrast metrics.verdicts_owed on the run artifact itself, that family's own per-run count).
+
+/** PURE: given the total 'candidate' row count and how many of those rows' urls matched a committed
+ *  verdict, the count still awaiting one. Floored at 0, defensive against a chunked read racing a write
+ *  between the total query and the matched-chunk queries (never a negative "owed" count).
+ * @param {number} totalCandidates
+ * @param {number} matchedAmongVerdicted
+ * @returns {number}
+ */
+export function computeVerdictsOwed(totalCandidates, matchedAmongVerdicted) {
+  return Math.max(0, (totalCandidates ?? 0) - (matchedAmongVerdicted ?? 0));
+}
+
+/** Read every committed ledger-verdicts-*.json batch and collect the union of every entry's `url`,
+ *  duplicates included (the caller only needs membership, not counts). Malformed or unreadable files are
+ *  skipped, never thrown: this line is a visibility aid, not a gate, and one bad file must not blank the
+ *  whole population report. @param {string} dir @returns {string[]} */
+export function loadCommittedVerdictedUrls(dir = DEFAULT_LEDGER_VERDICTS_DIR) {
+  const urls = [];
+  for (const filePath of discoverVerdictsFiles(dir)) {
+    try {
+      const parsed = JSON.parse(readFileSync(filePath, "utf8"));
+      for (const entry of Array.isArray(parsed?.entries) ? parsed.entries : []) {
+        if (typeof entry?.url === "string" && entry.url) urls.push(entry.url);
+      }
+    } catch {
+      /* one unreadable/malformed batch does not blank this line, the aggregate below still runs */
+    }
+  }
+  return urls;
+}
+
+/** The I/O half: one aggregate count of every live candidate, then the matched count among the
+ *  verdicted set via `readAllByIds` (`scripts/lib/db.mjs`), the ONE chunked-id-read home this codebase
+ *  already has (IN-CHUNK, 2026-09-06) rather than a second, ad hoc chunking loop, exactly the duplication
+ *  this build is removing (coordinator correction, 2026-09-18). `computeVerdictsOwed` (pure, above) does
+ *  the subtraction. `idColumn: "url"` (portal_link_candidates.url is UNIQUE, so this also fixes a latent
+ *  double-count the old hand-rolled loop had: a url repeated across two committed batches, landing in two
+ *  different chunks, would have matched the same row twice; readAllByIds dedupes its id list before
+ *  chunking, `fetchAllByIdChunks`'s own `[...new Set(ids)]`). Never fetches a candidate row's content,
+ *  only its `url` column for the handful of rows the match returns.
+ * @param {object} sb
+ * @param {{verdictedUrls?: string[], verdictsDir?: string}} [opts]
+ * @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countCandidatesAwaitingVerdict(sb, { verdictedUrls, verdictsDir } = {}) {
+  try {
+    const urls = Array.isArray(verdictedUrls) ? verdictedUrls : loadCommittedVerdictedUrls(verdictsDir);
+    const total = await sb.from("portal_link_candidates").select("*", { count: "exact", head: true }).eq("status", "candidate");
+    if (total.error) return { count: null, error: { message: total.error.message } };
+    const rows = await readAllByIds("portal_link_candidates", "url", urls, {
+      idColumn: "url",
+      client: sb,
+      match: (q) => q.eq("status", "candidate"),
+    });
+    return { count: computeVerdictsOwed(total.count ?? 0, rows.length), error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
 /**
  * Each entry names the store, the reader that renders it, and `fill` — the column whose non-null
  * count decides whether that reader has anything real to show. Row count alone is the wrong
@@ -739,11 +814,22 @@ export async function collect(sb, stores = STORES) {
 // Guarded so importing this module for its pure parts never opens a database connection.
 if (isMainModule(import.meta.url)) {
   const strict = process.argv.includes("--strict");
-  const results = await collect(readClient());
+  const sb = readClient();
+  const results = await collect(sb);
   console.log(renderReport(results).join("\n"));
   const unfilled = results.filter((r) => classify(r) !== "FILLED");
   if (strict && unfilled.length) {
     console.error(`::error::--strict: ${unfilled.length} store(s) still unfilled after this run.`);
     process.exit(1);
+  }
+  // "The human half must never be silent" (coordinator correction, 2026-09-18): one line, not a STORES
+  // row, since this is a queue depth, not a store-fill question. Never a --strict gate: an empty
+  // scripts/turns/ledger-verdicts/ directory is a legitimate mid-build state, exactly the posture every
+  // other entry in this report already treats "not yet filled" with.
+  const verdictsOwed = await countCandidatesAwaitingVerdict(sb);
+  if (verdictsOwed.count !== null) {
+    console.log(`  ledger-consume: ${verdictsOwed.count} candidates await a verdict`);
+  } else {
+    console.log(`  ledger-consume: could not compute candidates awaiting a verdict (${verdictsOwed.error.message})`);
   }
 }

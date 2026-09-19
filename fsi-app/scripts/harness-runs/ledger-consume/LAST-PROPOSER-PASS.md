@@ -1,9 +1,131 @@
 # Last proposer pass — ledger-consume
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `ledger-consume` now has **seven** artifacts
-(`ledger-consume-run-001` through `-007`, the last five folded onto `train/wave48-2026-09-05` by
-lane ASSEMBLE-48); F28's rule (d) requires this file to name the latest verbatim:
-**ledger-consume-run-007**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `ledger-consume` now has **ten** artifacts
+(`ledger-consume-run-001` through `-010`); F28's rule (d) requires this file to name the latest
+verbatim: **ledger-consume-run-010**.
+
+## Proposer pass for ledger-consume-run-010 (2026-09-18, lane M2, leaked-state repair)
+
+**Artifact read:** `ledger-consume-run-010.json` (`config.action:"consume"`, `mode:"plan"`, `limit:5`,
+`harness_version:sha256:b1abea99a2de2d4e`) and its trace `traces/ledger-consume-run-010.result.json`, in
+full.
+
+**What moved the hash since run-009, and why this is a repair, not new work:** commit `e8e86f76` fixed a
+pre-commit glyph violation (rule 022, no em/en dash) in `run-ledger-consume.mjs`'s `isApplyArmed` jsdoc
+(one of this family's own governing files) AFTER `ledger-consume-run-009.json` had already been generated
+and its hash recorded. The full fitness suite was re-run before that specific glyph edit, showed 0
+violations, and was not re-run after it before the commit landed, so the commit shipped with run-009's
+recorded `harness_version` (`sha256:d5d30df2b7a73d8d`) already stale against the actually-committed code
+(`sha256:b1abea99a2de2d4e`). F28's own next run correctly caught this leaked state during the F39
+correction that follows in this same session. This run repairs it: a fresh local plan-mode probe under
+the TRUE final code, landed before, not instead of, the F39 fix's own gates, per "class fix must repair
+leaked state" (restore state, not only the mechanism).
+
+**What this run is, and is not:** the SAME shape as run-008/run-009, a bounded LOCAL verification probe
+(`--mode plan --limit 5`, no `--verdicts`, no `--allow-api`). `discovered:5, fetched:0, classified:2,
+promoted:0, skipped:3, capped:0, verdicts_owed:3` (read directly from the artifact), identical to
+run-008/run-009's own numbers on the same 5-row window (the ledger has not moved between these three
+local runs), not a new pattern.
+
+**Proposal: none warranted.** `defects_found` is empty. This run's own role is limited to proving the
+driver still executes cleanly and to giving F28 a current, honest artifact; the glyph fix itself was
+already proven behavior-preserving by run-ledger-consume.test.mjs's unchanged 128 passing tests, both
+before and after.
+
+**Open, unchanged from run-008/run-009's passes:** whether a REAL `workflow_run`-chained dispatch fires
+end to end. Out of this run's own read set; the coordinator's first real, armed chain firing is the
+evidence that answers this.
+
+**Basis:** `metrics`/`config` read directly from the committed artifact; the hash-drift account above is
+read directly from `git log`/`git show` on `run-ledger-consume.mjs` across the two edits, not asserted
+from memory.
+
+**Family gates status:** green. `node --test fsi-app/scripts/turns/run-ledger-consume.test.mjs` (128
+tests, unchanged by this repair) and `npx tsc --noEmit` pass on this tree.
+
+---
+
+## Proposer pass for ledger-consume-run-009 (2026-09-18, lane M2 correction)
+
+**Artifact read:** `ledger-consume-run-009.json` (`config.action:"consume"`, `mode:"plan"`, `limit:5`,
+`harness_version:sha256:d5d30df2b7a73d8d`) and its trace `traces/ledger-consume-run-009.result.json`, in
+full.
+
+**What moved the hash since run-008:** the coordinator's correction to the arming rule
+(`isApplyArmed`/`resolveApplyGate` in `run-ledger-consume.mjs`, one of this family's own governing files)
+and the new `metrics.verdicts_owed` field (`shapeConsumeResult`, same file). Both are prose/logic changes
+inside the driver; `portal-harvest.ts` and `first-fetch-classify.ts` (the other two governing files) were
+not touched by this correction.
+
+**What this run is, and is not:** the SAME shape as run-008's own pass, a bounded LOCAL verification probe
+(`--mode plan --limit 5`, no `--verdicts`, no `--allow-api`), run to prove the corrected driver still
+executes end to end, not a production dispatch. `discovered:5, fetched:0, classified:2, promoted:0,
+skipped:3, capped:0, verdicts_owed:3` (read directly from the artifact), consistent with the same
+2-of-5 verdict-coverage shape run-008 measured on the identical 5-row window (the ledger has not moved
+between the two local runs), not a new pattern.
+
+**Proposal: none warranted for `run-ledger-consume.mjs`/`portal-harvest.ts` from this run's own
+evidence.** `defects_found` is empty. The substantive change this correction made (arming now reads
+`verdictsFilesCount` instead of `verdictsGiven`; `metrics.verdicts_owed` added) is proven by
+`run-ledger-consume.test.mjs`'s own updated unit tests (`isApplyArmed`/`resolveApplyGate` composition,
+`metrics.verdicts_owed` equals `without_verdict_skipped`) and `population-report.test.mjs`'s new tests
+(`computeVerdictsOwed`, `loadCommittedVerdictedUrls`, `countCandidatesAwaitingVerdict`), not by this
+plan-mode probe. This run's own role is limited to proving the corrected driver still runs cleanly.
+
+**Open, unchanged from run-008's pass:** whether a REAL `workflow_run`-chained dispatch threads
+`next_cursor` correctly, and whether the chained-apply pass (now self-arming on committed verdicts) fires
+end to end and actually promotes a candidate for real. Out of this run's own read set; the coordinator's
+first real, armed chain firing is the evidence that answers this.
+
+**Basis:** `metrics`/`config` read directly from the committed artifact; the "identical window, not a new
+pattern" claim is a direct field-by-field comparison against run-008's own recorded outcomes for the same
+5 candidate ids, never asserted without the prior run's own numbers alongside it.
+
+**Family gates status:** green. `node --test fsi-app/scripts/turns/run-ledger-consume.test.mjs
+fsi-app/scripts/verify/population-report.test.mjs` (192 tests) and `npx tsc --noEmit` pass on this tree
+(this lane's own report has the verbatim counts).
+
+---
+
+## Proposer pass for ledger-consume-run-008 (2026-09-18, lane M2)
+
+**Artifact read:** `ledger-consume-run-008.json` (`config.action:"consume"`, `mode:"plan"`,
+`limit:5`, `harness_version:sha256:696d58aee19a1566`) and its trace
+`traces/ledger-consume-run-008.result.json`, in full.
+
+**What this run is, and is not:** a bounded LOCAL verification probe (`--mode plan --limit 5`, no
+`--verdicts`, no `--allow-api`), run per this lane's own brief item 6 ("run plan mode once locally,
+and commit its artifact") to prove the driver still runs end to end after this lane's code change
+(the retirement of `LEDGER_CONSUME_APPLY_ENABLED`, the new `--max-promote` cap, the
+`upstream_run_id`/`max_promote` config fields, the `before`/`after` per_item fields). It is NOT a
+production dispatch over new ledger territory and carries no new evidence about the family's walk
+behavior (`next_cursor`, verdict coverage, fetch/classify counts) beyond what run-007's pass
+already established: `discovered:5, fetched:0, classified:2, promoted:0, skipped:3, capped:0`,
+consistent with the SAME 2-of-5 verdict-coverage shape run-007 measured at scale (386/400), not a
+new pattern.
+
+**Proposal: none warranted for `run-ledger-consume.mjs`/`portal-harvest.ts` from this run's own
+evidence.** `defects_found` is empty, and this run's own purpose was confirmation, not discovery.
+The substantive change this lane made (the max-promote cap, the constant's retirement) is proven by
+`run-ledger-consume.test.mjs`'s own unit tests (`applyPromoteCap`, `ledgerStatusAfter`,
+`parseArgs` `--max-promote` bounds) and the `ledger-consume.yml` golden tests, not by this plan-mode
+probe. This run's own role is limited to proving the driver still executes cleanly post-edit.
+
+**Open, unchanged from run-007's pass, item (b), still not re-verified:** whether a REAL
+`workflow_run`-chained dispatch (as opposed to this lane's local probe) threads `next_cursor`
+correctly and whether the newly-wired chained-apply pass (this lane's own `.github/workflows/
+ledger-consume.yml` change) actually fires end to end. Out of this run's own read set (a local
+plan-mode probe proves nothing about the GitHub Actions chain); the coordinator's first real apply
+dispatch (this lane's own acceptance criterion "Run") is the evidence that answers this.
+
+**Basis:** `metrics`/`config` read directly from the committed artifact; the "not a new pattern"
+claim is a direct comparison against run-007's own `matched`/`fetched` ratio (386/400 vs 2/5),
+never asserted without the prior run's own numbers alongside it.
+
+**Family gates status:** green. `node --test fsi-app/scripts/turns/run-ledger-consume.mjs` (128
+tests) and `npx tsc --noEmit` pass on this tree (this lane's own report has the verbatim counts).
+
+---
 
 ## Proposer pass for ledger-consume-run-007 (2026-09-05, lane ASSEMBLE-48)
 
