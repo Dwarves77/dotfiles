@@ -1,0 +1,15 @@
+// RD-75: registered by lane N6 (plan 6.8, "the gate that holds the line"). One entry, one file; see
+// invariants.d/README.md.
+
+export const invariant = {
+  id: 'RD-75',
+  skill: 'remediation-discipline',
+  section: 'Section 4 - category 48: a registry is a directory, a gate compares to the merge-base, and nothing that would need re-stamping is ever stored',
+  text: 'Fitness function F51 (no-shared-append) proves, by attack, that the two structural causes of the 2026-09-18 merge-train stops cannot recur: (1) no hand-written entry reappears in fitness/manifest.mjs, scripts/harness-runs/governing-files.mjs, scripts/lib/run-artifact.mjs or .discipline/governance/invariants.mjs, the four files lanes N1, N2 and N5 converted from a hand-edited list to a directory read; (2) no fitness function under fitness/functions/*.mjs stores a nonzero "_CEILING" constant or a hash-pin literal, and a constant-zero ceiling is permitted only through a small, dated, reason-bearing allowlist naming the two operator-decided cases (F46 MULTI_HOME_CEILING, F47 UNREFERENCED_TABLES_CEILING and UNREAD_TABLES_CEILING); (3) an id is unique within each entry-file category (fitness functions by filename prefix, invariants.d/ by filename stem, harness families by their family.json "family" field, migrations by leading number prefix); (4) a lane/ branch never changes docs/ops/session-log.md, docs/PROGRAM-BOARD.md, docs/INDEX.md or anything under docs/audits/, the coordinator-only files the lane contract already named in prose; (5) the files changed by three or more of the last 30 first-parent commits of origin/master are printed every run as the standing hotspot count, and each one must be an entry-directory file, a docs/ops/session-log.d/ file, or in a small dated allowlist naming only the files the contract makes coordinator-owned, so the next hotspot is caught while it is forming.',
+  anchor: '### Section 4 - category 48: a registry is a directory, a gate compares to the merge-base, and nothing that would need re-stamping is ever stored',
+  enforcedBy: [
+    'fitness:F51',
+    'selftest:fsi-app/.discipline/fitness/functions/F51-no-shared-append.test.mjs',
+  ],
+  residual: 'Checks 1-3 are pattern scans against the specific shapes Cause A and Cause B took on 2026-09-18, not a general ban on the identifiers "_CEILING" or "id:" anywhere in the tree; a hand-written registry built with a different shape in a different file is not caught by this function, only by the same discipline (a directory registry, a merge-base ratchet) being applied to it when it is built. Check 5 is a floor over a 30-commit trailing window on a fast-moving repo: a file already a hotspot for reasons unrelated to a shared append or a re-stamped value (ordinary concurrent feature work touching the same script from several lanes) still fails it until it is either allowlisted with a dated reason or stops churning on its own; this is deliberate breadth, not a false-positive to suppress, per the lane N6 brief\'s own instruction to report a still-hot file rather than allowlist it away.',
+};
