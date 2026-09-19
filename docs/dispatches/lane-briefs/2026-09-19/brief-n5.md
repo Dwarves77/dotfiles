@@ -118,3 +118,16 @@ Both STOPs were right. Rulings:
 Then the acceptance as written (all three equality proofs), the runner at 0 violations, one commit (amend
 your existing commit only if nothing has been pushed; it has not, so `--amend` is allowed here, once), and
 the gate once, as the brief says.
+
+## Amendment 2 (coordinator, 2026-09-19 19:10 UTC by the date command, after the lane's second report)
+
+The 152 `[glyph:verbatim]` tags are the cost of Amendment 1's "byte for byte" wording, and they are debt in a
+living inventory (152 subject lines in migration headers and the generated page). Correction: the subjects
+are descriptions, not quoted text, so rule 022's own remedy applies. By scratch script, in every
+`-- subject:` line that carries the tag: replace each em dash and en dash with a comma (or a colon where
+the dash introduces a list or an explanation), replace a section sign with the word "section", drop the
+` [glyph:verbatim]` tag; regenerate the page with `--write`; C3 parity green; the migration count of lines
+changed equals the count of tags removed (paste both numbers). The page no longer equals the pre-N5 page
+byte for byte, and the entry says exactly why (glyph replacements only). One second commit
+(`Lane N5 (Amendment 2): subject lines without dash glyphs`), `git fetch origin && git merge origin/master`
+(the branch is on origin: merge, never rebase), the gate once more (the second and last run).
