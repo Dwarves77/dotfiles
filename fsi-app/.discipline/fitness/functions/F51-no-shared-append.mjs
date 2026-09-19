@@ -24,8 +24,10 @@
 //   4. A `lane/` BRANCH NEVER TOUCHES a coordinator-only file (the lane contract already said so in prose;
 //      nothing enforced it).
 //   5. THE HOTSPOT STANDING NUMBER: files changed by 3 or more of the last 30 first-parent commits of
-//      `origin/master` are printed every run, so the NEXT hotspot is caught while it is forming, not after
-//      an evening of stops.
+//      `origin/master` AFTER a dated anchor commit (Amendment 2, 2026-09-19: the anchor is lane N4's own
+//      merge, the last of plan 6.8's conversion lanes, so the conversion itself and three same-day
+//      tree-wide mechanical passes are never counted as hotspot churn) are printed every run, so the NEXT
+//      hotspot is caught while it is forming, not after an evening of stops.
 //
 // SCOPE, HONESTLY. Checks 1-3 are static/textual scans of specific, named files -- they are pattern
 // checks against the shapes Cause A and Cause B actually took, not a general ban on the identifiers
@@ -282,10 +284,51 @@ export function runCheck3(root) {
     if (m) idsByFile.push({ category: 'migration', id: m[1], file: f });
   }
 
+  return evaluateIdDuplicates(idsByFile);
+}
+
+// Amendment 2 (coordinator, 2026-09-19 20:49 UTC), check 3. These two migration-number prefixes carry a
+// real, pre-existing duplicate: five files, all applied, each with a distinct filename (Supabase CLI
+// tracks migrations by filename, never by this leading number, so the CLI is unaffected). Renumbering an
+// applied migration was refused by the coordinator the same day this allowlist was written. The entry
+// pins the EXACT file set observed, not just the id: a third file later sharing the same prefix changes
+// the observed set, no longer matches, and is caught again (a growing duplicate is not the one this
+// allowlist excuses). Every other duplicate, migrations included, is still a violation.
+export const MIGRATION_DUPLICATE_ALLOWLIST = {
+  '006': {
+    decidedOn: '2026-09-19',
+    reason: 'pre-build history, applied; renumbering refused 2026-09-19',
+    files: [
+      'fsi-app/supabase/migrations/006_multi_tenant.sql',
+      'fsi-app/supabase/migrations/006_rls_multi_tenant.sql',
+    ],
+  },
+  '007': {
+    decidedOn: '2026-09-19',
+    reason: 'pre-build history, applied; renumbering refused 2026-09-19',
+    files: [
+      'fsi-app/supabase/migrations/007_community_layer.sql',
+      'fsi-app/supabase/migrations/007_full_brief.sql',
+      'fsi-app/supabase/migrations/007_rls_community.sql',
+    ],
+  },
+};
+
+/** Pure: takes the same [{ category, id, file }] shape runCheck3 builds and returns violations, applying
+ *  MIGRATION_DUPLICATE_ALLOWLIST only to a migration duplicate whose observed file set matches the
+ *  allowlisted set exactly (sorted comparison) -- any other file set for that same id (a growing
+ *  duplicate, e.g. a planted third "006_" file) is still a violation. */
+export function evaluateIdDuplicates(idsByFile, { migrationAllowlist = MIGRATION_DUPLICATE_ALLOWLIST } = {}) {
   const out = [];
   for (const category of ['fitness', 'invariants', 'harness-family', 'migration']) {
     const dups = findDuplicateIds(idsByFile.filter((e) => e.category === category));
     for (const { id, files } of dups) {
+      if (category === 'migration') {
+        const allowed = migrationAllowlist[id];
+        if (allowed && [...files].sort().join('\u0001') === [...allowed.files].sort().join('\u0001')) {
+          continue;
+        }
+      }
       out.push({
         path: files[0], line: 1,
         message: `duplicate id "${id}" across ${category} entry files: ${files.join(', ')}. Each entry file's id must be unique; the coordinator assigns ids (invariants.d/README.md's own rule), never a lane.`,
@@ -373,25 +416,42 @@ export function parseFirstParentLog(raw) {
     .map((lines) => lines.slice(1)); // first line of each block is the commit sha
 }
 
-export function runCheck5(root) {
+// Amendment 2 (coordinator, 2026-09-19 20:49 UTC), check 5. An EPOCH MARKER, not a measurement: the last
+// 30 first-parent commits before this anchor ARE the plan 6.8 conversion itself (lanes N1-N5 each
+// rewriting the very shared files they derived) plus three tree-wide mechanical passes landed the same
+// day (T2's env-loader move over ~90 scripts, N1's audit-marker move over 34 files, N5's shared-writer-
+// marker move over 94 files) -- the regime section 6.8 REPLACED, not the one this check guards. Counting
+// that regime as "hotspot churn" flags the conversion that fixed Cause A/B as if it were a fresh instance
+// of Cause A/B. The anchor is lane N4's own merge commit, #748, the LAST of the five conversion lanes
+// (N0, T2, N2, N1, N3, N5, N4 all precede or land at this commit); every commit counted by check 5 is
+// strictly AFTER it. Not re-seeded by a lane; a coordinator-only value, changed only by a coordinator
+// ruling that a later commit should become the new baseline.
+export const HOTSPOT_WINDOW_ANCHOR_COMMIT = 'ccb6aa0c091aba55f6e85d93ecc704c218acc20c';
+export const HOTSPOT_WINDOW_ANCHOR_DECIDED_ON = '2026-09-19';
+export const HOTSPOT_WINDOW_ANCHOR_REASON =
+  'lane N4 merge (#748), the last of plan 6.8\'s five conversion lanes; commits at or before it are the ' +
+  'conversion itself plus three same-day tree-wide mechanical passes, the regime 6.8 replaced, not the ' +
+  'one this check guards.';
+
+export function runCheck5(root, { anchor = HOTSPOT_WINDOW_ANCHOR_COMMIT } = {}) {
   let raw;
   try {
     raw = execFileSync(
       'git',
-      ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H', 'origin/master'],
+      ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H', `${anchor}..origin/master`],
       { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 },
     );
   } catch (e) {
-    console.log(`  [F51] check 5 (hotspot standing number) skipped: origin/master unavailable (${e.message}).`);
+    console.log(`  [F51] check 5 (hotspot standing number) skipped: origin/master or the anchor commit ${anchor.slice(0, 8)} unavailable (${e.message}).`);
     return [];
   }
   const perCommit = parseFirstParentLog(raw);
-  if (perCommit.length === 0) {
-    console.log('  [F51] check 5 (hotspot standing number) skipped: no commits found on origin/master.');
+  if (perCommit.length < 3) {
+    console.log(`F51 hotspots (3+ of last ${perCommit.length} first-parent commit(s) after anchor ${anchor.slice(0, 8)}): 0 (fewer than 3 commits since the anchor; no file can reach the threshold yet, skipping)`);
     return [];
   }
   const hotspots = countHotspots(perCommit);
-  console.log(`F51 hotspots (3+ of last ${perCommit.length} merges): ${hotspots.length}`);
+  console.log(`F51 hotspots (3+ of last ${perCommit.length} merges after anchor ${anchor.slice(0, 8)}): ${hotspots.length}`);
   for (const [f, c] of hotspots) console.log(`  ${c}  ${f}`);
 
   const out = [];
@@ -401,7 +461,7 @@ export function runCheck5(root) {
     if (HOTSPOT_ALLOWLIST[f]) continue;
     out.push({
       path: f, line: 1,
-      message: `hotspot: "${f}" changed in ${c} of the last ${perCommit.length} first-parent commits of origin/master, and is neither an entry-directory file, a docs/ops/session-log.d/ file, nor in the dated HOTSPOT_ALLOWLIST. This is the next Cause A/B candidate forming; investigate why separate lanes keep editing this one file (plan 6.8, check 5).`,
+      message: `hotspot: "${f}" changed in ${c} of the last ${perCommit.length} first-parent commits of origin/master after anchor ${anchor.slice(0, 8)}, and is neither an entry-directory file, a docs/ops/session-log.d/ file, nor in the dated HOTSPOT_ALLOWLIST. This is the next Cause A/B candidate forming; investigate why separate lanes keep editing this one file (plan 6.8, check 5).`,
     });
   }
   return out;
@@ -414,10 +474,11 @@ export const fitnessFunction = {
     'Holds the line plan 6.8 drew: (1) no hand-written entry reappears in a file lanes N1/N2/N5 converted ' +
     'to a derived directory read; (2) no fitness function stores a nonzero ceiling or a hash-pin literal, ' +
     'and a zero ceiling is allowlisted with a date and a reason or it fails too; (3) ids are unique within ' +
-    'each entry-file category (fitness functions, invariants, harness families, migrations); (4) a lane/ ' +
-    'branch never touches a coordinator-only file; (5) the standing hotspot count (files changed by 3+ of ' +
-    'the last 30 first-parent commits of origin/master) is printed every run and any file on it must be an ' +
-    'entry-directory file, a session-log.d file, or a dated allowlist entry.',
+    'each entry-file category (fitness functions, invariants, harness families, migrations, with a dated ' +
+    'allowlist for the two pre-build migration-number duplicates 006 and 007 only); (4) a lane/ branch ' +
+    'never touches a coordinator-only file; (5) the standing hotspot count (files changed by 3+ of the ' +
+    'last 30 first-parent commits of origin/master after a dated anchor commit) is printed every run and ' +
+    'any file on it must be an entry-directory file, a session-log.d file, or a dated allowlist entry.',
   source: 'fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs',
   enumerate() {
     // One anchor file: the scan is tree-and-git-wide, reported once (the F23/F45/F47 shape).

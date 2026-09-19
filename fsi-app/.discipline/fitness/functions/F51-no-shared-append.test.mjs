@@ -11,9 +11,10 @@ import { join, dirname } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { FAMILIES } from '../../../scripts/harness-runs/family-registry.mjs';
 import {
-  scanHandEntries, scanStoredMeasurements, findDuplicateIds, countHotspots, parseFirstParentLog,
-  underEntryDir, runCheck1, runCheck2, runCheck3, runCheck4, runCheck5, ZERO_CEILING_ALLOWLIST,
-  HOTSPOT_ALLOWLIST, fitnessFunction,
+  scanHandEntries, scanStoredMeasurements, findDuplicateIds, evaluateIdDuplicates, countHotspots,
+  parseFirstParentLog, underEntryDir, runCheck1, runCheck2, runCheck3, runCheck4, runCheck5,
+  ZERO_CEILING_ALLOWLIST, MIGRATION_DUPLICATE_ALLOWLIST, HOTSPOT_ALLOWLIST, HOTSPOT_WINDOW_ANCHOR_COMMIT,
+  fitnessFunction,
 } from './F51-no-shared-append.mjs';
 
 function tmpRepo(prefix) {
@@ -170,11 +171,51 @@ test('check 3 GREEN: unique ids pass', () => {
   );
 });
 
-test('check 3 wired to the live tree: runCheck3 reports the true, pre-existing duplicate migration prefixes 006 and 007, and nothing else', () => {
-  const v = runCheck3(getRepoRoot());
-  const ids = v.map((x) => /duplicate id "([^"]+)"/.exec(x.message)?.[1]).sort();
-  assert.deepEqual(ids, ['006', '007'], 'this lane did not add or remove any migration file; these two duplicates predate this build (see the report for the finding)');
-  assert.ok(v.every((x) => x.message.includes('across migration entry files')));
+test('check 3 (Amendment 2) RED: a migration duplicate NOT matching the allowlisted file set is caught, allowlist or not', () => {
+  const idsByFile = [
+    { category: 'migration', id: '150', file: 'fsi-app/supabase/migrations/150_a.sql' },
+    { category: 'migration', id: '150', file: 'fsi-app/supabase/migrations/150_b.sql' },
+  ];
+  const v = evaluateIdDuplicates(idsByFile);
+  assert.equal(v.length, 1);
+  assert.ok(v[0].message.includes('duplicate id "150"'));
+});
+
+test('check 3 (Amendment 2) GREEN: the two allowlisted migration prefixes pass when the observed file set matches exactly', () => {
+  const idsByFile = [
+    { category: 'migration', id: '006', file: 'fsi-app/supabase/migrations/006_multi_tenant.sql' },
+    { category: 'migration', id: '006', file: 'fsi-app/supabase/migrations/006_rls_multi_tenant.sql' },
+    { category: 'migration', id: '007', file: 'fsi-app/supabase/migrations/007_community_layer.sql' },
+    { category: 'migration', id: '007', file: 'fsi-app/supabase/migrations/007_full_brief.sql' },
+    { category: 'migration', id: '007', file: 'fsi-app/supabase/migrations/007_rls_community.sql' },
+  ];
+  assert.deepEqual(evaluateIdDuplicates(idsByFile), []);
+});
+
+test('check 3 (Amendment 2) RED: a planted THIRD "006_" file is still caught -- the allowlist pins the exact file set, not the bare id', () => {
+  const idsByFile = [
+    { category: 'migration', id: '006', file: 'fsi-app/supabase/migrations/006_multi_tenant.sql' },
+    { category: 'migration', id: '006', file: 'fsi-app/supabase/migrations/006_rls_multi_tenant.sql' },
+    { category: 'migration', id: '006', file: 'fsi-app/supabase/migrations/006_a_new_planted_file.sql' },
+  ];
+  const v = evaluateIdDuplicates(idsByFile);
+  assert.equal(v.length, 1, 'the observed 3-file set no longer matches the allowlisted 2-file set, so it must be caught again');
+  assert.ok(v[0].message.includes('duplicate id "006"'));
+  assert.ok(v[0].message.includes('006_a_new_planted_file.sql'));
+});
+
+test('check 3 (Amendment 2) GREEN: unallowlisted categories (fitness, invariants, harness-family) are never affected by the migration allowlist', () => {
+  const idsByFile = [
+    { category: 'fitness', id: 'F900', file: 'a.mjs' },
+    { category: 'fitness', id: 'F900', file: 'b.mjs' },
+  ];
+  const v = evaluateIdDuplicates(idsByFile);
+  assert.equal(v.length, 1);
+});
+
+test('check 3 (Amendment 2) wired to the live tree: runCheck3 reports 0 violations -- the two pre-existing migration duplicates are now allowlisted, exactly and only', () => {
+  assert.deepEqual(runCheck3(getRepoRoot()), []);
+  assert.deepEqual(Object.keys(MIGRATION_DUPLICATE_ALLOWLIST).sort(), ['006', '007']);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -288,44 +329,80 @@ test('parseFirstParentLog: parses the %x01-delimited git log --name-only shape, 
 });
 
 function initCheck5Repo(tmp, git) {
-  // Three commits touching hot.txt (a hotspot), one commit touching entry.mjs under an entry directory
-  // (excluded even though it is also touched 3+ times), one touching docs/INDEX.md (allowlisted), and
-  // one touching gone.txt which is then deleted (falls out because it no longer exists).
+  // An ANCHOR commit (Amendment 2), touching pre-anchor.txt three times before it lands -- none of that
+  // must ever count. Then, AFTER the anchor: three commits touching hot.txt (a hotspot), one commit
+  // touching entry.mjs under an entry directory (excluded even though it is also touched 3+ times), one
+  // touching docs/INDEX.md (allowlisted), and one touching gone.txt which is then deleted (falls out
+  // because it no longer exists).
   const commit = (files, message) => {
     for (const [path, content] of files) writeFile(join(tmp, path), content);
     git(['add', '-A']);
     git(['commit', '-q', '-m', message]);
   };
+  commit([['pre-anchor.txt', '1']], 'pre1');
+  commit([['pre-anchor.txt', '2']], 'pre2');
+  commit([['pre-anchor.txt', '3']], 'pre3 (anchor)');
+  const anchorSha = git(['rev-parse', 'HEAD']).trim();
+
   commit([['hot.txt', '1'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '1'], ['gone.txt', '1']], 'c1');
   commit([['hot.txt', '2'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '2'], ['gone.txt', '2']], 'c2');
   commit([['hot.txt', '3'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '3'], ['docs/INDEX.md', '1']], 'c3 (deletes gone.txt)');
   execFileSync('git', ['rm', '-q', 'gone.txt'], { cwd: tmp });
   git(['commit', '-q', '-m', 'c4: delete gone.txt']);
-  commit([['docs/INDEX.md', '2'], ['docs/INDEX.md', '2']], 'c5');
+  commit([['docs/INDEX.md', '2']], 'c5');
   commit([['docs/INDEX.md', '3']], 'c6');
   git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  return anchorSha;
 }
 
-test('check 5 RED: a file changed 3+ times that is not an entry-directory file, not under session-log.d/, and not allowlisted is caught', () => {
+test('check 5 RED: a file changed 3+ times AFTER the anchor, not an entry-directory file, not under session-log.d/, and not allowlisted, is caught', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
-    initCheck5Repo(tmp, git);
-    const v = runCheck5(tmp);
-    assert.ok(v.some((x) => x.path === 'hot.txt' && x.message.includes('hotspot:')), 'hot.txt (3 touches) should be a violation');
+    const anchorSha = initCheck5Repo(tmp, git);
+    const v = runCheck5(tmp, { anchor: anchorSha });
+    assert.ok(v.some((x) => x.path === 'hot.txt' && x.message.includes('hotspot:')), 'hot.txt (3 touches after the anchor) should be a violation');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
 
-test('check 5 GREEN: an entry-directory file, an allowlisted file, and a since-deleted file are all excluded even at 3+ touches', () => {
+test('check 5 GREEN: an entry-directory file, an allowlisted file, and a since-deleted file are all excluded even at 3+ touches after the anchor', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
-    initCheck5Repo(tmp, git);
-    const v = runCheck5(tmp);
+    const anchorSha = initCheck5Repo(tmp, git);
+    const v = runCheck5(tmp, { anchor: anchorSha });
     const paths = v.map((x) => x.path);
     assert.ok(!paths.includes('fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'entry-directory file must be excluded');
     assert.ok(!paths.includes('docs/INDEX.md'), 'HOTSPOT_ALLOWLIST entry must be excluded');
     assert.ok(!paths.includes('gone.txt'), 'a file no longer on disk cannot cause a future conflict, must be excluded');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (Amendment 2) ANCHOR HONOURED: a file touched 3+ times AT OR BEFORE the anchor is never counted, even though it would otherwise be a hotspot', () => {
+  const { tmp, git } = tmpRepo('f51-check5-');
+  try {
+    const anchorSha = initCheck5Repo(tmp, git);
+    const v = runCheck5(tmp, { anchor: anchorSha });
+    assert.ok(!v.some((x) => x.path === 'pre-anchor.txt'), 'pre-anchor.txt was touched 3 times but all of them are at or before the anchor');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (Amendment 2) SHORT-WINDOW SKIP: fewer than 3 first-parent commits after the anchor prints the count and skips, never fails', () => {
+  const { tmp, git } = tmpRepo('f51-check5-');
+  try {
+    writeFile(join(tmp, 'a.txt'), '1');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'anchor commit']);
+    const anchorSha = git(['rev-parse', 'HEAD']).trim();
+    writeFile(join(tmp, 'b.txt'), '1');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'one commit after the anchor']);
+    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    assert.deepEqual(runCheck5(tmp, { anchor: anchorSha }), [], 'only 1 commit after the anchor, below the 3-commit floor needed for any hotspot');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -337,7 +414,21 @@ test('check 5 SKIP: no origin/master ref at all is skipped, never failed', () =>
     writeFile(join(tmp, 'x.txt'), '1');
     git(['add', '-A']);
     git(['commit', '-q', '-m', 'base, no origin/master ref']);
-    assert.deepEqual(runCheck5(tmp), []);
+    const sha = git(['rev-parse', 'HEAD']).trim();
+    assert.deepEqual(runCheck5(tmp, { anchor: sha }), []);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 SKIP: the anchor commit itself is unreachable (bad anchor) is skipped, never failed', () => {
+  const { tmp, git } = tmpRepo('f51-check5-');
+  try {
+    writeFile(join(tmp, 'x.txt'), '1');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'base']);
+    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    assert.deepEqual(runCheck5(tmp, { anchor: '0'.repeat(40) }), []);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -361,6 +452,11 @@ test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the six coord
       'docs/plans/complete-system-build-plan-2026-09-04.md',
     ].sort(),
   );
+});
+
+test('check 5 (Amendment 2) wired to the live tree: runCheck5 with the real anchor reports 0 violations (the conversion regime is excluded, no file is allowlisted to force this)', () => {
+  assert.equal(HOTSPOT_WINDOW_ANCHOR_COMMIT, 'ccb6aa0c091aba55f6e85d93ecc704c218acc20c');
+  assert.deepEqual(runCheck5(getRepoRoot()), []);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
