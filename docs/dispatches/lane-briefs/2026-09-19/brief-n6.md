@@ -87,3 +87,29 @@ contain every entry exactly once. Print the order count and the elapsed time.
 - `git diff --name-only origin/master..HEAD` shows NO shared list file (no manifest, no invariants.mjs, no
   governing-files, no run-artifact, no CONVENTION.md).
 - The push gate through the wrapper, once, last.
+
+## Amendment 1 (coordinator, 2026-09-19 20:09 UTC by the date command, before dispatch)
+
+Facts from lanes N1 to N5, all on master before you start, and one added item:
+
+1. **RD-76 is assigned to you** (invariant id; you never pick one): the skill-contract acknowledgment
+   mechanism lane N4 built (`skill-contract-map.mjs`: pinned skill paths only, citing files derived by scan,
+   a range that changes a pinned skill file or moves a `GOVERNING SKILL(S)` citation must add
+   `governance/skill-acks/<date>-<lane>.md`) has no invariant describing it [CONFIRMED by lane N4's grep of
+   `invariants.d/`; RD-68 names the file only incidentally]. Write `invariants.d/RD-76.mjs` for it, skill
+   `remediation-discipline`, `enforcedBy` the skill drift gate selftest (`selftest:fsi-app/.discipline/skill-drift-gate.test.mjs`)
+   and nothing else; the invariant-coverage meta-gate must accept it (execution-wired: that test is in the
+   suite's `.discipline` glob; confirm).
+2. F45's `DUPLICATED_LINES_CEILING` no longer exists (N4); check 2 still refuses a `_CEILING = <nonzero>`
+   reappearing, and the allowlist names only F46's and F47's constant-zero ceilings. `SKILL_MARKER_BASELINE`
+   and `contentHash` are gone (N4); check 2's hash-pin pattern still refuses their return.
+3. The manifest, `governing-files.mjs`, `run-artifact.mjs` and `invariants.mjs` are already derived
+   (N1, N2, N5): check 1's "hand-written entry" patterns are written against their current shape (read each
+   file; a hand entry is an `import { fitnessFunction as F` line, a family name literal outside the
+   registry derivation, an `id:` entry in `invariants.mjs`).
+4. Your own change must satisfy the mechanisms it guards: F51's own file registers by directory (no
+   manifest edit); RD-75 and RD-76 are two files under `invariants.d/`; the skill category 48 edit to
+   `remediation-discipline/SKILL.md` requires your ack file `governance/skill-acks/2026-09-19-n6.md`; if
+   any file you change is a governing file of a harness family (check every `family.json`), add
+   `scripts/harness-runs/<family>/pending/2026-09-19-n6.md`. If any of these still needs a hand edit to a
+   shared list, that is the finding the brief names: STOP and report it.
