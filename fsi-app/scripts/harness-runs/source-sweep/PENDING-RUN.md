@@ -40,9 +40,36 @@ and `src/lib/sources/register-walk.mjs`'s `frDocumentsUrl` now composes its endp
 change to the URL VALUES, the walk logic, or persistence; proven by the sweep test in
 `src/lib/sources/transport-escalation.test.mjs`.
 
-**harness_version at write time:** `sha256:32161a97c0405906`
+**harness_version at write time (superseded below, see Re-pin):** `sha256:32161a97c0405906`
 
-**The planned run that supersedes this marker:** the next real `node scripts/turns/run-source-sweep.mjs`
-dispatch (dry or apply) will land `source-sweep-run-019.json` with `harness_version:
-sha256:32161a97c0405906`, and this marker is deleted the moment that artifact lands (or updated to a new
-hash, per rule (c), if the governing files change again before that run lands).
+**The planned run that would have superseded THAT marker:** the next real
+`node scripts/turns/run-source-sweep.mjs` dispatch (dry or apply) would have landed
+`source-sweep-run-019.json` with `harness_version: sha256:32161a97c0405906`. No such run landed before
+lane M8's own edit moved the hash again (see the re-pin below).
+
+---
+
+## Re-pin (lane M8, 2026-09-18, S1 collect completeness)
+
+**What changed.** `scripts/turns/run-source-sweep.mjs` (this family's own governing file) gained the
+`--slice`/`--after` sizing-and-cursor mechanism for `--walker sitemap --all-hosts` (closing S1's own
+finding -- `docs/audits/stage-audit-2026-09-18/s1-collect.md` -- that 18 real dispatches over 13 days left
+the never-walked bucket completely unmoved): `DEFAULT_SLICE_HOSTS`/`MAX_SLICE_HOSTS` constants,
+`selectAllHostsTargets` extended with an `afterHost` parameter and two additive return fields
+(`selectedHostGroups`, `hostsRemainingAfterSlice`), two new pure functions (`lastFullyWalkedHost`,
+`latestSitemapAllHostsCursor`), the `--slice`/`--after` CLI args, and the `--all-hosts` branch of `main()`
+wired to read/write a `config.cursor` field on every sitemap `--all-hosts` artifact. No change to
+`register-walk.mjs` or `feed-walk.mjs` (this family's other two governing files); no change to any
+non-`--all-hosts` sitemap dispatch (`--source-id`/`--host`/`--check-coverage`), the register-eurlex/
+register-federal-register/feed walkers, or any pre-existing field's meaning -- every one of the 65
+pre-existing tests in `run-source-sweep.test.mjs` still passes unchanged (12 new tests added for the
+slice/cursor logic itself).
+
+**harness_version at write time:** `sha256:62033d6829cd830f` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['source-sweep']`, the same 3 files, unreordered; supersedes `sha256:32161a97c0405906`
+outright).
+
+**The planned run that supersedes this marker:** unchanged in kind, the next real
+`node scripts/turns/run-source-sweep.mjs` dispatch (dry or apply), landing `source-sweep-run-019.json`
+under this hash -- this lane's own brief scopes the actual dispatch to the coordinator, after M1 lands
+(section 6.1 row M8's "Depends on: M1"), so it is not run from here.

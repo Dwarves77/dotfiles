@@ -41,6 +41,13 @@ export const ALLOWED_FAMILIES = Object.freeze([
   "propagation",
   "corpus-turn",
   "brief-apply",
+  // inaccessible-triage (lane M8, 2026-09-18): the suspended-source acquisition-ladder run
+  // (scripts/sources/inaccessible-triage.mjs) -- a run's "unit" is a triage pass over the
+  // status='suspended' pool (roadblock re-probe -> bounded alternative search -> same-floor qualify),
+  // never a mint, an enumeration walk, a ledger consume, or any of the other ten registered shapes;
+  // CONVENTION.md's own registration-order rule forbids folding a genuinely distinct run shape into an
+  // existing family "just because it seemed similar" -- see that file's own header for the full account.
+  "inaccessible-triage",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([

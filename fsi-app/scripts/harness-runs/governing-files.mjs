@@ -198,4 +198,21 @@ export const GOVERNING_FILES = Object.freeze({
     // gate whether an --execute run even starts, so both are behavior-bearing for this harness family.
     'scripts/turns/io-preflight.mjs',
   ]),
+  // inaccessible-triage (registered by lane M8, 2026-09-18, closing S1's "no committed harness
+  // artifact" finding -- docs/audits/stage-audit-2026-09-18/s1-collect.md row "Inaccessible-source
+  // triage ladder"): the suspended-source acquisition-ladder driver plus the four ladder modules a
+  // triage run actually exercises the behavior of -- primary-fallback.mjs (step 1, the declared-primary
+  // re-probe + roadblock classification), seek-more.mjs (step 2, the bounded $0/no-LLM alternative
+  // search), officialness.mjs and host-authority.ts (step 3, same-floor qualification -- the MOAT: an
+  // alternative may never confer authority a static host-class table would not). A change to any of
+  // these five files is a change to what the ladder actually does, the same governing-file discipline
+  // every other family applies to the modules its own driver calls, never every module it happens to
+  // import (see corpus-turn's/brief-apply's own entries above for the same restraint).
+  'inaccessible-triage': Object.freeze([
+    'scripts/sources/inaccessible-triage.mjs',
+    'src/lib/sources/primary-fallback.mjs',
+    'src/lib/sources/seek-more.mjs',
+    'src/lib/sources/officialness.mjs',
+    'src/lib/sources/host-authority.ts',
+  ]),
 });

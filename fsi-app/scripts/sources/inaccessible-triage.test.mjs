@@ -8,7 +8,12 @@ import {
   parseArgs, createHostThrottle, runBounded, probeHead, probeGet, qualifiesAtFloor,
   fetchStatusForDossier, triageOneSource, applyFetchStatus, main,
   DEFAULT_CONCURRENCY, MAX_CONCURRENCY, DEFAULT_HOST_INTERVAL_MS, DEFAULT_TIME_BUDGET_MIN,
+  INACCESSIBLE_TRIAGE_GOVERNING_FILES,
 } from "./inaccessible-triage.mjs";
+import { validateRunArtifact, readRunHistory, ALLOWED_FAMILIES } from "../lib/run-artifact.mjs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const EN = (n) => "The regulation requires covered entities to submit annual emissions reports. ".repeat(Math.ceil(n / 72)).slice(0, n);
 
@@ -289,6 +294,20 @@ function fakeReadAll(sources) {
   };
 }
 
+// Harness-run artifact deps (lane M8, 2026-09-18): fakes so every main() call in this file stays
+// filesystem-free and never touches the real run-id claim ledger under scripts/harness-runs/ -- mirrors
+// how every other family's *.test.mjs keeps writeRunArtifact/claimRunId out of its own unit tests.
+function fakeArtifactDeps(capture = {}) {
+  return {
+    claimRunIdFn: () => "inaccessible-triage-run-001",
+    writeRunArtifactFn: (dir, artifact) => {
+      capture.dir = dir;
+      capture.artifact = artifact;
+      return `${dir}/inaccessible-triage-run-001.json`;
+    },
+  };
+}
+
 test("main: dry run triages every suspended source, writes dossiers, mutates nothing", async () => {
   const sources = [
     { id: "s1", url: "https://ok.example/a", name: "OK Source", status: "suspended", base_tier: 3 },
@@ -307,6 +326,7 @@ test("main: dry run triages every suspended source, writes dossiers, mutates not
       fetchImpl,
       writeDossierFile: (dir, d) => written.push(d.source_id),
       writeSummaryFile: () => {},
+      ...fakeArtifactDeps(),
     },
   );
   assert.equal(r.summary.suspended, 2, "only status=suspended sources are read (active is excluded)");
@@ -330,6 +350,7 @@ test("main: --apply writes sources.fetch_status through the guarded path", async
       fetchImpl,
       writeDossierFile: () => {},
       writeSummaryFile: () => {},
+      ...fakeArtifactDeps(),
     },
   );
   assert.equal(dbCalls.length, 1);
@@ -354,11 +375,117 @@ test("main: the time budget stops starting new triages but already-triaged sourc
       readAll: fakeReadAll(sources), guardedUpdateByIds: async () => {}, fetchImpl,
       writeDossierFile: (dir, d) => written.push(d.source_id), writeSummaryFile: () => {},
       now, sleep: async () => {},
+      ...fakeArtifactDeps(),
     },
   );
   assert.equal(r.summary.triaged, 1);
   assert.equal(r.summary.skipped_time_budget, 1);
   assert.deepEqual(written, ["s1"]);
+});
+
+// ── harness-run artifact (lane M8, 2026-09-18) ──────────────────────────────────────────────────────
+
+test("INACCESSIBLE_TRIAGE_GOVERNING_FILES: the driver plus the four ladder modules a triage run actually exercises", () => {
+  assert.deepEqual(INACCESSIBLE_TRIAGE_GOVERNING_FILES, [
+    "scripts/sources/inaccessible-triage.mjs",
+    "src/lib/sources/primary-fallback.mjs",
+    "src/lib/sources/seek-more.mjs",
+    "src/lib/sources/officialness.mjs",
+    "src/lib/sources/host-authority.ts",
+  ]);
+});
+
+test("inaccessible-triage is registered in run-artifact.mjs's ALLOWED_FAMILIES", () => {
+  assert.ok(ALLOWED_FAMILIES.includes("inaccessible-triage"));
+});
+
+test("main: writes a harness-run artifact (dry mode) that validates against CONVENTION.md's schema, carries the family name and per_item for every triaged source", async () => {
+  const sources = [
+    { id: "s1", url: "https://ok.example/a", name: "OK Source", status: "suspended", base_tier: 3 },
+    { id: "s2", url: "https://dead.example/b", name: "Dead Source", status: "suspended", base_tier: 3 },
+  ];
+  const fetchImpl = async (u) => (u.includes("ok.example") ? { status: 200, redirected: false, url: u, text: async () => EN(2000) }
+                                                             : { status: 200, redirected: false, url: u, text: async () => "" });
+  const capture = {};
+  const r = await main(
+    { apply: false, concurrency: 2, hostIntervalMs: 0, timeBudgetMs: 5 * 60000, outDir: "dossiers" },
+    {
+      readAll: fakeReadAll(sources), guardedUpdateByIds: async () => {}, fetchImpl,
+      writeDossierFile: () => {}, writeSummaryFile: () => {},
+      ...fakeArtifactDeps(capture),
+    },
+  );
+  assert.equal(capture.artifact.harness_family, "inaccessible-triage");
+  assert.equal(capture.artifact.run_id, "inaccessible-triage-run-001");
+  assert.deepEqual(validateRunArtifact(capture.artifact), []);
+  assert.equal(capture.artifact.per_item.length, 2);
+  assert.deepEqual(capture.artifact.per_item.map((p) => p.id).sort(), ["s1", "s2"]);
+  assert.equal(capture.artifact.metrics.triaged, 2);
+  assert.ok(capture.artifact.full_trace_refs.length > 0, "full_trace_refs is non-empty -- points at the dossier directory, never the raw text inline");
+  assert.equal(r.runId, "inaccessible-triage-run-001");
+});
+
+test("main: a skipped (time-budget) or errored source is recorded in per_item too, never invented and never silently dropped", async () => {
+  const sources = [
+    { id: "s1", url: "https://ok.example/a", name: "A", status: "suspended", base_tier: 3 },
+    { id: "s2", url: "https://ok.example/b", name: "B", status: "suspended", base_tier: 3 },
+  ];
+  let clock = 0;
+  const now = () => clock;
+  const fetchImpl = async (u) => { clock += 1000; return { status: 200, redirected: false, url: u, text: async () => EN(2000) }; };
+  const capture = {};
+  await main(
+    { apply: false, concurrency: 1, hostIntervalMs: 0, timeBudgetMs: 500 },
+    {
+      readAll: fakeReadAll(sources), guardedUpdateByIds: async () => {}, fetchImpl,
+      writeDossierFile: () => {}, writeSummaryFile: () => {},
+      now, sleep: async () => {},
+      ...fakeArtifactDeps(capture),
+    },
+  );
+  const skipped = capture.artifact.per_item.find((p) => p.outcome === "skipped_time_budget");
+  assert.ok(skipped, "the source the time budget never reached still gets a per_item row");
+  assert.equal(skipped.id, "s2");
+});
+
+test("main: a DB-write failure in apply mode is recorded as a defect but the artifact still writes (crash-safety, matches every other family's finally-block posture)", async () => {
+  const sources = [{ id: "s1", url: "https://ok.example/a", name: "A", status: "suspended", base_tier: 3 }];
+  const fetchImpl = async (u) => ({ status: 200, redirected: false, url: u, text: async () => EN(2000) });
+  const capture = {};
+  const r = await main(
+    { apply: true, concurrency: 1, hostIntervalMs: 0, timeBudgetMs: 5 * 60000 },
+    {
+      readAll: fakeReadAll(sources),
+      guardedUpdateByIds: async () => { throw new Error("simulated DB failure"); },
+      fetchImpl, writeDossierFile: () => {}, writeSummaryFile: () => {},
+      ...fakeArtifactDeps(capture),
+    },
+  );
+  assert.equal(capture.artifact.defects_found.length, 1);
+  assert.match(capture.artifact.defects_found[0].description, /simulated DB failure/);
+  assert.deepEqual(validateRunArtifact(capture.artifact), []);
+  assert.equal(r.runId, "inaccessible-triage-run-001");
+});
+
+test("main: real claimRunId + writeRunArtifact wiring -- an end-to-end run lands a file readRunHistory can read back (no fakes; proves the live default deps, not just the injected ones)", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "inaccessible-triage-test-"));
+  try {
+    const sources = [{ id: "s1", url: "https://ok.example/a", name: "A", status: "suspended", base_tier: 3 }];
+    const fetchImpl = async (u) => ({ status: 200, redirected: false, url: u, text: async () => EN(2000) });
+    const r = await main(
+      { apply: false, concurrency: 1, hostIntervalMs: 0, timeBudgetMs: 5 * 60000, harnessRunsDir: dir },
+      { readAll: fakeReadAll(sources), guardedUpdateByIds: async () => {}, fetchImpl, writeDossierFile: () => {}, writeSummaryFile: () => {} },
+      // no claimRunIdFn/writeRunArtifactFn override -- exercises the REAL defaults (claimRunId, writeRunArtifact)
+    );
+    assert.equal(r.runId, "inaccessible-triage-run-001");
+    const { runs, invalid } = readRunHistory(dir);
+    assert.deepEqual(invalid, []);
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0].harness_family, "inaccessible-triage");
+    assert.equal(runs[0].run_id, "inaccessible-triage-run-001");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // ── optional live smoke test (no network in normal CI runs) ─────────────────────────────────────────
