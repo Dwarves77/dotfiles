@@ -15,7 +15,7 @@ correction. Each lane was a Sonnet agent under `../2026-09-18/brief-common-cloud
 | brief-n3.md | N3 | PR #746 merged; Amendment 1: the verification audit report reads the pending directory |
 | brief-n4.md | N4 | PR #748 merged; Amendment 1: the raw NUL bytes in execution-wiring.mjs |
 | brief-n5.md | N5 | PR #747 merged; Amendment 1: rebase under N3 and the subject line in every migration; Amendment 2: glyphs out of the subject lines |
-| brief-n6.md | N6 | Amendment 1: RD-76 assigned, post-N5 facts; outcome in the coordinator's session-log entry |
+| brief-n6.md | N6 | PR #749 merged; Amendment 1: RD-76 assigned, post-N5 facts; Amendment 2: the two historical migration prefixes allowlisted, the hotspot window anchored after the conversion |
 
 Related: [the 2026-09-18 briefs](../2026-09-18/README.md), [the lane contract](../../lane-common-contract.md),
 [the build plan, section 6.8](../../../plans/complete-system-build-plan-2026-09-04.md).

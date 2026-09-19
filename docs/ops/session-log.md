@@ -23956,7 +23956,13 @@ manifest, test globs, npm-test glob, audit markers); N3 #746 (17:52, `07ee7f0c`,
 replaces every hash pin); N5 #747 (19:29, `9a551c30`, `invariants.d/`, the generated migrations inventory,
 shared-writer markers); N4 #748 (20:18, `ccb6aa0c`, F45 against the merge-base, skill acks, marker counts
 against the merge-base, the NUL bytes out of execution-wiring.mjs). N6 (F51, RD-75, RD-76, category 48, the
-replay acceptance) dispatched 20:18 UTC on `wt-n6`; its outcome is appended below when it lands.
+replay acceptance) dispatched 20:18 UTC on `wt-n6`; merged as #749 (`0dd33c09`) at 21:08 UTC, so plan section 6.8 is closed: every
+registry is a directory, no gate stores a measurement, one module serves every range, and F51 holds the line.
+N6's first gate run found 17 real violations that were the transition itself (two pre-build duplicate
+migration prefixes, `006` and `007`, now a dated allowlist with renumbering refused; 15 hotspot files hot only
+because the conversion lanes and today's three tree-wide passes touched them), so F51's hotspot window is
+anchored after N4's merge (`ccb6aa0c`) and measures the post-6.8 regime; the replay ran all 120 orders of the
+2026-09-18 lane set with zero conflicts.
 
 **T2, the class fix the operator ordered [CONFIRMED by the proof in both disk states].** One loader,
 `fsi-app/scripts/lib/env-file.mjs` (`loadLocalEnvFile`, `withoutCredentials`, switch `FSI_NO_ENV_FILE`); 90
