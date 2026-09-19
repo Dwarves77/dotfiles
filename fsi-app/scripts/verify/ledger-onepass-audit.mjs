@@ -1,3 +1,4 @@
+// data-audit: label=ledger-onepass hard=true
 /** E1 — ONE-PASS LEDGER VERIFIER (read-only, deterministic; no LLM, no network).
  *
  *  A single deterministic read-pass over the emitted claim ledger (section_claim_provenance) that

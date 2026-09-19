@@ -1,3 +1,4 @@
+// data-audit: label=rls-credential-parity hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: remediation-discipline (§4 — credential hygiene /
  *  migration coordination; class-over-instance) + caros-ledge-platform-intent (tenancy integrity).
  *

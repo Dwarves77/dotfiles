@@ -19,7 +19,7 @@
 //
 // DISCRIMINATION (the standing discipline): the detector flags MISSING inconclusive-handling,
 // NOT every fetch/classify/call. A site that already handles the inconclusive case explicitly
-// passes clean (negative control). Proven by inconclusive-probe.selftest.mjs: it flags the 5
+// passes clean (negative control). Proven by inconclusive-probe.npmtest.mjs: it flags the 5
 // known shapes AND passes the SSOTs that handle inconclusive correctly (reachability.mjs,
 // entity-gate.mjs entityVerdict/isErrorBody, the fixed spot-check workflow).
 //

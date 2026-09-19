@@ -1,3 +1,4 @@
+// data-audit: label=flag-age hard=true
 /** DATA-AUDIT (CI-with-secrets / ops lane). GOVERNING SKILL: remediation-discipline (§2.1/§2.2 — quarantine
  *  is an open investigation; a flag must not dwell open forever). FLAG-AGE dwell gap closer (item 5, 2026-07-13):
  *  quarantine-disposition-audit enforces dwell on quarantined ITEMS; this enforces open-integrity_flags AGE

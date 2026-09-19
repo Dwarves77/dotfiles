@@ -1,3 +1,4 @@
+// data-audit: label=candidate-dwell hard=true
 // candidate-dwell-audit.mjs -- VERIFIER (read-only, 0 Browserless): the candidate-drain half of D26's
 // research-or-erase discipline, generalized from item-quarantine dwell to portal_link_candidates dwell.
 // GOVERNING SKILLS: remediation-discipline (Section 2.1 -- Quarantine Is an Open Investigation,

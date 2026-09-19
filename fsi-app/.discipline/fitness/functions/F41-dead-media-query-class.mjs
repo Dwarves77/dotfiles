@@ -31,6 +31,12 @@
 //
 // NO ALLOWLIST, NO EXPIRY: a rule that targets nothing gets fixed or gets the marker naming where
 // the element actually lives.
+//
+// FOLD-61 (moved from the fitness manifest, plan 6.8 lane N1): this function arrived numbered F40,
+// colliding with lane TAGS-401's own F40. Both functions are kept; THIS one was renumbered to F41
+// because TAGS-401 landed first in train 61 and its number was already cited by four discipline
+// files, a smoke spec and a skill section, so renumbering it would have touched strictly more
+// citations. Its invariant moved with it, from RD-65 to RD-66.
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';

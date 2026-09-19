@@ -1,3 +1,4 @@
+// data-audit: label=staged-transit hard=true
 /** VERIFIER (read-only, 0 Browserless): STAGED-UPDATES TRANSIT-ONLY / MAX-AGE INVARIANT over live data.
  *  GOVERNING SKILLS: remediation-discipline (§2.1/§2.2 — no resting state; a transitional row resolves or
  *  ages out, never parks; the intake-side sibling of the quarantine-disposition invariant RD-4/RD-6) +

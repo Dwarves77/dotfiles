@@ -1,3 +1,4 @@
+// data-audit: label=deferral-hygiene hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: remediation-discipline (§2.2 — a deferral is
  *  dispositioning-as-blocked, never silencing; an expired deferral re-opens as undispositioned).
  *

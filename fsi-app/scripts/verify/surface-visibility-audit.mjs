@@ -1,3 +1,4 @@
+// data-audit: label=surface-visibility hard=false
 /** VERIFIER (read-only reads + flag-writes only): SURFACE-VISIBILITY INVARIANT over live data.
  *  GOVERNING SKILLS: caros-ledge-platform-intent (five-surface routing) + remediation-discipline
  *  (class-over-instance — the standing net for the "verified item hidden from its surface" class the

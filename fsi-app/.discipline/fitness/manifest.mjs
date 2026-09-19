@@ -1,298 +1,75 @@
-// Fitness function manifest. Main session owns this file.
-// Post-slim (2026-05-21): F1, F3, F4, F5, F7 deleted per evidence-based audit
-// (zero catches in production OR structural issues). Engine cut from 9 → 4.
+// Fitness function manifest, DERIVED from the functions/ directory (plan 6.8, Rule A: a registry is a
+// directory, never a list). Each function file already exports its own `fitnessFunction` object
+// ({ id, name, description, source, enumerate(), check() }); this module reads functions/F*.mjs
+// (excluding *.test.mjs), imports each, validates id-vs-filename and id uniqueness, and sorts by numeric
+// id. Two lanes adding a function now add two files instead of both appending to one shared array and
+// conflicting on the same line.
+//
+// Post-slim (2026-05-21): F1, F3, F4, F5, F7 deleted per evidence-based audit (zero catches in production
+// OR structural issues). Engine cut from 9 to 4.
 
-import { fitnessFunction as F2 } from './functions/F2-admin-routes-isPlatformAdmin.mjs';
-import { fitnessFunction as F6 } from './functions/F6-migrations-numeric-ordering.mjs';
-import { fitnessFunction as F8 } from './functions/F8-client-server-tier-boundary.mjs';
-import { fitnessFunction as F9 } from './functions/F9-build-compiles.mjs';
-// Operating-mechanism build (2026-06-06): F10 mechanically links source-credibility-model
-// (was judgment-load only) by gating its syndication-collapse / independent-citer math.
-import { fitnessFunction as F10 } from './functions/F10-source-credibility-syndication.mjs';
-// Exemption-audit (2026-06-06): F11 converts invariant SC-3's tier-weight half from exempt to
-// enforced (TIER_WEIGHTS T1=1.0…T7=0 + recency decay) — the operator's "buildable-but-unbuilt is
-// not a valid exemption" rule applied. SQL COALESCE/override half remains a named residual (pgTAP-deferred).
-import { fitnessFunction as F11 } from './functions/F11-trust-tier-weights.mjs';
-// Moat assertion (2026-06-28, A1): F12 enforces invariant SC-9 — the reg-fact resolver is base_tier-
-// ONLY (reputation/effective_tier never confers grounding eligibility). Behavioral selftest fails loud
-// on a reintroduced `?? effective_tier` fallback the corpus audits cannot catch.
-import { fitnessFunction as F12 } from './functions/F12-moat-base-tier.mjs';
-// phase-intake-gate (2026-07-01, dispatch §2): F13 makes the single-mint-chokepoint claim an INVARIANT.
-// Every intelligence_items INSERT must go through mintIntelligenceItem(); a direct INSERT bypasses the
-// congruence + dedup + relevance gate (the drain-first-fetch direct-mint that produced the 38 polluters).
-import { fitnessFunction as F13 } from './functions/F13-single-mint-chokepoint.mjs';
-// A2 half-slice detector (2026-07-03): F14 mechanizes the producer-consumer orphan check —
-// a writer with no reader — that every prior audit found by hand. Maps to invariant RD-9.
-import { fitnessFunction as F14 } from './functions/F14-producer-consumer-orphan.mjs';
-// Spend chokepoint (2026-07-04): F15 mechanizes "no Anthropic API call outside the spend client" — the
-// generation-side analog of dedup-before-ground. A2 shrinking allowlist for legacy sites. Maps to RD-10.
-import { fitnessFunction as F15 } from './functions/F15-spend-chokepoint.mjs';
-// Transport hold gate (2026-07-06): F16 mechanizes "scrape hold LIVE, zero fetches" at the single fetch
-// primitive — assertFetchAllowed() throws while engaged; no raw Browserless fetch may bypass it. Maps to RD-11.
-import { fitnessFunction as F16 } from './functions/F16-transport-hold-gate.mjs';
-// Size-cap doctrine (2026-07-06): F17 is the size-axis analog of F15 — every cap on the grounding path is
-// registered + classified (surfaced or never-binds); a new unregistered/silent cap is RED. Kills the silent-
-// slice class (the GROUND_SECTION_MAX_CHARS=12000 category-2 defect). Maps to RD-12.
-import { fitnessFunction as F17 } from './functions/F17-size-cap-doctrine.mjs';
-// One-url-canonicalizer (2026-07-12, intake-correctness Step 1.3): F18 forbids the ad-hoc URL-identity
-// normalizer class (bare scheme-strip / whole query-drop = the deleted intake `_normUrl` that produced the
-// D1 EUR-Lex false-dedup). URL identity lives ONLY in canonicalizeUrl. Maps to invariant RD-13.
-import { fitnessFunction as F18 } from './functions/F18-one-url-canonicalizer.mjs';
-// No service→anon downgrade (2026-07-12, dead-code Ruling 2 C1): F19 forbids the `SUPABASE_SERVICE_ROLE_KEY ||
-// …ANON_KEY` fail-open pattern anywhere in src (the coverage-gaps.ts live defect). Maps to invariant RD-15.
-import { fitnessFunction as F19 } from './functions/F19-no-service-anon-downgrade.mjs';
-// Pause-flag one-writer (2026-07-12, pause-flag structural enforcement): F20 forbids any direct write to
-// system_state.global_processing_paused / scrape_cadence outside the sanctioned admin route (the RPC caller).
-// Replaces the DEAD 2a operator-credential design — no manual step, no secret. Maps to invariant RD-23.
-import { fitnessFunction as F20 } from './functions/F20-pause-flag-one-writer.mjs';
-// Single grounding entry (2026-07-13, snapshot-first rebuild PR-2): F21 mechanizes "grounding acquisition has
-// ONE entry" — the workflow over the canonical pipeline, via the verify-item entry point. No other production
-// file may directly invoke generateBriefWorkflow / generateBrief / groundBrief (the old $65 bypass path). Maps
-// to invariant RD-24.
-import { fitnessFunction as F21 } from './functions/F21-single-grounding-entry.mjs';
-// Source role at birth (2026-08-11): F22 is F13 one table over — F13 makes the mint gate an invariant
-// for intelligence_items, F22 makes role-at-birth an invariant for sources. classify-source-role.ts
-// DECLARED the contract ("a source is never created with a NULL role") and nothing enforced it, so it
-// held only in the three admin routes and was false on every automated creation path. 1,719 of 2,549
-// rows were born role-less; a triage then read "no role" as inert and demoted 869 live regulators.
-import { fitnessFunction as F22 } from './functions/F22-source-role-at-birth.mjs';
-// Governed-surface coverage ratchet (2026-08-11, operator ruling): F23 WIRES coverage-scan.mjs, which was
-// the only module in governance/ with zero inbound references — it produced a real gap list and ran only
-// when a human remembered, the same defect class it exists to detect. Gap counts now hold to a committed
-// per-category baseline that fails in BOTH directions, so closing gaps forces the ceiling down instead of
-// leaving slack that silently reopens. FS-only: no network, no DB, no model call, no schedule.
-import { fitnessFunction as F23 } from './functions/F23-governed-surface-coverage.mjs';
-// DB-object migration home (2026-08-11): F24 sweeps the one layer no audit had ever touched — the
-// database itself. 22 of 181 catalog objects exist in production with NO committed migration, the
-// "out-of-repo DDL" class the 2026-07-19 structure audit named and never counted. Two live defects fell
-// out of it: a four-function API left callable after migration 219 dropped its table, and a fifteen-
-// function SQL re-implementation of Gate A that duplicates the TypeScript one and is called by nothing.
-// Holds a committed read-only catalog snapshot against the migration tree — filesystem only, no
-// credential, no schedule.
-import { fitnessFunction as F24 } from './functions/F24-db-object-migration-home.mjs';
-// Module liveness (2026-08-11): F25 mechanizes the last two classes the wiring census could only NAME
-// (§A unimported src modules, §B scripts/lib with no consumer). Re-measured with a real import graph
-// instead of basename matching: 54 modules with zero production importer, 13 of them carrying a green
-// selftest — remediation-discipline category 21 in its literal form ("a capability having a test does
-// not prove it is wired"). The graph's precision earned itself twice: it separated src/lib/verification.ts
-// from src/lib/sources/verification.ts, and it forced the entry-point list to include Next 16's proxy.ts,
-// which has no importers and gates auth for the whole application.
-import { fitnessFunction as F25 } from './functions/F25-module-liveness.mjs';
-// Storage-ceiling parity (2026-08-17): agent_run_searches.result_content_excerpt has TWO writers and,
-// until now, one ceiling. The Deno capture-worker cannot import the Next.js config module, so ADR-016's
-// 10M pathological-page bound was enforced on the pipeline path and absent on the worker path — three
-// captures landed over it (17.8M / 12.6M / 10.4M chars), all AFTER the ruling, with no signal, because
-// the unguarded path had nothing to fire. F26 asserts the two readers resolve the same env var with the
-// same fallback literal, and that a worker bind is LOUD (warn + integrity_flags) rather than a quiet
-// slice of the grounding pool. Parity, not presence: a hand-copied constant is the divergence itself.
-import { fitnessFunction as F26 } from './functions/F26-storage-ceiling-parity.mjs';
-// Producer seam proof (2026-08-30): F27 mechanizes "one proof imports every seam a producer composes",
-// generalising the WO-17 buildEnvelopeRow miss (parser/planUpsert each proven, the orchestrator's call
-// to buildEnvelopeRow proven by nothing, a NOT-NULL `value` never written) to every producer under
-// scripts/producers/**. It caught the SAME gap one lane over the same day: eu-weekly-oil-bulletin.mjs's
-// parser->planner seam was validated only by a live --apply, closed now by
-// market-producer-composition.test.mjs. Filesystem only: no network, no DB, no model call.
-import { fitnessFunction as F27 } from './functions/F27-producer-seam-proof.mjs';
-// Harness-run integrity (2026-09-01, Wave MH-2): F28 is the meta-harness layer's own enforcement gate
-// (build plan §2) — it fails CI when a harness family's (mint/screen/fetch-drain) code changed without a
-// run artifact recording why, when a scripts/harness-runs/*/*.json artifact fails CONVENTION.md's schema,
-// when a registered family has zero run history, or when a family with ≥2 runs has no proposer
-// attestation naming its latest run. Reuses validateRunArtifact/hashHarnessVersion from Wave MH-1's
-// scripts/lib/run-artifact.mjs rather than re-implementing the schema or the hash.
-import { fitnessFunction as F28 } from './functions/F28-harness-run-integrity.mjs';
-// Entity spine ratchet (2026-09-02, Lane DP-SPINE, system-completion train): F30 protects migration
-// 282/283's FK-backed replacements (entities/entity_identifiers/entity_refs, instrument_entity_id,
-// organisation_entity_id) from silent regression — the count of remaining text-keyed reference sites
-// (.eq/.contains on jurisdiction_iso, .eq on canonical_instrument_key, .eq on source_url, ad-hoc
-// new URL(...).host/.hostname outside entity-id.mjs's hostFromUrl()) holds to a committed baseline and
-// fails only when a NEW site appears; a migrated-away site passes and is reported as a delta. One-
-// directional by design (ADR-024's progressive-re-keying decision spans many lanes with no fixed
-// completion date), unlike F23's bidirectional ratchet. F29 is reserved, unused.
-import { fitnessFunction as F30 } from './functions/F30-entity-spine.mjs';
-// Derived values gate (2026-09-02, Lane DP-ENGINE, system-completion train): spec §3.3's second
-// enforcement point, made structural. RLS (migration 285) already denies raw-table SELECT and grants only
-// derived_values_admissible; F31 backstops a service-role client (which bypasses RLS entirely) from
-// reading derived_values directly anywhere outside src/lib/propagation/ — a literal .from("derived_values")
-// call site, any quote style, never derived_values_admissible (a different string).
-import { fitnessFunction as F31 } from './functions/F31-derived-values-gate.mjs';
-// Statutory purity mirror (2026-09-02, Lane DP-ENGINE, system-completion train): migration 286's
-// assert_statutory_purity() trigger (spec §4 Layer 3) is still defined and still attached as a BEFORE
-// INSERT OR UPDATE gate on statutory_computations (structural presence, not a re-run of that migration's
-// own live self-check proof), and its pure JS mirror (assertStatutoryPurity) agrees with the SQL trigger's
-// exact refusal logic on fixtures.
-import { fitnessFunction as F32 } from './functions/F32-statutory-purity.mjs';
-// Surface acceptance (2026-09-02, Lane GATES-1, finish plan Wave 1 — "the acceptance gates that make
-// gaps self-report"): every gap in the 2026-08-31 register (an unbuilt customer surface, a route with no
-// data wiring, a surface with no rendering-guard coverage) was found by a manual full-read of the specs
-// against the live app, mechanized by nothing. F33 hardcodes the spec-named surfaces (with the exact spec
-// section that names each one) and checks surface-acceptance-register.json: a surface either carries a
-// route + a data_path the route is import-graph-reachable from (F25's real graph, not a name match) + an
-// existing rendering-guard fixture/smoke spec, or an exemption naming who ruled it out and when.
-import { fitnessFunction as F33 } from './functions/F33-surface-acceptance.mjs';
-// Bundle-safe module evaluation (2026-09-02, coordinator, after the production 500 that followed PR #533):
-// a module on every page's import graph read a JSON from disk at module scope; the serverless bundle does
-// not carry runtime file reads, so every route threw ENOENT until the rollback. No gate exercised the
-// bundle. F34 fails any non-test module under src/ that calls a filesystem function at module scope;
-// reads inside functions are out of scope; the one latent instance is allowlisted with its basis.
-import { fitnessFunction as F34 } from './functions/F34-bundle-safe-module-evaluation.mjs';
-// Row UX coverage (2026-09-03, coordinator, after the operator's phone screenshots: every ledger page
-// wrapped titles one word per line and the Operations regional matrix ran off the viewport; no gate
-// measured a real row component at a phone width). F35 requires every ROW_COMPONENTS entry to be mounted
-// by a registered UX smoke spec (ux-smoke-specs.mjs; measured at 375 × 812 and 1280 × 800 with
-// ux-assert.mjs) and to carry a data-guard-title attribute for the squeezed-title detector.
-import { fitnessFunction as F35 } from './functions/F35-row-ux-coverage.mjs';
-// Date-format timezone pin (2026-09-04, Lane PERF-8): after diagnosing React #418 on /regulations
-// (RegulationsLedger.tsx's RegRow called toLocaleDateString with no timeZone, so the UTC server render and
-// a west-of-UTC viewer's hydration render disagreed on the calendar day for a date-only value — commit
-// 27f6a358), F36 is the mechanical gate for that class: a "use client" module under src/app/** or
-// src/components/** calling toLocaleDateString/toLocaleTimeString/Intl.DateTimeFormat without a `timeZone`
-// key is a violation. A first codebase-wide run found 15 further files not touched by this lane's
-// diagnosis; they are named debt in PRE_EXISTING_ALLOWLIST (not a safety claim — see the module's own
-// header), so this gate stops NEW instances of the class everywhere and stops any recurrence in the
-// regulations/operations surfaces this lane actually verified.
-import { fitnessFunction as F36 } from './functions/F36-date-format-timezone-pin.mjs';
-// Perf budget ratchet (2026-09-04, Lane PERF-ARCH, docs/decisions/ADR-027-*.md): the CI-budget half
-// of the dispatch's Part 2 item — the perf-budget registry (src/lib/perf/perf-budget.mjs) must
-// track every required route (regulations-list, regulations-detail, workspace-bootstrap) with at
-// least one well-formed, dated, [CONFIRMED]/[HYPOTHESIS]-labeled metric, ratcheted against the
-// numbers docs/audits/perf-waterfall-2026-09-04.md measured. Same registry-of-classified-constants
-// shape F17 (size-cap-doctrine) already established.
-import { fitnessFunction as F37 } from './functions/F37-perf-budget.mjs';
-// Unbounded Supabase read (2026-09-05, Lane CAP-1000, "two defects one cause" audit): PostgREST's
-// db-max-rows caps ANY response at 1000 rows regardless of what `.limit(N)` asks for — PERF-13's
-// getPublicSurfaceSlugs (.limit(20000), only the first 1,000 of 1,312+ regulations ever prerendered) and
-// the obligations register's fetchObligationRegisterPage (OVERFETCH_CAP=2000, masthead read "60 of 1000"
-// against a live 1,141-row table) are the two live instances that named this defect class; this lane also
-// fixed two more of the same shape (supabase-server.ts's runCategoryRpc/runCategoryRpcPublic, and
-// run-change-detection.mjs's readPendingDrainRows overflow count). F38 is the mechanical backstop: a new
-// `.limit(<literal or same-file constant> > 1000)` site must be registered (bounded-by-design, with an
-// expiry train/wave) or routed through fetchAllRows/exactCount (src/lib/db/paginate.mjs) instead.
-import { fitnessFunction as F38 } from './functions/F38-unbounded-supabase-read.mjs';
-// Unbounded .in() id-list filter (IN-CHUNK, 2026-09-06): a PostgREST `.in(col, list)` filter serialises
-// `list` into the request URL — past ~2,000 UUIDs (~80 KB) the gateway 400s, confirmed twice: the four
-// review-apply-*.mjs read-back wrappers (run 34045479342, 911 ids) and census-off-vertical.mjs
-// (Maintenance run 34046850770, 1,655 ids, "<!DOCTYPE html>"), both AFTER their write had already
-// succeeded. F39 is the mechanical backstop: a new `.in(col, <runtime value>)` site must live inside
-// db.mjs's readAllByIds/guardedUpdateByIds/guardedDelete or paginate.mjs's fetchAllRows core, or carry a
-// `// fitness-allow: F39 (reason)` marker proving the list is bounded. No allowlist, no expiry.
-import { fitnessFunction as F39 } from './functions/F39-unbounded-in-filter.mjs';
-// Authed API fetch (2026-09-08, lane TAGS-401, train 61): F40 makes "a guarded route is called
-// through the ONE authenticated fetcher" an invariant, and bans the hand-rolled `Bearer ${...}`
-// header outright. The whole workspace-tags feature 401'd for every signed-in user from the day it
-// landed and every gate stayed green, because a dead API fails soft and every test mounted fixtures.
-import { fitnessFunction as F40 } from './functions/F40-authed-api-fetch.mjs';
+import { readdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Dead-media-query-class (2026-09-08, lane mobfix61): F41 mechanizes the D-M3 defect class - a
-// responsive @media rule naming a `cl-*` class no element in the file carries. Nothing else in the
-// toolchain can see it (a CSS selector matching nothing is not an error), so it ships as a page
-// that is correct at the author's width and broken at the operator's. Maps to the map page's
-// 300px rail overlapping its own content at 390.
-// FOLD-61: this function arrived numbered F40, colliding with lane TAGS-401's own F40 above. Both
-// functions are kept; THIS one was renumbered to F41 because TAGS-401 landed first in train 61 and
-// its number was already cited by four discipline files, a smoke spec and a skill section, so
-// renumbering it would have touched strictly more citations. Its invariant moved with it, from
-// RD-65 to RD-66.
-import { fitnessFunction as F41 } from './functions/F41-dead-media-query-class.mjs';
-// Card-shell chokepoint (2026-09-08, operator item A1): F42 is the structural half of "the 3px
-// graduated rule is part of the card component, not a decoration". The card shell now exists once
-// (src/components/ui/SectionCard.tsx) and mounts the rule unconditionally; F42 makes a hand-typed
-// shell anywhere else RED, so a card cannot be constructed without the rule, the shadow or the
-// artboard's radius. Closes the class the operator found open on eighteen card types.
-import { fitnessFunction as F42 } from './functions/F42-card-shell-outside-section-card.mjs';
+const HERE = dirname(fileURLToPath(import.meta.url));
+const FUNCTIONS_DIR = resolve(HERE, 'functions');
 
-// Default-open disclosure (2026-09-08, lane noexpand): F43 mechanizes the operator's site-wide
-// ruling "no items expanded when first navigtaing to a page". A component that initialises its own
-// disclosure state to open is valid TypeScript, renders without a warning and passes every layout
-// and design assertion, because the thing it opened is correctly styled; only a person looking at
-// the page can see that it opened itself. Its blind half - a page that opens itself with no boolean
-// anywhere, which is how the /operations matrix did it - is closed in the rendering guard, where the
-// initial DOM is real.
-// FOLD-64: this function arrived numbered F42, colliding with the card-shell chokepoint's own F42
-// above. Both functions are kept; THIS one was renumbered to F43 because the card-shell F42 landed
-// first (train 62) and its number is already cited by SectionCard.tsx, its own invariant, the
-// compose-* audit specs and a dozen `// fitness-allow: F42` markers in product source, so
-// renumbering it would have touched strictly more citations. Its invariant id
-// (RD-67-default-open-disclosure) is distinct from the card-shell RD-67 and did not move.
-import { fitnessFunction as F43 } from './functions/F43-default-open-disclosure.mjs';
+const FILE_RE = /^(F\d+)-.*\.mjs$/;
 
-// Broken main guard (task 0.3b, 2026-09-11): 36 files under scripts/** and .discipline/** compared
-// import.meta.url against a hand-built `file://` + process.argv[1] string, which never equals
-// import.meta.url on Windows (forward-slash file:// URL vs a native backslash argv path), so every one
-// silently exited 0 with no output when run directly. F44 forbids the broken idiom from re-entering
-// either tree; scripts/lib/is-main.mjs's isMainModule() is the fix, and its own is-main.test.mjs carries
-// the identical regression check at the no-npm-ci pre-push layer (belt-and-suspenders).
-import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
-// Duplicate code (2026-09-17, lane L30): the operator found the same EUR-Lex route written three times, and a
-// clone scan then measured 8,061 duplicated lines across 970 source files. F45 is the ratchet: the count
-// may only fall, and a new copy anywhere in src or scripts reds the build naming the clone pair.
-import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
-import { fitnessFunction as F46 } from './functions/F46-external-host-home.mjs';
-import { fitnessFunction as F47 } from './functions/F47-db-object-reference.mjs';
-// F48 (lane L41, 2026-09-17; extended by lane T2, 2026-09-19): a live script loads the env file only through
-// the one loader scripts/lib/env-file.mjs; a bare process.loadEnvFile anywhere else is refused, and a test
-// that asserts credential-absent behaviour builds its child env with withoutCredentials() (twice in two days
-// a per-script load handed credentials back to a no-credential test in the one worktree with an env file).
-import { fitnessFunction as F48 } from './functions/F48-env-file-load-guarded.mjs';
-// Loop wiring (2026-09-18, lane M9a): the stage audit found every hop of the build plan's loop exists as
-// code, but "wired and never fired" is invisible, because nothing stated the hops as data a gate could
-// check. F50 reads .discipline/governance/loop-manifest.mjs's LOOP_HOPS against the real workflow files
-// and harness-run artifacts; a hop not yet enforced is reported ("hops not yet enforced: N"), not failed,
-// so the gate lands red-proof-ready today and turns each hop green as the lane that wires it (M1 to M6) lands.
-import { fitnessFunction as F50 } from './functions/F50-loop-wiring.mjs';
+// Exported for the test seam only (temp-fixture directories for the duplicate-id and
+// id/filename-mismatch refusal cases); production code always calls loadAll() with no argument.
+export function listFunctionFiles(dir = FUNCTIONS_DIR) {
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs'))
+    .map((f) => {
+      const m = f.match(FILE_RE);
+      return m ? { file: f, idFromFile: m[1] } : null;
+    })
+    .filter(Boolean);
+}
 
-// Parts, not pages (2026-09-18, lane w10a, site-wide parts brief docs/design/parts-brief-2026-09-18.md
-// rule 1.2): F49 forbids a route's page.tsx from retyping the literal styles that define a shared part
-// (an Anton title, a card border + radius 10, a 3px rule, a fact card edge/band, chip padding, a state
-// note edge). The brief calls this gate "F44"; F44 is already taken by F44-broken-main-guard.mjs, so it
-// lands numbered F49 per the coordinator's note in the brief's own landed header.
-import { fitnessFunction as F49 } from './functions/F49-parts-not-pages.mjs';
+// dirUrl lets the test seam point at a temp fixture directory via a file:// URL; production omits it and
+// resolves against this module's own functions/ directory.
+export async function loadAll(dir = FUNCTIONS_DIR, dirUrl) {
+  const base = dirUrl ?? new URL('functions/', import.meta.url);
+  const entries = listFunctionFiles(dir);
+  const loaded = await Promise.all(
+    entries.map(async ({ file, idFromFile }) => {
+      const mod = await import(new URL(file, base).href);
+      const fn = mod.fitnessFunction;
+      if (!fn || typeof fn !== 'object' || typeof fn.id !== 'string') {
+        throw new Error(`fitness manifest: ${file} does not export a fitnessFunction object with an id`);
+      }
+      if (fn.id !== idFromFile) {
+        throw new Error(
+          `fitness manifest: ${file} exports fitnessFunction.id "${fn.id}", which does not match its ` +
+          `filename prefix "${idFromFile}"`,
+        );
+      }
+      return fn;
+    }),
+  );
 
-export const fitnessFunctions = [
-  F2,
-  F6,
-  F8,
-  F9,
-  F10,
-  F11,
-  F12,
-  F13,
-  F14,
-  F15,
-  F16,
-  F17,
-  F18,
-  F19,
-  F20,
-  F21,
-  F22,
-  F23,
-  F24,
-  F25,
-  F26,
-  F27,
-  F28,
-  F30,
-  F31,
-  F32,
-  F33,
-  F34,
-  F35,
-  F36,
-  F37,
-  F38,
-  F39,
-  F40,
-  F41,
-  F42,
-  F43,
-  F44,
-  F45,
-  F46,
-  F47,
-  F48,
-  F50,
-  F49,
-];
+  const seen = new Map();
+  for (const fn of loaded) {
+    if (seen.has(fn.id)) {
+      throw new Error(
+        `fitness manifest: duplicate fitness function id "${fn.id}" (${seen.get(fn.id)} and a second file ` +
+        `both export this id)`,
+      );
+    }
+    seen.set(fn.id, true);
+  }
+
+  const numericId = (id) => Number(id.slice(1));
+  return [...loaded].sort((a, b) => numericId(a.id) - numericId(b.id));
+}
+
+// Top-level await, legal in .mjs. Every current importer (runner.mjs, invariant-coverage.mjs) uses a
+// static `import { fitnessFunctions } from './manifest.mjs'`, and the ES module graph awaits this
+// transparently, so no importer needs a code change for the switch to an async load.
+export const fitnessFunctions = await loadAll();
 
 export function getFunctionById(id) {
   return fitnessFunctions.find((f) => f.id === id);

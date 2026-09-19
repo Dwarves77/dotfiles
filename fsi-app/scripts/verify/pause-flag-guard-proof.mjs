@@ -1,3 +1,4 @@
+// data-audit: label=pause-flag-guard-proof hard=true
 /** VERIFIER (red-then-green, 0 Browserless): the PAUSE-FLAG SESSION-VAR GUARD (migration 201, RD-23).
  *  GOVERNING SKILLS: remediation-discipline (§4 category 17 — the pause-flag one-writer: structural
  *  enforcement, no credential, no manual step; a stop flag has exactly one writer) + the doctrine

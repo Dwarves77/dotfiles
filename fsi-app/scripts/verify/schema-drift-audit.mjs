@@ -1,3 +1,4 @@
+// data-audit: label=schema-drift hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline (§4 category "Migration
  *  coordination" + the two-track migration policy). SCHEMA-DRIFT: the apply-then-commit-later window.
  *

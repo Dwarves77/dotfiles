@@ -16,55 +16,45 @@
 # Runs WITHOUT npm ci (mirrors the CI job): every listed test MUST import only node: builtins + relative .mjs
 # (glob-portability.test.mjs enforces this). Node 24 type-stripping makes relative .ts imports portable too.
 #
-# NAMED EXCLUSIONS (2026-08-11) — every omission is named, never silent. These proofs reach an npm
-# package (directly or TRANSITIVELY through a helper) and therefore cannot run in this no-npm job.
-# They are NOT unwired: they run in the "App unit tests requiring npm deps" step of discipline.yml,
-# after `npm ci`. The transitive part is the trap — batch-primitives.test.mjs imports only a relative
-# module, which imports `pg`; a direct-import check would have called it portable, and running it
-# locally passes because node_modules exists. CI is the only honest oracle for this, and it said no.
-#   pg:                    scripts/lib/batch-primitives.test.mjs
-#   typescript (via drift-check.mjs):
-#                          scripts/lib/{decision-anchors,drift-check,exclusion-audit,
-#                                       inconclusive-probe,surface-registry}.selftest.mjs
-#   @supabase/supabase-js: src/lib/sources/reconcile.selftest.mjs
-#   jiti:                  src/lib/sources/{institution,source-growth}.selftest.mjs — these two are
-#                          additionally execution-wired as F10 fitness sentinels.
-# Because of these, scripts/lib and src/lib/sources are NAMED LISTS rather than directory globs. That
-# reintroduces a drift vector, so it is bounded: coverage-scan's ORPHANED-PROOF check (F23, ratcheted
-# at 0) fails the build the moment any tracked proof stops being executed by a runner — the named list
-# cannot silently fall behind the directory again.
-# UNRUN-PROOF SWEEP (2026-08-11, operator wiring census): 24 green, portable proof files were tracked
-# but matched NO glob here and NO other CI surface — run by nothing, the exact goldens-class gap the
-# 2026-08-09 wiring-truth sweep closed one layer down. The scripts/lib entries are now DIRECTORY GLOBS
-# (the hand list had drifted 5 listed vs 21 present), and the src globs cover sources/*.selftest.mjs,
-# coverage/, d3/, and tier-labels. coverage-scan's ORPHANED-PROOF category now measures exactly this
-# (execution-wiring), so a future proof dropped outside every glob is a RED F23 gap, not a silence.
-# APP TESTS JOIN BY CONSTRUCTION (red-merge-class fix, dispatch 2026-07-08): the src/** entries are
-# DIRECTORY GLOBS, not a hand list — the hand list silently omitted 6+ app test files (prompt-cache,
-# timeline-harvest, cited-host-gate, content-change, portal-links, parse-output-blocklist,
-# host-authority), so their red-then-green coverage ran only on the author's machine and a
-# deliberately-failing src test sailed through CI green. Dropping a *.test.mjs into a covered
-# directory now runs it in pre-push AND CI by construction. NAMED EXCLUSION (per the header rule —
-# omissions are named, never silent): *.npmtest.mjs — tests that import npm deps (jiti) and cannot
-# run in this no-npm-ci job; they run in the CI fitness-check job AFTER `npm ci`
-# (.github/workflows/discipline.yml "App unit tests requiring npm deps").
+# RENAME CONVENTION, NOT A NAMED LIST (plan 6.8, Rule A, lane N1, replacing the 2026-08-11 named-file
+# exclusions this comment used to carry). Every entry below is now a DIRECTORY GLOB (dir/*.test.mjs,
+# dir/*.selftest.mjs); nothing is hand-listed by filename any more, so two lanes adding a test in the
+# same directory add two files, never two edits to the same shared line.
+#
+# A test that reaches an npm package (directly or TRANSITIVELY through a helper) still cannot run in
+# this no-npm job, so it carries `.npmtest.mjs` instead of `.test.mjs`/`.selftest.mjs` and is therefore
+# NOT matched by any glob here, by construction: a glob for a suffix simply does not match a different
+# suffix. It runs instead in discipline.yml's "App unit tests requiring npm deps" step, AFTER `npm ci`,
+# via that step's own `git ls-files 'fsi-app/**/*.npmtest.mjs'` glob. Nine files moved onto this suffix
+# in the same lane that introduced it here (batch-primitives, pg-conn, decision-anchors, drift-check,
+# exclusion-audit, inconclusive-probe, surface-registry under scripts/lib/, reconcile under
+# src/lib/sources/, layout-guard under .discipline/rendering/layout-guard/) so that renaming, not a
+# second named list, is what keeps an npm-dependent test out of this job.
+#
+# ONE DIRECTORY STAYS A NAMED LIST: src/lib/sources/{classify-source-role,instrument-identity}.selftest.mjs.
+# That same directory also holds institution.selftest.mjs and source-growth.selftest.mjs, which need
+# jiti (an npm package) and are execution-wired instead as F10 fitness sentinels, never through this
+# suite; they are outside this lane's nine-file rename list, so a `src/lib/sources/*.selftest.mjs` glob
+# here would silently pull them into this no-npm job and fail glob-portability's transitive check. This
+# is the one glob-portability/no-npm-ci class this lane could not convert; see its report for detail.
+#
+# UNRUN-PROOF BACKSTOP (2026-08-11, operator wiring census, kept): coverage-scan's ORPHANED-PROOF check
+# (F23, ratcheted at 0) still fails the build the moment any tracked proof stops being executed by a
+# runner, so a proof this lane's rename or glob change accidentally drops out of every surface is caught
+# there, not by a human re-reading this file.
+#
+# APP TESTS JOIN BY CONSTRUCTION (red-merge-class fix, dispatch 2026-07-08, kept): the src/** entries are
+# directory globs, so dropping a *.test.mjs into a covered directory runs it in pre-push AND CI without
+# an edit here.
 set -eu
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/../.." && pwd))"
 cd "$ROOT"
 
 # shellcheck disable=SC2046  # intentional glob/word-split of the test list
 node --test \
-  fsi-app/.discipline/glob-portability.test.mjs \
-  fsi-app/.discipline/vocab-drift-guard.test.mjs \
-  fsi-app/.discipline/assistant-spend-gate.test.mjs \
-  fsi-app/.discipline/relationship-check-literals.test.mjs \
-  fsi-app/.discipline/skill-drift-gate.test.mjs \
-  fsi-app/.discipline/shared-writer-registry.test.mjs \
-  fsi-app/.discipline/notification-preferences-save-path.test.mjs \
-  fsi-app/.discipline/format-locale-sweep.test.mjs \
-  fsi-app/.discipline/check-vocabulary.test.mjs \
-  fsi-app/.discipline/hooks/pre-push-tmpdir.test.mjs \
-  .claude/hooks/vault-sync.test.mjs \
+  fsi-app/.discipline/*.test.mjs \
+  fsi-app/.discipline/hooks/*.test.mjs \
+  .claude/hooks/*.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \
@@ -73,33 +63,12 @@ node --test \
   fsi-app/.discipline/rendering/*.test.mjs \
   fsi-app/.discipline/rendering/audit/*.test.mjs \
   fsi-app/.discipline/rendering/smoke/*.test.mjs \
-  fsi-app/.discipline/runner.test.mjs \
-  fsi-app/.discipline/install-hooks.test.mjs \
   fsi-app/.discipline/dispatch/*.test.mjs \
+  fsi-app/.discipline/fitness/*.test.mjs \
   fsi-app/.discipline/fitness/functions/*.test.mjs \
-  fsi-app/.discipline/fitness/runner.test.mjs \
-  fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
-  fsi-app/scripts/lib/assemble-train.test.mjs \
-  fsi-app/scripts/lib/canonical-key.selftest.mjs \
-  fsi-app/scripts/lib/changelog.test.mjs \
-  fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
-  fsi-app/scripts/lib/db-register-source-role.test.mjs \
-  fsi-app/scripts/lib/db.test.mjs \
-  fsi-app/scripts/lib/deferral.selftest.mjs \
-  fsi-app/scripts/lib/entity-gate.selftest.mjs \
-  fsi-app/scripts/lib/env-file.test.mjs \
-  fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
-  fsi-app/scripts/lib/flag-age.selftest.mjs \
-  fsi-app/scripts/lib/free-pass.selftest.mjs \
-  fsi-app/scripts/lib/institution-key.test.mjs \
-  fsi-app/scripts/lib/is-main.test.mjs \
-  fsi-app/scripts/lib/liveness.selftest.mjs \
-  fsi-app/scripts/lib/reachability.selftest.mjs \
-  fsi-app/scripts/lib/revalidate.test.mjs \
-  fsi-app/scripts/lib/run-artifact.test.mjs \
+  fsi-app/scripts/lib/*.test.mjs \
+  fsi-app/scripts/lib/*.selftest.mjs \
   fsi-app/scripts/harness-runs/*.test.mjs \
-  fsi-app/scripts/lib/verification-decision.selftest.mjs \
-  fsi-app/scripts/lib/verify.selftest.mjs \
   fsi-app/scripts/verify/*.test.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
@@ -121,19 +90,13 @@ node --test \
   fsi-app/scripts/propagation/*.test.mjs \
   fsi-app/scripts/_worklists/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
+  fsi-app/src/lib/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
   fsi-app/src/lib/sources/classify-source-role.selftest.mjs \
   fsi-app/src/lib/sources/instrument-identity.selftest.mjs \
   fsi-app/src/lib/coverage/*.test.mjs \
   fsi-app/src/lib/d3/*.selftest.mjs \
-  fsi-app/src/lib/tier-labels.test.mjs \
-  fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
-  fsi-app/src/lib/list-pagination.test.mjs \
-  fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \
-  fsi-app/src/lib/supabase-server-category-rpc-paging.test.mjs \
-  fsi-app/src/lib/supabase-server-recent-changes-319.test.mjs \
-  fsi-app/src/lib/data-public-surface-slugs.test.mjs \
   fsi-app/src/lib/db/*.test.mjs \
   fsi-app/src/lib/perf/*.test.mjs \
   fsi-app/src/lib/bootstrap/*.test.mjs \

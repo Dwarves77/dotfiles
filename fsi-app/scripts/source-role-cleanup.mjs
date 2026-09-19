@@ -32,7 +32,7 @@ import { loadLocalEnvFile } from "./lib/env-file.mjs";
 // connectPg (scripts/lib/pg-conn.mjs) is imported DYNAMICALLY below, inside the CLI block only — it
 // transitively imports the `pg` npm package, and this module's `planAndApply` core must stay importable
 // by the no-npm-ci discipline test glob (run-test-suite.sh's own NAMED EXCLUSIONS note documents this
-// exact "transitive npm package" trap for batch-primitives.test.mjs; a static top-level import here would
+// exact "transitive npm package" trap for batch-primitives.npmtest.mjs; a static top-level import here would
 // put source-role-cleanup.test.mjs in the same trap).
 
 const __d = dirname(fileURLToPath(import.meta.url));

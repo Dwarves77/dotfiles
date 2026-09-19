@@ -1,3 +1,4 @@
+// data-audit: label=one-tier-per-host hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: source-credibility-model + remediation-discipline.
  *
  *  INVARIANT SC-6 (one canonical tier per host group): every institution (eTLD+1 with documented
