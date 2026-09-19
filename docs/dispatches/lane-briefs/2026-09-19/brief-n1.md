@@ -99,3 +99,6 @@ No new fitness function, no invariant id, no migration, no skill edit, no ceilin
 - `grep -n "named=" .github/workflows/discipline.yml`: no named test list left in that step.
 - `bash fsi-app/.discipline/run-test-suite.sh 2>&1 | grep -E "^# (tests|pass|fail)"` once, before the gate: 0 fail.
 - The push gate through the wrapper, once, last.
+
+Residual, stated for the record: glob-portability is static; a globbed test that reaches npm only through a
+dynamic import is caught by CI's no-npm job, the oracle this repo already names for that class.
