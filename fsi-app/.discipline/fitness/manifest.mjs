@@ -231,6 +231,12 @@ import { fitnessFunction as F47 } from './functions/F47-db-object-reference.mjs'
 // F48 (lane L41, 2026-09-17): a live script's process.loadEnvFile must sit inside a try block, or every
 // workflow dispatch (env injected from secrets, no .env.local) crashes with ENOENT before any work.
 import { fitnessFunction as F48 } from './functions/F48-env-file-load-guarded.mjs';
+// Loop wiring (2026-09-18, lane M9a): the stage audit found every hop of the build plan's loop exists as
+// code, but "wired and never fired" is invisible, because nothing stated the hops as data a gate could
+// check. F50 reads .discipline/governance/loop-manifest.mjs's LOOP_HOPS against the real workflow files
+// and harness-run artifacts; a hop not yet enforced is reported ("hops not yet enforced: N"), not failed,
+// so the gate lands red-proof-ready today and turns each hop green as the lane that wires it (M1 to M6) lands.
+import { fitnessFunction as F50 } from './functions/F50-loop-wiring.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -275,6 +281,7 @@ export const fitnessFunctions = [
   F46,
   F47,
   F48,
+  F50,
 ];
 
 export function getFunctionById(id) {

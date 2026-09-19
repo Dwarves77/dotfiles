@@ -198,7 +198,7 @@ export const PINNED_MANIFEST = {
         // 2026-09-17 (lane L32, coordinator): re-pinned for the database-census bullet added to Section 4
     // category 45 (invariant RD-71, F47 db-object-reference), the standing count of tables and functions
     // nothing references. No citingFiles change: the files below cite the skill as a whole.
-    contentHash: 'cdfe46a5ba6a087e792edf9464b4cc5e73b9fd5e5325b0d6ba8a4f8ad971f4e7',
+    contentHash: '5002578dea0c05eb01ad140261c5625789f8a09492eaecca417fe8a6b65c2904',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/candidate-dwell-audit.mjs',
@@ -502,6 +502,8 @@ export function isSkillContractClean(repoRoot = REPO) {
   return checkDrift(repoRoot).ok;
 }
 
+// 2026-09-18 (Lane M9a): remediation-discipline re-pinned deliberately: added Section 4 category 46 (the loop
+// manifest and F50 loop-wiring, invariant RD-74). citingFiles unchanged.
 // ---- CLI (operator utility, mirrors skill-map.mjs's --list/--check style) ----
 // Usage: node skill-contract-map.mjs --check   → prints problems (if any) and exits 1, else prints OK and exits 0
 // task 0.3b: the Windows-safe main guard, inlined (no scripts/lib import precedent under

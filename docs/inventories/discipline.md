@@ -93,12 +93,18 @@ fsi-app/.discipline/
 
 ## Fitness function registry (post-slim production: 4)
 
+Note (lane M9a, 2026-09-18): this table stopped tracking new fitness functions after F9; the manifest
+(`fsi-app/.discipline/fitness/manifest.mjs`) registers F10 through F47 with none of them added here. Out
+of this lane's scope to backfill; adding only the row this lane's own work requires (F50) rather than
+widening scope to reconcile the other 38.
+
 | ID | Name | What it checks | Evidence |
 |---|---|---|---|
 | F2 | admin-routes-isPlatformAdmin | Every admin API route calls isPlatformAdmin | Encodes a 28-route sweep result so it cannot regress |
 | F6 | migrations-numeric-ordering | Filename pattern + duplicate-number check | Surfaced 5 historical duplicates at creation (006/007 collisions) |
 | F8 | client-server-tier-boundary | No `body.tier` assignment in client code near fetch/POST | Caught 2 real client-side violations (Phase 1.5 atomic refactor) |
 | F9 | build-compiles | `tsc --noEmit` must pass | Closes the local-green/Vercel-red gap (OBS-64) |
+| F50 | loop-wiring | `LOOP_HOPS` (`.discipline/governance/loop-manifest.mjs`) checked against real workflow files and harness-run artifacts: an enforced edge must exist in the consumer yml, an enforced fired-claim must have an artifact with `trigger:"workflow_run"` | Lands red-proof-ready 2026-09-18 (stage audit s6-gates-harness.md); turns each hop green as lanes M1 to M6 land |
 
 ## Consistency check registry (post-slim production: 2)
 

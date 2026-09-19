@@ -226,7 +226,8 @@ export const SKILL_MARKER_BASELINE = {
   // 53→54 (2026-09-17, lane L30): category 45, the duplicated-code ratchet (one MUST line). TRIAGE: new invariant RD-69 (fitness F45).
   // 54→55 (2026-09-17, lane L31): category 45 gains the host-home bullet (one MUST line). TRIAGE: new invariant RD-70 (fitness F46).
   // 55→56 (2026-09-17, lane L32): category 45 gains the database-census bullet (one MUST line). TRIAGE: new invariant RD-71 (fitness F47).
-  'remediation-discipline': 56,
+  // 56→57 (2026-09-18, lane M9a): new category 46, the loop-manifest bullet (one MUST line). TRIAGE: new invariant RD-74 (fitness F50).
+  'remediation-discipline': 57,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1555,5 +1556,19 @@ export const INVARIANTS = [
       'selftest:fsi-app/.discipline/fitness/functions/F48-env-file-load-guarded.test.mjs',
     ],
     residual: 'F48 reads the two preceding non-blank lines for the try; a try that opens further up the same block is read as unguarded and must be brought to the one-line form (a false red, never a false green). It does not cover src/** (no live env loads there) or scripts the dispatch never runs.',
+  },
+
+  {
+    id: 'RD-74-loop-hop-wiring',
+    skill: 'remediation-discipline',
+    section: 'Section 4 - category 46: a loop\'s own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)',
+    text: 'Every hop of the build plan\'s stated loop (docs/plans/complete-system-build-plan-2026-09-04.md section 1: sweep to consume to mint or corpus-turn to downstream-chain to propagation-drain to brief-export to gate-a-rescan) is registered as data in .discipline/governance/loop-manifest.mjs\'s LOOP_HOPS array (producer workflow, consumer workflow, trigger kind, harness family) and checked against the real tree by F50 (loop-wiring): a hop whose enforceEdge flag is true MUST have its workflow_run trigger present in the consumer yml\'s own on.workflow_run.workflows list; a hop whose enforceFired flag is true MUST have a harness-run artifact whose own trigger field reads "workflow_run", proving the hop fired from its upstream rather than from a person dispatching it by hand. A hop neither flag yet claims is counted in a printed "hops not yet enforced: N" line, never silently passed and never failed for wiring another lane has not landed yet. Concrete finding this codifies (stage audit 2026-09-18, s6-gates-harness.md): several of the loop\'s edges were already wired in the committed workflow files (ledger-consume.yml already carried on.workflow_run.workflows naming Source sweep) and several were not, but nothing stated this as a checkable fact before F50 existed.',
+    anchor: 'Every hop of the build\'s stated loop MUST be registered as data (its producer workflow, its consumer workflow, the trigger kind, the harness family it feeds) and checked against the real tree: a hop that claims its trigger edge is wired MUST have that edge in the consumer\'s own `on.workflow_run.workflows` list, and a hop that claims to have fired from its upstream MUST have a harness-run artifact whose own `trigger` field reads `"workflow_run"`, never merely have the edge in place.',
+    enforcedBy: [
+      'fitness:F50',
+      'selftest:fsi-app/.discipline/fitness/functions/F50-loop-wiring.test.mjs',
+      'selftest:fsi-app/.discipline/governance/loop-manifest.test.mjs',
+    ],
+    residual: 'F50 reads .github/workflows/*.yml with a documented line-based text scan (no YAML parser is a direct dependency of this repository), so a workflow_run block written in some other valid YAML shape (a flow-mapping list without quotes, a folded scalar) would not be found; every workflow file in this repository today uses the inline-array form the scan is built for. The fired check trusts each artifact\'s own trigger field, which is set by scripts/lib/run-artifact.mjs\'s writeRunArtifact from process.env.GITHUB_EVENT_NAME at write time and is not itself independently re-derived from GitHub\'s own event log, so a hand-edited artifact could claim trigger:"workflow_run" without one; that is the same content-honesty residual RD-55/F28 already names for the rest of the harness-run schema, not a new gap. loop-manifest.test.mjs proves the manifest\'s own claims (file existence, name parity, family existence) against the real tree so F50 is checking real data, not a manifest that could itself drift; a hop whose consumer file does not exist yet (fetch-drain.yml, a gate-a-rescan consumer) is marked consumerPending in the manifest and exempted from both checks until the lane that creates it lands, the same exemption the family check already needed for a harness family that is real but not yet built.',
   },
 ];
