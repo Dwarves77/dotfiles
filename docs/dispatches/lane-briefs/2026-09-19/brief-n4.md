@@ -75,3 +75,15 @@ line, because it deletes it.
 - `node fsi-app/.discipline/governance/skill-contract-map.mjs --check`: OK on your branch (your range changes
   no skill file).
 - The push gate through the wrapper, once, last.
+
+## Amendment 1 (coordinator, 2026-09-19, one extra item found while reviewing lane N1; time by the date command in the commit)
+
+`fsi-app/.discipline/governance/execution-wiring.mjs` contains two raw NUL bytes (byte 3999 and one more on
+master `dfef72cd`): the glob-to-regex conversion uses a NUL as its placeholder and the source carries the
+literal byte instead of an escape. Git therefore classifies the file as binary: `git diff` prints no hunks
+for it, reviews cannot see changes to it, and a merge conflict in it cannot be resolved as text (lane N1's
+change to it showed as `Bin 8375 -> 9682 bytes`). [CONFIRMED by counting the bytes.] Extra item for this
+lane, in the same commit: replace each raw NUL in that file with the escape `"\u0000"` (or `"\0"`) in the
+string literal, byte-for-byte equivalent at runtime; prove it with `node --test` on the file's own test and
+with `git diff --numstat` showing line counts instead of `-  -`. The file joins the write set for that
+change only.
