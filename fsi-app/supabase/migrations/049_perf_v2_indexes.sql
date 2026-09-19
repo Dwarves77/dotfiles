@@ -1,4 +1,4 @@
--- subject: Migration 049 — perf v2 indexes (2026-05-08) [glyph:verbatim]
+-- subject: Migration 049, perf v2 indexes (2026-05-08)
 -- Migration 049 — perf v2 indexes (2026-05-08)
 --
 -- Adds indexes targeting the regulation-detail server-render bottleneck

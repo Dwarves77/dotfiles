@@ -1,4 +1,4 @@
--- subject: Migration 025 — Sector activation interest tracking [glyph:verbatim]
+-- subject: Migration 025, Sector activation interest tracking
 -- Migration 025 — Sector activation interest tracking
 --
 -- Future feature placeholder per docs/intelligence-summaries-proposal.md

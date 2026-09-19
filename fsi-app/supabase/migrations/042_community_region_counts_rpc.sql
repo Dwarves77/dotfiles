@@ -1,4 +1,4 @@
--- subject: Migration 042 — Community region count RPC [glyph:verbatim]
+-- subject: Migration 042, Community region count RPC
 -- Migration 042 — Community region count RPC
 --
 -- Date: 2026-05-04

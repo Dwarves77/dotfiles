@@ -1,4 +1,4 @@
--- subject: Migration 121: uniform promotion — a valid item flips to verified for ALL tiers (human-in-the-loop removed); criteria 1-5 byte-identical to 119. Sprint 4 Block 1. [glyph:verbatim]
+-- subject: Migration 121: uniform promotion, a valid item flips to verified for ALL tiers (human-in-the-loop removed); criteria 1-5 byte-identical to 119. Sprint 4 Block 1.
 -- Migration 121: validate_item_provenance — UNIFORM PROMOTION (no human-in-the-loop).
 -- Collapses the criterion-6 tier branch: a valid item -> 'verified' for ALL tiers.
 -- CRITICAL/HIGH no longer route to 'pending_human_verify'; the task-1.12 human tick

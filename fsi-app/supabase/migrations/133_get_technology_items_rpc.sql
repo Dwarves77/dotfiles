@@ -1,4 +1,4 @@
--- subject: Migration 133: get_technology_items RPC — clone of get_research_items, item_type IN ('technology','innovation','tool'). Renamed from 130b to conform to 3-digit (F6) naming. [glyph:verbatim]
+-- subject: Migration 133: get_technology_items RPC, clone of get_research_items, item_type IN ('technology','innovation','tool'). Renamed from 130b to conform to 3-digit (F6) naming.
 -- Migration 133: get_technology_items(p_org_id uuid) — Technology surface RPC.
 --
 -- Built EXACTLY like get_research_items in migration 125: same RETURNS signature,

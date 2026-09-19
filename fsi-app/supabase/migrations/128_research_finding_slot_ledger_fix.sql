@@ -1,4 +1,4 @@
--- subject: Migration 128: research_finding transitive-slot fix — decision_relevance + does_not_resolve descriptions signal GAP-satisfiability so synthesis sections (S3/S5) cover their slots. [glyph:verbatim]
+-- subject: Migration 128: research_finding transitive-slot fix, decision_relevance + does_not_resolve descriptions signal GAP-satisfiability so synthesis sections (S3/S5) cover their slots.
 -- Migration 128: Research finding slot fix — make required slots groundable.
 --
 -- PROBLEM (item 88c3a053, MIT Climate Machine, 24,881ch brief, 0 FACT claims -> quarantined):

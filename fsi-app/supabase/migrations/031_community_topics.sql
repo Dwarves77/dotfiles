@@ -1,4 +1,4 @@
--- subject: Migration 031 — Community topics [glyph:verbatim]
+-- subject: Migration 031, Community topics
 -- Migration 031 — Community topics
 --
 -- Date: 2026-05-01

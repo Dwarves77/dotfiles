@@ -1,4 +1,4 @@
--- subject: Migration 295 (COMMUNITY-A, spec 05 §4): `community_posts.promotion_state` (5-value CHECK, default 'community'), `community_promotion_transitions` (append-only log, service-role writes; `src/lib/community/promotion.mjs` validates before insert), `community_posts.stance` (reply stance feeding corroboration). **APPLIED 2026-09-03** [CONFIRMED: 9 columns on transitions, RLS on]. [glyph:verbatim]
+-- subject: Migration 295 (COMMUNITY-A, spec 05 section 4): `community_posts.promotion_state` (5-value CHECK, default 'community'), `community_promotion_transitions` (append-only log, service-role writes; `src/lib/community/promotion.mjs` validates before insert), `community_posts.stance` (reply stance feeding corroboration). **APPLIED 2026-09-03** [CONFIRMED: 9 columns on transitions, RLS on].
 -- 295 — Community: the five-gate promotion state machine, logged transitions, corroboration stance
 -- (Lane COMMUNITY-A, Wave 3, 2026-09-03; docs/specs/05-community.md §4, §5 components 5, 6).
 --
