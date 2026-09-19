@@ -21,6 +21,8 @@ finding. Master tip at reconstruction: `e3b3a74`.
 > 5 and 6 of [the complete-system build plan](./plans/complete-system-build-plan-2026-09-04.md)). Read it before
 > the older handoffs named below.
 
+> **Plan 6.7 (duplicates) CLOSED 2026-09-19 (lane P7):** L36 #712, L37 #726, L35h #727, L38 #729, D2 #728. Standing numbers F45 6132, F46 0, F47 0/0/0; D2 counts in [data-duplicate-census-2026-09-18](./audits/data-duplicate-census-2026-09-18.md). F50 loop-wiring PASS, 11 hops not yet enforced; those are plan 6.1 and 6.2, not this section.
+
 > **Resume from:** [docs/ops/handoff-2026-09-05.md](./ops/handoff-2026-09-05.md) — the
 > 2026-09-05 coordinator-session handoff (master `012b10a2`/train46, train47 folded but not
 > landed, migrations 308-311 written not applied, the next session's ordered worklist). This

@@ -490,7 +490,7 @@ What is NOT finished from that audit, now lanes of this plan, in order:
 | L38 | the 77 admitted mirrors: each keep-with-reason (a real client-bundle boundary) or wired to one import | F45 down | L34 (merged) |
 | L35h | the eur-lex second home onto `identifier-variants` (capture-static-primaries) | F46 1 to 0 | none |
 | D2 (read-only, Haiku) | the data duplicate census: verified live items sharing a canonical instrument key (must read 0 by EP-11, asserted), non-regulatory items sharing a normalized title and jurisdiction (reported with the pair list and the entity-identity rule from the dedup-before-grounding doctrine), sources sharing a registrable domain with more than one tier (must read 0 by SC-13, asserted); one file under `docs/audits/`, SELECT only under the IO budget | data | none |
-| P7 (the close) | re-measure the three standing numbers and D2's counts, F50 green, the board row | all | everything above |
+| P7 (the close) | re-measure the three standing numbers and D2's counts, F50 green, the board row; DONE (2026-09-19): F45 6132, F46 0, F47 0/0/0, D2 counts as measured 2026-09-18; F50 PASS with 11 hops not yet enforced. | all | everything above |
 
 Rule for every lane in this plan, restated from the audit: a lane that removes duplication re-seeds F45 down
 in the same commit; a lane that adds a route, a host or a table adds it to its one home or the gate refuses it.
