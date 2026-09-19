@@ -46,6 +46,15 @@ concurrency:
   group: maintenance
   cancel-in-progress: false
 
+# Lane M9b (2026-09-18, stage-audit-2026-09-18 s6-gates-harness.md): this run now commits its own
+# harness-run artifact (scripts/harness-runs/maintenance/) and dispatch-ledger row via the SAME
+# branch-plus-PR mechanism source-sweep.yml / corpus-turn.yml already use
+# (scripts/turns/deliver-artifact-branch.sh) -- needs the same three permissions those workflows declare.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
 env:
   RUN_MODE: ${{ inputs.mode }}
   RUN_STEP: ${{ inputs.step }}
@@ -1135,6 +1144,113 @@ jobs:
       - name: Flush public/detail caches after a real apply (every apply, not mint alone)
         if: always() && env.RUN_MODE == 'apply'
         run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
+      # ── Lane M9b (2026-09-18), stage-audit-2026-09-18 s6-gates-harness.md: this family's runs were
+      # recorded only as the ephemeral upload-artifact step below (90-day retention, never git history a
+      # proposer lane could read) and the dispatch ledger below it stopped being appended by hand
+      # 2026-09-07. The four steps that follow commit both a real, git-tracked harness-run artifact
+      # (scripts/harness-runs/maintenance/, CONVENTION.md's own schema) and a machine-appended
+      # docs/ops/dispatch-ledger.jsonl row, via the SAME branch-plus-PR mechanism source-sweep.yml already
+      # uses (read in full and copied here, not reimplemented) -- every step runs `always()` so a run that
+      # failed partway still leaves a record of exactly what happened, the same posture Population AFTER
+      # above already takes.
+
+      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next maintenance-run-NNN artifact from the
+      # files it can see in the checked-out tree, i.e. the ref this run started from. Artifacts land
+      # through a PR (this workflow's own concurrency group serializes DISPATCHES, but does not wait for a
+      # prior run's PR to merge before the next dispatch starts), so a run whose predecessor's PR has not
+      # yet merged would see a stale count and claim the SAME run_id -- the exact collision
+      # source-sweep.yml's own identically-named step guards against for its own family.
+      - name: Hydrate unmerged maintenance-artifact sibling artifacts (run_id collision guard)
+        if: always()
+        run: |
+          git fetch --no-tags origin '+refs/heads/maintenance-artifact/*:refs/remotes/origin/maintenance-artifact/*' || true
+          : > /tmp/hydrated-maintenance-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
+            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/maintenance/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-maintenance-artifacts.txt) unmerged maintenance-artifact file(s) from sibling branches"
+
+      - name: Write this run's maintenance harness-run artifact
+        if: always()
+        id: write_artifact
+        run: |
+          RAW="$(node scripts/maintenance/write-run-artifact.mjs --step "$RUN_STEP" --mode "$RUN_MODE" --arg "$RUN_ARG" --out-root "$OUT_ROOT")"
+          echo "$RAW"
+          echo "run_id=$(printf '%s' "$RAW" | jq -r '.run_id')" >> "$GITHUB_OUTPUT"
+          echo "artifact_path=$(printf '%s' "$RAW" | jq -r '.artifact_path')" >> "$GITHUB_OUTPUT"
+
+      - name: Append this run's dispatch-ledger row
+        if: always()
+        run: |
+          JOB_STATUS="${{ job.status }}"
+          if [ "$JOB_STATUS" = "cancelled" ]; then
+            OUTCOME="cancelled"
+          elif [ "$JOB_STATUS" = "failure" ]; then
+            OUTCOME="error"
+          elif [ "$RUN_MODE" = "apply" ]; then
+            OUTCOME="applied"
+          else
+            OUTCOME="reported"
+          fi
+          ARTIFACT_REL=""
+          RAW_PATH="${{ steps.write_artifact.outputs.artifact_path }}"
+          if [ -n "$RAW_PATH" ] && [ "$RAW_PATH" != "null" ]; then
+            ARTIFACT_REL="scripts/harness-runs/maintenance/$(basename "$RAW_PATH")"
+          fi
+          node scripts/harness-runs/append-dispatch-ledger.mjs \
+            --workflow maintenance \
+            --step "$RUN_STEP" \
+            --mode "$RUN_MODE" \
+            --run-id "${{ github.run_id }}" \
+            --date "$(date -u +%Y-%m-%d)" \
+            --outcome "$OUTCOME" \
+            --artifact "$ARTIFACT_REL" \
+            --ledger ../docs/ops/dispatch-ledger.jsonl
+
+      # Commit the family's own harness-run artifact plus the dispatch-ledger row (scripts/harness-runs/
+      # maintenance/** and ../docs/ops/dispatch-ledger.jsonl) so this run survives past the Actions log --
+      # same posture corpus-turn.yml/source-sweep.yml apply to their own artifacts. A dispatch normally
+      # runs against master, which is typically branch-protected, so this lands on its own branch and opens
+      # a PR (source-sweep.yml's own pattern, copied) rather than pushing straight to whatever ref
+      # triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-maintenance-artifacts.txt ]; then xargs -a /tmp/hydrated-maintenance-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/maintenance/.claims
+
+      - name: Commit the maintenance harness-run artifact and dispatch-ledger row, and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/maintenance ../docs/ops/dispatch-ledger.jsonl
+          if git diff --cached --quiet; then
+            echo "No new maintenance harness-run artifact or dispatch-ledger row to commit."
+            exit 0
+          fi
+          branch="maintenance-artifact/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "maintenance ${RUN_MODE}: ${RUN_STEP} run ${{ github.run_id }}"
+          # BRANCH-BASE (2026-09-04 pattern, copied from source-sweep.yml/population-turn.yml): re-base the
+          # artifact commit onto the current master tip before the push, so a workflow-file change that
+          # landed on master mid-run cannot make GitHub refuse the branch.
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::maintenance artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated maintenance run (run %s).\n\nStep: %s\nMode: %s\nArg: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/maintenance/ and its dispatch-ledger row.\n' \
+            "${{ github.run_id }}" "$RUN_STEP" "$RUN_MODE" "${RUN_ARG:-(none)}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Maintenance: ${RUN_STEP} (mode=${RUN_MODE}, run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload this run's step artifact(s)
         if: always()
