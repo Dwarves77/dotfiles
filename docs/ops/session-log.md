@@ -23694,19 +23694,129 @@ does_not_resolve.
 ### UX compliance (P10)
 
 Not a UI change; no customer surface touched by this branch.
+## 2026-09-18, W9 lane m9c: community promotion mechanism A retired; rooms-bound-to-region stopped
 
-## 2026-09-18, W9 lane D2: data duplicate census written; EP-11 0, title twins 1 group, domain-tier splits 2 hosts
+I am lane m9c on the build plan (`docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1,
+row M9, the community half), dispatched from stage-audit findings 8 and 9
+(`docs/audits/stage-audit-2026-09-18/s6-gates-harness.md`).
 
-Haiku lane, worktree wt-d2, branch lane/d2-data-duplicate-census-2026-09-18 from master 2f7ae35c. No database access in the lane; coordinator ran SELECT-only queries on 2026-09-18 23:50 to 23:58 UTC.
+**Landed (part 1 of the brief, "retire mechanism A").** `community_promotion_transitions` (migration
+295's audit log for the unwired five-gate `promotion_state` machine) is dropped by new migration
+`329_drop_community_promotion_transitions.sql` (committed, not applied; the coordinator applies it
+before this branch merges, two-track policy). Verified live, read-only SQL, before authoring the drop:
+0 rows in `community_promotion_transitions`, 0 rows in `post_promotions`, 0 foreign keys reference the
+table, its 2 RLS policies and 2 indexes exist only on it, its 4 triggers are internal FK
+referential-integrity triggers, all of which drop with the table; no other migration or code file adds
+a function, trigger, policy or index against it. `src/lib/community/promotion.mjs` and
+`promotion.test.mjs` are deleted; `src/lib/community/index.mjs` no longer re-exports
+`promotionState`/`buildTransition`/`originClassFor`/`PROMOTION_STATES`, and `index.test.mjs`'s
+interface-contract test is updated to match (both files' tests pass, see below). The F47
+db-object-reference allowlist entry for `community_promotion_transitions` is removed (the table is
+gone, not kept-and-excused) and `UNREAD_TABLES_CEILING`'s comment is corrected from three to two
+allowlisted write-only tables. `docs/plans/C6-promote-spec.md` (the doc describing `post_promotions`,
+the surviving mechanism) gains a section naming both mechanisms, the audit finding, and the retirement;
+`docs/inventories/migrations.md` gets the 326 row. Left alone, on purpose: `community_posts`'s
+`promotion_state`/`stance` columns (migration 295's other two changes, out of the brief's scope, not
+part of the dormant-mechanism finding); migrations 293 and 295's own prose references to
+`promotion.mjs` (already-applied migrations are immutable per standing rule 1, their headers are
+frozen, confirmed by `docs/inventories/migrations.md`'s own "STALE-BUT-FROZEN" convention);
+`closure-gate.mjs`'s WRITER-READER comment naming the table (historical narrative describing a past
+audit run, not a live allowlist entry); `.discipline/governance/coverage-report.json`'s stale path to
+the deleted test file (machine-generated snapshot, not gate input, F23 recomputes live via
+`coverage-scan.mjs`, does not read the committed JSON).
 
-**Result [CONFIRMED by the brief read and the coordinator's SQL measurements]**: three data invariants measured against live database state.
-- EP-11 canonical-instrument-key twins: 0 (assertion holds)
-- Non-regulatory items with shared title and jurisdiction: 1 group, 2 market_signal items in {SG} (hypothesis: duplicate pending entity-identity ruling)
-- SC-13 sources with domain-tier splits: 2 hosts (5 rows; cdp.net duplicate rows awaiting merge, sec.gov tier ruling for operator)
+Evidence: `node --test .discipline/fitness/functions/F47-db-object-reference.test.mjs` 6/6 pass
+(LIVE ratchet included); `node --test src/lib/community/index.test.mjs` 5/5 pass; `node --test
+src/lib/community/*.test.mjs` 122/122 pass; `node .discipline/governance/invariant-coverage.mjs` PASS
+(129 invariants + 63 doctrines wired); `npx tsc --noEmit` clean (no output).
 
-**Findings**: title-jurisdiction duplicates and domain-tier splits are data-phase decisions, not machine defects. Disposition recorded in audit for coordinator action.
+**Stopped (part 3 of the brief, "rooms bound to a region").** The brief instructs binding every room's
+region to "the creating workspace's region, read from the workspace row the request already resolves,"
+and to refuse with 400 when unresolvable, never defaulting to GLOBAL. Reading the actual route
+(`src/app/api/community/groups/route.ts`) surfaces a disagreement between the brief and the code, not a
+missing field:
 
-### UX compliance (D2)
+1. The route's own header comment states region='GLOBAL' is DELIBERATE for this route: "Vertical
+   groups are created cross-regional (region = 'GLOBAL') and public (the platform exists to break
+   freight information-isolation)." This is a documented design decision, not an oversight the audit
+   caught by surprise.
+2. The route resolves no "workspace row" at all today. `requireCommunityRoute` /
+   `requireCommunityAuth` (`src/lib/api/route-guard.ts`, `src/lib/api/community-auth.ts`) return only
+   `{ userId, supabase }`; nothing in the handler fetches a profile, org, or workspace row.
+3. The nearest candidate field, `profiles.region`, is `TEXT[]` (migration 105: "operator note that
+   workspaces serve multiple regions, e.g. NYC + LA + London"), not a scalar. `community_groups.region`
+   is a single value (GLOBAL/EU/US/UK/APAC/LATAM/MEA per the live 7-row check). Collapsing an array to
+   one scalar is a choice the brief does not make.
+4. `organizations` (migration 006, multi-tenant) carries no region column either, by grep of every
+   `*organization*`/`*org*` migration.
+
+This is exactly the brief's own named stop condition ("if the workspace has no region field, STOP and
+report the field names you found") layered with a second one (the brief and the code's own documented
+rationale disagree on whether GLOBAL is a bug). I did not pick an answer, did not add a region field,
+and did not touch `route.ts`, `CreateGroupModal`, or any region-resolution code. Part 2 of the brief
+(document mechanism B) and part 4 (tsc, session log) are done; part 3 is returned to the coordinator.
+
+**Commits:** migration 326 + the F47 allowlist edit + the promotion.mjs deletion + index.mjs/index.test.mjs
+fixes are one commit; the two doc updates (C6-promote-spec.md, migrations.md inventory row) are a second
+commit; this session-log entry lands with the doc commit.
+
+**What the coordinator must do:** apply migration 326 via the Supabase management API before this
+branch merges (two-track policy); rule on the region-binding question above (is GLOBAL-by-design for
+vertical groups correct as shipped, in which case W6.2/finding 9 should be corrected in place rather
+than built against; or does the product want a second, region-scoped room-creation path alongside the
+vertical one, and if so which field resolves "the creating workspace's region" given `profiles.region`
+is an array) and re-dispatch with that decision made.
+## 2026-09-19, W9 lane L35h: eur-lex.europa.eu has one home; F46 ceiling 1 to 0
+
+Sonnet lane, worktree wt-l35h, branch lane/l35h-eurlex-one-home-2026-09-18, based on origin/master a93a2271 (#712 merged).
+
+**Result [CONFIRMED by the runner and node --test, each run this session].** eur-lex.europa.eu is now a
+HOST_HOMES entry in F46-external-host-home.mjs, homed at `src/lib/sources/identifier-variants.mjs`
+(`celexTxtHtmlUrl`). `scripts/maintenance/capture-static-primaries.mjs`'s `deriveCelexTxtHtmlUrl` now
+imports and calls that builder instead of templating the host itself. `node fsi-app/.discipline/fitness/runner.mjs`
+reports 0 violations; `MULTI_HOME_CEILING` re-seeded 1 -> 0. The whole-tree grep for the host outside
+tests/goldens/fixtures/comments now names only `identifier-variants.mjs` and three of F46's four
+REFERENCE_FILES (`source-licence.mjs`, `intake-url-corpus.mjs`, `url-canon.mjs`); `series-item-map.mjs`
+does not cite the host. `bash .discipline/run-test-suite.sh`: 7258 tests, 7253 pass, 0 fail, 5 pre-existing
+skips.
+
+**Findings.**
+[CONFIRMED, this session's own repro plus the coordinator's independent repro on master's file] The RED
+step as originally briefed could not fire: `identifier-variants.test.mjs`'s eur-lex and www.legislation.gov.uk
+sweep tests stripped comments with a mid-line `.replace(/\/\/.*$/gm, "")`, which deletes everything after
+the FIRST `//` on a line -- including the `//` inside `https://` -- so a URL literal such as
+`` return `https://eur-lex.europa.eu/...`; `` was read as `` return `https: `` before the host regex ever
+ran. The stripper could never see a URL literal built as a template string. This same stripper sat in six
+L35 sweep tests (`identifier-variants.test.mjs` x2, `transport-escalation.test.mjs`,
+`anthropic-stream.test.mjs`, `auth/linkedin/start/logic.test.mjs`,
+`eurostat-lc-lci-lev-producer.test.mjs`), so none of the six had ever been proven RED since lane L35
+wrote them on 2026-09-17. F46 itself was never affected: `hostsByFile` drops whole comment LINES
+(`/^\s*(\/\/|\*)/`) and never truncates mid-line.
+[CONFIRMED] Once the mid-line strip was replaced with F46's own line filter, the eur-lex and
+www.legislation.gov.uk sweep tests also surfaced a second, independent gap: neither test carried a
+REFERENCE_FILES concept, so three of F46's own REFERENCE_FILES (`source-licence.mjs`,
+`intake-url-corpus.mjs`, `url-canon.mjs`, which cite these hosts as data, e.g. licence attribution text
+and a worked-example URL corpus, never as request-building code) came back as false-positive "offenders"
+in both sweeps, and the www.legislation.gov.uk sweep flipped from passing to failing on
+`intake-url-corpus.mjs` alone.
+[CONFIRMED, by re-verifying against F46's own source] The two sweep tests in `identifier-variants.test.mjs`,
+and the four sibling sweep tests named above, were rewritten to stop re-implementing F46's scan and instead
+import `scanTree`/`HOST_HOMES` from `F46-external-host-home.mjs` directly, so the parser and the
+REFERENCE_FILES set can never drift from F46's own again. Each rewritten test asserts `HOST_HOMES[host]`
+equals the expected home path and that F46's `strict` list has no entry for that host. All six pass;
+running the eur-lex test against the tree BEFORE the capture-static-primaries.mjs fix (see the runner
+output pasted in this lane's tool history) produced the honest RED, naming only
+`fsi-app/scripts/maintenance/capture-static-primaries.mjs`.
+[CONFIRMED] F45 (duplicate-code) did not move; the runner reports F45 PASS both before and after this
+change, as the brief predicted (a one-line literal replaced, not an eight-line duplicate window).
+Left untouched, per the coordinator's amendment, for a later pass: the three other users of the same
+mid-line `//` stripper pattern that are NOT host sweeps -- `fsi-app/.discipline/fitness/functions/F30-entity-spine.mjs`,
+`fsi-app/.discipline/rules/021-cached-shape-key.mjs`, and `fsi-app/scripts/maintenance/capture-static-primaries.test.mjs`
+(lines 667 and 711).
+
+**Next.** None open for this lane; PR landing is the coordinator's per the common contract.
+
+### UX compliance (L35h)
 
 Not a UI change; no customer surface touched by this branch.
 
