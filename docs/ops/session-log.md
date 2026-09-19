@@ -23818,4 +23818,23 @@ mid-line `//` stripper pattern that are NOT host sweeps -- `fsi-app/.discipline/
 
 ### UX compliance (L35h)
 
+
+## 2026-09-18, W9 lane L37: the 53 byte-identical snapshot files out of the index
+
+Haiku lane, worktree wt-l37, branch lane/l37-snapshots-out-of-index-2026-09-18 from master 1b8432a0.
+
+**Correction (coordinator, after the pre-push suite on the rebased branch) [CONFIRMED by the gate's own failure].** 52 files are out of the index, not 53: `population-33749140151/census-rows.apply-ready.json` is read by path by `src/lib/connections/tag-yield.fixture.test.mjs` as its record-grade data source, so it stays tracked; the coordinator's consumer census had truncated its own grep output before that file. A test input living under a gitignored folder is recorded for the plan (the snapshot folder holds workflow inputs and test inputs, not only scratch).
+
+**Result [CONFIRMED by git diff --cached after git rm --cached, and by git ls-tree before/after].**
+The 53 byte-identical snapshot files (24 groups, 53 files) are removed from the index, never from disk.
+Ignore rule verified (`git check-ignore`). Git history retains every blob (recoverable with `git show 1b8432a0:<path>`).
+
+**Findings.** [CONFIRMED by grep across all 53 removed files and the code comment in institution-key.mjs line 61.]
+Code comment at fsi-app/scripts/lib/institution-key.mjs line 61 cites `population-33678399902/census-rows.held.json`.
+One of the 53 removed files is `population-33678399902/census-rows.screened-out.json` (a different file: held.json vs screened-out.json).
+The cited file itself is NOT among the removed files; no citation goes stale.
+
+**Measurements:** BEFORE: 24 duplicate blob groups, 1245 total files under _snapshots/. AFTER: 0 duplicate blob groups, 1192 total files (1245 - 53).
+
+### UX compliance (L37)
 Not a UI change; no customer surface touched by this branch.
