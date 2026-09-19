@@ -113,3 +113,30 @@ Facts from lanes N1 to N5, all on master before you start, and one added item:
    any file you change is a governing file of a harness family (check every `family.json`), add
    `scripts/harness-runs/<family>/pending/2026-09-19-n6.md`. If any of these still needs a hand edit to a
    shared list, that is the finding the brief names: STOP and report it.
+
+## Amendment 2 (coordinator, 2026-09-19 20:49 UTC by the date command, after the lane's STOP at the gate)
+
+F51 is right on every one of the 17 [CONFIRMED by the lane's runner output]; the rulings decide what each
+one means:
+
+1. **Check 3, migrations `006` and `007`.** The duplicate prefixes predate this build (five files, all
+   applied, all with distinct filenames; the CLI is unaffected). Renumbering an applied migration is refused.
+   Add a dated allowlist to check 3 for exactly these two prefixes, reason "pre-build history, applied;
+   renumbering refused 2026-09-19", and keep refusing any other duplicate, migrations included (a test:
+   a planted third `006_` is still caught).
+2. **Check 5, the window.** The last 30 first-parent commits are the 6.8 conversion itself (N1 to N5 each
+   rewrote the shared files they derived) plus three tree-wide mechanical passes on one day (T2's loader
+   move over 90 scripts, N1's audit markers over 34, N5's shared-writer markers over 94). That is the regime
+   6.8 replaced, not the one it guards. Check 5 measures from an anchor: first-parent commits on
+   `origin/master` AFTER `ccb6aa0c` (lane N4's merge, the last conversion lane), at most 30; with fewer than
+   3 such commits it prints the count and skips, never fails. The anchor is a dated constant in F51 with
+   this reason (an epoch marker, not a measurement). No allowlist entry for any of the 15 files; when a
+   file is hot inside the new window it is a real hotspot. Tests: the anchor is honoured (commits before it
+   are not counted) and the short-window skip.
+3. `run-artifact.mjs` at 5 of 30 is the same transition (N2, N2 Amendment 2, N3, N5) and is covered by item 2;
+   the lane's HYPOTHESIS about the window is [CONFIRMED] by the commit list it pasted.
+
+Then the runner at 0 violations, F51's tests, a second commit (`Lane N6 (Amendment 2): historical
+migration prefixes allowlisted, the hotspot window anchored after the conversion`), `git fetch origin &&
+git rebase origin/master` (the branch is not on origin, so a rebase is right), and the gate once more (the
+second and last run).
