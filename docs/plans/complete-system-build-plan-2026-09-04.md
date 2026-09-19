@@ -494,3 +494,73 @@ What is NOT finished from that audit, now lanes of this plan, in order:
 
 Rule for every lane in this plan, restated from the audit: a lane that removes duplication re-seeds F45 down
 in the same commit; a lane that adds a route, a host or a table adds it to its one home or the gate refuses it.
+
+### 6.8 Merge conflicts between lanes: the two causes, removed (operator, 2026-09-18: "Do not do work arounds. Fix the problem so it NEVER happens again")
+
+**What happened [CONFIRMED, counted from the coordinator's merge-train and push-queue logs, 2026-09-13 to
+2026-09-18].** On the evening of 2026-09-18 alone the merge train stopped six times (#712, #717, #719 twice,
+#720, #721). A stopped train costs a hand resolution, a full local gate run and a CI run each time, and a PR
+that GitHub reports as conflicting gets NO required checks at all, so it cannot merge however correct it is.
+Across the four logged days: 16 stops on a conflict outside the session log; 52 rebases where the shared
+session log had to be union-resolved by script; 17 scripted re-pins of a harness marker; 13 PRs rebased only
+because GitHub reported them conflicting. The files: the F45 ceiling line, the harness family files (four at
+once), the fitness manifest, the invariant registry, the shared-dataset allowlist, the workflow's named test
+list, the migrations inventory, a shared audit document, and the session log. Three of the 16 were two lanes
+changing the same code (`apply-record-briefs.mjs` twice, `memory-gate.mjs` once); those are real conflicts and are
+supposed to stop the train. Every other one was two lanes editing the same LINE for bookkeeping.
+
+**The two causes.**
+
+- **Cause A, hand-edited append lists.** To register anything (a fitness function, a harness family, an
+  invariant, a migration row, a shared-table writer, a named test, a session-log entry) a lane appends to the
+  END of one shared file. Two lanes appending at the same spot conflict, always.
+- **Cause B, stored values that are a pure function of the tree.** The F45 ceiling, a harness marker's hash
+  pin, the skill manifest's content hashes, the per-skill marker counts. Two lanes that each store a correct
+  value conflict on the line, and the merged tree's correct value is a THIRD value neither lane wrote. The
+  coordinator's `repin.mjs` and `reseed-f45.mjs` re-measure and re-stamp mechanically after every rebase, which
+  means the stored value no longer records anyone's acknowledgment of anything: a machine writes it. Under
+  standing rule 15 that is a proof by presence, not a proof.
+
+**What "fixed" means here.** Two lanes that do not change the same behaviour can never conflict, and no tool
+(the train, a lane, a coordinator script) ever re-stamps a stored measurement. The test is mechanical: gate F51
+below, and a replay of this evening's lane set that merges in any order with zero conflicts.
+
+**The design, one rule each.**
+
+- **Rule A: a registry is a directory, never a list.** One entry, one file, named by its id; the list is
+  derived by reading the directory. Two lanes adding entries add two files. A true collision (the same id
+  twice) becomes an add/add conflict on one filename, which is the honest signal and is caught before the
+  push by the id check in F51.
+- **Rule B: a gate compares the tree to its merge-base, never to a stored number.** "No worse than where this
+  branch started" is measured on both trees at check time. Nothing is stored, so nothing conflicts and nothing
+  needs re-seeding. An acknowledgment that a human or a lane owes (a governing file changed and no run has
+  landed; a cited skill file changed) is a per-lane FILE added in the same range, with no hash in it; the gate
+  checks that the range which changed the governed thing also added the acknowledgment.
+- **Rule C: one home for "what changed in this range".** The memory gate and F45 each derive a range on their
+  own today. One module, `fsi-app/.discipline/lib/change-range.mjs`, serves every gate that needs it
+  (merge-base with origin/master locally, the PR base in CI, an explicit `--range` override).
+
+**Lanes.** Dispatched only after the four lanes in flight on 2026-09-18 (M9a #721, M1 #722, M2, W10-A) have
+merged, because those four edit the very lists being replaced and would conflict with the replacement too.
+Each lane is a Sonnet implementer under the repo lane contract; each runs the push gate itself, once, last.
+
+| Lane | Replaces | With | Proof |
+|---|---|---|---|
+| N0 | the two private range derivations (memory gate CLI, F45 `changedFiles`) | `change-range.mjs` (Rule C), both callers moved onto it | unit tests for the three range sources; memory gate and F45 tests unchanged and green |
+| N1 | `fitness/manifest.mjs` import list; `run-test-suite.sh` named test list; `discipline.yml` named npm-test list; `run-data-audit-lane.mjs` `AUDITS` array | the fitness manifest reads `functions/F*.mjs` (each function file already exports its own id and metadata; the explanatory comment moves into the function's file); named tests move under globbed locations or a `*.npmtest.mjs` glob that covers `fsi-app/scripts`; each audit declares itself in a one-line descriptor beside its script | the derived lists equal today's lists exactly (asserted once, in the lane); glob-portability and execution-wiring gates green |
+| N2 | `GOVERNING_FILES`, `ALLOWED_FAMILIES`, the CONVENTION.md harness_version table | one `scripts/harness-runs/<family>/family.json` per family (governing files, description); both exports derived from the directories; the markdown table removed and its parity test replaced by a descriptor-validity test; the runner by-reference tests kept | derived objects deep-equal today's; all 13 families load; F28 and the governing-files tests green |
+| N3 | the hash pin inside `PENDING-RUN.md`; `repin.mjs` | F28 rule (b)/(c) by Rule B: a family whose governing files changed in the range, with no new run artifact in the range, must add `scripts/harness-runs/<family>/pending/<date>-<lane>.md` naming the change and the planned run; tree-state rule kept: a family with no artifact at the live hash must have at least one pending file, and a run artifact at the live hash with pending files present fails (reverse audit, "the run happened, delete them"); existing markers migrate to one pending file each | red tests for each refusal; the 2026-09-18 three-lane collision (M8, M9b, M9a) replayed in a fixture merges clean and passes; `repin.mjs` deleted from the coordinator tooling |
+| N4 | `DUPLICATED_LINES_CEILING`; `reseed-f45.mjs`; the skill manifest's `contentHash` pins and `SKILL_MARKER_BASELINE` counts | F45 by Rule B: measured duplicated lines on HEAD must not exceed the same measurement on the merge-base tree (read through `git cat-file --batch`, cached by commit id in gitignored scratch); the standing number is still printed on every run and recorded by the close lane P7. Skill contract map by Rule B: a range that changes a pinned SKILL.md or moves a `GOVERNING SKILL(S)` citation must add `fsi-app/.discipline/governance/skill-acks/<date>-<lane>.md` naming the skill and the citing files reviewed; citing-file lists derived by scan, not stored | red tests both ways; a fixture where two lanes each remove duplication merges clean; `reseed-f45.mjs` and `repin-skills.mjs` deleted |
+| N5 | `invariants.mjs` as one 1,500-line array; `docs/inventories/migrations.md` table rows; the JSON allowlist block in `shared-dataset-ownership.md`; status edits by lanes inside shared audit documents | `governance/invariants.d/<ID>.mjs`, one invariant per file, array derived; migration rows derived from a header comment block in each migration file (C3 then checks the header exists and is well formed, the inventory page is generated); each writer script declares its shared tables in a `SHARED-WRITER:` header the registry test collects; a lane records a finding's closure in its own session-log file and the coordinator's close lane folds statuses into the audit | every derived list equals today's list exactly (asserted in the lane); C3, the shared-writer test and the invariant-coverage meta-gate green |
+| N6 (the gate) | nothing: it holds the line | **F51 no-shared-append**: (1) the converted files must stay derived (a hand-written entry in `fitness/manifest.mjs`, `governing-files.mjs`, `ALLOWED_FAMILIES`, `invariants.mjs` fails); (2) no stored-measurement constant may reappear in a fitness function (a pattern check for `_CEILING = <nonzero number>` and hash pins, with a dated allowlist for the two constant-zero ceilings F46 and F47); (3) ids are unique across entry files; (4) a `lane/` branch whose range touches `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md` or `docs/INDEX.md` fails (the lane contract already says "coordinator only"; nothing enforced it); (5) the standing number "files changed by three or more of the last 30 merged PRs" is printed with its list, and a file on that list that is not an entry directory or allowlisted with a reason fails, so the NEXT hotspot is caught when it forms, not after an evening of stops | each of the five checks has a red test (rule 15: proven by attack); invariant RD-75; the replay of the 2026-09-18 lane set, any order, zero conflicts |
+
+**What the train keeps and loses.** It keeps: serial merges, one runner, the lock, a rebase when GitHub reports
+a true conflict, vault sync. It loses, because nothing needs them after N3 and N4: `repin.mjs`,
+`reseed-f45.mjs`, `repin-skills.mjs`, `resolve-conflicts.mjs` and the session-log union resolver. A conflict
+that still stops the train after 6.8 is two lanes changing the same behaviour, which is a real question for the
+coordinator and is supposed to stop it.
+
+**Already landed toward this [CONFIRMED on master]:** per-lane session-log files accepted by both halves of the
+memory gate (D28, 2026-09-13; D28b #731, 2026-09-19) and named in the lane contract (#730). The six lanes in
+flight on 2026-09-18 were moved onto per-lane files by the coordinator the same evening; M8 #719 was the first
+to pass the full gate that way. Check (4) of F51 is what makes that permanent.
