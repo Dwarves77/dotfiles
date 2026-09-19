@@ -94,7 +94,7 @@ not.
 | 6 | DAG authorship reaches 2 of 9 producer families | re-cut: all three families wired in code; market_series authors 0 edges [CONFIRMED] |
 | 7 | statutory_computations and estimated_values at 0 rows | still true; the writers no-op without a rows-file that does not exist [CONFIRMED] |
 | 8 | Two community promotion mechanisms, one wired | still true as wiring; both tables 0 rows, so "the live path" overstated it [CONFIRMED] |
-| 9 | Rooms not region-bound | still true: `region: "GLOBAL"` hardcoded [CONFIRMED] |
+| 9 | Rooms not region-bound | [REFUTED as a defect, 2026-09-18, lane M9c]: the route's own header states vertical groups are GLOBAL by design (cross-regional by cargo vertical); the request resolves no workspace row; the only region field is the per-user array `profiles.region`. Correct as shipped; a region-scoped room type is an operator product decision (plan section 6.1, M9 note) |
 | 10 | Closure gate one landing from seven stale entries red | [REFUTED]: resolved before this session; allowlists empty; CI green today |
 | 11 | Spec-09 CSV insert would error live | [REFUTED]: migration 311 applied, `org_id` exists |
 
