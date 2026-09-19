@@ -40,6 +40,7 @@ export const NOT_EXTERNAL_RE = /(^|\.)(localhost|example\.com|example\.org|w3\.o
 
 /** Consolidated hosts: exactly one home each. Add a host here in the commit that consolidates it. */
 export const HOST_HOMES = {
+  'eur-lex.europa.eu': 'fsi-app/src/lib/sources/identifier-variants.mjs', // lane L35h, 2026-09-18
   'publications.europa.eu': 'fsi-app/scripts/lib/eurlex-cellar.mjs',
   'www.federalregister.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
   'www.ecfr.gov': 'fsi-app/src/lib/sources/transport-escalation.mjs', // lane L35
@@ -50,7 +51,7 @@ export const HOST_HOMES = {
 };
 
 /** Committed ceiling: multi-home hosts outside HOST_HOMES on the tree this file ships on. Only re-seed DOWN. */
-export const MULTI_HOME_CEILING = 1; // lane L35, 2026-09-17: 7 -> 1 across six commits (see below + session log)
+export const MULTI_HOME_CEILING = 0; // lane L35h, 2026-09-18: 1 -> 0 (eur-lex.europa.eu homed in identifier-variants.mjs)
 // Lane L35 (2026-09-17) worked the removal order (docs/audits/system-health-audit-2026-09-17.md section 2)
 // one host per commit: www.federalregister.gov + www.ecfr.gov homed TOGETHER in one commit (7 -> 5, both
 // served by the same api-transport.mjs / identifier-variants.mjs usCandidates edits, not two separable
@@ -59,6 +60,9 @@ export const MULTI_HOME_CEILING = 1; // lane L35, 2026-09-17: 7 -> 1 across six 
 // remaining share of 1 (never reaching 0): scripts/maintenance/capture-static-primaries.mjs also builds
 // eur-lex.europa.eu URLs and is explicitly out of this lane's write set ("other lanes own them" -- see
 // docs/ops/session-log.md, lane L35, and identifier-variants.test.mjs's own sweep-test comment).
+// Lane L35h (2026-09-18) closed that exception: capture-static-primaries.mjs now imports celexTxtHtmlUrl
+// from identifier-variants.mjs instead of templating the host itself, eur-lex.europa.eu moved into
+// HOST_HOMES above, and the ceiling re-seeded 1 -> 0.
 
 const URL_RE = /https?:\/\/([a-z0-9.-]+\.[a-z]{2,})(?::\d+)?(?=[/\s"'`<>)\]?#,]|$)/gi;
 

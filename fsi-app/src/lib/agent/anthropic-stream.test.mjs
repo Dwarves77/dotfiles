@@ -4,9 +4,7 @@
 // idle watchdog as TRANSIENT (retryable), never fatal. CI-gated via discipline.yml.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { scanTree, HOST_HOMES } from "../../../.discipline/fitness/functions/F46-external-host-home.mjs";
 import { createSSEAccumulator, streamMessagesText, ANTHROPIC_MESSAGES_URL } from "./anthropic-stream.mjs";
 import { isFatalAnthropic } from "./anthropic-error.mjs";
 
@@ -174,20 +172,12 @@ test("ANTHROPIC_MESSAGES_URL: the one exported constant every Anthropic caller c
   assert.equal(ANTHROPIC_MESSAGES_URL, "https://api.anthropic.com/v1/messages");
 });
 
-// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep). Fails the build the
-// moment a second copy of the host string appears anywhere in scope.
+// ── Sweep (lane L35, F46 external-host-home). Reused by import from F46 itself (lane L35h, 2026-09-18):
+// the earlier copy here stripped comments mid-line, which deletes everything after the "//" inside
+// "https://" and hides a URL literal from the check.
 test("ONE home for api.anthropic.com: no other in-scope source file builds this host's URL", () => {
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-  const files = execFileSync("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
-  const EXCEPTIONS = new Set(["fsi-app/src/lib/agent/anthropic-stream.mjs"]);
-  const hostRe = /https?:\/\/api\.anthropic\.com/;
-  const offenders = [];
-  for (const f of files) {
-    if (EXCEPTIONS.has(f)) continue;
-    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-    if (hostRe.test(src)) offenders.push(f);
-  }
-  assert.deepEqual(offenders, [], "import src/lib/agent/anthropic-stream.mjs's ANTHROPIC_MESSAGES_URL instead of building an api.anthropic.com URL in: " + offenders.join(", "));
+  const { strict } = scanTree();
+  const hit = strict.find((s) => s.host === "api.anthropic.com");
+  assert.equal(HOST_HOMES["api.anthropic.com"], "fsi-app/src/lib/agent/anthropic-stream.mjs");
+  assert.equal(hit, undefined, hit && `import src/lib/agent/anthropic-stream.mjs's ANTHROPIC_MESSAGES_URL instead of building an api.anthropic.com URL in: ${hit.extra.join(", ")}`);
 });

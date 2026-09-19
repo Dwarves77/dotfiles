@@ -4,9 +4,7 @@
 // fetch happens. Run: node --test (exit-code + file-redirect; Windows libuv eats node --test stdout).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { scanTree, HOST_HOMES } from "../../../.discipline/fitness/functions/F46-external-host-home.mjs";
 import {
   CLASS, classifyTransportResult, apiEndpointFor, selectTransportOrder,
   escalateFetch, captureForStorage, isNotFound, isBlock, isJsShell,
@@ -251,23 +249,15 @@ test("federalregister.gov / ecfr.gov base constants: apiEndpointFor matches its 
   assert.equal(apiEndpointFor("https://www.ecfr.gov/current/title-40"), ECFR_API_BASE);
 });
 
-// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep). Fails the build the
-// moment a second copy of either host string appears anywhere in scope.
+// ── Sweep (lane L35, F46 external-host-home). Reused by import from F46 itself (lane L35h, 2026-09-18):
+// the earlier copy here stripped comments mid-line, which deletes everything after the "//" inside
+// "https://" and hides a URL literal from the check; asking F46's own scanTree avoids re-implementing
+// that parser (and its REFERENCE_FILES set) a second time.
 test("ONE home for www.federalregister.gov and www.ecfr.gov: no other in-scope source file builds either host's URL", () => {
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-  const files = execFileSync("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
-  const EXCEPTIONS = new Set([
-    "fsi-app/src/lib/sources/transport-escalation.mjs",
-    "fsi-app/src/lib/intake/intake-url-corpus.mjs", // F46 REFERENCE_FILES: the intake URL corpus (data)
-  ]);
-  const hostRe = /https?:\/\/(?:www\.)?(federalregister|ecfr)\.gov/;
-  const offenders = [];
-  for (const f of files) {
-    if (EXCEPTIONS.has(f)) continue;
-    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-    if (hostRe.test(src)) offenders.push(f);
+  const { strict } = scanTree();
+  for (const host of ["www.federalregister.gov", "www.ecfr.gov"]) {
+    const hit = strict.find((s) => s.host === host);
+    assert.equal(HOST_HOMES[host], "fsi-app/src/lib/sources/transport-escalation.mjs");
+    assert.equal(hit, undefined, hit && `import src/lib/sources/transport-escalation.mjs instead of building a ${host} URL in: ${hit.extra.join(", ")}`);
   }
-  assert.deepEqual(offenders, [], "import src/lib/sources/transport-escalation.mjs instead of building a federalregister.gov/ecfr.gov URL in: " + offenders.join(", "));
 });
