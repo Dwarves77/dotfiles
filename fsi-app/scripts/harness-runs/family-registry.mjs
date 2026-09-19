@@ -54,6 +54,13 @@ const REQUIRED_KEYS = Object.freeze(["family", "registered", "registered_by", "g
 const ALLOWED_KEYS = new Set(REQUIRED_KEYS);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Nothing under a family's own pending/ directory is ever a governing file (lane N3, 2026-09-19, build
+// plan section 6.8 Rule B): a pending/ file is a lane's own acknowledgment that a run is owed, never
+// content whose bytes should move the family's harness_version. Matches a "pending" path segment
+// anywhere in the string, not only a leading one, since governing_files entries are family-relative in
+// spirit but some carry a leading "../" (e.g. a workflow file) or a src/ prefix.
+const PENDING_SEGMENT_RE = /(^|\/)pending\//;
+
 /** Thrown for any invalid family.json descriptor. Named so a caller can distinguish this from a plain
  * filesystem/parse error and so a violation message always names the offending file. */
 export class FamilyDescriptorError extends Error {
@@ -102,6 +109,11 @@ export function validateFamilyDescriptor(dirName, descriptor) {
     descriptor.governing_files.forEach((f, i) => {
       if (typeof f !== "string" || f.trim().length === 0) {
         errors.push(`${dirName}/family.json's governing_files[${i}] must be a non-empty string`);
+      } else if (PENDING_SEGMENT_RE.test(f)) {
+        errors.push(
+          `${dirName}/family.json's governing_files[${i}] ("${f}") is under a pending/ directory, ` +
+            `nothing under pending/ is ever a governing file (build plan section 6.8, Rule B)`,
+        );
       }
     });
   }
