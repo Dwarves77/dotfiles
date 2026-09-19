@@ -1,3 +1,4 @@
+// SHARED-WRITER: monitoring_queue
 // Decision logic + per-source assessment for POST /api/worker/check-sources, split out of
 // route.ts (BUILDGATE, 2026-09-02, F34's named residual / build-graph proof). Next 16's
 // route-type validator rejects a route.ts that exports anything besides route handlers/config

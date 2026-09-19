@@ -1,3 +1,4 @@
+-- subject: Migration 110: 4 new TEXT columns on intelligence_items (what_it_changes / does_not_resolve / conversion_trigger / cross_references) + DROP+CREATE both get_research_items and get_market_intel_items RPCs with extended return shapes. Sprint 3 R-A + M-A.
 -- Migration 110: callout columns + RPC return-shape extension per
 -- SURFACE-MOCKUP-RECONCILE audit findings R-A + M-A
 -- (operator-locked 2026-05-27).

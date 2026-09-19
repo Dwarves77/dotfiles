@@ -1,3 +1,4 @@
+-- subject: Migration 084: Canonical category column on sources; refine 3 category-routing R
 -- Migration 084: Canonical category column on sources; refine 3 category-routing RPCs.
 --
 -- RESOLVES D6 technical debt from Sprint 2 plan (docs/sprint-2/sprint-2-planning-2026-05-18.md):

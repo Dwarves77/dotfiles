@@ -1,3 +1,4 @@
+-- subject: Slim sibling of get_workspace_intelligence for list-view callers.
 -- Slim sibling of get_workspace_intelligence for list-view callers.
 --
 -- The base RPC (defined in 007_full_brief.sql) returns 32 columns including

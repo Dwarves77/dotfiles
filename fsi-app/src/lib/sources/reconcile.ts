@@ -1,3 +1,4 @@
+// SHARED-WRITER: monitoring_queue, intelligence_changes
 // src/lib/sources/reconcile.ts
 //
 // Reconcile-loop CONSUMER. Writer for intelligence_changes (recordItemChange /

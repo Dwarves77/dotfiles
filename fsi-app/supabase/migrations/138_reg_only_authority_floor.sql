@@ -1,3 +1,4 @@
+-- subject: Migration 138: validate_item_provenance criterion-3 authority floor (source_tier_at_grounding IN (1,2)) becomes ITEM_TYPE-SCOPED, bites ONLY on the regulatory family (regulation/directive/standard/guidance/framework); non-reg types are EXEMPT (named exemption, REVISIT, per-type non-reg floor deferred to the research/tech calibration spec). F1 fake-certification fix (Jason 2026-06-11, Option B): the constant source_tier_at_grounding=2 stamp was masking that the floor was regulatory-calibrated but applied uniformly. Criteria 1/2/4/5/6 byte-identical to migration 121. Ships WITH the A6 corpus revalidation (status-is-a-cache rule); 30 reg flagships flipped verified→quarantined (grounded in secondary sources, not primary legal text → Phase 2 re-ground). APPLIED 2026-06-11.
 -- Migration 138: validate_item_provenance — ITEM_TYPE-SCOPED authority floor (reg-only).
 --
 -- F1 decision (Jason 2026-06-11, Option B): the CRITICAL/HIGH per-claim authority floor

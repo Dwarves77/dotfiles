@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: item_forward_events
 // apply-extraction-output.mjs — corpus-turn family (RT lane, 2026-09-01). The "load" half
 // `scripts/harness-runs/forward-events/PROTOCOL.md` §2 always assigns to the coordinator/guarded-write
 // path, never to the extraction lane itself: "Turning a run's events array into live rows is the

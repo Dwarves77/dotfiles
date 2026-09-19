@@ -1,3 +1,4 @@
+-- subject: Migration 108: extend get_market_intel_items RPC return shape with signal_band + trajectory_points so the page payload carries the data needed for A4-3's component-layer guard. CREATE OR REPLACE FUNCTION; idempotent.
 -- Migration 108: Extend get_market_intel_items RPC to surface
 -- signal_band + trajectory_points columns. Sprint 3 A4-2.
 --

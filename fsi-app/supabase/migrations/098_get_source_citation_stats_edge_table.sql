@@ -1,3 +1,4 @@
+-- subject: Migration 098: get_source_citation_stats body swap.
 -- Migration 098: get_source_citation_stats body swap.
 --
 -- Build 8 Dispatch 8.1 primary deliverable (2026-05-21). Migration 088

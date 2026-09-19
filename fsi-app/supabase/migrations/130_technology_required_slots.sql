@@ -1,3 +1,4 @@
+-- subject: Migration 130: seed item_type_required_slots for technology/innovation/tool (deployment_reality, supplier_access, operational_fit, procurement_window).
 -- Migration 130: seed item_type_required_slots for technology, innovation, tool.
 --
 -- Mirrors migration 126 (research_finding slots) so validate_item_provenance

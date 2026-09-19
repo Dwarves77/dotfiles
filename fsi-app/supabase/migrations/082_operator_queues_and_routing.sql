@@ -1,3 +1,4 @@
+-- subject: Migration 082, Operator queue tables + rejected-token routing
 -- Migration 082 — Operator queue tables + rejected-token routing
 --
 -- Date: 2026-05-17

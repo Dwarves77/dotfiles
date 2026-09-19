@@ -1,3 +1,4 @@
+-- subject: Migration 080, Jurisdiction vocabulary extension + RC-7 rejection logic
 -- Migration 080 — Jurisdiction vocabulary extension + RC-7 rejection logic
 --
 -- Date: 2026-05-16

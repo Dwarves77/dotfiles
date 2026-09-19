@@ -1,3 +1,4 @@
+-- subject: Migration 101 (PROPOSED, NOT APPLIED): intelligence_items.domain backfill per docs/plans/classification-backfill-plan-2026-05-22.md.
 -- Migration 101: intelligence_items.domain backfill (PROPOSED, NOT APPLIED).
 --
 -- Status: drafted 2026-05-22 by classification backfill dispatch. Awaiting

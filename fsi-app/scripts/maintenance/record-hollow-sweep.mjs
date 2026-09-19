@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items, census_worklist
 // record-hollow-sweep.mjs — MAINT dispatch step, Lane HOLLOW-SWEEP (2026-09-04).
 //
 // THE DEFECT [CONFIRMED, live SQL, kwrsbpiseruzbfwjpvsp, 2026-09-04]: 551 of 1,230 live verified

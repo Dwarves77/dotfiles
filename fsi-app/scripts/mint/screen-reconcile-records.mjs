@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // screen-reconcile-records.mjs — archive, reversibly, any LIVE record-grade item the relevance screen says
 // is off-vertical; list the ambiguous ones for a ruling (Lane POP, 2026-09-02).
 //

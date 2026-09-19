@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // close-legal-confirmation-rows.mjs -- MAINT step for D17 family 14 of the 2026-09-12 defect fix plan
 // (docs/plans/defect-fix-plan-2026-09-12.md, ruling table row 14, lane L11). Handles the TWO per-item
 // carve-outs close-run-logs.mjs deliberately leaves open (its own header, task 7.1): an authorship-shard-*

@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, integrity_flags
 // tag-ratification.mjs — MAINT dispatch step: applies operator-ratified TAG proposals, and (added
 // 2026-09-03, operator ruling — see apply-tags.mjs's header for the full reasoning) auto-adopts
 // high-confidence ones that were never ratified.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: brief_apply_runs
 // io-preflight.mjs - D32 (defect-fix-plan-2026-09-12.md, lane L21), part (c): a pre-flight IO check the
 // brief-apply driver (apply-record-briefs.mjs) runs before the first item of an --execute run. Two
 // independent refusal branches, either one enough to refuse:

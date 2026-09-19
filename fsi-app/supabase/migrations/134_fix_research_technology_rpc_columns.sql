@@ -1,3 +1,4 @@
+-- subject: Migration 134: fix get_research_items + get_technology_items, join intelligence_items for what_it_changes/does_not_resolve (not exposed by _workspace_active_items); the RPC-error → empty → /research fail-open root.
 -- Migration 134: fix the broken get_research_items + get_technology_items routing RPCs.
 --
 -- BUG (instance): both RPCs SELECT `ii.what_it_changes` and `ii.does_not_resolve` FROM

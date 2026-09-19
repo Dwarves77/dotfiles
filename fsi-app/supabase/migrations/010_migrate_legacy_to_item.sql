@@ -1,3 +1,4 @@
+-- subject: ════════════════════════════════════════════════════════════════════
 -- ════════════════════════════════════════════════════════════════════
 -- Migration 010 — idempotent migration of legacy intelligence content
 --                 into the item_* tables introduced in 004.

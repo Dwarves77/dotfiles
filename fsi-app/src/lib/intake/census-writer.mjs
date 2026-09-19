@@ -1,3 +1,4 @@
+// SHARED-WRITER: census_worklist
 // census-writer — the intake-census lane's write seam (mandate 2026-07-19). Persists the disposition of
 // every ENUMERATED document to Session B's census_worklist (migration 221), so a full-corpus gap census
 // can be rolled up per surface. This is the WRITE half of the census; consumePortalCandidates is the

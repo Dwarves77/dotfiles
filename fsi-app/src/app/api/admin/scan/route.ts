@@ -1,3 +1,4 @@
+// SHARED-WRITER: staged_updates
 // W5.1 — system prompt updated to surface sub-national regulators.
 //
 // Calibration insight from W3 + W4: state-level umbrella regulators

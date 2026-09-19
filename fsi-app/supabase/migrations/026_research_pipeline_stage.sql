@@ -1,3 +1,4 @@
+-- subject: 026_research_pipeline_stage.sql
 -- 026_research_pipeline_stage.sql
 -- Phase C Block A — research surface prep.
 --

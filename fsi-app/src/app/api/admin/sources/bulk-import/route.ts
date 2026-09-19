@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // POST /api/admin/sources/bulk-import
 //
 // W2.A — bulk-add tooling. Accepts a CSV upload or a JSON array of

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // propose-classifications.mjs — Phase 2/3 of the 5-axis source-classification framework
 // (docs/plans/source-classification-framework-2026-05-10.md): makes gaps and drift VISIBLE to an
 // operator. NEVER writes sources or intelligence_items directly (rule: no assumptions, never silent

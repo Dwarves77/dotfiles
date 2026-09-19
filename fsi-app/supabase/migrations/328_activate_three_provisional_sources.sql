@@ -1,3 +1,4 @@
+-- subject: Operator ruling 2026-09-17 (lane L39). Data: three provisional `sources` rows (b0d81570 clean-trucking.eu tier 4, b06a7c81 napa.fi tier 5, 3e3a2d5f bsr.org tier 6) set active; one `source_trust_events` row each (`manual_review`, created_by `human`) records the ruling. They held items 58bf0406, 0781a8c0, 01126119 at criterion 1. Tiers unchanged. APPLIED 2026-09-17 through the management API.
 -- 328_activate_three_provisional_sources.sql
 -- Operator ruling 2026-09-17 ("activate three sources"): the three provisional registry rows that hold
 -- three live items at validate_item_provenance criterion 1 (source_not_active) become active. Each row

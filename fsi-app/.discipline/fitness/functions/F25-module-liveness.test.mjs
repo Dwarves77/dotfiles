@@ -501,3 +501,27 @@ test('findDispatchRoots Source 8: a resolve(HERE, ...) mention with no spawnSync
   const roots = findDispatchRoots('/repo', (f) => files[f], list);
   assert.equal(roots.has('fsi-app/.discipline/consistency/runner.mjs'), false);
 });
+
+test('findDispatchRoots Source 10: every non-README file directly under invariants.d/ is a root (plan 6.8, lane N5, directory-scan-derived registry)', () => {
+  const list = listOnly({
+    'fsi-app/.discipline/governance/invariants.d/': [
+      'fsi-app/.discipline/governance/invariants.d/RD-2-example.mjs',
+      'fsi-app/.discipline/governance/invariants.d/RD-10-example.mjs',
+      'fsi-app/.discipline/governance/invariants.d/README.md',
+    ],
+  });
+  const roots = findDispatchRoots('/repo', () => 'jobs: {}\n', list);
+  assert.equal(roots.has('fsi-app/.discipline/governance/invariants.d/RD-2-example.mjs'), true);
+  assert.equal(roots.has('fsi-app/.discipline/governance/invariants.d/RD-10-example.mjs'), true);
+  assert.equal(roots.has('fsi-app/.discipline/governance/invariants.d/README.md'), false);
+});
+
+test('findDispatchRoots Source 10: a file in a NESTED subdirectory of invariants.d/ is NOT a root (only the directory itself is directory-scanned)', () => {
+  const list = listOnly({
+    'fsi-app/.discipline/governance/invariants.d/': [
+      'fsi-app/.discipline/governance/invariants.d/nested/RD-99-example.mjs',
+    ],
+  });
+  const roots = findDispatchRoots('/repo', () => 'jobs: {}\n', list);
+  assert.equal(roots.has('fsi-app/.discipline/governance/invariants.d/nested/RD-99-example.mjs'), false);
+});

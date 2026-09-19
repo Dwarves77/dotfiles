@@ -1,3 +1,4 @@
+-- subject: Migration 074: reclassify EcoVadis as vendor_corporate
 -- Migration 074: reclassify EcoVadis as vendor_corporate
 --
 -- EcoVadis is a SaaS auditing/ratings platform, not a policy or

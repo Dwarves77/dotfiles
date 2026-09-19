@@ -1,3 +1,4 @@
+-- subject: ════════════════════════════════════════════════════════════════════
 -- ════════════════════════════════════════════════════════════════════
 -- Migration 011 — backfill ghost intelligence_items for orphan
 --                 supersessions, then complete the item_supersessions

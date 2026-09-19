@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, item_cross_references, integrity_flags, section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
 // src/lib/agent/canonical-pipeline.ts
 //
 // THE single canonical generation pipeline as plain, directly-executable lib functions the workflow

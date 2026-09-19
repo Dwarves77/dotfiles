@@ -1,3 +1,4 @@
+-- subject: Migration 114: validate_item_provenance(item_id), six-criteria provenance validation function. Sprint 4 Block 1, task 1.3.
 -- Migration 114: validate_item_provenance(item_id) — six-criteria provenance
 -- validation function (Sprint 4 Block 1, task 1.3).
 --

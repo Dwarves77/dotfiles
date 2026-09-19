@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 /**
  * Guarded write helper — the PATH OF LEAST RESISTANCE for script row-mutations.
  *

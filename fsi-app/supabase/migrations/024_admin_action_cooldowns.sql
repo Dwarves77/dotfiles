@@ -1,3 +1,4 @@
+-- subject: Migration 024, Admin action cooldowns
 -- Migration 024 — Admin action cooldowns
 --
 -- Tracks the last time a cooldown-gated admin action was triggered.

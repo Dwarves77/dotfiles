@@ -1,3 +1,4 @@
+-- subject: 043_security_advisor_fixes.sql
 -- 043_security_advisor_fixes.sql
 --
 -- Fix 4 Supabase Security Advisor errors:

@@ -1,3 +1,4 @@
+-- subject: 046_community_rls_recursion_fix.sql
 -- 046_community_rls_recursion_fix.sql
 --
 -- Migration 029's RLS policy `community_group_members_select_self_or_admin`

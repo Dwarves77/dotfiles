@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // close-acquire-primaries-holds.mjs -- MAINT step for D17 family 10 of the 2026-09-12 defect fix plan
 // (docs/plans/defect-fix-plan-2026-09-12.md, ruling table row 10, lane L11). The writer
 // (scripts/remediation/acquire-primaries-batch.mjs, created_by "acquire-primaries-batch-2026-07-16") and

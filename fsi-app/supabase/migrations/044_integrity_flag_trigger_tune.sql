@@ -1,3 +1,4 @@
+-- subject: 044_integrity_flag_trigger_tune.sql
 -- 044_integrity_flag_trigger_tune.sql
 --
 -- Migration 035 introduced an 8-phrase regex set to detect agent self-flags

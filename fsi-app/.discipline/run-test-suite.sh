@@ -72,6 +72,7 @@ node --test \
   fsi-app/scripts/verify/*.test.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
+  fsi-app/scripts/inventories/*.test.mjs \
   fsi-app/scripts/maintenance/*.test.mjs \
   fsi-app/scripts/maintenance/lib/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \

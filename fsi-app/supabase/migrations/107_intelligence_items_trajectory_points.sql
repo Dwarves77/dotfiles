@@ -1,3 +1,4 @@
+-- subject: Migration 107: intelligence_items.trajectory_points JSONB column + band-gated CHECK constraint (trajectory_points IS NULL OR signal_band = 'price'). Sprint 3 A4 belt 1 of three. No backfill, NULLs stay NULL per H1 trajectory precedent.
 -- Migration 107: trajectory_points JSONB column + band-gated CHECK constraint
 -- on intelligence_items per Sprint 3 A4 dispatch (2026-05-27).
 --

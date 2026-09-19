@@ -1,3 +1,4 @@
+-- subject: Migration 105: profiles projection columns (Q6) - org_id FK, workspace_role, sector text[], region text[]. region converted in place from scalar text. Applied 2026-05-24.
 -- Migration 105: profiles projection columns per operator Q6 decision
 -- (2026-05-24). v2 with handling for the existing `region` column.
 --

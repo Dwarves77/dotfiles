@@ -1,0 +1,13 @@
+// RD-59-bundle-safe-module-evaluation: split from invariants.mjs (plan 6.8, Rule A, lane N5). One entry, one file; see
+// invariants.d/README.md. The comment block below (if any) is exactly what preceded this entry in
+// the array before the split.
+
+export const invariant = {
+    id: 'RD-59-bundle-safe-module-evaluation',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 34: Bundle-safe module evaluation (a module that runs on import must not depend on files the deployed bundle does not carry)',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    text: 'No non-test module under fsi-app/src may call a filesystem function at module scope. A module-scope read executes on import, on every page that transitively imports the module, and the serverless bundle carries imports, not runtime file reads; under Turbopack import.meta.url resolves to the chunk, not the source, so a relative path is wrong even when the file is shipped. On 2026-09-02 PR #533 shipped one such read in src/lib/market (on every page\'s graph via data.ts) and carosledge.com answered 500 on every route until an instant rollback; every gate (suite, tsc, fitness, rendering guard, goldens) had passed because all of them run under Node where the file exists. A read inside a function is out of scope (it runs only when called and the caller owns the path); a module-scope read is the class this closes.',
+    anchor: '## Section 4: Remediation Strategy by Category',
+    enforcedBy: ['fitness:F34', 'selftest:fsi-app/.discipline/fitness/functions/F34-bundle-safe-module-evaluation.test.mjs'],
+    residual: 'Anchor is the stable skill-section marker (RD-58\'s precedent). F34 is a lexical scanner (strings/comments stripped, scope braces vs object-literal braces distinguished), not a parser: a module-scope read reached through an immediately-invoked function expression, or through a helper called at module scope (`const X = load()` where load() reads), is NOT detected — the second form is the named residual and the reason the rule\'s prose says "must not depend on files the bundle does not carry", broader than what F34 proves. The durable closure is a build-graph proof (next build of the page graph in CI, or Vercel\'s own output-file trace read back), tracked in Addendum 84 postscript 16; until then a lane touching a page module must prove its graph under next build, not only under Node (lane contract, 2026-09-02). ALLOWLIST: src/lib/connections/derive-tags.mjs (module-scope vocab read, reachable from no page today) is listed with its basis in F34 itself.',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+  };

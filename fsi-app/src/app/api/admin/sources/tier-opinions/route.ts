@@ -1,3 +1,4 @@
+// SHARED-WRITER: source_tier_opinions
 // Phase 7 admin chrome: tier-opinion disagreement review surface.
 //
 // GET  /api/admin/sources/tier-opinions

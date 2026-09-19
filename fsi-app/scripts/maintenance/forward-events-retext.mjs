@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: item_forward_events
 // forward-events-retext.mjs — MAINT dispatch step, Lane FWD-TEXT (2026-09-04).
 //
 // THE DEFECT [CONFIRMED, live customer surface https://carosledge.com/regulations "Upcoming obligations"

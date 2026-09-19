@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // POST /api/admin/canonical-sources/bulk-approve
 //
 // Batch approve a list of candidate IDs. Each candidate is processed

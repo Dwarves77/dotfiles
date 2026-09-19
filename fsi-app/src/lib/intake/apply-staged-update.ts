@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // applyStagedUpdate — the MACHINE materialization of a staged_updates row (extracted from the former
 // /api/staged-updates/route.ts, Unit 0c-2). The sole live caller is runIntakeCycle
 // (no-human-finish-of-intake — the machine gates ARE the approval, RD-20). The legacy

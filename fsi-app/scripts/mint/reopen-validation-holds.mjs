@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: census_worklist
 // reopen-validation-holds.mjs — lane URL-GUIL, 2026-09-03. The symmetric reversal of
 // apply-mint-batch.mjs's validation-failed hold-back (see resolveValidationFailedHolds there for the
 // write side): re-admits a census_worklist row a mint-batch-report once held

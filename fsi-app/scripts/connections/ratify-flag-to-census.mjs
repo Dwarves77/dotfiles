@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: census_worklist
 // ratify-flag-to-census.mjs — the FLYWHEEL-TO-HARNESS feed. Given --flag <id>, reads an integrity_flags
 // row this lane's own producers wrote (coverage_gap / anticipated-coverage / signal-candidate — any
 // namespace from flag-namespaces.mjs, or an operator-authored flag), requires it to already be

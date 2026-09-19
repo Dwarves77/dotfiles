@@ -1,3 +1,4 @@
+-- subject: Migration 029, Community group members and invitations
 -- Migration 029 — Community group members and invitations
 --
 -- Date: 2026-05-01

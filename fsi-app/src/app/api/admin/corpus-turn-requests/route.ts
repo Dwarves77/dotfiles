@@ -1,3 +1,4 @@
+// SHARED-WRITER: corpus_turn_requests
 // /api/admin/corpus-turn-requests
 //
 // Read/write surface for corpus_turn_requests (migration 277) — the "this item needs a flywheel turn"

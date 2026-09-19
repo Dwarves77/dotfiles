@@ -1,3 +1,4 @@
+-- subject: 036_admin_notifications_rpc.sql
 -- 036_admin_notifications_rpc.sql
 --
 -- W2.E: Aggregated admin-attention RPC. Returns a single row of counts

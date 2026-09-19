@@ -1,3 +1,4 @@
+-- subject: Dashboard projection sibling of get_workspace_intelligence.
 -- Dashboard projection sibling of get_workspace_intelligence.
 --
 -- The base RPC (007_full_brief.sql) returns 32 columns including the four

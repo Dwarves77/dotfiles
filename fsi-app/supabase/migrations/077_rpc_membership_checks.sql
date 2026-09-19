@@ -1,3 +1,4 @@
+-- subject: Migration 077, Membership-scoped data access (Workstream C)
 -- Migration 077 — Membership-scoped data access (Workstream C)
 --
 -- Date: 2026-05-15

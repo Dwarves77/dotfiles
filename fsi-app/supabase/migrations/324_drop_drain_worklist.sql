@@ -1,3 +1,4 @@
+-- subject: System health audit section 3, `docs/audits/system-health-audit-2026-09-17.md` (lane L32, 2026-09-17). Schema: drops `drain_worklist`. Verified live before the drop: 66 rows, 0 triggers, 0 foreign keys into it, 0 code references, 0 SQL references beyond its own DDL (F47); its reader, the drain-first-fetch worker, was dissolved 2026-07-12. APPLIED 2026-09-17 through the management API before the dependent code merged.
 -- Migration 324 (lane L32, 2026-09-17): drop drain_worklist.
 -- The drain-first-fetch worker that read it was dissolved 2026-07-12 (mint-item.ts header, pause.ts);
 -- verified live before this drop: 66 rows, 0 triggers, 0 foreign keys into it, 0 code references, 0 SQL

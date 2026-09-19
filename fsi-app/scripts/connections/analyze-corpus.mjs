@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: connection_themes, connection_theme_runs, integrity_flags
 // analyze-corpus.mjs — PILLAR A3 / flywheel U2. Cluster the connection graph into themes, persist them,
 // detect coverage gaps, and reflect deduped `coverage_gap` integrity_flags. $0: no LLM, no paid fetch —
 // pure computation over data U0 (discover/backfill) and U1 (cluster.mjs) already produced.

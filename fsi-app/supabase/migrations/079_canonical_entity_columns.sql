@@ -1,3 +1,4 @@
+-- subject: Migration 079, Canonical-entity columns on intelligence_items
 -- Migration 079 — Canonical-entity columns on intelligence_items
 --
 -- Date: 2026-05-16

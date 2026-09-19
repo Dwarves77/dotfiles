@@ -1,3 +1,4 @@
+-- subject: Listings projection sibling of get_workspace_intelligence.
 -- Listings projection sibling of get_workspace_intelligence.
 --
 -- Sequence so far:

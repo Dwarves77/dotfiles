@@ -1,3 +1,4 @@
+-- subject: Migration 120: provenance-gate the remaining customer RPCs (completes the surface gate begun in 117). Sprint 4 Block 1.
 -- Migration 120: provenance gate on the remaining customer RPCs.
 -- Adds AND ii.provenance_status = 'verified' to get_workspace_intelligence (base) and
 -- get_workspace_intelligence_slim, which read intelligence_items directly and were the

@@ -1,3 +1,4 @@
+-- subject: Migration 140 (admin flag a): admin_attention_counts() (migration 036) gains column platform_integrity_flags_open = COUNT of platform integrity_flags (migration 048) rows with status IN ('open','in_review'), added into total, so the admin Issues Queue + sidebar red-dot stop reading blind to the platform quarantine backlog (reported 3 per-brief while 523 platform flags sat open+unsurfaced, 2026-06-15). DROP+CREATE in one txn (RETURNS TABLE column add changes return type; CREATE OR REPLACE cannot). Existing 7 columns byte-identical; route/hook/IssuesQueue updated in the same change (targetTab platform-integrity-flags). STABLE/read-only, no data mutation. APPLIED 2026-06-15.
 -- Migration 140: admin_attention_counts() — surface the PLATFORM integrity_flags backlog.
 --
 -- BUG (flag a, operator 2026-06-15). The admin Issues Queue + sidebar red-dot are driven by

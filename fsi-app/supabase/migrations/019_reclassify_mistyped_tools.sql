@@ -1,3 +1,4 @@
+-- subject: ════════════════════════════════════════════════════════════════════
 -- ════════════════════════════════════════════════════════════════════
 -- Migration 019 — reclassify 8 mis-typed `tool` rows to their proper
 -- item_type so the B.2 format-mapping contract picks the right format.

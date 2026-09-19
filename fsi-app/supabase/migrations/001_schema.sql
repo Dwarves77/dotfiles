@@ -1,4 +1,5 @@
 /* fitness-allow: F6 (intentional reserved-lane gaps from wave-alpha parallel-agent migration numbering 2026-07-11: B=164-171, A5=180-185, A4=190-192, R0.2=195; no migrations dropped) */
+-- subject: FSI Phase 2: Database Schema
 -- FSI Phase 2: Database Schema
 -- 10 tables for Freight Sustainability Intelligence
 

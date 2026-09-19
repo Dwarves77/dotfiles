@@ -255,6 +255,16 @@ export function findDispatchRoots(
     if (posix.dirname(f) === 'fsi-app/.discipline/fitness/functions' && !isTestFile(f)) roots.add(f);
   }
 
+  // Source 10 (plan 6.8, lane N5, out-of-write-set necessary fix disclosed in that lane's report, same
+  // class as Source 9 above): the invariant registry (.discipline/governance/invariants.mjs) now
+  // dynamically imports every invariants.d/<ID>.mjs file by a directory scan rather than one static
+  // per-file import line, for the exact reason Source 9 exists (a computed `import()` specifier is not
+  // a string literal the plain import-graph walk can see). Every non-README file directly under
+  // invariants.d/ is therefore a root, structurally, same shape as Source 9.
+  for (const f of listFilesFn(['fsi-app/.discipline/governance/invariants.d/'])) {
+    if (posix.dirname(f) === 'fsi-app/.discipline/governance/invariants.d' && !/\.md$/.test(f)) roots.add(f);
+  }
+
   return roots;
 }
 

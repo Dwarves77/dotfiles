@@ -1,3 +1,4 @@
+// SHARED-WRITER: staged_updates
 // POST /api/community/posts/[id]/promote
 //
 // Promote a community post to platform intelligence — ALWAYS staged.

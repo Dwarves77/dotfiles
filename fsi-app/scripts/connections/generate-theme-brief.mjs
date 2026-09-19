@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: theme_briefs
 // generate-theme-brief.mjs — theme_briefs (migration 266, flywheel U6) has NO WRITER anywhere in the
 // repo (verified: `grep -rl "from(\"theme_briefs\")"` before this file existed matched only
 // api/admin/themes/route.ts's READ). This is that writer, in two steps matching migration 266's own

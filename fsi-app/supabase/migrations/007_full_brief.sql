@@ -1,3 +1,4 @@
+-- subject: Add full_brief column for skill-standard intelligence briefs
 -- Add full_brief column for skill-standard intelligence briefs
 -- This is the primary content field — rich markdown regulatory playbooks
 -- whatIsIt/whyMatters/keyData remain as card preview summaries
