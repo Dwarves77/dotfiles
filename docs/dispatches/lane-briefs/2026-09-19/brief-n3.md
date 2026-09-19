@@ -75,3 +75,28 @@ marker on 2026-09-18). Eleven families carry a `PENDING-RUN.md` today.
 - `grep -rln "harness_version at write time" fsi-app/scripts/harness-runs/`: no file.
 - `ls fsi-app/scripts/harness-runs/*/PENDING-RUN.md`: none.
 - The push gate through the wrapper, once, last.
+
+## Amendment 1 (coordinator, 2026-09-19 17:32 UTC by the date command, after the lane's report)
+
+Two findings stand [CONFIRMED by the lane's reading, file and line named], and both are this lane's class:
+(1) `fsi-app/scripts/verify/verification-audit-report.mjs` (`collectHarnessMarkers`, about lines 131 to 252) is a
+functional reader of `PENDING-RUN.md` and would now report every family as having no marker; its own test
+asserts the old filename. (2) `fsi-app/scripts/turns/research-sweep.mjs:99` names the deleted
+`auditStalenessCoupling` in a comment. The write set is extended by exactly these two files and the report's
+test:
+
+1. `collectHarnessMarkers` reads the pending directory through F28's exported `listPendingFiles` (import it;
+   do not write a second directory reader): `pendingMarker` becomes the count of pending files (rename the
+   field if its name says "marker", and update every consumer of that field in the same file and its
+   Markdown output line). Its `.test.mjs` asserts the new shape with a temp fixture that has one family with
+   a pending file and one without.
+2. The comment at `research-sweep.mjs:99` names `auditPendingTreeState` instead; the logic it describes is
+   unchanged.
+3. Then `node --test` on the report's test and F28's test, the runner (0 violations), one second commit
+   (`Lane N3 (Amendment 1): the verification audit report reads the pending directory`),
+   `git fetch origin && git merge origin/master` (your branch is already on origin: merge, never rebase or
+   force-push), and the gate once more (the second and last run).
+
+The five historical files that quote the marker phrase as evidence stay as they are; the lane's reading of
+CLAUDE.md rule 5 is right, and the acceptance grep is amended to exclude `LAST-PROPOSER-PASS.md` and run
+artifacts.
