@@ -9,6 +9,7 @@
  *  SCOPE: `intelligence_items.transport_modes` (TEXT[]) on Regulations-domain rows (domain=1, the
  *  ONLY domain the Map surface charts — MapPageView.tsx's own `modeTagStats` gates the same way).
  *  "Coverage" = the fraction of non-archived Regulations rows carrying at least one transport-mode
+ *  mirror of MapPageView.tsx's modeTagStats: kept, a Node verify script cannot import a client-bundled React component.
  *  tag. This mirrors the client-side stat exactly (same domain filter, same "any tag present"
  *  definition) so this audit's number and the UI's live caption can never silently diverge.
  *

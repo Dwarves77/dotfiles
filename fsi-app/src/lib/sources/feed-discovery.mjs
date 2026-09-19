@@ -2,6 +2,7 @@
 // feed-discovery — LOCATING a feed for a source, distinct from WALKING one once found (feed-walk.mjs's
 // job). Lane SITEMAP, 2026-09-04, operator ruling: "major sites with news on new tech and advancements
 // ... will have RSS feeds and if this person already did the coding and it's on github I want you to
+// mirror of mreflow/control-center's lib/feed-discovery.ts: kept, ported from an external MIT-licensed repo; no internal home to wire to.
 // find it and use that code if it's good." Ported from mreflow/control-center lib/feed-discovery.ts
 // (MIT, (c) 2026 Matt Wolfe) — see THIRD-PARTY-NOTICES.md for the license text. `isFeedDocument` and
 // `discoveredFeedLinks` (+ their private `htmlAttribute`/`absoluteLink` helpers) are ported near-verbatim,

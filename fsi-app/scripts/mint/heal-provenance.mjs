@@ -1982,6 +1982,7 @@ export function findSearchIdForSpan(span, captures) {
 /** The reg family (migration 158): the authority floor is UNCONDITIONAL for these item_types. */
 export const REG_FAMILY = new Set(["regulation", "directive", "standard", "guidance", "framework"]);
 
+// mirror of validate-mint-payload.mjs's floorMaxFor: kept, that file is a mint GOVERNING file this lane's write set forbids editing and its floorMaxFor is module-private (not exported); the DB function itself is not importable.
 /** The item-type floor table (migrations 145/171/158), byte-mirror of validate-mint-payload.mjs's own
  *  `floorMaxFor`. Pure. */
 export function floorMaxFor(itemType) {
@@ -2939,6 +2940,7 @@ export function reclassifyReason(groundOutcome, resourceOutcome) {
 // section for the full diagnosis (criterion 7, 88 items) and the REFUSED note on why this stays dormant in
 // production until scripts/maintenance/provenance-heal.mjs's own readClaims SELECT gains basis_claim_id.
 
+// mirror of gate-a-derived.mjs's derivedCoveredTokens: kept, dormant duplicate pending basis_claim_id on the live SELECT (see REFUSED note below).
 /** In-memory mirror of gate-a-derived.mjs's own `derivedCoveredTokens` (the LIVE Gate B DB lookup) — same
  *  contract: a normalized token is "derived-covered" iff a `claim_kind='DERIVED'` claim carries it AND its
  *  `basis_claim_id` resolves to a `claim_kind='FACT'` claim in `claims` AND that FACT's `source_span`

@@ -7,6 +7,7 @@
 // discovery order (feed FIRST, sitemap only when no feed exists) and `walkSitemap` is the bounded
 // sitemap.xml/sitemap_index.xml enumerator either path can be pointed at.
 //
+// mirror of mreflow/control-center's lib/sitemap.ts: kept, ported from an external MIT-licensed repo (also lines 180, 247, 362 below); no internal home to wire to.
 // PORTED FROM mreflow/control-center lib/sitemap.ts (MIT, (c) 2026 Matt Wolfe) — see
 // THIRD-PARTY-NOTICES.md for the license text. Operator ruling, 2026-09-04, verbatim: "if this person
 // already did the coding and it's on github I want you to find it and use that code if it's good ... if

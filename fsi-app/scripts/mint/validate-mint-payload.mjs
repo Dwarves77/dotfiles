@@ -35,6 +35,7 @@
 //     that legitimately needs a DERIVED claim to clear Gate A must get a coordinator-side check; flag this
 //     in the payload's cover note (see MINT-RUNBOOK.md).
 //   - No "standard-only floor loosens to institution tier 4" case has been exercised end-to-end (this kit's
+//     mirror of migration 202 (SQL, item-type floor logic): kept, ported for the mint kit's $0/no-DB validator; unverified for that item_type is a separate, already-flagged finding.
 //     proof item is a directive); the logic is ported from migration 202 but unverified for that item_type.
 //
 // USAGE:
@@ -347,6 +348,7 @@ const LEGAL_REQ_RE =
 const FORWARD_RE =
   /(propos|would|will|expected|forthcoming|consultation|draft|anticipat|pending|set\s+to|once\s+(adopted|enacted)|if\s+adopted|(by|from|effective|until)\s+20[0-9][0-9])/i;
 const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
+// mirror of migration 289 (SQL, balanced-parentheses stripping): kept, ported logic for the mint kit's $0/no-DB validator.
 // Migration 289 (2026-09-02): one-level balanced parentheses, mirrored from the live
 // validate_item_provenance. A '(' is consumed only with its matching ')', so EUR-Lex "(01)" identifiers
 // (CELEX 32023D0628(01)) extract whole, while a URL written inside prose parentheses "(see https://x/a)"

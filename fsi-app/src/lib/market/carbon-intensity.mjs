@@ -20,6 +20,7 @@
 // §4's isolation design exist to prevent. So: `tonne_km` is SUPPORTED; every other basis REFUSES with a
 // named reason, honestly reporting the gap rather than guessing a unit label.
 //
+// mirror of carbon-overlay-view.mjs's pickHeadlineNumber(): kept, that function is module-private there; drift-guarded by this file's own tests.
 // HEADLINE-NUMBER PREFERENCE mirrors carbon-overlay-view.mjs's `pickHeadlineNumber()` exactly (tank-to-
 // wheel preferred — "what a modal default typically publishes" — falling back to well-to-wheel, then
 // well-to-tank), so the SAME factor row never reports two different headline numbers on two different

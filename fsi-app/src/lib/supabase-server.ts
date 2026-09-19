@@ -4822,6 +4822,7 @@ export async function fetchAwaitingReview(
 }
 
 // Inline platform-admin check (avoids importing from src/lib/auth/admin.ts
+// mirror of src/lib/auth/admin.ts's platform-admin check: kept, deliberate self-containment (reason on the next line).
 // to keep this module self-contained; mirrors that helper exactly).
 // Updated 2026-05-18 (Sprint 2 Build 6 / OBS-17) to read
 // profiles.is_platform_admin instead of org_memberships.role; was conflating

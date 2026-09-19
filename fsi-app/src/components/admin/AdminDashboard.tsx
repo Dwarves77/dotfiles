@@ -166,6 +166,7 @@ export function AdminDashboard({
   initialEmissionFactorsLiveCount = 0,
   initialTierDisagreementCount = 0,
 }: AdminDashboardProps) {
+  // mirror of the Dashboard hydration pattern: kept, design-pattern parity, not literal code duplication.
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
   // a direct /admin entry.

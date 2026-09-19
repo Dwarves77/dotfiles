@@ -19,6 +19,7 @@ export function hasValidWaiver(block, now) {
   return false;
 }
 
+// mirror of the nightly corpus-wide audits (one-tier-per-host-audit, unregistered-span-host-audit, claims-tier-audit): kept, scoped per-item write-path re-implementation for performance; NO-LOGIC-DRIFT documented in this file's header.
 /** Global one-tier-per-host violation count (mirror of one-tier-per-host-audit). deps: { hostOf,
  *  hostInstitution }. tier_override rows are exempt (deliberate per-row flag). */
 export function hostTierViolationCount(sources, { hostOf, hostInstitution }) {

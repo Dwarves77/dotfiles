@@ -88,6 +88,7 @@ export const RESEARCH_ALWAYS_PRESENT_SLOTS = Object.freeze([
   "source_authority_signal",
 ]);
 
+// mirror of scripts/mint/item-type-required-slots.json: kept, F34 forbids a filesystem read under src/lib/intake/** even inside a function.
 // Mirrors scripts/mint/item-type-required-slots.json's "research_finding" row exactly (a literal, not a
 // read: this module lives under src/lib/intake/**, where a filesystem call at module scope fails the F34
 // fitness check even inside a function -- record-facts.mjs's own "no I/O" discipline, restated here for
