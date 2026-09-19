@@ -4,8 +4,7 @@
 // Run: node --test src/lib/sources/identifier-variants.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { scanTree, HOST_HOMES } from "../../../.discipline/fitness/functions/F46-external-host-home.mjs";
 import {
   parseYearNumber, separatorVariants, toCelex, euTypeLetters, euCandidates,
   ukCandidates, usCandidates, genericSearchQueries, discoverCandidateUrls, detectScheme, rankCandidates,
@@ -113,28 +112,18 @@ test("eur-lex.europa.eu builders: each named shape matches what callers built be
   assert.equal(EUR_LEX_KNOWN_DEAD_OJ_TXT_URL, "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040");
 });
 
-// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep). The EUR-Lex route was
-// written three times before F46 existed; this fails the build the moment a second copy of the host string
-// appears anywhere in scope. ONE named exception stands: scripts/maintenance/capture-static-primaries.mjs
-// is out of this lane's write set ("other lanes own them", lane brief L35) and still builds its own
-// eur-lex.europa.eu URLs; F46's MULTI_HOME_CEILING therefore could not move for this host in this lane (see
-// docs/ops/session-log.md, lane L35 entry). Any OTHER new file naming the host is a real regression this
-// test must catch.
-import { execFileSync as execFileSyncEurlex } from "node:child_process";
-test("ONE home for eur-lex.europa.eu (except the write-set-excluded maintenance file): no other in-scope source file builds this host's URL", () => {
-  const root = execFileSyncEurlex("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-  const files = execFileSyncEurlex("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
-  const EXCEPTIONS = new Set(["fsi-app/src/lib/sources/identifier-variants.mjs", "fsi-app/scripts/maintenance/capture-static-primaries.mjs"]);
-  const hostRe = /https?:\/\/eur-lex\.europa\.eu/;
-  const offenders = [];
-  for (const f of files) {
-    if (EXCEPTIONS.has(f)) continue;
-    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-    if (hostRe.test(src)) offenders.push(f);
-  }
-  assert.deepEqual(offenders, [], "import src/lib/sources/identifier-variants.mjs instead of building an eur-lex.europa.eu URL in: " + offenders.join(", "));
+// ── Sweep (lane L35, F46 external-host-home). The EUR-Lex route was written three times before F46
+// existed; this fails the build the moment a second home for the host appears anywhere in scope. This is
+// F46's own strict check for this host, reused by import rather than re-implemented, so the parser and
+// the reference set can never drift from F46's: the earlier copy here stripped comments mid-line (deleting
+// everything after the "//" inside "https://") and had no REFERENCE_FILES set, so it was both blind to
+// every URL literal and, once the strip was fixed, blind to which files were legitimate data citations.
+// Both defects are gone by construction now that this test asks F46 itself (lane L35h, 2026-09-18).
+test("ONE home for eur-lex.europa.eu: no other in-scope source file builds this host's URL", () => {
+  const { strict } = scanTree();
+  const hit = strict.find((s) => s.host === "eur-lex.europa.eu");
+  assert.equal(HOST_HOMES["eur-lex.europa.eu"], "fsi-app/src/lib/sources/identifier-variants.mjs");
+  assert.equal(hit, undefined, hit && `import identifier-variants.mjs instead of building an eur-lex.europa.eu URL in: ${hit.extra.join(", ")}`);
 });
 
 // ── www.legislation.gov.uk one-home builders (lane L35, F46): every URL shape callers used, preserved.
@@ -150,20 +139,11 @@ test("www.legislation.gov.uk builders: each named shape matches what callers bui
   ]);
 });
 
-// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep).
-import { execFileSync as execFileSyncUk } from "node:child_process";
+// ── Sweep (lane L35, F46 external-host-home). Reused by import from F46 itself, same reasoning as the
+// eur-lex sweep above (lane L35h, 2026-09-18).
 test("ONE home for www.legislation.gov.uk: no other in-scope source file builds this host's URL", () => {
-  const root = execFileSyncUk("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-  const files = execFileSyncUk("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
-  const EXCEPTIONS = new Set(["fsi-app/src/lib/sources/identifier-variants.mjs"]);
-  const hostRe = /https?:\/\/www\.legislation\.gov\.uk/;
-  const offenders = [];
-  for (const f of files) {
-    if (EXCEPTIONS.has(f)) continue;
-    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-    if (hostRe.test(src)) offenders.push(f);
-  }
-  assert.deepEqual(offenders, [], "import src/lib/sources/identifier-variants.mjs instead of building a www.legislation.gov.uk URL in: " + offenders.join(", "));
+  const { strict } = scanTree();
+  const hit = strict.find((s) => s.host === "www.legislation.gov.uk");
+  assert.equal(HOST_HOMES["www.legislation.gov.uk"], "fsi-app/src/lib/sources/identifier-variants.mjs");
+  assert.equal(hit, undefined, hit && `import identifier-variants.mjs instead of building a www.legislation.gov.uk URL in: ${hit.extra.join(", ")}`);
 });

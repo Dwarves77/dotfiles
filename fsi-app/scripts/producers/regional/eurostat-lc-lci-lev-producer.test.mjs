@@ -6,9 +6,7 @@
 // Run: node --test scripts/producers/regional/eurostat-lc-lci-lev-producer.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { scanTree, HOST_HOMES } from "../../../.discipline/fitness/functions/F46-external-host-home.mjs";
 import {
   EUROSTAT_DISSEMINATION_API_BASE, fetchAllMemberStates, decideApply,
 } from "./eurostat-lc-lci-lev-producer.mjs";
@@ -38,20 +36,12 @@ test("decideApply: dry run never writes; every gate must hold for --apply to wri
   assert.equal(decideApply({ apply: true, enabled: true, killSwitchOn: true, hasCreds: true }).canWrite, true);
 });
 
-// ── Sweep (lane L35, F46 external-host-home; models eurlex-cellar.mjs's own sweep). Fails the build the
-// moment a second copy of the host string appears anywhere in scope.
+// ── Sweep (lane L35, F46 external-host-home). Reused by import from F46 itself (lane L35h, 2026-09-18):
+// the earlier copy here stripped comments mid-line, which deletes everything after the "//" inside
+// "https://" and hides a URL literal from the check.
 test("ONE home for ec.europa.eu: no other in-scope source file builds this host's URL", () => {
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
-  const files = execFileSync("git", ["ls-files", "--", "fsi-app/scripts", "fsi-app/src"], { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((f) => /\.(mjs|js|ts|tsx)$/.test(f) && !/\.(test|npmtest|selftest|golden)\.mjs$/.test(f) && !/\/fixtures\//.test(f));
-  const EXCEPTIONS = new Set(["fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs"]);
-  const hostRe = /https?:\/\/ec\.europa\.eu/;
-  const offenders = [];
-  for (const f of files) {
-    if (EXCEPTIONS.has(f)) continue;
-    const src = readFileSync(resolve(root, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-    if (hostRe.test(src)) offenders.push(f);
-  }
-  assert.deepEqual(offenders, [], "import scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs's EUROSTAT_DISSEMINATION_API_BASE instead of building an ec.europa.eu URL in: " + offenders.join(", "));
+  const { strict } = scanTree();
+  const hit = strict.find((s) => s.host === "ec.europa.eu");
+  assert.equal(HOST_HOMES["ec.europa.eu"], "fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs");
+  assert.equal(hit, undefined, hit && `import scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs's EUROSTAT_DISSEMINATION_API_BASE instead of building an ec.europa.eu URL in: ${hit.extra.join(", ")}`);
 });

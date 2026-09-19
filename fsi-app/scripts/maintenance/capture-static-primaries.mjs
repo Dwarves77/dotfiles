@@ -46,9 +46,10 @@
 //   Apply: for each selected item, runs its source_url through escalateToFetchResult with ONLY a
 //   directFetch transport and renderAllowed:false (so Browserless is structurally unreachable from this
 //   step's own call graph, not merely unconfigured). On eur-lex.europa.eu, when the first attempt is not
-//   usable content, derives the CELEX clean-text form
-//   (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:<id>) via scripts/lib/canonical-key.mjs's
-//   deriveKey (the SAME CELEX extractor migration 255 and heal-provenance.mjs both use) and retries once.
+//   usable content, derives the CELEX clean-text form via src/lib/sources/identifier-variants.mjs's
+//   celexTxtHtmlUrl, the host's one home (F46 external-host-home; lane L35h, 2026-09-18) -- the CELEX id
+//   itself still comes from scripts/lib/canonical-key.mjs's deriveKey (the SAME extractor migration 255
+//   and heal-provenance.mjs both use) -- and retries once.
 //   A usable result writes ONE agent_run_searches row (the pool row shape the export and the driver read --
 //   dispatch anchor: src/lib/agent/canonical-pipeline.ts:1689, scripts/turns/export-corpus-for-extraction.mjs:572)
 //   through guardedInsert (rule 015). A roadblock writes NO row and is listed with its reason; the run
@@ -80,6 +81,7 @@
 // this lane's report for the exact grep command + zero-match result asserted over this graph.
 import { escalateToFetchResult } from "../../src/lib/sources/transport-runtime.mjs";
 import { assertFetchAllowed, holdEngaged } from "../../src/lib/sources/fetch-hold.mjs";
+import { celexTxtHtmlUrl } from "../../src/lib/sources/identifier-variants.mjs";
 import { deriveKey } from "../lib/canonical-key.mjs";
 import { cellarEndpointForCelex, isCellarUrl, CELLAR_ACCEPT, CELLAR_CELEX_PREFIX } from "../lib/eurlex-cellar.mjs";
 import { hostOf } from "../lib/institution-key.mjs";
@@ -142,7 +144,7 @@ export function deriveCelexTxtHtmlUrl(sourceUrl, instrumentIdentifier) {
   if (/\/TXT\/HTML\//i.test(String(sourceUrl || ""))) return null; // already the clean-text form
   const key = deriveKey(instrumentIdentifier ?? null, sourceUrl ?? null);
   if (!key) return null;
-  return `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${key}`;
+  return celexTxtHtmlUrl(key);
 }
 
 /** The Cellar resource for an EUR-Lex act, through the ONE home for that knowledge

@@ -23766,6 +23766,58 @@ vertical groups correct as shipped, in which case W6.2/finding 9 should be corre
 than built against; or does the product want a second, region-scoped room-creation path alongside the
 vertical one, and if so which field resolves "the creating workspace's region" given `profiles.region`
 is an array) and re-dispatch with that decision made.
+## 2026-09-19, W9 lane L35h: eur-lex.europa.eu has one home; F46 ceiling 1 to 0
+
+Sonnet lane, worktree wt-l35h, branch lane/l35h-eurlex-one-home-2026-09-18, based on origin/master a93a2271 (#712 merged).
+
+**Result [CONFIRMED by the runner and node --test, each run this session].** eur-lex.europa.eu is now a
+HOST_HOMES entry in F46-external-host-home.mjs, homed at `src/lib/sources/identifier-variants.mjs`
+(`celexTxtHtmlUrl`). `scripts/maintenance/capture-static-primaries.mjs`'s `deriveCelexTxtHtmlUrl` now
+imports and calls that builder instead of templating the host itself. `node fsi-app/.discipline/fitness/runner.mjs`
+reports 0 violations; `MULTI_HOME_CEILING` re-seeded 1 -> 0. The whole-tree grep for the host outside
+tests/goldens/fixtures/comments now names only `identifier-variants.mjs` and three of F46's four
+REFERENCE_FILES (`source-licence.mjs`, `intake-url-corpus.mjs`, `url-canon.mjs`); `series-item-map.mjs`
+does not cite the host. `bash .discipline/run-test-suite.sh`: 7258 tests, 7253 pass, 0 fail, 5 pre-existing
+skips.
+
+**Findings.**
+[CONFIRMED, this session's own repro plus the coordinator's independent repro on master's file] The RED
+step as originally briefed could not fire: `identifier-variants.test.mjs`'s eur-lex and www.legislation.gov.uk
+sweep tests stripped comments with a mid-line `.replace(/\/\/.*$/gm, "")`, which deletes everything after
+the FIRST `//` on a line -- including the `//` inside `https://` -- so a URL literal such as
+`` return `https://eur-lex.europa.eu/...`; `` was read as `` return `https: `` before the host regex ever
+ran. The stripper could never see a URL literal built as a template string. This same stripper sat in six
+L35 sweep tests (`identifier-variants.test.mjs` x2, `transport-escalation.test.mjs`,
+`anthropic-stream.test.mjs`, `auth/linkedin/start/logic.test.mjs`,
+`eurostat-lc-lci-lev-producer.test.mjs`), so none of the six had ever been proven RED since lane L35
+wrote them on 2026-09-17. F46 itself was never affected: `hostsByFile` drops whole comment LINES
+(`/^\s*(\/\/|\*)/`) and never truncates mid-line.
+[CONFIRMED] Once the mid-line strip was replaced with F46's own line filter, the eur-lex and
+www.legislation.gov.uk sweep tests also surfaced a second, independent gap: neither test carried a
+REFERENCE_FILES concept, so three of F46's own REFERENCE_FILES (`source-licence.mjs`,
+`intake-url-corpus.mjs`, `url-canon.mjs`, which cite these hosts as data, e.g. licence attribution text
+and a worked-example URL corpus, never as request-building code) came back as false-positive "offenders"
+in both sweeps, and the www.legislation.gov.uk sweep flipped from passing to failing on
+`intake-url-corpus.mjs` alone.
+[CONFIRMED, by re-verifying against F46's own source] The two sweep tests in `identifier-variants.test.mjs`,
+and the four sibling sweep tests named above, were rewritten to stop re-implementing F46's scan and instead
+import `scanTree`/`HOST_HOMES` from `F46-external-host-home.mjs` directly, so the parser and the
+REFERENCE_FILES set can never drift from F46's own again. Each rewritten test asserts `HOST_HOMES[host]`
+equals the expected home path and that F46's `strict` list has no entry for that host. All six pass;
+running the eur-lex test against the tree BEFORE the capture-static-primaries.mjs fix (see the runner
+output pasted in this lane's tool history) produced the honest RED, naming only
+`fsi-app/scripts/maintenance/capture-static-primaries.mjs`.
+[CONFIRMED] F45 (duplicate-code) did not move; the runner reports F45 PASS both before and after this
+change, as the brief predicted (a one-line literal replaced, not an eight-line duplicate window).
+Left untouched, per the coordinator's amendment, for a later pass: the three other users of the same
+mid-line `//` stripper pattern that are NOT host sweeps -- `fsi-app/.discipline/fitness/functions/F30-entity-spine.mjs`,
+`fsi-app/.discipline/rules/021-cached-shape-key.mjs`, and `fsi-app/scripts/maintenance/capture-static-primaries.test.mjs`
+(lines 667 and 711).
+
+**Next.** None open for this lane; PR landing is the coordinator's per the common contract.
+
+### UX compliance (L35h)
+
 
 ## 2026-09-18, W9 lane L37: the 53 byte-identical snapshot files out of the index
 
