@@ -67,6 +67,7 @@ import { identifierRow, VALIDATORS } from "../../src/lib/entities/crosswalk.mjs"
 // existing importer of this module (this file's own test, main() below) is unchanged.
 export { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const ASSERTED_BY = "scripts/entities/backfill-entities.mjs";
 const CITE = {
@@ -126,14 +127,8 @@ export function planOrganisationFkUpdates(sources, byHost) {
 
 // ── orchestration (DB reads/writes) ─────────────────────────────────────────────────────────────────
 
-const ROOT_ENV_CANDIDATES = [".env.local"];
-async function loadEnv() {
-  const { resolve, dirname } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
-  const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-  for (const f of ROOT_ENV_CANDIDATES) {
-    try { process.loadEnvFile(resolve(ROOT, f)); } catch { /* CI: env injected */ }
-  }
+function loadEnv() {
+  loadLocalEnvFile();
 }
 
 function parseArgs(argv) {

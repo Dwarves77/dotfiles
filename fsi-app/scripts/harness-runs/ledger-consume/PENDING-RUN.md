@@ -26,6 +26,14 @@ carrying the hash above lands, or re-pinned if a governing file changes again be
 
 **What changed.** The recorded hash `sha256:14a162a7a2ca487d` no longer matched the live governing files of this family (`scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`, `src/lib/llm/first-fetch-classify.ts`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:4d8565eef0d1909e` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['ledger-consume']`, unreordered).
+**harness_version at write time (superseded below, see Re-pin 3):** `sha256:4d8565eef0d1909e` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['ledger-consume']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 3 (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:4d8565eef0d1909e` no longer matched the live governing files of this family (`scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`, `src/lib/llm/first-fetch-classify.ts`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-ledger-consume.mjs` (moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on. Finished by hand under the old convention (plan section 6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:08e0a400e1b00965` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['ledger-consume']`, unreordered; supersedes `sha256:4d8565eef0d1909e`).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

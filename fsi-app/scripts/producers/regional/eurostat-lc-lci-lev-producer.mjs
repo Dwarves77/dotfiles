@@ -83,7 +83,7 @@ const KILL_SWITCH_ENV = "REGIONAL_PRODUCER_EUROSTAT_LC_LCI_LEV_ENABLED"; // Gate
 // of templating the host string again.
 export const EUROSTAT_DISSEMINATION_API_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data";
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   aggregateLcLciLevForRegion,
@@ -91,9 +91,9 @@ import {
   LC_LCI_LEV_REQUEST_FILTER,
 } from "../../../src/lib/regional/eurostat-lc-lci-lev-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 function buildLcLciLevUrl(geo) {
   const { unit, lcstruct, nace_r2 } = LC_LCI_LEV_REQUEST_FILTER;

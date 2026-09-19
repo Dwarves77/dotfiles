@@ -12,13 +12,12 @@
  *  READ-ONLY, REPORT-ONLY: it NEVER writes (does not resolve/re-open — that is a later disposition
  *  dispatch's job). It NAMES the rot so the resolver can act. Exit 0 = clean; exit 1 = rot found; exit 2 =
  *  read error. Env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { readAll } from "../lib/db.mjs";
 import { sameBlockerReason } from "../lib/deferral.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 // The deferral payload lives in recommended_actions; historical shapes: [{ deferral: {...} }] or [{...}] or
 // an object with deferred_until. Pull the first deferred_until we can find, defensively.

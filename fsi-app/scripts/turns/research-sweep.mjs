@@ -82,6 +82,7 @@ import { sourceRole, congruence } from "../../src/lib/entities/source-role.mjs";
 import { buildResearchRecordPayload } from "../../src/lib/intake/record-facts-research.mjs";
 import { validateMintPayload } from "../mint/validate-mint-payload.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -417,7 +418,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(FSI_ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

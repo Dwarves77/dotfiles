@@ -9,14 +9,12 @@
 //   node scripts/review/apply-coverage-gaps.mjs --ruling docs/ratifications/2026-09/coverage-gaps.ruling.json
 //   node scripts/review/apply-coverage-gaps.mjs --ruling <file> --apply
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
 import { applySimpleQueue } from "./lib/apply-core.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const CITE = Object.freeze({
   skill: "review-queue-ratification-digest",

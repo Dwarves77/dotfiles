@@ -41,6 +41,7 @@ import { fileURLToPath } from "node:url";
 import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
 import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 // @supabase/supabase-js is imported LAZILY (inside main(), not at module top level) so this file stays
 // importable WITHOUT node_modules installed — the same reason db.mjs lazy-requires it (see that file's
@@ -105,7 +106,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 const parsed = parseArgs(process.argv.slice(2));
 if (!parsed.ok) {

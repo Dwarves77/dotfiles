@@ -205,6 +205,7 @@ import { apiEndpointFor } from "../../src/lib/sources/transport-escalation.mjs";
 import { fetchDocumentApi } from "../../src/lib/sources/api-transport.mjs";
 import { renderingUrlForPrimary } from "../../src/lib/sources/primary-fallback.mjs";
 import { detectAccessWall } from "../../src/lib/sources/access-wall.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1382,11 +1383,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try {
-    process.loadEnvFile(resolve(ROOT, ".env.local"));
-  } catch {
-    /* CI: env injected */
-  }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

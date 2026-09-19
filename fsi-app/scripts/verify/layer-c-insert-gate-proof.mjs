@@ -18,11 +18,9 @@
  *
  *  Exit 0 = gate proven (all legs). Exit 1 = a leg failed. Env: a Postgres connection string in
  *  SUPABASE_DB_URL or DATABASE_URL. Runs in the CI-with-secrets / ops lane (post-apply). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 
 const CONN = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 if (!CONN) { console.error("layer-c-insert-gate-proof: need SUPABASE_DB_URL or DATABASE_URL"); process.exit(2); }

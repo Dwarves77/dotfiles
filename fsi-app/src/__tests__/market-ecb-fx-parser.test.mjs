@@ -48,6 +48,7 @@ import { producerFor } from "../lib/market/series-registry.mjs";
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
 import { ORIGIN_CLASSES as ORIGIN_CLASS_VALUES } from "../lib/contracts/vocabularies.mjs";
 import { DERIVATIONS as DERIVATION_VALUES } from "../lib/contracts/envelope.mjs";
+import { withoutCredentials } from "../../scripts/lib/env-file.mjs";
 
 const SERIES_KEY_FORMAT_RE = /^[a-z0-9]+(?:[:_-][a-z0-9]+)*$/; // mirrors migration 268's CHECK, pinned independently
 
@@ -456,7 +457,7 @@ test("today's ACTUAL shipped state: ENABLED is true — the real CLI's default-s
     const producerPath = fileURLToPath(new URL("../../scripts/producers/market/ecb-fx-producer.mjs", import.meta.url));
     const res = spawnSync(process.execPath, [producerPath, "--input", fixturePath, "--apply"], {
       encoding: "utf8",
-      env: process.env, // no kill switch, no DB creds — the real, shipped, out-of-the-box environment
+      env: withoutCredentials(), // no kill switch, no DB creds, no env file read back (lane T2): the shipped default
     });
     assert.equal(res.status, 1, `expected exit 1 (refused), got ${res.status}. stderr: ${res.stderr}`);
     assert.match(res.stderr, /kill switch.*OFF/, `expected the kill-switch refusal message (proving ENABLED is true), got: ${res.stderr}`);

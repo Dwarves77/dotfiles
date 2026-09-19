@@ -65,7 +65,7 @@
 // (population-turn.yml only ever ran this CLI with --dry). Neither caller reimplements the plan/write
 // logic; both import proposeTags() unmodified.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveTags } from "../../src/lib/connections/derive-tags.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
@@ -75,6 +75,7 @@ import { deriveAliasTags, mergeTagProposals } from "../../src/lib/connections/ta
 // so the decider's zero-proposal re-derivation (D15 part 1) and this proposer's zero-derivation write use
 // byte-identical resolution_note wording -- one place, never a second hand-typed copy.
 import { buildNoDerivableTagsNote } from "./apply-tags.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 // @supabase/supabase-js reaches this file only THROUGH scripts/lib/db.mjs's own lazy-require (see that
 // file's top-of-file note) — nothing here imports it directly, so this module stays importable without
@@ -380,13 +381,12 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
   return result;
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (IS_MAIN) await main();
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 const parsed = parseArgs(process.argv.slice(2));
 if (!parsed.ok) {

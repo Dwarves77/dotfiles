@@ -21,17 +21,16 @@
 //   node scripts/producers/market/refresh-published-price-statistics.mjs --propose-items # print the 6 R-D mint payloads, no write
 // Exit 0 done (including "nothing to do, map has no ratified entries") · 1 no DB creds on --apply.
 
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { buildProposedItemPayloads } from "./propose-series-items.mjs";
 import {
   deriveDisplayRows, unmappedSeriesKeys, isRatified, loadSeriesItemMap, SERIES_ITEM_MAP,
 } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected, or no creds needed for --dry */ }
+loadLocalEnvFile();
 
 const APPLY = process.argv.includes("--apply");
 const PROPOSE_ITEMS = process.argv.includes("--propose-items");

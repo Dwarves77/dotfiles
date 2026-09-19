@@ -7,11 +7,12 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { readClient, guardedUpdate, guardedInsert } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 // Load env for the block-state reflect (Layer C). In CI the secrets are injected into the env; locally
 // they live in .env.local. The child audits load it themselves; the runner needs it for the reflect.
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env already populated */ }
+loadLocalEnvFile();
 
 // LAYER C — the data-audit BLOCK row convention (MUST match src/lib/agent/audit-gate.ts DATA_AUDIT_BLOCK).
 // On RED the lane ensures ONE open integrity_flags row of this shape; on GREEN it resolves any open one.

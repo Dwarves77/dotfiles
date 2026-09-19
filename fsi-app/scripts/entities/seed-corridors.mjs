@@ -77,6 +77,7 @@
 
 import { entityId, corridorSeed } from "../../src/lib/entities/entity-id.mjs";
 import { formatCorridorLabel } from "../../src/lib/entities/unlocode-names.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export const CITE = Object.freeze({
@@ -390,8 +391,7 @@ export async function main({ apply = false } = {}, deps) {
 async function loadEnv() {
   const { resolve, dirname } = await import("node:path");
   const { fileURLToPath } = await import("node:url");
-  const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 }
 
 if (isMainModule(import.meta.url)) {

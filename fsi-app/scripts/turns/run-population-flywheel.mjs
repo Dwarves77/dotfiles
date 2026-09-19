@@ -236,6 +236,7 @@ import { main as tagProposalsMain, CITE as TAG_PROPOSALS_CITE } from "../mainten
 import { NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { main as tagRatificationMain, CITE as TAG_RATIFICATION_CITE } from "../maintenance/tag-ratification.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1603,11 +1604,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try {
-    process.loadEnvFile(resolve(FSI_ROOT, ".env.local"));
-  } catch {
-    /* CI: env injected */
-  }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

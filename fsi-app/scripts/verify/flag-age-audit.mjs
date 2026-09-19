@@ -4,13 +4,11 @@
  *  across ALL subject_types, with the RD-28-held exemption. Read-only, report-only (never blind-writes).
  *  Exit 0 = clean; 1 = non-exempt past-bound flags found; 2 = read error. Env: NEXT_PUBLIC_SUPABASE_URL +
  *  SUPABASE_SERVICE_ROLE_KEY. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
 import { summarizeFlagAges, DWELL_BOUND_DAYS } from "../lib/flag-age.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 
 let flags, quarantinedIds;
 try {

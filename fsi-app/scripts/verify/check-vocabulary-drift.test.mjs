@@ -14,6 +14,7 @@ import { spawnSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { hasPlausibleCredentials } from "./check-vocabulary-drift.mjs";
+import { withoutCredentials } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = resolve(HERE, "check-vocabulary-drift.mjs");
@@ -23,16 +24,11 @@ const SCRIPT = resolve(HERE, "check-vocabulary-drift.mjs");
 const REGISTER = pathToFileURL(resolve(HERE, "..", "..", ".discipline", "lib", "fixtures", "no-npm-resolve-register.mjs")).href;
 const EAGER_FIXTURE = resolve(HERE, "fixtures", "eager-pg-import.mjs");
 
+// The script loads fsi-app's env file from disk at start, so stripping this process's env is not enough
+// in a worktree that has that file. withoutCredentials() (the one loader's helper, lane T2) strips every
+// credential name AND switches the load off; T1's per-script CHECK_VOCAB_DRIFT_NO_ENV_FILE is retired.
 function noCredEnv() {
-  const env = { ...process.env };
-  delete env.SUPABASE_DB_URL;
-  delete env.DATABASE_URL;
-  delete env.SUPABASE_DB_PASSWORD;
-  delete env.NEXT_PUBLIC_SUPABASE_URL;
-  // The script loads fsi-app's env file from disk at start. Stripping this process's env is not enough in
-  // a worktree that has that file: the child read the credentials back and "no credentials" was false.
-  env.CHECK_VOCAB_DRIFT_NO_ENV_FILE = "1";
-  return env;
+  return withoutCredentials();
 }
 
 test("check-vocabulary-drift.mjs self-skips (exit 2) without DB credentials", () => {

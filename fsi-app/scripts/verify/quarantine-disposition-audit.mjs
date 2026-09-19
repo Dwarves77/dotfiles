@@ -25,13 +25,11 @@
  *
  *  TUNABLE (operator policy): DWELL_BOUND_DAYS — the research-or-erase SLA. Tighten/loosen as the
  *  disposition throughput is known. Default 14 (two weeks to research-or-dispose an item). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "../lib/db.mjs";
 import { isValidDeferral } from "../lib/deferral.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 const DWELL_BOUND_DAYS = 14;
 const BOUND_MS = DWELL_BOUND_DAYS * 24 * 60 * 60 * 1000;

@@ -12,11 +12,10 @@
  *  grounding and MUST hold a NULL stamp; a non-NULL stamp on a non-FACT claim is a violation. The
  *  derivation mirrors the SINGLE module src/lib/sources/institution.ts (tierOfSource = base_tier; override
  *  wins). Exit 1 on any mismatch. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { readAll } from "../lib/db.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 
 const sources = await readAll("sources", "id,base_tier,tier_override");
 const claims = await readAll("section_claim_provenance", "id,claim_kind,source_id,source_tier_at_grounding");

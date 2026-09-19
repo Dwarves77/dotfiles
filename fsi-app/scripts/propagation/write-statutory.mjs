@@ -67,7 +67,7 @@
 // rows-file is a usage error, not a silent 0-row success).
 // Exit 0 done · 1 unexpected fatal · 2 no DB creds (self-skip, never crash) · 3 bad/missing --rows-file.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { readAll, guardedInsert, readClient } from "../lib/db.mjs";
@@ -75,6 +75,7 @@ import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { computeStatutory, FUELEU_STATUTE_CITATION, FUELEU_FORMULA_VERSION } from "../../src/lib/statutory/types.ts";
 import { FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE } from "../../src/lib/statutory/fueleu-annex-iv.mjs";
 import { admissibleFor } from "../../src/lib/propagation/admissible-for.ts";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 export const FORMULA_ID = "fueleu_annex_iv_penalty";
 export const DEFAULT_OBLIGATION_SEED = "fueleu-maritime-annex-iv-penalty";
@@ -240,11 +241,10 @@ export async function writeOneRow(sb, parsed, mode, deps = {}) {
 
 // ── CLI entrypoint — never reached on import ────────────────────────────────────────────────────────────
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("write-statutory: no DB creds — cannot run here (exit 2).");
     process.exit(2);

@@ -6,13 +6,11 @@
  *  the live entity-gate.mjs is reused for the portal signal.
  *  Buckets: ERROR-ARTIFACT (title names an error/blocked page AND brief is a shell) ; STALE-TITLE
  *  (error title but rich brief -> re-title, KEEP) ; SOURCE-NOT-ITEM (portal/registry mis-ingested). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { urlIsRoot } from "../../src/lib/sources/entity-gate.mjs";
 import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const host = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return ""; } };

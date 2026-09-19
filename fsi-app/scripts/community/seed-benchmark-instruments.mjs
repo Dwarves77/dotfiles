@@ -26,12 +26,10 @@
 //   node scripts/community/seed-benchmark-instruments.mjs            # dry: what would be created
 //   node scripts/community/seed-benchmark-instruments.mjs --apply    # create this period's instruments
 
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const CITE = Object.freeze({
   skill: "community-house-seeded-benchmark",
