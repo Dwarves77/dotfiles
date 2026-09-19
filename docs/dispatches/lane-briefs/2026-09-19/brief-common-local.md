@@ -111,3 +111,16 @@ with: the commits (hash, subject); the six-criteria acceptance from your row, ea
 evidence you can name now and the ones the coordinator must produce (a dispatch, a DDL apply); test and
 tsc results verbatim (counts); problems that stopped you, if any, in the form above; nothing else. Reply
 with the report path and a three-line summary.
+
+## Amendment 1 (coordinator, 2026-09-19, after plan section 6.8 closed on master `ddcd9a63`). Where this amendment and the text above disagree, this amendment wins.
+
+Plan section 6.8 landed (lanes N0 to N6, T2). These lines of the contract above are RETIRED; doing them is deviation:
+- F45 has NO ceiling line and nothing is re-seeded. `reseed-f45.mjs` is deleted; never run it. F45 compares your HEAD with the merge-base; more duplicated lines than the merge-base is a real refusal: extract the shared home.
+- F28 has NO `PENDING-RUN.md` marker and nothing is re-pinned. `repin.mjs` is deleted. If your range changes a governing file of a harness family (each family lists its own in `fsi-app/scripts/harness-runs/<family>/family.json`) and adds no new run artifact of that family, add ONE file `fsi-app/scripts/harness-runs/<family>/pending/<date>-<lane id>.md` with two headings, `## Change` and `## Planned run` (copy the shape of any existing file in a `pending/` folder). No hash goes in it.
+- Skills have NO `PINNED_MANIFEST` re-pin. `repin-skills.mjs` is deleted. If you change a file under `fsi-app/.claude/skills/`, add `fsi-app/.discipline/governance/skill-acks/<date>-<lane id>.md` naming the skill and the citing files you reviewed.
+- Registries are DIRECTORIES, never lists (gate F51 refuses a hand-written entry). A harness family is `fsi-app/scripts/harness-runs/<family>/family.json` (fields: family, registered, registered_by, governing_files, rationale) plus `FAMILY.md` (its description; the per-family text that used to sit in CONVENTION.md lives there now). Never edit `ALLOWED_FAMILIES`, `governing-files.mjs`, the fitness `manifest.mjs`, `invariants.mjs`, the CONVENTION.md table, `run-test-suite.sh` test lists, `discipline.yml` test lists or `docs/inventories/migrations.md`: all are derived. A fitness function is one file `functions/Fnn-*.mjs`; an invariant is one file `governance/invariants.d/<ID>.mjs`; a migration carries its own header comment block.
+- A script that needs the env file calls `loadLocalEnvFile()` from `fsi-app/scripts/lib/env-file.mjs`; a bare `process.loadEnvFile` is refused by F48. A test asserting credential-absent behaviour uses that module's `withoutCredentials` helper.
+- Your session-log file is `docs/ops/session-log.d/<today from the date command>-<lane id>.md`. F51 fails a `lane/` branch that touches `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md` or `docs/INDEX.md`.
+- Run every repo-wide git measurement (`git grep`, `git diff -- <path>`) from the REPO ROOT, never from inside `fsi-app/`; before acting on a zero, search for something known to exist.
+- Take every clock time from `date`, never from memory.
+- You are a Sonnet or Haiku agent. You do not solve problems the brief does not cover: STOP and report. Tokens are budgeted: read only the files your brief names, run each check once, run the push gate once, last.

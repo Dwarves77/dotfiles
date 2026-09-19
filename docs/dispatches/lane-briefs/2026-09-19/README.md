@@ -16,6 +16,11 @@ correction. Each lane was a Sonnet agent under `../2026-09-18/brief-common-cloud
 | brief-n4.md | N4 | PR #748 merged; Amendment 1: the raw NUL bytes in execution-wiring.mjs |
 | brief-n5.md | N5 | PR #747 merged; Amendment 1: rebase under N3 and the subject line in every migration; Amendment 2: glyphs out of the subject lines |
 | brief-n6.md | N6 | PR #749 merged; Amendment 1: RD-76 assigned, post-N5 facts; Amendment 2: the two historical migration prefixes allowlisted, the hotspot window anchored after the conversion |
+| brief-common-local.md Amendment 1 | all M lanes | 2026-09-19 evening: the post-6.8 regime (pending files, skill acks, registries as directories, one env-file loader, per-lane session-log files) |
+| brief-m3.md | M3 | dispatched 2026-09-19 after M2 merged (#750); Amendment 1: post-6.8 registration by descriptor, and one home for `loop_run_id` through every hop (the premise that M1 and M2 propagate it was refuted) |
+| brief-m4.md | M4 | written 2026-09-18; NOT yet amended for plan 6.8; amend before dispatch |
+| brief-m6.md | M6 | written 2026-09-18; NOT yet amended for plan 6.8; amend before dispatch |
+| brief-m9d.md | M9d | written 2026-09-18; NOT yet amended for plan 6.8 (register the producer family by `family.json` and `FAMILY.md` only); amend before dispatch |
 
 Related: [the 2026-09-18 briefs](../2026-09-18/README.md), [the lane contract](../../lane-common-contract.md),
 [the build plan, section 6.8](../../../plans/complete-system-build-plan-2026-09-04.md).

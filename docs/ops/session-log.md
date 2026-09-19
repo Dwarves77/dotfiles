@@ -24027,3 +24027,27 @@ session touched data.
 ### UX compliance (coordinator)
 
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-19, coordinator (local session on the operator's machine, evening): M2 landed on the post-6.8 tree; M3 amended and dispatched; the loop id was never propagated
+
+Every clock time below is from `date -u`, a log or GitHub. Resume from this entry.
+
+**First five minutes [CONFIRMED].** No runner alive at 22:54 UTC: no `push-queue.lock`, the queue log ended "drained and stopped Sat Sep 19 10:46:18 EDT", the train log ended "complete Fri Sep 18 22:02:53 EDT", one Claude Code process (this session). The SessionStart hook did not fire for the repo because the desktop app started the session in a scratch folder; `vault-sync.mjs` was run by hand at 22:54 UTC: `47a3a24c` to `ddcd9a63`, 12 commits, 24 docs files. Rule: start the coordinator session IN the repo folder.
+
+**M2 merged: PR #750, squash `e00e31eb`, 23:08:47 UTC, four required checks pass [CONFIRMED on GitHub].** Vault sync after the merge: `ddcd9a63` to `e00e31eb`, 2 docs files. Its rebase onto `ddcd9a63` conflicted on exactly two files, both of the class plan 6.8 retired [CONFIRMED beforehand with `git merge-tree`]: `fsi-app/scripts/harness-runs/CONVENTION.md` and `meta-harness/PENDING-RUN.md`. Finished by hand by the coordinator and called that (the last lane caught by the old cause): master's side taken for both; the lane's marker-only re-pin commit (`3fc27927`) dropped because lane N3 deleted the marker; the lane's one CONVENTION.md sentence moved to `ledger-consume/FAMILY.md`, its home since lane N2, and corrected to the arming rule the code has (any committed verdict batch arms it: the union when `--verdicts` is omitted, or the one named file); `ledger-consume/pending/2026-09-19-m2.md` added because two governing files changed and no run artifact is at the combined tree's live hash. F28 test 0 failures before the push. The pre-rebase tip is kept as local branch `backup/m2-pre-68-rebase`.
+
+**Coordinator tooling [CONFIRMED].** `push-queue.sh` in the 2026-09-18 scratchpad still called `repin.mjs`, `reseed-f45.mjs` and the session-log union resolver. Removed while idle (temp file, `bash -n`, atomic rename; backup `push-queue.sh.bak-2026-09-19-pre-68`). The queue now stops on ANY rebase conflict. The tooling still lives in session temp; landing it in the repo is lane P6 and is still owed.
+
+**Operator rulings today, binding.** (1) Fable does no operations at all: it plans, writes briefs and the fix, assigns ids and answers STOPs; every command, rebase, push, CI watch and merge is run by a Sonnet or Haiku agent. I broke this on M2 (the rebase, the pending file and the queue patch were done by the coordinator model) and was corrected; from the M2 CI watch onward every operation ran on Haiku or Sonnet. (2) Tokens: at 23:10 UTC the operator reported 62 percent of the Fable budget and 52 percent of all tokens used. A coordinator session carries about 100k tokens of fixed context before work starts [HYPOTHESIS, an estimate]; start it in the repo folder, disable the plugins this build never uses, and read only this entry plus the brief being dispatched.
+
+**[CONFIRMED] A gap in the plan, found before dispatch.** Brief M3 assumed lanes M1 and M2 propagate `loop_run_id`. They do not: on master only `source-sweep.yml` and `run-source-sweep.mjs` carry it (grep from the repo root, with a control search). Proof run 6.2 needs an artifact at every hop with that id, so it could not have passed. Fix, in brief M3 Amendment 1 item B: one home `fsi-app/scripts/lib/loop-run-id.mjs` (`resolveLoopRunId`), every runner downstream of the sweep records `config.loop_run_id` through it, an attack test breaks one hop and sees the chain resolve null.
+
+**Briefs.** The M-lane briefs (M3, M4, M6, M9d) are in the repo from this PR, under `docs/dispatches/lane-briefs/2026-09-19/`. `brief-common-local.md` and `brief-m3.md` carry Amendment 1 (the post-6.8 regime: pending files, skill acks, registries as directories, the one env-file loader, per-lane session-log files). M4, M6 and M9d are NOT yet amended: each needs the same treatment before dispatch (M9d: register the producer family by `family.json` and `FAMILY.md` only). M7 is not briefed.
+
+**In flight at write time.** Lane M3, a Sonnet agent, worktree `wt-l34-detail-admin-primitives`, branch `lane/m3-turns-chained-2026-09-19`, dispatched after M2 merged. It runs the locked push gate once, last, and does not push; the coordinator queues its push (`wt-l34-detail-admin-primitives|pr-m3.md|m3`).
+
+**Next, in order.** (1) M3: verify its report, write `pr-m3.md`, push through the queue, merge on green. (2) Amend and dispatch M4, then M6, then M9d; write and dispatch M7. (3) Hop proofs from this machine, each bounded, then `gh workflow run source-sweep.yml -f walker=sitemap -f all_hosts=true -f max_hosts=3 -f limit=200 -f mode=apply -f loop_run_id=loop-proof-hop1-2026-09-19`; merge the artifact PRs; flip `enforceFired` for hops whose artifacts carry `trigger: workflow_run`; F50's "hops not yet enforced" to 0; record `docs/audits/loop-proof-run-<date>.md`. The ledger-consume capped apply is the run that clears `ledger-consume/pending/`. (4) Data only after 6.2 passes. Next free ids, unchanged: F52, RD-77, migration 330, skill category 49.
+
+### UX compliance (coordinator)
+
+Not a UI change; no customer surface touched by this branch.
