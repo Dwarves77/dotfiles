@@ -23938,3 +23938,86 @@ Cloud container, handoff section 0a. Read GitHub and the vault only; touched no 
 ### UX compliance (coordinator)
 
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-19, coordinator (cloud session, second of the day, no access to the operator's machine): plan 6.8 dispatched and landed from the cloud; the non-hermetic test class closed (T2)
+
+Cloud container, handoff section 0a. Operator facts newer than the addendum, all binding here: the operator is
+travelling; the local session on the PC is paused; nothing runs there (no queue, no train, no watcher); lane
+M2 exists only in `wt-session-d` on the PC and is refused there by the ecb-fx test until T2 is on master; PR
+#739 was the addendum correction (queue times from the log, M2's row, lane T2), opened from the operator's
+account, merged here. Every clock time below is from `date -u` or a tool result, never from memory; three
+times I wrote one ahead of the clock and corrected it in place in the brief that carried it.
+
+**Landed, in merge order, each on nine green checks and a clean mergeable state [CONFIRMED on GitHub].**
+W10-A #740 (15:57 UTC, `6c14ff71`); addendum correction #739 (`25418482`); N0 #741 (16:24, `33b53e1a`,
+`change-range.mjs`, the memory gate and F45 on it, git calls independent of the caller's directory); T2 #742
+(16:45, `e179af83`); N2 #743 (17:01, `dfef72cd`, family descriptors); N1 #745 (17:39, `41424140`, derived
+manifest, test globs, npm-test glob, audit markers); N3 #746 (17:52, `07ee7f0c`, the pending directory
+replaces every hash pin); N5 #747 (19:29, `9a551c30`, `invariants.d/`, the generated migrations inventory,
+shared-writer markers); N4 #748 (20:18, `ccb6aa0c`, F45 against the merge-base, skill acks, marker counts
+against the merge-base, the NUL bytes out of execution-wiring.mjs). N6 (F51, RD-75, RD-76, category 48, the
+replay acceptance) dispatched 20:18 UTC on `wt-n6`; its outcome is appended below when it lands.
+
+**T2, the class fix the operator ordered [CONFIRMED by the proof in both disk states].** One loader,
+`fsi-app/scripts/lib/env-file.mjs` (`loadLocalEnvFile`, `withoutCredentials`, switch `FSI_NO_ENV_FILE`); 90
+live scripts moved onto it; T1's per-script switch retired; F48 rewritten with three checks proven by attack
+(a bare `process.loadEnvFile` anywhere in a live script fails, guarded or not; a spawning test that strips a
+credential by hand or asserts a credentials refusal on a child's result must use the helper). With a fake
+gitignored env file present, master's ecb-fx test failed 1 of 6 and the branch passed 63 of 63; with the file
+removed, 63 of 63. Two false positives of my own gate design were found by the lane and scoped out (in-process
+unit tests; check (c) is now scoped to `.stderr`, `.stdout`, `.status`). The nine harness markers the move
+went stale were re-stamped by hand under the old convention and called that; N3 retired the mechanism the
+same afternoon.
+
+**How the lanes ran.** Every lane was a Sonnet agent under `brief-common-cloud.md` plus its own brief in
+`docs/dispatches/lane-briefs/2026-09-19/` (README there). Each STOP that came back was answered by an
+appended amendment, never a rewrite: T2 (two), N2 (one), N3 (one), N5 (two), N0 and N2 (the cloud amendment
+before dispatch), N4 and N6 (one each before dispatch). Eight of nine amendments were mine to write because
+the brief was wrong or incomplete against the code, and every one is recorded in place. Ids assigned by me:
+F51, RD-75, RD-76 (the skill-contract mechanism had no invariant; found by N4), skill category 48. Next free:
+F52, RD-77, migration 330, skill category 49.
+
+**Process defects of this session, each corrected in place, each a rule from here.**
+- [CONFIRMED] I started building T2 myself; the operator stopped it ("YOU do NOT do the builds"). The
+  remaining steps went to a Sonnet lane under a brief; every lane after that ran the same way.
+- [CONFIRMED] A server-side docs push through a Haiku transcription agent dropped every file's trailing
+  newline and three lines of brief-n1.md (`5ad60a4e`); restored byte for byte from the local commit
+  (`50a53de8`). Rule: the coordinator branch is pushed through the gate wrapper like a lane, never by
+  transcription. The first such push (`620c4bc1`) was checked and is intact.
+- [CONFIRMED] The coordinator worktree was created without the shared `node_modules` link, so F9 and the
+  three jiti-backed fitness checks failed its first gate run; linked, green. Rule: every worktree gets the
+  link at creation.
+- [CONFIRMED] The pre-commit hook refuses commits in the main checkout for an agent context (RD-19), so
+  the coordinator's docs live in `.worktrees/wt-coord` on `claude/zealous-gauss-4hwmcp` (PR #744).
+- [CONFIRMED] `execution-wiring.mjs` carried two raw NUL bytes (a placeholder written as the literal byte),
+  so git classified it as binary and no review could see a diff to it; N1's change to it showed as
+  `Bin 8375 -> 9682`. Fixed by N4 (escape sequence). Rule: a control byte in source is a defect.
+- [CONFIRMED] My "byte for byte" instruction to N5 forced 152 `[glyph:verbatim]` tags into migration
+  subject lines and the living inventory; corrected by N5 Amendment 2 (glyphs replaced, tags dropped).
+- [CONFIRMED] Lane T2 used `git stash` once to isolate a failure (restored cleanly); told never again; the
+  contract already forbids it.
+
+**Findings recorded for a later lane, not fixed here (each [CONFIRMED] by the lane that found it).** F25's
+legacy allowlist reasons still describe the deleted named npm-test list; glob-portability's own list
+extraction never matched bare `.selftest.mjs` names (pre-existing); five historical files quote the retired
+marker phrase as evidence and stay (rule 5); `F28 NO ARTIFACTS` for inaccessible-triage and maintenance is a
+run owed, not a gate defect.
+
+**Obsidian.** The vault is `docs/` of the operator's main checkout, synced by the vault-sync hook on session
+start, the done skill and the merge train on the PC; nothing runs there now, so it lags master until the next
+local session start. Everything this session produced is on master or on PR #744: the lane entries under
+`docs/ops/session-log.d/2026-09-19-*.md`, the briefs and amendments, the generated `docs/inventories/migrations.md`,
+the lane contract's new bullets, and this entry.
+
+**Next, in order (the handoff's sequence, updated).** (1) Merge N6 on green; plan 6.8 is then closed and the
+coordinator's local tooling loses `repin.mjs`, `reseed-f45.mjs`, `repin-skills.mjs` and the session-log union
+resolver by design. (2) On the PC: pull master (T2 is in), push M2 through the queue (`wt-session-d|pr-m2.md|m2c`),
+merge on green; its rebase will meet the derived registries, and its own `fitness-allow: F39` marker and
+ledger-consume files need no list edit any more. (3) M3, M4, M6, M9d (N2 landed, so M9d registers a family by
+descriptor), M7. (4) The hop proofs and the 6.2 proof run need `gh workflow run` from the PC (the App here has
+no `actions: write`). (5) Data only after 6.2 passes. The system before the data still binds; nothing in this
+session touched data.
+
+### UX compliance (coordinator)
+
+Not a UI change; no customer surface touched by this branch.
