@@ -200,9 +200,17 @@ this marker for (corpus-turn, brief-apply, both cited above). `scripts/lib/run-a
 `ALLOWED_FAMILIES` addition (itself one of the five governing files, so already accounted for by the hash
 below).
 
-**harness_version at write time:** `sha256:149fb249227d13cc` (recomputed via `hashHarnessVersion` against
+**harness_version at the previous pin's write time (superseded below, see Re-pin 5):** `sha256:149fb249227d13cc` (recomputed via `hashHarnessVersion` against
 `governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array, the same 5 files, unreordered;
 supersedes `sha256:331382dbea0f66e9` outright).
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave, unchanged in kind from every prior entry above.
+
+## Re-pin 5 (coordinator, 2026-09-19, at push after rebase: lane M9b rebased onto a master that carries lane M8: both the maintenance and the inaccessible-triage families are now registered)
+
+**What changed.** The recorded hash `sha256:149fb249227d13cc` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/lib/run-artifact.mjs`, `scripts/harness-runs/governing-files.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:97dfc15ffa4276d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
