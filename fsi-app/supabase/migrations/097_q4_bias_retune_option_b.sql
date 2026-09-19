@@ -1,3 +1,4 @@
+-- subject: Migration 097: D1 Option B retroactive retune.
 -- Migration 097: D1 Option B retroactive retune.
 --
 -- Per operator decision (D1 Option B, 2026-05-20): the Q4 bias-tag auto-

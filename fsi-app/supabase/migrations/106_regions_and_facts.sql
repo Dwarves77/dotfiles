@@ -1,3 +1,4 @@
+-- subject: Migration 106: regions table with operations_decisions JSONB + regional_data_facts table (Q7). 5 current regions seeded (EU/US/ASIA/UK/UAE). Applied 2026-05-24.
 -- Migration 106: regions table + operations_decisions JSONB column +
 -- regional_data_facts table per operator Q7 decision (2026-05-24).
 --

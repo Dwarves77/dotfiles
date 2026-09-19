@@ -1,3 +1,4 @@
+-- subject: Migration 032, Community notifications, preferences, and moderation reports
 -- Migration 032 — Community notifications, preferences, and moderation reports
 --
 -- Date: 2026-05-01

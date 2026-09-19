@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, section_claim_provenance
 /** FREE-PASS RUNNER ($0, guarded) — economy-of-information doctrine + re-attribution CONSTRAINT (2026-07-13).
  *
  *  For every non-verified live item with FACT claims: each FACT claim FAILING the authority floor (tier null or

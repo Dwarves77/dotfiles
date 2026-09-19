@@ -1,3 +1,4 @@
+-- subject: Migration 063: sources classification axes (5-axis framework v1)
 -- Migration 063: sources classification axes (5-axis framework v1)
 --
 -- Adds columns to sources table to hold the 5-axis classification per

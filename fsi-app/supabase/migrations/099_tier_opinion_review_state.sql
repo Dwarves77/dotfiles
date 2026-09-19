@@ -1,3 +1,4 @@
+-- subject: Migration 099: tier-opinion review state (dismissed_at/by/reason) + RLS for Phase 7 disagreement review surface.
 -- Migration 099 — tier-opinion review state (Phase 7 admin chrome)
 --
 -- Background

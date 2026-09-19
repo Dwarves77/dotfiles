@@ -33,7 +33,16 @@ test("SOURCE_TYPES: exactly 11 values, each with a value/label/definition/classi
 
 test("SOURCE_TYPE_VALUES matches migration 288's CHECK constraint array byte-for-byte (drift guard)", () => {
   const sql = readFileSync(MIGRATION_PATH, "utf8");
-  const m = sql.match(/source_type\s*<@\s*ARRAY\[([\s\S]*?)\]::TEXT\[\]/);
+  // Strip `--` comment lines first (lane N5, 2026-09-19, plan 6.8: the migration's own leading
+  // `-- subject:` line quotes this exact CHECK clause in prose, "`source_type <@ ARRAY[...]`", which a
+  // comment-blind regex would match FIRST and then run non-greedy to the real ]::TEXT[] far below,
+  // capturing everything in between as bogus "values"; the CHECK constraint is real SQL, never inside
+  // a comment, so scanning only non-comment lines is the correct fix, not a workaround).
+  const sqlWithoutComments = sql
+    .split("\n")
+    .filter((line) => !/^\s*--/.test(line))
+    .join("\n");
+  const m = sqlWithoutComments.match(/source_type\s*<@\s*ARRAY\[([\s\S]*?)\]::TEXT\[\]/);
   assert.ok(m, "migration 288 must contain a `source_type <@ ARRAY[...]::TEXT[]` CHECK clause");
   const migrationValues = m[1]
     .split(",")

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // canonical-key-dedup.mjs — MAINT dispatch step, Lane DEDUP (2026-09-04).
 //
 // THE DEFECT [CONFIRMED, live SQL, kwrsbpiseruzbfwjpvsp, 2026-09-04]: Two canonical_instrument_keys

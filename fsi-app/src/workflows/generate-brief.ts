@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, integrity_flags, section_claim_provenance, intelligence_item_sections
 // THE canonical generation path (Sprint 4 — step 2b). ONE path, real bodies.
 //
 // The four named steps wrap the canonical-pipeline lib fns

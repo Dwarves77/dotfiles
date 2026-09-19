@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // close-flags-for-verified-items.mjs -- MAINT step for D17 family 14's CORRECTED gate-a-verifier-sweep
 // disposition (docs/plans/defect-fix-plan-2026-09-12.md, "Correction to the Family 14 ruling", coordinator
 // directive 2026-09-12, lane L11).

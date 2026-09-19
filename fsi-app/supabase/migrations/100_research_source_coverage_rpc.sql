@@ -1,3 +1,4 @@
+-- subject: Migration 100: get_research_source_coverage RPC.
 -- Migration 100: get_research_source_coverage RPC.
 --
 -- Build 8.5 deliverable (2026-05-22). Closes the Build 8 scope gap that

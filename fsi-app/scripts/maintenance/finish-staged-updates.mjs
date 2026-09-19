@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: staged_updates
 // finish-staged-updates.mjs -- MAINT step for task 7.5 item 2 of the W9 brief-chain build plan, Part 7
 // (ADR-030 rider / RD-20, 2026-09-12). Live fact named in the dispatch [CONFIRMED by the coordinator,
 // 2026-09-12]: `staged_updates` has 33 rows with status='approved' and materialized_at IS NULL (April

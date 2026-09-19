@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // stamp-wo26-archive-reason.mjs — hygiene stamp: archive_reason = 'out_of_scope_wo26' on the WO-26
 // scope-purge rows that were archived without one (Lane POP, 2026-09-01).
 //

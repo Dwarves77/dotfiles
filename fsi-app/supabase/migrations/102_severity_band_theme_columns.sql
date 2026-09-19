@@ -1,3 +1,4 @@
+-- subject: Migration 102: broaden severity enum (Q1), add signal_band (Q2), add theme (Q3) on intelligence_items per design rebuild dispatch v3. Applied 2026-05-24.
 -- Migration 102: Expand severity enum + add signal_band + theme columns
 -- on intelligence_items per operator Q1-Q3 decisions (2026-05-24).
 --

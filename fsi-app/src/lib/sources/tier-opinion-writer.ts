@@ -1,3 +1,4 @@
+// SHARED-WRITER: source_tier_opinions
 // src/lib/sources/tier-opinion-writer.ts
 //
 // THE MISSING WRITER for public.source_tier_opinions (migration 091). The read side has been

@@ -1,3 +1,4 @@
+-- subject: Migration 183 (Wave-α Track E e6, part 2). Drops the `user_profiles` mirror table (1 row) + both mirror functions + the profiles-side mirror trigger, after 182 repointed its last 3 RLS readers. Reversible (rollbacks/183 recreates the table + re-seeds). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 183: drop the user_profiles mirror table + its dual-write triggers/functions
 --                (Wave-α Track E, dead-weight erase e6 — STEP 2 of 2; MUST apply AFTER 182).
 --

@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // @ts-check
 // VERIFY-ITEM — the ONE snapshot-first entry point (Phase 1, operator ruling 2026-07-13). Every grounding
 // verification routes through here. Flow per item:

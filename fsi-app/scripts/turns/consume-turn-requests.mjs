@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: corpus_turn_requests
 // consume-turn-requests.mjs — lane EV, 2026-09-01; wired as corpus-turn's own item-selection mechanism
 // by lane TURNREQ, 2026-09-04 (see CORPUS-TURN-RUNBOOK.md — this table replaces the old
 // last-turn-date.mjs marker as the ONE "what changed" mechanism). Reads OPEN corpus_turn_requests rows

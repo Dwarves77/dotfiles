@@ -32,184 +32,56 @@ who may write a shared table; the test enforces it on every future PR.
 
 ## Machine-readable allowlist (source of truth for the test)
 
-```json
-{
-  "version": 1,
-  "generated": "2026-09-01",
-  "sharedTables": {
-    "intelligence_items": [
-      "src/lib/intake/mint-item.ts",
-      "src/lib/intake/apply-staged-update.ts",
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/workflows/generate-brief.ts",
-      "scripts/lib/db.mjs",
-      "scripts/_reground/free-pass-run.mjs",
-      "scripts/_reground/id-stamp.mjs",
-      "scripts/_reground/tombstone-delete.mjs",
-      "src/app/api/admin/canonical-sources/bulk-approve/route.ts",
-      "src/app/api/admin/canonical-sources/decide/route.ts",
-      "src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
-      "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
-      "scripts/mint/run-mint-batch.mjs",
-      "scripts/connections/apply-tags.mjs",
-      "scripts/mint/stamp-wo26-archive-reason.mjs",
-      "scripts/mint/apply-mint-batch.mjs",
-      "scripts/entities/backfill-entities.mjs",
-      "scripts/maintenance/tag-ratification.mjs",
-      "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/record-hollow-sweep.mjs",
-      "scripts/maintenance/canonical-key-dedup.mjs",
-      "scripts/turns/run-population-flywheel.mjs",
-      "scripts/review/apply-canonical-candidates.mjs",
-      "scripts/maintenance/origin-class-backfill.mjs",
-      "scripts/maintenance/canonical-autoverify.mjs",
-      "scripts/forward-events/dispatch-extraction.mjs",
-      "src/lib/forward-events/compliance-deadline-sync.mjs",
-      "src/lib/entities/link-item-entities.mjs",
-      "scripts/maintenance/retype-eu-decisions.mjs",
-      "scripts/maintenance/uk-series-code-reconcile.mjs"
-    ],
-    "item_cross_references": [
-      "src/lib/intake/mint-item.ts",
-      "src/lib/entities/link-items.ts",
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/lib/connections/write-edges.mjs",
-      "scripts/entities/backfill-lineage-edges.mjs",
-      "scripts/connections/discover-for-items.mjs"
-    ],
-    "connection_themes": [
-      "scripts/connections/analyze-corpus.mjs"
-    ],
-    "connection_theme_runs": [
-      "scripts/connections/analyze-corpus.mjs"
-    ],
-    "integrity_flags": [
-      "src/lib/intake/mint-item.ts",
-      "src/lib/intake/flywheel-defect.ts",
-      "src/lib/entities/link-items.ts",
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/workflows/generate-brief.ts",
-      "src/lib/d3/hooks.mjs",
-      "src/lib/notifications/seed-fallback-flag.ts",
-      "src/lib/sources/seek-more.mjs",
-      "src/lib/sources/verify-item.mjs",
-      "scripts/audit-skill-conformance.mjs",
-      "scripts/entities/backfill-lineage-edges.mjs",
-      "scripts/remediation/refetch-capped-worklist.mjs",
-      "scripts/verify/run-data-audit-lane.mjs",
-      "scripts/verify/surface-visibility-audit.mjs",
-      "src/app/api/admin/integrity-flags/route.ts",
-      "src/app/api/admin/sources/bulk-import/route.ts",
-      "scripts/connections/analyze-corpus.mjs",
-      "scripts/connections/ratify-flag-to-census.mjs",
-      "supabase/functions/capture-worker/index.ts",
-      "scripts/connections/propose-tags.mjs",
-      "scripts/maintenance/tag-proposals.mjs",
-      "scripts/classification/propose-classifications.mjs",
-      "scripts/connections/apply-tags.mjs",
-      "scripts/maintenance/tag-ratification.mjs",
-      "scripts/maintenance/apply-classifications.mjs",
-      "scripts/classification/apply-classifications.mjs",
-      "scripts/turns/run-population-flywheel.mjs",
-      "scripts/maintenance/timeline-backfill.mjs",
-      "scripts/maintenance/resolve-cited-host-gate.mjs",
-      "scripts/maintenance/resolve-error-body-gate.mjs",
-      "scripts/maintenance/resolve-signals.mjs",
-      "scripts/maintenance/resolve-provisional-sources.mjs",
-      "src/lib/sources/null-tier-host-worklist.mjs",
-      "scripts/maintenance/close-acquire-primaries-holds.mjs",
-      "scripts/maintenance/resolve-refetch-holds.mjs",
-      "scripts/maintenance/close-coverage-reflections.mjs",
-      "scripts/maintenance/close-legal-confirmation-rows.mjs",
-      "scripts/maintenance/close-flags-for-verified-items.mjs",
-      "scripts/maintenance/capture-static-primaries.mjs"
-    ],
-    "census_worklist": [
-      "src/lib/intake/census-writer.mjs",
-      "scripts/connections/ratify-flag-to-census.mjs",
-      "scripts/mint/apply-mint-batch.mjs",
-      "scripts/mint/reopen-validation-holds.mjs",
-      "scripts/maintenance/record-hollow-sweep.mjs",
-            "scripts/maintenance/canonical-key-dedup.mjs",
-      "scripts/maintenance/census-off-vertical.mjs"
-    ],
-    "item_forward_events": [
-      "scripts/forward-events/run-extraction.mjs",
-      "scripts/turns/apply-extraction-output.mjs",
-      "src/lib/intake/mint-item.ts",
-      "src/lib/intake/apply-staged-update.ts",
-      "src/lib/intake/flywheel-steps.mjs",
-      "scripts/maintenance/forward-events-retext.mjs",
-      "scripts/forward-events/dispatch-extraction.mjs"
-    ],
-    "theme_briefs": [
-      "src/lib/research/theme-brief.mjs",
-      "scripts/connections/generate-theme-brief.mjs"
-    ],
-    "section_claim_provenance": [
-      "src/lib/agent/ledger-apply.mjs",
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/workflows/generate-brief.ts",
-      "scripts/_reground/free-pass-run.mjs",
-      "scripts/_reground/restore-overclear.mjs",
-      "scripts/mint/apply-mint-batch.mjs",
-      "src/lib/intake/write-item.ts",
-      "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/retype-eu-decisions.mjs",
-      "scripts/maintenance/resolve-refetch-holds.mjs"
-    ],
-    "agent_run_searches": [
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/lib/intake/write-item.ts",
-      "supabase/functions/capture-worker/index.ts",
-      "scripts/remediation/refetch-capped-worklist.mjs",
-      "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/resolve-error-body-gate.mjs",
-      "scripts/maintenance/capture-static-primaries.mjs",
-      "src/lib/intake/run-intake-cycle.ts"
-    ],
-    "intelligence_item_sections": [
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/lib/intake/write-item.ts",
-      "src/workflows/generate-brief.ts",
-      "scripts/maintenance/provenance-heal.mjs",
-      "scripts/maintenance/retype-eu-decisions.mjs"
-    ],
-    "item_gate_a_state": [
-      "src/lib/agent/canonical-pipeline.ts",
-      "src/lib/intake/write-item.ts",
-      "scripts/maintenance/provenance-heal.mjs"
-    ],
-    "corpus_turn_requests": [
-      "src/app/api/admin/corpus-turn-requests/route.ts",
-      "scripts/turns/consume-turn-requests.mjs"
-    ],
-    "monitoring_queue": [
-      "src/app/api/worker/check-sources/logic.ts",
-      "src/lib/sources/reconcile.ts",
-      "scripts/turns/run-source-sweep.mjs"
-    ],
-    "intelligence_changes": [
-      "src/lib/sources/reconcile.ts"
-    ],
-    "staged_updates": [
-      "src/app/api/community/posts/[id]/promote/route.ts",
-      "src/app/api/admin/scan/route.ts",
-      "src/lib/intake/run-intake-cycle.ts",
-      "src/lib/sources/change-sweep.mjs",
-      "scripts/maintenance/finish-staged-updates.mjs"
-    ],
-    "source_tier_opinions": [
-      "src/lib/sources/tier-opinion-writer.ts",
-      "src/app/api/admin/sources/tier-opinions/route.ts"
-    ],
-    "brief_apply_runs": [
-      "scripts/turns/apply-record-briefs.mjs",
-      "scripts/turns/io-preflight.mjs"
-    ]
-  }
-}
-```
+Replaced (lane N5, 2026-09-19, plan 6.8 Rule A): the fenced json code block that used to live here is
+gone. The allowlist (which table, which files) is no longer hand-copied anywhere; it is derived by
+`.discipline/shared-writer-registry.test.mjs` from a `// SHARED-WRITER: <table>[, <table>...]` header
+line each writer file carries directly. The set of "shared table" names is likewise derived, not a
+separate hand-maintained list: it is exactly the set of table names that appear in at least one
+SHARED-WRITER marker anywhere under `scripts/`, `src/`, and `supabase/functions/`. The test asserts
+BOTH directions (every detected write is declared, every declaration is a detected write), so a marker
+that names a table the file does not actually write, or a write with no marker, fails the test, not just
+the one-directional "undeclared write" shape the old json block only ever checked.
+
+To find who writes a table today: `grep -rl "SHARED-WRITER:.*<table>" scripts/ src/ supabase/functions/`
+(the marker line is always the first or second line of the file, right after an optional shebang). To
+register a new writer: add the header line to the file, and add a one-line justification to this doc's
+prose (a note in this section, or a row in the relevant dataset's detail table below), the SAME
+convention already used for every writer added to this doc since 2026-09-01.
+
+Note (lane N5, 2026-09-19): deriving the allowlist from markers, and adding the reverse-direction check,
+surfaced defects the old one-directional json-parsing test structurally could not see (it only ever
+asked "is this write declared", never "is this declaration a real write"), corrected here, in place,
+per standing rule 14:
+- `scripts/_reground/restore-overclear.mjs` was still named as a `section_claim_provenance` writer, but
+  the file was DELETED by lane F25-WAVE52 on 2026-09-07 (DEAD-HISTORICAL). Removed; see that dataset's own
+  detail section and the Operator-CLI register table below, both corrected in place.
+- Nine table associations were stale or wrong and are dropped (the marker keeps only the tables each file
+  genuinely writes): `scripts/mint/apply-mint-batch.mjs` never writes `section_claim_provenance` (its own
+  header says so; the write moved to `src/lib/intake/write-item.ts`'s `writeGroundingSequence`, already
+  separately registered); `scripts/maintenance/canonical-key-dedup.mjs` does not write `census_worklist`
+  (a 2026-09-04 dry-run comment in the file itself found zero matching rows and no write path exists);
+  `scripts/connections/ratify-flag-to-census.mjs` only READS `integrity_flags` (`readFlag`), it writes
+  only `census_worklist`; `src/lib/intake/apply-staged-update.ts`'s `item_forward_events` write is a call
+  to `src/lib/intake/flywheel-steps.mjs`'s `runForwardEventsStep` (already separately registered), not a
+  literal write in this file; it keeps only `intelligence_items`. Four files carried a table their own
+  header text says they never write and are dropped entirely: `scripts/mint/run-mint-batch.mjs` ("it
+  never writes to Supabase"), `scripts/forward-events/run-extraction.mjs` ("never a database"),
+  `src/lib/research/theme-brief.mjs` ("READ-ONLY... never writes", the detail table below already said
+  so since 2026-09-05; the json block had not been corrected to match), and
+  `src/lib/sources/null-tier-host-worklist.mjs` (a pure helper composed by its real callers, which are
+  already separately registered); `scripts/connections/discover-for-items.mjs` and
+  `scripts/turns/apply-record-briefs.mjs` are likewise callers of an already-registered writer
+  (`src/lib/connections/write-edges.mjs`'s `writeDiscoveredEdges`, and `scripts/turns/io-preflight.mjs`'s
+  `recordApplyRunStart`/`recordApplyRunFinish`) rather than literal writers themselves.
+- Four real, previously-undeclared writers were found and registered: `scripts/maintenance/
+  backfill-format-type.mjs` and `scripts/mint/rederive-record-provenance.mjs` and `scripts/mint/
+  screen-reconcile-records.mjs` (all three `intelligence_items`, via `guardedUpdateByIds`), and
+  `scripts/maintenance/close-run-logs.mjs` (`integrity_flags`, via `guardedUpdateByIds`). All four were
+  invisible to the OLD test too, its own `GUARDED_RE` pattern matched `guardedUpdate(` but not the
+  `guardedUpdateByIds(` suffix (the same gap `scripts/maintenance/origin-class-backfill.mjs`'s own row
+  below already named for itself), so the scan and the allowlist shared one blind spot. The pattern now
+  matches both.
+
 
 Note (added by lane L21, 2026-09-16, D32 defect-fix-plan-2026-09-12.md): `brief_apply_runs` (migration
 322) is a NEW shared dataset registered for the first time here -- its ONE writer is
@@ -610,7 +482,7 @@ than silently left out.
 |---|---|
 | `src/lib/agent/ledger-apply.mjs` — the canonical claim-ledger write path (insert / update / delete + a parallel `claim_versions` append), reached through `canonical-pipeline.ts`'s `applyLedgerDiff` during every mint/ground pass | lines 120, 132, 140, 162, 164 |
 | `scripts/_reground/free-pass-run.mjs` (KEEP) | UPDATE — re-attributes a FACT claim to a floor-qualifying capture, line 102 |
-| `scripts/_reground/restore-overclear.mjs` (KEEP) | INSERT — restores a claim erroneously versioned out by the 2026-07-16 over-clear incident, line 41 |
+| ~~`scripts/_reground/restore-overclear.mjs`~~ | **DELETED (lane F25-WAVE52, 2026-09-07)**, DEAD-HISTORICAL, the single named 2026-07-16 incident it remediated is already closed; row kept for history (found stale, lane N5, 2026-09-19: this doc's machine-readable allowlist still named the file after its deletion). |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand). Lane WSEQ (2026-09-02): the literal INSERT call site moved INTO `src/lib/intake/write-item.ts`'s `writeGroundingSequence` (the shared write sequence both mint tiers now call) — `apply-mint-batch.mjs` still owns this write (it is `writeGroundingSequence`'s only caller for a fresh item), just not the literal string anymore; see the next row. | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)`, pre-WSEQ shape |
 | `src/lib/intake/write-item.ts` (Lane WSEQ, 2026-09-02) | INSERT — the shared guarded write sequence (`writeGroundingSequence`) both mint tiers depend on for the item→searches→sections→gate-A→claims→citations tail; `apply-mint-batch.mjs`'s own claim-insert call site (row above) moved here so the record tier and the brief tier's shared row-shape builders (`buildGateARow`/`buildCitationEdges`) cannot drift apart again | `buildClaimRows` + `deps.guardedInsertMany("section_claim_provenance", ...)`, injected DI (`WriteGroundingSequenceDeps`), no top-level Supabase import |
 
@@ -780,7 +652,7 @@ asked for:
 | `scripts/_reground/free-pass-run.mjs` | Part of the still-cited `_reground` operational toolkit; referenced by live `scripts/remediation/acquire-primaries-batch.mjs`. | `intelligence_items`, `section_claim_provenance` |
 | `scripts/_reground/id-stamp.mjs` | Same toolkit; active session-log workflow entries reference it directly by name. | `intelligence_items` |
 | `scripts/_reground/lease.mjs` | Same toolkit; `id-stamp.mjs` and `tombstone-delete.mjs` require its lease to already be held. | none (lease-only, no shared-table write) |
-| `scripts/_reground/restore-overclear.mjs` | `.discipline/governance/doctrine-register.mjs` cites it directly as the incident-remediation tool that restored 48 over-cleared claims. | `section_claim_provenance`, `claim_versions` (not shared-listed) |
+| ~~`scripts/_reground/restore-overclear.mjs`~~ | **DELETED (lane F25-WAVE52, 2026-09-07)**, DEAD-HISTORICAL per that lane's own disposition; see the `section_claim_provenance` section above. | n/a (row kept for history) |
 | `scripts/_reground/target-match-probe.mjs` | `.discipline/governance/doctrine-register.mjs` + `invariants.mjs` cite it as the real-data proof for the live `target-match.golden.mjs` gate. | none (read-only probe) |
 | `scripts/_reground/tombstone-delete.mjs` | `scripts/verify/disposition-content-gate.golden.mjs:21` hard-codes `resolve(ROOT, "scripts/_reground/tombstone-delete.mjs")` and reads its source; moving it breaks that golden test outright. | `intelligence_items` (delete), `disposition_ledger` (not shared-listed) |
 | ~~`scripts/run-4c-relabel.mjs`~~ | **DELETED (lane ONESHOTS, 2026-09-06)** — the 4c relabel freeze (operator ruling 2026-07-04) is now honored by deletion, not indefinite exemption; see `.discipline/fitness/functions/F25-module-liveness.mjs`'s own removal note. | n/a (row kept for history) |

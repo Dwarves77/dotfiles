@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // /api/admin/integrity-flags
 //
 // This route serves TWO surfaces, distinguished by the ?platform=1 query:

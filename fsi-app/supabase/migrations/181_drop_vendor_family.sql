@@ -1,3 +1,4 @@
+-- subject: Migration 181 (Wave-α Track E e3). Drops the vendor table family (`vendors`, `vendor_endorsements`, `vendor_regulations`, `vendor_technologies`, all 0 rows) + `update_vendor_endorsement_count` trigger fn (removed-from-scope per 2026-05-24 ruling). Reversible (rollbacks/181 recreates from mig-007 DDL + live policies). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 181: drop the vendor table family (Wave-α Track E, dead-weight erase e3).
 --
 -- STATUS: AUTHOR-ONLY — NOT APPLIED. Rides an operator DDL window. Do not apply inline.

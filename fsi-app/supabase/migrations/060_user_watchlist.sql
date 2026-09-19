@@ -1,3 +1,4 @@
+-- subject: Migration 060: user_watchlist
 -- Migration 060: user_watchlist
 -- Surfaces a per-user list of pinned items (sources, regulations, market signals)
 -- consumed by the Dashboard Watchlist widget. item_id is text (not uuid) because

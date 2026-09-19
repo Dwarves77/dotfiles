@@ -1,0 +1,13 @@
+// RD-7-roadblock-alternative-search: split from invariants.mjs (plan 6.8, Rule A, lane N5). One entry, one file; see
+// invariants.d/README.md. The comment block below (if any) is exactly what preceded this entry in
+// the array before the split.
+
+export const invariant = {
+    id: 'RD-7-roadblock-alternative-search',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 8: Roadblock resilience (source fetch)',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    text: 'When a declared primary source roadblocks (timeout / <200ch stub / challenge / 403-404 / wrong-language-only), the pipeline runs a BOUNDED search for an OFFICIAL alternative and tries it — but alternative-search widens which sources are TRIED, never which tier QUALIFIES: a found alternative passes the SAME buildResolver tier resolution + the SAME per-type authority floor, so a sub-floor alternative is a corroborator at best and the item still honest-exits/counsel-holds. The roadblocked-vs-partial line (>=200ch in-language = honest partial, NOT a roadblock) and the bounded budget (~20s/fetch, <=3 alts, no retry on a dead URL) are load-bearing.',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    anchor: 'Roadblock resilience (source fetch)',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/primary-fallback.test.mjs', 'migration:141'],
+    residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+  };

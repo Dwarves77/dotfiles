@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // id-stamp.mjs — PROMOTE a subject-matched item to id-confirmed (Lane B-grade) by STAMPING its canonical
 // instrument_identifier, which is already verbatim in its staged primary, then RE-VERIFYING target-match.
 // This is the 4ff5cf56 promotion pattern factored as a tool for the B-CANDIDATE lane. Verify-before-write:

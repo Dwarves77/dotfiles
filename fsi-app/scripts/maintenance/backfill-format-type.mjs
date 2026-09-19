@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // backfill-format-type.mjs -- MAINT step for task 2.4 of the brief-chain build plan (2026-09-11):
 // format_type catch-up for every live (non-archived) intelligence_items row that carries none --
 // measured live corpus count, 2026-09-11 [CONFIRMED, execute_sql against kwrsbpiseruzbfwjpvsp,

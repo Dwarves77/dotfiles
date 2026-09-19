@@ -1,3 +1,4 @@
+-- subject: Migration 050: Widen integrity_flags.category CHECK constraint
 -- Migration 050: Widen integrity_flags.category CHECK constraint
 -- Adds workflow_gap as a valid category for platform-level integrity flags.
 --

@@ -1,3 +1,4 @@
+// SHARED-WRITER: item_forward_events
 // flywheel-steps.mjs - the two per-item flywheel steps (rule 16(a) discovery, rule 16(b) forward-event
 // extraction) whose real logic is non-trivial enough to duplicate by accident: extracted verbatim from
 // apply-staged-update.ts's own participateInFlywheel (task 3.4, brief-chain build plan Part 3,

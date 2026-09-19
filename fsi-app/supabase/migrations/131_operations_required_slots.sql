@@ -1,3 +1,4 @@
+-- subject: Migration 131: seed item_type_required_slots for regional_data (cost_baseline, feasibility_choice, pending_change, region_jurisdiction).
 -- Migration 131: seed item_type_required_slots for item_type='regional_data'.
 --
 -- Mirrors migration 113 (regulatory slots) and migration 126 (research slots).

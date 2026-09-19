@@ -1,3 +1,4 @@
+-- subject: Migration 184 (Wave-α Track E e7). Drops the frozen contradictory `ingestion_state` (774) + `ingestion_control_log` (709) pair (zero consumers). Precondition honored: rows exported read-only and relocated to the PRIVATE repo `Dwarves77/caros-ledge-backups` under `archives/ingestion-pair-2026-07-11/` BEFORE apply. Reversible (rollbacks/184 recreates schema; data restores from the private archive). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 184: drop the frozen ingestion pair (Wave-α Track E, dead-weight erase e7).
 --
 -- STATUS: AUTHOR-ONLY — NOT APPLIED. Rides an operator DDL window. Do not apply inline.

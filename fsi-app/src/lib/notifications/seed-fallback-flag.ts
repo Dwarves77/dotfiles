@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 /**
  * Seed-fallback flag dispatch.
  *

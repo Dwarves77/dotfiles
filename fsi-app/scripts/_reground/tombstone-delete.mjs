@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // tombstone-delete.mjs — TOMBSTONE-THEN-DELETE (operator amendment 2026-07-16). For each item, under its lease:
 // write its IDENTITY to disposition_ledger (permanent institutional memory: item_key, canonical_instrument_key,
 // archive_reason, snapshot pointer, disposition) FIRST, then guarded-delete the item — fail-closed (no tombstone,

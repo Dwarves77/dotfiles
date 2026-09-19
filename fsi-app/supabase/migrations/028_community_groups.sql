@@ -1,3 +1,4 @@
+-- subject: Migration 028, Community groups
 -- Migration 028 — Community groups
 --
 -- Date: 2026-05-01

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // apply-classifications.mjs — the ONLY place a propose-classifications.mjs classification PROPOSAL
 // becomes a WRITTEN sources.{scope_topics,scope_modes,scope_verticals,expected_output} value. Two
 // eligibility paths now exist:

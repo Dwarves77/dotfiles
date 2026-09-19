@@ -1,3 +1,4 @@
+-- subject: Migration 119: validate_item_provenance FAIL-CLOSE, a 0-section item no longer vacuously passes criteria 2-5; records no_section_content → quarantined. Sprint 4 Block 1.
 -- Migration 119: validate_item_provenance — FAIL-CLOSE the empty-shell skip.
 --
 -- DEFECT (migration 114, line 154 `IF v_has_sections THEN ... END IF`):

@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // origin-class-backfill.mjs — MAINT dispatch step for R-E: the WO-19 origin_class backfill
 // (docs/plans/wo19-origin-class-backfill-mapping.md), item_type + sources.tier -> origin_class.
 //

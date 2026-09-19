@@ -1,3 +1,4 @@
+-- subject: Migration 185 (Wave-α Track E e9). Drops 7 proven-dead (all-NULL, zero code/fn/view refs) columns: intelligence_item_versions.created_by_run_id, regions.operations_decisions, region_dimension_coverage.last_reviewed_at, sources.{classification_observed_distribution, last_observed_at, spotchecked_at, spotchecked_by}. Conservative slice (the other ~23 candidates held with reasons in the deletions log). Reversible (rollbacks/185 re-adds the columns). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 185: drop proven-dead columns (Wave-α Track E, dead-weight erase e9).
 --
 -- STATUS: AUTHOR-ONLY — NOT APPLIED. Rides an operator DDL window. Do not apply inline.

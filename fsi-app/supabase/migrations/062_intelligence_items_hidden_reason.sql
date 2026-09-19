@@ -1,3 +1,4 @@
+-- subject: Migration 062: intelligence_items.hidden_reason
 -- Migration 062: intelligence_items.hidden_reason
 --
 -- Adds a free-text column to capture WHY an item was flagged-and-hidden,

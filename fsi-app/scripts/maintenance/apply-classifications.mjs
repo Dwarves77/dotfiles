@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // apply-classifications.mjs -- MAINT dispatch step: proposes source classifications via
 // propose-classifications.mjs logic, then auto-adopts high-confidence proposals (operator ruling
 // 2026-09-03). Two modes: dry = propose (no-op) + list what --auto-adopt would adopt; apply =

@@ -1,3 +1,4 @@
+-- subject: Migration 294 (COMMUNITY-A): `community_benchmark_instruments` (house-seeded calendar instruments, `created_by='house'` CHECK) and `community_benchmark_responses` (no anon/authenticated SELECT; read only through `publish_aggregate()` via `GET /api/community/benchmarks/current`); registers `sensitive_field_policy` row (k=5, 25 %, 90-day lag) and proves `publish_aggregate()` refuses a 3-org cohort and accepts a balanced 5-org cohort live. Seeder `scripts/community/seed-benchmark-instruments.mjs` (maintenance step `seed-benchmark-instruments`, dispatch-only). **APPLIED 2026-09-03** [CONFIRMED: 15/6 columns, RLS on, 0 rows].
 -- 294 — Community: the house-seeded recurring benchmark instrument (Lane COMMUNITY-A, Wave 3, 2026-09-03;
 -- docs/specs/05-community.md §1, §3, §5 components 3, 4).
 --

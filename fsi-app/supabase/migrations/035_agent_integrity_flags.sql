@@ -1,3 +1,4 @@
+-- subject: 035_agent_integrity_flags.sql
 -- 035_agent_integrity_flags.sql
 -- Detect integrity-flag phrases in agent-emitted full_brief content.
 -- Computed boolean + matched-phrase storage, recomputed via trigger

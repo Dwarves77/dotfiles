@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 /** DATA-AUDIT LANE runner (CI-with-secrets / nightly). GOVERNING: remediation-discipline.
  *  Runs every live-data audit in sequence, captures pass/fail/error per audit, and exits non-zero if ANY
  *  HARD audit failed (so the scheduled job notifies). Each audit is its own process (isolation: one audit's

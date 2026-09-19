@@ -1,3 +1,4 @@
+-- subject: 037_source_verification.sql
 -- 037_source_verification.sql
 -- W2.F — auto-verification pipeline audit log.
 --

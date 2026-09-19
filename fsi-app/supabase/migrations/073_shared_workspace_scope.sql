@@ -1,3 +1,4 @@
+-- subject: Migration 073: extract shared workspace-scope SQL function.
 -- Migration 073: extract shared workspace-scope SQL function.
 --
 -- Numbered 073 because 072 is occupied by jurisdiction_normalizer

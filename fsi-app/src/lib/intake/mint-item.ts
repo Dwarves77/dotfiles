@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, item_cross_references, integrity_flags, item_forward_events
 // mintIntelligenceItem — THE shared mint chokepoint (phase-intake-gate, contract v2.2).
 //
 // The mint callers go through applyStagedUpdate (new_item) and NEITHER performs its own INSERT:

@@ -1,3 +1,4 @@
+-- subject: 051_sources_last_scanned_recovery.sql
 -- 051_sources_last_scanned_recovery.sql
 --
 -- Wave 1a step 1: retroactive capture of `sources.last_scanned`.

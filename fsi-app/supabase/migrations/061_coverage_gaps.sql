@@ -1,3 +1,4 @@
+-- subject: Migration 061: coverage_gaps
 -- Migration 061: coverage_gaps
 -- Hand-curated table that backs the Dashboard "Coverage gaps" widget.
 -- v1 is curated by editors. v2 (out of scope here) will derive entries by

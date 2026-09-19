@@ -1,3 +1,4 @@
+-- subject: Migration 126: seed item_type_required_slots for research_finding (finding, methodology_limits, decision_relevance, does_not_resolve).
 -- Migration 126: seed item_type_required_slots for research_finding (Research Summary format).
 -- Mirrors migration 113 (regulatory slots) so validate_item_provenance criterion 5 stops passing
 -- VACUOUSLY for research_finding (it had zero slots -> any shallow research brief passed). The

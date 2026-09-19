@@ -1,3 +1,4 @@
+-- subject: ════════════════════════════════════════════════════════════════════
 -- ════════════════════════════════════════════════════════════════════
 -- Migration 022 — recommended_classification cache on canonical_source_candidates
 --

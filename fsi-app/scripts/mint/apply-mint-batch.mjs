@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items, census_worklist
 // apply-mint-batch.mjs — the coordinator-apply step for a --census-rows record-grade mint batch (Lane
 // POP, 2026-09-02). Takes the `<basename>.apply-ready.json` run-mint-batch.mjs --census-rows --grade
 // record --execute already wrote (validator-green payloads only), applies each through the SAME guarded

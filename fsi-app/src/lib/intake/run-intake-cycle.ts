@@ -1,3 +1,4 @@
+// SHARED-WRITER: agent_run_searches, staged_updates
 // runIntakeCycle — the run-ONE-cycle-and-STOP intake orchestration (Disposition Unit 0c-2).
 //
 // no-human-finish-of-intake (RD-20 / ADR-012 rider): the machine gates ARE the approval. One invocation

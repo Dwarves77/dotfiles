@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags, agent_run_searches
 // capture-worker v1.6 — Caro's Ledge server-side document capture.
 // CONTRACT (operator-approved, 2026-08-01; v1.3 PDF extension 2026-08-02;
 //  v1.4 transient-retry + charset + atomic-claim + content-type allowlist, 2026-08-09;

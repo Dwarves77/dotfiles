@@ -1,0 +1,13 @@
+// RD-36-re-grounds-never-destroy: split from invariants.mjs (plan 6.8, Rule A, lane N5). One entry, one file; see
+// invariants.d/README.md. The comment block below (if any) is exactly what preceded this entry in
+// the array before the split.
+
+export const invariant = {
+    id: 'RD-36-re-grounds-never-destroy',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 22: Re-grounds never destroy (non-destructive-replace)',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    text: 'A re-ground\'s new claim ledger REPLACES the prior one ONLY when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count / verified-eligibility). A worse answer is a DIAGNOSTIC, not a replacement: a regressing re-extract retains the prior ledger, records the regression as a finding, and leaves the item state unchanged. Brazil Lei 12.305 (55 FACT -> 2 GAP, a non-EN extraction failure that DESTROYED the ledger) is the red fixture. Two defects cured together: the section step now reconciles by section_key (surviving section_row_ids keep their claims) so the prior ledger reaches the guard\'s snapshot instead of being cascade-wiped; and the guard compares the three dominance axes, not total count alone (55 FACT -> 55 GAP would have slipped a count-only guard).',
+    anchor: 'A re-ground\'s new ledger replaces the prior one only when it is not weaker on any dominance axis',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/ledger-dominance.test.mjs'],
+    residual: 'ledger-dominance.test.mjs proves the dominance rule red-then-green: the Brazil red golden (55 FACT -> 2 GAP fires facts + floor_qualifying + total) AND the count-blind case (55 FACT -> 55 GAP fires facts + floor_qualifying but NOT total — exactly what the count-only guard missed), plus the legitimate-trim / reattribution-improvement / tiny-prior PASS cases and the preserved legacy thinning catches. Wired at groundBrief (the guard reads the prior snapshot, restores on regression, writes a data_integrity finding, returns loud ok:false) and sectionBrief (the ledger-preserving reconcile that makes the snapshot non-empty), tsc-checked. thinning-guard.mjs deleted (superseded, one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot (they read as a legitimate reduction, not protected) — acceptable for the common same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key would close the drop-a-section edge and is the future strengthening.',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+  };

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags, agent_run_searches
 // capture-static-primaries.mjs -- MAINT step for D25 (defect-fix-plan-2026-09-12.md, lane L16): 131 live
 // verified brief-grade regulation-family items have a source_url but no stored source capture
 // (agent_run_searches row over 200 chars), and the only capture transport wired for a coordinator-run

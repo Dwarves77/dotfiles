@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, item_forward_events
 // scripts/forward-events/dispatch-extraction.mjs — the corpus-wide forward-events BACKFILL dispatcher
 // (DATECHAIN lane, 2026-09-11; runbook command 1 of docs/ops/runbooks/date-chain-2026-09-11.md).
 //

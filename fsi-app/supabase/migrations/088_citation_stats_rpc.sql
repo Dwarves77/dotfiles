@@ -1,3 +1,4 @@
+-- subject: Migration 088: get_source_citation_stats(source_ids UUID[]) RPC
 -- Migration 088: get_source_citation_stats(source_ids UUID[]) RPC
 --
 -- Why this migration exists.

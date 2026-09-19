@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // uk-series-code-reconcile.mjs -- MAINT step, task 7.4e (brief-chain build plan, ADR-030 rider,
 // 2026-09-12): reconciles the live `instrument_identifier` on legislation.gov.uk `intelligence_items`
 // rows whose series code disagrees with their own `source_url`.

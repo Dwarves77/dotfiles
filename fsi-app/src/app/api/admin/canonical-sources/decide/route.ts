@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // POST /api/admin/canonical-sources/decide
 //
 // Decision flow for a canonical_source_candidates row. Three decisions:

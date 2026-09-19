@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items, section_claim_provenance, intelligence_item_sections
 // retype-eu-decisions.mjs -- MAINT step, task 5.5 of the brief-chain build plan (2026-09-11): retype the
 // live CELEX 'D'-letter (Decision) intelligence_items rows from item_type='initiative' to
 // item_type='regulation' WITHOUT dropping provenance_status='verified'.

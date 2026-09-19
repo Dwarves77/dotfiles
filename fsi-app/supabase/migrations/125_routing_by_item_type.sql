@@ -1,3 +1,4 @@
+-- subject: Migration 125: route customer surfaces by item_type → format → surface (get_market_intel_items / get_research_items / get_operations_items by item_type; supersedes source-attribute routing in 084/117). Applied 2026-06-04.
 -- Migration 125: route customer surfaces by item_type -> format -> surface.
 -- Supersedes the source-attribute routing (get_market_intel_items by source_role in 117;
 -- get_research_items + get_operations_items by sources.category in 084). An item belongs to a

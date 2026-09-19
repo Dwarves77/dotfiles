@@ -1,3 +1,4 @@
+-- subject: Migration 123: source label is a LIVE derivation, derive_source_category (== migration 084 CASE) + derive_source_intelligence_types + BEFORE INSERT/UPDATE trigger. category + intelligence_types now derive from source_role+name on every write (kills the hardcoded ['GUIDE'] placeholder + drift). See src/lib/sources/classify-source-role.ts.
 -- Migration 123 — wire the source label as a LIVE derivation
 --
 -- Date: 2026-06-03

@@ -1,3 +1,4 @@
+-- subject: Migration 170 (Wave-α Track B8). AUTHOR-ONLY / OPERATOR DDL WINDOW. Ledgers the 15 applied-but-unledgered migrations (107,108,109,110,111,112,115,118,128,129,130,131,132,133,134, DB-3 F1, verified via read-only diff of schema_migrations vs disk) into supabase_migrations.schema_migrations, mirroring the 136-157 repair (INSERT version+name, statements NULL, guarded idempotent DO block). Records the ledger FACT; runs NO DDL (objects already live). Proof: all 15 present post-apply; re-run is a no-op. Reversible (rollbacks/170 deletes exactly the 15 statements-NULL rows). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 170 (Wave-α Track B8) — ledger repair: record the 15 applied-but-unledgered migrations
 -- (107–134 band) in supabase_migrations.schema_migrations
 --

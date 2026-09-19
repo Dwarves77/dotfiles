@@ -1,3 +1,4 @@
+-- subject: Migration 182 (Wave-α Track E e6, part 1, MUST apply before 183). Repoints the 3 RLS policy arms referencing `user_profiles` (moderation_reports_select/update_admin, post_promotions_select) onto `profiles.is_platform_admin`, so 183 can drop the mirror table. No standalone rollback (superseding policy defs; 183's rollback recreates user_profiles). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 182: repoint the 3 RLS policy arms off user_profiles onto profiles.is_platform_admin
 --                (Wave-α Track E, dead-weight erase e6 — STEP 1 of 2; MUST apply before 183).
 --

@@ -1,3 +1,4 @@
+-- subject: sources classification metadata
 ALTER TABLE public.sources
   ADD COLUMN IF NOT EXISTS classification_confidence TEXT,
   ADD COLUMN IF NOT EXISTS classification_rationale TEXT;

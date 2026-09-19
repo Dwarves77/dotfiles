@@ -1,3 +1,4 @@
+// SHARED-WRITER: item_cross_references
 import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 

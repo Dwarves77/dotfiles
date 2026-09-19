@@ -1,3 +1,4 @@
+-- subject: Migration 083, Trigger derive jurisdiction_iso from canonical jurisdictions
 -- Migration 083 — Trigger derive jurisdiction_iso from canonical jurisdictions
 --
 -- Date: 2026-05-18

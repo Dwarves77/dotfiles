@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // Phase 7 admin chrome — pending jurisdiction review triage queue.
 //
 // Backed by table public.pending_jurisdiction_review (migration 082).

@@ -1,3 +1,4 @@
+-- subject: Migration 300 (Lane URL-GUIL, 2026-09-03): in-place patch of `validate_item_provenance` criterion 2's URL regex to exclude the eight typographic delimiters `« » ‹ › “ ” ‘ ’` (the kit's guillemet span delimiter was being swallowed into URLs: `http://eur-lex»`, population runs #15/#16). Guarded: pre-patch md5 `82f7032e21424d127d0864e7626b810d`, exactly one occurrence, post-check. **APPLIED 2026-09-04 00:13 UTC via Supabase MCP** [CONFIRMED: post md5 `da6b00972e5a9bdb089bbe1f1d65d697`, new literal present, schema_migrations `20260904001306`]. JS mirror `scripts/mint/validate-mint-payload.mjs` URL_RE changed in the same train. Reversible by re-running with old/new swapped against the post md5.
 -- 300 -- criterion 2 URL extraction: exclude typographic delimiters (lane URL-GUIL, 2026-09-03,
 -- population runs #15/#16, mint-run-017/018).
 --

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // canonical-autoverify.mjs — MAINT step that auto-verifies `canonical_source_candidates` rows
 // (decision='pending'). Lane CANONICAL-AUTOVERIFY, 2026-09-06, ruling-confirmed same day: verification of
 // a replacement source location is AUTOMATIC, never a human process — there is no `needs_individual_review`
