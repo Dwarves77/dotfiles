@@ -79,3 +79,42 @@ line; a differing measurement is a STOP with both numbers.
 - `node fsi-app/.discipline/consistency/runner.mjs` (the consistency runner the hook's step 2 runs): C3 green.
 - `grep -c "id: 'RD-\|id: 'EP-\|id: 'SC-" fsi-app/.discipline/governance/invariants.mjs`: 0.
 - The push gate through the wrapper, once, last.
+
+## Amendment 1 (coordinator, 2026-09-19 18:29 UTC by the date command, after the lane's STOP)
+
+Both STOPs were right. Rulings:
+
+1. **The rebase.** `git fetch origin && git rebase origin/master` again (the branch is not on origin, so a
+   rebase is still right). Resolve exactly these: (a) `invariants.mjs`: take master's side for the file (the
+   N3 text of `RD-55-harness-run-integrity`), then apply your split on top so that
+   `invariants.d/RD-55-harness-run-integrity.mjs` carries N3's text verbatim and `invariants.mjs` is your
+   loader; re-run your equality proof against the post-rebase master's array (132 entries, N3's text for
+   that one). (b) The five `PENDING-RUN.md` modify/delete conflicts: `git rm` each; master deleted them
+   (lane N3, #746) and your re-stamps are moot. Any other conflict is still a STOP.
+2. **Pending files under N3's mechanism.** Read `fsi-app/scripts/harness-runs/CONVENTION.md`, section
+   "Declaring a pending run", as master has it. F28's range rule now requires: for every family whose
+   governing file (from its `family.json` `governing_files`) is in `git diff --name-only origin/master...HEAD`
+   with no new artifact in the range, one file added in the range at
+   `scripts/harness-runs/<family>/pending/2026-09-19-n5.md` (`## Change`: the SHARED-WRITER header line added
+   to <the files>; `## Planned run`: the family's next run; no hash anywhere). Compute the family list from
+   the descriptors, do not assume five; the "pre-existing inaccessible-triage NO ARTIFACTS" finding is
+   [HYPOTHESIS] until you check whether `scripts/sources/inaccessible-triage.mjs` is in your diff (it is a
+   governing file of that family); under the new F28 the pending file closes it either way, and your
+   session-log entry says which it was.
+3. **The migrations inventory, premise corrected in place.** [CONFIRMED by the lane: about 200 of 296
+   subjects are hand-authored and not a function of the header.] The plan's intent stands (one entry, one
+   file), so the subject moves INTO each migration once: by a scratch script, never by hand, insert one
+   line `-- subject: <the Subject cell for that file, byte for byte>` as the first line of every
+   `fsi-app/supabase/migrations/*.sql` (after a leading `/* fitness-allow */` line where one exists). Comment
+   lines only; the applied schema is unchanged and the CLI tracks migrations by version, not content; say
+   so in the entry. `generate-migrations-inventory.mjs` derives the page from filename plus that line
+   (rows sorted by number; header stating it is generated, the command, and "never edited by a lane");
+   prove it reproduces today's page byte for byte apart from the new header before anything else, paste
+   the diff (empty). C3 gains: every migration carries a well-formed `-- subject:` line (violation names
+   the file and the line to add) and the committed page equals the generator's output. The migration files
+   join the write set for that one line each.
+4. The F25 Source 10 addition is accepted as the same fix N1 made (Source 9); it stays.
+
+Then the acceptance as written (all three equality proofs), the runner at 0 violations, one commit (amend
+your existing commit only if nothing has been pushed; it has not, so `--amend` is allowed here, once), and
+the gate once, as the brief says.
