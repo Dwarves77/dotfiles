@@ -1,0 +1,90 @@
+{
+  "harness_family": "fetch-drain",
+  "harness_version": "sha256:8bb22b2e3c65b424",
+  "run_id": "fetch-drain-run-004",
+  "started_at": "2026-09-18T18:12:49.688Z",
+  "finished_at": "2026-09-18T18:12:50.470Z",
+  "config": {
+    "mode": "dry",
+    "limit": 8,
+    "invocation_mechanism": "none (dry run, no HTTP call)",
+    "supabase_project": "https://kwrsbpiseruzbfwjpvsp.supabase.co",
+    "upstream_run_id": null,
+    "stuck_cutoff": "2026-09-18T17:12:49.683Z"
+  },
+  "inputs_ref": [
+    "live query: pending_first_fetch status='queued' order by queued_at limit 8",
+    "live query: pending_first_fetch status='fetching' AND last_attempt_at <= 2026-09-18T17:12:49.683Z (stuck reset condition, fetch-drain-run-003.json's own reset step)"
+  ],
+  "per_item": [
+    {
+      "id": "ce789ab6-dc3e-4c7a-b9d3-66d65ddb715d",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id a7468fa4-078b-4be1-b29f-b4260c30fbe4 (queued_at 2026-09-01T10:08:56.880635+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5ed4fd44-f04a-47c0-b611-62bb5362d7db",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id a5f3f739-e5c5-46f4-b69d-6babb374d96f (queued_at 2026-09-01T10:11:42.731054+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ff4d1bbc-bc90-4388-9daf-ee979011b4a3",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id e372329d-b107-4f40-af00-78ea6fd53ede (queued_at 2026-09-01T10:13:42.600376+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b52666d9-d71a-40dc-af1a-91e608faae6b",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id 6fd2f526-c8df-48f2-bac9-4ab8c7b04a2c (queued_at 2026-09-01T10:17:15.263+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "91992528-f49f-41f2-a728-52c020010617",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id 253a2018-1d6d-4ca1-8153-5c84714cbf1a (queued_at 2026-09-04T06:35:24.243443+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "31bf0b7d-76a3-4fa6-9c56-3c61ae07766c",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id ca55d708-e088-4b94-99e4-1164f4b41f61 (queued_at 2026-09-04T06:35:25.192308+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d098e61b-79c1-46a4-8073-9f22fab5334a",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id 091bf2b9-d036-4242-bb22-f2dfa232bc95 (queued_at 2026-09-06T21:38:01.474558+00:00)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7d2954bc-79ef-4794-8a63-0911a7a5f86e",
+      "outcome": "planned_queued",
+      "verdict": "would invoke capture-worker for source_id 4d2fccec-422d-436a-95f0-ca4571c1afc4 (queued_at 2026-09-06T21:46:22.58535+00:00)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "limit": 8,
+    "queued_selected": 8,
+    "stuck_selected": 0,
+    "invocations": 0,
+    "batches": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/harness-runs/fetch-drain/traces/fetch-drain-run-004.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-fetch-drain.mjs, the fetch-drain family's canonical entry point (lane M1, 2026-09-18). Replaces the hand pg_net procedure PROTOCOL.md documented with a runner like every other harness family already has."
+}

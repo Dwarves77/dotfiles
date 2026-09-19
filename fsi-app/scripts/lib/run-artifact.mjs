@@ -263,6 +263,51 @@ export function writeRunArtifact(dir, artifact, opts = {}) {
   return outPath;
 }
 
+// ── shared runner-frame helpers (F45 duplicate-code, lane M1 follow-up, 2026-09-18) ────────────────────
+//
+// WHY THIS PAIR EXISTS HERE, NOT A NEW FILE. F45 flagged the identical `--mode dry|apply` validation and
+// the identical five-field artifact header as duplicated 8-line windows across
+// `research-sweep.mjs` / `run-fetch-drain.mjs` / `run-source-sweep.mjs` (and the same two shapes recur,
+// unflagged only because the surrounding lines differ enough to miss an 8-line window, in
+// `run-change-detection.mjs` / `run-population-flywheel.mjs` / `run-propagation-drain.mjs`). Every one of
+// those runners already imports `writeRunArtifact`/`hashHarnessVersion`/`claimRunId` from THIS module,
+// the established, single shared home for "what a harness runner needs from the harness layer", so the
+// two pieces of shared runner-frame boilerplate join it here rather than starting a second shared file
+// (reuse-before-construction: the home already exists, only the export list was incomplete).
+
+/**
+ * The one `--mode` validation every dry/apply runner repeats verbatim. Pure. Returns `{ok:true}` or
+ * `{ok:false, error}` in the exact shape every runner's own `parseArgs` already returns, so a caller
+ * replaces its own inline check with `const m = validateModeArg(values.mode); if (!m.ok) return m;`
+ * unchanged in behavior and in the error text every existing test already asserts on.
+ * @param {unknown} mode @returns {{ok:true}|{ok:false,error:string}}
+ */
+export function validateModeArg(mode) {
+  if (mode !== "dry" && mode !== "apply") {
+    return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(mode)}).` };
+  }
+  return { ok: true };
+}
+
+/**
+ * The five fields every harness-run artifact opens with (`harness_family`, `harness_version`, `run_id`,
+ * `started_at`, a fresh `finished_at`), spread into the artifact object literal a runner's own `finally`
+ * block builds: `const artifact = { ...baseArtifactFields({family, harnessVersion, runId, startedAt}),
+ * config: {...}, ... }`. Pure other than reading the clock ONCE for `finished_at` (the same "stamp it at
+ * assembly time" moment every runner's own inline version already used), no I/O, no file write.
+ * @param {{family:string, harnessVersion:string, runId:string, startedAt:string}} opts
+ * @returns {{harness_family:string, harness_version:string, run_id:string, started_at:string, finished_at:string}}
+ */
+export function baseArtifactFields({ family, harnessVersion, runId, startedAt }) {
+  return {
+    harness_family: family,
+    harness_version: harnessVersion,
+    run_id: runId,
+    started_at: startedAt,
+    finished_at: new Date().toISOString(),
+  };
+}
+
 function runIdRegExpFor(family) {
   return new RegExp(`^${family}-run-(\\d{3})\\.json$`);
 }

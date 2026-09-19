@@ -1,0 +1,207 @@
+name: Fetch drain
+
+# THE HEAD OF THE LOOP'S SECOND HOP (lane M1, 2026-09-18, build plan
+# `docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1 row M1). Before this file, nothing in
+# the repo invoked `capture-worker` on its own: every drain was a coordinator issuing `pg_net` batches by
+# hand through MCP (`fetch-drain-run-003.json`'s own `config.invocation_mechanism`; the stage audit's
+# README, gap 1: "fetch-drain is not even a workflow"). This workflow gives the family the same shape
+# every other harness family already has: a `workflow_dispatch` for a human-requested run, and a
+# `workflow_run` chain so a fetch drain follows a source sweep automatically, capped, with no schedule.
+#
+# THIS DRIVER: `fsi-app/scripts/turns/run-fetch-drain.mjs` (this lane), see that script's own header for
+# the CONTRACT it implements (the worker's `{limit?, queue_ids?}` POST shape, the atomic claim, the
+# stuck-row reset condition). It ALWAYS records a `fetch-drain` harness-run artifact
+# (`scripts/harness-runs/fetch-drain/`), in both modes, from a `finally` block.
+#
+# MODES. `dry` (the default, and the ONLY mode a manual `workflow_dispatch` can request without also
+# choosing `apply` explicitly): read-only, no write, no HTTP call. `apply`: resets stuck rows, then
+# invokes `capture-worker` over HTTPS in batches of 8, reading back every batch's own rows afterward. The
+# runner's own `--limit` cap (64, enforced in code) is independent of this workflow's own inputs.
+#
+# EVENT CHAINING, NOT A SCHEDULE (same posture `ledger-consume.yml` documents for its own
+# `workflow_run: ["Source sweep"]` trigger; rule 16 is about `schedule:`/cron, not event chaining).
+# `workflow_run: workflows: ["Source sweep"]` fires this workflow automatically after every source-sweep
+# run completes, running `apply` with `limit 8` ONLY when the upstream run's own conclusion was
+# `success`, the SAME conditional shape `ledger-consume.yml`'s own `consume:` job uses for its
+# `workflow_run` trigger, copied here rather than re-designed. A `workflow_dispatch` always runs (an
+# operator dispatch is always a deliberate action, mode/limit taken from its own inputs verbatim).
+#
+# `GITHUB_EVENT_WORKFLOW_RUN_ID`, exported into the runner's own env before it runs (this file's own
+# "Export upstream run id" step), so `run-fetch-drain.mjs` can record `config.upstream_run_id` (its own
+# header: "from `process.env.GITHUB_EVENT_WORKFLOW_RUN_ID` when set"). M9a (a later lane, build plan
+# section 6.1 row M9) adds the top-level loop-manifest field this powers; this workflow only supplies the
+# value.
+#
+# DISPATCH-ONLY beyond the event chain above, DELIBERATELY, no schedule armed, the same build-mode ruling
+# every other workflow in this repo states for itself (operator ruling 2026-09-01):
+#   schedule:
+#     - cron: '0 10 * * 1'   # placeholder cadence only, the operator picks the real one at re-arm time
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, the
+# same pair every guarded script in `fsi-app/scripts/lib/db.mjs` already requires, and the same two
+# `ledger-consume.yml`/`source-sweep.yml` inject for their own jobs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read-only, selects the queued and stuck rows, writes nothing, no HTTP call. apply = resets stuck rows, then invokes capture-worker in batches of 8 (run-fetch-drain.mjs''s own --limit cap, 64, applies).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      limit:
+        description: 'Max queued rows this run selects (bounded runs, no unbounded drains). run-fetch-drain.mjs refuses more than 64.'
+        required: false
+        default: '8'
+        type: string
+  workflow_run:
+    workflows: ["Source sweep"]
+    types: [completed]
+  # schedule:
+  #   - cron: '0 10 * * 1'   # BUILD MODE (2026-09-01 ruling, same as corpus-turn.yml / source-sweep.yml /
+  #                           # ledger-consume.yml / producers.yml), stays commented out until the
+  #                           # operator explicitly re-arms it.
+
+concurrency:
+  group: fetch-drain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  drain:
+    # Only proceed on an explicit dispatch, or a workflow_run whose triggering run actually SUCCEEDED,
+    # the SAME conditional ledger-consume.yml's own `consume:` job uses for its workflow_run trigger.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      # workflow_dispatch: use the inputs verbatim, an operator dispatch is always a deliberate, bounded
+      # action. workflow_run (the Source-sweep event chain): mode is FORCED to apply and limit to 8, per
+      # this file's own header ("running apply with limit 8 only when the upstream conclusion is
+      # success"), there is no mode/limit input to read from a workflow_run event in the first place.
+      - name: Resolve dispatch parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            mode="${{ inputs.mode }}"
+            limit="${{ inputs.limit }}"
+          else
+            mode="apply"
+            limit="8"
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "limit=$limit" >> "$GITHUB_OUTPUT"
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = ${{ steps.params.outputs.mode }}"
+          echo "limit   = ${{ steps.params.outputs.limit }}"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "upstream Source sweep run id = ${{ github.event.workflow_run.id }} (conclusion ${{ github.event.workflow_run.conclusion }})"
+          fi
+
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # Same run_id collision guard source-sweep.yml/ledger-consume.yml carry (see either file's own
+      # comment for the incident this closes): claimRunId (scripts/lib/run-artifact.mjs) numbers the next
+      # artifact from what it can see in the checked-out tree, i.e. master, but artifacts land through a
+      # PR, so a run dispatched before a prior run's PR merged would otherwise claim the same run_id as
+      # that unmerged sibling.
+      - name: Hydrate unmerged fetch-drain artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/fetch-drain/*:refs/remotes/origin/fetch-drain/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/fetch-drain/*'); do
+            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/fetch-drain/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged fetch-drain file(s) from sibling branches"
+
+      - name: run-fetch-drain.mjs
+        env:
+          # This file's own header: the loop-manifest field M9a adds; this workflow only supplies the
+          # value, set ONLY on the workflow_run trigger (a workflow_dispatch has no upstream run to name).
+          GITHUB_EVENT_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          node scripts/turns/run-fetch-drain.mjs --mode "${{ steps.params.outputs.mode }}" --limit "${{ steps.params.outputs.limit }}"
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/fetch-drain/**) so the run
+      # this dispatch (or chain) produced survives past the Actions log, same posture source-sweep.yml
+      # and ledger-consume.yml apply to their own families. A run normally executes against master, which
+      # is typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
+      # straight to whatever ref triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
+      - name: Commit the fetch-drain harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/fetch-drain
+          if git diff --cached --quiet; then
+            echo "No new fetch-drain artifact to commit."
+            exit 0
+          fi
+          branch="fetch-drain/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "fetch-drain ${{ steps.params.outputs.mode }}: run ${{ github.run_id }} (${{ github.event_name }})"
+          # BRANCH-BASE: re-base the artifact commit onto the current master tip before the push, so a
+          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
+          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated fetch drain (run %s, trigger %s).\n\nMode: %s\nLimit: %s\n%s\nLands the harness-run artifact for this drain under scripts/harness-runs/fetch-drain/.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" \
+            "$([ "${{ github.event_name }}" = "workflow_run" ] && echo "Upstream Source sweep run: ${{ github.event.workflow_run.id }} (${{ github.event.workflow_run.conclusion }})")" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Fetch drain: ${{ steps.params.outputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
+
+      - name: Upload scripts/_snapshots as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetch-drain-snapshots-${{ github.run_id }}
+          path: fsi-app/scripts/_snapshots/
+          if-no-files-found: ignore
+          retention-days: 90

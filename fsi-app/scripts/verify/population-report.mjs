@@ -319,6 +319,37 @@ export function describeOpenFlagsByFamilyState(label, dispatchStep) {
   ];
 }
 
+// -- "fetch-drain queue" entry (lane M1, 2026-09-18, build plan section 6.1 row M1: "visible: population
+// report line; if it does not print pending_first_fetch counts, add the one line"). Before this entry the
+// report printed no line for this queue at all -- same shape as "briefs pending"/"open flags" above: total
+// (rows) IS the queue depth itself, not a coverage ratio, so a nonzero count reads ROWS_NO_VALUES (red,
+// "needs draining") and zero reads EMPTY (benign, "nothing queued right now").
+
+/**
+ * Count pending_first_fetch rows currently status='queued'. $0, read-only, count-only (head:true, no rows
+ * fetched). @param {object} sb @returns {Promise<{count:number|null, error:{message:string}|null}>}
+ */
+export async function countFetchDrainQueued(sb) {
+  try {
+    const res = await sb.from("pending_first_fetch").select("*", { count: "exact", head: true }).eq("status", "queued");
+    if (res.error) throw new Error(res.error.message);
+    return { count: res.count ?? 0, error: null };
+  } catch (e) {
+    return { count: null, error: { message: e.message } };
+  }
+}
+
+/** describeState hook for the fetch-drain queue entry -- see renderReport's own doc comment. */
+export function describeFetchDrainQueueState(state, counts) {
+  if (state === "EMPTY") {
+    return ["0 pending_first_fetch row(s) queued: the fetch-drain queue is caught up, nothing to drain right now."];
+  }
+  return [
+    `${counts.rows} pending_first_fetch row(s) at status='queued', waiting on a drain.`,
+    "Drain: scripts/turns/run-fetch-drain.mjs --mode apply (lane M1, 2026-09-18), dispatched via fetch-drain.yml (workflow_dispatch, or automatically after a Source sweep completes). See docs/runbooks/CORPUS-TURN-RUNBOOK.md's Fetch drain section.",
+  ];
+}
+
 // ── "legal-confirmation" line (D17 family 14, defect-fix-plan-2026-09-12) ─────────────────────────────
 // authorship-shard-* BLOCKER rows are entity-to-DEFINED-ROLE legal determinations the platform never
 // makes (CLAUDE.md's "no legal role determination" standing rule); close-legal-confirmation-rows.mjs
@@ -620,6 +651,15 @@ export const STORES = Object.freeze([
     totalQuery: (sb) => countCoverageReflections(sb),
     filledQuery: (sb) => countCoverageReflections(sb),
     describeState: describeCoverageReflectionsState },
+  // -- lane M1, 2026-09-18, build plan section 6.1 row M1: "visible: population-report already prints the
+  // queue; if it does not print pending_first_fetch counts, add the one line." It did not; this is that
+  // line. RED (rows>0) means capture-worker has queued work waiting on a fetch-drain dispatch.
+  { table: "pending_first_fetch", fill: "status='queued' rows awaiting a drain (defect count itself, see below)",
+    reader: "population-report.mjs's own CLI output; the fetch-drain queue scripts/turns/run-fetch-drain.mjs (lane M1) drains",
+    producer: "sources INSERT/UPDATE trigger enqueue_pending_first_fetch() (migration 065); drained by scripts/turns/run-fetch-drain.mjs via fetch-drain.yml",
+    totalQuery: (sb) => countFetchDrainQueued(sb),
+    filledQuery: async () => ({ count: 0, error: null }),
+    describeState: describeFetchDrainQueueState },
 ]);
 
 /**

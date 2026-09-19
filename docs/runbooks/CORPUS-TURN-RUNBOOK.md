@@ -835,6 +835,91 @@ with `count > 0`, `with_text: true`, `fetch_ok_count` accounting for most of `co
 `metrics.next_cursor` the NEXT export (no `export_after` given) resumes from — the concrete, checkable
 proof that two consecutive chained exports cover disjoint windows, not the same one twice.
 
+## Fetch drain
+
+Written 2026-09-18, lane M1 (build plan `docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1
+row M1). Governs `.github/workflows/fetch-drain.yml` and `scripts/turns/run-fetch-drain.mjs`, the runtime
+`capture-worker` never had. Before this lane, every drain of `pending_first_fetch` was a coordinator
+issuing `pg_net.http_post` batches by hand through MCP (`fetch-drain-run-001/002/003.json`'s own
+`config.invocation_mechanism`, and `scripts/harness-runs/fetch-drain/PROTOCOL.md`'s own note, "the drain
+family has no single runner script"). This section replaces that hand procedure; it is not written down
+anywhere else in `docs/` (a search for `pg_net` under `docs/` finds nothing else to mark superseded, the
+mechanism lived only in the coordinator's own MCP calls and the family's own artifacts/PROTOCOL.md, which
+stay as the family's history, not a live procedure).
+
+### What the runner does
+
+`run-fetch-drain.mjs` reads the CONTRACT from `supabase/functions/capture-worker/index.ts` v1.6 directly
+(see that script's own header): the worker accepts POST `{limit?, queue_ids?}` and returns
+`{processed, results}`; a `queue_ids` request accepts rows currently `status IN ('queued', 'error')` and
+claims each atomically before processing it.
+
+- **`--mode dry`** (default): SELECTs the queued rows (`status='queued'`, oldest `queued_at` first,
+  `--limit`, default 8) and the STUCK rows (`status='fetching'`, `last_attempt_at` older than one hour,
+  the reset condition `fetch-drain-run-003.json`'s own `inputs_ref` names). Prints the plan. Writes the
+  artifact with `config.mode:"dry"` and zero invocations. No write, no HTTP call.
+- **`--mode apply`**: resets every STUCK row to `status='queued'` via a scoped, id-list UPDATE
+  (`db.mjs`'s `guardedUpdateByIds`, cited, re-applies its own match at write time), re-selects the queued
+  rows (now including any freshly-reset row, which naturally sorts to the front by its own old
+  `queued_at`), invokes `capture-worker` directly over HTTPS in batches of 8 ids, awaits each batch, then
+  reads back every batch's own rows afterward, so a batch whose HTTP call itself failed (a
+  WORKER_RESOURCE_LIMIT crash, run-003's own `defects_found`) still gets an honest per-row outcome from
+  the database, not a silent gap.
+- **`--limit`**: bounds the queued-row selection in both modes. Maximum 64 per run, enforced in code.
+
+Always records a `fetch-drain` harness-run artifact (`scripts/harness-runs/fetch-drain/`), in both modes,
+from a `finally` block, the same crash-safety every other family's runner already applies.
+
+### The two triggers
+
+`fetch-drain.yml` gives the family a `workflow_dispatch` (`mode` dry|apply, default dry; `limit`, default
+8) for a human-requested run, and a `workflow_run: workflows: ["Source sweep"], types: [completed]` chain
+that runs `apply` with `limit 8` automatically after a source sweep, ONLY when the upstream run's own
+conclusion was `success`, the same conditional shape `ledger-consume.yml`'s own `workflow_run` trigger
+uses (copied, not re-designed). `GITHUB_EVENT_WORKFLOW_RUN_ID` is exported into the runner's own env on
+that trigger, so `run-fetch-drain.mjs` records `config.upstream_run_id` (the field a later lane, M9a,
+turns into a first-class loop-manifest field). No schedule is armed (rule 16), the same posture every
+other workflow in this repo states for itself.
+
+### `source-sweep.yml`'s `loop_run_id` input (same lane)
+
+`source-sweep.yml` gained one input, `loop_run_id` (string, default empty): when blank, the workflow
+resolves it to its own `github.run_id` and passes it to `run-source-sweep.mjs` as the `LOOP_RUN_ID`
+environment variable, which the runner records as `config.loop_run_id` in its own artifact. This is the
+loop-wide run id the build plan's proof run (section 6.2) reads across every hop's artifact, sweep,
+fetch-drain, ledger-consume, and so on, to confirm one dispatch reached every hop.
+
+### How a coordinator requests a run
+
+Manual dispatch, mode `dry` to see the plan first:
+
+```
+mode=dry  limit=8
+```
+
+then `mode=apply` (same `limit`) once the plan looks right, or simply dispatch a source sweep and let the
+`workflow_run` chain fire the drain automatically at `limit=8`.
+
+### Reading the artifact
+
+`scripts/harness-runs/fetch-drain/fetch-drain-run-NNN.json`, `config.mode` names dry vs apply,
+`config.invocation_mechanism` reads `"https from runner"` on an apply run (never `pg_net` again),
+`metrics.queued_selected`/`stuck_selected` name the plan's size, and an apply run's `metrics.batches`/
+`invocations`/`stuck_reset_updated` name what actually happened. `per_item` carries one row per queued or
+stuck id, `planned_queued`/`planned_stuck_reset` on a dry run, the worker's own outcome (`captured`,
+`failed`, `requeued`, ...) or an honest `http_call_failed_readback_<status>` label on an apply run whose
+HTTP call itself failed.
+
+### First dispatch (proves this component per the build plan's section 0)
+
+`fetch-drain-run-004.json` (this lane, `--mode dry`, run locally against the live project) is the first
+run of the new runner: `queued_selected=8`, `stuck_selected=0`, `harness_version` matches the current
+`GOVERNING_FILES['fetch-drain']` hash exactly (`sha256:8798fd9745d2c458`), so F28's staleness coupling on
+this family's own governing-file change is discharged by this same artifact. The coordinator's own first
+`--mode apply` dispatch (or the first automatic `workflow_run` firing after a source sweep) is what
+`fetch-drain-run-005` will record, proving the HTTPS-from-runner invocation path end to end against a
+live `capture-worker` response.
+
 ## Change detection
 
 Written 2026-09-02, lane CD (system-completion train). Governs `.github/workflows/change-detection.yml` —

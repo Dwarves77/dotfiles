@@ -88,6 +88,10 @@ on:
         default: 'dry'
         type: choice
         options: [dry, apply]
+      loop_run_id:
+        description: 'Lane M1 (2026-09-18, build plan section 6.1 row M1): the loop-wide run id this sweep and its downstream hops (fetch-drain, ...) carry forward, so a proof run (build plan section 6.2) can find every hop''s artifact by one shared id. Leave blank (the default) to use this workflow''s own github.run_id.'
+        required: false
+        type: string
   # schedule:
   #   - cron: '0 8 * * 1'   # BUILD MODE (2026-09-01) — see header above; stays commented out until the
   #                          # operator explicitly re-arms it.
@@ -167,14 +171,25 @@ jobs:
             fi
           fi
 
+      # loop_run_id (lane M1, 2026-09-18, build plan section 6.1 row M1): defaults to this workflow's own
+      # github.run_id when the dispatch input is left blank, so a manual dispatch (no downstream chain
+      # naming one) still gets a real, unique loop identifier rather than an empty string.
+      - name: Resolve loop_run_id
+        id: loop
+        run: |
+          loop_run_id="${{ inputs.loop_run_id }}"
+          if [ -z "$loop_run_id" ]; then loop_run_id="${{ github.run_id }}"; fi
+          echo "loop_run_id=$loop_run_id" >> "$GITHUB_OUTPUT"
+
       - name: This run's gates
         run: |
-          echo "trigger = ${{ github.event_name }}"
-          echo "walker  = ${{ inputs.walker }}"
-          echo "mode    = ${{ inputs.mode }}"
-          echo "from/to = ${{ inputs.from }} .. ${{ inputs.to }}"
-          echo "feed    = ${{ inputs.feed_url }}"
-          echo "sitemap = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} time_budget_seconds=${{ inputs.time_budget_seconds }} check_coverage=${{ inputs.check_coverage }}"
+          echo "trigger      = ${{ github.event_name }}"
+          echo "walker       = ${{ inputs.walker }}"
+          echo "mode         = ${{ inputs.mode }}"
+          echo "from/to      = ${{ inputs.from }} .. ${{ inputs.to }}"
+          echo "feed         = ${{ inputs.feed_url }}"
+          echo "sitemap      = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} time_budget_seconds=${{ inputs.time_budget_seconds }} check_coverage=${{ inputs.check_coverage }}"
+          echo "loop_run_id  = ${{ steps.loop.outputs.loop_run_id }}"
 
       # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
       # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
@@ -202,6 +217,8 @@ jobs:
 
       - name: run-source-sweep.mjs
         if: ${{ inputs.walker != 'research' }}
+        env:
+          LOOP_RUN_ID: ${{ steps.loop.outputs.loop_run_id }}
         run: |
           args=(--walker "${{ inputs.walker }}" --mode "${{ inputs.mode }}")
           if [ "${{ inputs.walker }}" = "feed" ]; then

@@ -81,7 +81,7 @@ import { isErrorBody } from "../../src/lib/sources/entity-gate.mjs";
 import { sourceRole, congruence } from "../../src/lib/entities/source-role.mjs";
 import { buildResearchRecordPayload } from "../../src/lib/intake/record-facts-research.mjs";
 import { validateMintPayload } from "../mint/validate-mint-payload.mjs";
-import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -165,9 +165,8 @@ export function parseArgs(argv) {
   } catch (err) {
     return { ok: false, error: err.message };
   }
-  if (values.mode !== "dry" && values.mode !== "apply") {
-    return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
-  }
+  const modeCheck = validateModeArg(values.mode);
+  if (!modeCheck.ok) return modeCheck;
   const maxSources = Number(values["max-sources"]);
   const maxDocsPerSource = Number(values["max-docs-per-source"]);
   if (!Number.isFinite(maxSources) || maxSources <= 0) return { ok: false, error: "--max-sources must be a positive number." };
@@ -553,11 +552,7 @@ async function main() {
         });
       }
       const artifact = {
-        harness_family: "source-sweep",
-        harness_version: harnessVersion,
-        run_id: runId,
-        started_at: startedAt,
-        finished_at: new Date().toISOString(),
+        ...baseArtifactFields({ family: "source-sweep", harnessVersion, runId, startedAt }),
         config: {
           subject: "research", mode, max_sources: maxSources, max_docs_per_source: maxDocsPerSource,
           seen_urls_file: seenUrlsFile, out_dir: outDir,
