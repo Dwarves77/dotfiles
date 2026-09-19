@@ -183,6 +183,26 @@ the single reason above (registering `brief-apply`).
 
 **What changed.** The recorded hash `sha256:e19622ff5bec3f23` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/governing-files.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:331382dbea0f66e9` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+**harness_version at write time (superseded below, see Re-pin 4):** `sha256:331382dbea0f66e9` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
 
-**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+**The planned run that would have superseded THAT marker.** Unchanged in kind from the previous pin; no `meta-harness-run-NNN.json` landed before lane M8's own edit moved the hash again (see the re-pin below).
+
+## Re-pin 4 (lane M8, 2026-09-18, S1 collect completeness -- inaccessible-triage family registration)
+
+**What changed.** `scripts/harness-runs/governing-files.mjs` and `scripts/harness-runs/CONVENTION.md`
+(two of `meta-harness`'s own governing files) gained an `inaccessible-triage` entry, registering that
+family (`scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` also gained the string, per CONVENTION.md's
+own registration-order rule -- see `scripts/harness-runs/inaccessible-triage/PENDING-RUN.md` for the full
+account). The same "the loop applies to itself" mechanism every prior family registration already moved
+this marker for (corpus-turn, brief-apply, both cited above). `scripts/lib/run-artifact.mjs`,
+`.discipline/fitness/functions/F28-harness-run-integrity.mjs`, and `PROPOSER-RUNBOOK.md` (the other three
+`meta-harness` governing files) are untouched by this lane beyond `run-artifact.mjs`'s own
+`ALLOWED_FAMILIES` addition (itself one of the five governing files, so already accounted for by the hash
+below).
+
+**harness_version at write time:** `sha256:149fb249227d13cc` (recomputed via `hashHarnessVersion` against
+`governing-files.mjs`'s own `GOVERNING_FILES['meta-harness']` array, the same 5 files, unreordered;
+supersedes `sha256:331382dbea0f66e9` outright).
+
+**The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
+next self-application review pass over this wave, unchanged in kind from every prior entry above.

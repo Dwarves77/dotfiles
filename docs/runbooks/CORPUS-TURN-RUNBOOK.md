@@ -182,6 +182,42 @@ entry for the one-writer rule and exact column semantics).
    (same `--all-hosts`, no other change — `orderHostGroupsForSweep`'s resumability picks up exactly where
    this one stopped) is how the remaining dispatch count is actually measured, not assumed in advance.
 
+**Backfill in slices (lane M8, 2026-09-18)** -- `--all-hosts` alone stalled: the 2026-09-18 stage audit
+(`docs/audits/stage-audit-2026-09-18/s1-collect.md`) found 18 real dispatches over 13 days (2026-09-01 to
+2026-09-05, dry and apply mixed) left the never-walked bucket completely unmoved. Re-confirmed by this
+lane, read-only SQL, 2026-09-18: `sitemap_walk_outcome` over ALL 2,572 `sources` rows (any status) --
+`walked` 140, `feed_only` 120, `no_sitemap` 90, `bot_wall` 21 (371 total), **NULL (never walked) 2,201**
+(85.6%) -- byte-identical to the 2026-09-05 audit's own snapshot; zero net progress in the intervening 13
+days. The root cause: `orderHostGroupsForSweep`'s resumability (above) is real, but it only ADVANCES once
+a dispatch's `sitemap_last_walked_at` patch actually lands via `--mode apply`, and every dispatch in that
+window either ran dry or (per the audit) never actually fired for real.
+
+Two new arguments make `--all-hosts` resumable without depending on trusting a prior apply landed:
+
+- `--slice N` (default `DEFAULT_SLICE_HOSTS` = 100, hard ceiling `MAX_SLICE_HOSTS` = 500 -- a value above
+  the ceiling is refused) -- the sizing knob for `--all-hosts`, replacing `--max-hosts`'s role for this
+  mode specifically (`--max-hosts` keeps its own default/meaning for `--host`/`--source-id` use;
+  `run-source-sweep.mjs`'s own header on `DEFAULT_SLICE_HOSTS` has the full account of why a second knob
+  was added rather than just raising `DEFAULT_MAX_HOSTS`).
+- `--after HOST` -- resume the never-walked-first/oldest-first ordering just past this host. When omitted,
+  the runner reads the cursor back AUTOMATICALLY from the newest `--walker sitemap --all-hosts` artifact's
+  own `config.cursor` (`latestSitemapAllHostsCursor`) -- a coordinator does not have to copy a value by
+  hand between dispatches.
+
+Every `--all-hosts` artifact records `config.cursor`: the last host THIS run actually FINISHED every row
+of (`lastFullyWalkedHost`) -- never a host the wall-clock time budget only partially walked, so a partial
+host's remaining rows are retried by the NEXT dispatch rather than silently skipped forever. `metrics`
+also carries `hosts_remaining_after_slice` (how many never-walked-or-stale hosts are left PAST this run's
+own slice -- distinct from the pre-existing `hosts_remaining_unwalked`, the never-walked bucket
+specifically) so a coordinator can watch the backlog count down without opening a second artifact.
+
+To dispatch the backfill to completion: repeat `walker=sitemap mode=apply all_hosts=true` (leaving
+`--slice`/`--after` at their defaults) until a `--check-coverage` report (below) reads `never_walked: 0`
+-- at the default slice of 100, `⌈2,201/100⌉ = 23` dispatches covers the current backlog, fewer once a
+dispatch's own alternative-discovery or bot-wall findings reduce it, more if new sources are added to the
+registry meanwhile (the same "measured, not assumed in advance" posture `DEFAULT_MAX_HOSTS`'s own
+arithmetic used).
+
 **A fourth mode that walks nothing** — `--check-coverage` (requires `--mode dry`; refuses alongside
 `--source-id`/`--host`/`--all-hosts`) — a read-only report over the five coverage columns: sources total
 (every status), active total, how many active rows have ever been sitemap-walked vs never, a breakdown by
@@ -210,7 +246,22 @@ walker=sitemap  mode=apply  all_hosts=true  max_hosts=40                     # n
 walker=sitemap  mode=dry    check_coverage=true                              # where does the backfill stand right now
 walker=sitemap  mode=apply  host=aircargonews.net                            # one named host, e.g. re-checking after a fix
 walker=sitemap  mode=apply  all_hosts=true  max_hosts=40  time_budget_seconds=600  # a shorter budget, e.g. testing the cutoff itself
+walker=sitemap  mode=apply  all_hosts=true  slice=100                             # the backfill dispatch (lane M8, 2026-09-18): cursor auto-read from the prior artifact
+walker=sitemap  mode=apply  all_hosts=true  slice=100  after=aircargonews.net      # explicit resume point, e.g. re-driving a slice after an incident
 ```
+
+**Feed walker -- known finding, not yet fixed (lane M8, 2026-09-18).** The feed walker's only-ever
+dispatch (`source-sweep-run-008`, 2026-09-02, `walker=feed`, dry) failed on `https://theloadstar.com/feed`
+with `"fetch failed: HTTP 403 for https://theloadstar.com/feed"`. Read against `feed-walk.mjs`'s
+`walkFeed` and `run-source-sweep.mjs`'s `fetchTextImpl`: the error fires at the FETCH itself (`!res.ok` ->
+throw), before `feed-walk.mjs` ever sees a response body to parse -- a plain 403 is not the shape a parser
+defect, a wrong content-type check, or a missing redirect follow would produce (those all presuppose the
+fetch reached 200 OK). The recorded error alone cannot distinguish a genuine bot-wall (theloadstar.com
+blocking this walker's `User-Agent: FSI-source-sweep/1.0`) from a stale/wrong URL or an IP-range block
+specific to GitHub Actions runners -- only a live fetch would show which, and this lane's brief forbids
+network fetches. **Recommendation (matches the 2026-09-05/2026-09-18 audits' own):** one bounded dry
+re-dispatch (`walker=feed mode=dry feed_url=https://theloadstar.com/feed`, or a known-good feed URL as a
+control) to determine the walker's health before ruling on the mechanism.
 
 ## Downstream chain (lane CHAIN, 2026-09-06)
 

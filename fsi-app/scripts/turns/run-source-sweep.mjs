@@ -63,7 +63,7 @@ import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 // array/F28's hash yet). DEFAULT_MAX_SITEMAP_FETCHES/DEFAULT_MAX_SITEMAP_ENTRIES are this driver's own
 // --max-sitemap-fetches/--max-sitemap-entries defaults, mirroring the module's own.
 import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
-import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { readAllByIds } from "../lib/db.mjs";
 
@@ -152,6 +152,23 @@ export const DEFAULT_SITEMAP_LIMIT = 5000;
 // Always overridable per dispatch via --max-hosts.
 export const DEFAULT_MAX_HOSTS = 40;
 
+// SLICE + CURSOR (lane M8, 2026-09-18, docs/audits/stage-audit-2026-09-18/s1-collect.md row 4 / "what
+// the operator must rule on" #1): DEFAULT_MAX_HOSTS's resumability (orderHostGroupsForSweep, above) is
+// real, but it is DB-write-driven -- it only advances once a dispatch's `sitemap_last_walked_at` patch
+// actually lands in --mode apply. Measured by the audit and re-confirmed by this lane (see the report):
+// 18 real dispatches (dry and apply mixed) over 13 days left the never-walked bucket completely
+// unmoved -- 2,201 of 2,572 sources still NULL, byte-identical to the 2026-09-05 audit's own count.
+// `--slice`/`--after` add an EXPLICIT, artifact-recorded resumability boundary that does not depend on
+// trusting a prior apply's DB write landed: a run's own `config.cursor` names the last HOST it actually
+// FINISHED (lastFullyWalkedHost, above -- never a merely-selected one), and the next dispatch reads that
+// cursor back from the newest `--walker sitemap --all-hosts` artifact (`latestSitemapAllHostsCursor`,
+// above) unless the caller names `--after` explicitly. This is additive: `--max-hosts` keeps its own
+// documented meaning and default for `--host`/`--source-id`-scoped use; `--slice` is the sizing knob this
+// lane wires into the `--all-hosts` branch of `main()` instead of `--max-hosts`, per the brief's own
+// numbers (default 100, hard ceiling 500 -- a --slice above the ceiling is a caller error, refused).
+export const DEFAULT_SLICE_HOSTS = 100;
+export const MAX_SLICE_HOSTS = 500;
+
 // --time-budget-seconds's default (lane SWEEP-BUDGET, 2026-09-04): the sitemap walker's WALL-CLOCK hard
 // stop for `--all-hosts`/`--host`/`--source-id` alike (the SAME `for (const src of targets)` loop serves
 // all three selectors) — SAME arithmetic DEFAULT_MAX_HOSTS's own comment already computed, just no longer
@@ -176,7 +193,8 @@ function usage() {
     "         --walker <register-eurlex|register-federal-register|feed|sitemap>\n" +
     "         --mode <dry|apply> [--from ISO-date] [--to ISO-date] [--feed-url url] [--series L|C]\n" +
     "         [--types RULE,PRORULE] [--term text] [--max-pages N] [--per-page N] [--source-name name]\n" +
-    "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--time-budget-seconds N] [--limit N]\n" +
+    "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--slice N] [--after host]\n" +
+    "         [--time-budget-seconds N] [--limit N]\n" +
     "         [--max-sitemap-fetches N] [--max-sitemap-entries N] [--check-coverage]\n" +
     "         [--harness-runs-dir dir] [--out-dir dir]"
   );
@@ -204,6 +222,8 @@ export function parseArgs(argv) {
         host: { type: "string" },
         "all-hosts": { type: "boolean", default: false },
         "max-hosts": { type: "string", default: String(DEFAULT_MAX_HOSTS) },
+        slice: { type: "string", default: String(DEFAULT_SLICE_HOSTS) },
+        after: { type: "string" },
         "time-budget-seconds": { type: "string", default: String(DEFAULT_TIME_BUDGET_SECONDS) },
         "check-coverage": { type: "boolean", default: false },
         limit: { type: "string" },
@@ -276,6 +296,13 @@ export function parseArgs(argv) {
   if (!Number.isFinite(maxHosts) || maxHosts <= 0) {
     return { ok: false, error: "--max-hosts must be a positive number." };
   }
+  const sliceHosts = Number(values.slice);
+  if (!Number.isFinite(sliceHosts) || sliceHosts <= 0) {
+    return { ok: false, error: "--slice must be a positive number." };
+  }
+  if (sliceHosts > MAX_SLICE_HOSTS) {
+    return { ok: false, error: `--slice must not exceed the hard ceiling of ${MAX_SLICE_HOSTS} hosts (got ${sliceHosts}).` };
+  }
   const timeBudgetSeconds = Number(values["time-budget-seconds"]);
   if (!Number.isFinite(timeBudgetSeconds) || timeBudgetSeconds <= 0) {
     return { ok: false, error: "--time-budget-seconds must be a positive number." };
@@ -298,6 +325,8 @@ export function parseArgs(argv) {
     host: values.host || null,
     allHosts: Boolean(values["all-hosts"]),
     maxHosts,
+    slice: sliceHosts,
+    afterHost: values.after || null,
     timeBudgetSeconds,
     checkCoverage: Boolean(values["check-coverage"]),
     limit,
@@ -419,22 +448,32 @@ export function orderHostGroupsForSweep(hostGroups) {
 }
 
 /** `--all-hosts`'s full selection: group ACTIVE sources by host, order by coverage thinness
- *  (`orderHostGroupsForSweep`), take the first `maxHosts` host groups, flatten back to the SOURCE ROWS
- *  those hosts contain (every row on a selected host is targeted — see `DEFAULT_MAX_HOSTS`'s own comment
- *  for why a host is not collapsed to one representative row: distinct rows on one host can be scoped to
- *  distinct content paths). PURE.
+ *  (`orderHostGroupsForSweep`), take the first `maxHosts` host groups AFTER `afterHost` (lane M8,
+ *  2026-09-18 -- see `DEFAULT_SLICE_HOSTS`'s own header for why an explicit cursor was added alongside the
+ *  pre-existing DB-coverage-driven resumability), flatten back to the SOURCE ROWS those hosts contain
+ *  (every row on a selected host is targeted -- see `DEFAULT_MAX_HOSTS`'s own comment for why a host is
+ *  not collapsed to one representative row: distinct rows on one host can be scoped to distinct content
+ *  paths). PURE.
  *  @param {Array<{id:string,url:string,status?:string,sitemap_last_walked_at?:string|null}>} rows
- *  @param {{maxHosts:number}} opts
+ *  @param {{maxHosts:number, afterHost?:string|null}} opts `afterHost`: resume the ordered list just past
+ *    this host (the previous slice's cursor). A cursor naming a host no longer in the ordered list
+ *    (removed/deactivated/renamed since it was recorded) is NOT an error -- selection restarts from the
+ *    front, same as no cursor at all; a stale cursor must never silently skip the whole never-walked bucket.
  *  @returns {{
  *    targets: object[],
  *    hostsSelected: string[],
  *    hostsTotalActive: number,
  *    hostsNeverWalkedBefore: number,
  *    hostsRemainingUnwalkedAfter: number,
+ *    selectedHostGroups: Array<{host:string, rows:object[], coverage:object}>,
+ *    hostsRemainingAfterSlice: number,
  *  }} */
-export function selectAllHostsTargets(rows, { maxHosts }) {
+export function selectAllHostsTargets(rows, { maxHosts, afterHost = null }) {
   const ordered = orderHostGroupsForSweep(groupActiveSourcesByHost(rows));
-  const selected = ordered.slice(0, Math.max(0, maxHosts));
+  const cursorIdx = afterHost ? ordered.findIndex((g) => g.host === afterHost) : -1;
+  const startIndex = cursorIdx >= 0 ? cursorIdx + 1 : 0;
+  const remainingFromCursor = ordered.slice(startIndex);
+  const selected = remainingFromCursor.slice(0, Math.max(0, maxHosts));
   const hostsNeverWalkedBefore = ordered.filter((g) => g.coverage.neverWalked).length;
   const neverWalkedSelected = selected.filter((g) => g.coverage.neverWalked).length;
   return {
@@ -443,7 +482,45 @@ export function selectAllHostsTargets(rows, { maxHosts }) {
     hostsTotalActive: ordered.length,
     hostsNeverWalkedBefore,
     hostsRemainingUnwalkedAfter: hostsNeverWalkedBefore - neverWalkedSelected,
+    // slice/cursor additions (lane M8, 2026-09-18) -- additive fields; every pre-existing caller above
+    // reads only the fields it already knew about.
+    selectedHostGroups: selected,
+    hostsRemainingAfterSlice: remainingFromCursor.length - selected.length,
   };
+}
+
+/** The last host in `selectedHostGroups` (in their given, ordered-for-sweep order) that this run
+ *  ACTUALLY finished every row of -- never a host only partially walked. This matters because the
+ *  wall-clock time budget (`walkTargetsWithinBudget`/`checkTimeBudget` below) bounds ROWS, not hosts, so a
+ *  slice can stop mid-host; advancing the cursor past a partly-walked host would silently drop its
+ *  remaining rows from every future backfill dispatch forever. Falls back to `previousCursor` when this
+ *  run finished none of its selected hosts (e.g. the budget was exhausted before the first host
+ *  completed), so a cursor never moves backward or forgets prior progress. PURE.
+ *  @param {Array<{host:string, rows:Array<{id:string}>}>} selectedHostGroups
+ *  @param {Iterable<string>} walkedIds source-row ids this run actually attempted (ok or error alike --
+ *    "attempted", not "succeeded": a row the walk reached and recorded an outcome for)
+ *  @param {string|null} [previousCursor]
+ *  @returns {string|null} */
+export function lastFullyWalkedHost(selectedHostGroups, walkedIds, previousCursor = null) {
+  const walked = walkedIds instanceof Set ? walkedIds : new Set(walkedIds ?? []);
+  let cursor = previousCursor;
+  for (const g of selectedHostGroups ?? []) {
+    if (g.rows.length && g.rows.every((r) => walked.has(r.id))) cursor = g.host;
+    else break; // first host this run did NOT fully finish stops the advance
+  }
+  return cursor;
+}
+
+/** The `config.cursor` of the most recent `--walker sitemap --all-hosts` run in `runs` (as returned by
+ *  `readRunHistory`, ascending by `started_at`), or `null` when no such run has landed yet. PURE -- no
+ *  filesystem I/O of its own; the caller reads the family's run history once and passes it in.
+ *  @param {object[]} runs @returns {string|null} */
+export function latestSitemapAllHostsCursor(runs) {
+  for (let i = (runs?.length ?? 0) - 1; i >= 0; i--) {
+    const cfg = runs[i]?.config;
+    if (cfg?.walker === "sitemap" && cfg?.all_hosts === true) return cfg.cursor ?? null;
+  }
+  return null;
 }
 
 /** The five coverage columns migration 304 adds to `sources`, computed from one targeted row's walk
@@ -713,6 +790,14 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       sources_walked: budget?.sourcesWalked ?? sources.length,
       sources_not_reached: budget?.sourcesNotReached ?? { count: 0, ids: [] },
       budget_exhausted: budget?.exhausted ?? false,
+      // SLICE + CURSOR (lane M8, 2026-09-18) -- present for every --all-hosts run so a coordinator can
+      // read the bucket without opening a second artifact: hosts_remaining_after_slice is how many
+      // never-walked-or-stale hosts are left PAST this run's own slice (distinct from
+      // hosts_remaining_unwalked, which is the never-walked bucket specifically); cursor is the exact
+      // string the NEXT dispatch's --after would need (also readable automatically -- see
+      // latestSitemapAllHostsCursor -- so a coordinator never has to copy it by hand).
+      hosts_remaining_after_slice: result.allHosts ? result.allHosts.hostsRemainingAfterSlice : null,
+      cursor: result.cursor ?? null,
     };
     return { perItem, metrics, inputsRef: sources.map((s) => s.sourceUrl), fullTraceRefs: [reportPath] };
   }
@@ -876,8 +961,8 @@ async function main() {
 
   const {
     walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName,
-    sourceId: cliSourceId, host, allHosts, maxHosts, timeBudgetSeconds, checkCoverage, limit,
-    maxSitemapFetches, maxSitemapEntries,
+    sourceId: cliSourceId, host, allHosts, maxHosts, slice, afterHost: cliAfterHost, timeBudgetSeconds,
+    checkCoverage, limit, maxSitemapFetches, maxSitemapEntries,
   } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   // The raw walker result (the run's FULL TRACE — per-day act URLs in the EUR-Lex case) is kept in the
@@ -1081,17 +1166,29 @@ async function main() {
         "id,url,name,status,access_method,rss_feed_url,sitemap_url,sitemap_last_walked_at,sitemap_url_count,sitemap_walk_outcome,feed_last_probed_at"
       );
 
+      // SLICE + CURSOR resolution (lane M8, 2026-09-18): --after wins when given explicitly; otherwise
+      // read the newest `--walker sitemap --all-hosts` artifact's own recorded cursor, so a bare re-run of
+      // the same command resumes past whatever the prior slice actually finished, with no state to
+      // hand-carry between dispatches (mirrors orderHostGroupsForSweep's own resumability property, one
+      // layer up -- see DEFAULT_SLICE_HOSTS's header). Resolved even when it ends up unused (checkCoverage,
+      // non-all-hosts) so the artifact's config can always name what was IN EFFECT for this run.
+      const resolvedAfterHost = allHosts
+        ? (cliAfterHost || latestSitemapAllHostsCursor(readRunHistory(harnessRunsDir).runs))
+        : null;
+
       if (checkCoverage) {
         // Read-only — no walk, no write. See buildCoverageReport's own doc for the shape.
         result = { coverageReport: buildCoverageReport(rows) };
       } else {
-        const allHostsSelection = allHosts ? selectAllHostsTargets(rows, { maxHosts }) : null;
+        const allHostsSelection = allHosts ? selectAllHostsTargets(rows, { maxHosts: slice, afterHost: resolvedAfterHost }) : null;
         const targets = allHosts ? allHostsSelection.targets : selectSitemapSources(rows, { sourceId: cliSourceId, host });
         if (!targets.length) {
           result = {
             sources: [],
             allHosts: allHostsSelection,
             budget: { budgetSeconds: timeBudgetSeconds, elapsedSeconds: 0, exhausted: false, sourcesWalked: 0, sourcesNotReached: { count: 0, ids: [] } },
+            // No source was walked this run -- the cursor cannot advance past whatever it already was.
+            cursor: allHosts ? resolvedAfterHost : null,
             note: allHosts
               ? "no active source rows found (--all-hosts, empty sources table or nothing active)"
               : cliSourceId
@@ -1171,6 +1268,11 @@ async function main() {
               `walked ${sourceResults.length}/${targets.length} targeted sources, ${notReached.length} not reached this run.`
             );
           }
+          // Cursor advance (lane M8, 2026-09-18): only past hosts this run ACTUALLY finished (never a
+          // host the wall-clock budget stopped mid-way) -- see lastFullyWalkedHost's own doc.
+          const cursorAfterThisRun = allHosts
+            ? lastFullyWalkedHost(allHostsSelection.selectedHostGroups, sourceResults.map((s) => s.sourceId), resolvedAfterHost)
+            : null;
           result = {
             sources: sourceResults,
             allHosts: allHostsSelection,
@@ -1181,6 +1283,7 @@ async function main() {
               sourcesWalked: sourceResults.length,
               sourcesNotReached: { count: notReached.length, ids: notReached.map((t) => t.id) },
             },
+            cursor: cursorAfterThisRun,
           };
         }
       }
@@ -1217,6 +1320,13 @@ async function main() {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
           cli_source_id: cliSourceId, host, all_hosts: allHosts, max_hosts: maxHosts,
+          // SLICE + CURSOR (lane M8, 2026-09-18) -- slice is the --all-hosts sizing knob this lane wires
+          // in (see DEFAULT_SLICE_HOSTS's header); after_host_requested is the --after CLI value verbatim
+          // (null when the run auto-read its cursor from the prior artifact instead); cursor is what THIS
+          // run recorded -- latestSitemapAllHostsCursor (above) reads exactly this field back from the
+          // newest artifact to resolve the NEXT run's starting point.
+          slice, after_host_requested: cliAfterHost,
+          cursor: result?.cursor ?? null,
           time_budget_seconds: timeBudgetSeconds, check_coverage: checkCoverage,
           limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
         },

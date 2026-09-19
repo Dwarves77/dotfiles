@@ -64,7 +64,7 @@
 // GOVERNING: remediation-discipline (Section 4 — roadblock resilience) + source-credibility-model
 // (qualification) + env-policy (find replacements) — the same triad primary-fallback.mjs cites.
 
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdirSync, writeFileSync } from "node:fs";
 
@@ -76,8 +76,23 @@ import { officialnessOf } from "../../src/lib/sources/officialness.mjs";
 import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 import { hostOf } from "../lib/institution-key.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+// harness-run artifact (lane M8, 2026-09-18, closing S1's "no committed harness artifact" finding --
+// docs/audits/stage-audit-2026-09-18/s1-collect.md): the dossiers this driver already wrote (per-source
+// JSON + `_summary.json`) only ever reached an EPHEMERAL GitHub Actions artifact upload (90-day
+// retention, unreadable from a fresh worktree) -- this module's own header already said so. A committed,
+// small, structured artifact under scripts/harness-runs/inaccessible-triage/ closes that gap without
+// committing the dossiers' own raw fetched text (CLAUDE.md rule 5: machine evidence stays out of the
+// repo unless worth keeping; a dossier's `probe`/`ladder_steps` can carry full captured page bodies).
+import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const DEFAULT_HARNESS_RUNS_DIR = resolve(ROOT, "scripts", "harness-runs", "inaccessible-triage");
+// Re-exported under this family's historical-shape name (mirrors SOURCE_SWEEP_GOVERNING_FILES /
+// RESEARCH_SWEEP_GOVERNING_FILES's own precedent) -- governing-files.mjs stays THE single source; F28's
+// own re-hash and this driver's self-hash (what it stamps onto harness_version below) are therefore the
+// same array by construction, never two hand-maintained copies.
+export const INACCESSIBLE_TRIAGE_GOVERNING_FILES = GOVERNING_FILES['inaccessible-triage'];
 
 export const CITE = Object.freeze({
   skill: "remediation-discipline",
@@ -370,21 +385,27 @@ export async function applyFetchStatus(dossiers, { guardedUpdateByIds }) {
 // ── orchestration ─────────────────────────────────────────────────────────────────────────────────
 /**
  * @param {{apply?:boolean, limit?:number|null, concurrency?:number, hostIntervalMs?:number,
- *           perFetchMs?:number, timeBudgetMs?:number, outDir?:string}} opts
+ *           perFetchMs?:number, timeBudgetMs?:number, outDir?:string, harnessRunsDir?:string}} opts
  * @param {{ readAll:Function, guardedUpdateByIds?:Function, fetchImpl?:Function,
- *           writeDossierFile?:Function, writeSummaryFile?:Function, now?:Function, sleep?:Function }} deps
+ *           writeDossierFile?:Function, writeSummaryFile?:Function, now?:Function, sleep?:Function,
+ *           claimRunIdFn?:Function, writeRunArtifactFn?:Function, hashHarnessVersionFn?:Function }} deps
  */
 export async function main(opts, deps) {
   const {
     apply = false, limit = null, concurrency = DEFAULT_CONCURRENCY, hostIntervalMs = DEFAULT_HOST_INTERVAL_MS,
     perFetchMs = DEFAULT_PER_FETCH_MS, timeBudgetMs = DEFAULT_TIME_BUDGET_MIN * 60000, outDir = "dossiers",
+    harnessRunsDir = DEFAULT_HARNESS_RUNS_DIR,
   } = opts || {};
   const {
     readAll, guardedUpdateByIds, fetchImpl = fetch,
     writeDossierFile = () => {}, writeSummaryFile = () => {},
     now = Date.now, sleep = defaultSleep,
+    // Harness-run artifact deps (lane M8, 2026-09-18) -- real by default, dep-injected so tests never
+    // touch the filesystem or the run-id claim ledger under scripts/harness-runs/.
+    claimRunIdFn = claimRunId, writeRunArtifactFn = writeRunArtifact, hashHarnessVersionFn = hashHarnessVersion,
   } = deps;
 
+  const startedAt = new Date(now()).toISOString();
   console.log(`[inaccessible-triage] mode = ${apply ? "APPLY" : "DRY-RUN"}  concurrency=${concurrency}  hostIntervalMs=${hostIntervalMs}  timeBudgetMin=${(timeBudgetMs / 60000).toFixed(1)}`);
 
   let sources = await readAll("sources", "id,url,name,base_tier,jurisdictions,status", { match: (q) => q.eq("status", "suspended") });
@@ -401,12 +422,27 @@ export async function main(opts, deps) {
   );
 
   const dossiers = [];
+  const perItem = []; // CONVENTION.md's per_item -- every triaged, skipped, AND errored source, never invented
   let skippedForBudget = 0, errored = 0;
   for (const o of outcomes) {
-    if (o.skipped) { skippedForBudget++; continue; }
-    if (o.error) { errored++; console.error(`[inaccessible-triage] ${o.item.id} ${o.item.url} FAILED: ${o.error}`); continue; }
+    if (o.skipped) {
+      skippedForBudget++;
+      perItem.push({ id: o.item.id, outcome: "skipped_time_budget", verdict: null, evidence_refs: [o.item.url], error: null });
+      continue;
+    }
+    if (o.error) {
+      errored++;
+      console.error(`[inaccessible-triage] ${o.item.id} ${o.item.url} FAILED: ${o.error}`);
+      perItem.push({ id: o.item.id, outcome: "error", verdict: null, evidence_refs: [o.item.url], error: o.error });
+      continue;
+    }
     dossiers.push(o.result);
     writeDossierFile(outDir, o.result);
+    perItem.push({
+      id: o.result.source_id, outcome: o.result.outcome,
+      verdict: o.result.evidence?.note ?? null,
+      evidence_refs: [o.result.url], error: null,
+    });
   }
 
   const summary = {
@@ -422,11 +458,52 @@ export async function main(opts, deps) {
   console.log(`[inaccessible-triage] ${JSON.stringify(summary)}`);
   writeSummaryFile(outDir, summary);
 
-  if (!apply || !dossiers.length) return { summary, dossiers, dbWrite: { attempted: false, updated: 0, column_exists: null } };
+  let dbWrite = { attempted: false, updated: 0, column_exists: null };
+  let dbWriteError = null;
+  if (apply && dossiers.length) {
+    try {
+      dbWrite = await applyFetchStatus(dossiers, { guardedUpdateByIds });
+      console.log(`[inaccessible-triage] db write: ${JSON.stringify(dbWrite)}`);
+    } catch (e) {
+      dbWriteError = e instanceof Error ? e.message : String(e);
+      console.error(`[inaccessible-triage] db write FAILED: ${dbWriteError}`);
+    }
+  }
 
-  const dbWrite = await applyFetchStatus(dossiers, { guardedUpdateByIds });
-  console.log(`[inaccessible-triage] db write: ${JSON.stringify(dbWrite)}`);
-  return { summary, dossiers, dbWrite };
+  // Harness-run artifact (lane M8, 2026-09-18) -- written unconditionally, dry or apply, so the family's
+  // "Run" criterion (section 0.2) is verifiable from a committed file, not only an ephemeral dossier
+  // upload. The dossiers themselves stay OUT of the artifact (see this file's import header) --
+  // full_trace_refs points at their directory instead.
+  const runId = claimRunIdFn(harnessRunsDir, "inaccessible-triage");
+  const defectsFound = dbWriteError
+    ? [{ description: `applyFetchStatus threw during an apply run: ${dbWriteError}`, root_cause: "", fix_ref: null }]
+    : [];
+  const artifact = {
+    harness_family: "inaccessible-triage",
+    harness_version: hashHarnessVersionFn(INACCESSIBLE_TRIAGE_GOVERNING_FILES, ROOT),
+    run_id: runId,
+    started_at: startedAt,
+    finished_at: new Date(now()).toISOString(),
+    config: {
+      mode: apply ? "apply" : "dry-run", limit, concurrency, host_interval_ms: hostIntervalMs,
+      per_fetch_ms: perFetchMs, time_budget_min: timeBudgetMs / 60000, out_dir: outDir,
+    },
+    inputs_ref: sources.map((s) => s.url),
+    per_item: perItem,
+    metrics: { ...summary, db_write: dbWrite },
+    defects_found: defectsFound,
+    full_trace_refs: [outDir, join(outDir, "_summary.json")],
+    proposer_notes:
+      "Auto-emitted by inaccessible-triage.mjs (Lane F2, 2026-09-02; harness artifact added lane M8, " +
+      "2026-09-18) -- the acquisition-ladder run over sources WHERE status='suspended'. Per-source " +
+      "dossiers (this run's full_trace_refs target) are an EPHEMERAL GitHub Actions artifact upload " +
+      "(90-day retention), not committed to the repo -- see this file's own header for why (a dossier can " +
+      "carry a full fetched page body; CLAUDE.md rule 5 keeps that class of evidence out of the tree).",
+  };
+  const artifactPath = writeRunArtifactFn(harnessRunsDir, artifact);
+  console.log(`Wrote ${artifactPath}`);
+
+  return { summary, dossiers, dbWrite, runId, artifactPath };
 }
 
 // ── CLI bootstrap ─────────────────────────────────────────────────────────────────────────────────

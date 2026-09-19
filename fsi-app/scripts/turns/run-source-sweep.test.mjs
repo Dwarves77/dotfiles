@@ -9,6 +9,7 @@ import {
   selectSitemapSources, hostKeyOf, groupActiveSourcesByHost, hostSitemapCoverage, orderHostGroupsForSweep,
   selectAllHostsTargets, buildSitemapCoveragePatch, buildCoverageReport, DEFAULT_MAX_HOSTS,
   DEFAULT_TIME_BUDGET_SECONDS, checkTimeBudget, walkTargetsWithinBudget, withFetchTimeout,
+  DEFAULT_SLICE_HOSTS, MAX_SLICE_HOSTS, lastFullyWalkedHost, latestSitemapAllHostsCursor,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -463,6 +464,127 @@ test("selectAllHostsTargets: maxHosts larger than the host count selects everyth
   const rows = [{ id: "x", url: "https://only.example/", status: "active" }];
   const sel = selectAllHostsTargets(rows, { maxHosts: 999 });
   assert.deepEqual(sel.targets.map((r) => r.id), ["x"]);
+});
+
+// ── selectAllHostsTargets: afterHost cursor (lane M8, 2026-09-18) ──────────────────────────────────
+
+test("selectAllHostsTargets: afterHost resumes the ordered list past that host, without it selection starts at the front", () => {
+  const rows = [
+    { id: "a", url: "https://a-never.example/", status: "active" },
+    { id: "b", url: "https://b-never.example/", status: "active" },
+    { id: "c", url: "https://c-never.example/", status: "active" },
+  ];
+  const first = selectAllHostsTargets(rows, { maxHosts: 1 });
+  assert.deepEqual(first.hostsSelected, ["a-never.example"]);
+  const second = selectAllHostsTargets(rows, { maxHosts: 1, afterHost: "a-never.example" });
+  assert.deepEqual(second.hostsSelected, ["b-never.example"]);
+  const third = selectAllHostsTargets(rows, { maxHosts: 1, afterHost: "b-never.example" });
+  assert.deepEqual(third.hostsSelected, ["c-never.example"]);
+});
+
+test("selectAllHostsTargets: a cursor host no longer present in the ordered list restarts from the front (never throws, never skips everything)", () => {
+  const rows = [
+    { id: "a", url: "https://a-never.example/", status: "active" },
+    { id: "b", url: "https://b-never.example/", status: "active" },
+  ];
+  const sel = selectAllHostsTargets(rows, { maxHosts: 1, afterHost: "removed-host.example" });
+  assert.deepEqual(sel.hostsSelected, ["a-never.example"]);
+});
+
+test("selectAllHostsTargets: exposes selectedHostGroups (for lastFullyWalkedHost) and hostsRemainingAfterSlice", () => {
+  const rows = [
+    { id: "a", url: "https://a-never.example/", status: "active" },
+    { id: "b", url: "https://b-never.example/", status: "active" },
+    { id: "c", url: "https://c-never.example/", status: "active" },
+  ];
+  const sel = selectAllHostsTargets(rows, { maxHosts: 2 });
+  assert.deepEqual(sel.selectedHostGroups.map((g) => g.host), ["a-never.example", "b-never.example"]);
+  assert.equal(sel.hostsRemainingAfterSlice, 1); // c-never.example, past this slice
+  const exhausted = selectAllHostsTargets(rows, { maxHosts: 999 });
+  assert.equal(exhausted.hostsRemainingAfterSlice, 0);
+});
+
+test("DEFAULT_SLICE_HOSTS is 100, MAX_SLICE_HOSTS (the hard ceiling) is 500", () => {
+  assert.equal(DEFAULT_SLICE_HOSTS, 100);
+  assert.equal(MAX_SLICE_HOSTS, 500);
+});
+
+test("parseArgs: --slice defaults to DEFAULT_SLICE_HOSTS, is overridable, must be positive and under the hard ceiling", () => {
+  const byDefault = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts"]);
+  assert.equal(byDefault.slice, DEFAULT_SLICE_HOSTS);
+  assert.equal(byDefault.afterHost, null);
+
+  const overridden = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--slice", "250", "--after", "some-host.example"]);
+  assert.equal(overridden.ok, true);
+  assert.equal(overridden.slice, 250);
+  assert.equal(overridden.afterHost, "some-host.example");
+
+  const zero = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--slice", "0"]);
+  assert.equal(zero.ok, false);
+  assert.match(zero.error, /--slice/);
+
+  const overCeiling = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--slice", "501"]);
+  assert.equal(overCeiling.ok, false);
+  assert.match(overCeiling.error, /hard ceiling of 500/);
+
+  const atCeiling = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--slice", "500"]);
+  assert.equal(atCeiling.ok, true);
+  assert.equal(atCeiling.slice, 500);
+});
+
+// ── lastFullyWalkedHost (lane M8, 2026-09-18) ───────────────────────────────────────────────────────
+
+test("lastFullyWalkedHost: advances past every host whose every row id appears in walkedIds, stops at the first incomplete host", () => {
+  const selectedHostGroups = [
+    { host: "a.example", rows: [{ id: "a1" }, { id: "a2" }] },
+    { host: "b.example", rows: [{ id: "b1" }] },
+    { host: "c.example", rows: [{ id: "c1" }, { id: "c2" }] },
+  ];
+  // a fully walked, b fully walked, c only partially (c2 missing) -- the budget stopped mid-c.
+  const walkedIds = ["a1", "a2", "b1", "c1"];
+  assert.equal(lastFullyWalkedHost(selectedHostGroups, walkedIds), "b.example");
+});
+
+test("lastFullyWalkedHost: every selected host fully walked advances the cursor to the LAST one", () => {
+  const selectedHostGroups = [
+    { host: "a.example", rows: [{ id: "a1" }] },
+    { host: "b.example", rows: [{ id: "b1" }] },
+  ];
+  assert.equal(lastFullyWalkedHost(selectedHostGroups, ["a1", "b1"]), "b.example");
+});
+
+test("lastFullyWalkedHost: NO host fully walked falls back to previousCursor (never moves backward, never forgets prior progress)", () => {
+  const selectedHostGroups = [{ host: "a.example", rows: [{ id: "a1" }, { id: "a2" }] }];
+  assert.equal(lastFullyWalkedHost(selectedHostGroups, ["a1"], "prior-cursor.example"), "prior-cursor.example");
+  assert.equal(lastFullyWalkedHost(selectedHostGroups, [], null), null);
+});
+
+test("lastFullyWalkedHost: a host with zero rows is never counted as fully walked (guards against a degenerate empty group)", () => {
+  const selectedHostGroups = [{ host: "empty.example", rows: [] }, { host: "b.example", rows: [{ id: "b1" }] }];
+  assert.equal(lastFullyWalkedHost(selectedHostGroups, ["b1"]), null);
+});
+
+// ── latestSitemapAllHostsCursor (lane M8, 2026-09-18) ───────────────────────────────────────────────
+
+test("latestSitemapAllHostsCursor: reads the newest matching --walker sitemap --all-hosts run's config.cursor", () => {
+  const runs = [
+    { started_at: "2026-09-01T00:00:00Z", config: { walker: "sitemap", all_hosts: true, cursor: "old-host.example" } },
+    { started_at: "2026-09-02T00:00:00Z", config: { walker: "feed", all_hosts: false, cursor: null } },
+    { started_at: "2026-09-03T00:00:00Z", config: { walker: "sitemap", all_hosts: true, cursor: "newest-host.example" } },
+  ];
+  assert.equal(latestSitemapAllHostsCursor(runs), "newest-host.example");
+});
+
+test("latestSitemapAllHostsCursor: no matching run yields null, never throws on an empty or unrelated history", () => {
+  assert.equal(latestSitemapAllHostsCursor([]), null);
+  assert.equal(latestSitemapAllHostsCursor(undefined), null);
+  const runs = [{ started_at: "2026-09-01T00:00:00Z", config: { walker: "feed" } }];
+  assert.equal(latestSitemapAllHostsCursor(runs), null);
+});
+
+test("latestSitemapAllHostsCursor: a --walker sitemap --all-hosts run that has not yet advanced the cursor (null) reads back as null, not 'not found'", () => {
+  const runs = [{ started_at: "2026-09-01T00:00:00Z", config: { walker: "sitemap", all_hosts: true, cursor: null } }];
+  assert.equal(latestSitemapAllHostsCursor(runs), null);
 });
 
 // ── buildSitemapCoveragePatch ────────────────────────────────────────────────────────────────────────
