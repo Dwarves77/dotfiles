@@ -83,3 +83,51 @@ down to the MEASURED value in the same commit and report it.
 - `grep -n "'mint'\|\"mint\"" fsi-app/scripts/harness-runs/governing-files.mjs fsi-app/scripts/lib/run-artifact.mjs`: no hand-written family entry left (a remaining hit must be explained).
 - `grep -rn "harness_version" fsi-app/scripts/harness-runs/CONVENTION.md | head`: the table is gone; the concept is still explained.
 - The push gate through the wrapper, once, last, as `brief-m-common.md` says.
+
+## Amendment 1 (cloud coordinator, 2026-09-19; appended, not rewritten)
+
+The local coordinator session is paused and this lane runs in a cloud container. Three changes bind you:
+
+1. **Common brief.** Read `docs/dispatches/lane-briefs/2026-09-18/brief-common-cloud.md` instead of
+   `brief-m-common.md` (that file lives only on the operator's machine). Where it names a scratchpad
+   `lane-gate.sh`, the gate is the repo copy:
+   `LANE_GATE_SP=<the scratchpad folder your dispatch names> bash fsi-app/scripts/coordinator/lane-gate-cloud.sh <your worktree root>`
+   run ONCE, last, as one background task.
+2. **Session-log file** is dated the day of the work: `docs/ops/session-log.d/2026-09-19-n2.md`, heading
+   `## 2026-09-19, lane N2: <one line>`. The write-set line naming `2026-09-18-n2.md` is superseded.
+3. **The F45 ceiling line is forbidden** (operator, 2026-09-19, same ruling as lane N0). You do not edit
+   `DUPLICATED_LINES_CEILING`, up or down. The write-set paragraph's "re-seed the ceiling down to the
+   MEASURED value in the same commit" is withdrawn. If the F45 test reports the measured count differs
+   from the ceiling after your change, STOP before the gate and report both numbers; the coordinator
+   re-seeds.
+
+## Amendment 2 (coordinator, 2026-09-19 16:39 UTC by the date command, after the lane's STOP at the gate)
+
+Both findings stand [CONFIRMED by the lane's runner output and the gate log]: (1) two readers treat every
+`<family>/*.json` as a run artifact, so the thirteen `family.json` descriptors read as INVALID ARTIFACT
+(`readRunHistory` in `scripts/lib/run-artifact.mjs`, which the lane already patched by excluding the literal
+name, and `scanArtifacts` in `F28-harness-run-integrity.mjs`); (2) `scripts/forward-events/run-extraction.test.mjs`
+asserts by substring that CONVENTION.md still names two forward-events governing files, which now live in the
+descriptor. The write set is extended by exactly these:
+
+1. **One predicate for "is this a run artifact filename".** In `scripts/lib/run-artifact.mjs` export
+   `isRunArtifactFilename(name)`: true for the convention's artifact shape `<family>-run-NNN.json` (read
+   CONVENTION.md's naming rule and match it exactly), false for anything else, `family.json` included.
+   `readRunHistory` uses it (replace the literal-name exclusion). `F28-harness-run-integrity.mjs`'s
+   `scanArtifacts` uses it too; that one edit is now permitted in that file and nothing else there. Before
+   switching, list every `.json` under `scripts/harness-runs/*/` that the predicate would exclude other than
+   the thirteen `family.json`; if the list is not empty, STOP and report it (an artifact named outside the
+   convention is a finding, not something to widen the predicate for). Unit test the predicate in
+   `run-artifact.test.mjs` (both branches).
+2. **The forward-events test asserts the descriptor.** In `run-extraction.test.mjs`, the test
+   "FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's forward-events entry" becomes "matches the
+   forward-events descriptor": deep-equal against `FAMILIES.find(f => f.family === 'forward-events').governing_files`
+   from `family-registry.mjs`. No substring check against prose.
+3. Re-run the acceptance of step 6 (zero fail now expected), the runner (0 violations), the F45 test (the
+   ceiling untouched), then re-stamp the meta-harness marker LAST if any governing file changed after the
+   last stamp (`run-artifact.mjs` is not a governing file of meta-harness unless the descriptor says so;
+   check), commit, `git fetch origin && git rebase origin/master`, and the gate once more (the second and
+   last run).
+
+The `registered` dates inferred from the meta-harness artifacts' own `started_at` (five families) are
+accepted as evidence-based; the lane's session-log entry names the mechanism, as it already does.

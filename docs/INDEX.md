@@ -300,6 +300,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [lane-common-contract](./dispatches/lane-common-contract.md) — BINDING for every executor lane (2026-09-03): where you work, read-before-write, write sets, gates, commit and report format, the UX contract (data-guard-title + UX smoke spec + UX compliance section)
 - [lane-briefs/2026-09-05/README](./dispatches/lane-briefs/2026-09-05/README.md) — Index + format spec (export meta, phase(), agent(prompt,{label,phase,model}), max 2 concurrent agents, worktree-per-lane, gates, REPORT contract) for the 92 Workflow-tool lane-brief files this build day dispatched
 - [lane-briefs/2026-09-18/README](./dispatches/lane-briefs/2026-09-18/README.md): the cloud coordinator session's five lane briefs with their in-place amendments (L37, L35h, D2, L38 and the common cloud contract), and the gate wrapper they name
+- [lane-briefs/2026-09-19/README](./dispatches/lane-briefs/2026-09-19/README.md): the plan 6.8 lane briefs (N0 to N6 and T2) with their in-place amendments, dispatched from the cloud on 2026-09-19, each row naming its PR
 - [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — brief for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. Scripts run from `fsi-app/` and load `.env.local`; writes hit PRODUCTION Supabase (dev/prod shared) — use the guarded path. Contains no credential values, only env-var names
 
 ## sprint-1

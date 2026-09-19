@@ -80,3 +80,32 @@ you the number) and say so in the report.
   no private git plumbing left in either (a remaining hit must be explained).
 - `node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD` prints OK on your branch.
 - The push gate through the wrapper, once, last, as `brief-m-common.md` says.
+
+## Amendment 1 (cloud coordinator, 2026-09-19; appended, not rewritten)
+
+The local coordinator session is paused and this lane runs in a cloud container. Four changes bind you:
+
+1. **Common brief.** Read `docs/dispatches/lane-briefs/2026-09-18/brief-common-cloud.md` instead of
+   `brief-m-common.md` (that file lives only on the operator's machine). Where it names a scratchpad
+   `lane-gate.sh`, the gate is the repo copy:
+   `LANE_GATE_SP=<the scratchpad folder your dispatch names> bash fsi-app/scripts/coordinator/lane-gate-cloud.sh <your worktree root>`
+   run ONCE, last, as one background task.
+2. **Session-log file** is dated the day of the work: `docs/ops/session-log.d/2026-09-19-n0.md`, heading
+   `## 2026-09-19, lane N0: <one line>`. The write-set line naming `2026-09-18-n0.md` is superseded.
+3. **The F45 ceiling line is forbidden** (operator, 2026-09-19). You do not edit
+   `DUPLICATED_LINES_CEILING` in `F45-duplicate-code.mjs`, up or down, whatever the measurement says. The
+   write-set paragraph's sentence "re-seed DUPLICATED_LINES_CEILING down in the same commit" is withdrawn.
+   If `node --test fsi-app/.discipline/fitness/functions/F45-duplicate-code.test.mjs` reports the measured
+   count differs from the ceiling after your change, STOP before the gate and report both numbers; the
+   coordinator re-seeds. Everything else in that file that the brief assigns you (`changedFiles()`) stands.
+4. **The memory gate's git calls must not depend on the caller's directory** (operator, 2026-09-19). Run
+   from inside `fsi-app/`, `node .discipline/governance/memory-gate.mjs --range=origin/master..HEAD`
+   passes its pathspecs to `git diff` relative to the current folder, so the per-lane session-log file's
+   diff comes back empty and the UX compliance half reports a false failure (that is what refused lane
+   W10-A on 2026-09-19 before the cause was found; `docs/ops/HANDOFF-2026-09-19-addendum.md` section 2).
+   In `change-range.mjs`, every git call runs with `cwd` set to the repository top level, resolved once
+   inside the module (from the module's own path, or `git rev-parse --show-toplevel` run from it), never
+   from `process.cwd()`; every returned path is repo-relative. Add to the acceptance: (a) a test in
+   `change-range.test.mjs` that calls `gitChangedFiles` and `gitDiffLinesForPath` with a subdirectory as
+   the process cwd and gets the same result as from the root; (b) the real gate run from the repo root AND
+   from `fsi-app/` on your branch, both pasted in the report, same verdict.
