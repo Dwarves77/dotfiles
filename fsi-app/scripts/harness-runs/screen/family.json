@@ -1,0 +1,10 @@
+{
+  "family": "screen",
+  "registered": "2026-09-01",
+  "registered_by": "Wave MH-1",
+  "governing_files": [
+    "scripts/mint/screen-rules.mjs",
+    "scripts/mint/screen-worklist.mjs"
+  ],
+  "rationale": "screen's list moved here from scripts/mint/screen-worklist.mjs, which used to declare SCREEN_GOVERNING_FILES directly and was F28's one already-imported family; screen-worklist.mjs now imports it back from governing-files.mjs like every other family's runner does, so screen's list is no longer a special case, it is the same shape as the other families."
+}

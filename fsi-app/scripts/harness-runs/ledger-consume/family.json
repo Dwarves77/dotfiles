@@ -1,0 +1,11 @@
+{
+  "family": "ledger-consume",
+  "registered": "2026-09-02",
+  "registered_by": "Lane CONSUME",
+  "governing_files": [
+    "scripts/turns/run-ledger-consume.mjs",
+    "src/lib/intake/portal-harvest.ts",
+    "src/lib/llm/first-fetch-classify.ts"
+  ],
+  "rationale": "ledger-consume (registered by Lane CONSUME, system-completion plan 2026-09-02): the runtime scripts/turns/run-*.mjs already had for source-sweep and forward-events, extended to src/lib/intake/portal-harvest.ts's consumePortalCandidates and src/lib/llm/first-fetch-classify.ts, the LLM content gate it calls."
+}

@@ -1,0 +1,13 @@
+{
+  "family": "brief-apply",
+  "registered": "2026-09-11",
+  "registered_by": "task 3.4",
+  "governing_files": [
+    "scripts/turns/apply-record-briefs.mjs",
+    "scripts/turns/record-briefs/schema.mjs",
+    "src/lib/agent/canonical-pipeline.ts",
+    "src/lib/intake/flywheel-steps.mjs",
+    "scripts/turns/io-preflight.mjs"
+  ],
+  "rationale": "brief-apply (task 3.4, brief-chain build plan Part 3, 2026-09-11): the runtime that turns a validated record-briefs file (task 3.2's schema.mjs) into a fully connected item: generate (the injected-synthesis seam, task 3.3), section, ground, grow, then the per-item flywheel (discovery, forward-events, compliance-deadline, entities), then the batch-level unscoped flywheel steps. Governing files are the driver itself, the record-briefs validator it calls first, the one write site the injected-synthesis seam lives in, and the two per-item flywheel steps this driver shares with apply-staged-update.ts (task 3.4's own extraction, so the two callers can never independently drift on the dedupe key or the stale-events detection). scripts/turns/run-population-flywheel.mjs (the batch-level unscoped steps this driver also calls) is deliberately excluded: it is already governed nowhere as a harness family of its own, and this family's own governing-file set tracks brief-apply's own behavior-bearing surface, not every module it happens to import. D32 (defect-fix-plan-2026-09-12.md, lane L21): the pre-flight IO check and durable run record both gate whether an --execute run even starts, so io-preflight.mjs is behavior-bearing for this harness family too."
+}

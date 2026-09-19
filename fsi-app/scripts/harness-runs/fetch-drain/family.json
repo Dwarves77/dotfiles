@@ -1,0 +1,10 @@
+{
+  "family": "fetch-drain",
+  "registered": "2026-09-01",
+  "registered_by": "Wave MH-1",
+  "governing_files": [
+    "supabase/functions/capture-worker/index.ts",
+    "scripts/turns/run-fetch-drain.mjs"
+  ],
+  "rationale": "fetch-drain, extended by lane M1 (2026-09-18, build plan section 6.1 row M1): the capture-worker Edge Function itself, plus the runner that now invokes it over HTTPS from a workflow. Before that lane the only governing file was the Deno function (no Node-importable driver existed at all, every drain was a coordinator issuing pg_net batches by hand, see run-fetch-drain.mjs's own header)."
+}

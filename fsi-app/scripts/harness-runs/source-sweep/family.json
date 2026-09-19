@@ -1,0 +1,11 @@
+{
+  "family": "source-sweep",
+  "registered": "2026-09-01",
+  "registered_by": "lane RT",
+  "governing_files": [
+    "scripts/turns/run-source-sweep.mjs",
+    "src/lib/sources/register-walk.mjs",
+    "src/lib/sources/feed-walk.mjs"
+  ],
+  "rationale": "source-sweep (registered by lane RT, 2026-09-01, harness and flywheel completion train): the runtime scripts/connections/*.mjs and scripts/mint or forward-events run-*.mjs already had for their own families, extended to src/lib/sources/register-walk.mjs and feed-walk.mjs, two dormant, pure, dependency-injected enumeration modules that had no caller anywhere in the repo before scripts/turns/run-source-sweep.mjs gave them one."
+}

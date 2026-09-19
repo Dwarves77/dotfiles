@@ -8,9 +8,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { posix, join } from 'node:path';
+import { join } from 'node:path';
 import {
   scanArtifacts,
   auditSchema,
@@ -22,7 +22,7 @@ import {
   GOVERNING_FILES,
   fitnessFunction,
 } from './F28-harness-run-integrity.mjs';
-import { ALLOWED_FAMILIES, validateRunArtifact } from '../../../scripts/lib/run-artifact.mjs';
+import { ALLOWED_FAMILIES, validateRunArtifact, isRunArtifactFilename } from '../../../scripts/lib/run-artifact.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
 function validArtifact(overrides = {}) {
@@ -314,56 +314,32 @@ test('GOVERNING_FILES keys are exactly ALLOWED_FAMILIES (kept 1:1 by constructio
   assert.deepEqual(Object.keys(GOVERNING_FILES).sort(), [...ALLOWED_FAMILIES].sort());
 });
 
-// CONVENTION-TABLE-PARITY: parse CONVENTION.md's own harness_version table and assert F28's hardcoded
-// GOVERNING_FILES resolves to the identical file list — a hand-edited table drifting from F28's copy is
-// caught here, not trusted on faith. The table's shorthand (every row's FIRST file is a full fsi-app-
-// relative path; every SUBSEQUENT file in that row is relative to that first file's directory) is
-// resolved the same way for every row.
-function parseConventionGoverningFiles(md) {
-  const table = new Map();
-  for (const line of md.split('\n')) {
-    const m = /^\|\s*`([a-z-]+)`\s*\|\s*(.+?)\s*\|\s*$/.exec(line);
-    if (!m) continue;
-    const [, family, cell] = m;
-    const tokens = [...cell.matchAll(/`([^`]+)`/g)].map((t) => t[1]);
-    if (tokens.length === 0) continue;
-    const base = posix.dirname(tokens[0]);
-    const resolved = tokens.map((t, i) => (i === 0 ? t : posix.join(base, t)));
-    table.set(family, resolved);
-  }
-  return table;
-}
-
-// ROW-COUNT DERIVED FROM ALLOWED_FAMILIES (Lane SPEND, system-completion train, 2026-09-02). This used to
-// hardcode "expected exactly 6 rows" — a THIRD place (alongside run-artifact.mjs's ALLOWED_FAMILIES and
-// this file's own GOVERNING_FILES) that had to be hand-edited every time a family registered, on top of
-// the count already living in run-artifact.test.mjs's own ALLOWED_FAMILIES assertion (see that file's
-// header for the same fix applied there). Now: every family CURRENTLY in ALLOWED_FAMILIES must have a
-// row in CONVENTION.md's table (a registered family with no doc row is a real gap — caught below), but
-// the table MAY carry ADDITIONAL rows for families a sibling lane's ALLOWED_FAMILIES/GOVERNING_FILES
-// entry has not landed yet (a pre-registration placeholder row, e.g. `ledger-consume` / `change-detection`
-// staged ahead of the lanes that register them) — those extra rows are content-checked against
-// GOVERNING_FILES only when GOVERNING_FILES itself already has a matching entry, so this test passes
-// BOTH before and after a sibling lane's ALLOWED_FAMILIES/GOVERNING_FILES addition lands, which is the
-// entire point of deriving instead of hardcoding a count.
-test('CONVENTION-TABLE-PARITY: every ALLOWED_FAMILIES member has a matching row in CONVENTION.md\'s table; every table row F28 already governs matches GOVERNING_FILES', () => {
+// FAMILY-DESCRIPTOR-REALITY (lane N2, 2026-09-19, build plan section 6.8 Rule A, replacing
+// CONVENTION-TABLE-PARITY). CONVENTION.md no longer carries a hand-maintained harness_version table for a
+// registration to find and edit (the exact 2026-09-18 collision this lane's own family-registry.mjs
+// exists to make impossible): each family's governing files now live only in that family's own
+// family.json, and governing-files.mjs's GOVERNING_FILES is DERIVED from every family's descriptor. So
+// the parity question this test proves is no longer "does the table match the module," it is "does every
+// path the derived GOVERNING_FILES actually names exist on the tree it is checked against," the same
+// reality-check role CONVENTION-TABLE-PARITY served, aimed at the new source of truth instead of a
+// markdown table.
+test('FAMILY-DESCRIPTOR-REALITY: every governing_files path of every registered family exists on disk', () => {
   const root = getRepoRoot();
-  const md = readFileSync(`${root}/fsi-app/scripts/harness-runs/CONVENTION.md`, 'utf8');
-  const parsed = parseConventionGoverningFiles(md);
-  const missing = ALLOWED_FAMILIES.filter((family) => !parsed.has(family));
+  const fsiRoot = join(root, 'fsi-app');
+  const missing = [];
+  for (const family of ALLOWED_FAMILIES) {
+    const files = GOVERNING_FILES[family];
+    if (!files) continue; // defensive; GOVERNING_FILES and ALLOWED_FAMILIES are kept 1:1 by construction
+    for (const rel of files) {
+      const abs = join(fsiRoot, rel);
+      if (!existsSync(abs)) missing.push(`${family}: ${rel} (resolved ${abs})`);
+    }
+  }
   assert.deepEqual(
     missing,
     [],
-    `CONVENTION.md's harness_version table is missing a row for registered famil${missing.length === 1 ? 'y' : 'ies'}: ${missing.join(', ')}`,
+    `family.json governing_files paths that do not exist on disk:\n${missing.join('\n')}`,
   );
-  for (const [family, files] of parsed) {
-    if (!GOVERNING_FILES[family]) continue; // not yet registered in F28.GOVERNING_FILES — a placeholder row, not a mismatch
-    assert.deepEqual(
-      [...GOVERNING_FILES[family]].sort(),
-      [...files].sort(),
-      `GOVERNING_FILES.${family} must match CONVENTION.md's table`,
-    );
-  }
 });
 
 // ── live tree: the gate is clean today ───────────────────────────────────────
@@ -378,7 +354,11 @@ test('F28 passes GREEN against the live tree', () => {
 test('sanity: every artifact currently in the repo independently passes validateRunArtifact', () => {
   // Belt-and-suspenders on rule (a): drives validateRunArtifact directly (not through scanArtifacts) over
   // every real committed artifact, so a future artifact hand-edited into invalidity fails HERE too, not
-  // only via the live-tree check() above.
+  // only via the live-tree check() above. isRunArtifactFilename (lane N2, 2026-09-19, Amendment 2, the
+  // same predicate scanArtifacts now uses) replaces the plain ".json" suffix filter, which used to also
+  // match each family's own family.json descriptor and fail this test on a file that is not a run
+  // artifact at all, a THIRD occurrence of the same defect class Amendment 2's two named readers already
+  // fixed (this test has its own independent readdirSync, never routed through scanArtifacts).
   const root = getRepoRoot();
   const families = ['mint', 'screen', 'fetch-drain', 'meta-harness'];
   let checked = 0;
@@ -386,7 +366,7 @@ test('sanity: every artifact currently in the repo independently passes validate
     const dir = `${root}/fsi-app/scripts/harness-runs/${family}`;
     let files;
     try {
-      files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+      files = readdirSync(dir).filter(isRunArtifactFilename);
     } catch {
       continue;
     }
