@@ -14,6 +14,11 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below — that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from (2026-09-19):** [docs/ops/HANDOFF-2026-09-19-addendum.md](./ops/HANDOFF-2026-09-19-addendum.md), read
+> AFTER the 2026-09-18 handoff named next: the state on the morning of 2026-09-19, the ruling "Do not do work
+> arounds. Fix the problem so it NEVER happens again", and the next steps, starting with the lanes of section 6.8
+> of [the complete-system build plan](./plans/complete-system-build-plan-2026-09-04.md).
+
 > **Resume from (2026-09-18):** [docs/ops/HANDOFF-2026-09-18.md](./ops/HANDOFF-2026-09-18.md): the coordinator
 > handoff at the 2026-09-18 pause. It quotes the operator's rulings of that day (the system before the data; fix
 > all of it; sub-agents execute exactly the brief; lanes run the push gate), has a section for a session with no
