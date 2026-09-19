@@ -81,7 +81,7 @@ import { join } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
-import { validateRunArtifact, hashHarnessVersion, ALLOWED_FAMILIES } from '../../../scripts/lib/run-artifact.mjs';
+import { validateRunArtifact, hashHarnessVersion, ALLOWED_FAMILIES, isRunArtifactFilename } from '../../../scripts/lib/run-artifact.mjs';
 import { GOVERNING_FILES } from '../../../scripts/harness-runs/governing-files.mjs';
 
 const HARNESS_RUNS_REL = 'fsi-app/scripts/harness-runs';
@@ -134,7 +134,11 @@ export function scanArtifacts(fileContents) {
   for (const [path, content] of Object.entries(fileContents)) {
     const rel = path.startsWith(`${HARNESS_RUNS_REL}/`) ? path.slice(HARNESS_RUNS_REL.length + 1) : path;
     const parts = rel.split('/');
-    if (parts.length !== 2 || !parts[1].endsWith('.json')) continue; // not a family-level artifact file
+    // isRunArtifactFilename (lane N2, 2026-09-19, Amendment 2, scripts/lib/run-artifact.mjs): matches the
+    // convention's <family>-run-NNN.json shape and nothing else, so a family's own family.json descriptor
+    // is never scanned as a run-artifact candidate. Replaces the plain ".json" suffix check, which used to
+    // match family.json too and report it INVALID (missing every run-artifact field).
+    if (parts.length !== 2 || !isRunArtifactFilename(parts[1])) continue; // not a family-level artifact file
     const [family, file] = parts;
     if (!byFamily.has(family)) byFamily.set(family, { valid: [], invalid: [] });
     const bucket = byFamily.get(family);

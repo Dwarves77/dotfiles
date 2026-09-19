@@ -22,7 +22,7 @@ import {
   GOVERNING_FILES,
   fitnessFunction,
 } from './F28-harness-run-integrity.mjs';
-import { ALLOWED_FAMILIES, validateRunArtifact } from '../../../scripts/lib/run-artifact.mjs';
+import { ALLOWED_FAMILIES, validateRunArtifact, isRunArtifactFilename } from '../../../scripts/lib/run-artifact.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
 function validArtifact(overrides = {}) {
@@ -354,7 +354,11 @@ test('F28 passes GREEN against the live tree', () => {
 test('sanity: every artifact currently in the repo independently passes validateRunArtifact', () => {
   // Belt-and-suspenders on rule (a): drives validateRunArtifact directly (not through scanArtifacts) over
   // every real committed artifact, so a future artifact hand-edited into invalidity fails HERE too, not
-  // only via the live-tree check() above.
+  // only via the live-tree check() above. isRunArtifactFilename (lane N2, 2026-09-19, Amendment 2, the
+  // same predicate scanArtifacts now uses) replaces the plain ".json" suffix filter, which used to also
+  // match each family's own family.json descriptor and fail this test on a file that is not a run
+  // artifact at all, a THIRD occurrence of the same defect class Amendment 2's two named readers already
+  // fixed (this test has its own independent readdirSync, never routed through scanArtifacts).
   const root = getRepoRoot();
   const families = ['mint', 'screen', 'fetch-drain', 'meta-harness'];
   let checked = 0;
@@ -362,7 +366,7 @@ test('sanity: every artifact currently in the repo independently passes validate
     const dir = `${root}/fsi-app/scripts/harness-runs/${family}`;
     let files;
     try {
-      files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+      files = readdirSync(dir).filter(isRunArtifactFilename);
     } catch {
       continue;
     }

@@ -80,6 +80,27 @@ function runIdPattern(family) {
   return new RegExp(`^${family}-run-\\d{3}$`);
 }
 
+// General run-artifact filename shape, family-agnostic (lane N2, 2026-09-19, Amendment 2). CONVENTION.md's
+// own naming rule: "Filename = run_id + .json. run_id is <family>-run-<NNN>, zero-padded 3 digits,
+// monotonic per family." A family name is kebab-case (ALLOWED_FAMILIES's own shape, matched by
+// run-artifact.test.mjs's "every family name is kebab-case" test), so the general filename shape, without
+// needing to know which specific family a directory belongs to, is <kebab-case>-run-<3 digits>.json. This
+// is the ONE predicate every reader of a family directory's *.json files uses to tell a real run artifact
+// apart from anything else that happens to end in .json in that same directory (today, only family.json;
+// see readRunHistory and F28-harness-run-integrity.mjs's scanArtifacts, both of which import this instead
+// of repeating the shape or excluding a literal filename by name).
+const RUN_ARTIFACT_FILENAME_RE = /^[a-z]+(?:-[a-z]+)*-run-\d{3}\.json$/;
+
+/**
+ * True when `name` (a bare filename, no directory) matches the convention's run-artifact shape
+ * `<family>-run-NNN.json`; false for anything else, including `family.json`. Pure, no I/O.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isRunArtifactFilename(name) {
+  return typeof name === "string" && RUN_ARTIFACT_FILENAME_RE.test(name);
+}
+
 /**
  * Validate one run artifact against the CONVENTION.md schema. Pure function: no I/O, never throws —
  * returns an array of human-readable error strings (empty = valid). Fail-closed by construction: every
@@ -404,10 +425,10 @@ export function readRunHistory(dir) {
   const resolved = resolve(dir);
   if (!existsSync(resolved)) return { runs: [], invalid: [] };
 
-  // "family.json" (lane N2, 2026-09-19) is the family's own descriptor, never a run artifact, so it is
-  // excluded from this glob the same way it must be, everywhere a family directory's *.json files are
-  // read as run-artifact candidates. See family-registry.mjs for the descriptor itself.
-  const files = readdirSync(resolved).filter((f) => f.endsWith(".json") && f !== "family.json").sort();
+  // Only real run artifacts (lane N2, 2026-09-19, Amendment 2): isRunArtifactFilename matches the
+  // convention's <family>-run-NNN.json shape and nothing else, so a family's own family.json descriptor
+  // (or any other non-artifact .json a family directory might someday hold) is never read as a candidate.
+  const files = readdirSync(resolved).filter(isRunArtifactFilename).sort();
   const runs = [];
   const invalid = [];
 
