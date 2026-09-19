@@ -1,0 +1,167 @@
+{
+  "harness_family": "ledger-consume",
+  "harness_version": "sha256:696d58aee19a1566",
+  "run_id": "ledger-consume-run-008",
+  "started_at": "2026-09-18T20:16:21.369Z",
+  "finished_at": "2026-09-18T20:16:21.988Z",
+  "config": {
+    "action": "consume",
+    "requested_mode": "plan",
+    "mode": "plan",
+    "apply_disarmed": false,
+    "verdicts_given": false,
+    "max_promote": 50,
+    "upstream_run_id": null,
+    "record_only": true,
+    "limit": 5,
+    "source_id": null,
+    "newest_first": false,
+    "after": null,
+    "fetch_gap_ms": 1000,
+    "verdicts_files": [
+      {
+        "path": "scripts/turns/ledger-verdicts/ledger-verdicts-001.json",
+        "batch": "ledger-verdicts-001",
+        "total_entries": 30,
+        "usable_entries": 30,
+        "stale_prompt_version_entries": 0
+      },
+      {
+        "path": "scripts/turns/ledger-verdicts/ledger-verdicts-002.json",
+        "batch": "ledger-verdicts-002",
+        "total_entries": 356,
+        "usable_entries": 356,
+        "stale_prompt_version_entries": 0
+      }
+    ],
+    "allow_api": false,
+    "prompt_version": "sha256:70ca104246d8bb95"
+  },
+  "inputs_ref": [
+    "portal_link_candidates: status=candidate limit=5 order=asc(first_seen_at,id)",
+    "session-verdicts: 2 batch(es) (ledger-verdicts-001, ledger-verdicts-002), usable=386/386 total (auto-discovered, all committed batches)"
+  ],
+  "per_item": [
+    {
+      "id": "4bbeb953-700e-483d-b63b-d69b51f7ba9b",
+      "candidate_id": "4bbeb953-700e-483d-b63b-d69b51f7ba9b",
+      "source_id": null,
+      "url": "https://eur-lex.europa.eu/homepage.html?locale=en",
+      "outcome": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/homepage.html?locale=en"
+      ],
+      "error": null,
+      "classify_source": "none",
+      "before": "candidate",
+      "after": "candidate"
+    },
+    {
+      "id": "93ab53e7-d0dd-4bf1-a99d-d86c6d5cfc48",
+      "candidate_id": "93ab53e7-d0dd-4bf1-a99d-d86c6d5cfc48",
+      "source_id": null,
+      "url": "https://ww2.arb.ca.gov/rulemaking",
+      "outcome": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://ww2.arb.ca.gov/rulemaking"
+      ],
+      "error": null,
+      "classify_source": "none",
+      "before": "candidate",
+      "after": "candidate"
+    },
+    {
+      "id": "5382cf66-61cc-48d5-ba6d-f18140b6e3a0",
+      "candidate_id": "5382cf66-61cc-48d5-ba6d-f18140b6e3a0",
+      "source_id": null,
+      "url": "https://ww2.arb.ca.gov/our-work/programs/truck-and-bus-regulation",
+      "outcome": "skipped",
+      "reason": "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://ww2.arb.ca.gov/our-work/programs/truck-and-bus-regulation"
+      ],
+      "error": null,
+      "classify_source": "none",
+      "before": "candidate",
+      "after": "candidate"
+    },
+    {
+      "id": "270b6eb5-de28-447a-ba93-853d0ce37426",
+      "candidate_id": "270b6eb5-de28-447a-ba93-853d0ce37426",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html",
+      "outcome": "not_an_item",
+      "reason": "entity-gate: portal, Page is a navigational portal, homepage, or institution landing page rather than a specific regulatory document.",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html"
+      ],
+      "error": null,
+      "classify_source": "session-verdict",
+      "before": "candidate",
+      "after": "candidate",
+      "confidence": 0.85
+    },
+    {
+      "id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d",
+      "candidate_id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html",
+      "outcome": "not_an_item",
+      "reason": "entity-gate: portal, Page is a navigational portal, homepage, or institution landing page rather than a specific regulatory document.",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html"
+      ],
+      "error": null,
+      "classify_source": "session-verdict",
+      "before": "candidate",
+      "after": "candidate",
+      "confidence": 0.85
+    }
+  ],
+  "metrics": {
+    "mode": "plan",
+    "candidates": 5,
+    "discovered": 5,
+    "fetched": 0,
+    "classified": 2,
+    "with_verdict": 2,
+    "matched": 2,
+    "without_verdict_skipped": 3,
+    "verdict_batches_read": 2,
+    "uncertain": 0,
+    "promoted": 0,
+    "rejected": 2,
+    "skipped": 3,
+    "capped": 0,
+    "est_usd": 0,
+    "est_usd_total": 0,
+    "input_tokens_total": 0,
+    "output_tokens_total": 0,
+    "next_cursor": {
+      "firstSeenAt": "2026-07-19T17:21:40.35763+00:00",
+      "id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d"
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/harness-runs/ledger-consume/traces/ledger-consume-run-008.result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-ledger-consume.mjs, the ledger-consume family's canonical entry point (Lane CONSUME, 2026-09-02), the runtime consumePortalCandidates (src/lib/intake/portal-harvest.ts) never had. Every classify call's agent_runs telemetry is written by the spend chokepoint itself (src/lib/llm/spend-client.ts's spendMessage/recordSpendCall, wired into first-fetch-classify.ts by Lane SPEND), this driver only READS BACK FirstFetchClassifyResult's cost_usd_estimated/input_tokens/output_tokens (collectClassifyTelemetry) to shape this artifact's per_item/metrics; it does not write agent_runs itself, so a classify call leaves exactly one telemetry row, not two. See this file's header for the full account."
+}

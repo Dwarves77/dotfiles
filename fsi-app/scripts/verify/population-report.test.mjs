@@ -8,6 +8,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   classify,
   renderReport,
@@ -29,6 +32,9 @@ import {
   LEGAL_CONFIRMATION_RESOLVED_BY,
   computeCoverageReflectionsCount,
   describeCoverageReflectionsState,
+  computeVerdictsOwed,
+  loadCommittedVerdictedUrls,
+  countCandidatesAwaitingVerdict,
 } from "./population-report.mjs";
 import { TAG_NAMESPACE, SIGNAL_NAMESPACE, GAP_NAMESPACE, ANTICIPATE_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
@@ -695,4 +701,140 @@ test("end-to-end: an open-flags-by-family entry renders its own wording through 
   assert.match(lines, /5 open flywheel-tag:\* flag\(s\)/);
   assert.doesNotMatch(lines, /nothing to show/);
   assert.doesNotMatch(lines, /fill it with:/);
+});
+
+// -- "ledger-consume: N candidates await a verdict" (coordinator correction, 2026-09-18) ------------------
+
+test("computeVerdictsOwed: total minus matched, the plain case", () => {
+  assert.equal(computeVerdictsOwed(100, 30), 70);
+});
+
+test("computeVerdictsOwed: floored at 0, never negative (a chunked read racing a write)", () => {
+  assert.equal(computeVerdictsOwed(10, 15), 0);
+});
+
+test("computeVerdictsOwed: null/undefined inputs treated as 0, never NaN", () => {
+  assert.equal(computeVerdictsOwed(null, null), 0);
+  assert.equal(computeVerdictsOwed(undefined, undefined), 0);
+  assert.equal(computeVerdictsOwed(50, undefined), 50);
+});
+
+test("loadCommittedVerdictedUrls: collects the union of every committed batch's entry urls, duplicates included", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pop-report-verdicts-"));
+  try {
+    writeFileSync(
+      join(dir, "ledger-verdicts-001.json"),
+      JSON.stringify({ entries: [{ url: "https://x/a" }, { url: "https://x/b" }] }),
+    );
+    writeFileSync(
+      join(dir, "ledger-verdicts-002.json"),
+      JSON.stringify({ entries: [{ url: "https://x/b" }, { url: "https://x/c" }] }),
+    );
+    writeFileSync(join(dir, "README.md"), "not a batch file, must be ignored (isVerdictsBatchFilename)");
+    const urls = loadCommittedVerdictedUrls(dir);
+    assert.deepEqual(urls.sort(), ["https://x/a", "https://x/b", "https://x/b", "https://x/c"].sort());
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("loadCommittedVerdictedUrls: a missing directory yields [], never a throw", () => {
+  assert.deepEqual(loadCommittedVerdictedUrls(join(tmpdir(), "does-not-exist-" + Date.now())), []);
+});
+
+test("loadCommittedVerdictedUrls: a malformed batch file is skipped, not fatal to the others", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pop-report-verdicts-bad-"));
+  try {
+    writeFileSync(join(dir, "ledger-verdicts-001.json"), "{ not valid json");
+    writeFileSync(join(dir, "ledger-verdicts-002.json"), JSON.stringify({ entries: [{ url: "https://x/ok" }] }));
+    assert.deepEqual(loadCommittedVerdictedUrls(dir), ["https://x/ok"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Models what readAllByIds (scripts/lib/db.mjs) actually issues, not a hand-rolled chunk loop: the total
+// query is select().eq() with NO .in() chained on; the matched-rows query (one call per chunk, one chunk
+// here since these fixtures are well under readAllByIds' default chunk of 50) is
+// select().order().range().in(idColumn, slice).eq(status,candidate), and resolves to {data, error}, the
+// ROW shape readAll/fetchAllRows expects, never {count, error} (that shape is the total query's own).
+function makeCountingSb({ totalCount, totalError, matchedUrls, matchedError } = {}) {
+  const calls = [];
+  const sb = {
+    from(table) {
+      assert.equal(table, "portal_link_candidates");
+      let sawIn = null;
+      let sawEq = null;
+      const builder = {
+        select() {
+          return builder;
+        },
+        order() {
+          return builder;
+        },
+        range() {
+          return builder;
+        },
+        eq(col, val) {
+          sawEq = [col, val];
+          calls.push(["eq", col, val]);
+          return builder;
+        },
+        in(col, list) {
+          sawIn = [col, list];
+          calls.push(["in", col, list.length]);
+          return builder;
+        },
+        then(resolve) {
+          if (sawIn) {
+            assert.deepEqual(sawEq, ["status", "candidate"], "match() must apply eq(status,candidate) ON TOP OF in(), never instead of it");
+            if (matchedError) return resolve({ data: null, error: matchedError });
+            const [, list] = sawIn;
+            const rows = (matchedUrls ?? []).filter((u) => list.includes(u)).map((url) => ({ url }));
+            resolve({ data: rows, error: null });
+          } else {
+            resolve({ count: totalCount ?? 0, error: totalError ?? null });
+          }
+        },
+      };
+      return builder;
+    },
+  };
+  return { sb, calls };
+}
+
+test("countCandidatesAwaitingVerdict: total minus matched, via readAllByIds (scripts/lib/db.mjs), verdictedUrls injected (no filesystem)", async () => {
+  const { sb, calls } = makeCountingSb({ totalCount: 10, matchedUrls: ["https://x/1", "https://x/2"] });
+  const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: ["https://x/1", "https://x/2"] });
+  assert.equal(result.error, null);
+  assert.equal(result.count, 8, "10 total, 2 matched -> 8 owed");
+  assert.ok(calls.some((c) => c[0] === "in" && c[1] === "url"), "readAllByIds filters on the url column, no second hand-rolled chunk loop");
+});
+
+test("countCandidatesAwaitingVerdict: zero verdicted urls -> owed equals the total (readAllByIds short-circuits, no .in() call made)", async () => {
+  const { sb, calls } = makeCountingSb({ totalCount: 42 });
+  const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: [] });
+  assert.equal(result.count, 42);
+  assert.equal(calls.some((c) => c[0] === "in"), false, "fetchAllByIdChunks returns [] for an empty id list before issuing any query");
+});
+
+test("countCandidatesAwaitingVerdict: more verdicted urls matched than the total candidate count floors at 0, never negative", async () => {
+  const { sb } = makeCountingSb({ totalCount: 1, matchedUrls: ["https://x/1", "https://x/2", "https://x/3"] });
+  const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: ["https://x/1", "https://x/2", "https://x/3"] });
+  assert.equal(result.error, null);
+  assert.equal(result.count, 0, "3 matched against a total of 1 (a read racing a write) never goes negative");
+});
+
+test("countCandidatesAwaitingVerdict: a total-query error is reported, never thrown", async () => {
+  const { sb } = makeCountingSb({ totalError: { message: "boom" } });
+  const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: [] });
+  assert.equal(result.count, null);
+  assert.match(result.error.message, /boom/);
+});
+
+test("countCandidatesAwaitingVerdict: a matched-rows (readAllByIds) error is reported, never thrown", async () => {
+  const { sb } = makeCountingSb({ totalCount: 10, matchedError: { message: "kaboom" } });
+  const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: ["https://x/1"] });
+  assert.equal(result.count, null);
+  assert.match(result.error.message, /kaboom/);
 });

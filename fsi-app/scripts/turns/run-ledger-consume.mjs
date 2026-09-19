@@ -31,27 +31,29 @@
 // FREE. 'apply' pushes would-mint candidates through the full intake cycle (stage -> mint -> ground ->
 // validate) and stamps the ledger disposition — the operator-priced grounding path.
 //
-// THE APPLY GATE (ADR-023's "producer ENABLED const is the reviewed-code gate" ruling, applied here to a
-// consumer instead of a producer). `LEDGER_CONSUME_APPLY_ENABLED` below is a SOURCE CONSTANT, not an env
-// var or a CLI flag — flipping it appears in `git diff` and is a human-reviewed change, exactly the
-// property ADR-023 §4 names for producers' own `ENABLED` const ("arming a producer is visible in a
-// diff... you cannot stop a misbehaving worker with a pull request [alone], but you also cannot arm one
-// without one"). `--mode apply` while the const is false is not silently downgraded — see
-// `resolveApplyGate` below: it prints a named "apply DISARMED" line, records `apply_disarmed: true` +
-// `requested_mode: "apply"` + `mode: "plan"` in the artifact's `config`, and actually RUNS as plan (writes
-// nothing) rather than either pretending apply ran or refusing to do anything useful with the dispatch.
+// THE APPLY GATE (Lane M2, 2026-09-18, docs/plans/complete-system-build-plan-2026-09-04.md section 6.1
+// row M2, retires the source-constant gate ADR-023 section 4 described; corrected the same day per
+// coordinator ruling, see "ARMING" below). Apply used to require TWO conditions:
+// `LEDGER_CONSUME_APPLY_ENABLED` (a human-reviewed source constant) AND a --verdicts file NAMED
+// explicitly on this dispatch. The constant is RETIRED (no read of it remains in this file). `docs/audits/
+// stage-audit-2026-09-18/s2-mint-gate.md` finding 1 found it permanently true and gating nothing real:
+// the actual defect was that apply had never fired for real across two full audits three weeks apart.
 //
-// FLIPPED TRUE (operator ruling 2026-09-04, this diff, ADR-023's own reviewed-change mechanism). The
-// operator's verbatim rulings this session — "stop offering API when you have a free option with Haiku"
-// and "why is this costing me anything when it can be done for free?" — are answered below by the
-// session-verdict path, not by leaving apply disarmed forever. With the $0 default in place (no verdict
-// -> SKIPPED, never sent to the API — see THE SESSION-VERDICT FLIP below), arming apply no longer means
-// "every dispatch spends real money sight-unseen": an apply run with no `--verdicts` file mints nothing
-// (every candidate is skipped) and an apply run WITH one mints only what a session lane already
-// classified for free. That is the condition ADR-023 §4's two gates exist to let a human set once
-// reviewed — this diff is that review, recorded in the same change that flips the constant (see
-// `LEDGER_CONSUME_APPLY_ENABLED`'s own comment below and `docs/decisions/ADR-023-producer-execution-
-// model.md`'s Consequences section, which records the flip per the ADR's own mechanism).
+// ARMING, corrected (coordinator ruling, same day this file first landed the cap): the machine design is
+// that session lanes write verdict batches (the human judgment, committed under
+// scripts/turns/ledger-verdicts/) and apply promotes, by itself, every candidate that already has a
+// committed verdict. Requiring an EXPLICIT --verdicts <path> on every apply dispatch kept a person inside
+// the hop, the exact defect this lane exists to close. Apply now arms whenever AT LEAST ONE committed
+// verdicts batch exists AT ALL (isApplyArmed below): the union `discoverVerdictsFiles` finds when
+// --verdicts is omitted, or the one file an explicit --verdicts <path> names. The ONLY disarmed case is
+// zero batches, neither discovered nor named. THE MAX-PROMOTE CAP (`--max-promote`, default 50, hard
+// ceiling 200, see `applyPromoteCap`, `src/lib/intake/promote-cap.mjs`) is what bounds a single armed
+// run's blast radius, by COUNT PER RUN, not a human flip: once armed, a single run may promote at most
+// `max_promote` of the eligible candidates. `--mode apply` with zero verdicts anywhere is not silently
+// downgraded, see `resolveApplyGate` below: it prints a named "apply DISARMED" line, records
+// `apply_disarmed: true` plus `requested_mode: "apply"` plus `mode: "plan"` in the artifact's `config`,
+// and actually RUNS as plan (writes nothing) rather than either pretending apply ran or refusing to do
+// anything useful with the dispatch.
 //
 // THE SESSION-VERDICT FLIP (same operator ruling, same diff — the OTHER half of "done" for this family).
 // Before this change, EVERY dispatch — plan or apply — called Haiku (`firstFetchClassify`,
@@ -96,10 +98,12 @@
 //   node scripts/turns/run-ledger-consume.mjs --mode plan [--limit 50] [--source-id <uuid>]
 //     [--newest-first] [--after '{"firstSeenAt":"...","id":"..."}'] [--harness-runs-dir dir] [--trace-dir dir]
 //     [--verdicts <path>] [--allow-api]
-//   node scripts/turns/run-ledger-consume.mjs --mode apply --verdicts <path> ...
-//     # apply only actually WRITES when LEDGER_CONSUME_APPLY_ENABLED is true (see below) — otherwise it
-//     # runs as plan, records why. A candidate with a verdict in --verdicts is minted/rejected from that
-//     # verdict; one without is SKIPPED (never sent to the API) unless --allow-api is also given.
+//   node scripts/turns/run-ledger-consume.mjs --mode apply --verdicts <path> [--max-promote 50] ...
+//     # apply only actually WRITES when --verdicts names a file (D26's arming rule); otherwise it runs
+//     # as plan, records why. --max-promote (default 50, hard ceiling 200) bounds how many of the
+//     # eligible candidates ONE run may promote, oldest-eligible first. A candidate with a verdict in
+//     # --verdicts is minted/rejected from that verdict; one without is SKIPPED (never sent to the API)
+//     # unless --allow-api is also given.
 //   node scripts/turns/run-ledger-consume.mjs --export-candidates <path> [--limit N] [--source-id <uuid>]
 //     [--after '{"firstSeenAt":"...","id":"..."}'] [--with-text]
 //     # READ-ONLY: no classify, no DB write. Lists candidate rows for offline classification. Ignores
@@ -218,13 +222,10 @@ const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "ledger-con
 // own copy and this runner's self-hash are now the same array by construction, not two hand-synced ones.
 export const LEDGER_CONSUME_GOVERNING_FILES = GOVERNING_FILES['ledger-consume'];
 
-// THE APPLY GATE (see header). FLIPPED TRUE 2026-09-04 — operator ruling, this diff, ADR-023's own
-// reviewed-change mechanism ("stop offering API when you have a free option with Haiku"; "why is this
-// costing me anything when it can be done for free?"). Armed together with the session-verdict $0 default
-// (see header): an apply dispatch with no --verdicts file mints nothing (every candidate skipped, never
-// sent to the API); one WITH a verdicts file mints only what a session lane already classified for free.
-// docs/decisions/ADR-023-producer-execution-model.md records this flip per its own mechanism.
-export const LEDGER_CONSUME_APPLY_ENABLED = true;
+// LEDGER_CONSUME_APPLY_ENABLED retired here (Lane M2, 2026-09-18). See this file's header, THE APPLY
+// GATE, and docs/decisions/ADR-023-producer-execution-model.md's Consequences section for the
+// retirement record. No new flag replaces it; the guard is now the max-promote cap (--max-promote,
+// below).
 
 const MODES = Object.freeze(["plan", "apply"]);
 
@@ -234,6 +235,9 @@ function usage() {
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}']\n" +
     "         [--harness-runs-dir dir] [--trace-dir dir] [--verdicts path] [--allow-api]\n" +
     "         [--record-only true|false]  # default true (D26) - apply mints at record grade, no grounding spend\n" +
+    "         [--max-promote N]  # default 50, hard ceiling 200 - caps how many eligible candidates ONE\n" +
+    "         #                    apply run may promote, oldest-eligible first (the guard that replaced\n" +
+    "         #                    the retired LEDGER_CONSUME_APPLY_ENABLED constant)\n" +
     "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]\n" +
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}'] [--with-text]"
   );
@@ -262,6 +266,10 @@ export function parseArgs(argv) {
         // this flag needs an explicit off switch (unlike --newest-first/--with-text, which are pure
         // opt-in flags with no meaningful "false" case to express from a workflow_dispatch UI).
         "record-only": { type: "string", default: "true" },
+        // THE MAX-PROMOTE CAP (Lane M2, 2026-09-18): the guard that replaces the retired
+        // LEDGER_CONSUME_APPLY_ENABLED source constant. String (parsed + range-checked below), matching
+        // this file's own convention for a GitHub Actions numeric input (limit, above).
+        "max-promote": { type: "string", default: "50" },
       },
       allowPositionals: false,
       strict: true,
@@ -276,6 +284,16 @@ export function parseArgs(argv) {
   const limit = Number(values.limit);
   if (!Number.isFinite(limit) || limit <= 0 || !Number.isInteger(limit)) {
     return { ok: false, error: `--limit must be a positive integer (got ${JSON.stringify(values.limit)}).` };
+  }
+  // THE MAX-PROMOTE CAP (Lane M2, 2026-09-18): default 50, hard ceiling 200 enforced HERE, never a
+  // silent clamp. An operator who asks for more than the ceiling finds out immediately, same discipline
+  // this file already applies to --with-text/--export-candidates below.
+  const maxPromote = Number(values["max-promote"]);
+  if (!Number.isFinite(maxPromote) || maxPromote <= 0 || !Number.isInteger(maxPromote)) {
+    return { ok: false, error: `--max-promote must be a positive integer (got ${JSON.stringify(values["max-promote"])}).` };
+  }
+  if (maxPromote > 200) {
+    return { ok: false, error: `--max-promote must not exceed the hard ceiling of 200 (got ${maxPromote}).` };
   }
   if (values.verdicts !== undefined && !values.verdicts.trim()) {
     return { ok: false, error: "--verdicts, if given, must be a non-empty path." };
@@ -318,6 +336,7 @@ export function parseArgs(argv) {
     ok: true,
     mode: values.mode,
     limit,
+    maxPromote,
     sourceId: values["source-id"] || null,
     newestFirst: values["newest-first"] === true,
     after,
@@ -757,7 +776,7 @@ export function verdictEntryToClassifyOutput(entry) {
 // and buildVerdictClassify (the classify-time bypass/skip) so the fetch-time skip and the classify-time
 // skip can never print two different explanations for the identical decision.
 const NO_VERDICT_REASON =
-  "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — " +
+  "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false), " +
   "never sent to the API";
 
 /**
@@ -850,6 +869,30 @@ export const PROMOTED_LIKE_DISPOSITIONS = Object.freeze(["promoted", "exists", "
 export const REJECTED_LIKE_DISPOSITIONS = Object.freeze(["rejected", "would_reject", "not_an_item"]);
 
 /**
+ * THE LEDGER STATUS THIS OUTCOME LEFT BEHIND (Lane M2, 2026-09-18): every per_item entry in this run's
+ * artifact carries `before`/`after` so a reader can see exactly what portal_link_candidates.status moved
+ * to, without cross-referencing the stamp() call sites in portal-harvest.ts. PURE, mirrors that file's
+ * own stamp() logic. Every row this function is asked about started 'candidate' (selectCandidateLedgerPage's
+ * own query filters `status='candidate'`); a plan-mode run writes nothing, so `after` always equals
+ * `before` there:
+ *   - 'promoted'/'exists' -> stamped 'promoted' (portal-harvest.ts's "subject already exists" branch and
+ *     its "minted" branch both call stamp(row, "promoted", ...))
+ *   - 'rejected'/'not_an_item' -> stamped 'rejected'
+ *   - 'skipped'/'would_mint'/'would_reject' -> untouched, still 'candidate' (a plan-mode verdict, a
+ *     fetch/classify failure, or a max-promote-capped row left for a later apply run, see
+ *     applyPromoteCap, src/lib/intake/promote-cap.mjs)
+ * @param {string} disposition a CandidateDisposition (portal-harvest.ts)
+ * @param {"plan"|"apply"} mode
+ * @returns {"candidate"|"promoted"|"rejected"}
+ */
+export function ledgerStatusAfter(disposition, mode) {
+  if (mode !== "apply") return "candidate";
+  if (disposition === "promoted" || disposition === "exists") return "promoted";
+  if (disposition === "rejected" || disposition === "not_an_item") return "rejected";
+  return "candidate";
+}
+
+/**
  * Build this run's per_item / metrics from a ConsumeResult plus the classify telemetry side-channel.
  * PURE (no I/O) so the shaping is independently testable.
  *
@@ -883,12 +926,16 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
       output_tokens: t?.outputTokens ?? 0,
       evidence_refs: [o.url],
       error: t && !t.ok ? t.error : null,
-      // classify_source names WHERE this outcome's classification came from — "session-verdict" ($0, the
+      // classify_source names WHERE this outcome's classification came from: "session-verdict" ($0, the
       // operator-ruled default), "skipped-no-verdict" (never sent to the API), "api" (a real metered
-      // Haiku call, --allow-api only), or "none" (the row never reached classify at all — fetch failed or
+      // Haiku call, --allow-api only), or "none" (the row never reached classify at all, fetch failed or
       // sub-200ch, portal-harvest.ts's own fetchOk floor). See buildVerdictClassify's own doc for the
       // three sources a telemetry entry can carry.
       classify_source: t?.source ?? "none",
+      // before/after (Lane M2, 2026-09-18): every row this driver reads starts 'candidate'; `after` is
+      // the real portal_link_candidates.status this run left it at (see ledgerStatusAfter's own doc).
+      before: "candidate",
+      after: ledgerStatusAfter(o.disposition, result.mode),
     };
     // candidate_id CROSS-CHECK (honest, not silently discarded — schema.json's own note on this field):
     // the verdict entry's OWN candidate_id vs. the ledger row this outcome actually resolved to. The
@@ -949,6 +996,12 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
     // matched 386, fetched 0 for them"). Alias of with_verdict, not a second count to keep in sync.
     matched: withVerdict,
     without_verdict_skipped: withoutVerdictSkipped,
+    // verdicts_owed (coordinator correction, 2026-09-18): the human-facing name for the SAME count,
+    // this run's own window only (not the corpus). "The human half must never be silent": a candidate
+    // this run could not classify for want of a verdict is exactly a candidate a session lane still owes
+    // one for. Equal to without_verdict_skipped by construction, kept as its own named field so a reader
+    // (population-report, an operator) never needs to know the internal shaping-function name to find it.
+    verdicts_owed: withoutVerdictSkipped,
     // How many verdict-batch files this run actually read — whether an explicit --verdicts path (1) or
     // every scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch auto-discovered because --verdicts
     // was omitted (build plan W1.4 item 3: "verdict batches read ... recorded"). 0 when none exist.
@@ -957,6 +1010,11 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
     promoted: result.outcomes.filter((o) => PROMOTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     rejected: result.outcomes.filter((o) => REJECTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     skipped: result.outcomes.filter((o) => o.disposition === "skipped").length,
+    // capped (Lane M2, 2026-09-18): of the skipped rows above, how many were skipped specifically
+    // because max_promote was reached this run (applyPromoteCap's own reason text, portal-harvest.ts),
+    // not for a fetch/classify failure or a no-verdict skip. 0 in plan mode (the cap only applies inside
+    // the apply-mode mint branch) or when the would-mint set never exceeded the cap.
+    capped: result.outcomes.filter((o) => o.disposition === "skipped" && /^capped:/.test(o.reason ?? "")).length,
     // est_usd — build brief item 5's naming; est_usd_total kept alongside it for the same back-compat
     // reason as candidates/discovered above. Both are the SAME number: $0 whenever every classified
     // candidate came from a session verdict, which is the operator-ruled default posture.
@@ -1000,19 +1058,21 @@ export function buildRunArtifact({
   const proposerNotes = runError
     ? "This run threw before completing — see defects_found for the error. Re-run after fixing the root cause."
     : config.apply_disarmed
-      ? "APPLY DISARMED (see config.requested_mode/apply_enabled_const): LEDGER_CONSUME_APPLY_ENABLED is " +
-        "false in run-ledger-consume.mjs (ADR-023 reviewed-change gate) — this run executed with plan " +
-        "semantics regardless of the --mode apply request. Nothing was written to portal_link_candidates " +
-        "or the intake chokepoint; the classify calls it made ARE real spend, each metered by the spend " +
-        "chokepoint itself (src/lib/llm/spend-client.ts's spendMessage/recordSpendCall — one agent_runs " +
-        "row per call, written from inside first-fetch-classify.ts, not by this driver); this artifact's " +
-        "per_item est_usd/input_tokens/output_tokens and metrics.est_usd_total are read back from " +
+      ? "APPLY DISARMED (see config.requested_mode/verdicts_files): zero committed ledger-verdicts " +
+        "batches exist at all, neither auto-discovered nor named by an explicit --verdicts <path> " +
+        "(LEDGER_CONSUME_APPLY_ENABLED, the earlier reviewed-code gate, was retired 2026-09-18, Lane M2); " +
+        "this run executed with plan semantics regardless of the --mode apply request. Nothing was " +
+        "written to portal_link_candidates or the intake chokepoint; the " +
+        "classify calls it made ARE real spend, each metered by the spend chokepoint itself " +
+        "(src/lib/llm/spend-client.ts's spendMessage/recordSpendCall, one agent_runs row per call, " +
+        "written from inside first-fetch-classify.ts, not by this driver); this artifact's per_item " +
+        "est_usd/input_tokens/output_tokens and metrics.est_usd_total are read back from " +
         "FirstFetchClassifyResult, not a second ledger write (see per_item est_usd / metrics.est_usd_total)."
       : "Auto-emitted by run-ledger-consume.mjs, the ledger-consume family's canonical entry point " +
-        "(Lane CONSUME, 2026-09-02) — the runtime consumePortalCandidates (src/lib/intake/portal-harvest.ts) " +
+        "(Lane CONSUME, 2026-09-02), the runtime consumePortalCandidates (src/lib/intake/portal-harvest.ts) " +
         "never had. Every classify call's agent_runs telemetry is written by the spend chokepoint itself " +
         "(src/lib/llm/spend-client.ts's spendMessage/recordSpendCall, wired into first-fetch-classify.ts by " +
-        "Lane SPEND) — this driver only READS BACK FirstFetchClassifyResult's cost_usd_estimated/" +
+        "Lane SPEND), this driver only READS BACK FirstFetchClassifyResult's cost_usd_estimated/" +
         "input_tokens/output_tokens (collectClassifyTelemetry) to shape this artifact's per_item/metrics; " +
         "it does not write agent_runs itself, so a classify call leaves exactly one telemetry row, not two. " +
         "See this file's header for the full account.";
@@ -1037,24 +1097,33 @@ export function buildRunArtifact({
  * THE APPLY GATE, as a pure decision (see this file's header for the full rationale). Separated from
  * main() so it is unit-testable without a DB, a jiti import, or a subprocess.
  * @param {"plan"|"apply"} requestedMode
- * @param {boolean} applyEnabled the LEDGER_CONSUME_APPLY_ENABLED const
+ * @param {boolean} applyArmed isApplyArmed's own result (armed whenever at least one committed verdicts batch exists)
  * @returns {{effectiveMode: "plan"|"apply", applyDisarmed: boolean, message: string|null}}
  */
 /**
- * D26 lane L17 (2026-09-13) arming rule: apply is armed when and only when this run named an EXPLICIT
- * `--verdicts <path>` (a single, human-chosen committed batch this dispatch means to act on), AND the
- * reviewed-code gate (LEDGER_CONSUME_APPLY_ENABLED, ADR-023's own mechanism) is still true. Auto-discovery
- * of every committed `ledger-verdicts-*.json` batch (when `--verdicts` is omitted - see `discoverVerdictsFiles`
- * above) still feeds PLAN mode's own classify decisions unchanged; it does NOT arm apply - an apply
- * dispatch must name the one batch it means to act on, never "whatever is committed right now". By the
- * time this is evaluated, an explicitly-named `--verdicts` file has ALREADY passed `validateVerdictsFile`
- * (main()'s own fail-closed check, `process.exit(4)` on failure) - so `verdictsGiven: true` here always
- * means "named AND schema-valid", never merely "named". PURE, no I/O.
- * @param {{applyEnabledConst: boolean, verdictsGiven: boolean}} opts
+ * ARMING (Lane M2 correction, 2026-09-18, coordinator ruling): apply arms whenever at least one
+ * committed verdicts batch is AVAILABLE to this run, whether that is the union `discoverVerdictsFiles`
+ * finds (auto-discovery, no `--verdicts` given) or the one explicit `--verdicts <path>` a dispatch names.
+ * The chained `workflow_run` pass (which never names `--verdicts`) therefore arms itself the moment a
+ * session lane commits its first batch under `scripts/turns/ledger-verdicts/`, no human flip needed for
+ * that half of the decision: this is the closing move on S2 finding 1 (apply reachable but a person still
+ * had to be inside the hop to arm it). The ONLY disarmed case is ZERO verdicts files at all, neither
+ * discovered nor named (see `resolveApplyGate` below). This is also why `--allow-api` and its per-URL
+ * skip/spend decision are untouched: arming a RUN is a different question from whether any given
+ * candidate inside it has a verdict, and a candidate with none is still `skipped-no-verdict`, never
+ * sent to the API, exactly as before. An explicit `--verdicts <path>` still restricts THIS run to that
+ * one batch's URLs (main()'s existing `parsed.verdicts ? [resolve(parsed.verdicts)] : discoverVerdictsFiles(...)`
+ * branch, unchanged) and, by the time this is evaluated, has already passed `validateVerdictsFile`
+ * (main()'s own fail-closed check, `process.exit(4)` on failure). Once armed, THE MAX-PROMOTE CAP
+ * (--max-promote, applyPromoteCap in src/lib/intake/promote-cap.mjs) bounds how much a single run may
+ * actually write, the blast-radius guard the retired LEDGER_CONSUME_APPLY_ENABLED constant used to be.
+ * PURE, no I/O.
+ * @param {{verdictsFilesCount: number}} opts the number of committed verdict batches this run actually
+ *   read (verdictsFilesInfo.length in main()), auto-discovered or the one explicit file, either way.
  * @returns {boolean}
  */
-export function isApplyArmed({ applyEnabledConst, verdictsGiven }) {
-  return applyEnabledConst === true && verdictsGiven === true;
+export function isApplyArmed({ verdictsFilesCount }) {
+  return Number(verdictsFilesCount) > 0;
 }
 
 export function resolveApplyGate(requestedMode, applyEnabled) {
@@ -1063,9 +1132,10 @@ export function resolveApplyGate(requestedMode, applyEnabled) {
       effectiveMode: "plan",
       applyDisarmed: true,
       message:
-        "run-ledger-consume: --mode apply requested but LEDGER_CONSUME_APPLY_ENABLED is false " +
-        "(ADR-023 reviewed-change gate — see this file's header). APPLY DISARMED. Running with plan " +
-        "semantics instead: READ-ONLY, no ledger write, no mint — but classify calls still run and still spend.",
+        "run-ledger-consume: --mode apply requested but no committed ledger-verdicts batch exists at all " +
+        "(scripts/turns/ledger-verdicts/, checked via discoverVerdictsFiles; an explicit --verdicts " +
+        "<path> also found none). APPLY DISARMED. Running with plan semantics instead: READ-ONLY, no " +
+        "ledger write, no mint, but classify calls still run and still spend.",
     };
   }
   return { effectiveMode: requestedMode, applyDisarmed: false, message: null };
@@ -1566,25 +1636,18 @@ async function main() {
   const anthropicKey = process.env.ANTHROPIC_API_KEY || "";
 
   const requestedMode = parsed.mode;
-  // D26 lane L17 (2026-09-13): apply now arms ONLY when this run named an EXPLICIT --verdicts <path> (a
-  // single, human-chosen committed batch), never merely because auto-discovery found SOME committed
-  // batch(es) sitting in the directory - see isApplyArmed's own doc above. `parsed.verdicts` is the
-  // explicit-path signal; the file it names has already passed validateVerdictsFile above (or main()
-  // already exited 4) by the time this line runs.
+  // ARMING (Lane M2 correction, 2026-09-18): apply arms whenever AT LEAST ONE committed verdicts batch
+  // exists, whether auto-discovered (parsed.verdicts omitted) or the one explicit --verdicts <path> a
+  // dispatch names - see isApplyArmed's own doc above for the full account. verdictsFilesInfo (built
+  // above, whichever way verdictsFilePaths was populated) has already passed validateVerdictsFile per
+  // file (or main() already exited 4) by the time this line runs, so its length is exactly the "usable,
+  // committed batches this run can act on" count isApplyArmed needs. verdicts_given (below) stays a
+  // SEPARATE, purely informational field: whether THIS dispatch named one file explicitly, never the
+  // arming input any more.
   const verdictsGiven = Boolean(parsed.verdicts);
-  const applyArmed = isApplyArmed({ applyEnabledConst: LEDGER_CONSUME_APPLY_ENABLED, verdictsGiven });
+  const applyArmed = isApplyArmed({ verdictsFilesCount: verdictsFilesInfo.length });
   const { effectiveMode, applyDisarmed, message: applyGateMessage } = resolveApplyGate(requestedMode, applyArmed);
   if (applyGateMessage) console.log(applyGateMessage);
-  if (requestedMode === "apply" && applyDisarmed && LEDGER_CONSUME_APPLY_ENABLED && !verdictsGiven) {
-    // The disarm message above (resolveApplyGate's own, unchanged wording) names LEDGER_CONSUME_APPLY_ENABLED
-    // even when that const is actually true - this line names the REAL reason so a reader is never misled.
-    console.log(
-      "run-ledger-consume: the actual reason for the disarm above is D26's arming rule (2026-09-13) - apply " +
-        "requires an EXPLICIT --verdicts <path> naming ONE committed batch this dispatch means to act on; " +
-        "LEDGER_CONSUME_APPLY_ENABLED itself is true. Auto-discovery of every committed batch (no --verdicts " +
-        "given) still feeds plan mode's own classify decisions, but never arms apply on its own."
-    );
-  }
   if (effectiveMode === "apply" && verdictsByUrl.size === 0 && !parsed.allowApi) {
     console.log(
       "run-ledger-consume: apply requested with no usable verdicts (none given/discovered) and no " +
@@ -1615,11 +1678,19 @@ async function main() {
     requested_mode: requestedMode,
     mode: effectiveMode,
     apply_disarmed: applyDisarmed,
-    apply_enabled_const: LEDGER_CONSUME_APPLY_ENABLED,
-    // D26 lane L17 (2026-09-13): the new arming input (verdicts_given) alongside the pre-existing
-    // reviewed-code gate, so a reader can tell WHICH of the two the disarm above (if any) came from,
-    // never merely inferring it from apply_enabled_const alone.
+    // verdicts_given (Lane M2, 2026-09-18 correction): informational only, whether THIS dispatch named
+    // an explicit --verdicts <path>, never the arming input any more (see isApplyArmed's own doc, THE
+    // APPLY GATE header): arming reads verdicts_files.length below, auto-discovered batches included.
     verdicts_given: verdictsGiven,
+    // THE MAX-PROMOTE CAP (Lane M2, 2026-09-18): bounds how many eligible candidates THIS run may
+    // promote in apply mode, oldest-eligible first (applyPromoteCap, src/lib/intake/promote-cap.mjs).
+    // Recorded here even in plan mode (harmless, plan mode never mints) so a reader always sees what
+    // cap a later apply run against the same dispatch inputs would use.
+    max_promote: parsed.maxPromote,
+    // THE UPSTREAM RUN ID (Lane M2, 2026-09-18): the source-sweep run that chained into this one via
+    // workflow_run (ledger-consume.yml's own "Export upstream run id" step), when this run was triggered
+    // that way; null on an explicit workflow_dispatch or a local run (the env var is unset or blank).
+    upstream_run_id: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
     record_only: parsed.recordOnly,
     limit: parsed.limit,
     source_id: parsed.sourceId,
@@ -1659,6 +1730,7 @@ async function main() {
     result = await consumePortalCandidates(sb, {
       mode: effectiveMode,
       limit: parsed.limit,
+      maxPromote: parsed.maxPromote,
       sourceId: parsed.sourceId ?? undefined,
       newestFirst: parsed.newestFirst,
       after: parsed.after ?? undefined,

@@ -34,6 +34,7 @@ import { firstFetchClassify, type FirstFetchClassifyOutput } from "@/lib/llm/fir
 import { toDbSeverity } from "@/lib/agent/metadata-vocab";
 import { applyStagedUpdate } from "./apply-staged-update";
 import { runIntakeCycle, type IntakeCandidate, type IntakeCycleResult } from "./run-intake-cycle";
+import { applyPromoteCap } from "./promote-cap.mjs";
 
 // ── persistPortalCandidates — the ONE portal_link_candidates write-site ──────────────────────────────
 
@@ -182,6 +183,14 @@ export interface ConsumeOpts {
    *  file makes no gate decision of its own, per this file's own GATE PLACEMENT rule. No effect in plan
    *  mode (plan never calls runIntakeCycle). Default false: every pre-existing caller unaffected. */
   recordOnly?: boolean;
+  /** THE MAX-PROMOTE CAP (Lane M2, 2026-09-18): bounds how many of the eligible (would-mint) candidates
+   *  THIS apply run actually promotes through runIntakeCycle, oldest-eligible first (applyPromoteCap,
+   *  ./promote-cap.mjs). Replaces the retired LEDGER_CONSUME_APPLY_ENABLED source-constant gate
+   *  (run-ledger-consume.mjs's own header) as the guard against an unbounded apply run. A candidate
+   *  beyond the cap is left completely untouched (ledger status stays 'candidate', no stamp) for a later
+   *  apply run to pick up, never a partial/rejected stamp. Undefined (the default) means no cap; every
+   *  pre-existing caller unaffected. run-ledger-consume.mjs always threads its own --max-promote default. */
+  maxPromote?: number;
   /** Injectable runIntakeCycle (testability seam only, same discipline as fetchDoc/classify above - a
    *  production caller never passes this; it defaults to the real import). Lets a test prove recordOnly
    *  and the already-fetched capturedText actually reach runIntakeCycle's own call, without faking the
@@ -451,7 +460,7 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     // 3 — ENTITY GATE precompute: a portal/uncertain verdict is NOT an item — rejected AS AN ITEM
     //     candidate with the verdict recorded (a sub-portal stays minable from rejected rows later).
     if (cls.entity_verdict !== "specific_document" || !cls.item_type) {
-      const reason = `entity-gate: ${cls.entity_verdict} — ${cls.rationale || "not a specific document"}`;
+      const reason = `entity-gate: ${cls.entity_verdict}, ${cls.rationale || "not a specific document"}`;
       await stamp(row, "rejected", reason, null);
       outcomes.push({ ledgerId: row.id, url: row.url, disposition: "not_an_item", reason, title: cls.title_candidate, surfaceTags: cls.surface_tags });
       continue;
@@ -495,29 +504,50 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   }
 
   // 6 — APPLY: the would-mint set runs the FULL cycle (stage → mint → ground → validate), then the
-  //     ledger stamps each outcome with the cycle's machine trail.
+  //     ledger stamps each outcome with the cycle's machine trail. THE MAX-PROMOTE CAP (Lane M2,
+  //     2026-09-18, replaces the retired LEDGER_CONSUME_APPLY_ENABLED source-constant gate, see
+  //     ConsumeOpts.maxPromote's own doc): bounds how many of the eligible candidates THIS run actually
+  //     promotes, oldest-eligible first (mintable is already in the candidate walk's own oldest-first
+  //     order, see selectCandidateLedgerPage). A candidate beyond the cap is left completely untouched
+  //     (status stays 'candidate', no stamp at all, never a partial/rejected stamp) so a later apply
+  //     run picks it up.
   let cycle: IntakeCycleResult | undefined;
   if (mode === "apply" && mintable.length) {
-    const runCycle = opts.runIntakeCycleImpl ?? runIntakeCycle;
-    cycle = (await runCycle(
-      sb,
-      mintable.map((m) => m.seed),
-      { caller: opts.caller ?? undefined, mode: "apply", recordOnly: opts.recordOnly }
-    )) as IntakeCycleResult;
-    for (const m of mintable) {
-      const item = cycle.items.find((i) => i.source_url === m.seed.source_url);
-      if (!item) continue; // defensive: cycle returns one outcome per candidate
-      if (item.itemId) {
-        const reason = `minted (${item.disposition})${item.reason ? `: ${item.reason}` : ""}`;
-        await stamp(m.row, "promoted", reason, item.itemId);
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "promoted", reason, itemId: item.itemId, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
-      } else if (item.disposition === "rejected") {
-        const reason = `${item.gate ?? "chokepoint"} — ${item.reason ?? "rejected"}`;
-        await stamp(m.row, "rejected", reason, null);
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "rejected", reason, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
-      } else {
-        // stage_failed (transient) — row stays 'candidate' for retry, reported not stamped.
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "skipped", reason: `${item.disposition}: ${item.reason ?? ""}`, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
+    const cap = typeof opts.maxPromote === "number" ? opts.maxPromote : mintable.length;
+    const { toPromote, deferred } = applyPromoteCap(mintable, cap);
+    for (const d of deferred) {
+      outcomes.push({
+        ledgerId: d.row.id,
+        url: d.row.url,
+        disposition: "skipped",
+        reason: `capped: max_promote=${cap} reached, row left as 'candidate' for a later apply run`,
+        itemType: d.seed.item_type,
+        title: d.seed.title,
+        surfaceTags: d.surfaceTags,
+      });
+    }
+    if (toPromote.length) {
+      const runCycle = opts.runIntakeCycleImpl ?? runIntakeCycle;
+      cycle = (await runCycle(
+        sb,
+        toPromote.map((m) => m.seed),
+        { caller: opts.caller ?? undefined, mode: "apply", recordOnly: opts.recordOnly }
+      )) as IntakeCycleResult;
+      for (const m of toPromote) {
+        const item = cycle.items.find((i) => i.source_url === m.seed.source_url);
+        if (!item) continue; // defensive: cycle returns one outcome per candidate
+        if (item.itemId) {
+          const reason = `minted (${item.disposition})${item.reason ? `: ${item.reason}` : ""}`;
+          await stamp(m.row, "promoted", reason, item.itemId);
+          outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "promoted", reason, itemId: item.itemId, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
+        } else if (item.disposition === "rejected") {
+          const reason = `${item.gate ?? "chokepoint"}: ${item.reason ?? "rejected"}`;
+          await stamp(m.row, "rejected", reason, null);
+          outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "rejected", reason, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
+        } else {
+          // stage_failed (transient): row stays 'candidate' for retry, reported not stamped.
+          outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "skipped", reason: `${item.disposition}: ${item.reason ?? ""}`, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
+        }
       }
     }
   }

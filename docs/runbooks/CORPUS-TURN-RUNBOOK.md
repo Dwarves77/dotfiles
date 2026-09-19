@@ -597,35 +597,58 @@ what a mechanical text check catches for free.
   [CONFIRMED].) No API transport exists for EUR-Lex (`apiEndpointFor` only names
   federalregister.gov/ecfr.gov) — the rewrite is a no-op for every other host.
 
-### Modes, and the apply flip
+### Modes, the retired apply flip, and the max-promote cap (Lane M2, 2026-09-18)
 
 `plan` classifies (from a verdict, or skips) every candidate in its window and writes NOTHING to
-`portal_link_candidates` or the intake pipeline — as of Lane LEDGER-CHAIN-2 (2026-09-05) a verdict match
+`portal_link_candidates` or the intake pipeline. As of Lane LEDGER-CHAIN-2 (2026-09-05) a verdict match
 never fetches the page at all (the pre-fetch gate, "Event chaining" above), so "fetched" here means only
 the `--allow-api` miss case, which this workflow never triggers. `apply` pushes the would-mint set through
-the full
-stage -> mint -> ground -> validate cycle and stamps the ledger disposition — gated by
-`LEDGER_CONSUME_APPLY_ENABLED` in `run-ledger-consume.mjs`, **`true` as of 2026-09-04** (Lane
-LEDGER-ZERO, operator ruling above, `docs/decisions/ADR-023-producer-execution-model.md`'s reviewed-
-change mechanism, the same source-constant gate the data producers use — see that ADR's Consequences
-section for the record of the flip). Before this it was structurally DISARMED
-(`LEDGER_CONSUME_APPLY_ENABLED = false`); a `mode: apply` dispatch that requests apply while the const is
-false still does not fail and does not silently run as if nothing were requested — it logs an "APPLY
-DISARMED" line, executes with `plan` semantics, and records `config.requested_mode: "apply"` /
-`config.apply_disarmed: true` / `config.mode: "plan"` in its own artifact — that mechanism is unchanged,
-just no longer the default outcome. With the const now `true`, an `apply` dispatch WITH a `--verdicts`
-file (or `--allow-api`) actually writes; one with NEITHER mints nothing — every candidate skipped for
-want of a classification source, a legal, honest, explicitly-logged no-op, never a silent downgrade.
+the full stage -> mint -> ground -> validate cycle and stamps the ledger disposition.
 
-**DECISION, recorded here (build plan W1.4's "name in a comment... decide and document"): `apply` is
-reachable ONLY via an explicit `workflow_dispatch`.** The `workflow_run` event chain below (see next
-section) always forces `mode: plan`, regardless of what an operator might otherwise want — there is no
-`mode` input to read from a `workflow_run` event in the first place, and a source-sweep completion is a
-"check whether there is new work" signal, not an "operator decided to write now" signal; those are kept
-separate. Separately, and independently: an `apply` dispatch that supplies neither `verdicts_file` nor
-`--allow-api` also does not write anything, even though it was an explicit dispatch — the workflow's "This
-run's gates" step emits a `::warning::` for exactly this combination so it is visible in the run log, not
-silently absorbed.
+**`LEDGER_CONSUME_APPLY_ENABLED` is RETIRED (Lane M2, 2026-09-18, build plan section 6.1 row M2,
+`docs/audits/stage-audit-2026-09-18/s2-mint-gate.md` finding 1).** The source-constant gate described in
+earlier revisions of this section (flipped `true` 2026-09-04, Lane LEDGER-ZERO) is gone; no read of it
+remains anywhere in the codebase. The 2026-09-18 stage audit found it permanently `true` and gating
+nothing real: across two full audits three weeks apart, the apply half had **never fired for real**,
+every one of the seven artifacts on record at that point carried `config.mode:"plan"`, and
+`portal_link_candidates.status='promoted'` stood at 3. The guard that replaces it is **THE MAX-PROMOTE
+CAP**: `--max-promote` (workflow input `max_promote`, default `50`, hard ceiling `200` enforced in
+`run-ledger-consume.mjs`'s `parseArgs`) bounds how many of the eligible (would-mint) candidates ONE
+apply run may actually promote, **oldest-eligible first** (`applyPromoteCap`,
+`src/lib/intake/promote-cap.mjs`, a pure function shared between the enforcement site,
+`consumePortalCandidates`'s apply branch, `src/lib/intake/portal-harvest.ts`, and its own unit tests). A
+candidate beyond the cap is left completely untouched (`status` stays `'candidate'`, disposition
+`skipped`, reason `capped: max_promote=N reached, row left as 'candidate' for a later apply run`), never
+a partial or rejected stamp, so a later apply run picks it up. `config.max_promote` is recorded on every
+run (plan or apply); `metrics.capped` counts how many rows this run deferred for exactly this reason.
+
+**Arming is now D26's rule ALONE (below), apply requires an explicit `--verdicts <path>`.** A `mode:
+apply` dispatch with no `--verdicts` file still does not fail and does not silently run as if nothing were
+requested, it logs an "APPLY DISARMED" line, executes with `plan` semantics, and records
+`config.requested_mode: "apply"` / `config.apply_disarmed: true` / `config.mode: "plan"` /
+`config.verdicts_given: false` in its own artifact. That mechanism is unchanged from before the
+constant's retirement, just no longer gated by two conditions, only one.
+
+**DECISION, REVISED (Lane M2, 2026-09-18, supersedes the earlier "apply is dispatch-only" decision this
+section used to record).** The `workflow_run` event chain (see "Event chaining" below) now runs a PLAN
+pass, then an APPLY pass capped at `max_promote=50`, in the SAME job, right after every source-sweep
+completion, closing S2 finding 1 by making apply **reachable** from the automatic chain, not by arming it
+unconditionally. The chained apply pass names no `--verdicts` file, so D26's arming rule still leaves it
+DISARMED (plan semantics) on every automatic firing, **by design**: a source-sweep completion is a "check
+whether there is new work" signal, never "the operator decided to write now". The mechanism is wired end
+to end; arming apply for real is still a deliberate, reviewed act: an operator's own `workflow_dispatch`
+with `mode: apply`, a non-blank `verdicts_file`, and (optionally) a non-default `max_promote`. An `apply`
+dispatch that supplies neither `verdicts_file` nor `--allow-api` also does not write anything, even though
+it was an explicit dispatch, the workflow's "This run's gates" step emits a `::warning::` for exactly this
+combination so it is visible in the run log, not silently absorbed.
+
+**Reading an apply artifact.** `config.upstream_run_id` names the source-sweep run that chained into this
+one (read from `GITHUB_EVENT_WORKFLOW_RUN_ID`, a new "Export upstream run id" step in `ledger-consume.yml`
+that sets it from `github.event.workflow_run.id`; `null` on an explicit `workflow_dispatch` or a local
+run). Every `per_item` entry now carries `before`/`after`, the ledger status this run left that row at
+(`before` is always `"candidate"`; `after` is `"promoted"`, `"rejected"`, or `"candidate"` unchanged,
+computed by `ledgerStatusAfter`, `run-ledger-consume.mjs`), so a reader can see exactly what moved without
+cross-referencing the `stamp()` call sites in `portal-harvest.ts`.
 
 ### D26 (2026-09-13): record-only intake, the arming rule, and no empty runs
 
@@ -635,11 +658,13 @@ discovered instruments, 3 promoted"). Two workflow inputs matter for an operator
 - **`verdicts_file`** (unchanged shape, changed CONSEQUENCE): naming ONE committed batch is now what ARMS
   `apply` at all. Before D26, `LEDGER_CONSUME_APPLY_ENABLED = true` alone armed apply (an apply dispatch
   with a blank `verdicts_file` still "ran" apply, honestly minting nothing for want of a classification
-  source). As of D26, `isApplyArmed` (`run-ledger-consume.mjs`) requires BOTH the reviewed-code gate AND
-  `verdicts_file` non-blank; leaving it blank on an `apply` dispatch now runs with PLAN semantics
-  (`config.apply_disarmed: true`), never mints, however many batches auto-discovery would otherwise have
-  found. Auto-discovery of every committed batch (blank `verdicts_file`) still feeds PLAN mode's own
-  classify decisions unchanged; it simply never arms apply on its own any more.
+  source). As of D26, and as of Lane M2 (2026-09-18, `LEDGER_CONSUME_APPLY_ENABLED` retired, see "Modes,
+  the retired apply flip, and the max-promote cap" above) this is the ONLY arming condition: `isApplyArmed`
+  (`run-ledger-consume.mjs`) requires `verdicts_file` non-blank; leaving it blank on an `apply` dispatch
+  runs with PLAN semantics (`config.apply_disarmed: true`), never mints, however many batches
+  auto-discovery would otherwise have found. Auto-discovery of every committed batch (blank
+  `verdicts_file`) still feeds PLAN mode's own classify decisions unchanged; it simply never arms apply on
+  its own. Once armed, `max_promote` (above) bounds how much a single run actually writes.
 - **`record_only`** (new, default `true`): governs what an ARMED apply actually does. `true` mints the
   would-mint set at RECORD grade through the UNCHANGED mint chokepoint (`runIntakeCycle`'s own
   `recordOnly` option); the candidate's already-fetched text (carried on the seed as `capturedText`,
@@ -680,27 +705,33 @@ it to quarantined items.
 ### Event chaining, not a schedule (build plan W1.4)
 
 `ledger-consume.yml` carries a `workflow_run: workflows: ["Source sweep"]` trigger (rule 16 governs
-`schedule:`/cron, not event chaining — this is not a schedule). When `source-sweep.yml` completes
-successfully, `ledger-consume.yml` fires automatically and, unlike a `workflow_dispatch` — which always
-runs exactly one of consume XOR export, per its `export_candidates` input — **this trigger runs BOTH
-halves of the family in the same job, sequentially** (Lane LEDGER-CHAIN-2, 2026-09-05, closing the
-CONFIRMED defect below):
+`schedule:`/cron, not event chaining, this is not a schedule). When `source-sweep.yml` completes
+successfully, `ledger-consume.yml` fires automatically and, unlike a `workflow_dispatch` (which always
+runs exactly one of consume XOR export, per its `export_candidates` input) **this trigger runs THREE
+steps in the same job, sequentially** (the third, chained apply, added by Lane M2, 2026-09-18):
 
 1. **Consume, forced `mode: plan`**, with `verdicts_file` left blank and `limit: 2000` (the workflow's
-   `RESOLVE_CONSUME_LIMIT`). A blank `verdicts_file` no longer means "run with none" — `run-ledger-
+   `RESOLVE_CONSUME_LIMIT`). A blank `verdicts_file` no longer means "run with none", `run-ledger-
    consume.mjs` now auto-discovers and reads EVERY committed `ledger-verdicts-*.json` batch itself
    (`discoverVerdictsFiles`, ascending by batch number, later batch wins a duplicate URL), not only
    whichever one the workflow used to resolve as "newest". Its own pre-fetch gate
    (`ConsumeOpts.classifyGate`, `buildClassifyGate`) looks up a candidate's verdict by URL BEFORE any
    fetch: a match classifies for $0 with `fetched: 0` (a verdict is built from the verdict object alone,
    never the page); a miss is recorded `skipped-no-verdict` with `fetched: 0` too (`--allow-api` is never
-   set by this workflow, so nothing is ever actually fetched on this path) — which is exactly why
+   set by this workflow, so nothing is ever actually fetched on this path), which is exactly why
    `limit: 2000` is safe and cheap here where the pre-fix default of 50 existed only to bound a fetch that
    no longer happens.
-2. **Export, `--export-candidates --with-text`**, with `export_after` left blank so `run-ledger-
+2. **Chained apply (Lane M2, 2026-09-18), `mode: apply --max-promote 50`**, gated on `run_apply_chain`
+   (set from the SAME "does this firing have real work" decision step 1's own `run_consume` gate makes,
+   one decision, not a second one to keep in sync). Same `limit`, same `record_only` as the plan pass.
+   Names no `--verdicts` file, so D26's arming rule (above) leaves it DISARMED (plan semantics,
+   `config.apply_disarmed: true`) on every automatic firing, this step makes apply **reachable** from the
+   chain, it does not arm it. It self-emits its own `ledger-consume-run-NNN.json` artifact, same as every
+   other consume pass, distinguishable by `config.requested_mode:"apply"`.
+3. **Export, `--export-candidates --with-text`**, with `export_after` left blank so `run-ledger-
    consume.mjs`'s own `resolveExportAfter` auto-resumes past the PREVIOUS export dispatch's own recorded
-   `next_cursor` — read back from that family's newest `config.action: "export"` harness-run artifact
-   (`findLatestExportArtifact`) — instead of re-exporting the identical window every time.
+   `next_cursor` (read back from that family's newest `config.action: "export"` harness-run artifact,
+   `findLatestExportArtifact`) instead of re-exporting the identical window every time.
 
 **THE DEFECT THIS CLOSES [CONFIRMED, `scripts/harness-runs/ledger-consume/LAST-PROPOSER-PASS.md`]:**
 before this fix, the `workflow_run` trigger always resolved `mode=plan, limit 50, after=null` with no
@@ -714,10 +745,13 @@ An explicit `export_after` on a `workflow_dispatch` still always wins over auto-
 "hand dispatch keeps every input") — auto-resolution only fills in when a dispatch gives none, which a
 `workflow_run` firing never does.
 
-Both halves still only WRITE their own family's harness-run artifact (and, for export, the fetched-text
-candidates file) — `plan` never writes to `portal_link_candidates` or the intake pipeline, so this event
-chain still requires a human (or a follow-up `workflow_dispatch`) to act on what it classified, and, per
-the DECISION above, can never itself become an apply.
+All three steps still only WRITE their own family's harness-run artifact (and, for export, the fetched-text
+candidates file), the plan pass never writes to `portal_link_candidates` or the intake pipeline, and the
+chained apply pass (Lane M2, 2026-09-18) runs disarmed by design (see "DECISION, REVISED" above): it never
+writes either, unless a prior `workflow_dispatch` left a usable, still-current verdicts batch discoverable
+AND that batch happens to be named explicitly by a later dispatch, the automatic chain itself never names
+one. This event chain therefore still requires a human (an operator's own `workflow_dispatch` naming
+`verdicts_file`) to actually arm a write.
 
 ### Telemetry — closed at the source, not by this driver
 

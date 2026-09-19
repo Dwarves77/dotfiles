@@ -14,8 +14,9 @@ this family's only spend-bearing call, routed through the spend chokepoint's `sp
 seventh shape, whose "runs" CONSUME candidate rows the `portal_link_candidates` ledger already holds
 (never discover new ones, that is `source-sweep`'s job), classify each through the live entity gate, and
 precompute a chokepoint disposition per candidate (`would_mint`/`would_reject` in plan mode, READ-ONLY
-but NOT free, since classify still spends; `promoted`/`rejected` in apply mode, which stays structurally
-disarmed by a source constant, see that file's header, until an operator reviews and flips it).
+but NOT free, since classify still spends; `promoted`/`rejected` in apply mode, which arms on an explicit
+`--verdicts <path>` (D26's rule) and, once armed, is bounded by a `--max-promote` cap, not by a source
+constant, see that file's header for the retirement record, Lane M2, 2026-09-18).
 
 **ledger-consume's standing metric**: *disposition mix per run*, of the candidates a run consumed
 (`discovered`), how many were `fetched`, how many reached `classified`, and of those how many resolved to
