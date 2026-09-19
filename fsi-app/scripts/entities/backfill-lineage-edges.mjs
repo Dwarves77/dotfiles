@@ -26,6 +26,7 @@
 // ephemeral per-run search pool a backfill has no way to reconstruct without spending. Exactly like
 // linkItems, an item whose assembled content is under 20 chars is skipped, not force-fed to the planner.
 //
+// mirror of src/lib/entities/link-items.ts's resolution-corpus query: kept, this backfill needs a different bulk-corpus SELECT shape than the live per-item call; the shared planLinkWrites logic is already imported (not duplicated).
 // ── RESOLUTION CORPUS mirrors link-items.ts EXACTLY ──
 // id, title, instrument_identifier WHERE is_archived = false — NO provenance_status filter (link-items.ts
 // does not filter on it either; an unverified item can still be a valid lineage-mention TARGET). Paginated

@@ -58,6 +58,7 @@ export const CITE = Object.freeze({
 });
 
 /**
+ * mirror of this file's own live applyMatch query: kept, pure predicate duplicate of a DB query builder so the row-selection logic is unit-testable without a DB.
  * Pure predicate mirror of the live filter — one row's shape, no I/O — so the target definition is
  * unit-testable without a DB. The live query (applyMatch, below) expresses the identical four
  * conditions via the query builder; this function exists to let the row-selection LOGIC be tested and

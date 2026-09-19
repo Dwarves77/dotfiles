@@ -24,6 +24,7 @@ const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY;
 const REGULATIONS_GOV_API_KEY = process.env.REGULATIONS_GOV_API_KEY;
 
 
+// mirror of /api/data/fetch-source's two helpers: kept, deliberately inline so this manual fetch runs independently and bypasses cooldown logic.
 // Mirror of /api/data/fetch-source's two helpers, kept inline so the
 // manual fetch can run independently and bypass cooldown logic.
 async function fetchViaApi(endpoint: string, keyEnv?: string, acceptHeader?: string): Promise<string> {

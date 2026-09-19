@@ -133,6 +133,7 @@ export async function preflightStep(itemId: string, caller: string | null = null
   // ENFORCEMENT POINT MOVED TO THE DB (migration 240, 2026-08-08): this app-layer check only guards
   // callers that reach THIS workflow -- the recurring fleet never did (500+ inserts with zero agent_runs
   // rows never consulted the block). The guard_data_audit_block BEFORE INSERT trigger on
+  // mirror of migration 240's guard_data_audit_block trigger (SQL): kept, defense-in-depth so this app-layer check still halts before spend; the SQL trigger is the real enforcement point.
   // intelligence_items now enforces the same semantics (exact SQL mirror of hasValidWaiver) for EVERY
   // insert path by construction. This check stays as defense in depth: it halts BEFORE any spend and
   // gives a better error than a bounced insert. Keep the two in sync (no-logic-drift).

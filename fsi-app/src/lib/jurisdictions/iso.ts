@@ -30,6 +30,7 @@ export type KnownFreeTextJurisdiction =
   (typeof KNOWN_FREE_TEXT_JURISDICTIONS)[number];
 
 // ── Legacy → ISO mapping ──
+// mirror of migration 033's UPDATE statements (SQL): kept, same class as the deliberate SQL mirrors (JS/SQL parity).
 // Mirrors the UPDATE statements in migration 033 exactly. Keep
 // these in sync if the migration mapping is ever expanded.
 //

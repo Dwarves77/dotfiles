@@ -83,6 +83,7 @@ export async function POST(
 
   // Forward the caller's auth token so /api/agent/run sees the same admin
   // user. Same-origin server-to-server fetch — APP_URL fallback to derive
+  // mirror of /api/admin/sources/[id]/regenerate-brief's baseUrl derivation: kept, a 2-line same-origin URL pattern too small to warrant a shared module.
   // the base URL from the incoming request when not set. Mirror of the
   // pattern used by /api/admin/sources/[id]/regenerate-brief.
   const baseUrl = process.env.APP_URL || new URL(request.url).origin;

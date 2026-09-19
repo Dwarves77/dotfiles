@@ -35,6 +35,7 @@ import { withErrorCapture } from "@/lib/telemetry/capture-error";
 // CONTRACT: GET with no `itemId` = list variant (top strip, jurisdiction-defaulted to the caller's
 // workspace when signed in with an org — degrades to "no filter" when signed out/no-org, same as
 // before). `?itemId=<uuid-or-legacy_id>` = detail variant (one item's own upcoming events, no
+// mirror of UpcomingObligationsStrip's variant="detail" contract: kept, contract parity between an API route and its consuming component, not duplicated code.
 // jurisdiction filter — mirrors UpcomingObligationsStrip's own variant="detail" contract exactly).
 // `?limit=N` overrides the default (8 for list, 20 for detail). Public: no requireAuth — the
 // underlying RLS policy (migration 274: public SELECT gated on is_archived) already governs what an

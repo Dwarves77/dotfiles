@@ -12,6 +12,7 @@
 //
 // The guards bias the outcome; they do not block. The async audit only observes.
 
+// mirror of scripts/lib/exclusion-audit.mjs's registry: kept, that module is Node/DB-only CLI tooling; importing it into this file (used by Next route handlers) would pull script-only dependencies into the app runtime.
 // Methods proven untrustworthy this session (mirror of the exclusion-audit registry).
 export const UNRELIABLE_METHODS = new Set(["plain-fetch-reachability", "dead-jq-hook"]);
 

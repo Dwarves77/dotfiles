@@ -171,6 +171,7 @@
 // identity comparison — a census row sharing a URL with a live holder would be excluded from export before
 // ever reaching apply-mint-batch.mjs's own (already-fixed) checkM4, so a legitimate sibling series row
 // could be silently dropped here even though checkM4 downstream would correctly let it through.
+// mirror of apply-mint-batch.mjs's buildItemsIndex.bySourceUrl: kept, deliberate defense-in-depth duplication across pipeline stages (export-time pre-check vs apply-time M4 check), documented rationale below.
 // `partitionExcludeHeld` now takes a per-URL holder index (`buildHeldUrlIndex`, this file's own mirror of
 // apply-mint-batch.mjs's `buildItemsIndex.bySourceUrl`) and excludes a row only when
 // `sameInstrumentIdentity(row.instrument_identifier, holder.instrument_identifier)` is true for SOME
