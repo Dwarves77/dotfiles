@@ -83,3 +83,20 @@ down to the MEASURED value in the same commit and report it.
 - `grep -n "'mint'\|\"mint\"" fsi-app/scripts/harness-runs/governing-files.mjs fsi-app/scripts/lib/run-artifact.mjs`: no hand-written family entry left (a remaining hit must be explained).
 - `grep -rn "harness_version" fsi-app/scripts/harness-runs/CONVENTION.md | head`: the table is gone; the concept is still explained.
 - The push gate through the wrapper, once, last, as `brief-m-common.md` says.
+
+## Amendment 1 (cloud coordinator, 2026-09-19; appended, not rewritten)
+
+The local coordinator session is paused and this lane runs in a cloud container. Three changes bind you:
+
+1. **Common brief.** Read `docs/dispatches/lane-briefs/2026-09-18/brief-common-cloud.md` instead of
+   `brief-m-common.md` (that file lives only on the operator's machine). Where it names a scratchpad
+   `lane-gate.sh`, the gate is the repo copy:
+   `LANE_GATE_SP=<the scratchpad folder your dispatch names> bash fsi-app/scripts/coordinator/lane-gate-cloud.sh <your worktree root>`
+   run ONCE, last, as one background task.
+2. **Session-log file** is dated the day of the work: `docs/ops/session-log.d/2026-09-19-n2.md`, heading
+   `## 2026-09-19, lane N2: <one line>`. The write-set line naming `2026-09-18-n2.md` is superseded.
+3. **The F45 ceiling line is forbidden** (operator, 2026-09-19, same ruling as lane N0). You do not edit
+   `DUPLICATED_LINES_CEILING`, up or down. The write-set paragraph's "re-seed the ceiling down to the
+   MEASURED value in the same commit" is withdrawn. If the F45 test reports the measured count differs
+   from the ceiling after your change, STOP before the gate and report both numbers; the coordinator
+   re-seeds.
