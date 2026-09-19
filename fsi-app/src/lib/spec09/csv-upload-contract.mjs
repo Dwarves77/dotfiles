@@ -41,12 +41,10 @@ const MAX_ROWS_PER_UPLOAD = 500;
 export { MAX_BYTES_PER_UPLOAD, MAX_ROWS_PER_UPLOAD };
 
 // ── Generic CSV line parsing (RFC4180-ish: quoted fields, escaped quotes, commas) ──────────────────────
-// One implementation, used by every table's parser below. Deliberately NOT shared with
-// src/app/api/admin/sources/bulk-import/route.ts's own private splitCsvLine — that route predates this
-// contract and is outside this lane's write set; duplicating a 20-line parser once, at a real module
-// boundary that already exists in a different route family, is not the "copy of logic" rule 21 forbids
-// (that rule is about copies WITHIN a lane's own write set having two homes — this module's own two
-// callers, the upload route and the CLI producers, share exactly one copy).
+// One implementation, used by every table's parser below. Lane L38 (2026-09-19) wired
+// src/app/api/admin/sources/bulk-import/route.ts's own former private splitCsvLine onto this export
+// (byte-for-byte identical logic, verified before wiring); that route's own copy is deleted. This
+// module's callers are now the upload route, the bulk-import route, and the CLI producers, all one copy.
 export function splitCsvLine(line) {
   const result = [];
   let cur = "";
@@ -346,6 +344,7 @@ export const TABLE_CONTRACTS = Object.freeze({
       for (const r of [credit_type, scheme, certificate_ref, double_count_check, retired_at]) {
         if (r.error) errors.push(r.error);
       }
+      // mirror of migration 298's CHECK constraint (SQL): kept, gives the upload-response caller the reason before a DB round-trip.
       // Mirrors migration 298's own CHECK (custody_chains_retirement_needs_registry): a retirement date
       // with no registry (or vice versa) is an unverifiable claim — reject the row here rather than let
       // the DB do it, so the customer gets the reason in the SAME upload response.
