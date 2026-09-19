@@ -1,4 +1,5 @@
-// SKILL-CONTRACT-MAP — the skill↔code drift gate (U8, flywheel build plan 2026-08-10).
+// SKILL-CONTRACT-MAP: the skill/code drift gate (U8, flywheel build plan 2026-08-10; range-based
+// acknowledgment mechanism, plan 6.8 Rule B, lane N4, 2026-09-19).
 //
 // WHY THIS EXISTS. execution-wiring.mjs made "proof exists but runs nowhere" mechanically impossible by
 // deriving the executed-file set from the actual runners instead of trusting a claim. This module does the
@@ -8,51 +9,48 @@
 // citing file could be edited to drop the citation, and both would pass every existing gate silently. That is
 // "skill says X, runtime encodes Y" — the exact drift class this closes, in EITHER direction.
 //
-// MECHANISM (pin-then-compare, not hand-judgment). PINNED_MANIFEST below is a SNAPSHOT, taken when this file
-// was authored, of every `GOVERNING SKILL(S):` citation found under fsi-app/src/ and fsi-app/scripts/ (the
-// inventory command is `grep -rn "GOVERNING SKILL" fsi-app/src fsi-app/scripts`, mirrored programmatically by
-// scanCitations() below so the live side of the comparison can never hand-drift from what the grep would show).
-// For each cited skill it pins (a) the skill name, (b) a sha256 of the skill file's full text (EOL-normalized,
-// same normalizeEol() the migration byte-identical guards use — see read-migration-sql.mjs), and (c) the sorted
-// list of citing files. checkDrift() re-derives the LIVE citation set and live hashes and reds on ANY divergence:
-//   - a pinned skill file no longer exists on disk                                  -> skill-file-missing
-//   - a pinned skill file's live hash != the pinned hash (skill edited, manifest not) -> skill-content-changed
-//   - a pinned citing file no longer contains that citation (code edited, skill not)  -> citation-dropped
-//   - a live citation (new file, or a new skill mentioned) isn't in the pinned list   -> citation-unpinned
-// The last two are the SAME drift, read from opposite ends: the pin and the live source-of-truth disagree about
-// which files cite which skill. Fixing any of the four requires a HUMAN to look at both sides and re-run the
-// generator (the `node -e` one-liner in the git history of this file / re-derive via scanCitations+hashFileContent)
-// — the gate does not auto-heal itself, on purpose: that would make it as toothless as the thing it replaces.
+// MECHANISM, TWICE OVER.
+//   1. REGISTRATION (checkManifestDrift): PINNED_MANIFEST names the governing skills this gate watches, each
+//      by its skillPath only. checkDrift() confirms every pinned skill file still exists on disk, and that
+//      every LIVE `GOVERNING SKILL(S):` citation (scanCitations(), the mechanical mirror of
+//      `grep -rn "GOVERNING SKILL" fsi-app/src fsi-app/scripts`) names a REGISTERED skill; a citation to a
+//      skill this file has never heard of is 'citation-unregistered', never silently accepted.
+//   2. DRIFT-OVER-TIME, BY ACKNOWLEDGMENT (checkRangeAcks, plan 6.8 Rule B): a stored content hash or citing-
+//      file list is a value two lanes editing different things would collide on for no reason (Cause B, plan
+//      6.8), so nothing is stored. Instead: if a git range changes a pinned SKILL.md, or ADDS/REMOVES/MOVES a
+//      `GOVERNING SKILL(S):` citation of it (scanCitations on HEAD vs. the same scan on the base tree, read
+//      through change-range.mjs's gitFileAtBase), that range must also ADD its own
+//      fsi-app/.discipline/governance/skill-acks/<date>-<lane>.md naming the skill and the citing files it
+//      reviewed, a lane's OWN file, so two lanes acknowledging in the same evening add two files, never one
+//      shared line. Skipped, never failed, when no git range resolves (no baseline to diff against).
 //
 // SCOPE, HONESTLY. "Operative clauses" are NOT semantically parsed — that would require judgment this file
-// cannot exercise mechanically. v1 pins the SKILL FILE'S FULL CONTENT HASH, not a hand-picked "operative
-// section": any edit to a cited skill file (typo or doctrine change alike) requires a deliberate manifest
-// update. That is coarser than clause-level tracking but it is HONEST — it never claims to distinguish a
-// meaningful doctrine change from a typo, and it never fabricates a hash for a file it did not read.
+// cannot exercise mechanically. This gate proves a HUMAN LOOKED (the ack names the skill and the files) at the
+// moment a citation or a governing SKILL.md moved; it never claims to distinguish a meaningful doctrine change
+// from a typo, and it never invents a hash or a citing-file list for a file it did not read at check time.
 //
 // ACCOUNT-LEVEL SKILLS ARE OUT OF REACH. Some skills a session can `Skill`-invoke are account-level (not
 // git-tracked here) — e.g. skills served by a marketplace/plugin rather than a SKILL.md under
-// fsi-app/.claude/skills/ or the repo-root .claude/skills/. This module can only hash and drift-check what is
-// IN THE REPO. As of this build, EVERY `GOVERNING SKILL` citation found under fsi-app/src/ and fsi-app/scripts/
-// resolves to a repo-tracked SKILL.md (see PINNED_MANIFEST) — nothing here was pinned blind. If a future
+// fsi-app/.claude/skills/ or the repo-root .claude/skills/. This module can only drift-check what is IN THE
+// REPO. As of this build, EVERY `GOVERNING SKILL` citation found under fsi-app/src/ and fsi-app/scripts/
+// resolves to a repo-tracked SKILL.md (see PINNED_MANIFEST); nothing here was registered blind. If a future
 // citation names a skill with no resolvable SKILL.md, checkDrift() FAILS LOUDLY with
-// type 'unresolved-skill-not-allowlisted' rather than silently skipping it or inventing a hash; the fix is
-// either to make the skill file resolvable, or to add its slug to ACCOUNT_LEVEL_SKILLS with an explicit
-// `skillPath: null, contentHash: null` pin (a conscious "this is out of reach" declaration, not an omission).
+// type 'unresolved-skill-not-allowlisted' rather than silently skipping it; the fix is either to make the
+// skill file resolvable, or to add its slug to ACCOUNT_LEVEL_SKILLS with an explicit `skillPath: null` entry
+// (a conscious "this is out of reach" declaration, not an omission).
 //
 // SCAN ROOTS mirror the U8 inventory instruction exactly: fsi-app/src/** and fsi-app/scripts/** (source +
 // script code that DOES things, not the discipline lane's own internal skill-routing tooling in
 // .discipline/governance/ — skill-map.mjs and pretooluse-skill-gate.mjs already govern THAT layer's citations
 // and would make this gate check itself if included, a different and already-covered problem).
 //
-// Pure: fs-only (no DB, no network), same discipline as vocab-drift-guard.test.mjs's static scans. Safe to run
-// in the no-npm discipline suite.
+// Pure: fs-only (no DB, no network) for the registration half; the range half additionally shells out to git
+// through change-range.mjs, same discipline as F28/F45's own range rules. Safe to run in the no-npm suite.
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, relative, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createHash } from 'node:crypto';
-import { normalizeEol } from '../lib/read-migration-sql.mjs';
+import { resolveRange, gitChangedFiles, gitAddedFiles, gitFileAtBase } from '../lib/change-range.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');               // governance -> .discipline -> fsi-app -> repo root
@@ -65,6 +63,10 @@ const SKILL_ROOT_CANDIDATES = [`${FSI}/.claude/skills`, `.claude/skills`];
 const CITATION_SCAN_ROOTS = [`${FSI}/src`, `${FSI}/scripts`];
 const CITATION_EXTS = ['.mjs', '.ts', '.tsx', '.js'];
 
+// Where a lane's own acknowledgment file lives (plan 6.8 Rule B). One file per lane per day; never
+// deleted by a lane (the coordinator's close lane prunes acked-and-landed files).
+const SKILL_ACKS_DIR = `${FSI}/.discipline/governance/skill-acks`;
+
 // The marker this codebase actually uses (confirmed by inventory): "GOVERNING SKILL" or "GOVERNING SKILLS",
 // optionally followed by a short parenthetical (e.g. "(criteria derived from + confirmed against, not memory)"
 // in format-structure.mjs), then a colon. This is what excludes db.mjs's unrelated prose ("the GOVERNING
@@ -74,253 +76,31 @@ const CITATION_MARKER = /GOVERNING SKILLS?\s*(?:\([^)]{0,80}\))?\s*:/g;
 // found in the inventory (the longest, format-structure.mjs, needs ~520 to reach its 2nd cited skill).
 const CITATION_WINDOW = 800;
 
-// Skills this module has consciously decided it cannot reach in this repo (see header). Pin such a skill in
-// PINNED_MANIFEST with `skillPath: null, contentHash: null` — checkDrift() then skips hashing it but still
-// requires it to be present here, so a silently-unresolvable citation cannot pass by accident.
+// Skills this module has consciously decided it cannot reach in this repo (see header). Register such a
+// skill in PINNED_MANIFEST with `skillPath: null`; checkDrift() then requires it to be present here (so a
+// silently-unresolvable citation cannot pass by accident) but never looks for a file on disk for it.
 export const ACCOUNT_LEVEL_SKILLS = [];
 
 // ---------------------------------------------------------------------------------------------------------
-// PINNED MANIFEST — the snapshot. Regenerate by re-running scanCitations()+hashFileContent() over a clean
-// checkout and diffing against this object; update deliberately, never silently. Generated 2026-08-29 against
-// this worktree via `grep -rln "GOVERNING SKILL" fsi-app/src fsi-app/scripts` cross-checked against the same
-// scan this file performs at runtime (scanCitations below) — the two agreed exactly (29 citing files, 6 skills).
-// 2026-09-01: analysis-construction-spec's contentHash re-pinned deliberately — SKILL.md's stale
-// detect_intersections RPC references (dropped in migration 265) were corrected to point at the live
-// reader (src/lib/connections/pair-view.mjs / /api/admin/intersections). citingFiles unchanged.
-// 2026-09-02 (Lane DP-ENGINE, system-completion train): remediation-discipline's contentHash re-pinned
-// deliberately — added "Section 4 — category 32: Propagation engine gates" (two new bullets: the
-// derived_values pollution barrier / invariant RD-56, and statutory purity / invariant RD-57 — see
-// invariants.mjs). No citingFiles change: none of the files below cite this new section specifically, they
-// cite the skill as a whole (its content hash moving is what this re-pin acknowledges).
-// 2026-09-03 (coordinator, Wave 3 train): remediation-discipline re-pinned — added "Section 4 — category 35: Row UX
-// is measured on a real component at a phone width" (invariant RD-60, F35, the rendering guard's UX smoke slot).
-// sprint-followups-discipline re-pinned — its design-principles path was `docs/design-principles.md`, a file that
-// does not exist (the registry lives at docs/design/design-principles.md); corrected, and ux-laws.md / DP-2 added.
-// No citingFiles change for either.
-// 2026-09-04 (Lane PERF-8): remediation-discipline re-pinned — added "Section 4 — category 36: Date
-// formatting pins its timezone in a hydrated component" (invariant RD-61, F36), diagnosing React #418 on
-// /regulations (RegulationsLedger.tsx's RegRow, no timeZone on toLocaleDateString — commit 27f6a358). No
-// citingFiles change: none of the files below cite this new section specifically, they cite the skill as a
-// whole (its content hash moving is what this re-pin acknowledges), same posture as the category 32/35 re-pins.
-// 2026-09-04 (Lane PERF-ARCH): remediation-discipline re-pinned — added "Section 4 — category 37: A perf
-// number in CI carries a ratchet, a target, and dated evidence" (invariant RD-62, F37), the CI-budget half
-// of docs/decisions/ADR-027-*.md — the operator's own "clicking into any item ... takes WAY too long"
-// diagnosis (docs/audits/perf-waterfall-2026-09-04.md). No citingFiles change, same posture as the
-// category 36 re-pin above (the files below cite the skill as a whole, not this section specifically).
-// 2026-09-05 (Lane CAP-1000, "two defects one cause"): remediation-discipline re-pinned — added "Section 4
-// — category 38: A capped read that claims to fetch 'the whole set' pages, it does not lean on a bigger
-// .limit()" (invariant RD-63, F38) — PostgREST's db-max-rows=1000 silently truncating PERF-13's slug
-// enumeration, the obligations register's OVERFETCH_CAP, community/directory's profiles aggregate, and
-// run-change-detection.mjs's backlog overflow count, all one root cause. No citingFiles change, same
-// posture as the category 36/37 re-pins above (the files below cite the skill as a whole, not this
-// section specifically).
-// 2026-09-05 (Lane MIG311-FIX): both remediation-discipline and caros-ledge-platform-intent re-pinned —
-// added fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs to citingFiles. New file, same
-// governing-skill headers as its sibling adversarial/RLS proofs (prov-guard-adversarial-audit.mjs cites
-// remediation-discipline; rls-credential-parity.mjs cites both) — no contentHash change to either skill.
-// 2026-09-05 (Lane W71-C, F25 dated-one-shots closure): 'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs'
-// REMOVED from both remediation-discipline's and environmental-policy-and-innovation's citingFiles — the file
-// itself was deleted this lane (migration 200's RD-5 backfill applied live 2026-07-11, 20/21 rows set; the
-// record of the run lives in git history, docs/inventories/migrations.md #200). No contentHash change (the
-// skill text itself did not move); removing a deleted file's citation is the drift this gate exists to catch,
-// not a re-pin.
-// 2026-09-06 (Lane INCLAUSE-CLASS, IN-CHUNK id-list class): remediation-discipline re-pinned — added
-// "Section 4 — category 39: a PostgREST `.in(col, list)` filter URL-encodes its whole list into the GET
-// request" (invariant RD-64, F39) — a runtime-sized `.in()` list eventually 400s the request itself
-// (distinct from category 38's response-truncation shape). No citingFiles change, same posture as the
-// category 36/37/38 re-pins above (the files below cite the skill as a whole, not this section
-// specifically).
-// 2026-09-07 (Lane F25-WAVE52, F25 module-liveness expiry-52 disposition —
-// docs/audits/f25-wave52-dispositions-2026-09-07.md): 'fsi-app/scripts/verify/stale-verified-audit.mjs'
-// RE-PINNED (2026-09-08, lane mobfix61): remediation-discipline SKILL.md gained Section 4 category 40
-// (a responsive @media rule naming a class no element carries is a silent no-op — the D-M3 map defect)
-// and its one normative line, triaged into new invariant RD-65-dead-media-query-class enforced by
-// fitness F40. The citing files below were re-read against the new text: the addition is a new section
-// appended before Section 9 and changes no statement any of them cites, so citingFiles is unchanged and
-// only the contentHash is re-pinned.
-// ---------------------------------------------------------------------------------------------------------
-// REMOVED from remediation-discipline's citingFiles — the file itself was deleted this lane (superseded:
-// its detection surface is now covered by the already-wired defect-signature-scan and surface-visibility
-// audits). No contentHash change; removing a deleted file's citation is the drift this gate exists to
-// catch, not a re-pin.
-// 2026-09-08 (Lane TAGS-401, train 61, production-defect lane): remediation-discipline re-pinned. Added
-// "Section 4 — category 40: a browser call to a requireAuth-guarded route attaches the session token in ONE
-// place, never at the call site" (invariant RD-65, F40). requireAuth reads the Authorization header and
-// nothing else, so a caller sending a cookie, or a bearer carrying no token, gets a 401 that fails soft and
-// is invisible to every test that mounts components against canned fixtures: the whole workspace-tags
-// feature 401'd for every signed-in user from the day it landed. No citingFiles change, same posture as the
-// category 36/37/38/39 re-pins above (the files below cite the skill as a whole, not this section).
-// 2026-09-11 (task 5.3, landing #410): 'fsi-app/scripts/verify/layer-c-insert-gate-proof.mjs' ADDED to
-// remediation-discipline's citingFiles (F25 module-liveness had flagged it unwired; wiring it into
-// run-data-audit-lane.mjs's AUDITS list is what makes its own "GOVERNING SKILLS: remediation-discipline"
-// header a real citation this gate must track). No contentHash change: the skill text itself did not move.
-// 2026-09-12 (lane w9-d5-d7, D7): 'fsi-app/scripts/verify/check-vocabulary-drift.mjs' ADDED to
-// remediation-discipline's citingFiles (a new file, its own "GOVERNING SKILL: remediation-discipline"
-// header, Section 2, Class-Over-Instance). No contentHash change: the skill text itself did not move.
+// PINNED MANIFEST: the registry of governing skills this gate watches, by skillPath only (plan 6.8 Rule
+// B, lane N4, 2026-09-19: contentHash and citingFiles deleted). Citing files are derived live by
+// scanCitations() below, never stored; drift IN a skill file or a citation moving over time is caught by
+// checkRangeAcks()'s range rule, not by comparing to a pinned value here. The full history of what each
+// skill's content used to be, and which files cited it when, lives in this file's git history (see git log
+// -p on this file up to and including 2026-09-19, lane N4) rather than as growing prose beside the entries.
+// Generated 2026-08-29 against this worktree via `grep -rln "GOVERNING SKILL" fsi-app/src fsi-app/scripts`
+// cross-checked against scanCitations() -- the two agreed exactly. Registering a NEW skill here is a
+// deliberate, reviewed act (the same "coordinator names the id" posture invariants.d/README.md uses for
+// invariant ids): a live citation to an unregistered skill is 'citation-unregistered', never silently
+// accepted into the set this gate watches.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
-  'remediation-discipline': {
-    skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    // 2026-09-08 (lane cardrule, train 62): re-pinned for Section 4 category 42 (card-shell-one-
-    // component, RD-67 / F42), a new APPENDED section. No cited statement changed and no
-    // citingFiles change: the files below cite the skill as a whole, not this section, the same
-    // posture as the category 36-41 re-pins.
-    // 2026-09-08 (FOLD-61): re-pinned once for BOTH of train 61's new Section 4 categories - lane
-    // TAGS-401's category 40 (authed-api-fetch, RD-65 / F40) and lane mobfix61's category 41
-    // (dead-media-query-class, RD-66 / F41). The two lanes each arrived numbering theirs 40 and
-    // each pinned their own hash; the fold keeps both sections, renumbers the second, and pins the
-    // hash of the union. No cited statement changed: both are new appended sections.
-    // 2026-09-08 (lane noexpand; renumbered at FOLD 64): re-pinned for Section 4 category 43, "a page
-    // that opens something before the reader acted" (RD-67-default-open-disclosure / F43), from the
-    // operator's ruling that no items are expanded
-    // when first navigating to a page. Reviewed against every citingFile below: none of them cites a
-    // Section 4 category, and no existing statement in the skill changed - the category is a new
-    // appended section, the same posture as the categories 36-41 re-pins above. No citingFiles change.
-    // 2026-09-11 (task 0.3b, lane hashsep): re-pinned for Section 4 category 44, "a CLI main guard
-    // built from a hand-typed file:// string breaks on every Windows machine" (RD-68 / F44), the class
-    // fix for the 36-file Windows main-guard defect this task closed. Reviewed against every
-    // citingFile below: none cites a Section 4 category or any statement this addition touches - the
-    // category is a new appended section, the same posture as the categories 36-43 re-pins above. No
-    // citingFiles change.
-    // 2026-09-11 (task 0.3b fix round 1): re-pinned again after correcting category 44's blast-radius
-    // claim (reviewer-confirmed: 31 of the 36 files silently exited 0, the other 5 carried a working
-    // endsWith fallback and were fragile, not silent) - a text correction inside the same section, not
-    // a new one. No citingFiles change.
-        // 2026-09-17 (lane L30, coordinator): re-pinned for Section 4 category 45 (one home per concept and
-    // the count of copied code can only fall; invariant RD-69, F45 duplicate-code ratchet), a new section
-    // APPENDED before Section 9 after the operator found the EUR-Lex route written three times. No
-    // citingFiles change: the files below cite the skill as a whole, its content hash moving is what this
-    // re-pin acknowledges, same posture as the category 42 re-pin.
-        // 2026-09-17 (lane L31, coordinator): re-pinned again for the F46 host-home bullet added to Section 4
-    // category 45 (invariant RD-70, F46 external-host-home), the gate the EUR-Lex re-implementation class
-    // needed since F45 catches copies only. No citingFiles change: the files below cite the skill as a
-    // whole.
-        // 2026-09-17 (lane L32, coordinator): re-pinned for the database-census bullet added to Section 4
-    // category 45 (invariant RD-71, F47 db-object-reference), the standing count of tables and functions
-    // nothing references. No citingFiles change: the files below cite the skill as a whole.
-    // 2026-09-18 (lane w10a): re-pinned for Section 4 category 47, "a page does not retype a part's
-    // literal styles (parts, not pages)" (invariant RD-73, F49 parts-not-pages, site-wide parts brief
-    // docs/design/parts-brief-2026-09-18.md rule 1.2), a new section APPENDED before Section 9, same
-    // posture as the category 42/45 re-pins above. Reviewed against every citingFile below: none cites
-    // a Section 4 category or any statement this addition touches. No citingFiles change. Numbered 47,
-    // not 46: master's highest category was 45 when both this lane and lane M9a were told to take the
-    // next free number; M9a's own PR 721 also authored "category 46" and merges first, so this lane's
-    // heading, invariant and this comment were renumbered to 47 (coordinator note, 2026-09-18) before
-    // this re-pin, so the pinned hash below is of the FINAL (47-numbered) text, never a predicted one.
-    contentHash: '53b65bed98e272c58bbb158d1af7125d54c54472c0a7d26e88275b4d3eec5b2f',
-    citingFiles: [
-      'fsi-app/scripts/lib/deferral.mjs',
-      'fsi-app/scripts/verify/candidate-dwell-audit.mjs',
-      'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
-      'fsi-app/scripts/verify/check-vocabulary-drift.mjs',
-      'fsi-app/scripts/verify/claims-tier-audit.mjs',
-      'fsi-app/scripts/verify/column-existence-parity.mjs',
-      'fsi-app/scripts/verify/deferral-hygiene-audit.mjs',
-      'fsi-app/scripts/verify/flag-age-audit.mjs',
-      'fsi-app/scripts/verify/layer-c-insert-gate-proof.mjs',
-      'fsi-app/scripts/verify/no-generic-source-audit.mjs',
-      'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
-      'fsi-app/scripts/verify/orphan-source-audit.mjs',
-      'fsi-app/scripts/verify/pause-flag-guard-proof.mjs',
-      'fsi-app/scripts/verify/prov-guard-adversarial-audit.mjs',
-      'fsi-app/scripts/verify/quarantine-disposition-audit.mjs',
-      'fsi-app/scripts/verify/remediate-orphan-sources.mjs',
-      'fsi-app/scripts/verify/rls-credential-parity.mjs',
-      'fsi-app/scripts/verify/schema-drift-audit.mjs',
-      'fsi-app/scripts/verify/source-link-audit.mjs',
-      'fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs',
-      'fsi-app/scripts/verify/staged-transit-audit.mjs',
-      'fsi-app/scripts/verify/substrate-agreement-audit.mjs',
-      'fsi-app/scripts/verify/surface-visibility-audit.mjs',
-      'fsi-app/scripts/verify/unregistered-span-host-audit.mjs',
-      'fsi-app/src/lib/sources/canonical-fetch-caller-thread.test.mjs',
-    ],
-  },
-  'environmental-policy-and-innovation': {
-    skillPath: 'fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md',
-    // Re-pinned 2026-09-01 (lane DOC, governing-skill parity): SKILL.md's "Rules for All Output" was
-    // brought to parity with system-prompt.ts's 16 rules (was 14) and the Database Field Emission
-    // section's Fields: enumeration was brought to the full 20-field list (was 13) — see the SKILL.md
-    // changelog entry and invariants.mjs's EP-13-skill-prompt-parity for the full account.
-    // Re-pinned again 2026-09-11 (task 2.2, brief-chain-build-plan-2026-09-11 Part 2): the Database
-    // Field Emission section's Fields: enumeration grew to 26 (was 20) -- cost_mechanism,
-    // penalty_range, enforcement_body, requirement_trajectory, why_matters and key_data joined,
-    // verbatim-matched against system-prompt.ts by skill-prompt-parity.test.mjs -- and
-    // regeneration_skill_version's worked value advanced to "2026-09-11" alongside
-    // contract-version.mjs. Rule text and count (16) are unchanged. Re-pinned a second time in the
-    // same task after the "20-field enumeration" cross-reference sentence under the Rules heading and
-    // a new changelog entry were added to keep the file internally consistent, a third time after that
-    // same cross-reference sentence's em dashes were replaced with parentheses (standing no-em-dash
-    // rule for new/edited prose), and a fourth time (coordinator glyph-fix round) after the
-    // regeneration_skill_version bullet's em dash separator was replaced with the plain hyphen the
-    // other new bullets in this same edit already used.
-    contentHash: '688c91be1cd603fc54e833c177ac48cb8b0f22fc7588109ef029585aae0ff8f7',
-    citingFiles: [
-      'fsi-app/scripts/audit-skill-conformance.mjs',
-      'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
-      'fsi-app/scripts/verify/format-structure.mjs',
-      'fsi-app/scripts/verify/no-names.mjs',
-      'fsi-app/scripts/verify/quarantine-disposition-audit.mjs',
-      'fsi-app/scripts/verify/routing.mjs',
-      'fsi-app/scripts/verify/source-link-audit.mjs',
-      'fsi-app/scripts/verify/staged-transit-audit.mjs',
-      'fsi-app/scripts/verify/substrate-agreement-audit.mjs',
-      'fsi-app/scripts/verify/vocab-sync-audit.mjs',
-    ],
-  },
-  'analysis-construction-spec': {
-    skillPath: 'fsi-app/.claude/skills/analysis-construction-spec/SKILL.md',
-    contentHash: 'f395c5d95e9eab5788e605fbeb846837e2b91132888dbb9328e7ebb3eae8780d',
-    citingFiles: [
-      'fsi-app/scripts/audit-skill-conformance.mjs',
-      'fsi-app/scripts/verify/format-structure.mjs',
-    ],
-  },
-  'source-credibility-model': {
-    skillPath: 'fsi-app/.claude/skills/source-credibility-model/SKILL.md',
-    // 2026-09-04 (lane T4-OVERRIDE): contentHash re-pinned deliberately — Section 3's "SC-13 class-table
-    // extension" paragraph gained a `standards_body` class entry (IFRS Foundation/ISSB, CDP, SBTi, GHG
-    // Protocol, ISO, GRI, TNFD -> T4, curated allowlist STANDARDS_BODY_ALLOW in host-authority.ts) and the
-    // operator ruling that authorized it ("you know how to classify, fix it … T4" — see
-    // institution-canonicalize.mjs Part C / MAINTENANCE-RUNBOOK.md §8a). citingFiles unchanged: none of the
-    // files below cite this new class specifically, they cite the skill as a whole.
-    //
-    // 2026-09-13 (lane L9b, D14 residue ruling): re-pinned again -- Section 3's SC-13 class-table
-    // paragraph gained one new sentence naming the `company` class (T7, D14 residue ruling,
-    // defect-fix-plan-2026-09-12.md D14: any host with a stored registry name and no earlier class
-    // match). citingFiles reviewed against the new text and left unchanged for the same reason as the
-    // 2026-09-04 re-pin above: every file below cites the skill as a whole (the audit-skill-conformance
-    // / claims-tier / one-tier-per-host / orphan-source / vocab-sync family), none of them assert
-    // anything about the specific class vocabulary the new sentence adds, so none needed a code change
-    // alongside the doctrine addition.
-    contentHash: 'efaa3592fcde47094d11692124618abf50d08164ae42ef0546c9ca68d92049a1',
-    citingFiles: [
-      'fsi-app/scripts/audit-skill-conformance.mjs',
-      'fsi-app/scripts/verify/claims-tier-audit.mjs',
-      'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
-      'fsi-app/scripts/verify/orphan-source-audit.mjs',
-      'fsi-app/scripts/verify/remediate-orphan-sources.mjs',
-      'fsi-app/scripts/verify/unregistered-span-host-audit.mjs',
-      'fsi-app/scripts/verify/vocab-sync-audit.mjs',
-    ],
-  },
-  'sprint-followups-discipline': {
-    skillPath: 'fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md',
-    contentHash: 'd892269885b516cd8b141f3d1a19cdafd562e336f7ff9040df8e7ba5670b007b',
-    citingFiles: [
-      'fsi-app/scripts/verify/column-existence-parity.mjs',
-    ],
-  },
-  'caros-ledge-platform-intent': {
-    skillPath: 'fsi-app/.claude/skills/caros-ledge-platform-intent/SKILL.md',
-    contentHash: 'a4e4bf419af850c6ec161bcd747a891e5e665a3cfd474223da0225696814cabb',
-    citingFiles: [
-      'fsi-app/scripts/verify/rls-credential-parity.mjs',
-      'fsi-app/scripts/verify/routing.mjs',
-      'fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs',
-      'fsi-app/scripts/verify/surface-visibility-audit.mjs',
-    ],
-  },
+  'remediation-discipline': { skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md' },
+  'environmental-policy-and-innovation': { skillPath: 'fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md' },
+  'analysis-construction-spec': { skillPath: 'fsi-app/.claude/skills/analysis-construction-spec/SKILL.md' },
+  'source-credibility-model': { skillPath: 'fsi-app/.claude/skills/source-credibility-model/SKILL.md' },
+  'sprint-followups-discipline': { skillPath: 'fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md' },
+  'caros-ledge-platform-intent': { skillPath: 'fsi-app/.claude/skills/caros-ledge-platform-intent/SKILL.md' },
 };
 
 // ---- fs helpers ----
@@ -343,14 +123,6 @@ function walkFiles(absDir, exts, out = []) {
     else if (exts.some((ext) => e.name.endsWith(ext))) out.push(full);
   }
   return out;
-}
-
-/** sha256 of a repo-relative file's EOL-normalized text, or null if it does not exist. */
-export function hashFileContent(repoRoot, relPath) {
-  const abs = resolve(repoRoot, relPath);
-  if (!existsSync(abs)) return null;
-  const text = normalizeEol(readFileSync(abs, 'utf8'));
-  return createHash('sha256').update(text).digest('hex');
 }
 
 /** Every governing-skill slug this repo has a SKILL.md for (derived by reading the skill dirs, not a hand list). */
@@ -378,11 +150,31 @@ export function resolveSkillPath(repoRoot, slug) {
   return null;
 }
 
+/** Pure: every skill slug (from `slugs`) that a `GOVERNING SKILL(S):` citation in `text` names, matching
+ *  the same marker + window scanCitations() uses. Extracted so a citation set can be taken from text that
+ *  never touched the filesystem (a base tree's blob content, in checkRangeAcks() below), not only from a
+ *  file scanCitations() itself read off disk; the two callers can never independently drift on what
+ *  counts as a citation because both route through this one function. */
+export function extractCitedSlugs(text, slugs) {
+  CITATION_MARKER.lastIndex = 0;
+  const found = new Set();
+  let m;
+  while ((m = CITATION_MARKER.exec(String(text ?? '')))) {
+    const window = text.slice(m.index, m.index + CITATION_WINDOW);
+    for (const slug of slugs) {
+      const re = new RegExp('\\b' + slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+      if (re.test(window)) found.add(slug);
+    }
+  }
+  return found;
+}
+
 /**
  * LIVE scan: every (skill, citingFile) pair found under CITATION_SCAN_ROOTS right now, matching the same
- * `GOVERNING SKILL(S):` marker + window the PINNED_MANIFEST was derived from. Returns { [slug]: string[] }
- * (sorted repo-relative paths). This is what checkDrift() compares the pin against — it can never itself
- * drift from "what the grep would show" because it performs the equivalent scan mechanically.
+ * `GOVERNING SKILL(S):` marker + window PINNED_MANIFEST's registrations were derived from. Returns
+ * { [slug]: string[] } (sorted repo-relative paths). This is what checkDrift() compares the registry
+ * against; it can never itself drift from "what the grep would show" because it performs the equivalent
+ * scan mechanically.
  */
 export function scanCitations(repoRoot) {
   const slugs = listSkillSlugs(repoRoot);
@@ -391,17 +183,7 @@ export function scanCitations(repoRoot) {
   for (const abs of files) {
     const rel = toPosix(relative(repoRoot, abs));
     const text = readFileSync(abs, 'utf8');
-    CITATION_MARKER.lastIndex = 0;
-    let m;
-    const found = new Set();
-    while ((m = CITATION_MARKER.exec(text))) {
-      const window = text.slice(m.index, m.index + CITATION_WINDOW);
-      for (const slug of slugs) {
-        const re = new RegExp('\\b' + slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
-        if (re.test(window)) found.add(slug);
-      }
-    }
-    for (const slug of found) (bySkill[slug] ??= new Set()).add(rel);
+    for (const slug of extractCitedSlugs(text, slugs)) (bySkill[slug] ??= new Set()).add(rel);
   }
   const out = {};
   for (const [slug, set] of Object.entries(bySkill)) out[slug] = [...set].sort();
@@ -415,22 +197,26 @@ export function scanCitations(repoRoot) {
  * comparison logic is unit-testable against a small synthetic fixture repo, independent of this repo's real
  * skill files — see skill-drift-gate.test.mjs's seeded-drift negative tests. `accountLevelSkills` defaults
  * to ACCOUNT_LEVEL_SKILLS but is overridable for the same fixture-testing reason.
+ *
+ * Registration only (plan 6.8 Rule B, lane N4): no stored hash or citing-file list to compare against;
+ * that comparison moved to checkRangeAcks() below, which catches drift OVER TIME by requiring a human
+ * acknowledgment, rather than by diffing against a value this file would otherwise have to keep re-pinning.
  */
 export function checkManifestDrift(manifest, repoRoot, accountLevelSkills = ACCOUNT_LEVEL_SKILLS) {
   const problems = [];
   const live = scanCitations(repoRoot);
   const pinnedSlugs = Object.keys(manifest);
 
-  // 1 + 2: pinned skill file presence + content hash.
+  // 1: pinned skill file presence (account-level entries carry no file to check).
   for (const slug of pinnedSlugs) {
     const entry = manifest[slug];
     if (accountLevelSkills.includes(slug)) {
-      if (entry.skillPath !== null || entry.contentHash !== null) {
+      if (entry.skillPath !== null) {
         problems.push({
           type: 'account-level-pin-invalid',
           skill: slug,
           detail: `"${slug}" is listed in ACCOUNT_LEVEL_SKILLS but its PINNED_MANIFEST entry has a ` +
-            `skillPath/contentHash — an account-level pin must be explicitly null (no fabricated hash).`,
+            `skillPath, an account-level entry must be explicitly null.`,
         });
       }
       continue;
@@ -441,7 +227,7 @@ export function checkManifestDrift(manifest, repoRoot, accountLevelSkills = ACCO
         skill: slug,
         detail: `PINNED_MANIFEST["${slug}"] has no skillPath and "${slug}" is not in ACCOUNT_LEVEL_SKILLS. ` +
           `Either the skill file should resolve (fix skillPath) or this is genuinely an account-level skill ` +
-          `(add the slug to ACCOUNT_LEVEL_SKILLS with an explicit null pin) — it cannot be left ambiguous.`,
+          `(add the slug to ACCOUNT_LEVEL_SKILLS with an explicit null entry); it cannot be left ambiguous.`,
       });
       continue;
     }
@@ -451,59 +237,140 @@ export function checkManifestDrift(manifest, repoRoot, accountLevelSkills = ACCO
         skill: slug,
         detail: `pinned skill file ${entry.skillPath} no longer exists in the repo.`,
       });
-      continue;
-    }
-    const liveHash = hashFileContent(repoRoot, entry.skillPath);
-    if (liveHash !== entry.contentHash) {
-      problems.push({
-        type: 'skill-content-changed',
-        skill: slug,
-        detail: `${entry.skillPath} content hash changed (pinned ${entry.contentHash.slice(0, 12)}…, ` +
-          `live ${String(liveHash).slice(0, 12)}…) without skill-contract-map.mjs's PINNED_MANIFEST being ` +
-          `updated — the skill was edited without the citing code being reviewed against the new text.`,
-      });
     }
   }
 
-  // 3: citation dropped — a pinned citing file no longer cites that skill live (edited or deleted).
-  for (const slug of pinnedSlugs) {
-    const entry = manifest[slug];
-    const liveFiles = new Set(live[slug] || []);
-    for (const f of entry.citingFiles) {
-      if (!liveFiles.has(f)) {
-        problems.push({
-          type: 'citation-dropped',
-          skill: slug,
-          file: f,
-          detail: `${f} is pinned as citing "${slug}" but no longer does — either the citation comment was ` +
-            `edited/removed, or the file is gone. Code changed without the skill contract being reviewed.`,
-        });
-      }
-    }
-  }
-
-  // 4: citation unpinned — a live citation (new file, new mention, or a wholly new skill) the pin doesn't know.
+  // 2: every citation resolves to a REGISTERED skill (pinned in the manifest, whether account-level or
+  // on-disk). A live citation to a slug this manifest has never heard of is unregistered, never silently
+  // accepted -- scanCitations() only ever returns slugs with a resolvable SKILL.md (listSkillSlugs), so
+  // this is "a real skill exists, but nobody registered it here", the missing half of that guarantee.
+  const registeredSlugs = new Set(pinnedSlugs);
   for (const [slug, files] of Object.entries(live)) {
-    const pinnedFiles = new Set(manifest[slug]?.citingFiles || []);
+    if (registeredSlugs.has(slug)) continue;
     for (const f of files) {
-      if (!pinnedFiles.has(f)) {
-        problems.push({
-          type: 'citation-unpinned',
-          skill: slug,
-          file: f,
-          detail: `${f} cites "${slug}" but PINNED_MANIFEST does not list it for that skill — a new citation ` +
-            `was added to code without skill-contract-map.mjs being updated to pin it.`,
-        });
-      }
+      problems.push({
+        type: 'citation-unregistered',
+        skill: slug,
+        file: f,
+        detail: `${f} cites "${slug}" but PINNED_MANIFEST does not register that skill, register it ` +
+          `(skillPath, or an ACCOUNT_LEVEL_SKILLS null entry) before citing it.`,
+      });
     }
   }
 
   return { ok: problems.length === 0, problems };
 }
 
-/** Compare PINNED_MANIFEST (this repo's real snapshot) against the live repo at repoRoot. */
+// ---------------------------------------------------------------------------------------------------------
+// RANGE-BASED ACKNOWLEDGMENT (plan 6.8, Rule B, lane N4). A pinned SKILL.md changing, or a
+// `GOVERNING SKILL(S):` citation of a registered skill being added, removed or moved, within a git range,
+// requires that SAME range to add its own fsi-app/.discipline/governance/skill-acks/<date>-<lane>.md
+// naming the skill. Nothing about the skill's PAST content or citation set is stored anywhere -- the
+// comparison is always HEAD vs. the range's own base tree, read live through change-range.mjs.
+// ---------------------------------------------------------------------------------------------------------
+
+/** The shape an ack file must have: a `## Skill` heading (its section names every skill it acknowledges,
+ *  one per line) and a `## Citing files reviewed` heading. Returns the Set of skill names found under
+ *  `## Skill`, or null if the file lacks either required heading (not a valid ack at all). */
+export function parseSkillAck(text) {
+  const t = String(text ?? '');
+  if (!/^##\s*Citing files reviewed\s*$/im.test(t)) return null;
+  const m = /^##\s*Skill\s*$/im.exec(t);
+  if (!m) return null;
+  const rest = t.slice(m.index + m[0].length);
+  const nextHeading = rest.search(/^##\s/m);
+  const section = nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+  const names = new Set();
+  for (const line of section.split(/\r?\n/)) {
+    const cleaned = line.trim().replace(/^[-*]\s*/, '');
+    if (cleaned) names.add(cleaned);
+  }
+  return names;
+}
+
+/**
+ * The range rule. `manifest` is checked against `repoRoot`'s working tree (HEAD) vs. the range's base
+ * tree. Returns { ok, problems, skipped, reason? }: `skipped: true` (never a problem) when no git range
+ * resolves -- there is no baseline to diff against, so the rule has nothing to say, not a failure to
+ * report. `cwd` (defaults to repoRoot) lets tests point this at a throwaway fixture repo.
+ */
+export function checkRangeAcks(manifest, repoRoot, { cwd } = {}) {
+  const gitCwd = cwd || repoRoot;
+  const { range, base, source, reason } = resolveRange({ cwd: gitCwd });
+  if (source === 'unavailable') {
+    return { ok: true, problems: [], skipped: true, reason };
+  }
+
+  let changed, added;
+  try {
+    changed = gitChangedFiles(range, { cwd: gitCwd });
+    added = gitAddedFiles(range, { cwd: gitCwd });
+  } catch (e) {
+    return { ok: true, problems: [], skipped: true, reason: e.message };
+  }
+  const changedSet = new Set(changed);
+  const slugs = Object.keys(manifest);
+  const needingAck = new Set();
+
+  // A pinned SKILL.md itself changed in the range.
+  for (const [slug, entry] of Object.entries(manifest)) {
+    if (entry.skillPath && changedSet.has(entry.skillPath)) needingAck.add(slug);
+  }
+
+  // A citation of a registered skill was added, removed or moved: compare HEAD's citations in each
+  // changed, in-scope file against that same file's citations on the base tree.
+  for (const file of changed) {
+    if (!CITATION_SCAN_ROOTS.some((root) => file === root || file.startsWith(root + '/'))) continue;
+    if (!CITATION_EXTS.some((ext) => file.endsWith(ext))) continue;
+    const headText = readFileOrNull(resolve(repoRoot, file));
+    const baseText = gitFileAtBase(base, file, { cwd: gitCwd });
+    const headSlugs = headText != null ? extractCitedSlugs(headText, slugs) : new Set();
+    const baseSlugs = baseText != null ? extractCitedSlugs(baseText, slugs) : new Set();
+    for (const s of headSlugs) if (!baseSlugs.has(s)) needingAck.add(s);
+    for (const s of baseSlugs) if (!headSlugs.has(s)) needingAck.add(s);
+  }
+
+  if (needingAck.size === 0) return { ok: true, problems: [] };
+
+  const ackFiles = added.filter((f) => f.startsWith(`${SKILL_ACKS_DIR}/`) && f.endsWith('.md'));
+  const ackedSkills = new Set();
+  for (const f of ackFiles) {
+    const text = readFileOrNull(resolve(repoRoot, f));
+    const names = text != null ? parseSkillAck(text) : null;
+    if (!names) continue;
+    for (const slug of needingAck) if (names.has(slug)) ackedSkills.add(slug);
+  }
+
+  const problems = [];
+  for (const slug of needingAck) {
+    if (!ackedSkills.has(slug)) {
+      problems.push({
+        type: 'missing-skill-ack',
+        skill: slug,
+        detail: `this range changed the pinned SKILL.md for "${slug}" or moved a GOVERNING SKILL(S) ` +
+          `citation of it, but added no ${SKILL_ACKS_DIR}/<date>-<lane>.md naming "${slug}" under a ` +
+          `"## Skill" heading (with a "## Citing files reviewed" heading listing what was reviewed).`,
+      });
+    }
+  }
+  return { ok: problems.length === 0, problems };
+}
+
+function readFileOrNull(absPath) {
+  try {
+    return readFileSync(absPath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+/** Compare PINNED_MANIFEST (this repo's real registry) against the live repo at repoRoot: registration
+ *  (checkManifestDrift) plus the range-based acknowledgment rule (checkRangeAcks) when a range resolves. */
 export function checkDrift(repoRoot = REPO) {
-  return checkManifestDrift(PINNED_MANIFEST, repoRoot);
+  const manifestResult = checkManifestDrift(PINNED_MANIFEST, repoRoot);
+  const rangeResult = checkRangeAcks(PINNED_MANIFEST, repoRoot);
+  const problems = [...manifestResult.problems, ...rangeResult.problems];
+  return { ok: problems.length === 0, problems, rangeSkipped: Boolean(rangeResult.skipped), rangeSkipReason: rangeResult.reason };
 }
 
 /** Convenience boolean for callers that just need pass/fail. */
@@ -511,17 +378,16 @@ export function isSkillContractClean(repoRoot = REPO) {
   return checkDrift(repoRoot).ok;
 }
 
-// 2026-09-18 (Lane M9a): remediation-discipline re-pinned deliberately: added Section 4 category 46 (the loop
-// manifest and F50 loop-wiring, invariant RD-74). citingFiles unchanged.
 // ---- CLI (operator utility, mirrors skill-map.mjs's --list/--check style) ----
 // Usage: node skill-contract-map.mjs --check   → prints problems (if any) and exits 1, else prints OK and exits 0
 // task 0.3b: the Windows-safe main guard, inlined (no scripts/lib import precedent under
 // .discipline/governance/, unlike .discipline/fitness/functions/ which already imports scripts/lib -
 // see scripts/lib/is-main.mjs for the shared primitive this mirrors).
 if (Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const { ok, problems } = checkDrift(REPO);
+  const { ok, problems, rangeSkipped, rangeSkipReason } = checkDrift(REPO);
+  if (rangeSkipped) console.log(`skill-contract-map: range rule skipped (${rangeSkipReason})`);
   if (ok) {
-    console.log(`skill-contract-map: OK — ${Object.keys(PINNED_MANIFEST).length} pinned skills, no drift.`);
+    console.log(`skill-contract-map: OK, ${Object.keys(PINNED_MANIFEST).length} registered skills, no drift.`);
   } else {
     for (const p of problems) console.error(`[${p.type}] ${p.skill}${p.file ? ' <- ' + p.file : ''}: ${p.detail}`);
     console.error(`skill-contract-map: ${problems.length} drift problem(s).`);

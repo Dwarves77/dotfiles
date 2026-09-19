@@ -91,30 +91,59 @@ test('CONTROL: a correctly enforced invariant with a present anchor yields zero 
   assert.equal(problems.length, 0, `expected no problems, got: ${problems.join(' | ')}`);
 });
 
-// ── NEGATIVE: marker-baseline gate (check 4, U8) must catch each seeded-drift shape — the same
-// "a seeded drift must redden it" proof execution-wiring.test.mjs establishes, applied to check 4,
-// which (unlike checks 1-3) had never been extracted into a pure/injectable, negative-tested core.
-const markerEnv = {
-  getSkillContent: (s) => (s === 's' ? 'line one\nMUST do the thing\nline three' : null),
-  countMarkers: (c) => c.split(/\r?\n/).filter((l) => /MUST/.test(l)).length,
-};
+// ── NEGATIVE: marker-FLOOR gate (check 4, plan 6.8 Rule B, lane N4) must catch each seeded-drift shape,
+// the same "a seeded drift must redden it" proof execution-wiring.test.mjs establishes, applied to check
+// 4, which (unlike checks 1-3) had never been extracted into a pure/injectable, negative-tested core. No
+// stored baseline any more: HEAD's marker count is compared to the SAME count on the merge-base tree,
+// injected here as `getBaseSkillContent` so this stays git-free and fixture-driven.
+const countMustLines = (c) => c.split(/\r?\n/).filter((l) => /MUST/.test(l)).length;
 
-test('NEGATIVE(marker): a skill in the file map with no baseline entry is flagged NO BASELINE', () => {
-  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, {}, markerEnv);
-  assert.ok(problems.some((p) => p.includes('NO BASELINE')), `expected NO BASELINE, got: ${problems.join(' | ')}`);
-});
-
-test('NEGATIVE(marker): a skill whose live marker count no longer matches its baseline is flagged MARKER DRIFT', () => {
-  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, { s: 99 }, markerEnv);
+test('NEGATIVE(marker): live count DROPS below the merge-base tree count is flagged MARKER DRIFT', () => {
+  const env = {
+    getSkillContent: (s) => (s === 's' ? 'MUST one\nline two' : null),
+    getBaseSkillContent: (s) => (s === 's' ? 'MUST one\nMUST two\nline three' : null),
+    countMarkers: countMustLines,
+  };
+  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, env);
   assert.ok(problems.some((p) => p.includes('MARKER DRIFT')), `expected MARKER DRIFT, got: ${problems.join(' | ')}`);
 });
 
-test('CONTROL(marker): a skill whose live marker count matches its baseline yields zero problems', () => {
-  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, { s: 1 }, markerEnv);
+test('CONTROL(marker): live count EQUAL to the merge-base tree count yields zero problems', () => {
+  const env = {
+    getSkillContent: (s) => (s === 's' ? 'MUST one\nline two' : null),
+    getBaseSkillContent: (s) => (s === 's' ? 'MUST one\nline two' : null),
+    countMarkers: countMustLines,
+  };
+  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, env);
+  assert.equal(problems.length, 0, `expected no problems, got: ${problems.join(' | ')}`);
+});
+
+test('CONTROL(marker): live count RISES above the merge-base tree count yields zero problems (a new marker needs no gate here)', () => {
+  const env = {
+    getSkillContent: (s) => (s === 's' ? 'MUST one\nMUST two' : null),
+    getBaseSkillContent: (s) => (s === 's' ? 'MUST one' : null),
+    countMarkers: countMustLines,
+  };
+  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, env);
   assert.equal(problems.length, 0, `expected no problems, got: ${problems.join(' | ')}`);
 });
 
 test('CONTROL(marker): a skill with null content (file missing, reported elsewhere) is skipped, not flagged', () => {
-  const { problems } = auditMarkerBaselines({ missing: 'fake/path' }, {}, markerEnv);
+  const env = {
+    getSkillContent: () => null,
+    getBaseSkillContent: () => 'MUST one',
+    countMarkers: countMustLines,
+  };
+  const { problems } = auditMarkerBaselines({ missing: 'fake/path' }, env);
+  assert.equal(problems.length, 0, `expected no problems (skipped), got: ${problems.join(' | ')}`);
+});
+
+test('CONTROL(marker): null base content (no baseline to compare -- new skill file, or an unavailable range) is skipped, not flagged', () => {
+  const env = {
+    getSkillContent: (s) => (s === 's' ? 'MUST one' : null),
+    getBaseSkillContent: () => null,
+    countMarkers: countMustLines,
+  };
+  const { problems } = auditMarkerBaselines({ s: 'fake/path' }, env);
   assert.equal(problems.length, 0, `expected no problems (skipped), got: ${problems.join(' | ')}`);
 });

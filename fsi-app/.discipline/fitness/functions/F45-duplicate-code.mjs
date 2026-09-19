@@ -14,12 +14,15 @@
 // and comment-only lines dropped, import lines dropped since identical import blocks are structure, not
 // copied logic). Every window of WINDOW consecutive normalized lines is hashed; a window seen in more than
 // one file, or more than once in one file, is a clone. The metric is the total number of duplicated
-// normalized lines, the same shape as the operator-ruled coverage ratchet (F23): it may only fall.
+// normalized lines.
 //
-// THE RATCHET BITES BOTH WAYS (F23's own rule): over the ceiling FAILS (new duplication landed); under
-// the ceiling ALSO FAILS, naming the value to re-seed to, so an improvement forces the ceiling down and
-// the number stays honest. Deleting duplication is the only way the ceiling moves, and it moves in the
-// same commit.
+// THE RATCHET IS AGAINST THE MERGE-BASE, NEVER A STORED NUMBER (plan 6.8, Rule B, lane N4). The prior
+// design stored a DUPLICATED_LINES_CEILING constant that the tree had to equal exactly; two lanes that
+// each removed duplication both wrote a correct value and collided on the same line every time (Cause B,
+// plan 6.8 section 6.8). Now: HEAD's duplicatedLines must be no worse than the SAME measurement taken on
+// the merge-base tree with origin/master (measureAtBase(), read through one `git cat-file --batch` call,
+// cached by commit id under gitignored scratch so a repeat check skips git entirely). Nothing is stored on
+// disk that a lane could collide on; the comparison is always to the tree, at check time.
 //
 // NAMING THE CULPRIT. A regression message lists the clone pairs that touch files changed on the branch
 // (against origin/master, plus the working tree's modified and untracked files) before the largest pairs
@@ -30,17 +33,18 @@
 // legitimately repeat fixtures), fixtures/, _archive/ (inert by construction), scripts/harness-runs/ and
 // scripts/_snapshots/ (run records and data, similar by design), and generated .d.ts. Every exclusion is
 // named here; nothing is excluded silently.
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { readFile } from '../lib/file-content.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
 import { resolveRange, gitChangedFiles, gitWorkingTreeFiles } from '../../lib/change-range.mjs';
 
 export const SCOPE_GLOBS = ['fsi-app/src/**/*.{mjs,js,ts,tsx}', 'fsi-app/scripts/**/*.{mjs,js,ts,tsx}'];
 export const WINDOW = 8;
-
-/** Committed ceiling: total duplicated normalized lines measured by detectClones over the scope on the
- *  tree this file ships on. Re-seed DOWN in the same commit that removes duplication; never up. */
-export const DUPLICATED_LINES_CEILING = 6121; // seeded 8061 on master ed2ee7c9 (lane L30); 7569 after L31 (route guard, 89 routes); re-seeded 6866 by lane L33 (community shell context, route skeleton frames); gitignored files excluded from the scan, CI parity, lane L33 second push (6866 to 6830); re-seeded by lane L34 after rebase onto master c5279274, detail and admin primitives (6830 to 6227); lane M5 after rebase onto master d3c2fb6f (6227 to 6216); lane L36 (nine maintenance scripts onto runCli, two private pagers onto fetchAllRows) measured on the combined tree after rebase onto master 5a412306, which already carried lane M5's re-seed (6216 to 6174); lane L38, 2026-09-19: 6174 -> 6132 (admitted mirrors wired); re-seeded after rebase (6132 to 6121); only re-seed DOWN
 
 export function inScope(f) {
   const p = String(f).replace(/\\/g, '/');
@@ -135,14 +139,134 @@ export function scanTree() {
   return { files: files.length, ...detectClones(entries) };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// MEASURE AT BASE (plan 6.8, Rule B, lane N4). Derives the SCOPE_GLOBS matcher purely from the glob
+// strings themselves (one shape only: 'dir/**/*.{ext1,ext2}') so a base-tree file list never needs a
+// second, independently-written copy of the prefix/extension truth SCOPE_GLOBS already states -- the
+// self-consistency this duplicate-code checker owes its own scoping logic.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+function globToScopeMatcher(glob) {
+  const m = /^(.+?)\/\*\*\/\*\.\{([^}]+)\}$/.exec(glob);
+  if (!m) throw new Error(`F45: matchesScopeGlobs cannot parse pattern: ${glob}`);
+  const prefix = m[1] + '/';
+  const exts = m[2].split(',').map((e) => '.' + e.trim());
+  return (p) => p.startsWith(prefix) && exts.some((ext) => p.endsWith(ext));
+}
+
+const SCOPE_MATCHERS = SCOPE_GLOBS.map(globToScopeMatcher);
+
+/** Pure equivalent of "does globFiles(SCOPE_GLOBS) reach this path", usable against a path list that
+ *  never touched the filesystem (a base tree's `git ls-tree` output). */
+export function matchesScopeGlobs(path) {
+  const p = String(path).replace(/\\/g, '/');
+  return SCOPE_MATCHERS.some((fn) => fn(p));
+}
+
+/** Cache key for a base ref: the ref itself when it is already a full 40-hex commit id (the shape
+ *  resolveRange's local-merge-base source always returns, so the common path needs no extra git call
+ *  to get one); otherwise a sha256 of the ref string (CI-PR mode's `origin/<branch>` shape), so the
+ *  cache-hit path NEVER calls git, on any input. */
+function cacheKeyFor(base) {
+  return /^[0-9a-f]{40}$/i.test(String(base)) ? base : createHash('sha256').update(String(base)).digest('hex');
+}
+
+/** Parse `git cat-file --batch` output (a Buffer) into `{ path, content }` entries. Order-correlated
+ *  with `paths` (cat-file emits results in the same order objects were requested on stdin), which is
+ *  what lets this skip parsing the object hash out of each header -- a "<query> missing" header (should
+ *  not happen for paths taken from `git ls-tree` at the same commit, but handled defensively) is skipped
+ *  without an entry rather than thrown. */
+export function parseCatFileBatch(buf, paths) {
+  const entries = [];
+  let offset = 0;
+  let i = 0;
+  while (offset < buf.length && i < paths.length) {
+    const nl = buf.indexOf(0x0a, offset);
+    if (nl === -1) break;
+    const header = buf.slice(offset, nl).toString('utf8');
+    offset = nl + 1;
+    if (/ missing$/.test(header)) { i++; continue; }
+    const m = /^(\S+) (\S+) (\d+)$/.exec(header);
+    if (!m) throw new Error(`F45: unexpected git cat-file --batch header: ${JSON.stringify(header)}`);
+    const size = Number(m[3]);
+    const content = buf.slice(offset, offset + size).toString('utf8');
+    offset += size + 1; // skip content + its trailing newline
+    entries.push({ path: paths[i], content });
+    i++;
+  }
+  return entries;
+}
+
+/** The same measurement scanTree() takes of the working tree, taken instead of the tree as committed at
+ *  `base` (a ref or commit id) -- via ONE `git cat-file --batch` process, never one git call per file.
+ *  Cached at `fsi-app/scripts/tmp/f45-base/<cache key>.json` (gitignored scratch, plan 6.8: "nothing is
+ *  stored that a lane could collide on" -- this is a memoized recomputation, not a committed value); a
+ *  cache hit returns without touching git at all. `cwd` lets tests point this at a throwaway fixture
+ *  repo instead of this repo. */
+export function measureAtBase(base, { cwd } = {}) {
+  const root = cwd || getRepoRoot();
+  const cacheDir = join(root, 'fsi-app', 'scripts', 'tmp', 'f45-base');
+  const cachePath = join(cacheDir, `${cacheKeyFor(base)}.json`);
+  if (existsSync(cachePath)) {
+    try {
+      return JSON.parse(readFileSync(cachePath, 'utf8'));
+    } catch {
+      // corrupt/partial cache file: fall through and recompute.
+    }
+  }
+
+  let lsOut;
+  try {
+    lsOut = execFileSync('git', ['ls-tree', '-r', '--name-only', '-z', String(base)], { cwd: root, maxBuffer: 1 << 26 });
+  } catch (e) {
+    throw new Error(`F45: 'git ls-tree -r --name-only -z ${base}' failed: ${e.message}`);
+  }
+  const allPaths = lsOut.toString('utf8').split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/'));
+  const paths = allPaths.filter((p) => matchesScopeGlobs(p) && inScope(p));
+
+  let entries = [];
+  if (paths.length > 0) {
+    const input = paths.map((p) => `${base}:${p}`).join('\n') + '\n';
+    let out;
+    try {
+      out = execFileSync('git', ['cat-file', '--batch'], { cwd: root, input, maxBuffer: 1 << 27 });
+    } catch (e) {
+      throw new Error(`F45: 'git cat-file --batch' failed for base '${base}': ${e.message}`);
+    }
+    entries = parseCatFileBatch(out, paths);
+  }
+
+  const { duplicatedLines, clones, byFile } = detectClones(entries);
+  const result = { files: entries.length, duplicatedLines, clones, byFile };
+  try {
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(cachePath, JSON.stringify(result));
+  } catch {
+    // best-effort scratch cache; a read-only fs must not fail the measurement.
+  }
+  return result;
+}
+
+/** Pure ratchet decision (plan 6.8, Rule B): HEAD's measurement must not exceed the base's. Injectable
+ *  so the REGRESSION shape is unit-testable without git or the filesystem. `changed` is the Set of
+ *  branch-changed paths used only to NAME the likely culprit; the decision itself never depends on it. */
+export function evaluateRatchet(head, base, changed = new Set()) {
+  if (head.duplicatedLines <= base.duplicatedLines) return [];
+  const fmt = (c) => `${c.windows}w ${c.a} <-> ${c.b}`;
+  const mine = head.clones.filter((c) => changed.has(c.a) || changed.has(c.b)).slice(0, 20).map(fmt).join('; ');
+  const top = head.clones.slice(0, 12).map(fmt).join('; ');
+  return [violation(1, `REGRESSION: ${head.duplicatedLines} duplicated lines vs base ${base.duplicatedLines} (+${head.duplicatedLines - base.duplicatedLines}). New duplication landed: extract the shared home and import it. Clone pairs touching files changed on this branch: ${mine || '(none attributed; see the largest pairs)'}. Largest clone pairs in the tree (shared ${WINDOW}-line windows): ${top}`)];
+}
+
 export const fitnessFunction = {
   id: 'F45',
   name: 'duplicate-code',
   description:
     'Total duplicated normalized lines across fsi-app/src and fsi-app/scripts (tests, fixtures, archive, ' +
-    'run artifacts and snapshots excluded) must equal the committed ceiling: above it, new duplication ' +
-    'landed (extract the shared home and import it); below it, re-seed the ceiling down in the same commit.',
-  source: 'operator ruling 2026-09-17 ("recurring doubling of work and code"; "wire or remove"); the clone scan of the same day',
+    'run artifacts and snapshots excluded) must not exceed the same measurement taken on the merge-base ' +
+    'tree with origin/master: above it, new duplication landed on this branch (extract the shared home ' +
+    'and import it); the comparison is to the tree, never to a stored number (plan 6.8, Rule B).',
+  source: 'operator ruling 2026-09-17 ("recurring doubling of work and code"; "wire or remove"); the clone scan of the same day; plan 6.8 Rule B (2026-09-18) for the merge-base comparison',
 
   enumerate() {
     // One anchor file: the scan is tree-wide, reported once (the F23 shape).
@@ -150,17 +274,15 @@ export const fitnessFunction = {
   },
 
   check() {
+    const root = getRepoRoot();
     const r = scanTree();
-    const fmt = (c) => `${c.windows}w ${c.a} <-> ${c.b}`;
-    const top = r.clones.slice(0, 12).map(fmt).join('; ');
-    if (r.duplicatedLines > DUPLICATED_LINES_CEILING) {
-      const changed = changedFiles();
-      const mine = r.clones.filter((c) => changed.has(c.a) || changed.has(c.b)).slice(0, 20).map(fmt).join('; ');
-      return [violation(1, `REGRESSION: ${r.duplicatedLines} duplicated lines across ${r.files} files, ceiling ${DUPLICATED_LINES_CEILING} (+${r.duplicatedLines - DUPLICATED_LINES_CEILING}). New duplication landed: extract the shared home and import it. Clone pairs touching files changed on this branch: ${mine || '(none attributed; see the largest pairs)'}. Largest clone pairs in the tree (shared ${WINDOW}-line windows): ${top}`)];
+    const { base, source, reason } = resolveRange({ cwd: root });
+    if (source === 'unavailable') {
+      console.log(`  [F45] F45 duplicated lines: ${r.duplicatedLines} (base: unavailable -- no baseline to compare: ${reason})`);
+      return [];
     }
-    if (r.duplicatedLines < DUPLICATED_LINES_CEILING) {
-      return [violation(1, `IMPROVEMENT: ${r.duplicatedLines} duplicated lines, ceiling ${DUPLICATED_LINES_CEILING}. Re-seed DUPLICATED_LINES_CEILING to ${r.duplicatedLines} in this same commit so the ratchet keeps the gain.`)];
-    }
-    return [];
+    const baseMeasure = measureAtBase(base, { cwd: root });
+    console.log(`  [F45] F45 duplicated lines: ${r.duplicatedLines} (base: ${baseMeasure.duplicatedLines})`);
+    return evaluateRatchet(r, baseMeasure, changedFiles());
   },
 };
