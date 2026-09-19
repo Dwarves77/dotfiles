@@ -46,6 +46,10 @@ export default function ResetPasswordPage() {
     <AuthFrame>
       <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
+          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: inventory's Anton grep missed
+              this var(--font-display) h1. SectionHeading does not match: fixed 20px, padded, inline
+              aside, not a bare 22px title over a block <p>. No matching part. Review-by: SectionHeader
+              lane / operator ruling on auth-page scope, docs/design/parts-inventory.md case 4.) */}
           <h1 style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 22, color: "var(--ink)", margin: 0 }}>
             Reset your password
           </h1>
@@ -54,11 +58,10 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        {/* fitness-allow: F42 (auth confirmation note, not a section card. Artboard 16 draws the
-            auth frame's identity panel and its inputs; this "we emailed you" box is a note inside
-            that panel, carries no title and no rule, and ruling R1 keeps the auth screen's approved
-            wording and layout as they are. Adding the card rule here would restyle a screen no
-            2026-09-08 item names.) */}
+        {/* fitness-allow: F42 F49 (auth confirmation note, not a section card. Ruling R1: artboard 16's
+            "we emailed you" note carries no title, no rule; restyling it would touch a screen no
+            2026-09-08 item names. The site the parts brief names by citation as its accepted
+            deviation and its only F49 allowlist example. Review-by: FactCard/ActionCard lane.) */}
         {sent ? (
           <div
             style={{

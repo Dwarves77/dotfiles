@@ -206,15 +206,24 @@ test("the row's meta line can actually shrink, so its own ellipsis is the thing 
 });
 
 // ── DEFECT 2 (lane opsclip, train 61): the IMPACT header keeps every character ────────────────
-test("the IMPACT column header wraps at a word boundary instead of truncating", () => {
-  // Production shipped "IMPACT LOW → H". The label measures ~113px against its 88px track, so it
-  // could only ever truncate on one line; the artboard (dc.html p1/p11) gives it the same track and
-  // the same type with no nowrap and draws it over two lines.
+// SUPERSEDED IN PART (parts brief 2026-09-18, section 2.16): the header's qualifier is removed
+// entirely (the row meter no longer sorts dimensions low-to-high), so "Impact" alone fits its 88px
+// track on one line and no longer needs the wrapping treatment this test used to pin on
+// `impactCellStyle`. `impactCellStyle`/`wrappingCellStyle` are kept (asserted below) for the
+// register-variant headers, which still carry the two-line treatment DEFECT 2 fixed.
+test("the IMPACT column header reads 'Impact' alone, on cellStyle, no wrapping needed", () => {
+  const retiredQualifier = ["low", "high"].join(" → ");
+  assert.doesNotMatch(SOURCE, new RegExp(retiredQualifier));
+  assert.match(SOURCE, /<span style=\{cellStyle\}>Impact<\/span>/);
+});
+
+test("impactCellStyle/wrappingCellStyle still exist and still wrap at a word boundary, for the register-variant headers", () => {
   assert.match(SOURCE, /const impactCellStyle: CSSProperties = \{/);
   assert.match(SOURCE, /whiteSpace: "normal"/);
-  assert.match(SOURCE, /<span style=\{impactCellStyle\}>/);
-  // Word boundary, not `anywhere`: breaking inside the word ("IMPA / CT") loses the same legibility
-  // the truncation did. The register variant's own labels are the only ones allowed to break.
+  assert.match(SOURCE, /const wrappingCellStyle: CSSProperties = \{ \.\.\.impactCellStyle, overflowWrap: "anywhere" \};/);
+  // Word boundary, not `anywhere`, on impactCellStyle itself: breaking inside a word ("IMPA / CT")
+  // loses the same legibility the original truncation did. Only wrappingCellStyle (the register
+  // variant's own labels) is allowed to break mid-word.
   const impact = SOURCE.slice(SOURCE.indexOf("const impactCellStyle"), SOURCE.indexOf("const wrappingCellStyle"));
   assert.doesNotMatch(impact, /overflowWrap/);
 });

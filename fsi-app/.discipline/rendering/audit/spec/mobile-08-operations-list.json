@@ -346,11 +346,15 @@
       }
     },
     {
-      "name": "Unscored renders a 30px dashed baseline in place of the bars",
-      "selector": ".cl-impact-baseline",
+      "name": "Unscored renders four dashed bar outlines in place of a baseline (parts brief 2026-09-18, section 2.16, lane w10a rewrite)",
+      "selector": ".cl-impact-bar",
+      "note": "SUPERSEDED (was: 'Unscored renders a 30px dashed baseline in place of the bars', .cl-impact-baseline). The row variant no longer has a baseline element at any width; it draws the same four bars as the scored row (8px wide, heights 6/9/12/15, gap 2, radius 1.5) as 1px dashed rgba(0,0,0,.3) outlines, unchanged at 768px (the MOBILE_CSS override that previously recoloured the baseline to rgba(0,0,0,.25) below 768px is retired with it).",
       "expect": {
-        "width": "30px",
-        "border-bottom": "1px dashed rgba(0, 0, 0, 0.25)"
+        "count": 4,
+        "width": "8px",
+        "border-width": "1px",
+        "border-style": "dashed",
+        "border-color": "rgba(0,0,0,.3)"
       }
     }
   ],

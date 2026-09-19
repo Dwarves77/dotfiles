@@ -99,6 +99,9 @@ export default async function CommunityDirectoryPage() {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <header>
+          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: same reason as
+              community/benchmarks/page.tsx's own h2 marker. No matching part. Review-by:
+              SectionHeader lane / operator ruling.) */}
           <h2
             style={{
               fontFamily: "var(--font-display)",

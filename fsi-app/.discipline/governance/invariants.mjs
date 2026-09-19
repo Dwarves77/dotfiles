@@ -227,7 +227,24 @@ export const SKILL_MARKER_BASELINE = {
   // 54→55 (2026-09-17, lane L31): category 45 gains the host-home bullet (one MUST line). TRIAGE: new invariant RD-70 (fitness F46).
   // 55→56 (2026-09-17, lane L32): category 45 gains the database-census bullet (one MUST line). TRIAGE: new invariant RD-71 (fitness F47).
   // 56→57 (2026-09-18, lane M9a): new category 46, the loop-manifest bullet (one MUST line). TRIAGE: new invariant RD-74 (fitness F50).
-  'remediation-discipline': 57,
+  // 57→58 (2026-09-18, lane w10a, counted on the tree that also carries M9a's category 46, parts brief docs/design/parts-brief-2026-09-18.md 1.2): added Section
+  // 4 category 47, "a page does not retype a part's literal styles" (one MUST line). TRIAGE: new
+  // invariant RD-73 (fitness F49). M9a's own RD number was not present on this lane's tree when this
+  // landed (lane brief instruction: take the next free one and note it). The next free id on this
+  // tree was RD-72, but `git log --all` shows RD-72 already taken on the unmerged branch
+  // lane/w9-l41-refetch-capped-env-2026-09-17 (commit a08d1e6e, "Lane L41 ... F48 ... (RD-72)"), a
+  // sibling branch with the same RD-68..71 base that independently chose the same next number; RD-73
+  // is taken instead to avoid a KNOWN collision rather than a hypothetical one. The coordinator still
+  // resolves whichever of the two lands second at merge if this guess is wrong.
+  // CATEGORY NUMBER renumbered 46->47 (2026-09-18, coordinator note, after lane M9a's PR 721 also
+  // authored a "Section 4 - category 46" section and merges first): master's highest category was 45
+  // when both lanes were told to take the next free one; M9a keeps 46, this lane's own category
+  // becomes 47 everywhere it is named (SKILL.md heading, this comment, the RD-73 invariant's
+  // section/anchor fields below, the session-log entry; F49-parts-not-pages.mjs itself never named
+  // the category number, so it needed no change). The
+  // invariant id stays RD-73 (only the category NUMBER moved); the skill-contract-map.mjs re-pin
+  // reflects the renumbered text, done last so the pinned hash matches the final file.
+  'remediation-discipline': 58,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1570,5 +1587,17 @@ export const INVARIANTS = [
       'selftest:fsi-app/.discipline/governance/loop-manifest.test.mjs',
     ],
     residual: 'F50 reads .github/workflows/*.yml with a documented line-based text scan (no YAML parser is a direct dependency of this repository), so a workflow_run block written in some other valid YAML shape (a flow-mapping list without quotes, a folded scalar) would not be found; every workflow file in this repository today uses the inline-array form the scan is built for. The fired check trusts each artifact\'s own trigger field, which is set by scripts/lib/run-artifact.mjs\'s writeRunArtifact from process.env.GITHUB_EVENT_NAME at write time and is not itself independently re-derived from GitHub\'s own event log, so a hand-edited artifact could claim trigger:"workflow_run" without one; that is the same content-honesty residual RD-55/F28 already names for the rest of the harness-run schema, not a new gap. loop-manifest.test.mjs proves the manifest\'s own claims (file existence, name parity, family existence) against the real tree so F50 is checking real data, not a manifest that could itself drift; a hop whose consumer file does not exist yet (fetch-drain.yml, a gate-a-rescan consumer) is marked consumerPending in the manifest and exempted from both checks until the lane that creates it lands, the same exemption the family check already needed for a harness family that is real but not yet built.',
+  },
+  {
+    id: 'RD-73',
+    skill: 'remediation-discipline',
+    section: "Section 4 - category 47: a page does not retype a part's literal styles (parts, not pages)",
+    text: "A route's page.tsx under fsi-app/src/app/** does not contain the literal styles that define a shared part (an Anton title, a card border plus radius 10, a 3px rule, a fact card edge or band, chip padding, a state note edge); it imports the part instead. [CONFIRMED, lane w10a, 2026-09-18, by the gate's own run against master 3da30b22]: two auth pages and six CommunityShell sub-routes hand-typed an Anton title through the CSS variable var(--font-display), a site the parts inventory's own literal sweep (docs/design/parts-inventory.md) did not find because it grepped the word \"Anton\", not the variable; no card-radius-10, 3px-rule, fact-card-edge, chip-padding or state-note-edge literal was found anywhere in page.tsx on that tree. The one allowlist condition is the site-wide parts brief's own: no existing part renders the same result, marked at the site and never a path allowlist.",
+    anchor: "### Section 4 - category 47: a page does not retype a part's literal styles (parts, not pages)",
+    enforcedBy: [
+      'fitness:F49',
+      'selftest:fsi-app/.discipline/fitness/functions/F49-parts-not-pages.test.mjs',
+    ],
+    residual: 'F49 is a LEXICAL scanner over fsi-app/src/app/**/page.tsx only (test files excluded by the glob itself, which matches no *.test.tsx): a literal built from a template string, a variable, or composed across two spread style objects is invisible to it, and it says nothing about src/components/** retyping the same literal (that half is category 42\'s F42 for the card shell, and is otherwise unmeasured for the other five patterns until each part\'s own lane lands, per the brief\'s lane order). It also cannot judge whether a marked "no matching part" site is correctly marked; eight sites (two auth pages, six community sub-routes) are marked this way as of 2026-09-18, discovered by this gate rather than by the inventory\'s own hand sweep, and are owed a SectionHeader-lane or operator ruling before the marker is removed.',
   },
 ];

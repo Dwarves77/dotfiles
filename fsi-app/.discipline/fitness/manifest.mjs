@@ -238,6 +238,13 @@ import { fitnessFunction as F48 } from './functions/F48-env-file-load-guarded.mj
 // so the gate lands red-proof-ready today and turns each hop green as the lane that wires it (M1 to M6) lands.
 import { fitnessFunction as F50 } from './functions/F50-loop-wiring.mjs';
 
+// Parts, not pages (2026-09-18, lane w10a, site-wide parts brief docs/design/parts-brief-2026-09-18.md
+// rule 1.2): F49 forbids a route's page.tsx from retyping the literal styles that define a shared part
+// (an Anton title, a card border + radius 10, a 3px rule, a fact card edge/band, chip padding, a state
+// note edge). The brief calls this gate "F44"; F44 is already taken by F44-broken-main-guard.mjs, so it
+// lands numbered F49 per the coordinator's note in the brief's own landed header.
+import { fitnessFunction as F49 } from './functions/F49-parts-not-pages.mjs';
+
 export const fitnessFunctions = [
   F2,
   F6,
@@ -282,6 +289,7 @@ export const fitnessFunctions = [
   F47,
   F48,
   F50,
+  F49,
 ];
 
 export function getFunctionById(id) {

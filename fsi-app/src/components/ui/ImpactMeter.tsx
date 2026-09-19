@@ -1,40 +1,38 @@
 "use client";
 
 /**
- * ImpactMeter — the one impact meter (UI system handoff 2026-09-06,
- * README §0.4). Four scored dimensions (cost, compliance, client-facing,
- * operational), each 1-3.
+ * ImpactMeter, the one impact meter. Four scored dimensions (cost,
+ * compliance, client-facing, operational), each 1-3, sum to N/12.
  *
- * Row variant: four 9px-wide bars (heights 6/12/18 for scores 1/2/3, top
- * corners radiused, square bottom) on an 18px-tall container with a 1px
- * solid rgba(0,0,0,.25) baseline under them, sorted ascending left→right,
- * coloured by value (1 green · 2 orange · 3 red) so green is always left
- * and red always right; the sum N/12 sits margin-left:7px beside it in
- * tabular numerals (audit item B29-B46, 2026-09-07, artboard #sys list-row
- * example). A dimension scored 0 keeps its slot and draws a 2px stub in the
- * baseline's own ink (lane METERFIX, 2026-09-08; see ZERO_BAR_HEIGHT_PX below
- * for the ruling and the geometry), so a partially scored row never reads as
- * one lonely bar. Unscored = a 30px dashed baseline (operator audit item
- * 2.1, 2026-09-07 ruling — one width, desktop and mobile), never a second
- * "NOT SCORED" row and never the literal "UNSCORED". Beside the baseline sits
- * an EM DASH in the score slot (item B3, operator 2026-09-08; dc.html p1's own
- * unscored row draws it at 11px #7A6E6C). The composite's single small-caps
- * reason is NOT here: it lives in the row's title-cell meta line, so the meter
- * never names a reason of its own (the former `reason` prop is removed rather
- * than left dormant, CLAUDE.md rule 13).
+ * ROW VARIANT, REWRITTEN 2026-09-18 (site-wide parts brief, docs/design/parts-brief-2026-09-18.md
+ * section 2.16, "IMPACT METER, ROW VARIANT (revised 2026-09-18)"). The brief replaced the row
+ * variant's model outright: the four bars used to be the four SCORED DIMENSIONS, sorted ascending,
+ * each its own height and colour, so two rows with the same sum could render visibly different bar
+ * patterns (sum 6 as [3,3,0,0] vs [1,1,2,2]), which the parts inventory's own audit named as the
+ * defect the brief's acceptance test is built to catch ("group rows by N, every row renders
+ * byte-identical markup"). The row now draws a STEPPED FILL OF THE TOTAL N/12: four bars at fixed
+ * heights 6/9/12/15px, 8px wide, gap 2, radius 1.5, on an unfilled track #E5E1DB; each bar holds 3
+ * of the 12 points and fills bottom-up, left to right:
  *
- * Full variant (detail rail, dashboard): one continuous bar per dimension
- * over the full green→orange→red ramp, revealed from the left by the score.
+ *     fill_i = clamp(N - 3*i, 0, 3) / 3   for i = 0..3
  *
- * Mobile (lane moblist, 2026-09-07, mobile-390 spec "LIST ROW"): below
- * 768px the row variant's bars grow to heights 5/10/16 for scores 1/2/3
- * (from 5/7/9) on a rgba(0,0,0,.25) baseline (from --line-1's rgba(0,0,0,.12))
- * — a CSS media query on this shared part, never a page-local mobile copy.
+ * ALL filled bars share ONE colour, read off the severity ramp at N (linear interpolation between
+ * the stops 1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626), never a per-bar colour, so the composition
+ * of the four dimensions never changes the rendered markup for a given N (byte-identical, asserted
+ * by ImpactMeter.npmtest.mjs). Unscored draws the same four bars as 1px dashed rgba(0,0,0,.3)
+ * outlines with no fill, plus an em dash in the score slot (Absence's `dash` variant) and no word.
+ * The 768px mobile geometry is not drawn by the brief; per the coordinator's ruling (lane w10a,
+ * 2026-09-18) the row variant's geometry is unchanged at every width, so there is no longer a
+ * mobile media query on this file (the prior 5/10/16px score-height swap governed the OLD
+ * per-dimension model and does not apply to a stepped total).
  *
- * FOLD-56 (2026-09-07): the spec's "8px bars" is resolved as bar WIDTH — bars
- * widen from 4px to 8px below 768px (desktop 4px untouched), additive to the
- * same media block; see DEVIATION-LOG.md's superseded entry for the prior
- * ambiguity note.
+ * `total` lets a caller with no per-dimension scores render the meter at a known N directly (the
+ * legend row, brief 2.16: "the legend row on every list uses this exact meter at 8/12", rendered as
+ * `<ImpactMeter total={8} />`). `scores` still derives N as the sum of the four dimensions for
+ * every list row, which is the only caller that has dimensions at all.
+ *
+ * FULL VARIANT (detail rail, dashboard) IS UNCHANGED by this brief: one continuous bar per
+ * dimension over the full green→orange→red ramp, revealed from the left by the score.
  */
 
 import type { ImpactScores } from "@/types/resource";
@@ -46,44 +44,6 @@ const VALUE_COLOR: Record<number, string> = {
   3: "var(--immediate)",
 };
 
-/**
- * ZERO-DIMENSION SLOT (lane METERFIX, 2026-09-08, operator ruling: "Artboard: four bars sorted
- * ascending, coloured by value, on a 1px baseline. If only some dimensions are scored the unscored
- * ones render as 0-height on the baseline; the sum shows ... Never one lonely bar.").
- *
- * Before this lane the scored branch drew every bar at `v * 6`px, so a dimension scored 0 painted a
- * 9px-wide, 0px-tall box: it held its slot in the flex row (the baseline has always spanned all
- * four slots) but put no ink in it. A row scored [0,0,0,2] therefore rendered three invisible boxes
- * and one 12px bar, which is the "one lonely bar" the ruling forbids, measured in chromium at 1440
- * and 390 before the fix (docs/design/handoff-2026-09-06/built/meterfix-partial-before-*.png).
- *
- * The artboard does not settle the treatment: every meter it draws is FULLY scored. All 34 meter
- * clusters in `docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html'` (sections p1, p2, p4,
- * p6, p8, p11) carry four bars at 6, 12 or 18px, and the lowest sum drawn anywhere is 4/12, i.e. four
- * dimensions at 1. There is no zero bar to copy, so the treatment is chosen against the artboard's
- * own geometry rather than against taste:
- *
- *   - HEIGHT 2px. The artboard's score unit is 6px (1 -> 6, 2 -> 12, 3 -> 18). 2px is one third of
- *     the smallest scored bar, so it can never be misread as a score of 1, and it is the smallest
- *     mark the drawing's own vocabulary already contains: the baseline is a 1px stroke and the bar
- *     corner radius is 1px. It is the minimum change to the drawn values that puts ink in the slot.
- *   - COLOUR rgba(0,0,0,.25), the baseline's own ink. The VALUE_COLOR ramp is untouched and no zero
- *     bar joins it: a zero dimension is not a value on the green/orange/red scale, so it is drawn in
- *     the only non-ramp ink the artboard's meter contains. The former fallback here was
- *     `var(--line-1)` (rgba(0,0,0,.12)), fainter than the baseline it sits on, which at 2px would
- *     have been a stub nobody can see, which would satisfy the letter of "0-height on the baseline"
- *     and fail its purpose.
- *
- * Both halves of the ruling: the unscored dimension is visibly a dimension at zero (a filled slot on
- * the baseline, distinct in height and colour from every scored bar), and the row can no longer read
- * as one lonely bar (four slots always carry ink). Nothing else moves: the 9px width, the 2px gap,
- * the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS are all
- * untouched, and because MOBILE_CSS overrides heights only for data-score 1/2/3 the 2px stub is the
- * same at 1440 and at 390 without a media-query rule of its own.
- */
-const ZERO_BAR_HEIGHT_PX = 2;
-const ZERO_BAR_COLOR = "rgba(0,0,0,.25)";
-
 /** The one "is this item scored?" predicate. Exported (lane comp-06, 2026-09-08) so a surface that
  *  must COUNT its unscored rows, /research's band transition strip, artboard 06/id="p6"
  *  ("Awareness · N findings sit below the scoring threshold and are kept for context"), asks the
@@ -94,94 +54,104 @@ export function isImpactScored(scores: ImpactScores | null | undefined): scores 
   return vals.some((v) => v >= 1);
 }
 
+/** Sum the four dimensions to N/12. Exported for the test. */
+export function sumScores(scores: ImpactScores): number {
+  return scores.cost + scores.compliance + scores.client + scores.operational;
+}
+
+/**
+ * THE SEVERITY RAMP (brief 2.16, verbatim stops): 1 -> #16A34A, 4 -> #CA8A04, 7 -> #F97316,
+ * 12 -> #DC2626, linear interpolation between adjacent stops in RGB space, clamped at the ends.
+ * Exported for the test (the brief's own worked examples: 3 -> #8E921B, 5 -> #DA820A, 9 -> #ED541C).
+ */
+const RAMP_STOPS: ReadonlyArray<readonly [number, readonly [number, number, number]]> = [
+  [1, [0x16, 0xa3, 0x4a]],
+  [4, [0xca, 0x8a, 0x04]],
+  [7, [0xf9, 0x73, 0x16]],
+  [12, [0xdc, 0x26, 0x26]],
+];
+
+function toHex2(v: number): string {
+  return Math.round(v).toString(16).padStart(2, "0").toUpperCase();
+}
+
+export function rampColor(n: number): string {
+  const [minN] = RAMP_STOPS[0];
+  const [maxN] = RAMP_STOPS[RAMP_STOPS.length - 1];
+  const clamped = Math.min(Math.max(n, minN), maxN);
+  for (let i = 0; i < RAMP_STOPS.length - 1; i += 1) {
+    const [n0, c0] = RAMP_STOPS[i];
+    const [n1, c1] = RAMP_STOPS[i + 1];
+    if (clamped >= n0 && clamped <= n1) {
+      const t = n1 === n0 ? 0 : (clamped - n0) / (n1 - n0);
+      const r = c0[0] + (c1[0] - c0[0]) * t;
+      const g = c0[1] + (c1[1] - c0[1]) * t;
+      const b = c0[2] + (c1[2] - c0[2]) * t;
+      return `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`;
+    }
+  }
+  const [, lastColor] = RAMP_STOPS[RAMP_STOPS.length - 1];
+  return `#${toHex2(lastColor[0])}${toHex2(lastColor[1])}${toHex2(lastColor[2])}`;
+}
+
+/** Geometry constants for the row variant's stepped fill (brief 2.16, verbatim). Exported for the
+ *  test. */
+export const ROW_BAR_WIDTH_PX = 8;
+export const ROW_BAR_GAP_PX = 2;
+export const ROW_BAR_RADIUS_PX = 1.5;
+export const ROW_BAR_HEIGHTS_PX: readonly number[] = [6, 9, 12, 15];
+export const ROW_TRACK_COLOR = "#E5E1DB";
+
+/** fill_i = clamp(N - 3*i, 0, 3) / 3, the fraction (0..1) of bar i's OWN height that is filled from
+ *  the bottom. Exported for the test. */
+export function barFillFraction(n: number, i: number): number {
+  return Math.min(Math.max(n - 3 * i, 0), 3) / 3;
+}
+
 export interface ImpactMeterProps {
   scores?: ImpactScores | null;
+  /** A known total (0-12) to render directly, bypassing per-dimension derivation. The legend row
+   *  is the one caller with no scores at all: `<ImpactMeter total={8} />` (brief 2.16). */
+  total?: number;
   variant?: "row" | "full";
 }
 
-export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
-  const scored = isImpactScored(scores);
-
-  if (!scored) {
-    return (
-      <span
-        className={variant === "row" ? "cl-impact-unscored" : undefined}
-        aria-label="Impact not scored"
-        title="Impact not scored"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          // D1 fix (operator report 2026-09-07): the 30px dashed baseline plus the Absence
-          // component's small-caps "unscored" reason is wider than the row's 88px impact
-          // column at the row variant's original font size/gap. Rather than shrink the fixed
-          // 30px baseline (operator ruling: "one width, desktop and mobile") or the Absence
-          // vocabulary's own type scale, this wraps to a second line INSIDE the column instead
-          // of bleeding into the DUE column — `minWidth: 0` lets the flex item shrink to the
-          // grid cell's actual 88px, `maxWidth: 100%` bounds it there, `flexWrap: wrap` drops
-          // the reason onto its own line rather than clipping or overflowing it.
-          flexWrap: variant === "row" ? "wrap" : undefined,
-          rowGap: 2,
-          minWidth: 0,
-          maxWidth: "100%",
-        }}
-      >
-        {variant === "row" && <style>{MOBILE_CSS}</style>}
-        <span
-          aria-hidden="true"
-          className={variant === "row" ? "cl-impact-baseline" : undefined}
-          style={{
-            // Operator audit item 2.1 (2026-09-07, CLOSED ruling): "Unscored = a 30px dashed
-            // baseline ... one row, everywhere the meter renders, desktop and mobile" — the row
-            // variant's baseline is 30px at every viewport (was 40px desktop, 30px mobile-only).
-            width: variant === "full" ? 96 : 30,
-            height: 0,
-            borderBottom: "1px dashed rgba(0,0,0,.3)",
-          }}
-        />
-        {/* Item B3 (operator, 2026-09-08): "the meter column gets the 30px dashed baseline
-            rgba(0,0,0,.3) with an em dash in the score slot and NO literal UNSCORED". The score
-            slot is where "N/12" sits when the item is scored; dc.html p1's own second row draws it
-            as `<span style="font-size:11px;color:#7A6E6C">—</span>` beside the dashed line, which
-            is exactly this. Before B3 the row variant rendered the composite's small-caps reason
-            here instead (the `reason` prop, now removed): that reason moved to the title cell's
-            meta line, so the meter names nothing at all and the score slot shows the dash at both
-            viewports. The dash goes through the shared Absence part's `dash` variant so it carries
-            its closed-vocabulary reason to assistive technology and declares itself to the
-            rendering guard's placeholder scan. */}
-        <span style={{ fontSize: "var(--fs-11)" }}>
-          <Absence reason="unscored" variant="dash" />
-        </span>
-      </span>
-    );
-  }
-
-  const s = scores!;
-  const dims = [s.cost, s.compliance, s.client, s.operational].sort((a, b) => a - b);
-  const sum = dims.reduce((a, b) => a + b, 0);
-
+export function ImpactMeter({ scores, total, variant = "row" }: ImpactMeterProps) {
   if (variant === "full") {
-    const labels: Array<[string, number]> = [
-      ["Cost", s.cost],
-      ["Compliance", s.compliance],
-      ["Client-facing", s.client],
-      ["Operational", s.operational],
-    ];
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {labels.map(([label, v]) => (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", width: 116, flexShrink: 0 }}>
-              {label}
-            </span>
+    return <FullVariant scores={scores} />;
+  }
+  if (total == null && !isImpactScored(scores)) {
+    return <RowUnscored />;
+  }
+  const n = total ?? sumScores(scores!);
+  return <RowScored n={n} />;
+}
+
+function RowScored({ n }: { n: number }) {
+  const color = rampColor(n);
+  return (
+    <span
+      className="cl-impact-scored"
+      aria-label={`Impact ${n} of 12`}
+      style={{ display: "flex", alignItems: "flex-end", gap: 6, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+    >
+      <span
+        className="cl-impact-bars"
+        style={{ display: "flex", alignItems: "flex-end", gap: ROW_BAR_GAP_PX }}
+      >
+        {ROW_BAR_HEIGHTS_PX.map((h, i) => {
+          const fillPx = h * barFillFraction(n, i);
+          return (
             <span
+              key={i}
+              aria-hidden="true"
+              className="cl-impact-bar"
               style={{
-                flex: 1,
-                height: 8,
-                borderRadius: 8,
-                background:
-                  "linear-gradient(90deg, var(--awareness), var(--action) 55%, var(--immediate))",
                 position: "relative",
+                width: ROW_BAR_WIDTH_PX,
+                height: h,
+                borderRadius: ROW_BAR_RADIUS_PX,
+                background: ROW_TRACK_COLOR,
                 overflow: "hidden",
               }}
             >
@@ -189,93 +159,142 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
                 aria-hidden="true"
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  left: `${(v / 3) * 100}%`,
-                  background: "var(--tag)",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: fillPx,
+                  background: color,
+                  borderRadius: ROW_BAR_RADIUS_PX,
                 }}
               />
             </span>
-            <span
-              style={{
-                fontSize: "var(--fs-11)",
-                fontWeight: 700,
-                color: VALUE_COLOR[v] ?? "var(--ink-3)",
-                fontVariantNumeric: "tabular-nums",
-                width: 14,
-                textAlign: "right",
-                flexShrink: 0,
-              }}
-            >
-              {v}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <span
-      className="cl-impact-scored"
-      aria-label={`Impact ${sum} of 12`}
-      style={{ display: "flex", alignItems: "flex-end", gap: 0, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
-    >
-      <style>{MOBILE_CSS}</style>
-      <span
-        className="cl-impact-bars"
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 2,
-          height: 18,
-          borderBottom: "1px solid rgba(0,0,0,.25)",
-        }}
-      >
-        {dims.map((v, i) => (
-          <span
-            key={i}
-            aria-hidden="true"
-            className="cl-impact-bar"
-            data-score={v}
-            style={{
-              width: 9,
-              height: `${v >= 1 ? v * 6 : ZERO_BAR_HEIGHT_PX}px`,
-              alignSelf: "flex-end",
-              background: VALUE_COLOR[v] ?? ZERO_BAR_COLOR,
-              borderRadius: "1px 1px 0 0",
-            }}
-          />
-        ))}
+          );
+        })}
       </span>
       <span
         style={{
           fontSize: "var(--fs-11)",
-          fontWeight: 700,
-          color: "var(--ink-2)",
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
-          marginLeft: 7,
         }}
       >
-        {sum}/12
+        <b style={{ fontWeight: 700, color: "var(--ink)" }}>{n}</b>
+        <span style={{ color: "#7A6E6C" }}>/12</span>
       </span>
     </span>
   );
 }
 
-// Mobile-390 spec "LIST ROW" (lane moblist, 2026-09-07): row-variant bars grow to heights
-// 5/10/16 for scores 1/2/3 on a rgba(0,0,0,.25) baseline below 768px. A CSS media query on this
-// shared part, not a page-local override. FOLD-56 (F5): bar width also widens 4px -> 8px below
-// 768px (desktop 4px untouched). Operator audit item 2.1 (2026-09-07): the unscored baseline width
-// is now 30px at every viewport (set on the base style above), so `.cl-impact-baseline`'s own
-// width rule below is a no-op kept only to carry the mobile-only dashed-line colour change.
-const MOBILE_CSS = `
-  @media (max-width: 767px) {
-    .cl-impact-bars { height: 16px !important; border-bottom: 1px solid rgba(0,0,0,.25); padding-bottom: 1px; }
-    .cl-impact-bar { width: 8px !important; }
-    .cl-impact-bar[data-score="1"] { height: 5px !important; }
-    .cl-impact-bar[data-score="2"] { height: 10px !important; }
-    .cl-impact-bar[data-score="3"] { height: 16px !important; }
-    .cl-impact-baseline { border-bottom-color: rgba(0,0,0,.25) !important; }
+/**
+ * B3 (operator, 2026-09-08, carried into the 2026-09-18 rewrite): "the meter column gets ... an em
+ * dash in the score slot and NO literal UNSCORED". Brief 2.16 keeps that dash and changes only the
+ * bars beside it: the same four bars as 1px dashed rgba(0,0,0,.3) outlines, no fill, no word.
+ */
+function RowUnscored() {
+  return (
+    <span
+      className="cl-impact-scored cl-impact-unscored"
+      aria-label="Impact not scored"
+      title="Impact not scored"
+      style={{ display: "flex", alignItems: "flex-end", gap: 6, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+    >
+      <span
+        className="cl-impact-bars"
+        style={{ display: "flex", alignItems: "flex-end", gap: ROW_BAR_GAP_PX }}
+      >
+        {ROW_BAR_HEIGHTS_PX.map((h, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className="cl-impact-bar"
+            data-score="unscored"
+            style={{
+              boxSizing: "border-box",
+              width: ROW_BAR_WIDTH_PX,
+              height: h,
+              borderRadius: ROW_BAR_RADIUS_PX,
+              border: "1px dashed rgba(0,0,0,.3)",
+            }}
+          />
+        ))}
+      </span>
+      <span style={{ fontSize: "var(--fs-11)" }}>
+        <Absence reason="unscored" variant="dash" />
+      </span>
+    </span>
+  );
+}
+
+/** Unchanged by the 2026-09-18 brief: one continuous bar per dimension over the full
+ *  green→orange→red ramp, revealed from the left by the score. */
+function FullVariant({ scores }: { scores?: ImpactScores | null }) {
+  if (!isImpactScored(scores)) {
+    return (
+      <span
+        aria-label="Impact not scored"
+        title="Impact not scored"
+        style={{ display: "flex", alignItems: "center", gap: 6 }}
+      >
+        <span
+          aria-hidden="true"
+          style={{ width: 96, height: 0, borderBottom: "1px dashed rgba(0,0,0,.3)" }}
+        />
+        <span style={{ fontSize: "var(--fs-11)" }}>
+          <Absence reason="unscored" variant="dash" />
+        </span>
+      </span>
+    );
   }
-`;
+  const s = scores!;
+  const labels: Array<[string, number]> = [
+    ["Cost", s.cost],
+    ["Compliance", s.compliance],
+    ["Client-facing", s.client],
+    ["Operational", s.operational],
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {labels.map(([label, v]) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", width: 116, flexShrink: 0 }}>
+            {label}
+          </span>
+          <span
+            style={{
+              flex: 1,
+              height: 8,
+              borderRadius: 8,
+              background:
+                "linear-gradient(90deg, var(--awareness), var(--action) 55%, var(--immediate))",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                left: `${(v / 3) * 100}%`,
+                background: "var(--tag)",
+              }}
+            />
+          </span>
+          <span
+            style={{
+              fontSize: "var(--fs-11)",
+              fontWeight: 700,
+              color: VALUE_COLOR[v] ?? "var(--ink-3)",
+              fontVariantNumeric: "tabular-nums",
+              width: 14,
+              textAlign: "right",
+              flexShrink: 0,
+            }}
+          >
+            {v}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}

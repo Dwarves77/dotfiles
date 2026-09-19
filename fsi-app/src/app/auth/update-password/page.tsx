@@ -48,14 +48,17 @@ export default function UpdatePasswordPage() {
     <AuthFrame>
       <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
+          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: same reason as
+              reset-password/page.tsx's own marker on its identical h1. No matching part.
+              Review-by: SectionHeader lane / operator ruling.) */}
           <h1 style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 22, color: "var(--ink)", margin: 0 }}>
             Set a new password
           </h1>
         </div>
 
         {done ? (
-          // fitness-allow: F42 (auth confirmation note inside artboard 16's panel, not a section
-          // card, same reason as reset-password/page.tsx.)
+          // fitness-allow: F42 F49 (auth confirmation note inside artboard 16's panel, not a section
+          // card, same reason as reset-password/page.tsx. Review-by: FactCard/ActionCard lane.)
           <div
             style={{
               borderRadius: "var(--radius-card)",

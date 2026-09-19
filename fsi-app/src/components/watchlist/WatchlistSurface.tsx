@@ -10,7 +10,7 @@
  *                        · command bar with the watchlist-scoped placeholder
  *   content column ..... Watched card: SectionHeading ("Watched · N" /
  *                        "Sorted by next date") · ListRowColumnHeader
- *                        ("Juris. / Title · type · modes / Impact low → high /
+ *                        ("Juris. / Title · type · modes / Impact /
  *                        Next date / Timeline / Tier") · ListRows · CardFoot
  *                        ("Watch an item from its ⋯ menu on any list page..."
  *                        / "Browse regulations →") · the changed-in-window

@@ -198,7 +198,16 @@ export const PINNED_MANIFEST = {
         // 2026-09-17 (lane L32, coordinator): re-pinned for the database-census bullet added to Section 4
     // category 45 (invariant RD-71, F47 db-object-reference), the standing count of tables and functions
     // nothing references. No citingFiles change: the files below cite the skill as a whole.
-    contentHash: '5002578dea0c05eb01ad140261c5625789f8a09492eaecca417fe8a6b65c2904',
+    // 2026-09-18 (lane w10a): re-pinned for Section 4 category 47, "a page does not retype a part's
+    // literal styles (parts, not pages)" (invariant RD-73, F49 parts-not-pages, site-wide parts brief
+    // docs/design/parts-brief-2026-09-18.md rule 1.2), a new section APPENDED before Section 9, same
+    // posture as the category 42/45 re-pins above. Reviewed against every citingFile below: none cites
+    // a Section 4 category or any statement this addition touches. No citingFiles change. Numbered 47,
+    // not 46: master's highest category was 45 when both this lane and lane M9a were told to take the
+    // next free number; M9a's own PR 721 also authored "category 46" and merges first, so this lane's
+    // heading, invariant and this comment were renumbered to 47 (coordinator note, 2026-09-18) before
+    // this re-pin, so the pinned hash below is of the FINAL (47-numbered) text, never a predicted one.
+    contentHash: '5a875beb0b3b34ce2e8d1e9a96f21e2d77e90d8fbc735f3918acfc1f0f634d2b',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/candidate-dwell-audit.mjs',
