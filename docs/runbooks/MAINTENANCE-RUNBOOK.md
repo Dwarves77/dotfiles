@@ -67,6 +67,52 @@ lane's REPORT for the audit of every `.limit()`/full-table-read site that motiva
 `source-sweep.yml` (writes only `portal_link_candidates`) and `ledger-consume.yml` (writes only
 `census_worklist`) do NOT carry this step — neither table is read by a cache this ADR or PERF-10 governs.
 
+## Harness-run artifact and dispatch-ledger row (lane M9b, 2026-09-18)
+
+Closing stage-audit-2026-09-18 `s6-gates-harness.md`'s finding: three mechanisms that record whether a
+maintenance dispatch ran were themselves not running -- the dispatch ledger stopped being hand-appended
+2026-09-07, this family's own runs were recorded only as the 90-day ephemeral `upload-artifact` step
+above (never git history), and `closure-gate.mjs` no longer finished inside a short local budget. All three
+are fixed this lane:
+
+1. **Committed harness-run artifact.** Every dispatch now ALSO writes and commits
+   `scripts/harness-runs/maintenance/maintenance-run-NNN.json` (`scripts/maintenance/write-run-artifact.mjs`,
+   claiming the next run number and hashing `harness_version` against `../.github/workflows/maintenance.yml`
+   + `scripts/maintenance/lib/cli.mjs`, the family's own governing files per
+   `scripts/harness-runs/governing-files.mjs`) plus a `traces/maintenance-run-NNN.summaries.json` companion
+   consolidating every step's own `summary.json` this run produced -- the full trace CONVENTION.md's schema
+   requires, never only inlined. This is IN ADDITION TO the `upload-artifact` step above, not instead of it.
+   The family is registered in `ALLOWED_FAMILIES` (`scripts/lib/run-artifact.mjs`), `GOVERNING_FILES`
+   (`scripts/harness-runs/governing-files.mjs`) and `CONVENTION.md`'s table; its first-run marker is
+   `scripts/harness-runs/maintenance/PENDING-RUN.md` (F28 rule (b)) until the coordinator's next dispatch
+   lands `maintenance-run-001.json`.
+2. **Machine-appended dispatch ledger.** The workflow's own final steps now append one row to
+   `docs/ops/dispatch-ledger.jsonl` per dispatch (`scripts/harness-runs/append-dispatch-ledger.mjs`, a pure
+   row builder + unit-tested append) and commit it alongside the harness-run artifact -- the SAME
+   branch-plus-PR mechanism `source-sweep.yml`/`corpus-turn.yml` already use
+   (`scripts/turns/deliver-artifact-branch.sh`), copied here, not reimplemented. **The hand procedure this
+   runbook and `docs/doctrine/closure-gate.md` described (the coordinator appends a row per dispatch) is
+   SUPERSEDED for the `maintenance` workflow specifically** -- every other dispatchable workflow
+   (source-sweep, ledger-consume, population-turn, corpus-turn, downstream-chain, propagation-drain) still
+   needs it hand-appended until each gets the same treatment. `docs/ops/dispatch-ledger.jsonl` carries one
+   marker row (`{"date":"2026-09-18","note":"machine-appended from this date; 2026-09-07 to 2026-09-17 not
+   recorded (see stage-audit-2026-09-18 s6)"}`) rather than a backfill of the 11-day gap (2026-09-07 to
+   2026-09-17, 24 maintenance steps landed in that window per the audit) -- those runs are not retroactively
+   fabricated evidence.
+3. **Closure gate performance.** `.discipline/governance/closure-gate.mjs`'s `gatherNeverRunTargets` used
+   to spawn one `git merge-base --is-ancestor` per (target, train) pair (linear scan) and one
+   `git log -S<literal>` pickaxe search per maintenance step (62 separate spawns against the same file) --
+   measured before this lane: did not finish inside two prior audit attempts' wall-clock budgets. Fixed at
+   its cause, not with a bigger timeout: `trainOf()` now binary-searches the (monotonic, by construction)
+   ascending train list and memoizes by commit hash within a run; the 62 pickaxe searches and the ~19
+   per-other-workflow `--diff-filter=A` searches are each replaced by ONE batched `git log -p` /
+   `git log --diff-filter=A --name-only` scan, parsed in memory. Measured, this lane, same tree: the LIVE
+   NEVER-RUN test alone went from >90s (two attempts, did not finish) to ~8s; the full
+   `closure-gate.test.mjs` (34 tests, all four checks plus the combined gate) now completes in ~11s. The
+   gate's checks and allowlists are unchanged -- this is a performance fix only, not a behavior change (see
+   `closure-gate.mjs`'s own inline comments at `trainOf`/`buildIntroducingCommitIndex` for the full
+   reasoning and the monotonicity argument the binary search depends on).
+
 ---
 
 ## 1. `community-topics-seed` — RETIRED (Lane REVIEW-WIRE, 2026-09-04)

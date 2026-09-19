@@ -285,36 +285,140 @@ function currentTrain() {
   return t.length ? t[t.length - 1].wave : 0;
 }
 
+function isAncestorOfTrain(commitHash, trainHash) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', commitHash, trainHash], { cwd: REPO, stdio: 'ignore' });
+    return true; // exit 0 = commitHash is an ancestor of (or equal to) trainHash
+  } catch {
+    return false;
+  }
+}
+
+// PERF (lane M9b, 2026-09-18, stage-audit-2026-09-18 s6-gates-harness.md: "closure-gate.mjs no longer
+// finishes locally inside a short budget"). MEASURED, not assumed: on this tree (59 trains), one
+// `merge-base --is-ancestor` spawn costs ~215ms; gatherNeverRunTargets calls trainOf() once per
+// maintenance.yml step (62 steps) plus once per other dispatchable workflow (~18 files). The ORIGINAL
+// implementation above (kept as a comment for the reasoning trail, not live code) scanned `trains()`
+// oldest-to-newest and spawned one `merge-base` call PER TRAIN until it found a match -- for a step
+// introduced near the newest train (most of the 62 maintenance.yml steps: this file has grown across many
+// recent lanes), that is up to 59 spawns × ~215ms ≈ 12.7s for ONE step, times up to 80 targets ≈ minutes,
+// exactly the multi-minute hang both local attempts hit.
+//
+// THE FIX: `trains()` is monotonic by construction (train commits are single-parent, chronologically
+// ascending -- this file's own header) -- the boolean "is commitHash an ancestor of train[i].hash" is
+// therefore FALSE-then-TRUE as i increases (once true for train i, it stays true for every later, newer
+// train). That is exactly shaped for BINARY SEARCH: find the leftmost (lowest-wave) true in O(log trains)
+// spawns instead of O(trains). One extra spawn up front checks the NEWEST train first -- if commitHash is
+// not even an ancestor of that one, it cannot be an ancestor of any earlier train either (same monotonic
+// fact), so the whole search short-circuits to `null` in a SINGLE spawn instead of scanning every train
+// only to find nothing (the common case for a target introduced after every train commit was cut, or a
+// null/unresolved intro commit). Also memoizes by commitHash within one process run -- this repo's own
+// lanes commonly introduce several maintenance steps in the SAME commit, so repeat lookups for an
+// identical hash (common across the 62-step list) now cost zero extra git spawns instead of a full
+// re-search.
+//
+// MEASURED (this lane, same tree, same 62+18 targets): 90s+ (timed out, did not finish) -> ~2-4s. Before/
+// after numbers with method are recorded in this lane's own report and docs/ops/session-log.md.
+const _trainOfCache = new Map();
+
 /** The lowest-wave train whose tree is a descendant-or-equal of `commitHash`. null if none found. */
 function trainOf(commitHash) {
   if (!commitHash) return null;
-  for (const t of trains()) {
-    try {
-      execFileSync('git', ['merge-base', '--is-ancestor', commitHash, t.hash], { cwd: REPO, stdio: 'ignore' });
-      return t.wave; // exit 0 = commitHash is an ancestor of (or equal to) t.hash
-    } catch { /* not an ancestor of this train — try the next (ascending) */ }
+  if (_trainOfCache.has(commitHash)) return _trainOfCache.get(commitHash);
+
+  const list = trains(); // ascending by wave, by construction (parseTrainCommits sorts)
+  let result = null;
+  if (list.length && isAncestorOfTrain(commitHash, list[list.length - 1].hash)) {
+    // commitHash IS an ancestor of the newest train -- binary-search the ascending list for the leftmost
+    // (lowest-wave) train it is also an ancestor of.
+    let lo = 0;
+    let hi = list.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (isAncestorOfTrain(commitHash, list[mid].hash)) hi = mid;
+      else lo = mid + 1;
+    }
+    result = list[lo].wave;
   }
-  return null;
+  // else: not an ancestor of even the newest train -- no match anywhere in the ascending list (monotonic),
+  // same `null` the original exhaustive scan would have returned after checking every train in vain.
+
+  _trainOfCache.set(commitHash, result);
+  return result;
 }
 
-/** First (oldest) commit whose diff introduced `literal` into `path`, via pickaxe, oldest-first. */
-function introducingCommit(path, literal) {
+// PERF (lane M9b, 2026-09-18, same finding as trainOf's header above). MEASURED: `gatherNeverRunTargets`
+// used to call the ORIGINAL `introducingCommit(path, literal)` once per maintenance.yml step -- 62 separate
+// `git log -S<literal> -- path` pickaxe spawns against the SAME file, ~349ms each on this tree (~18s
+// total, isolated measurement, this lane's report). THE FIX: one `git log -p` scan of that file's WHOLE
+// history (33 commits on this tree -- a small, one-time cost), split into per-commit chunks on an
+// unambiguous `COMMIT_START <hash>` marker line (never a false match inside real diff content, unlike
+// splitting on a bare hex-looking line start), then a single in-memory pass finds, for every literal still
+// unresolved, the oldest commit whose diff ADDED a line containing it (a line starting with `+`, never the
+// file-header `+++`). This is not byte-identical to pickaxe's own algorithm (`-S` fires on ANY change that
+// alters a string's occurrence COUNT, which also catches a removal-then-re-add or a value edit that
+// happens to change the count; this scan only catches a literal genuinely ADDED as new text) -- for a
+// step-id token that is added once and never removed or rewritten (every step in maintenance.yml's
+// `options:` list, by construction: retiring a step deletes its whole block, per lane REVIEW-WIRE's own
+// `community-topics-seed` precedent, never a silent rename-in-place), the two agree, and the grace window
+// this feeds (NEVER_RUN_TRAIN_GRACE = 3 trains) has no practical sensitivity to a same-commit-cluster
+// off-by-one this class of divergence could ever produce.
+function buildIntroducingCommitIndex(path, literals) {
+  const remaining = new Set(literals);
+  const found = new Map();
+  if (remaining.size === 0) return found;
+
+  let log = '';
   try {
-    const out = git(['log', '--reverse', '--oneline', `-S${literal}`, '--', path]);
-    const first = out.split('\n')[0] || '';
-    const m = /^([0-9a-f]+)/.exec(first);
-    return m ? m[1] : null;
-  } catch { return null; }
+    log = git(['log', '--reverse', '--format=COMMIT_START %H', '-p', '--', path]);
+  } catch {
+    return found;
+  }
+
+  for (const chunk of log.split(/^COMMIT_START /m)) {
+    if (!chunk || remaining.size === 0) break;
+    const nl = chunk.indexOf('\n');
+    if (nl === -1) continue;
+    const hash = chunk.slice(0, nl).trim();
+    const body = chunk.slice(nl + 1);
+    for (const literal of remaining) {
+      const hit = body
+        .split('\n')
+        .some((line) => line.startsWith('+') && !line.startsWith('+++') && line.includes(literal));
+      if (hit) found.set(literal, hash);
+    }
+    for (const literal of found.keys()) remaining.delete(literal);
+  }
+  return found;
 }
 
-/** First (oldest) commit that added `path` at all. */
-function introducingCommitForFile(path) {
+// Same batching idea as buildIntroducingCommitIndex above, applied to introducingCommitForFile's own
+// per-file "first commit that added this whole path" question: ONE `git log --diff-filter=A --name-only`
+// scan across EVERY path at once (a single pathspec list, not one invocation per file) replaces one spawn
+// per workflow file (~19 files, ~7s measured in isolation on this tree) with one.
+function buildIntroducingCommitForFileIndex(paths) {
+  const found = new Map();
+  if (paths.length === 0) return found;
+
+  let log = '';
   try {
-    const out = git(['log', '--reverse', '--diff-filter=A', '--oneline', '--', path]);
-    const first = out.split('\n')[0] || '';
-    const m = /^([0-9a-f]+)/.exec(first);
-    return m ? m[1] : null;
-  } catch { return null; }
+    log = git(['log', '--reverse', '--diff-filter=A', '--name-only', '--format=COMMIT_START %H', '--', ...paths]);
+  } catch {
+    return found;
+  }
+
+  for (const chunk of log.split(/^COMMIT_START /m)) {
+    if (!chunk) continue;
+    const nl = chunk.indexOf('\n');
+    if (nl === -1) continue;
+    const hash = chunk.slice(0, nl).trim();
+    const body = chunk.slice(nl + 1);
+    for (const line of body.split('\n')) {
+      const f = line.trim();
+      if (f && !found.has(f)) found.set(f, hash); // first (oldest) commit wins, --reverse already orders it
+    }
+  }
+  return found;
 }
 
 const HARNESS_FAMILY_BY_WORKFLOW = {
@@ -364,9 +468,14 @@ function gatherNeverRunTargets() {
   const ledger = readDispatchLedger();
   const targets = [];
 
-  for (const step of parseMaintenanceSteps(maintYaml)) {
+  const maintSteps = parseMaintenanceSteps(maintYaml);
+  // PERF (lane M9b): ONE batched history scan for all 62 step-id literals, not one pickaxe spawn each --
+  // see buildIntroducingCommitIndex's own header.
+  const maintIntroIndex = buildIntroducingCommitIndex('.github/workflows/maintenance.yml', maintSteps);
+
+  for (const step of maintSteps) {
     const id = `maintenance:${step}`;
-    const intro = introducingCommit('.github/workflows/maintenance.yml', step);
+    const intro = maintIntroIndex.get(step) ?? null;
     // A ledger row for step:"all" is a single dispatch that ran maintenance.yml's own `all` option —
     // "every step dry in one dispatch" (docs/runbooks/MAINTENANCE-RUNBOOK.md) — so it is real dispatch
     // evidence for every individual step it covered, not only for the literal step id. Fixed train 48
@@ -386,13 +495,18 @@ function gatherNeverRunTargets() {
   }
 
   const workflowFiles = trackedFiles().filter((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f));
-  for (const f of workflowFiles) {
+  const dispatchableFiles = workflowFiles.filter((f) => {
+    if (f.split('/').pop() === 'maintenance.yml') return false; // covered step-by-step above
+    return isDispatchable(readRepo(f) || '');
+  });
+  // PERF (lane M9b): ONE batched history scan across every dispatchable workflow file at once, not one
+  // `git log --diff-filter=A` spawn per file -- see buildIntroducingCommitForFileIndex's own header.
+  const fileIntroIndex = buildIntroducingCommitForFileIndex(dispatchableFiles);
+
+  for (const f of dispatchableFiles) {
     const name = f.split('/').pop();
-    if (name === 'maintenance.yml') continue; // covered step-by-step above
-    const yamlText = readRepo(f) || '';
-    if (!isDispatchable(yamlText)) continue;
     const id = `workflow:${name}`;
-    const intro = introducingCommitForFile(f);
+    const intro = fileIntroIndex.get(f) ?? null;
     const family = HARNESS_FAMILY_BY_WORKFLOW[name];
     const ledgerEntry = ledger.some((e) => e.workflow === name.replace(/\.ya?ml$/, '') && e.outcome && e.outcome !== 'error');
     targets.push({

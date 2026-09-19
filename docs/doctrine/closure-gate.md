@@ -65,9 +65,17 @@ detection_signals:
     subject; `git merge-base --is-ancestor` resolves "which train first carried commit X" exactly.
   dispatch evidence: any ONE of (a) a `scripts/harness-runs/<family>/*-run-*.json` artifact for the six
     workflows with a harness family, (b) a docs/runbooks/MAINTENANCE-RUNBOOK.md section (`## N. `step`)`)
-    citing a run number / Actions run id / "landed live", (c) an entry in the NEW machine-readable
-    docs/ops/dispatch-ledger.jsonl (shape: {date, workflow, step, mode, run_id, outcome}, appended by the
-    coordinator per dispatch; see closure-gate.mjs's own header for the seeding rationale).
+    citing a run number / Actions run id / "landed live", (c) an entry in the machine-readable
+    docs/ops/dispatch-ledger.jsonl (shape: {date, workflow, step, mode, run_id, outcome, note}). Appended
+    by hand by the coordinator per dispatch through 2026-09-07 (81 rows); lane M9b (2026-09-18,
+    stage-audit-2026-09-18 s6-gates-harness.md) mechanized this for the `maintenance` workflow specifically
+    -- `.github/workflows/maintenance.yml`'s own final steps now append the row and commit it, via
+    `scripts/harness-runs/append-dispatch-ledger.mjs` (a pure row builder) -- so the ledger's `maintenance`
+    rows are machine-written from this date forward; every OTHER dispatchable workflow (source-sweep,
+    ledger-consume, population-turn, corpus-turn, downstream-chain, propagation-drain) still relies on the
+    coordinator's hand-append until each gets the same treatment. See closure-gate.mjs's own header for the
+    seeding rationale and `docs/ops/dispatch-ledger.jsonl`'s own 2026-09-18 marker row for the 11-day gap
+    (2026-09-07 to 2026-09-17) this lane deliberately did not backfill.
 single_home: fsi-app/.discipline/governance/closure-gate.mjs (four pure cores + a git/fs live driver)
 proof: fsi-app/.discipline/governance/closure-gate.test.mjs (red-then-green per check + a LIVE assertion
   the real tree is green, same pattern doctrine-contradiction.test.mjs and producer-consumer-orphan.mjs

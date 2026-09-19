@@ -48,6 +48,10 @@ export const ALLOWED_FAMILIES = Object.freeze([
   // CONVENTION.md's own registration-order rule forbids folding a genuinely distinct run shape into an
   // existing family "just because it seemed similar" -- see that file's own header for the full account.
   "inaccessible-triage",
+  // maintenance (lane M9b, 2026-09-18 -- stage-audit-2026-09-18 s6-gates-harness.md): the 62-step MAINT
+  // orchestrator's own runs, previously recorded only as an ephemeral upload-artifact (90-day retention,
+  // never git history) never as a harness-run family of its own. See governing-files.mjs's entry.
+  "maintenance",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([
