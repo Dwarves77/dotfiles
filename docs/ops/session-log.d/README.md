@@ -32,3 +32,6 @@ step 2b of `fsi-app/.discipline/hooks/pre-push`, and the CI "Memory gate" step i
 - A file in this directory is recognized by the memory gate as satisfying its vault requirement; this
   README file itself is not (its name carries no date or slug, by design, so simply adding this README
   does not, on its own, satisfy the gate for any other range).
+- The UX compliance block (required when a lane's range touches a `.tsx` or `.css` file) goes in that
+  same lane's own file here, not in `docs/ops/session-log.md`; the memory gate reads it there (lane
+  D28b, 2026-09-19).

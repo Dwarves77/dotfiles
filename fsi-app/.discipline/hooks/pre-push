@@ -167,7 +167,7 @@ echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
 if ! node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD >/tmp/discipline-prepush-mem.log 2>&1; then
   echo "[discipline pre-push] STEP 2b FAIL: memory gate (code must not outrun the vault):" >&2
   cat /tmp/discipline-prepush-mem.log >&2
-  echo "[discipline pre-push] append a docs/ops/session-log.md addendum (or update docs/PROGRAM-BOARD.md), and a UX compliance block if a .tsx/.css was touched, then re-push." >&2
+  echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), with a UX compliance block in that same addendum if a .tsx/.css was touched, then re-push." >&2
   rm -f /tmp/discipline-prepush-mem.log
   exit 1
 fi
