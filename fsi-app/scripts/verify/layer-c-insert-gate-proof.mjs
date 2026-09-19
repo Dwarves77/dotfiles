@@ -1,3 +1,4 @@
+// data-audit: label=layer-c-insert-gate-proof hard=true
 /** VERIFIER (red-then-green, 0 Browserless): the LAYER C INSERT GATE (migration 240).
  *  GOVERNING SKILLS: remediation-discipline (class-over-instance -- the app-layer preflight gate the
  *  fleet never invoked moves into the DB, where every writer passes through it) + the doctrine

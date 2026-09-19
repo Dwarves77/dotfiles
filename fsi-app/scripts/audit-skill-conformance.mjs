@@ -1,3 +1,4 @@
+// data-audit: label=skill-conformance hard=false
 /** READ-ONLY skill-conformance audit (ZERO Browserless, ZERO LLM). Per project_corpus_reverify_plan:
  *  code-verifiable dims over ALL items; semantic dims sampled later. Encodes the CODE-CHECKABLE
  *  properties of a skill-conformant brief from environmental-policy-and-innovation +

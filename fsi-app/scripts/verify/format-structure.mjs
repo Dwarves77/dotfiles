@@ -1,3 +1,4 @@
+// data-audit: label=format-structure hard=true
 /** VERIFIER (read-only, ZERO Browserless): format structure — RECONCILED with the integrity rule.
  *
  *  GOVERNING SKILL (criteria derived from + confirmed against, not memory):

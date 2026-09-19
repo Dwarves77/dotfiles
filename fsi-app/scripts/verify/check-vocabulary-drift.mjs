@@ -1,3 +1,4 @@
+// data-audit: label=check-vocabulary-drift hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline (Section 2, Class-Over-
  *  Instance) + D7 (docs/plans/defect-fix-plan-2026-09-12.md). CHECK-VOCABULARY DRIFT: the tracked
  *  inventory (fsi-app/docs/inventories/db-check-constraints.json, written by

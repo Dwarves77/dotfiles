@@ -2,17 +2,25 @@
  *  Runs every live-data audit in sequence, captures pass/fail/error per audit, and exits non-zero if ANY
  *  HARD audit failed (so the scheduled job notifies). Each audit is its own process (isolation: one audit's
  *  DB hiccup or process.exit does not abort the lane). Honest reporting: prints each audit's verdict and a
- *  final summary. Secrets come from the environment (never echoed). Run locally with .env.local present. */
+ *  final summary. Secrets come from the environment (never echoed). Run locally with .env.local present.
+ *
+ *  AUDITS is DERIVED (plan 6.8, Rule A: a registry is a directory, never a list), not a hand-appended
+ *  array: every audit script declares itself with a `// data-audit: label=<label> hard=<true|false>`
+ *  marker as its first non-shebang comment line, and deriveAudits() scans scripts/verify/*.mjs plus the
+ *  two audits that live directly under scripts/ (skill-conformance, holdings-audit, which are outside
+ *  scripts/verify/, so a plan-6.8-literal scan of scripts/verify/ alone would silently drop them) for that
+ *  marker. Two lanes adding an audit now add two files instead of both appending to this one array.
+ *  isMainModule() gates the actual run (spawn every audit, reflect, exit) so importing deriveAudits() for
+ *  a test does not spawn 34 child processes as a side effect. */
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { readClient, guardedUpdate, guardedInsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
-// Load env for the block-state reflect (Layer C). In CI the secrets are injected into the env; locally
-// they live in .env.local. The child audits load it themselves; the runner needs it for the reflect.
-loadLocalEnvFile();
 
 // LAYER C — the data-audit BLOCK row convention (MUST match src/lib/agent/audit-gate.ts DATA_AUDIT_BLOCK).
 // On RED the lane ensures ONE open integrity_flags row of this shape; on GREEN it resolves any open one.
@@ -55,138 +63,79 @@ async function reflectBlockState(hardFailures) {
   }
 }
 
-// each: [label, scriptPath relative to fsi-app, hard?] — hard audits fail the lane; soft are informational
-const AUDITS = [
-  ["one-tier-per-host", "scripts/verify/one-tier-per-host-audit.mjs", true],
-  ["claims-tier", "scripts/verify/claims-tier-audit.mjs", true],
-  ["substrate-agreement", "scripts/verify/substrate-agreement-audit.mjs", true],
-  ["ledger-onepass", "scripts/verify/ledger-onepass-audit.mjs", true],
-  ["vocab-sync", "scripts/verify/vocab-sync-audit.mjs", true],
-  ["orphan-source", "scripts/verify/orphan-source-audit.mjs", true],
-  ["quarantine-disposition", "scripts/verify/quarantine-disposition-audit.mjs", true],
-  ["unregistered-span-host", "scripts/verify/unregistered-span-host-audit.mjs", true],
-  ["schema-drift", "scripts/verify/schema-drift-audit.mjs", true],
-  // ADVERSARIAL PROOFS — attack a security-critical invariant and require the attack to fail.
-  // (Class-4 fix, 2026-08-09: presence checks passed on the mig-118 guard that was one set_config
-  // call from defeat; a security invariant is proven by attacking it, not by asserting it exists.)
-  ["prov-guard-adversarial", "scripts/verify/prov-guard-adversarial-audit.mjs", true],
-  // Spec09 org-scope cross-org RLS proof (lane MIG311-FIX, 2026-09-05): the adversarial proof migration
-  // 311 could not run inline (its fixture inserts violate live FKs added since — org_memberships_user_id_
-  // fkey -> profiles(id), migration 075; surcharge_audits FKs -> entities(entity_id), migration 296) now
-  // runs here instead, against live orgs/entities, re-attacked on every lane pass. See that file's header.
-  ["spec09-org-rls-adversarial", "scripts/verify/spec09-org-rls-adversarial-audit.mjs", true],
-  // Layer C insert gate adversarial proof (migration 240, task 5.3, 2026-09-11): mirrors pause-flag-
-  // guard-proof.mjs's shape (synthetic temp table, one rolled-back transaction, red-then-green legs) to
-  // attack the guard_data_audit_block BEFORE INSERT trigger rather than assert its presence (rule 15).
-  // Wired here (F25 module-liveness had flagged it unwired) so it runs execution-proven in the same
-  // CI-with-secrets / post-apply lane as its siblings. Two-track dependency: self-skips exit 2 (treated as
-  // a hard ERROR by this runner, same as every other entry above) until migration 240 is applied to the
-  // target DB -- the coordinator applies 240 before this PR merges, so by the time this wiring reaches
-  // master the function already exists live.
-  ["layer-c-insert-gate-proof", "scripts/verify/layer-c-insert-gate-proof.mjs", true],
-  // REGISTRY-CITED AUDITS previously ABSENT from this lane (2026-08-09 wiring-truth sweep, Decision 2):
-  // each is an `audit:` enforcer of a live invariant in .discipline/governance/invariants.mjs but was
-  // never in the run list — cited-as-enforcement yet never executed. Now wired. Each self-skips (exit 2)
-  // without DB creds and runs for real in the secrets lane (this job does `npm ci` + injects the three
-  // secrets). CORRECTION (2026-08-11, lane diagnosis): "runs for real in the secrets lane" was FALSE for
-  // the five pg-direct audits from the day they were wired — their connection logic wanted local
-  // `supabase link` artifacts or env vars the workflow never supplied, so they exited 2 on every run.
-  // Fixed by scripts/lib/pg-conn.mjs (shared resolver: the lane's own secrets now yield a connection);
-  // an exit 2 here is once again an honest cannot-verify, not a standing wiring hole.
-  // A red here is a genuine corpus/schema violation to fix — the mechanism working — not a wiring error.
-  ["canonical-key-uniqueness", "scripts/verify/canonical-key-uniqueness.mjs", true],
-  ["column-existence-parity", "scripts/verify/column-existence-parity.mjs", true],
-  ["deferral-hygiene", "scripts/verify/deferral-hygiene-audit.mjs", true],
-  ["flag-age", "scripts/verify/flag-age-audit.mjs", true],
-  ["format-structure", "scripts/verify/format-structure.mjs", true],
-  ["no-generic-source", "scripts/verify/no-generic-source-audit.mjs", true],
-  ["no-names", "scripts/verify/no-names.mjs", true],
-  ["pause-flag-guard-proof", "scripts/verify/pause-flag-guard-proof.mjs", true],
-  ["rls-credential-parity", "scripts/verify/rls-credential-parity.mjs", true],
-  ["routing", "scripts/verify/routing.mjs", true],
-  ["source-link", "scripts/verify/source-link-audit.mjs", true],
-  ["source-vs-item", "scripts/verify/source-vs-item.mjs", true],
-  ["staged-transit", "scripts/verify/staged-transit-audit.mjs", true],
-  ["skill-conformance", "scripts/audit-skill-conformance.mjs", false],
-  // ADR-014 wave-acceptance sampling, wired here 2026-09-05 (lane W71-A) resolving the ADR's own
-  // "not wired" status note — SOFT (informational): the escalation threshold it computes (§4, >10%
-  // accuracy-defect) requires the LIVE L2/L3 Chrome pass this mechanical pre-scan cannot perform, so a
-  // red here is a signal for operator review, never a build-blocking verdict on its own. Self-skips
-  // (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as every other audit above.
-  ["wave-acceptance", "scripts/verify/wave-acceptance-audit.mjs", false],
-  // Lane ONESHOTS (2026-09-06, F25 expiry-52 disposition): holdings-audit.mjs — read-only classification
-  // of every stored capture (operator dispatch 2026-07-14), $0, no LLM/Browserless. Had NO dispatch root
-  // anywhere (hand-run only); shared-dataset-ownership.md's own line already flags the 2026-07-14
-  // dispatch's write TO-VERIFY (the idempotent-once guard on holdings_quality makes absence of a prior
-  // run ambiguous, not disprovable). Wired here SOFT/informational — this registration runs the script's
-  // own default DRY/report path only (never --write from this lane, same "report, never auto-persist"
-  // posture as wave-acceptance above): a red here is a corpus-quality signal for operator review, not a
-  // build-blocking verdict. Self-skips (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as
-  // every other audit above.
-  ["holdings-audit", "scripts/holdings-audit.mjs", false],
-  // P6 (2026-09-06, lane UX-FIX): Map mode-tag (transport_modes) editorial coverage tracking.
-  // SOFT — a human editorial backlog (no deterministic classifier exists to auto-tag these; see
-  // that file's header), never a build-blocking verdict. Self-skips (exit 2) without creds.
-  ["mode-tag-coverage", "scripts/verify/mode-tag-coverage-audit.mjs", false],
-  // Lane F25-WAVE52 (2026-09-07): three scripts/verify/ files carried an F25 module-liveness expiry
-  // (wave52) with zero dispatch root anywhere. Disposition per docs/audits/f25-wave52-dispositions-2026-09-07.md
-  // — all three are recurring live-corpus checks (a fresh item can trip any of them at any time), not
-  // closed one-shots, so they are WIRED here rather than deleted.
-  //
-  // admin-phrase-scan.mjs — SOFT review signal (Unit 0c Part 4, operator ruling 2026-07-13): admin/
-  // profile JSX can re-introduce human-gate framing (RD-20) any time a new component is added. Always
-  // exits 0 (own header: "SOFT — never fails the build"), no DB creds needed — filesystem only.
-  ["admin-phrase-scan", "scripts/verify/admin-phrase-scan.mjs", false],
-  // defect-signature-scan.mjs — heuristic S-CONFLATE/S-NUMERIC triage (ground-truth verification unit,
-  // 2026-07-15/ADR-014) over FACT claims. Bare invocation now defaults its frame to `--since 24h ago`
-  // (this lane's own fix, resolveFrame()'s new default branch) — the same practical wave-boundary proxy
-  // wave-acceptance-audit.mjs already uses two lines above. SOFT: a hit means "hold for live
-  // verification", never a build-blocking verdict on its own (own header). Self-skips (exit 2) without
-  // SUPABASE_URL/SERVICE_ROLE_KEY.
-  ["defect-signature-scan", "scripts/verify/defect-signature-scan.mjs", false],
-  // surface-visibility-audit.mjs — the "verified item hidden from its surface" invariant (PPWR
-  // incident, 2026-07-08): a live item can be minted with a null/mis-set domain at any time, so this is
-  // a standing net, not a discharged one-shot (full-read-2026-08-31/L13-scripts-A.md finding #5 flagged
-  // it as the one write-capable audit in scripts/verify/ with no automated caller). SOFT — opens
-  // integrity_flags rows for operator review, never fails the lane on its own. Self-skips (exit 2)
-  // without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
-  ["surface-visibility", "scripts/verify/surface-visibility-audit.mjs", false],
-  // check-vocabulary-drift.mjs, D7 (docs/plans/defect-fix-plan-2026-09-12.md): compares the tracked
-  // CHECK-constraint inventory (fsi-app/docs/inventories/db-check-constraints.json, written by the
-  // schema-vocabulary-inventory maintenance step) against the SAME live query and reports any constraint
-  // whose allowed set has drifted (a migration widened/narrowed a vocabulary and nobody re-ran the
-  // inventory step). HARD: a drifted inventory means check-vocabulary.test.mjs is validating writers
-  // against a stale vocabulary, silently. Self-skips (exit 2) without a direct Postgres connection
-  // (SUPABASE_DB_PASSWORD / SUPABASE_DB_URL / DATABASE_URL, or a local `supabase link`), same convention
-  // as every other pg-direct audit above.
-  ["check-vocabulary-drift", "scripts/verify/check-vocabulary-drift.mjs", true],
-  // candidate-dwell-audit.mjs, D26 lane L17 (docs/plans/defect-fix-plan-2026-09-12.md, part f): the
-  // candidate-drain half of the quarantine-disposition-audit pattern, applied to portal_link_candidates
-  // instead of intelligence_items. D26's own root cause was 3,751 discovered candidates sitting forever
-  // with the free session-Haiku decider never fed -- this is the recurrence guard so that class of
-  // silent backlog cannot reopen unnoticed. HARD: a past-bound, never-named candidate is the same
-  // forbidden "permanent limbo, never a terminal state" class quarantine-disposition-audit already fails
-  // the lane on. Self-skips (exit 2) without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
-  ["candidate-dwell", "scripts/verify/candidate-dwell-audit.mjs", true],
-];
+// Directories scanned for the marker. scripts/verify/ per plan 6.8's own wording; scripts/ (top level
+// only, readdirSync is not recursive) is ALSO scanned because two live audits (skill-conformance,
+// holdings-audit) are not under scripts/verify/, so a scan of scripts/verify/ alone would silently drop
+// them and break the "derived list equals today's list" proof this same plan requires.
+const AUDIT_SCAN_DIRS = ["scripts/verify", "scripts"];
+const MARKER_RE = /^\/\/ data-audit: label=(\S+) hard=(true|false)$/;
 
-const results = [];
-for (const [label, rel, hard] of AUDITS) {
-  process.stdout.write(`\n──────── ${label} ────────\n`);
-  const r = spawnSync(process.execPath, [resolve(ROOT, rel)], { stdio: "inherit", env: process.env });
-  const code = r.status == null ? 2 : r.status; // null => signal/crash
-  results.push({ label, hard, code, verdict: code === 0 ? "PASS" : code === 1 ? "FAIL" : "ERROR" });
+// absDir/displayPrefix split lets the test seam point at a temp fixture directory (an absolute path,
+// reported under a fixture-chosen display prefix) without touching the real scripts/ tree; production
+// always calls this with absDir = resolve(ROOT, dir) and displayPrefix = dir.
+function scanDirForAudits(absDir, displayPrefix) {
+  const out = [];
+  let names;
+  try { names = readdirSync(absDir); } catch { return out; }
+  for (const name of names) {
+    if (!name.endsWith(".mjs") || name.endsWith(".test.mjs")) continue;
+    const rel = `${displayPrefix}/${name}`;
+    let text;
+    try { text = readFileSync(resolve(absDir, name), "utf8"); } catch { continue; }
+    const markerLine = text.split("\n").find((l) => l.startsWith("// data-audit:"));
+    if (!markerLine) continue;
+    const m = markerLine.match(MARKER_RE);
+    if (!m) throw new Error(`data-audit: malformed marker in ${rel}: "${markerLine}"`);
+    out.push([m[1], rel, m[2] === "true"]);
+  }
+  return out;
 }
 
-console.log("\n════════ DATA-AUDIT LANE SUMMARY ════════");
-for (const r of results) console.log(`  ${r.verdict.padEnd(5)} ${r.hard ? "[hard]" : "[soft]"} ${r.label}`);
-const hardFailures = results.filter((r) => r.hard && r.code !== 0);
-const softFailures = results.filter((r) => !r.hard && r.code !== 0);
-console.log(`\nhard failures/errors: ${hardFailures.length} | soft (informational): ${softFailures.length}`);
+/** Derive the AUDITS list (label, path relative to fsi-app, hard?) from every scanned script's own
+ *  `// data-audit:` marker, sorted by label. Pure filesystem read, no spawn, safe to call from a test.
+ *  `dirs` overrides the scan set for the test seam: an array of { abs, prefix } pairs; production omits
+ *  it and scans AUDIT_SCAN_DIRS under the real repo root. */
+export function deriveAudits(dirs = AUDIT_SCAN_DIRS.map((d) => ({ abs: resolve(ROOT, d), prefix: d }))) {
+  const entries = dirs.flatMap(({ abs, prefix }) => scanDirForAudits(abs, prefix));
+  const byLabel = new Map();
+  for (const [label, rel] of entries) {
+    if (byLabel.has(label)) {
+      throw new Error(`data-audit: duplicate label "${label}" (${byLabel.get(label)} and ${rel})`);
+    }
+    byLabel.set(label, rel);
+  }
+  return entries.sort((a, b) => a[0].localeCompare(b[0]));
+}
 
-// LAYER C teeth — reflect the verdict into the block row so generation preflight can HALT on undisposed red.
-await reflectBlockState(hardFailures);
+async function runLane() {
+  // Load env for the block-state reflect (Layer C). In CI the secrets are injected into the env; locally
+  // they live in .env.local. The child audits load it themselves; the runner needs it for the reflect.
+  loadLocalEnvFile();
+  const AUDITS = deriveAudits();
+  const results = [];
+  for (const [label, rel, hard] of AUDITS) {
+    process.stdout.write(`\n-------- ${label} --------\n`);
+    const r = spawnSync(process.execPath, [resolve(ROOT, rel)], { stdio: "inherit", env: process.env });
+    const code = r.status == null ? 2 : r.status; // null => signal/crash
+    results.push({ label, hard, code, verdict: code === 0 ? "PASS" : code === 1 ? "FAIL" : "ERROR" });
+  }
 
-if (hardFailures.length) { console.log(`LANE FAIL: ${hardFailures.map((r) => r.label).join(", ")}`); process.exit(1); }
-console.log("LANE GREEN: every hard data-audit passed.");
-process.exit(0);
+  console.log("\n======== DATA-AUDIT LANE SUMMARY ========");
+  for (const r of results) console.log(`  ${r.verdict.padEnd(5)} ${r.hard ? "[hard]" : "[soft]"} ${r.label}`);
+  const hardFailures = results.filter((r) => r.hard && r.code !== 0);
+  const softFailures = results.filter((r) => !r.hard && r.code !== 0);
+  console.log(`\nhard failures/errors: ${hardFailures.length} | soft (informational): ${softFailures.length}`);
+
+  // LAYER C teeth, reflecting the verdict into the block row so generation preflight can HALT on undisposed red.
+  await reflectBlockState(hardFailures);
+
+  if (hardFailures.length) { console.log(`LANE FAIL: ${hardFailures.map((r) => r.label).join(", ")}`); process.exit(1); }
+  console.log("LANE GREEN: every hard data-audit passed.");
+  process.exit(0);
+}
+
+// isMainModule() gate (plan 6.8, lane N1): only a direct `node run-data-audit-lane.mjs` invocation spawns
+// the 34 audits; importing deriveAudits() from a test does not run the lane as a side effect.
+if (isMainModule(import.meta.url)) {
+  await runLane();
+}

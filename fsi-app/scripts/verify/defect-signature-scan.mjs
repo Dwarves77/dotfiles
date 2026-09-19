@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// data-audit: label=defect-signature-scan hard=false
 // defect-signature-scan.mjs -- READ-ONLY heuristic triage for two accuracy-defect signatures.
 // Authored 2026-07-15 for the ground-truth verification unit (see
 // docs/audits/ground-truth-verification-2026-07-15.md and ADR-014).

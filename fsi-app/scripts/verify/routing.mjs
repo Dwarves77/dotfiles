@@ -1,3 +1,4 @@
+// data-audit: label=routing hard=true
 /** VERIFIER (read-only, 0 Browserless): routing — item_type -> format -> surface.
  *  GOVERNING SKILLS:
  *   - caros-ledge-platform-intent -> "The Five Customer-Facing Surfaces" (BINDING five-surface model:

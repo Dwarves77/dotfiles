@@ -1,3 +1,4 @@
+// data-audit: label=substrate-agreement hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: environmental-policy-and-innovation + remediation-discipline.
  *
  *  INVARIANT EP-8 (substrate agreement / status-is-a-cache): for every non-archived item, the STORED
