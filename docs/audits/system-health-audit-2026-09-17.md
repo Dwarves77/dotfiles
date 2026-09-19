@@ -10,6 +10,19 @@ The repository carries 44 fitness functions, three consistency checks, an invari
 
 The fix is structural, not another reminder: three standing numbers with both-ways ratchet gates (the count may only fall, and an improvement must re-seed the ceiling in the same commit), reported at every session close.
 
+#### Close, lane P7 (2026-09-19)
+
+| Number | At audit | Now | Lane(s) that moved it |
+|---|---|---|---|
+| F45 duplicated lines | 8061 to 6227 | 6132 | L36, L38 |
+| F46 multi-home hosts | 1 | 0 | L35h |
+| F47 unreferenced tables / dead functions / dead policies | 0/0/0 | 0/0/0 | (unchanged) |
+| D2 EP-11 twins | - | 0 | census 2026-09-18 |
+| D2 title-jurisdiction groups with duplicates | - | 1 group (2 items) | census 2026-09-18 |
+| D2 domain-tier splits | - | 2 hosts (5 rows) | census 2026-09-18 |
+
+F50 loop-wiring PASS with 11 hops not yet enforced.
+
 ## 2. Duplicated code
 
 Measurement: a dependency-free clone scan (`fsi-app/.discipline/fitness/functions/F45-duplicate-code.mjs`, windows of 8 normalized lines, comments, blanks and import lines dropped) over `fsi-app/src` and `fsi-app/scripts`, excluding tests and proofs, fixtures, `_archive`, `scripts/harness-runs` (run records, similar by design), `scripts/_snapshots` (data) and generated `.d.ts`. Cross-checked against an independent tool (jscpd 4, min 8 lines / 60 tokens) on the same scope: 381 clone blocks, 7,716 duplicated lines across 236 files; the in-repo scan reads 8,061 duplicated normalized lines across 970 files in 372 clone pairs. The in-repo number is the ratchet (F45, ceiling 8,061).
