@@ -29,7 +29,10 @@ fsi-app/scripts/harness-runs/
                                # rationale (see "Registering a family" below)
     FAMILY.md                 # optional: the family's own prose, where a family's shape needs more
                                # than its family.json's rationale field says
-    PENDING-RUN.md             # optional: first-run acknowledgment, or a staleness marker (rule (c))
+    pending/                  # optional: one file per lane that owes a run, never a hash pin (see
+                               # "Declaring a pending run" below)
+      <YYYY-MM-DD>-<lane>.md   # a "## Change" line naming what changed, a "## Planned run" line naming
+                               # the run that will supersede it. No hash anywhere in this file.
     LAST-PROPOSER-PASS.md      # optional: required once the family has two or more run artifacts
     <family>-run-NNN.json      # one per run
     traces/                    # optional: the family's raw full traces, one level BELOW the family
@@ -63,6 +66,35 @@ to mean appending to the SAME spot in three shared files at once.
 **Filename = `run_id` + `.json`.** `run_id` is `<family>-run-<NNN>`, zero-padded 3 digits, monotonic
 per family. `writeRunArtifact` refuses to overwrite an existing file unless the caller explicitly asks
 for it (see below) — the writer enforces the discipline the convention describes.
+
+## Declaring a pending run
+
+A family owes a run whenever its governing files changed and no artifact has landed to say why. Declare
+that as one file you own: `scripts/harness-runs/<family>/pending/<YYYY-MM-DD>-<lane>.md`, with a short
+required shape, a `## Change` line naming what changed and a `## Planned run` line naming the run that
+will supersede it. No hash anywhere in the file: F28 (`.discipline/fitness/functions/
+F28-harness-run-integrity.mjs`) re-derives the current governing-file hash and the current git range at
+check time, it never reads a number back out of your file.
+
+**Why a directory, not a hash-pinned marker (lane N3, 2026-09-19, build plan section 6.8 Rule B: "a gate
+compares the tree to its merge-base, never to a stored number").** Before this, a family declared a
+pending run as a single `PENDING-RUN.md` recording the exact governing-file hash at the moment it was written, hand
+re-pinned every time a governing file moved again before the promised run landed. The stored hash was a
+pure function of the tree, so two lanes that each computed a correct value collided on the SAME line,
+17 scripted re-pins across four logged days, three lanes (M8, M9b, M9a) colliding on one family's marker
+on 2026-09-18 alone. A pending file is now a lane's own file: two lanes each adding their own
+`pending/<date>-<lane>.md` is an add/add on two different filenames, which merges clean in any order
+(`F28-harness-run-integrity.test.mjs`'s collision replay proves this directly).
+
+**What F28 checks.** Two rules replace the old CENSUS/STALENESS-COUPLING pair: a RANGE rule (when a
+governing file changed in the range being checked and no new run artifact landed in that same range, the
+range must also add a pending/ file for that family, skipped, never failed, when no git range resolves)
+and a TREE-STATE rule (always runs: a family with no artifact recorded at the CURRENT live hash must have
+≥1 pending file; a family that HAS one at the live hash must have NONE left, the reverse audit, "the run
+happened, delete them"). Nothing under `pending/` is ever a governing file (`family-registry.mjs`'s
+`validateFamilyDescriptor` refuses a `governing_files` entry under a `pending/` path) or a run artifact
+(a file two levels under `scripts/harness-runs/` fails the same family-level-only check `traces/` and a
+family's own `family.json` already relied on).
 
 ## The screen-v1 loss (the concrete case this convention is designed against)
 

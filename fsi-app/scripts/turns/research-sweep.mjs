@@ -96,7 +96,7 @@ const ITEM_TYPE_REQUIRED_SLOTS_PATH = resolve(HERE, "..", "mint", "item-type-req
 // register-walk.mjs + feed-walk.mjs): that table is a coordinator-owned file this lane does not touch,
 // and F28 rule (c) only requires that AT LEAST ONE artifact in the family directory match the CURRENT
 // hash of CONVENTION.md's own governing-file list — an unrelated artifact recording a different subject's
-// own hash never trips that rule (verified against F28-harness-run-integrity.mjs's `auditStalenessCoupling`:
+// own hash never trips that rule (verified against F28-harness-run-integrity.mjs's `auditPendingTreeState`:
 // it checks `validArtifacts.some(a => a.harness_version === currentHash)`, not "every artifact").
 export const RESEARCH_SWEEP_GOVERNING_FILES = Object.freeze([
   "scripts/turns/research-sweep.mjs",

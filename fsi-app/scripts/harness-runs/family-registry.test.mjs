@@ -102,6 +102,16 @@ test("RED: governing_files entries must be non-empty strings", () => {
   assert.match(errors[1], /governing_files\[2\] must be a non-empty string/);
 });
 
+test("RED: a governing_files entry under a pending/ directory is refused (lane N3, build plan 6.8 Rule B)", () => {
+  const errors = validateFamilyDescriptor(
+    "widget",
+    validDescriptor({ governing_files: ["scripts/widget/widget.mjs", "scripts/harness-runs/widget/pending/2026-09-19-x.md"] }),
+  );
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /is under a pending\/ directory/);
+  assert.match(errors[0], /pending\/2026-09-19-x\.md/);
+});
+
 test("RED: registered_by must be a non-empty string", () => {
   const errors = validateFamilyDescriptor("widget", validDescriptor({ registered_by: "" }));
   assert.equal(errors.length, 1);
