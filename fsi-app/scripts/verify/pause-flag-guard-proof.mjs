@@ -14,11 +14,10 @@
  *  Exit 0 = guard proven (red-then-green). Exit 1 = a leg failed. Env: a Postgres connection string in
  *  SUPABASE_DB_URL or DATABASE_URL. Runs in the CI-with-secrets / ops lane (post-apply); pre-push validates
  *  wiring via the meta-gate (RD-23 audit token). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { connectPg } from "../lib/pg-conn.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 
 // Shared resolver (scripts/lib/pg-conn.mjs): SUPABASE_DB_URL/DATABASE_URL still work; the CI lane's
 // NEXT_PUBLIC_SUPABASE_URL + SUPABASE_DB_PASSWORD now also resolve (lane diagnosis 2026-08-11 fix).

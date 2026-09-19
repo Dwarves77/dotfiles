@@ -24,9 +24,10 @@ import { readdirSync } from "node:fs";
 import { readMigrationSql } from "../../.discipline/lib/read-migration-sql.mjs";
 import { committedObjectNames, diffSchema, staleAllowlistEntries } from "./lib/schema-drift.mjs";
 import { connectPg } from "../lib/pg-conn.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 
 // Objects legitimately live with no committed migration source. Each entry names WHY and a review path.
 // The allowlist is audited: when an entry's object gains a committed CREATE (or stops being live), the

@@ -37,10 +37,9 @@
 // USAGE:
 //   node scripts/obligations/derive-obligations.mjs            # dry: what would be inserted
 //   node scripts/obligations/derive-obligations.mjs --apply    # insert new register rows through the guarded path
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { classifyBindingPosition } from "../../src/lib/obligations/classify-binding-position.mjs";
 import { normaliseMode, LEG_MODE_CODES } from "../../src/lib/contracts/vocabularies.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // `normaliseMode` resolves a raw string to ANY member of TRANSPORT_MODES, corridor-only tokens included
@@ -55,8 +54,7 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 // that CHECK constraint at write time.
 const LEG_MODE_SET = new Set(LEG_MODE_CODES);
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const DERIVATION_VERSION = "oblig-derive-2026-09-02.1";
 

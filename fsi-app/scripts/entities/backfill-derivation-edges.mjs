@@ -55,12 +55,13 @@
 // construction live ONLY inside `main()`, gated by the IS_MAIN check at the bottom (mirrors
 // seed-derived-values.mjs), so importing this module for tests never touches the environment.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAll, readClient } from "../lib/db.mjs";
 import { authorCarbonIntensityEdges } from "../gen/emission-factors-common.mjs";
 import { authorAutomateVsHireForRegions } from "../producers/regional/run-envelope-producer.mjs";
 import { authorMarketSeriesDeltaEdges } from "../producers/market/author-market-series-delta.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 /** Every live (non-superseded) emission_factors row, the same shape authorCarbonIntensityEdges wants for
  *  BOTH its `writtenRows` and `insertRes.rows` arguments — each live row already carries both
@@ -141,11 +142,10 @@ export async function runBackfill({ apply, limit = null }, deps = {}) {
 // ── CLI entrypoint — never reached on import (proved by backfill-derivation-edges.test.mjs importing the
 // exports above with no DB creds present) ──────────────────────────────────────────────────────────────
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("backfill-derivation-edges: no DB creds — cannot run here (exit 2).");
     process.exit(2);

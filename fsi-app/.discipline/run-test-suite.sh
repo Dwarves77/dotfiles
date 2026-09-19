@@ -87,6 +87,7 @@ node --test \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
   fsi-app/scripts/lib/entity-gate.selftest.mjs \
+  fsi-app/scripts/lib/env-file.test.mjs \
   fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \

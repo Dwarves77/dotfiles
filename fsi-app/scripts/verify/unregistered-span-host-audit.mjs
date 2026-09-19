@@ -12,8 +12,9 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createJiti } from "jiti";
 import { readAll } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { hostOf, buildResolver, hostInstitution } = await jiti.import("../../src/lib/sources/institution.ts");
 const BASE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "_baselines");

@@ -78,6 +78,14 @@ under this hash -- this lane's own brief scopes the actual dispatch to the coord
 
 **What changed.** The recorded hash `sha256:62033d6829cd830f` no longer matched the live governing files of this family (`scripts/turns/run-source-sweep.mjs`, `src/lib/sources/register-walk.mjs`, `src/lib/sources/feed-walk.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-source-sweep.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:92cde8a1de0287ca` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['source-sweep']`, unreordered).
+**harness_version at write time (superseded below, see Re-pin 3):** `sha256:92cde8a1de0287ca` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['source-sweep']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 3 (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:92cde8a1de0287ca` no longer matched the live governing files of this family (`scripts/turns/run-source-sweep.mjs`, `src/lib/sources/register-walk.mjs`, `src/lib/sources/feed-walk.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-source-sweep.mjs` (moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on. Finished by hand under the old convention (plan section 6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:16d1e91f1869647e` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['source-sweep']`, unreordered; supersedes `sha256:92cde8a1de0287ca`).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

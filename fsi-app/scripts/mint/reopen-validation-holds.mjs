@@ -38,13 +38,11 @@
 // USAGE:
 //   node scripts/mint/reopen-validation-holds.mjs --reason-contains ungrounded_url [--apply]
 
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll, guardedUpdate } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const HOLD_PREFIX = "validation_failed:";
 

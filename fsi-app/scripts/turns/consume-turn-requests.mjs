@@ -56,12 +56,12 @@
 //
 // Exit 0 done (including "0 open requests", which is a legitimate steady state, not an error) · 1 bad
 // args or a read/write failure · 2 no DB creds (cannot run here).
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, readFileSync } from "node:fs";
 import { readAll, readClient, withTransientRetry, guardedUpdateByIds } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 /**
@@ -292,7 +292,7 @@ async function readItemStates(itemIds) {
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

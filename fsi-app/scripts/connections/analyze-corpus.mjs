@@ -72,9 +72,10 @@ import { buildResolvedReflectionRow, planResolvedReflectionInserts } from "../..
 import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("analyze-corpus: no DB creds — cannot run here (exit 2).");
   process.exit(2);

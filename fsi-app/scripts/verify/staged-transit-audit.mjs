@@ -32,12 +32,10 @@
  *  eliminates (flag-rate is not defect-rate) — U0c/U1 drive it to zero; it never blocks the required pre-push.
  *
  *  TUNABLE (operator policy): MAX_AGE_H — the staged-transit SLA, "like provisional" (72h). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 const MAX_AGE_H = 72;
 const BOUND_MS = MAX_AGE_H * 60 * 60 * 1000;

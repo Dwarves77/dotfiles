@@ -13,7 +13,8 @@
  *   3. Then mutates and returns the count + snapshot path.
  *
  * Reads are routine/unguarded — only WRITES are gated. Caller must have loaded env
- * (process.loadEnvFile) with NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY first.
+ * (loadLocalEnvFile from ./env-file.mjs, the one loader) with NEXT_PUBLIC_SUPABASE_URL +
+ * SUPABASE_SERVICE_ROLE_KEY first.
  *
  * Residual (named honestly): an uncommitted script that constructs its own createClient and writes
  * raw is irreducible without a gate/credential removal (excluded). Rule 015 catches it at commit;

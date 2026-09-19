@@ -138,7 +138,6 @@
 // --apply) · 2 bad/empty input · 3 network failure (live fetch, --apply or --dry alike).
 
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
@@ -147,6 +146,7 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
 import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane P2); flipped TRUE 2026-09-02 by
 // Lane PROD (system-completion train) in the same commit as migration 281 — see the REVIEWED-CHANGE LOG
@@ -166,8 +166,7 @@ export const CURRENCIES = Object.freeze({
   JPY: "Japanese yen",
 });
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected, or no creds needed for --dry */ }
+loadLocalEnvFile();
 
 // ── Attribute parsing, QUOTE- AND ORDER-AGNOSTIC. ──────────────────────────────────────────────────────
 // REGRESSION, STATED PLAINLY (producers run #22, 2026-09-04 00:50 UTC): the previous revision of this

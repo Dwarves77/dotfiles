@@ -62,13 +62,14 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { readAll, guardedDelete, guardedInsert } from "./lib/db.mjs";
+import { loadLocalEnvFile } from "./lib/env-file.mjs";
 import { isMainModule } from "./lib/is-main.mjs"; // task 0.3b: the Windows-safe CLI main guard --
 // also what makes this module SAFELY IMPORTABLE (main() no longer runs merely on import), which is
 // what backfill-item-timelines.npmtest.mjs relies on to exercise resolveTimelineEntriesForItem below
 // without touching Supabase (lane L20 fix round, I1).
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be preloaded */ }
+loadLocalEnvFile();
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { extractRegulationSections } = await jiti.import("../src/lib/agent/extract-regulation-sections.ts");

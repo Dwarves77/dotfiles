@@ -96,7 +96,6 @@
 // --apply) · 2 bad/empty input · 3 network failure (live fetch, --apply or --dry alike).
 
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
@@ -106,6 +105,7 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // for this exact producer's own output). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
 import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane SURF). ────────────────────────
 // REVIEWED-CHANGE LOG (ADR-023 §4 gate 1 — "flipping ENABLED is a REVIEWED CODE CHANGE, shows in `git
@@ -137,8 +137,7 @@ export const PRODUCTS = Object.freeze({
   EPLLPA: { slug: "propane-mont-belvieu", label: "Propane, Mont Belvieu TX, spot price" },
 });
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected, or no creds needed for --dry */ }
+loadLocalEnvFile();
 
 function slugify(raw) {
   return String(raw ?? "")

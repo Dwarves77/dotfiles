@@ -57,7 +57,7 @@
 // Exit 0 done · 1 bad args · 2 no DB creds (cannot run here) · 3 one or more writes failed (apply only).
 
 import { parseArgs as nodeParseArgs } from "node:util";
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerDerivedValue } from "../../src/lib/propagation/register-derivation.ts";
 import { carbonIntensity } from "../../src/lib/market/carbon-intensity.mjs";
@@ -67,9 +67,8 @@ import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs, distinctNormalized } from "../entities/backfill-entities.mjs";
 import { guardedInsertMany } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const FSI_ROOT = resolve(HERE, "..", "..");
 
 const CARBON_METHOD_ID = "carbon_intensity_tkm";
 const CARBON_METHOD_VERSION = "1.0.0";
@@ -392,7 +391,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(FSI_ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

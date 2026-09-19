@@ -6,12 +6,10 @@
  *  CRITICAL skill nuance: this forbids naming the WORKSPACE's OWN identity — NOT third-party operators
  *  cited as intelligence (BYD/Maersk/Lufthansa are legitimately named). Blocklist = workspace identity
  *  ONLY (org names from the DB + the skill's named wrong-examples). PASS = workspace not named. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

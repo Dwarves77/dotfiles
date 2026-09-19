@@ -18,10 +18,10 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 const BASE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "_baselines");
 const BASE_FILE = resolve(BASE_DIR, "facts-on-suspended.json");
 

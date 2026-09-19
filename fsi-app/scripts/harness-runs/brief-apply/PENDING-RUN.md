@@ -47,6 +47,14 @@ marker is deleted the moment it does (or updated to a new hash if the governing 
 
 **What changed.** The recorded hash `sha256:f7db875f0599db16` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing file changed on this branch: `scripts/turns/record-briefs/schema.mjs` (an admitted-mirror disposition comment only, per `docs/audits/system-health-audit-2026-09-17.md`'s "Admitted mirrors, dispositions" table; no validator logic changed). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:2fbca24d924900c3` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered; supersedes `sha256:f7db875f0599db16`).
+**harness_version at write time (superseded below, see Re-pin 6):** `sha256:2fbca24d924900c3` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered; supersedes `sha256:f7db875f0599db16`).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 6 (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:2fbca24d924900c3` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing file changed on this branch: `scripts/turns/apply-record-briefs.mjs` (moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on. Finished by hand under the old convention (plan section 6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:008b4fe7544f9836` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered; supersedes `sha256:2fbca24d924900c3`).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

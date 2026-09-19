@@ -16,13 +16,11 @@
 // USAGE:
 //   node scripts/sources/backfill-source-type.mjs            # dry: distribution + unclassifiable count
 //   node scripts/sources/backfill-source-type.mjs --apply    # write source_type through guardedUpdateByIds
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { classifySourceType, SOURCE_TYPE_VALUES } from "../../src/lib/sources/source-type-taxonomy.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const CITE = Object.freeze({
   skill: "source-type-taxonomy",

@@ -12,13 +12,11 @@
  *  Exit 0 = invariant holds. Exit 1 = a source-less LIVE row exists that is NOT grandfathered (a new orphan
  *  slipped the chokepoint). Reads only. Env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
  *  Gates in the CI-with-secrets / ops lane; pre-push (no DB secrets) validates WIRING via the meta-gate. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
 import { findSourceLessLiveViolations, GRANDFATHERED_SOURCELESS } from "../../src/lib/intake/source-link-invariant.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 let rows;
 try {

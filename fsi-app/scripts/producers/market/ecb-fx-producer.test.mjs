@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withoutCredentials } from "../../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRODUCER_PATH = resolve(HERE, "ecb-fx-producer.mjs");
@@ -84,7 +85,9 @@ function runCli(args, envOverrides = {}) {
   // subprocess makes zero network attempts regardless of sandbox/CI egress policy.
   return spawnSync(process.execPath, [PRODUCER_PATH, ...args], {
     encoding: "utf8",
-    env: { ...process.env, ...envOverrides },
+    // withoutCredentials (lane T2, 2026-09-19): strips the DB credentials AND switches the env-file load off,
+    // so the "no DB creds" refusal below is asserted hermetically, in a worktree with an env file too.
+    env: { ...withoutCredentials(), ...envOverrides },
   });
 }
 

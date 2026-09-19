@@ -86,7 +86,7 @@
 // Exit 0 done (including "already applied"/"no change needed") · 1 bad args / flag not applicable ·
 // 2 no DB creds.
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
 import { isValidJurisdictionValue } from "../../src/lib/classification/vocab.mjs";
@@ -99,6 +99,7 @@ import {
 import { createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
 import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 export const RATIFY_CLASSIFICATION_TOKEN = "ratify:classification";
 const CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
@@ -818,13 +819,12 @@ export async function autoAdoptClassification(deps, flagId, { execute } = {}) {
   return { status: "applied", sourceId: decision.sourceId, merge, decisions, written: hasWrite, resolved: true };
 }
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (IS_MAIN) await main();
 
 async function main() {
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 const args = process.argv.slice(2);
 const flagIdRaw = args[args.indexOf("--flag") + 1];

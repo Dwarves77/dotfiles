@@ -42,11 +42,11 @@ import { fileURLToPath } from "node:url";
 import { runPropagationDrain } from "../../src/lib/propagation/drain.ts";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "propagation");
-const ROOT = FSI_ROOT;
 
 // This family's governing files — IMPORTED from scripts/harness-runs/governing-files.mjs (Wave
 // GOV-SINGLE, 2026-09-04), re-exported under this historical name so existing importers keep working
@@ -151,7 +151,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

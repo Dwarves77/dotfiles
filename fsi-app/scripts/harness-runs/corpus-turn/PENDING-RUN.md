@@ -86,9 +86,17 @@ this task. See `docs/ops/session-log.md`'s 2026-09-12 W9 task 6.2d entry for the
 and `GOVERNING_FILES['corpus-turn']` from `scripts/harness-runs/governing-files.mjs` directly, against
 the working tree with this task's edits applied).
 
-**harness_version at write time:** `sha256:fb8b1521200b4795` (recomputed via `hashHarnessVersion` against
+**harness_version at write time (superseded below, see Re-pin, lane T2):** `sha256:fb8b1521200b4795` (recomputed via `hashHarnessVersion` against
 `GOVERNING_FILES['corpus-turn']`, the same 2 files, unreordered; supersedes `sha256:873a68f9eb398ea9`
 outright).
 
 **The planned run that supersedes this marker:** unchanged in kind, the next
 `.github/workflows/corpus-turn.yml` dispatch, landing the next `corpus-turn-run-NNN.json` under this hash.
+
+## Re-pin (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:fb8b1521200b4795` no longer matched the live governing files of this family (`scripts/turns/consume-turn-requests.mjs`, `scripts/turns/export-corpus-for-extraction.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/consume-turn-requests.mjs` and `scripts/turns/export-corpus-for-extraction.mjs` (both moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on. Finished by hand under the old convention (plan section 6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:37e484f981d2b407` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['corpus-turn']`, unreordered; supersedes `sha256:fb8b1521200b4795`).
+
+**The planned run that supersedes this marker:** unchanged in kind, the next `.github/workflows/corpus-turn.yml` dispatch, landing the next `corpus-turn-run-NNN.json` under this hash.

@@ -20,10 +20,10 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFixtureRows, seedAssumptions } from "./assumption-register-common.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, "../..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 
 const FIXTURE = resolve(HERE, "fixtures/assumption-register/wo20-catalogued-assumptions-2026-08-30.json");
 const APPLY = process.argv.includes("--apply");

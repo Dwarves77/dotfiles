@@ -29,8 +29,6 @@ const ENABLED = true;
 // module's header and this lane's report for the exact caveat.
 const BLS_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   parseOewsResponse,
   buildOewsSeriesId,
@@ -39,9 +37,9 @@ import {
   HOURLY_MEDIAN_WAGE_DATATYPE,
 } from "../../../src/lib/regional/bls-oews-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 // Requests BOTH the annual-median and hourly-median series per occupation (2026-09-02 coordinator
 // follow-up: "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads" — automate-

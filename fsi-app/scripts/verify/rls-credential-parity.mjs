@@ -21,12 +21,10 @@
  *  a USING/WITH CHECK policy; that is what this audit targets. The managed/superuser roles bypass RLS and
  *  need no policy. It does NOT judge whether an EXISTING policy's predicate is semantically CORRECT (that is
  *  the reconcile-revalidate end-to-end proof); a covering policy clears the parity flag. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { connectPg } from "../lib/pg-conn.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 
 // Roles NOT checked (see SCOPE): managed/superuser roles bypass RLS, and anon/authenticated are the
 // RLS-gated public roles whose missing-policy is the intended default-deny. Everything else is a CUSTOM

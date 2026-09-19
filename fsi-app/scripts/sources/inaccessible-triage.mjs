@@ -85,6 +85,7 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 // repo unless worth keeping; a dossier's `probe`/`ladder_steps` can carry full captured page bodies).
 import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(ROOT, "scripts", "harness-runs", "inaccessible-triage");
@@ -517,7 +518,7 @@ function defaultWriteSummaryFile(outDir, summary) {
 }
 
 if (isMainModule(import.meta.url)) {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[inaccessible-triage] no DB creds — cannot run here (exit 2).");
     process.exit(2);

@@ -22,9 +22,10 @@ import { resolve, dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { connectPg } from "../lib/pg-conn.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 
 const SCAN_DIRS = ["src", "scripts"];
 const CODE_EXT = new Set([".ts", ".tsx", ".mjs", ".js"]);

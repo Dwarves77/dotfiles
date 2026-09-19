@@ -16,10 +16,10 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFixtureRows, seedFactors } from "./emission-factors-common.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, "../..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 
 const FIXTURE = resolve(HERE, "fixtures/emission-factors/epa-modal-defaults-2025.json");
 const APPLY = process.argv.includes("--apply");

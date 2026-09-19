@@ -33,12 +33,10 @@
  *  human editorial work, not a mechanical fix). Exit 0 always (soft finding still reported); exit 2
  *  = cannot verify (no creds). Reads only. Requires env: NEXT_PUBLIC_SUPABASE_URL +
  *  SUPABASE_SERVICE_ROLE_KEY. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 // Regulations domain only — the ONLY domain the Map surface charts (MapPageView.tsx's own
 // `modeTagStats` and `filteredResources` both gate on `r.domain !== REGULATIONS_DOMAIN`).

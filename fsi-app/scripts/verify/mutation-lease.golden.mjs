@@ -8,11 +8,12 @@
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Guarded: a missing .env.local must SELF-SKIP (exit 2, "cannot verify here"), never a stack-trace crash
 // that the goldens runner would read as a real FAIL. This is a LIVE-DB golden (mutation_leases writes);
 // it runs for real only in the secrets lane. (2026-08-09: was an unguarded loadEnvFile — ENOENT crash.)
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { readClient } = await jiti.import("../lib/db.mjs");
 const { acquireLease, heartbeatLease, releaseLease } = await jiti.import("../lib/mutation-lease.mjs");

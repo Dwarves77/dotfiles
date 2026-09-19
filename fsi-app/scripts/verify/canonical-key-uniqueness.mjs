@@ -7,17 +7,15 @@
  *  uq_intelligence_items_canonical_key_verified_live (migration 200); it also DERIVES the key on-the-fly
  *  (same logic as the SQL deriver) so it catches a would-be verified twin even before the column is
  *  backfilled — a defense the index alone (stored-column only) cannot give. Exit 1 on any collision. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
 // THE shared mirror of public.derive_canonical_instrument_key() — migration 255 logic, selftest-pinned.
 // This file's private copy was still on migration 200's suffix-discarding derivation and produced six
 // FALSE collision groups on the lane's first real run (#66, 2026-08-11): distinct instruments sharing a
 // CELEX stem (22008A0221(01) vs (02)) collapsed to one derived key. One mirror now (canonical-key.mjs).
 import { deriveKey } from "../lib/canonical-key.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 
 let rows, hasStoredColumn = true;
 try {

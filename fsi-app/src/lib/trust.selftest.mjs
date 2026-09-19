@@ -19,7 +19,6 @@ import assert from "node:assert/strict";
 import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* pure functions; env optional */ }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { TIER_WEIGHTS, HALF_LIFE_MONTHS, applyRecencyDecay, computeCitationComponentFromRows } =
   await jiti.import("./trust.ts");

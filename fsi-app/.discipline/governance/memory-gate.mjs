@@ -59,8 +59,8 @@
 // re-introduce the short-circuit. The exit code is identical either way (both shapes fail the step), so
 // this changes nothing about what CI enforces, only how much of the failure a lane sees at once.
 
-import { execFileSync } from 'node:child_process';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
+import { gitChangedFiles, gitDiffLinesForPath } from '../lib/change-range.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // PURE CORE
@@ -171,31 +171,14 @@ export function memoryDiffPaths(files) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// LIVE DRIVER: git only. Everything above is pure and injectable.
+// LIVE DRIVER: git only, via fsi-app/.discipline/lib/change-range.mjs (lane N0, plan section 6.8 Rule
+// C -- this file's own private gitChangedFiles/gitDiffLinesForPath copies moved there, alongside
+// F45-duplicate-code.mjs's equivalent copy, so the two gates cannot silently disagree on what "changed
+// in this range" means). change-range.mjs also fixes Amendment 1 item 4 (operator, 2026-09-19): its git
+// calls resolve the repository top level from the module's own path, never from process.cwd(), so this
+// CLI now gives the same verdict whether it is run from the repo root or from fsi-app/ -- see that
+// module's header for the defect this replaces.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 26, cwd: process.cwd() });
-}
-
-/** `git diff --name-only <range>` as a clean array of repo-relative paths. */
-export function gitChangedFiles(range) {
-  let out = '';
-  try { out = git(['diff', '--name-only', range]); } catch (e) {
-    throw new Error(`memory-gate: 'git diff --name-only ${range}' failed: ${e.message}`);
-  }
-  return out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-}
-
-/**
- * `git diff <range> -- <path>` for ONE path, as an array of diff lines (may be empty on a missing or
- * unchanged path -- never throws, matching the original single-path helper's behaviour).
- */
-function gitDiffLinesForPath(range, path) {
-  let out = '';
-  try { out = git(['diff', range, '--', path]); } catch { out = ''; }
-  return out.split(/\r?\n/);
-}
 
 /**
  * Lane D28b (2026-09-19): the memory addendum's diff for the range, combined across every path
