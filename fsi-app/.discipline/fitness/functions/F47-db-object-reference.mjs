@@ -41,10 +41,6 @@ export const ALLOWLIST = {
       reason: 'Append-only audit trail of pause-flag writes (trigger guard_pause_flag_writer, migration 201); read by the operator through SQL when a pause is investigated, never by the app. Terminal sink by design.',
       decidedOn: '2026-09-17',
     },
-    pending_first_fetch: {
-      reason: 'Queue written by the sources triggers (migration 065); its reader, the drain-first-fetch worker, was dissolved 2026-07-12 and the population is re-homed to the cadence-flip wiring unit (check-sources to runIntakeCycle; src/lib/intake/mint-item.ts header). A writer preceding a named-later reader; build mode holds the cadence off (rule 16). Live 2026-09-17: 1,388 rows (done 1,235, error 136, queued 12, skipped 5).',
-      decidedOn: '2026-07-12',
-    },
     case_study_endorsements: {
       reason: 'Unbuilt half of the Community surface (a core surface per caros-ledge-platform-intent): case studies have 6 rows and a trigger, endorsements 0 rows and no writer. The community rebuild dispatch either ships case studies or drops case_studies and this table together; review there.',
       decidedOn: '2026-09-17',

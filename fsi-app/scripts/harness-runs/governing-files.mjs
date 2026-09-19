@@ -71,11 +71,13 @@
  * imports it back from here like every other family's runner does, so screen's list is no longer a
  * special case; it is the same shape as the other seven.
  *
- * `mint` and `fetch-drain` have no equivalent canonical script for AT LEAST ONE of their historical
- * reasons: `fetch-drain`'s governing file is a Deno function (`supabase/functions/capture-worker/`) this
- * repo does not import as a Node module, so it stays declared only here. `mint` DOES now have a canonical
- * script (`run-mint-batch.mjs`, Wave MH-5) — its entry here is what that script imports back (see its own
- * header for the drift this fixes).
+ * `mint` has no single canonical entry point of its own (see its own comment below). `mint` DOES now
+ * have a canonical script (`run-mint-batch.mjs`, Wave MH-5), and its entry here is what that script
+ * imports back (see its own header for the drift this fixes). `fetch-drain` lacked a canonical script
+ * (its governing file was the Deno function `supabase/functions/capture-worker/` alone, imported by
+ * nothing this repo loads as a Node module) until lane M1 (2026-09-18, build plan section 6.1 row M1)
+ * gave it `scripts/turns/run-fetch-drain.mjs`; its entry below now includes that runner too, the same
+ * shape every scripted family already has.
  *
  * `meta-harness` (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family, so
  * its list is declared here too — and it is the one entry that is SELF-REFERENTIAL TWICE over: both
@@ -106,7 +108,14 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/mint/screen-rules.mjs',
     'scripts/mint/screen-worklist.mjs',
   ]),
-  'fetch-drain': Object.freeze(['supabase/functions/capture-worker/index.ts']),
+  // fetch-drain (extended by lane M1, 2026-09-18, build plan section 6.1 row M1): the capture-worker
+  // Edge Function itself, plus the runner that now invokes it over HTTPS from a workflow. Before this
+  // lane the only governing file was the Deno function (no Node-importable driver existed at all; every
+  // drain was a coordinator issuing pg_net batches by hand, see run-fetch-drain.mjs's own header).
+  'fetch-drain': Object.freeze([
+    'supabase/functions/capture-worker/index.ts',
+    'scripts/turns/run-fetch-drain.mjs',
+  ]),
   'meta-harness': Object.freeze([
     'scripts/harness-runs/CONVENTION.md',
     'scripts/harness-runs/PROPOSER-RUNBOOK.md',

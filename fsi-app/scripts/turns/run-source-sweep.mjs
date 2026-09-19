@@ -63,7 +63,7 @@ import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 // array/F28's hash yet). DEFAULT_MAX_SITEMAP_FETCHES/DEFAULT_MAX_SITEMAP_ENTRIES are this driver's own
 // --max-sitemap-fetches/--max-sitemap-entries defaults, mirroring the module's own.
 import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
-import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory } from "../lib/run-artifact.mjs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { readAllByIds } from "../lib/db.mjs";
 
@@ -242,9 +242,8 @@ export function parseArgs(argv) {
   if (!values.walker || !WALKERS.includes(values.walker)) {
     return { ok: false, error: `--walker must be one of ${WALKERS.join(", ")} (got ${JSON.stringify(values.walker)}).` };
   }
-  if (values.mode !== "dry" && values.mode !== "apply") {
-    return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
-  }
+  const modeCheck = validateModeArg(values.mode);
+  if (!modeCheck.ok) return modeCheck;
   if (values.walker === "feed") {
     if (!values["feed-url"]) return { ok: false, error: "--feed-url is required for --walker feed." };
   } else if (values.walker === "sitemap") {
@@ -1311,11 +1310,7 @@ async function main() {
         });
       }
       const artifact = {
-        harness_family: "source-sweep",
-        harness_version: harnessVersion,
-        run_id: runId,
-        started_at: startedAt,
-        finished_at: new Date().toISOString(),
+        ...baseArtifactFields({ family: "source-sweep", harnessVersion, runId, startedAt }),
         config: {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
@@ -1329,6 +1324,13 @@ async function main() {
           cursor: result?.cursor ?? null,
           time_budget_seconds: timeBudgetSeconds, check_coverage: checkCoverage,
           limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
+          // loop_run_id (lane M1, 2026-09-18, build plan section 6.1 row M1): the loop-wide run id this
+          // sweep's own downstream hops (fetch-drain, ledger-consume, ...) will carry forward, so a
+          // proof run (build plan section 6.2) can find every hop's artifact by one shared id. Read from
+          // env, never a CLI flag (source-sweep.yml sets LOOP_RUN_ID, defaulting to its own
+          // github.run_id when the workflow_dispatch input is left blank); a plain `node` invocation
+          // with no env var set records null, honestly, rather than inventing one.
+          loop_run_id: process.env.LOOP_RUN_ID || null,
         },
         inputs_ref: shaped?.inputsRef ?? [`walker=${walker}`, `from=${from ?? "n/a"}`, `to=${to ?? "n/a"}`],
         per_item: shaped?.perItem ?? [],

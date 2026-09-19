@@ -485,7 +485,7 @@ trusted on faith — this table exists for a human reader, the module is what ev
 |---|---|
 | `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation, imported directly since the re-export shims under scripts/mint/lib/ were deleted lane DEAD-EXEC 2026-09-04), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
-| `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
+| `fetch-drain` | `supabase/functions/capture-worker/index.ts`, `../../../scripts/turns/run-fetch-drain.mjs` (added lane M1, 2026-09-18) |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `governing-files.mjs` |
 | `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
