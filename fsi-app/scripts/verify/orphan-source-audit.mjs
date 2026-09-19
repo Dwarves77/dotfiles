@@ -9,12 +9,10 @@
  *
  *  Exit 0 = invariant holds (no orphans). Exit 1 = orphans found (gates in CI-with-secrets / ops run).
  *  Reads only. Requires env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readClient, readAll, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
+loadLocalEnvFile();
 
 const host = (u) => { try { return new URL(u).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
 

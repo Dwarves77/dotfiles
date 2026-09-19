@@ -28,6 +28,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifySourceRole } from "../src/lib/sources/classify-source-role.ts";
+import { loadLocalEnvFile } from "./lib/env-file.mjs";
 // connectPg (scripts/lib/pg-conn.mjs) is imported DYNAMICALLY below, inside the CLI block only — it
 // transitively imports the `pg` npm package, and this module's `planAndApply` core must stay importable
 // by the no-npm-ci discipline test glob (run-test-suite.sh's own NAMED EXCLUSIONS note documents this
@@ -35,7 +36,6 @@ import { classifySourceRole } from "../src/lib/sources/classify-source-role.ts";
 // put source-role-cleanup.test.mjs in the same trap).
 
 const __d = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__d, "..");
 
 /**
  * Pure(ish) core: reads `sources`, computes confident role mismatches, and — under `execute` — applies
@@ -87,7 +87,7 @@ export async function planAndApply({ execute = false, activeOnly = false } = {},
 // ── CLI (unchanged surface: --execute --confirm to apply, --active-only to narrow scope) ──
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   const EXECUTE = process.argv.includes("--execute") && process.argv.includes("--confirm");
   const ACTIVE_ONLY = process.argv.includes("--active-only");
 

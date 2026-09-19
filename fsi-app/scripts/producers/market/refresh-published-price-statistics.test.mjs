@@ -25,6 +25,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withoutCredentials } from "../../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = resolve(HERE, "refresh-published-price-statistics.mjs");
@@ -143,9 +144,7 @@ test("--propose-items: every drafted payload carries item.grade 'record', a plac
 });
 
 test("--propose-items never touches the database — no DB creds present in this test's env, exit 0 regardless", () => {
-  const env = { ...process.env };
-  delete env.NEXT_PUBLIC_SUPABASE_URL;
-  delete env.SUPABASE_SERVICE_ROLE_KEY;
+  const env = withoutCredentials();
   const res = spawnSync(process.execPath, [SCRIPT_PATH, "--propose-items"], { encoding: "utf8", env });
   assert.equal(res.status, 0, `expected exit 0 with no DB creds, got ${res.status}. stderr: ${res.stderr}`);
 });

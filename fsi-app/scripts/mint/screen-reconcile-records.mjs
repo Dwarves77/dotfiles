@@ -23,14 +23,12 @@
 // USAGE:
 //   node scripts/mint/screen-reconcile-records.mjs            # dry: what would be archived / needs a ruling
 //   node scripts/mint/screen-reconcile-records.mjs --apply    # archive off-vertical records through the guarded path
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { screenVerdictFor } from "./lib/screen-verdict.mjs";
 import { loadReviewedVerdicts } from "./export-census-rows.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const ARCHIVE_REASON = "off_vertical";
 export const CITE = Object.freeze({

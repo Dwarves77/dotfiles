@@ -24,19 +24,18 @@
  *  read, no import) now runs FIRST; pg-conn.mjs is imported dynamically, only on the branch that already
  *  knows it has something to try connecting with. */
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildLiveInventoryEntry } from "../maintenance/lib/vocab-inventory.mjs";
 import { QUERY, OUTPUT_PATH } from "../maintenance/schema-vocabulary-inventory.mjs";
 import { diffVocabulary } from "./lib/vocab-drift.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-// CHECK_VOCAB_DRIFT_NO_ENV_FILE=1 skips the env-file load. The no-credential tests set it: without it the
-// child process read the env file from disk, so in a worktree that HAS one "no credentials" was false and
-// the self-skip tests failed there and nowhere else (2026-09-18, it stopped lane M2's push).
-if (process.env.CHECK_VOCAB_DRIFT_NO_ENV_FILE !== "1") {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
-}
+// The env-file load goes through the one loader (lane T2, 2026-09-19): the no-credential tests build the
+// child's environment with withoutCredentials(), which strips the credentials AND switches the load off,
+// so a worktree that has an env file cannot hand them back (T1's per-script CHECK_VOCAB_DRIFT_NO_ENV_FILE
+// switch is retired by that class fix).
+loadLocalEnvFile();
 
 /** Mirrors pg-conn.mjs's own candidateConnStrings() gate: the local-link and NEXT_PUBLIC_SUPABASE_URL-
  *  derived pooler candidates both still require SUPABASE_DB_PASSWORD, so these three names cover every

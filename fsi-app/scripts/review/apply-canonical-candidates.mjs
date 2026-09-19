@@ -12,15 +12,13 @@
 // candidate; run it through the existing /admin canonical-sources UI, which can assign a tier.
 // "reject" and "skip" never touch intelligence_items — reject only marks the candidate rejected.
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import * as CanonicalCandidates from "./lib/canonical-candidates.mjs";
 import { validateRuling, isRulingStale } from "./lib/ruling.mjs";
 import { canonicalizeUrl } from "../../src/lib/sources/url-canonicalize.ts";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const CITE = Object.freeze({
   skill: "review-queue-ratification-digest",

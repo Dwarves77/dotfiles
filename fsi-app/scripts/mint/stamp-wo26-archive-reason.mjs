@@ -32,13 +32,11 @@
 // db.mjs's guarded path (cite + prior-value snapshot + read-back verification — see guardedUpdate).
 // Idempotent: a second run finds 0 matching rows (archive_reason is no longer NULL on the ones already
 // stamped). Rule-012: import.meta.url-relative env load, no hardcoded absolute paths.
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* no .env.local in this environment — real calls will refuse in db.mjs instead */ }
+loadLocalEnvFile();
 
 export const ARCHIVE_REASON = "out_of_scope_wo26";
 export const TARGET_DATE = "2026-08-21";

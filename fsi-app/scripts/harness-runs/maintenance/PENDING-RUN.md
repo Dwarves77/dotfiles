@@ -20,10 +20,28 @@ registration.
 ledger steps between "Flush public/detail caches after a real apply" and "Upload this run's step
 artifact(s)") and `scripts/maintenance/lib/cli.mjs` (unchanged this lane).
 
-**harness_version at write time:** `sha256:49bfa0f61836330e` (computed via `hashHarnessVersion` against
+**harness_version at write time (superseded below, see Re-pin, lane T2):** `sha256:49bfa0f61836330e` (computed via `hashHarnessVersion` against
 `governing-files.mjs`'s own `GOVERNING_FILES['maintenance']` array, against this lane's own final tree).
 
 **The planned run that supersedes this marker:** the coordinator's next `.github/workflows/maintenance.yml`
 dispatch (any step, dry or apply) -- its own "Write this run's maintenance harness-run artifact" step lands
-`maintenance-run-001.json` stamped with this hash (or the hash current at that time, if a governing file
-moves again first, in which case this marker is re-pinned per F28's reverse-audit rather than left stale).
+`maintenance-run-001.json` stamped with the current hash (see Re-pin below; or the hash current at that
+time, if a governing file moves again first, in which case this marker is re-pinned per F28's
+reverse-audit rather than left stale).
+
+## Re-pin (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:49bfa0f61836330e` no longer matched the live governing files
+of this family (`../.github/workflows/maintenance.yml`, `scripts/maintenance/lib/cli.mjs`) on the tree
+this push carries. Governing file changed on this branch: `scripts/maintenance/lib/cli.mjs` (moved onto
+the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run).
+This family still has zero valid run artifacts, so this is rule (b)'s first-run acknowledgment being
+re-pinned, not rule (c)'s staleness coupling; the marker is re-pinned so F28's acknowledgment set still
+matches the live tree. Finished by hand under the old convention (plan section 6.8, cause B; lane N3
+removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:b4bf51cff1af98e2` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['maintenance']`, unreordered; supersedes `sha256:49bfa0f61836330e`).
+
+**The planned run that supersedes this marker:** unchanged in kind, the coordinator's next
+`.github/workflows/maintenance.yml` dispatch, landing `maintenance-run-001.json` under this hash.

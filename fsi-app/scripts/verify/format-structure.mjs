@@ -28,8 +28,9 @@ import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { specForItemType } = await jiti.import("../../src/lib/agent/extract-registry.ts");
 const { sectionPresent, norm } = await import("./_fmt-present.mjs");

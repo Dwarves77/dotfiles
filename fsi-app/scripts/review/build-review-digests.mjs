@@ -14,17 +14,16 @@
 // script / maintenance step consumes the result.
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { renderMarkdown, buildRulingFile } from "./lib/digest-core.mjs";
 import * as ProvisionalSources from "./lib/provisional-sources.mjs";
 import * as CanonicalCandidates from "./lib/canonical-candidates.mjs";
 import * as PortalLinks from "./lib/portal-links.mjs";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 // Each entry: the queue module (grouping/recommendation), the apply script this digest names, and the
 // MAINT step (fsi-app/scripts/maintenance/**, .github/workflows/maintenance.yml) the coordinator wires up

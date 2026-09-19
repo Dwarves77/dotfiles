@@ -22,15 +22,15 @@
  *  wrapper) and regen-quarantined.test.mjs (a fake `sb`/`readAll`/`verifyItem`, no DB) can both drive it
  *  without a second copy of the decision loop. Behavior unchanged.
  */
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "./lib/db.mjs";
 import { verifyItem } from "../src/lib/sources/verify-item.mjs";
 import { getSnapshot } from "../src/lib/sources/snapshot-store.mjs";
 import { probeFreshness } from "../src/lib/sources/freshness-probe.mjs";
 import { cheapVerifyClaims } from "../src/lib/sources/cheap-verify.mjs";
+import { loadLocalEnvFile } from "./lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const HOLD_TYPES = new Set(["research_finding", "technology", "tool", "innovation"]);
 
@@ -86,7 +86,7 @@ export async function runResolver({ apply = false, limit = Infinity, only = null
 // ── CLI (unchanged surface: DRY-RUN default; --apply [--limit=N] [--only=]) ──
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+  loadLocalEnvFile();
   const apply = process.argv.includes("--apply");
   const limit = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
   const only = (() => { const a = process.argv.find((x) => x.startsWith("--only=")); return a ? a.slice(7).split(",").map((s) => s.trim()).filter(Boolean) : null; })();

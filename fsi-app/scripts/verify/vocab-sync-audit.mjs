@@ -9,8 +9,9 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { connectPg } from "../lib/pg-conn.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const V = await jiti.import("../../src/lib/agent/metadata-vocab.ts");
 

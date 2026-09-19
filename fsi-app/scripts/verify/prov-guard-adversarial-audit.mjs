@@ -28,12 +28,10 @@
  *  Three states (0/1/2, the sibling-audit convention): exit 0 = every case behaved correctly;
  *  exit 1 = at least one case behaved wrongly (REPORTED, fails the hard lane); exit 2 = no DB creds /
  *  engine error (cannot verify). Read-only in EFFECT (all probes roll back). pg-direct via the pooler. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { connectPg } from "../lib/pg-conn.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+loadLocalEnvFile();
 
 // Shared resolver (scripts/lib/pg-conn.mjs): env URL -> local .temp link -> CI-derived pooler candidates.
 const client = await connectPg();

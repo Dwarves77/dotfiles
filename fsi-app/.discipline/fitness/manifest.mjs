@@ -228,8 +228,10 @@ import { fitnessFunction as F44 } from './functions/F44-broken-main-guard.mjs';
 import { fitnessFunction as F45 } from './functions/F45-duplicate-code.mjs';
 import { fitnessFunction as F46 } from './functions/F46-external-host-home.mjs';
 import { fitnessFunction as F47 } from './functions/F47-db-object-reference.mjs';
-// F48 (lane L41, 2026-09-17): a live script's process.loadEnvFile must sit inside a try block, or every
-// workflow dispatch (env injected from secrets, no .env.local) crashes with ENOENT before any work.
+// F48 (lane L41, 2026-09-17; extended by lane T2, 2026-09-19): a live script loads the env file only through
+// the one loader scripts/lib/env-file.mjs; a bare process.loadEnvFile anywhere else is refused, and a test
+// that asserts credential-absent behaviour builds its child env with withoutCredentials() (twice in two days
+// a per-script load handed credentials back to a no-credential test in the one worktree with an env file).
 import { fitnessFunction as F48 } from './functions/F48-env-file-load-guarded.mjs';
 // Loop wiring (2026-09-18, lane M9a): the stage audit found every hop of the build plan's loop exists as
 // code, but "wired and never fired" is invisible, because nothing stated the hops as data a gate could

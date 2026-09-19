@@ -29,6 +29,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { discoverVerdictsFiles } from "../turns/run-ledger-consume.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -95,11 +96,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try {
-    process.loadEnvFile(resolve(ROOT, ".env.local"));
-  } catch {
-    /* CI: env may be pre-loaded */
-  }
+  loadLocalEnvFile();
   const { readAll } = await import("../lib/db.mjs");
 
   let rows;

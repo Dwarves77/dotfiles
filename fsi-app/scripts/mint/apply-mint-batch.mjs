@@ -132,7 +132,6 @@
 import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { writeRunArtifact, validateRunArtifact } from "../lib/run-artifact.mjs";
 // Cache flush after a real apply (coordinator, 2026-09-03, PERF train): the deployed app now serves the
 // four index ledgers from a tagged unstable_cache (src/lib/data.ts, APP_DATA_TAG) and every detail page
@@ -176,13 +175,12 @@ import {
 // verbatim, so every existing import of these two names from this file (apply-mint-batch.test.mjs)
 // keeps working unmodified — the same convention this file already uses for buildAgentRunSearchRows etc.
 import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export { buildAgentRunSearchRows, buildSectionRows, buildClaimRows, buildCitationRows };
 export { normalizeInstrumentIdentifier, sameInstrumentIdentity };
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const FSI_ROOT = resolve(HERE, "..", "..");
 
 // ── M4 pre-check ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -823,7 +821,7 @@ async function main() {
     process.exit(1);
   }
 
-  try { process.loadEnvFile(resolve(FSI_ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("apply-mint-batch: no DB creds — cannot run here (exit 2).");
     process.exit(2);

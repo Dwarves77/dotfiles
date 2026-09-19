@@ -30,15 +30,34 @@ mutation is `sources.fetch_status`/`fetch_status_at` (migration 147) on the SAME
 the opposite direction of every source-sweep walker's own write. A genuinely distinct run shape, per the
 CONVENTION's own test (CONVENTION.md's header, "meta-harness"/"forward-events" section).
 
-**harness_version at write time:** `sha256:4b0527a5aa3d4fbe` (computed via `hashHarnessVersion` against
+**harness_version at write time (superseded below, see Re-pin, lane T2):** `sha256:4b0527a5aa3d4fbe` (computed via `hashHarnessVersion` against
 `governing-files.mjs`'s own `GOVERNING_FILES['inaccessible-triage']`, 5 files: the driver plus the four
 ladder modules named above).
 
 **The planned run that discharges this marker:** the next real
 `node scripts/sources/inaccessible-triage.mjs` dispatch (dry or apply) will land
-`inaccessible-triage-run-001.json` with `harness_version: sha256:4b0527a5aa3d4fbe`, and this marker is
-deleted the moment that artifact lands (or updated to a new hash, per rule (c), if the governing files
-change again before that run lands). Per this stage's brief: the run itself is a coordinator dispatch
-(SELECT-only/no-network access does not permit this lane to run it) -- the mechanism is proven by
-`inaccessible-triage.test.mjs`'s own real-wiring test (`claimRunId`/`writeRunArtifact`, no fakes, a temp
-directory `readRunHistory` reads back cleanly).
+`inaccessible-triage-run-001.json` with `harness_version: sha256:b2b2b355960634d1` (the current pin, see
+Re-pin below), and this marker is deleted the moment that artifact lands (or updated to a new hash, per
+rule (c), if the governing files change again before that run lands). Per this stage's brief: the run
+itself is a coordinator dispatch (SELECT-only/no-network access does not permit this lane to run it) --
+the mechanism is proven by `inaccessible-triage.test.mjs`'s own real-wiring test
+(`claimRunId`/`writeRunArtifact`, no fakes, a temp directory `readRunHistory` reads back cleanly).
+
+## Re-pin (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:4b0527a5aa3d4fbe` no longer matched the live governing files
+of this family (`scripts/sources/inaccessible-triage.mjs`, `src/lib/sources/primary-fallback.mjs`,
+`src/lib/sources/seek-more.mjs`, `src/lib/sources/officialness.mjs`, `src/lib/sources/host-authority.ts`)
+on the tree this push carries. Governing file changed on this branch: `scripts/sources/inaccessible-triage.mjs`
+(moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for
+a real run). This family still has zero valid run artifacts, so this is rule (b)'s first-run
+acknowledgment being re-pinned, not rule (c)'s staleness coupling; the marker is re-pinned so F28's
+acknowledgment set still matches the live tree. Finished by hand under the old convention (plan section
+6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:b2b2b355960634d1` (recomputed via `hashHarnessVersion` against
+`GOVERNING_FILES['inaccessible-triage']`, unreordered; supersedes `sha256:4b0527a5aa3d4fbe`).
+
+**The planned run that discharges this marker:** unchanged in kind, the next real
+`node scripts/sources/inaccessible-triage.mjs` dispatch (dry or apply), landing
+`inaccessible-triage-run-001.json` under this hash.

@@ -25,12 +25,10 @@
 // USAGE:
 //   node scripts/mint/rederive-record-provenance.mjs            # dry: list what would be touched
 //   node scripts/mint/rederive-record-provenance.mjs --apply    # touch through the guarded path
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 
 export const CITE = Object.freeze({
   skill: "record-tier-population-plan",

@@ -66,11 +66,11 @@ import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } 
 import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { readAllByIds } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "source-sweep");
-const ROOT = FSI_ROOT;
 
 // This family's governing files — the driver plus the two dormant walker modules it gives a runtime to.
 // IMPORTED from scripts/harness-runs/governing-files.mjs (Wave GOV-SINGLE, 2026-09-04), re-exported under
@@ -941,7 +941,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

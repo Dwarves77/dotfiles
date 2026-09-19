@@ -9,8 +9,9 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
 import { CURRENT_SKILL_CONTRACT_VERSION } from "../src/lib/agent/contract-version.mjs";
+import { loadLocalEnvFile } from "./lib/env-file.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+loadLocalEnvFile();
 const { readClient, readAll, guardedInsert, guardedUpdate } = await import("./lib/db.mjs");
 const sb = readClient();
 const APPLY = process.argv.includes("--apply"); // --apply PERSISTS results to integrity_flags (durable)

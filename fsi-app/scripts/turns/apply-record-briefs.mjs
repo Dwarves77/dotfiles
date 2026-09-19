@@ -111,6 +111,7 @@ import { syncComplianceDeadlineForItem } from "../../src/lib/forward-events/comp
 import { runDiscoveryStep, runForwardEventsStep } from "../../src/lib/intake/flywheel-steps.mjs";
 import { recordItemChange } from "../lib/changelog.mjs";
 import { revalidateTags, itemTag, PUBLIC_ITEMS_TAG } from "../lib/revalidate.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import {
   preflightOrRefuse,
   recordApplyRunStart,
@@ -852,11 +853,7 @@ export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByIt
 if (isMainModule(import.meta.url)) await main();
 
 async function main() {
-  try {
-    process.loadEnvFile(resolve(FSI_ROOT, ".env.local"));
-  } catch {
-    /* CI: env injected */
-  }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

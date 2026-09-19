@@ -72,14 +72,13 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { readAll, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { planLinkWrites } from "../../src/lib/entities/entity-resolve.mjs";
 import { partitionLineageWrites } from "../../src/lib/entities/lineage-backfill.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("backfill-lineage-edges: no DB creds — cannot run here (exit 2).");
   process.exit(2);

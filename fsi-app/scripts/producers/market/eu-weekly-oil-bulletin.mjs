@@ -45,8 +45,6 @@
 // Exit 0 done (including a clean dry run) · 1 refused (switch off on --apply, or no DB creds on --apply) · 2 bad input.
 
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { parseEuWeeklyOilBulletinCsv } from "../../../src/lib/market/parsers/eu-weekly-oil-bulletin.mjs";
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
@@ -55,12 +53,12 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
 import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
 const KILL_SWITCH_ENV = "MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED";
 const REGISTRY_ENTRY = producerFor("eu-oil-bulletin");
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected, or no creds needed for --dry */ }
+loadLocalEnvFile();
 
 function readStdinSync() {
   try { return readFileSync(0, "utf8"); } catch { return ""; }

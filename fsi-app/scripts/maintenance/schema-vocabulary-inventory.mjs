@@ -19,6 +19,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fsiRoot, writeSummary } from "./lib/cli.mjs";
 import { buildLiveInventoryEntry } from "./lib/vocab-inventory.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 export const OUTPUT_PATH = resolve(fsiRoot(), "docs/inventories/db-check-constraints.json");
 
@@ -83,11 +84,7 @@ if (IS_MAIN) {
 
   let deps = {};
   if (mode === "dry") {
-    try {
-      process.loadEnvFile(resolve(fsiRoot(), ".env.local"));
-    } catch {
-      // CI injects env directly; absence here is not fatal on its own.
-    }
+    loadLocalEnvFile();
     const { connectPg } = await import("../lib/pg-conn.mjs");
     const client = await connectPg();
     if (!client) {

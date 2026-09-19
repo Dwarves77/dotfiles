@@ -7,12 +7,10 @@
  *  would surface on the wrong page — the "regulations only on Regulations" defect); (2) OFF-MODEL-SURFACE:
  *  technology/innovation/tool route to a 6th "Technology" surface outside the five (HOLD/re-home by substance);
  *  (3) UNKNOWN-TYPE: item_type maps to no surface. */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 // item_type -> { fmt: expected format token, surface }  (env-policy Format Mapping + platform-intent five surfaces)

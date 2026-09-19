@@ -9,11 +9,9 @@
  *  Disagreement is the "status is a cache that was never recomputed" failure — which is exactly what a
  *  gate or slot migration causes if it does NOT ship a corpus revalidation in the same change (the
  *  standing rule). Exit 1 on any disagreement. Read-only (validate_item_provenance is STABLE). */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll, readClient } from "../lib/db.mjs";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
+loadLocalEnvFile();
 const sb = readClient();
 
 const items = await readAll("intelligence_items", "id,legacy_id,provenance_status,is_archived", { match: (q) => q.eq("is_archived", false) });

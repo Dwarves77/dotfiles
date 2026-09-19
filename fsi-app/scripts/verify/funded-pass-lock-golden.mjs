@@ -4,17 +4,15 @@
  *  clean release frees it. Uses a DEDICATED test key so it never touches the real 'funded-pass' lock; cleans up.
  *  Usage: node scripts/verify/funded-pass-lock-golden.mjs   (exit 0 = PASS, 1 = FAIL)
  */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { acquireRunLock, heartbeatRunLock, releaseRunLock } from "../lib/funded-pass-lock.mjs";
 import { guardedUpdate, guardedDelete } from "../lib/db.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Guarded: absent .env.local must SELF-SKIP (exit 2, "cannot verify here"), never a stack-trace crash the
 // goldens runner reads as a real FAIL. This is a LIVE-DB golden (funded_pass_runlock writes); it runs for
 // real only in the secrets lane. (2026-08-09: was an unguarded loadEnvFile — ENOENT crash.)
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+loadLocalEnvFile();
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("funded-pass-lock-golden: no DB creds — cannot verify here (exit 2).");
   process.exit(2);

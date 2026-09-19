@@ -42,13 +42,14 @@
 // per-item capture/slot-write/section-attach mechanism already existed in heal-provenance.mjs's SLOTS
 // step, and duplicating it into a new file would violate the "no copies of logic" rule), dispatched
 // separately per this file's own printed worklist (`failingIds` in the JSON this script prints).
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 // claimCoversSlot: reused UNMODIFIED from heal-provenance.mjs (no copies of logic — CLAUDE.md rule)
 // (its own comment: "the exact criterion-5 check ... migration 299's own self-check SQL, verbatim shape").
 // This file no longer carries its own copy (removed 2026-09-05, lane KIT-BACKFILL, when the pre-existing
 // export was found by grep — see this lane's REPORT for the discovery).
 import { claimCoversSlot } from "./heal-provenance.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 // The exact four (item_type, slot_key) pairs migration 299 inserts, in its own file order.
 export const NEW_REQUIRED_SLOTS = Object.freeze([
@@ -133,11 +134,7 @@ export function evaluatePostCheck(guard, quarantinedForNewSlots) {
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
   const post = process.argv.includes("--post");
-  try {
-    process.loadEnvFile(resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", ".env.local"));
-  } catch {
-    // CI injects env directly; a local run without .env.local relies on the caller's shell env.
-  }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("migration-299-precheck: no DB creds (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) — cannot run here (exit 2).");
     process.exit(2);

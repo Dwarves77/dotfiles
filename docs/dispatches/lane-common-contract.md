@@ -89,6 +89,7 @@ Operator, 2026-09-12: "These type of issues keep happening. Why can't we make su
    - Anything a GitHub Actions job writes to the working tree (a worklist, a run artifact, an export) is committed back to the dispatched ref by a step in that workflow, or it does not exist after the job ends (the brief-apply and error-body-gate class, 2026-09-12). A protected ref degrades to a warning, never a failed run.
    - A maintenance step is in `maintenance.yml`'s `step` choice list, uses the composite action like its siblings, and has its runbook section; a new fitness function or verifier is execution-wired (`.discipline/governance/execution-wiring.mjs`).
    - No em dashes, en dashes or the section-sign glyph in added prose, enforced by discipline rule 022 (`fsi-app/.discipline/rules/022-no-dash-glyphs.mjs`); an unavoidable, verbatim glyph is disclosed with the `glyph:verbatim` marker on the same line, never edited. No user-home paths even in comments (pre-commit rule 012).
+   - A script loads the local env file only through `fsi-app/scripts/lib/env-file.mjs` (`loadLocalEnvFile()`), never with a bare `process.loadEnvFile`; a test that asserts credential-absent behaviour on a spawned child builds its environment with `withoutCredentials()` from the same module (F48, lane T2, 2026-09-19: a per-script load defeated that test class twice in two days in the one worktree with an env file).
 3. The coordinator's brief may shorten the test list you run DURING the work; it never waives this preflight at the end.
 
 ## Commit

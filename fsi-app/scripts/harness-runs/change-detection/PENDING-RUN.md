@@ -55,6 +55,14 @@ marker is re-pinned again, per rule (c), if a governing file changes once more b
 
 **What changed.** The recorded hash `sha256:66c1bb58dfbbf01a` no longer matched the live governing files of this family (`scripts/turns/run-change-detection.mjs`, `src/lib/sources/reconcile.ts`, `src/lib/intake/run-intake-cycle.ts`) on the tree this push carries. Governing files changed on this branch: `src/lib/intake/run-intake-cycle.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:c8a815718d5993d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered).
+**harness_version at write time (superseded below, see Re-pin 4):** `sha256:c8a815718d5993d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 4 (lane T2, 2026-09-19, env-file loader move)
+
+**What changed.** The recorded hash `sha256:c8a815718d5993d1` no longer matched the live governing files of this family (`scripts/turns/run-change-detection.mjs`, `src/lib/sources/reconcile.ts`, `src/lib/intake/run-intake-cycle.ts`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-change-detection.mjs` (moved onto the one guarded env-file loader, `fsi-app/scripts/lib/env-file.mjs`; no behaviour change for a real run). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on. Finished by hand under the old convention (plan section 6.8, cause B; lane N3 removes the stored-hash-pin problem this re-pin works around), not a fix.
+
+**harness_version at write time:** `sha256:435c1d6ced34134b` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['change-detection']`, unreordered; supersedes `sha256:c8a815718d5993d1`).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

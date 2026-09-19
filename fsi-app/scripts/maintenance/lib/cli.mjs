@@ -22,6 +22,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 
 /** fsi-app root, resolved from this file's own location (scripts/maintenance/lib/cli.mjs -> fsi-app). */
 export function fsiRoot() {
@@ -68,12 +69,7 @@ export async function runCli({ step, main, needsDb = true, buildDeps }) {
     process.exit(1);
   }
 
-  try {
-    process.loadEnvFile(resolve(fsiRoot(), ".env.local"));
-  } catch {
-    // CI injects env directly (secrets context -> job env); a local run without .env.local relies on
-    // the caller's shell env instead. Either way, absence here is not fatal on its own.
-  }
+  loadLocalEnvFile();
 
   if (needsDb && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)) {
     console.error(`${step}: no DB creds (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) — cannot run here (exit 2).`);

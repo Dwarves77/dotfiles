@@ -74,6 +74,7 @@ import { exactCount } from "../../src/lib/db/paginate.mjs";
 // bare `import` for testing.
 import { CHANGE_SWEEP_STAGED_MARKER } from "../../src/lib/sources/change-sweep.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -399,7 +400,7 @@ const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(im
 if (IS_MAIN) await main();
 
 async function main() {
-  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
 
   const parsed = parseArgs(process.argv.slice(2));
   if (!parsed.ok) {

@@ -789,6 +789,7 @@ export function buildTitleForRow({ capture, source, identifier, allowBodyLeadFal
 // capture step needs the same two facts, and two homes for one fact drift. Re-exported here so every
 // existing importer and test keeps its name.
 import { cellarEndpointForCelex, isEurlexRobotGate } from "../lib/eurlex-cellar.mjs";
+import { loadLocalEnvFile } from "../lib/env-file.mjs";
 export { cellarEndpointForCelex, isEurlexRobotGate };
 
 /** Title for a Cellar XHTML act: the `p.oj-doc-ti` lines joined by a space ("COUNCIL DECISION of 14
@@ -1568,7 +1569,7 @@ export async function main() {
     process.exit(1);
   }
 
-  try { process.loadEnvFile(resolve(FSI_ROOT, ".env.local")); } catch { /* CI: env injected */ }
+  loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("export-census-rows: no DB creds — cannot run here (exit 2).");
     process.exit(2);
