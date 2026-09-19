@@ -30,10 +30,10 @@
 // legitimately repeat fixtures), fixtures/, _archive/ (inert by construction), scripts/harness-runs/ and
 // scripts/_snapshots/ (run records and data, similar by design), and generated .d.ts. Every exclusion is
 // named here; nothing is excluded silently.
-import { execFileSync } from 'node:child_process';
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { readFile } from '../lib/file-content.mjs';
+import { resolveRange, gitChangedFiles, gitWorkingTreeFiles } from '../../lib/change-range.mjs';
 
 export const SCOPE_GLOBS = ['fsi-app/src/**/*.{mjs,js,ts,tsx}', 'fsi-app/scripts/**/*.{mjs,js,ts,tsx}'];
 export const WINDOW = 8;
@@ -108,13 +108,18 @@ export function detectClones(entries, window = WINDOW) {
 
 /** Files changed on this branch (against origin/master when it resolves) plus the working tree's modified
  *  and untracked files, repo-relative with forward slashes. Used only to NAME the clone pairs a regression
- *  most likely came from; the measurement itself never depends on git. Empty when git is unavailable. */
+ *  most likely came from; the measurement itself never depends on git. Empty when git is unavailable.
+ *  Lane N0 (plan section 6.8 Rule C): derives the range and the changed-file list through
+ *  fsi-app/.discipline/lib/change-range.mjs instead of a private git-plumbing copy, same result set as
+ *  before -- local merge-base against origin/master, plus the working tree's own modified/untracked
+ *  files, silently empty on either half's failure (matching the original's all-catching `run()`). */
 export function changedFiles() {
   const out = new Set();
-  const run = (args) => { try { return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return ''; } };
-  const base = run(['merge-base', 'origin/master', 'HEAD']).trim();
-  if (base) for (const f of run(['diff', '--name-only', base, 'HEAD']).split(/\r?\n/)) if (f) out.add(f.trim());
-  for (const line of run(['status', '--porcelain', '--untracked-files=all']).split(/\r?\n/)) if (line.length > 3) out.add(line.slice(3).trim().replace(/\\/g, '/'));
+  const { range, source } = resolveRange({});
+  if (source !== 'unavailable' && range) {
+    try { for (const f of gitChangedFiles(range)) out.add(f); } catch { /* mirrors original's silent-empty-on-failure */ }
+  }
+  for (const f of gitWorkingTreeFiles()) out.add(f);
   return out;
 }
 
