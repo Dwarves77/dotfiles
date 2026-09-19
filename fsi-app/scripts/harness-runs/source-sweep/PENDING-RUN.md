@@ -65,7 +65,7 @@ register-federal-register/feed walkers, or any pre-existing field's meaning -- e
 pre-existing tests in `run-source-sweep.test.mjs` still passes unchanged (12 new tests added for the
 slice/cursor logic itself).
 
-**harness_version at write time:** `sha256:62033d6829cd830f` (recomputed via `hashHarnessVersion` against
+**harness_version at the previous pin's write time (superseded below, see Re-pin 2):** `sha256:62033d6829cd830f` (recomputed via `hashHarnessVersion` against
 `GOVERNING_FILES['source-sweep']`, the same 3 files, unreordered; supersedes `sha256:32161a97c0405906`
 outright).
 
@@ -73,3 +73,11 @@ outright).
 `node scripts/turns/run-source-sweep.mjs` dispatch (dry or apply), landing `source-sweep-run-019.json`
 under this hash -- this lane's own brief scopes the actual dispatch to the coordinator, after M1 lands
 (section 6.1 row M8's "Depends on: M1"), so it is not run from here.
+
+## Re-pin 2 (coordinator, 2026-09-19, at push after rebase: lane M1 rebased onto a master that carries lanes M8, M9b, M9a and L36)
+
+**What changed.** The recorded hash `sha256:62033d6829cd830f` no longer matched the live governing files of this family (`scripts/turns/run-source-sweep.mjs`, `src/lib/sources/register-walk.mjs`, `src/lib/sources/feed-walk.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/run-source-sweep.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:92cde8a1de0287ca` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['source-sweep']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

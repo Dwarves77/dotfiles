@@ -219,22 +219,30 @@ next self-application review pass over this wave, unchanged in kind from every p
 
 **What changed.** The recorded hash `sha256:97dfc15ffa4276d1` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/lib/run-artifact.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:f45efbeae8961cce` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 7):** `sha256:f45efbeae8961cce` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
 
-## Re-pin 4 (lane M1, 2026-09-18, build plan section 6.1 row M1)
+## Lane M1's first pin, made before its rebase (history; superseded by Re-pin 7 below)
 
 **What changed.** The recorded hash `sha256:331382dbea0f66e9` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this lane's commit carries. Governing files changed: `scripts/harness-runs/governing-files.mjs` (lane M1 registered `scripts/turns/run-fetch-drain.mjs` as a second entry in `GOVERNING_FILES['fetch-drain']`, the new canonical runner for that family, plus header prose describing the change) and `scripts/harness-runs/CONVENTION.md` (the `fetch-drain` harness_version table row, kept in parity with `governing-files.mjs` per the CONVENTION-TABLE-PARITY test). No run of the meta-harness family landed in between; the marker is re-pinned so F28 measures the tree the coordinator's next self-application pass will actually execute on.
 
-**harness_version at write time (superseded below, see Re-pin 5):** `sha256:a4081a250eeb5e8a` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered; supersedes `sha256:4d602ce2d5153d91`, an intermediate value computed before the `CONVENTION.md` edit above landed in the same commit).
+**harness_version at that lane-local pin's write time (superseded, see Re-pin 7):** `sha256:a4081a250eeb5e8a` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered; supersedes `sha256:4d602ce2d5153d91`, an intermediate value computed before the `CONVENTION.md` edit above landed in the same commit).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pins; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
 
-## Re-pin 5 (lane m1, 2026-09-18, F45 duplicate-code remediation)
+## Lane M1's second pin, made before its rebase (history; superseded by Re-pin 7 below)
 
 **What changed.** The recorded hash `sha256:a4081a250eeb5e8a` no longer matched the live governing files of this family on the tree this commit carries. Governing file changed: `scripts/lib/run-artifact.mjs` (F45 fix, this lane: added `validateModeArg`/`baseArtifactFields`, the two shared runner-frame helpers extracted from `research-sweep.mjs`/`run-fetch-drain.mjs`/`run-source-sweep.mjs` to close a duplicate-code clone flagged over the F45 ceiling). No run of the meta-harness family landed in between; the marker is re-pinned so F28 measures the tree the coordinator's next self-application pass will actually execute on.
 
-**harness_version at write time:** `sha256:109bea51cdc8206c` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+**harness_version at that lane-local pin's write time (superseded, see Re-pin 7):** `sha256:109bea51cdc8206c` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pins; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 7 (coordinator, 2026-09-19, at push after rebase: lane M1 rebased onto a master that carries lanes M8, M9b, M9a and L36)
+
+**What changed.** The recorded hash `sha256:f45efbeae8961cce` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/lib/run-artifact.mjs`, `scripts/harness-runs/governing-files.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:4f90c94e943b4aaa` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
