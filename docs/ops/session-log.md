@@ -23838,3 +23838,18 @@ The cited file itself is NOT among the removed files; no citation goes stale.
 
 ### UX compliance (L37)
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-18, W9 lane D2: data duplicate census written; EP-11 0, title twins 1 group, domain-tier splits 2 hosts
+
+Haiku lane, worktree wt-d2, branch lane/d2-data-duplicate-census-2026-09-18 from master 2f7ae35c. No database access in the lane; coordinator ran SELECT-only queries on 2026-09-18 23:50 to 23:58 UTC.
+
+**Result [CONFIRMED by the brief read and the coordinator's SQL measurements]**: three data invariants measured against live database state.
+- EP-11 canonical-instrument-key twins: 0 (assertion holds)
+- Non-regulatory items with shared title and jurisdiction: 1 group, 2 market_signal items in {SG} (hypothesis: duplicate pending entity-identity ruling)
+- SC-13 sources with domain-tier splits: 2 hosts (5 rows; cdp.net duplicate rows awaiting merge, sec.gov tier ruling for operator)
+
+**Findings**: title-jurisdiction duplicates and domain-tier splits are data-phase decisions, not machine defects. Disposition recorded in audit for coordinator action.
+
+### UX compliance (D2)
+
+Not a UI change; no customer surface touched by this branch.
