@@ -9,8 +9,10 @@
 //   2. ENFORCEMENT RESOLVES: every enforcedBy token points at a real rule/fitness/check/file/migration.
 //   3. ANCHOR PRESENT: each invariant's anchor substring still exists in its skill file (catches an
 //      invariant being edited out of the skill while staying "covered" here).
-//   4. MARKER BASELINE: each skill's normative-marker line count == its baseline (catches a new/removed
-//      normative statement that must be triaged into the registry).
+//   4. MARKER FLOOR (plan 6.8, Rule B, lane N4): each skill's normative-marker line count on HEAD must be
+//      at least the same count on the merge-base tree with origin/master (catches a REMOVED normative
+//      statement that must be triaged into the registry; an added marker is fine and needs no gate here).
+//      Skipped, never failed, when no git range resolves (no baseline to compare against).
 //   5. NO ORPHAN MECHANISM: every rule/fitness/consistency check in the manifests is referenced by ≥1
 //      invariant (catches a mechanism that exists but maps to no invariant — the inverse drift).
 //   6. EVERY RULE HAS A FIRE-TEST: every rules/NNN-*.mjs has a sibling rules/NNN-*.test.mjs (so no
@@ -34,7 +36,8 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
-import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from './invariants.mjs';
+import { INVARIANTS, SKILL_FILES, MARKER_SOURCE } from './invariants.mjs';
+import { resolveRange, gitFileAtBase } from '../lib/change-range.mjs';
 import { DOCTRINES } from './doctrine-register.mjs';
 import { runSecretsReferenceAudit } from './secrets-reference-audit.mjs';
 import { scanDoctrineContradictions, DOCTRINE_FILES } from './doctrine-contradiction.mjs';
@@ -166,27 +169,37 @@ export function auditInvariants(invariants, env) {
   return { problems, referenced };
 }
 
-// PURE marker-baseline audit (check 4), injectable so the gate's drift-catching behaviour is
-// negative-testable — mirrors the auditInvariants()/auditDoctrines() extraction (2026-08-10, U8).
-// Without this being pure+injectable, "the baseline check actually reddens on drift" was PRACTICE
+// PURE marker-FLOOR audit (check 4, plan 6.8 Rule B, lane N4), injectable so the gate's drift-catching
+// behaviour is negative-testable, mirroring the auditInvariants()/auditDoctrines() extraction (2026-08-10,
+// U8). Without this being pure+injectable, "the floor check actually reddens on drift" was PRACTICE
 // (asserted by comment, never proven), the same turtle-at-the-top gap execution-wiring.test.mjs and
 // invariant-coverage.test.mjs's other negative tests close for checks 1-3 and the doctrine audit.
-// Catches: (a) a skill in the file map with no baseline entry (NO BASELINE — an added skill that was
-// never seeded), (b) a skill whose live marker count no longer equals its recorded baseline (MARKER
-// DRIFT — a normative statement was added or removed without triage). `env.getSkillContent(skill) ->
-// string|null` (null skipped — SKILL FILE MISSING is reported separately by the caller),
+//
+// NO STORED BASELINE (Cause B, plan 6.8): the prior design compared HEAD's marker count to a hand-seeded
+// SKILL_MARKER_BASELINE constant that had to be re-seeded on every triaged change, colliding whenever two
+// lanes triaged the same skill file (a pure function of the tree that two lanes each wrote a correct value
+// for). Now: HEAD's count for a skill must be AT LEAST the same count taken on the merge-base tree with
+// origin/master. A normative statement REMOVED without triage drops the count and fails; an ADDED
+// statement raises it and passes (a new marker gets triaged into the invariant registry separately, not
+// gated here). `env.getSkillContent(skill) -> string|null` (null skipped, SKILL FILE MISSING is reported
+// separately by the caller). `env.getBaseSkillContent(skill) -> string|null` (null skipped, no baseline to
+// compare, e.g. the skill file did not exist at the base, or no range resolves at all; the caller decides
+// whether to call this function when no range resolves and prints that skip itself, mirroring F28/F45).
 // `env.countMarkers(content) -> number`.
-export function auditMarkerBaselines(skillFiles, baselines, env) {
+export function auditMarkerBaselines(skillFiles, env) {
   const problems = [];
   for (const skill of Object.keys(skillFiles)) {
     const content = env.getSkillContent(skill);
     if (content == null) continue;
+    const baseContent = env.getBaseSkillContent(skill);
+    if (baseContent == null) continue;
     const actual = env.countMarkers(content);
-    const baseline = baselines[skill];
-    if (baseline === undefined) {
-      problems.push(`NO BASELINE: ${skill} has no marker baseline (set SKILL_MARKER_BASELINE.${skill} = ${actual}).`);
-    } else if (actual !== baseline) {
-      problems.push(`MARKER DRIFT: ${skill} normative-marker count ${actual} != baseline ${baseline} — a normative statement changed; triage into INVARIANTS then re-baseline to ${actual}.`);
+    const baseCount = env.countMarkers(baseContent);
+    if (actual < baseCount) {
+      problems.push(
+        `MARKER DRIFT: ${skill} normative-marker count dropped from ${baseCount} (merge-base) to ${actual} ` +
+          `(HEAD): a normative statement may have been silently removed; restore it or triage the removal.`,
+      );
     }
   }
   return { problems };
@@ -250,12 +263,19 @@ export function runInvariantCoverage() {
   });
   const problems = [...preProblems, ...invProblems];
 
-  // 4: marker baselines, via the pure/injectable core (real skill content + real countMarkers).
-  const { problems: markerProblems } = auditMarkerBaselines(SKILL_FILES, SKILL_MARKER_BASELINE, {
-    getSkillContent: (s) => skillContent[s],
-    countMarkers,
-  });
-  problems.push(...markerProblems);
+  // 4: marker floor against the merge-base tree (plan 6.8, Rule B), via the pure/injectable core.
+  // Skipped, never failed, when no git range resolves (no baseline to compare against).
+  const { base, source, reason } = resolveRange({ cwd: REPO });
+  if (source === 'unavailable') {
+    console.log(`  [invariant-coverage] marker floor: skipped (${reason})`);
+  } else {
+    const { problems: markerProblems } = auditMarkerBaselines(SKILL_FILES, {
+      getSkillContent: (s) => skillContent[s],
+      getBaseSkillContent: (s) => gitFileAtBase(base, SKILL_FILES[s], { cwd: REPO }),
+      countMarkers,
+    });
+    problems.push(...markerProblems);
+  }
 
   // 5: no orphan mechanism (every rule/fitness/consistency mapped by ≥1 invariant).
   for (const id of ruleIds) if (!referenced.rule.has(id)) problems.push(`ORPHAN MECHANISM: rule ${id} is in the manifest but no invariant references it (map it or remove it).`);
@@ -319,7 +339,7 @@ if (process.argv[1] && process.argv[1].endsWith('invariant-coverage.mjs')) {
   console.log(`skills: ${summary.skills}  invariants: ${summary.invariants}  |  ENFORCED ${summary.enforced}  EXEMPT ${summary.exempt}`);
   console.log(`doctrine register: ${summary.doctrines}  |  ENFORCED ${summary.docEnforced}  EXEMPT ${summary.docExempt}  (unenforced doctrine = FAIL)`);
   if (ok) {
-    console.log(`\nALL ${summary.invariants} invariants + ${summary.doctrines} doctrines are wired: each is enforced by a resolving mechanism OR exempt-with-reason; every enforcement exists; every anchor present; marker baselines hold; no orphan mechanisms.`);
+    console.log(`\nALL ${summary.invariants} invariants + ${summary.doctrines} doctrines are wired: each is enforced by a resolving mechanism OR exempt-with-reason; every enforcement exists; every anchor present; no marker regressed below its merge-base count; no orphan mechanisms.`);
     console.log(`=== meta-gate PASS ===`);
     process.exit(0);
   }
