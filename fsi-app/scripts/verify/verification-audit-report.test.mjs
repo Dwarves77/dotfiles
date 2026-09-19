@@ -3,6 +3,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join as pathJoin } from "node:path";
 import {
   buildProvenanceMatrix,
   buildClaimsCitationStats,
@@ -111,6 +114,10 @@ function fakeHistoryReader(byDir) {
   return (dir) => byDir[posix(dir)] ?? { runs: [], invalid: [] };
 }
 
+function fakeListPending(byFamily) {
+  return (repoRoot, family) => byFamily[family] ?? [];
+}
+
 test("collectHarnessMarkers: a family with run history reports its latest run", () => {
   const root = "/fake/harness-runs";
   const rows = collectHarnessMarkers({
@@ -125,7 +132,7 @@ test("collectHarnessMarkers: a family with run history reports its latest run", 
         invalid: [],
       },
     }),
-    fileExists: () => false,
+    listPending: fakeListPending({}),
   });
   assert.deepEqual(rows, [
     {
@@ -135,31 +142,31 @@ test("collectHarnessMarkers: a family with run history reports its latest run", 
       latestRunId: "mint-run-002",
       latestStartedAt: "2026-09-02T00:00:00Z",
       latestDefectCount: 1,
-      pendingMarker: false,
+      pendingFileCount: 0,
     },
   ]);
 });
 
-test("collectHarnessMarkers: a zero-run family with no PENDING-RUN.md reports honestly (F28 rule (b) gap)", () => {
+test("collectHarnessMarkers: a zero-run family with no pending file reports honestly (F28 tree-state rule gap)", () => {
   const rows = collectHarnessMarkers({
     families: ["source-sweep"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    fileExists: () => false,
+    listPending: fakeListPending({}),
   });
   assert.equal(rows[0].runCount, 0);
   assert.equal(rows[0].latestRunId, null);
-  assert.equal(rows[0].pendingMarker, false);
+  assert.equal(rows[0].pendingFileCount, 0);
 });
 
-test("collectHarnessMarkers: a zero-run family WITH a PENDING-RUN.md is marked, not flagged as a bare gap", () => {
+test("collectHarnessMarkers: a zero-run family WITH pending file(s) is counted, not flagged as a bare gap", () => {
   const rows = collectHarnessMarkers({
     families: ["propagation"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    fileExists: (p) => posix(p).endsWith("propagation/PENDING-RUN.md"),
+    listPending: fakeListPending({ propagation: ["2026-09-19-n3.md"] }),
   });
-  assert.equal(rows[0].pendingMarker, true);
+  assert.equal(rows[0].pendingFileCount, 1);
 });
 
 test("collectHarnessMarkers: rows are sorted by family name", () => {
@@ -167,9 +174,40 @@ test("collectHarnessMarkers: rows are sorted by family name", () => {
     families: ["screen", "mint"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    fileExists: () => false,
+    listPending: fakeListPending({}),
   });
   assert.deepEqual(rows.map((r) => r.family), ["mint", "screen"]);
+});
+
+// ── collectHarnessMarkers, real filesystem: a temp fixture proving listPendingFiles is the reader ──
+// (lane N3 Amendment 1, 2026-09-19). Builds a real repo-shaped temp directory (fsi-app/scripts/
+// harness-runs/<family>/pending/<file>) and lets collectHarnessMarkers call the REAL listPendingFiles
+// (no fake injected here) against it, proving the wiring end to end, not just the fake's shape.
+
+test("collectHarnessMarkers (real listPendingFiles): one family with a pending file, one without", () => {
+  const tmp = mkdtempSync(pathJoin(tmpdir(), "verification-audit-pending-"));
+  try {
+    const harnessRunsDir = pathJoin(tmp, "fsi-app", "scripts", "harness-runs");
+    const withPendingDir = pathJoin(harnessRunsDir, "with-pending", "pending");
+    mkdirSync(withPendingDir, { recursive: true });
+    writeFileSync(pathJoin(withPendingDir, "2026-09-19-n3.md"), "## Change\n\nx\n\n## Planned run\n\ny\n");
+    mkdirSync(pathJoin(harnessRunsDir, "without-pending"), { recursive: true });
+
+    const rows = collectHarnessMarkers({
+      families: ["with-pending", "without-pending"],
+      root: harnessRunsDir,
+      historyReader: fakeHistoryReader({}),
+      // repoRoot left at its default (three levels above `root`, i.e. `tmp` here), the exact
+      // relationship the real CLI usage has between DEFAULT_HARNESS_RUNS_ROOT and the repo root.
+    });
+
+    const withPending = rows.find((r) => r.family === "with-pending");
+    const withoutPending = rows.find((r) => r.family === "without-pending");
+    assert.equal(withPending.pendingFileCount, 1);
+    assert.equal(withoutPending.pendingFileCount, 0);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 // ── renderMarkdown ───────────────────────────────────────────────────────────────────────────────
@@ -190,7 +228,7 @@ test("renderMarkdown: every section header is present", () => {
   assert.match(md, /## 4\. F28 harness-run markers/);
 });
 
-test("renderMarkdown: names every family missing both a run and a PENDING-RUN.md marker", () => {
+test("renderMarkdown: names every family missing both a run and a pending file", () => {
   const md = renderMarkdown({
     generatedAt: "2026-09-02T00:00:00Z",
     provenanceMatrix: [],
@@ -199,10 +237,10 @@ test("renderMarkdown: names every family missing both a run and a PENDING-RUN.md
     claimRowCount: 0,
     missingSpan: { sectionCount: 0, claimCount: 0 },
     harnessMarkers: [
-      { family: "ghost-family", runCount: 0, invalidCount: 0, latestRunId: null, latestStartedAt: null, latestDefectCount: null, pendingMarker: false },
+      { family: "ghost-family", runCount: 0, invalidCount: 0, latestRunId: null, latestStartedAt: null, latestDefectCount: null, pendingFileCount: 0 },
     ],
   }).join("\n");
-  assert.match(md, /1 family with zero runs and no PENDING-RUN\.md marker.*ghost-family/s);
+  assert.match(md, /1 family with zero runs and no pending file.*ghost-family/s);
 });
 
 test("renderMarkdown: says so plainly when every family is covered", () => {
@@ -214,10 +252,10 @@ test("renderMarkdown: says so plainly when every family is covered", () => {
     claimRowCount: 0,
     missingSpan: { sectionCount: 0, claimCount: 0 },
     harnessMarkers: [
-      { family: "mint", runCount: 3, invalidCount: 0, latestRunId: "mint-run-003", latestStartedAt: "x", latestDefectCount: 0, pendingMarker: false },
+      { family: "mint", runCount: 3, invalidCount: 0, latestRunId: "mint-run-003", latestStartedAt: "x", latestDefectCount: 0, pendingFileCount: 0 },
     ],
   }).join("\n");
-  assert.match(md, /Every registered family has either run history or an honest PENDING-RUN\.md marker\./);
+  assert.match(md, /Every registered family has either run history or a pending file recording why\./);
 });
 
 // ── writeReportFiles ─────────────────────────────────────────────────────────────────────────────

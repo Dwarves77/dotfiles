@@ -31,10 +31,10 @@
 //   Omit --out to print the Markdown to stdout only (no files written).
 
 import { writeFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { readClient } from "../lib/db.mjs";
 import { readRunHistory, DEFAULT_HARNESS_RUNS_ROOT } from "../lib/run-artifact.mjs";
-import { GOVERNING_FILES } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
+import { GOVERNING_FILES, listPendingFiles } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // ── §1: intelligence_items provenance matrix — grade × status × item_type ─────────────────────────
@@ -126,18 +126,30 @@ export function findSectionsMissingSpan(claimRows) {
 }
 
 // ── §4: F28 harness-run markers ─────────────────────────────────────────────────────────────────
-// Reuses F28's own GOVERNING_FILES (the registered-family list — never re-derived by hand here) and
+// Reuses F28's own GOVERNING_FILES (the registered-family list, never re-derived by hand here) and
 // run-artifact.mjs's own readRunHistory/DEFAULT_HARNESS_RUNS_ROOT (the SAME reader F28 and the
-// `--list` CLI use), per CONVENTION.md's schema: a family with zero valid runs and no PENDING-RUN.md
-// is the honest-gap case F28's rule (b) itself polices; this report surfaces it for a human/proposer
-// without re-running F28's own audit logic.
+// `--list` CLI use), per CONVENTION.md's schema: a family with zero valid runs and no pending/ file
+// is the honest-gap case F28's tree-state rule itself polices; this report surfaces it for a
+// human/proposer without re-running F28's own audit logic.
+//
+// Lane N3 Amendment 1 (2026-09-19): the marker mechanism moved from a single hash-pinned
+// PENDING-RUN.md to a family's own pending/ directory (build plan section 6.8 Rule B). This function
+// reads that directory through F28's own exported `listPendingFiles`, the one reader every F28 rule
+// itself uses, rather than a second hand-rolled directory scan. `root` (defaulting to
+// DEFAULT_HARNESS_RUNS_ROOT, `fsi-app/scripts/harness-runs`) still names the harness-runs directory
+// for `historyReader`, unchanged; `repoRoot` (defaulting to three levels above `root`, the outer
+// repository top level `listPendingFiles` itself expects, the same relationship
+// `fsi-app/scripts/harness-runs` has to the repo root everywhere else in this codebase) is the new
+// argument `listPending` is called with. `pendingMarker` (a boolean naming a single marker file) is
+// replaced by `pendingFileCount` (the count of files under the family's own pending/ directory).
 
-/** Pure-ish (the three collaborators are injectable): one row per F28-registered harness family. */
+/** Pure-ish (the collaborators are all injectable): one row per F28-registered harness family. */
 export function collectHarnessMarkers({
   families = Object.keys(GOVERNING_FILES),
   root = DEFAULT_HARNESS_RUNS_ROOT,
   historyReader = readRunHistory,
-  fileExists = existsSync,
+  repoRoot = resolve(root, "..", "..", ".."),
+  listPending = listPendingFiles,
 } = {}) {
   return families
     .map((family) => {
@@ -151,7 +163,7 @@ export function collectHarnessMarkers({
         latestRunId: latest?.run_id ?? null,
         latestStartedAt: latest?.started_at ?? null,
         latestDefectCount: latest ? latest.defects_found.length : null,
-        pendingMarker: fileExists(join(dir, "PENDING-RUN.md")),
+        pendingFileCount: listPending(repoRoot, family).length,
       };
     })
     .sort((a, b) => a.family.localeCompare(b.family));
@@ -232,24 +244,24 @@ export function renderMarkdown(report) {
 
   out.push("## 4. F28 harness-run markers (scripts/harness-runs/, per CONVENTION.md)");
   out.push("");
-  out.push("| family | runs | invalid | latest run | latest started_at | latest defects | PENDING-RUN.md |");
-  out.push("|---|---:|---:|---|---|---:|---|");
+  out.push("| family | runs | invalid | latest run | latest started_at | latest defects | pending files |");
+  out.push("|---|---:|---:|---|---|---:|---:|");
   for (const h of report.harnessMarkers) {
     out.push(
       `| ${h.family} | ${h.runCount} | ${h.invalidCount} | ${h.latestRunId ?? "—"} | ${h.latestStartedAt ?? "—"} | ` +
-        `${h.latestDefectCount ?? "—"} | ${h.pendingMarker ? "yes" : "no"} |`,
+        `${h.latestDefectCount ?? "—"} | ${h.pendingFileCount} |`, // glyph:verbatim (same null-value dash as latestRunId/latestStartedAt above)
     );
   }
-  const zeroRunNoMarker = report.harnessMarkers.filter((h) => h.runCount === 0 && !h.pendingMarker);
+  const zeroRunNoPending = report.harnessMarkers.filter((h) => h.runCount === 0 && h.pendingFileCount === 0);
   out.push("");
-  if (zeroRunNoMarker.length > 0) {
+  if (zeroRunNoPending.length > 0) {
     out.push(
-      `**${zeroRunNoMarker.length} famil${zeroRunNoMarker.length === 1 ? "y" : "ies"} with zero runs and no ` +
-        `PENDING-RUN.md marker**: ${zeroRunNoMarker.map((h) => h.family).join(", ")} — F28's own rule (b) ` +
-        "first-run acknowledgment gap; see F28-harness-run-integrity.mjs.",
+      `**${zeroRunNoPending.length} famil${zeroRunNoPending.length === 1 ? "y" : "ies"} with zero runs and no ` +
+        `pending file**: ${zeroRunNoPending.map((h) => h.family).join(", ")}, F28's own tree-state rule ` +
+        "gap; see F28-harness-run-integrity.mjs.",
     );
   } else {
-    out.push("Every registered family has either run history or an honest PENDING-RUN.md marker.");
+    out.push("Every registered family has either run history or a pending file recording why.");
   }
   out.push("");
 
