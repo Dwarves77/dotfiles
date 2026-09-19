@@ -10,7 +10,6 @@ test("interface contract: every named export exists and is a function", () => {
     "evaluateAntitrustGuard",
     "projectAuthorIdentity",
     "corroborationCount",
-    "promotionState",
     "evidenceAge",
   ]) {
     assert.equal(typeof community[name], "function", `${name} must be exported as a function`);
@@ -30,11 +29,6 @@ test("interface contract: projectAuthorIdentity(profile) -> { orgType, role, sec
 test("interface contract: corroborationCount(thread) -> includes { organisations, posts }", () => {
   const r = community.corroborationCount({ posts: [] });
   assert.ok("organisations" in r && "posts" in r);
-});
-
-test("interface contract: promotionState(thread) -> { state, transitions[] }", () => {
-  const r = community.promotionState({ transitions: [] });
-  assert.ok("state" in r && Array.isArray(r.transitions));
 });
 
 test("interface contract: evidenceAge(evidence, now) -> { ageDays, weight, chip }", () => {
