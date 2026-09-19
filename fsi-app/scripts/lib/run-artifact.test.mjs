@@ -44,6 +44,11 @@ function makeValidArtifact(overrides = {}) {
     defects_found: [],
     full_trace_refs: ["path/to/report.md"],
     proposer_notes: "",
+    // Fixed explicitly (Wave M9a) so every existing byte-faithful round-trip assertion in this file
+    // stays true regardless of the ambient GITHUB_EVENT_NAME this test process happens to run under:
+    // writeRunArtifact only auto-stamps "trigger" when the artifact does not already carry one (see the
+    // dedicated "trigger"/"upstream_run_id" tests below, which delete it explicitly to exercise that path).
+    trigger: "manual",
     ...overrides,
   };
 }
@@ -289,6 +294,119 @@ test("writeRunArtifact: { allowOverwrite: true } permits a deliberate overwrite"
     const onDisk = JSON.parse(readFileSync(join(dir, "mint-run-001.json"), "utf8"));
     assert.equal(onDisk.proposer_notes, "deliberately replaced");
   } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── "trigger" / "upstream_run_id": optional fields (Wave M9a, 2026-09-18) ─────────────────────────
+
+test("validateRunArtifact: trigger absent entirely is valid (optional field, pre-existing artifacts stay valid)", () => {
+  const artifact = makeValidArtifact();
+  delete artifact.trigger;
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("validateRunArtifact: each of the four trigger values is valid", () => {
+  for (const value of ["workflow_run", "workflow_dispatch", "push", "manual"]) {
+    assert.deepEqual(validateRunArtifact(makeValidArtifact({ trigger: value })), []);
+  }
+});
+
+test("validateRunArtifact RED: trigger present but not one of the four allowed values", () => {
+  const errors = validateRunArtifact(makeValidArtifact({ trigger: "cron" }));
+  assert.ok(errors.some((e) => e.includes("field trigger")), errors.join("; "));
+});
+
+test("validateRunArtifact RED: trigger present but not a string", () => {
+  const errors = validateRunArtifact(makeValidArtifact({ trigger: 123 }));
+  assert.ok(errors.some((e) => e.includes("field trigger")), errors.join("; "));
+});
+
+test("validateRunArtifact: upstream_run_id absent is valid", () => {
+  const artifact = makeValidArtifact();
+  assert.deepEqual(validateRunArtifact(artifact), []); // trigger fixture carries no upstream_run_id by default
+});
+
+test("validateRunArtifact: upstream_run_id present as a non-empty string is valid", () => {
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ upstream_run_id: "18234567890" })), []);
+});
+
+test("validateRunArtifact RED: upstream_run_id present but empty/whitespace-only", () => {
+  const errors = validateRunArtifact(makeValidArtifact({ upstream_run_id: "   " }));
+  assert.ok(errors.some((e) => e.includes("upstream_run_id")), errors.join("; "));
+});
+
+test("writeRunArtifact: stamps trigger from GITHUB_EVENT_NAME when the artifact does not already carry one", () => {
+  const dir = tmpDir();
+  const prevEvent = process.env.GITHUB_EVENT_NAME;
+  try {
+    process.env.GITHUB_EVENT_NAME = "workflow_run";
+    const artifact = makeValidArtifact();
+    delete artifact.trigger;
+    const path = writeRunArtifact(dir, artifact);
+    const onDisk = JSON.parse(readFileSync(path, "utf8"));
+    assert.equal(onDisk.trigger, "workflow_run");
+  } finally {
+    if (prevEvent === undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME = prevEvent;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: stamps trigger \"manual\" when GITHUB_EVENT_NAME is unset or unrecognized", () => {
+  const dir = tmpDir();
+  const prevEvent = process.env.GITHUB_EVENT_NAME;
+  try {
+    delete process.env.GITHUB_EVENT_NAME;
+    const artifact = makeValidArtifact();
+    delete artifact.trigger;
+    const path = writeRunArtifact(dir, artifact);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "manual");
+  } finally {
+    if (prevEvent === undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME = prevEvent;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: never overwrites a caller-supplied trigger with the environment-derived one", () => {
+  const dir = tmpDir();
+  const prevEvent = process.env.GITHUB_EVENT_NAME;
+  try {
+    process.env.GITHUB_EVENT_NAME = "workflow_run";
+    const path = writeRunArtifact(dir, makeValidArtifact({ trigger: "push" }));
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "push");
+  } finally {
+    if (prevEvent === undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME = prevEvent;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: stamps upstream_run_id from GITHUB_EVENT_WORKFLOW_RUN_ID when set and absent from the artifact", () => {
+  const dir = tmpDir();
+  const prevId = process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
+  try {
+    process.env.GITHUB_EVENT_WORKFLOW_RUN_ID = "18234567890";
+    const path = writeRunArtifact(dir, makeValidArtifact());
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).upstream_run_id, "18234567890");
+  } finally {
+    if (prevId === undefined) delete process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
+    else process.env.GITHUB_EVENT_WORKFLOW_RUN_ID = prevId;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: leaves upstream_run_id absent when GITHUB_EVENT_WORKFLOW_RUN_ID is unset", () => {
+  const dir = tmpDir();
+  const prevId = process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
+  try {
+    delete process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
+    const path = writeRunArtifact(dir, makeValidArtifact());
+    assert.equal("upstream_run_id" in JSON.parse(readFileSync(path, "utf8")), false);
+  } finally {
+    if (prevId === undefined) delete process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
+    else process.env.GITHUB_EVENT_WORKFLOW_RUN_ID = prevId;
     rmSync(dir, { recursive: true, force: true });
   }
 });

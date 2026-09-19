@@ -78,6 +78,13 @@ const STRING_FIELDS = Object.freeze([
   "proposer_notes",
 ]);
 
+// "trigger" (Wave M9a, 2026-09-18): OPTIONAL top-level field, added so the loop-manifest gate (F50,
+// .discipline/governance/loop-manifest.mjs) can tell "a workflow fired this run automatically" apart from
+// "a person dispatched it" without re-deriving that from GitHub's own event log. NOT in
+// REQUIRED_TOP_LEVEL, so existing artifacts written before this field existed stay valid exactly as they
+// are (CONVENTION.md's own "existing artifacts stay as they are" rule for a schema addition).
+const TRIGGER_VALUES = Object.freeze(["workflow_run", "workflow_dispatch", "push", "manual"]);
+
 function isPlainObject(v) {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
@@ -175,6 +182,22 @@ export function validateRunArtifact(artifact) {
     }
   });
 
+  // Both optional (Wave M9a): present-but-wrong-shape still fails closed; absent is fine (older
+  // artifacts, or a writer that has no CI event context to derive them from).
+  if ("trigger" in artifact) {
+    if (typeof artifact.trigger !== "string" || !TRIGGER_VALUES.includes(artifact.trigger)) {
+      errors.push(
+        `field trigger, when present, must be one of ${JSON.stringify(TRIGGER_VALUES)} ` +
+          `(got ${JSON.stringify(artifact.trigger)})`,
+      );
+    }
+  }
+  if ("upstream_run_id" in artifact) {
+    if (typeof artifact.upstream_run_id !== "string" || artifact.upstream_run_id.trim().length === 0) {
+      errors.push("field upstream_run_id, when present, must be a non-empty string");
+    }
+  }
+
   artifact.defects_found.forEach((d, i) => {
     if (!isPlainObject(d)) {
       errors.push(`defects_found[${i}] must be an object`);
@@ -207,22 +230,36 @@ export function validateRunArtifact(artifact) {
  * @returns {string} the path written
  */
 export function writeRunArtifact(dir, artifact, opts = {}) {
-  const errors = validateRunArtifact(artifact);
-  if (errors.length) {
-    throw new Error(`writeRunArtifact: invalid artifact —\n  ${errors.join("\n  ")}`);
+  // trigger/upstream_run_id are stamped in this ONE place (Wave M9a, 2026-09-18, see this module's
+  // header, "trigger") rather than by each of the nine runner scripts separately, so a future family
+  // never has to remember to set them: every write goes through here. A caller-supplied value (a test
+  // fixture, a future caller with its own reasoning) is never overwritten, only a MISSING field is
+  // filled in from the current process environment.
+  const stamped = { ...artifact };
+  if (!("trigger" in stamped)) {
+    const eventName = process.env.GITHUB_EVENT_NAME;
+    stamped.trigger = TRIGGER_VALUES.includes(eventName) ? eventName : "manual";
+  }
+  if (!("upstream_run_id" in stamped) && process.env.GITHUB_EVENT_WORKFLOW_RUN_ID) {
+    stamped.upstream_run_id = process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
   }
 
-  const outPath = join(resolve(dir), `${artifact.run_id}.json`);
+  const errors = validateRunArtifact(stamped);
+  if (errors.length) {
+    throw new Error(`writeRunArtifact: invalid artifact, ${errors.join("; ")}`);
+  }
+
+  const outPath = join(resolve(dir), `${stamped.run_id}.json`);
   if (existsSync(outPath) && !opts.allowOverwrite) {
     throw new Error(
-      `writeRunArtifact: ${outPath} already exists — refusing to overwrite silently ` +
+      `writeRunArtifact: ${outPath} already exists, refusing to overwrite silently ` +
         `(pass { allowOverwrite: true } if this is deliberate). ` +
         `See CONVENTION.md's "screen-v1 loss" for why this default exists.`,
     );
   }
 
   mkdirSync(resolve(dir), { recursive: true });
-  writeFileSync(outPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+  writeFileSync(outPath, JSON.stringify(stamped, null, 2) + "\n", "utf8");
   return outPath;
 }
 

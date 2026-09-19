@@ -336,6 +336,32 @@ closed — see "Fail-closed, not fail-soft" below); several may hold an empty ar
 produced none of that thing (e.g. `defects_found: []` for a completely clean run), but the key itself
 must be present so a reader never has to guess whether "absent" means "none found" or "not measured."
 
+Two further top-level keys are **optional** (Wave M9a, 2026-09-18, the loop manifest and gate F50:
+`.discipline/governance/loop-manifest.mjs`): `trigger` and `upstream_run_id`. Neither is required; an
+artifact written before this addition, or by a caller with no CI event context, stays valid exactly as it
+is without them.
+
+- `"trigger"`: one of `"workflow_run"`, `"workflow_dispatch"`, `"push"`, `"manual"`. Tells a reader
+  whether this run fired automatically off another workflow's completion, off an explicit dispatch, off a
+  push, or was run some other way (the `"manual"` default: a local run, a test, anything with no matching
+  CI event). Stamped in exactly ONE place, `writeRunArtifact` (`scripts/lib/run-artifact.mjs`), from
+  `process.env.GITHUB_EVENT_NAME` when the artifact object does not already carry a `trigger` field, the
+  standard GitHub Actions runner environment variable, present without any workflow-file change. This is
+  what lets F50 tell "the edge exists in the yml" apart from "something has actually fired through it from
+  its upstream, not from a person," the exact gap the 2026-09-18 stage audit named invisible.
+- `"upstream_run_id"`: the GitHub Actions run id of the workflow that triggered this one, when known.
+  Stamped the same way from `process.env.GITHUB_EVENT_WORKFLOW_RUN_ID`, but that variable is NOT one of
+  the standard runner environment variables: GitHub only populates `github.event.workflow_run.id` on a
+  `workflow_run` triggered run, and it must be exported into the job's environment by the workflow file
+  itself before `writeRunArtifact` can see it, e.g.:
+  ```yaml
+  env:
+    GITHUB_EVENT_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+  ```
+  Lane M9a (this addition) does not edit any `.github/workflows/*.yml` file; that line is added by
+  whichever lane (M1 through M6) wires each workflow's own `workflow_run` trigger, at the same time it
+  adds the trigger edge itself.
+
 ```jsonc
 {
   // ── identity ──────────────────────────────────────────────────────────────────────
@@ -545,3 +571,46 @@ of silently skipped or silently crashing the read. A lightweight CLI ships in th
 family's history without opening every file, per the paper's lightweight-CLI guidance. `--list` is a
 survey, never a substitute for reading the artifacts and their `full_trace_refs` before proposing a
 harness change — see `PROPOSER-RUNBOOK.md`.
+
+## The loop manifest and F50
+
+Wave M9a (2026-09-18). This convention governs one harness family's own run history at a time. A build
+made of many workflow files also has HOPS one level up from that: a workflow's completion is meant to
+trigger the next workflow, or a runtime is meant to write into a harness family the next stage reads. The
+2026-09-18 stage audit named the gap directly: every hop existed as code, but "wired and never fired" was
+invisible, because nothing stated the hops as data a gate could check.
+
+**What a hop is.** `.discipline/governance/loop-manifest.mjs` exports `LOOP_HOPS`, one entry per hop of
+the build plan's own loop (`docs/plans/complete-system-build-plan-2026-09-04.md` section 1): a producer
+workflow, a consumer workflow, the trigger kind (`workflow_run` today, everywhere in this loop), the
+harness family the hop feeds (or `null` when the hop has none yet), and two booleans.
+
+**The two flags.** A single "enforce" flag cannot say both "the wiring exists" and "something has actually
+run through it," which is exactly the distinction this gap needed: `ledger-consume.yml` already carried
+the `workflow_run` edge from `source-sweep.yml` before any workflow had ever fired it that way. So every
+hop carries two:
+
+- `enforceEdge`: true means the consumer workflow's `on.workflow_run.workflows` list MUST already name
+  the producer's `name:` today. F50 checks this by reading the consumer's committed yml text.
+- `enforceFired`: true means at least one artifact in the hop's harness family MUST already carry
+  `trigger: "workflow_run"` today (see the Schema section above), proof the hop fired from its upstream,
+  not from a person dispatching it by hand. F50 checks this by reading the family's own committed run
+  artifacts.
+
+A hop where either flag is still false is counted, never failed: F50 prints "hops not yet enforced: N" on
+every run, so the number is visible whether or not any hop is enforced yet. A lane that wires a hop (adds
+the `workflow_run` edge, proves a real fired run) flips its flag to `true` in the SAME commit that lands
+the wiring; the manifest is a claim about the tree, and a flag flipped ahead of the wiring it describes
+would make F50 fail on the very commit meant to prove it, which is the gate doing its job.
+
+**Pending files and pending families.** A hop can name a consumer workflow or a harness family that does
+not exist on the tree yet (`consumerPending`, `familyPending` on the hop): the lane that will create it is
+named in the hop's own `note`. `loop-manifest.test.mjs` exempts a pending file or family from its
+existence/name checks; F50 never enforces a flag for a hop whose file or family is pending, since a flag
+can only be true once the thing it claims about exists to check.
+
+**Flipping a flag.** When a lane wires a hop: (1) add the `workflow_run` edge (or, for a fired claim,
+confirm a real run left an artifact with `trigger: "workflow_run"`); (2) flip the corresponding flag to
+`true` in `loop-manifest.mjs`, in the same commit; (3) run the fitness runner and confirm F50 reports one
+fewer unenforced hop and zero violations. `loop-manifest.test.mjs` and `F50-loop-wiring.test.mjs` are the
+two proofs that keep the manifest itself honest about what it claims.

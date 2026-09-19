@@ -211,6 +211,14 @@ next self-application review pass over this wave, unchanged in kind from every p
 
 **What changed.** The recorded hash `sha256:149fb249227d13cc` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/lib/run-artifact.mjs`, `scripts/harness-runs/governing-files.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:97dfc15ffa4276d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+**harness_version at the previous pin's write time (superseded below, see Re-pin 6):** `sha256:97dfc15ffa4276d1` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 6 (coordinator, 2026-09-19, at push after rebase: lane M9a rebased onto a master that carries lanes M8 and M9b; run-artifact.mjs gains trigger and upstream_run_id on the tree with both new families)
+
+**What changed.** The recorded hash `sha256:97dfc15ffa4276d1` no longer matched the live governing files of this family (`scripts/harness-runs/CONVENTION.md`, `scripts/harness-runs/PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `scripts/harness-runs/governing-files.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/harness-runs/CONVENTION.md`, `scripts/lib/run-artifact.mjs`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:f45efbeae8961cce` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['meta-harness']`, unreordered).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
