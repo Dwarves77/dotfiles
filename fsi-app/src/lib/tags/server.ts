@@ -25,6 +25,7 @@ export interface TagsSupabaseClient {
 }
 
 /** Resolve a UI-side identifier (legacy_id like "o3" OR a UUID) to
+ *  mirror of /api/workspace/overrides's resolveItemUuid: kept, F34 (route files export only handlers) means overrides/route.ts cannot export this helper for import.
  *  intelligence_items.id. Returns null if not found. Mirrors
  *  /api/workspace/overrides's resolveItemUuid exactly (same shape,
  *  intentionally not deduplicated across the two route files further —

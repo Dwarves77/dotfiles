@@ -39,6 +39,14 @@ marker is deleted the moment it does (or updated to a new hash if the governing 
 
 **What changed.** The recorded hash `sha256:5219d3eb0947e065` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing files changed on this branch: `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`. No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
 
-**harness_version at write time:** `sha256:f7db875f0599db16` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+**harness_version at write time (superseded below, see Re-pin 5):** `sha256:f7db875f0599db16` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.
+
+## Re-pin 5 (lane L38, 2026-09-19, at push after rebase)
+
+**What changed.** The recorded hash `sha256:f7db875f0599db16` no longer matched the live governing files of this family (`scripts/turns/apply-record-briefs.mjs`, `scripts/turns/record-briefs/schema.mjs`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/intake/flywheel-steps.mjs`, `scripts/turns/io-preflight.mjs`) on the tree this push carries. Governing file changed on this branch: `scripts/turns/record-briefs/schema.mjs` (an admitted-mirror disposition comment only, per `docs/audits/system-health-audit-2026-09-17.md`'s "Admitted mirrors, dispositions" table; no validator logic changed). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:2fbca24d924900c3` (recomputed via `hashHarnessVersion` against `GOVERNING_FILES['brief-apply']`, unreordered; supersedes `sha256:f7db875f0599db16`).
 
 **The planned run that supersedes this marker.** Unchanged in kind from the previous pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

@@ -5,6 +5,7 @@
 // live write site (canonical-pipeline.ts's harvestItemTimeline, scripts/backfill-item-timelines.mjs) --
 // never two copies that could drift from each other the way the pre-D31 code did (the validator's
 // TIMELINE_HEADING_VARIANTS and the harvest's extract-regulation-sections.ts SECTION_HEADINGS["14"] were
+// mirror of src/lib/agent/formats/*.ts's per-format SECTIONS: kept, no-npm-ci portability (this module cannot use "@/" tsconfig aliases); drift-tested by timeline-section-drift.test.mjs.
 // already two independent mirrors of the SAME regulatory heading; this file replaces both AND extends the
 // same table to the other four formats, which had no timeline-section concept at all before this lane).
 //

@@ -28,6 +28,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { splitCsvLine } from "@/lib/spec09/csv-upload-contract.mjs";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { pausedResponse } from "@/lib/api/pause";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
@@ -152,38 +153,6 @@ function parseCsv(raw: string): { rows: BulkImportRow[]; error?: string } {
   }
 
   return { rows: out };
-}
-
-function splitCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        cur += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ",") {
-        result.push(cur);
-        cur = "";
-      } else {
-        cur += ch;
-      }
-    }
-  }
-  result.push(cur);
-  return result;
 }
 
 function parseJsonRows(raw: string): { rows: BulkImportRow[]; error?: string } {

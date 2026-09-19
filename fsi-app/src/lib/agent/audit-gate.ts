@@ -41,6 +41,7 @@ export interface ItemCrossItemMetrics {
   sample: string[];
 }
 
+// mirror of the nightly corpus-wide audits: kept, same reason as audit-gate-core.mjs (this file's typed DB-wired companion).
 /** Item-scoped mirror of unregistered-span-host-audit + claims-tier-audit. `searchUrlById` maps a claim's
  *  search_result_id -> agent_run_searches.result_url. Pure: caller supplies the rows + the resolver. */
 export function scoreItemClaims(

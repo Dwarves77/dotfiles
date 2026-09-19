@@ -59,6 +59,7 @@ interface LastRun {
   rounds: number | null;
 }
 
+// mirror of src/lib/connections/theme-stats.mjs's CONVERGENCE_BANDS: kept, client-bundle boundary (this file is browser-bundled, that module is server-imported too).
 // Convergence bands mirrored from src/lib/connections/theme-stats.mjs's CONVERGENCE_BANDS (kept as a
 // literal here rather than imported — this file is a client component bundled for the browser, that
 // module is a plain .mjs the route also imports server-side; duplicating two numbers is simpler and

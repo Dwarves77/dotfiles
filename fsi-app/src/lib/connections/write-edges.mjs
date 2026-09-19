@@ -49,6 +49,7 @@ import { resolve } from "node:path";
 
 const pairKey = (s, t) => `${s}|${t}`;
 
+// mirror of scripts/lib/db.mjs's snapshot(): kept, that function is private (not exported).
 // Mirrors scripts/lib/db.mjs's private snapshot() format exactly (that function is not exported, and
 // src/ must not import scripts/ — the wrong dependency direction), so a snapshot written from either
 // side is byte-for-byte interchangeable (verified in write-edges.test.mjs). node:fs/node:path are

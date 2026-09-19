@@ -97,8 +97,14 @@ behavior changed (`validate-mint-payload.mjs`, `payload-schema.json`, `item-type
 `gate-a-scan.mjs`/`gate-a-match.mjs`, `canonicalize-citation-url.mjs`, `record-facts.mjs` are all
 untouched by this lane).
 
-**harness_version at write time:** `sha256:2bd2db89b5cc2973` (recomputed this lane, `node -e` against
+**harness_version at write time (superseded below, see lane L38 re-pin):** `sha256:2bd2db89b5cc2973` (recomputed this lane, `node -e` against
 `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s `hashHarnessVersion`,
 the same 8 files, unreordered; supersedes `sha256:0cc65f2728f2af1a` outright).
 
 **Re-pin note (W9 Part 3 rebase, 2026-09-12):** `sha256:213617fb97ab8dc4` -> `sha256:2bd2db89b5cc2973`. Tasks 5.5 (merged in #638) and 3.5 both moved mint governing files; this re-pin is computed on the merged tree with the fixed hasher. No governing file changed in this commit.
+
+**Re-pin (lane L38, 2026-09-19, at push after rebase).** The recorded hash `sha256:2bd2db89b5cc2973` no longer matched the live governing files of this family on the tree this push carries. Governing file changed on this branch: `scripts/mint/validate-mint-payload.mjs` (admitted-mirror disposition comments only, per `docs/audits/system-health-audit-2026-09-17.md`'s "Admitted mirrors, dispositions" table; no validation logic changed). No run of this family landed in between; the marker is re-pinned so F28 measures the tree the run will actually execute on.
+
+**harness_version at write time:** `sha256:40332c48404f4e86` (recomputed this lane via `hashHarnessVersion` against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array, the same 8 files, unreordered; supersedes `sha256:2bd2db89b5cc2973`).
+
+**The planned run that supersedes this marker.** Unchanged in kind from the prior pin; that run's artifact records whatever the tree is when it lands, and this file is deleted or re-pinned per F28's reverse-audit.

@@ -156,6 +156,7 @@ export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-17.1";
 // before a write is ever attempted.
 //
 // GUARDED MIRROR (fix round 1 follow-up, 2026-09-12): the criterion 4 mirror's per-format canonical
+// mirror of src/lib/agent/formats/*.ts's format registry: kept, glob-portability.test.mjs cannot resolve "@/" tsconfig aliases; drift-tested by section-list-drift.npmtest.mjs.
 // section list (`SECTION_DEFS_BY_FORMAT_TYPE`, below) is a second copy of the real format registry
 // (src/lib/agent/formats/*.ts via extract-registry.ts), kept here only because the real files import via
 // "@/" tsconfig aliases glob-portability.test.mjs cannot resolve. A second copy drifts -- so this mirror's

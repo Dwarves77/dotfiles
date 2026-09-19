@@ -23854,6 +23854,61 @@ Haiku lane, worktree wt-d2, branch lane/d2-data-duplicate-census-2026-09-18 from
 
 Not a UI change; no customer surface touched by this branch.
 
+## 2026-09-19, W9 lane L38: admitted mirrors wired or kept with reason; F45 6174 to 6132
+
+Model: Sonnet. Worktree `/home/user/dotfiles/.worktrees/wt-l35h`, branch
+`lane/l38-admitted-mirrors-2026-09-19`, base `dd26b39b` (master).
+
+**Result [CONFIRMED by direct execution].** Built the admitted-mirrors census with `git grep -niP` over
+`fsi-app/src`, `fsi-app/scripts`, `fsi-app/supabase/functions` code files (pattern and full method in
+`fsi-app/scripts/tmp/l38-mirrors.txt`, gitignored scratch, and in
+`docs/audits/system-health-audit-2026-09-17.md`'s new "Admitted mirrors, dispositions" subsection): 68
+raw hits, read every one, found 41 true current admitted-mirror sites after excluding avoidance prose
+("never a second copy"), historical prose (a defect already fixed by the file being read), and
+plain-English false matches. Dispositioned each: 1 WIRE (`bulk-import/route.ts`'s private `splitCsvLine`
+now imports `csv-upload-contract.mjs`'s export, verified byte-identical before wiring, private copy
+deleted), 6 KEEP as the audit's own named, drift-tested SQL mirrors (not edited), 32 other KEEP with a
+rewritten `// mirror of <path>: kept, <reason>` first line, 2 DEFERRED (`run-source-sweep.mjs`, on
+tonight's exclusion list; the `BIAS_TAG_VOCAB` pair duplicated across the two `recommend-classification`
+routes, reported to the coordinator per the brief's "two copies, no home" clause rather than inventing a
+new shared module for it).
+
+F45 (duplicate-code): measured 6132 duplicated lines against the 6174 ceiling (IMPROVEMENT).
+`DUPLICATED_LINES_CEILING` re-seeded to 6132 in the same commit, history comment appended, runner
+re-run PASS (0 violations), `node --test .discipline/fitness/functions/F45-duplicate-code.test.mjs`
+7/7 pass.
+
+Editing `scripts/mint/validate-mint-payload.mjs` and `scripts/turns/record-briefs/schema.mjs` (both
+governing files) moved the `mint` and `brief-apply` families' harness-version hashes; F28 caught this
+live (`node fsi-app/.discipline/fitness/runner.mjs`). Re-pinned both `PENDING-RUN.md` markers to the
+current hash following the file's own established "Re-pin N, at push after rebase" convention
+(`hashHarnessVersion` recomputed against `governing-files.mjs`'s own arrays); re-run PASS, 0 violations.
+
+Whole suite: `bash .discipline/run-test-suite.sh`: 7241 tests, 7236 pass, 0 fail, 5 skipped, 0 todo,
+exit 0. `npx tsc --noEmit` clean (no output).
+
+**Findings.**
+- The audit's stated 77 admitted-mirror comments does not reproduce from any grep pattern this lane
+  built, including a deliberately widened one (68 raw hits). [HYPOTHESIS]: the audit's own count likely
+  included avoidance ("no second copy") and historical ("used to carry its own copy") false positives a
+  plain keyword scan cannot distinguish from a real admission; unverifiable without the audit's own
+  printed pattern, which it did not carry.
+- **[CONFIRMED by search]**, out of this lane's scope to fix: two comments (`src/lib/agent/gate-a-scan.mjs:9`,
+  `src/lib/intake/write-item.ts:70`) reference `scripts/mint/lib/gate-a-scan.mjs`, which no longer exists
+  anywhere in the repo; the file was removed after the comments describing its 2026-09-04 fix were
+  written. Flagged in the audit doc per rule 13 rather than silently dropped.
+- **[CONFIRMED by search]** `src/lib/sources/snapshot-store.mjs:89` cites `wave1-cold-start::persistRaw`,
+  which also does not exist anywhere in the repo; the comment's kept-reason now records this as a stale
+  reference rather than a live sibling.
+
+**Next.** The coordinator: (1) decide whether `BIAS_TAG_VOCAB` (duplicated across the two admin
+`recommend-classification` routes) gets a shared home in a future lane; (2) `scripts/turns/run-source-sweep.mjs:324`'s
+admitted mirror is deferred to whichever lane owns that train file tonight.
+
+### UX compliance (L38)
+
+Not a UI change; no customer surface touched by this branch. The two `.tsx` files touched
+(`AdminDashboard.tsx`, `ThemesView.tsx`) gained a comment line only, no JSX or behavior change.
 ## 2026-09-19, coordinator (cloud session, no access to the operator's machine): 6.7 duplicates landed, the process defects they exposed fixed in the same motion
 
 Cloud container, handoff section 0a. Read GitHub and the vault only; touched no train PR. Master moved from `1b8432a0` (#725) to the merges below.

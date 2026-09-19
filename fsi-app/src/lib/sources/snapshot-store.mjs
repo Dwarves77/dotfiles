@@ -86,6 +86,7 @@ export async function getSnapshot(svc, q) {
 /**
  * WRITE a snapshot on acquisition (invariant I3). Hashes + gzips the body, uploads to the `raw_fetches` bucket,
  * upserts the metadata row (onConflict source_id,content_hash so re-acquiring identical content is idempotent).
+ * mirror of wave1-cold-start::persistRaw: kept, but that file no longer exists in this repo (verified by search) -- stale reference; this is now the sole implementation (finding, not fixed further here).
  * Mirrors wave1-cold-start::persistRaw exactly. Returns the content hash + storage key.
  * @param {import("@supabase/supabase-js").SupabaseClient} svc
  * @param {string} sourceId

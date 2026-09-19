@@ -2,6 +2,7 @@
 
 // useWorkspaceOverridesHydration — PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306).
 //
+// mirror of usePersonalStateHydration.ts's pattern: kept, a parallel hook implementing the same pattern for a different data domain, not an importable shared function.
 // Mirrors usePersonalStateHydration.ts's pattern exactly (same file's header explains the
 // shared rationale for reading off the useWorkspaceBootstrap() singleton instead of a
 // dedicated fetch). This hook is the NEW half: before this lane, the workspace override

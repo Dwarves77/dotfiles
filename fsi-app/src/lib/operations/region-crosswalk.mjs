@@ -19,6 +19,7 @@
 // grouped into NO region at all, invisible to every region's D1 count. `resolveRegionCode` below
 // matches "FR" directly against EU's `iso_codes` set and resolves it correctly.
 //
+// mirror of operations-matrix.ts's resolveItemRegionCodes order: kept, UX-consistency parity between two different functions (region grouping vs per-item resolution), not the same code duplicated.
 // FALLBACK ORDER mirrors `resolveItemRegionCodes` (operations-matrix.ts) exactly: prefer the
 // structured `jurisdictionIso` array when non-empty, fall back to the single legacy `jurisdiction`
 // string only when it is empty — never both at once, never silently preferring the weaker source
