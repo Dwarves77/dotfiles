@@ -1,3 +1,4 @@
+-- subject: FSI Phase 2: Row Level Security
 -- FSI Phase 2: Row Level Security
 -- Public read on all tables, writes require service_role key
 

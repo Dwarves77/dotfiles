@@ -1,3 +1,4 @@
+-- subject: Migration 111: ADD COLUMN dismissed_at TIMESTAMPTZ on workspace_item_overrides + partial index. Powers the manual priority tagging + dismissed stash dispatch (PRIORITY-TAGGING side-agent commit).
 -- ═══════════════════════════════════════════════════════════════════
 -- Migration 111: workspace_item_overrides — dismissed_at column
 -- ═══════════════════════════════════════════════════════════════════

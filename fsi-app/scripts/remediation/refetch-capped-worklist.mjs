@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags, agent_run_searches
 // refetch-capped-worklist.mjs — ADR-016 storage-side uncap: re-capture the legacy STORAGE-CAPPED pool rows in
 // FULL, so the permanent slice the retired PRIMARY_MAX_CHARS / CORROBORATOR_MAX_CHARS caps baked into
 // agent_run_searches.result_content is undone. The caps are gone in code (generation-config.ts); this

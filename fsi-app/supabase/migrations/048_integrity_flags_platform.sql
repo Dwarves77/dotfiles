@@ -1,3 +1,4 @@
+-- subject: 048_integrity_flags_platform.sql
 -- 048_integrity_flags_platform.sql
 -- Platform-level integrity_flags table — durable queue for agent-detected
 -- concerns the dispatch context can't resolve (design drift, data quality

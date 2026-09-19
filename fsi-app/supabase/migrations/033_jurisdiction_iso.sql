@@ -1,3 +1,4 @@
+-- subject: 033_jurisdiction_iso.sql
 -- 033_jurisdiction_iso.sql
 -- Add jurisdiction_iso column (ISO 3166-1 alpha-2 + ISO 3166-2 + free-text fallback)
 -- Coexists with legacy jurisdictions column for 60-day dual-write window.

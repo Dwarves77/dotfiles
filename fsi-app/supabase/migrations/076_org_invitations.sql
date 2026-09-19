@@ -1,3 +1,4 @@
+-- subject: Migration 076 — Org invitations + onboarding state machine [glyph:verbatim]
 -- Migration 076 — Org invitations + onboarding state machine
 --
 -- Date: 2026-05-15

@@ -1,3 +1,4 @@
+-- subject: Migration 136: theme_candidate column — minimal capture-not-null (Emergence-Capture INV-1) for out-of-vocabulary theme values. The agent/parser emit topic-tag-form themes; the live theme_check requires the /research grouping vocab (no 1:1 map), so the pipeline writes a DB-valid theme or null and BANKS the agent's proposed value in theme_candidate (with row provenance) instead of dropping it. Nullable, no CHECK, partial index. APPLIED 2026-06-07 (read-back verified column exists). Minimal capture only; residual store + recurrence/promotion is the governed follow-on. [glyph:verbatim]
 -- Migration 136: theme_candidate — minimal capture-not-null for out-of-vocabulary theme values.
 --
 -- Context (metadata-persist audit, 2026-06-07): the agent/parser emit `theme` from the topic-tag

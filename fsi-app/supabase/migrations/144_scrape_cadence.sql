@@ -1,3 +1,4 @@
+-- subject: Migration 144 (global scrape-schedule control): system_state gains scrape_cadence ('off'|'weekly'|'monthly', default 'off' = the hold) + scrape_start_date (anchor = first run + recurrence phase) + CHECK constraint. SINGLE source of truth for WHEN the whole system scrapes — per-source update_frequency/next_scheduled_check cadence RETIRED (Option 1: whole system scrapes as a unit on the cadence day). global_processing_paused (016) KEPT as the independent emergency stop; isGloballyPaused()=cadence 'off' OR emergency; the worker window-gates via scrapeWindowOpen (scrape-schedule.ts). Additive (old code keeps reading the hold), live hold preserved. APPLIED 2026-06-28. [glyph:verbatim]
 -- 144_scrape_cadence.sql
 -- Global scrape SCHEDULE on the system_state singleton — the SINGLE source of truth for WHEN the whole
 -- system scrapes. Option 1: the per-source update_frequency / next_scheduled_check cadence is RETIRED

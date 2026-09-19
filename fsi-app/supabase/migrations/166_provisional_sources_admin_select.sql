@@ -1,3 +1,4 @@
+-- subject: Migration 166 (Wave-α Track B3). AUTHOR-ONLY / OPERATOR DDL WINDOW. Migration 157 dropped `provisional_sources_read` leaving NO SELECT policy → the /admin queue (anon-client read, error dropped) rendered EMPTY since 2026-07-07 (P1 #2). Adds an admin-scoped SELECT policy (service_role OR platform-admin — the 099 pattern) as defense-in-depth; the OPERATIVE fix is the code half in the SAME dispatch (`fetchProvisionalSources()` → SERVICE client + captures `error`, src/lib/supabase-server.ts). Proof: policy present; platform-admin count = service count (queue populated); anon count = 0. Reversible (rollbacks/166; code half independent). APPLIED 2026-07-11 (wave-alpha). [glyph:verbatim]
 -- Migration 166 (Wave-α Track B3) — restore an admin-scoped SELECT policy on provisional_sources
 --
 -- AUTHOR-ONLY / OPERATOR DDL WINDOW (RLS change = break-risky class, ADR-011).

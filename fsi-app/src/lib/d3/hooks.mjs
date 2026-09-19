@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // D3 ingestion-layer hooks. Imported by Next route handlers + runners so D3 runs on
 // DATA events, not only on code changes — closing the half of the disease that lives
 // in data flow (the 420 wrongly-excluded sources, the cron degrading trust). These are

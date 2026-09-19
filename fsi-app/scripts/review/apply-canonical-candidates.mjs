@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // apply-canonical-candidates.mjs — applies a ruled digest for the canonical-candidates queue
 // (`canonical_source_candidates` WHERE decision='pending') (Lane R1, 2026-09-02). Dry by default;
 // --apply writes through scripts/lib/db.mjs's guardedUpdateByIds only.

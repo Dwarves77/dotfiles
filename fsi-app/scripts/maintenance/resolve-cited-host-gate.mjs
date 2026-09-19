@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // resolve-cited-host-gate.mjs -- MAINT step for task 7.4 of the W9 brief-chain build plan, Part 7
 // (ADR-030 rider, 2026-09-12): the cited-host-gate flag (`src/lib/agent/canonical-pipeline.ts` ~L1641,
 // `created_by: "cited-host-gate"`) is written whenever a brief cites a URL whose host is unknown to BOTH

@@ -1,3 +1,4 @@
+-- subject: Migration 116: active_intelligence_items view (verified-only customer surface). Sprint 4 Block 1, task 1.10.
 -- Migration 116: active_intelligence_items view (Sprint 4 Block 1, task 1.10).
 --
 -- The customer-facing read gate. Filters intelligence_items to the rows that

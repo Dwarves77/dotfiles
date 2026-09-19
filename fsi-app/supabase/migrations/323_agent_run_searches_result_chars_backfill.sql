@@ -1,3 +1,4 @@
+-- subject: Defect D32 part (a), `docs/plans/defect-fix-plan-2026-09-12.md` (lane L21, 2026-09-16). Data: one-time backfill of `agent_run_searches.result_chars` for pre-existing rows in one DO block, 200 rows per chunk, keyset-paginated by id, `pg_sleep(0.5)` between chunks so the backfill cannot exhaust the disk IO budget; rows already set are skipped. Applied 2026-09-16 in an idle window: 6,456 rows, 6,240 set, the 216 nulls are exactly the rows whose result_content is null.
 -- 323_agent_run_searches_result_chars_backfill.sql
 -- D32 (defect-fix-plan-2026-09-12.md, lane L21). Migration 322 added agent_run_searches.result_chars,
 -- trigger-maintained on every future insert/update -- this migration backfills the column for every

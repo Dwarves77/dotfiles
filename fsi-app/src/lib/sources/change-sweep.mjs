@@ -1,3 +1,4 @@
+// SHARED-WRITER: staged_updates
 // @ts-check
 // change-sweep — B4 of the scrape-and-build plan (docs/plans/scrape-and-build-content-plan-2026-07-19.md):
 // the change-to-analysis consumer, closing Step 1 F2 ("change-detection terminates"). Everything upstream

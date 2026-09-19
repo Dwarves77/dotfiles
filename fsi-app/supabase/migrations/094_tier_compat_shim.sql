@@ -1,3 +1,4 @@
+-- subject: Migration 094: Compatibility shim for Q2 (migration 090) tier -> base_tier renam
 -- Migration 094: Compatibility shim for Q2 (migration 090) tier -> base_tier rename.
 --
 -- Background

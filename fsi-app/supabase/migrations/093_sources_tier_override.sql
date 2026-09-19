@@ -1,3 +1,4 @@
+-- subject: Migration 093: tier_override mechanism on sources (Q5 decision)
 -- Migration 093: tier_override mechanism on sources (Q5 decision)
 --
 -- Why this migration exists.

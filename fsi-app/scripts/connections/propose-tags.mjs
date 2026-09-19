@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // propose-tags.mjs — makes untagged items VISIBLE to an operator (rule: NO assumptions, NEVER silent
 // auto-tagging; tag PROPOSALS go to operator ratification; all writes through the guarded path).
 //

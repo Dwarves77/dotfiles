@@ -58,6 +58,7 @@ The coordinator (a separate session) designs lanes, gates output, lands PRs thro
 
 ## Write set
 Your brief names an exact write set. Files outside it: do not touch. If the work cannot be completed without a file outside the set, stop that sub-task and put "NEEDS WRITE-SET EXPANSION: <file> because <reason>" in the report. Never write `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md`, or `docs/INDEX.md` (coordinator only). New docs only where the brief allows.
+- A lane never edits a file under `docs/audits/`. It records a finding's closure in its own session-log file instead, and the coordinator's close lane folds the recorded statuses into the audit (enforced by lane N6).
 
 ## Quality bar
 - Root cause before change; no speculative fixes; no temporary hacks; no duplication of an existing module (search first: `fsi-app/scripts/lib/`, `fsi-app/src/lib/`).

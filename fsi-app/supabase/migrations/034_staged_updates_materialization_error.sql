@@ -1,3 +1,4 @@
+-- subject: 034_staged_updates_materialization_error.sql
 -- 034_staged_updates_materialization_error.sql
 --
 -- W1.B: staged_updates approval-pipeline observability columns.

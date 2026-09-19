@@ -1,3 +1,4 @@
+-- subject: Migration 135: source-registration invariant DB guard — BEFORE INSERT/UPDATE trigger on intelligence_items refuses archive-as-source (reclassified_to_source/source_not_item/institutional_source/non_regulatory_source/portal_artifact) without a registered active source for the item host. DB twin of rule 019 + db.mjs reclassifyToSource() + orphan-source-audit.mjs. APPLIED 2026-06-06 via apply-135.mjs (fire-tested live: blocks unregistered archive-as-source, allows registered). [glyph:verbatim]
 -- 135_source_registration_guard.sql
 -- SOURCE-REGISTRATION INVARIANT at the database layer (the durable, can't-bypass guarantee).
 -- Governing skills: source-credibility-model (§1/§5) + remediation-discipline.

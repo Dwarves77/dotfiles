@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // flywheel-defect.ts — recordFlywheelDefect, rule 16(d)'s ONE writer for "a flywheel step didn't run" (and
 // for "stale-events", a related-but-distinct finding: an already-written item_forward_events row whose
 // supporting claim/section has since gone away). SHARED by every rule-16 participant so a defect is

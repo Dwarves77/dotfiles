@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: item_cross_references, integrity_flags
 // backfill-lineage-edges.mjs — WO-28 PHASE D. Feeds the typed-lineage-edge capability that PR #481
 // shipped (entity-resolve.mjs's classifyRelationship + planLinkWrites, item_cross_references.relationship
 // in {implements, amends, depends_on, ...} + integrity_flags category='coverage_gap',

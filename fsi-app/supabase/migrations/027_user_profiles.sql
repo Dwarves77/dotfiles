@@ -1,3 +1,4 @@
+-- subject: Migration 027 — User profiles [glyph:verbatim]
 -- Migration 027 — User profiles
 --
 -- Date: 2026-05-01

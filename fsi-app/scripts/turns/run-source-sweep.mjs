@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: monitoring_queue
 // run-source-sweep.mjs — the source-sweep family's canonical entry point (RT lane, 2026-09-01,
 // harness+flywheel completion train). A thin driver over TWO EXISTING, UNMODIFIED, pure/dep-injected
 // modules that had a runtime nowhere in this repo before this file: `src/lib/sources/register-walk.mjs`

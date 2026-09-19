@@ -1,3 +1,4 @@
+-- subject: Migration 118: #43 provenance-flip credential binding — a pre-existing intelligence_items row may be flipped off provenance_status='unverified' ONLY by the scoped non-owner reconciler role + guard trigger. Sprint 4 Phase 2 precondition. [glyph:verbatim]
 -- Migration 118: #43 provenance-flip credential binding (Sprint 4 Phase 2 precondition).
 --
 -- INVARIANT ENFORCED (decision-log #43): a pre-existing intelligence_items row may

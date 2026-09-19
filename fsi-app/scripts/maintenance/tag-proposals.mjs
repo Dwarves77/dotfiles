@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // tag-proposals.mjs; MAINT dispatch step: writes the TAG proposal flags propose-tags.mjs computes.
 //
 // THE GAP THIS CLOSES (Lane TAG-PROPOSALS, 2026-09-03, coordinator-confirmed defect): 339 of 619

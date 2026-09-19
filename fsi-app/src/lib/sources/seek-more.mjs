@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // @ts-check
 // SEEK-MORE candidate generation (paired with the RD-14 transport escalation ladder). When a declared primary
 // is a genuine not-found, seek-more GENERATES an ordered list of candidate URLs from the instrument's IDENTITY;

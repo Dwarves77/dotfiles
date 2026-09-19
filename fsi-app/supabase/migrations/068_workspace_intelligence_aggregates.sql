@@ -1,3 +1,4 @@
+-- subject: Aggregates RPC for the workspace intelligence dashboard.
 -- Aggregates RPC for the workspace intelligence dashboard.
 --
 -- Background. The dashboard payload (064) caps results at LIMIT 50 — the

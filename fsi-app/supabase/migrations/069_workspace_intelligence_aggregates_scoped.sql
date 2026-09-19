@@ -1,3 +1,4 @@
+-- subject: Scoped sibling of get_workspace_intelligence_aggregates (068).
 -- Scoped sibling of get_workspace_intelligence_aggregates (068).
 --
 -- Background. Migration 068 returns workspace-wide totals for the dashboard

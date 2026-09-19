@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags, agent_run_searches
 // resolve-error-body-gate.mjs -- MAINT step for task 7.4 of the W9 brief-chain build plan, Part 7
 // (ADR-030 rider, 2026-09-12): the error-body-gate flag (`src/lib/agent/canonical-pipeline.ts` ~L1671,
 // `created_by: "error-body-gate"`) is written whenever a stored capture is excluded from grounding as a

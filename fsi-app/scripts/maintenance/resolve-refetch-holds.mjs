@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags, section_claim_provenance
 // resolve-refetch-holds.mjs -- MAINT step for D17 family 11 of the 2026-09-12 defect fix plan
 // (docs/plans/defect-fix-plan-2026-09-12.md, ruling table row 11, lane L11). Resolves the
 // `refetch-capped-worklist` holds: rows scripts/remediation/refetch-capped-worklist.mjs's own EXECUTE

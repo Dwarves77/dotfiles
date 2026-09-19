@@ -1,3 +1,4 @@
+-- subject: Migration 168 (Wave-α Track B5). AUTHOR-ONLY / OPERATOR DDL WINDOW. The five aux tables (item_timelines / item_cross_references / item_disputes / item_supersessions / item_changelog) exposed `USING(true)` SELECT → 689 timeline rows (+ xrefs/disputes/supersessions/changelog) leaked quarantined/archived items that intelligence_items_read (157) hides (P2 provenance). Replaces each `_read` policy with a parent-gate mirroring intelligence_items_read (`provenance_status='verified' AND is_archived IS NOT TRUE`); two-FK tables (cross_references, supersessions) require BOTH endpoints. service_role bypasses (admin unchanged); writes untouched. Proof: anon-visible rows with a non-verified/archived parent = 0 per table. Reversible (rollbacks/168 restores USING(true)). APPLIED 2026-07-11 (wave-alpha).
 -- Migration 168 (Wave-α Track B5) — parent-gate the five aux tables so anon can't read rows that name a
 -- quarantined / archived intelligence_item
 --

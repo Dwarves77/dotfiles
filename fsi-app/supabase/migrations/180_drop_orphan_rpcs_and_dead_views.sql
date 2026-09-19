@@ -1,3 +1,4 @@
+-- subject: Migration 180 (Wave-α Track E e5). Drops 2 orphan RPCs (`get_workspace_members`, `related_items_derived`) + 5 zero-consumer views (`open_conflicts`, `provisional_sources_review`, `source_health_summary`, `active_intelligence_items`, `item_related_items_derived`) — each proven zero-consumer fresh (grep + live catalog). Reversible (rollbacks/180 recreates all 7). APPLIED 2026-07-11 (wave-alpha). [glyph:verbatim]
 -- Migration 180: drop 2 orphan RPCs + 5 zero-consumer views (Wave-α Track E, dead-weight erase e5).
 --
 -- STATUS: AUTHOR-ONLY — NOT APPLIED. Rides an operator DDL window. Do not apply inline.

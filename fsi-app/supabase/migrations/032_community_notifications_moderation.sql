@@ -1,3 +1,4 @@
+-- subject: Migration 032 — Community notifications, preferences, and moderation reports [glyph:verbatim]
 -- Migration 032 — Community notifications, preferences, and moderation reports
 --
 -- Date: 2026-05-01

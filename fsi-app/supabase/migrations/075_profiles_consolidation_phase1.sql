@@ -1,3 +1,4 @@
+-- subject: Migration 075 — Consolidate user_profiles into profiles (Phase 1) [glyph:verbatim]
 -- Migration 075 — Consolidate user_profiles into profiles (Phase 1)
 --
 -- Date: 2026-05-15

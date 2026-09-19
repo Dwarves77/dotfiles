@@ -1,3 +1,4 @@
+-- subject: Migration 115: set_provenance_status trigger on intelligence_items + sections + claims (re-derives + stamps the terminal provenance_status on write). Sprint 4 Block 1, task 1.4.
 -- Migration 115: set_provenance_status trigger (Sprint 4 Block 1, task 1.4).
 --
 -- Implements design-doc section 4 STEP 4 (trigger half) and section 3b's

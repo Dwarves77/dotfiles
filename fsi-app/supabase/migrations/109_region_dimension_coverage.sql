@@ -1,3 +1,4 @@
+-- subject: Migration 109: region_dimension_coverage table (5 regions × 6 dimensions = 30 seeded rows) with 4-state CHECK (populated / partial / pending / missing), trigger-maintained fact_count from regional_data_facts. Sprint 3 A6.1.
 -- Migration 109: region_dimension_coverage table per operator A6 scope
 -- (Sprint 3, 2026-05-27).
 --

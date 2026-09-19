@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items, integrity_flags
 // apply-tags.mjs — the ONLY place a propose-tags.mjs tag PROPOSAL becomes a WRITTEN
 // operational_scenario_tags/compliance_object_tags/topic_tags value. Mirrors
 // ratify-flag-to-census.mjs's resolution-note-as-ratification-vehicle design (read that file's header

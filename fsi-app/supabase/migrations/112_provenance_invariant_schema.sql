@@ -1,3 +1,4 @@
+-- subject: Migration 112: source-provenance invariant — schema landing (provenance_status enum + columns + 3 supporting tables). Sprint 4 Block 1, task 1.1. [glyph:verbatim]
 -- Migration 112: Source-provenance invariant — schema landing (Sprint 4 Block 1, task 1.1).
 --
 -- Implements design-doc section 4 STEPS 1-2 plus the new provenance tables

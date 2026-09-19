@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // rederive-record-provenance.mjs — heal a record-grade item whose ROW provenance_status disagrees with
 // what validate_item_provenance derives for it now (Lane POP, 2026-09-02).
 //

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // close-coverage-reflections.mjs -- MAINT step for D17 family 13 of the 2026-09-12 defect fix plan
 // (docs/plans/defect-fix-plan-2026-09-12.md, ruling table row 13, lane L11). The coordinator's ruling
 // (verbatim): coverage-gap (`flywheel-gap:*`, U2) and anticipated-coverage (`flywheel-anticipate:*`, U5)

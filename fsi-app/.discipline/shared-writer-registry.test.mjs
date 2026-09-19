@@ -1,13 +1,23 @@
 // shared-writer-registry.test.mjs — STANDALONE (run with `node --test .discipline/shared-writer-registry.test.mjs`).
-// NOT wired into run-test-suite.sh or any other runner by this lane — see scripts/_archive/README.md /
-// docs/inventories/shared-dataset-ownership.md for why (sunset lane's write set forbids touching either).
+// Also matched by run-test-suite.sh's existing `fsi-app/.discipline/*.test.mjs` glob (confirmed lane N5,
+// plan 6.8: the file already sat directly under .discipline/, so no line needed adding there).
 //
-// WHAT THIS PROVES: every file under scripts/ and src/ that WRITES one of the shared datasets named in
-// docs/inventories/shared-dataset-ownership.md's SHARED_WRITER_ALLOWLIST (the fenced ```json block — this
-// file and that doc share ONE source of truth, parsed here verbatim, never hand-copied) is a file that
-// block explicitly names. A write from anywhere else is either an undocumented new owner (register it,
-// with a justification, in the doc's allowlist) or a stale/dead writer that should have been archived
-// (git mv it to scripts/_archive/** per the sunset lane's evidence gate).
+// WHAT THIS PROVES: every file under scripts/, src/, and supabase/functions/ that WRITES one of the
+// shared datasets this registry tracks carries a `// SHARED-WRITER: <table>[, <table>...]` header line
+// naming that table, AND every file carrying such a header line actually contains a detected write to
+// every table it names. Two directions, both checked (plan 6.8, Rule A, lane N5): an undeclared write is
+// either an undocumented new owner (add the header line, with a justification in
+// docs/inventories/shared-dataset-ownership.md's prose) or a stale/dead writer that should have been
+// archived (git mv it to scripts/_archive/** per the sunset lane's evidence gate); a declared-but-absent
+// write is a stale or wrong marker (fix the header line or remove it).
+//
+// ONE SOURCE OF TRUTH, DERIVED (replaces the fenced ```json block this file used to parse verbatim):
+// the allowlist (which table, which files) is no longer hand-copied anywhere, it is derived by scanning
+// the SAME file set this test always scanned for the header markers themselves. The set of "shared
+// table" names is likewise derived, not a separate hand-maintained list: it is exactly the set of table
+// names that appear in at least one SHARED-WRITER marker in the scanned tree. docs/inventories/
+// shared-dataset-ownership.md keeps the prose (why each table is shared, the operator ruling, dataset-by
+// -dataset detail) and points here for the machine-checked list.
 //
 // WHY THIS MATTERS: the operator's ruling is that intelligence_items / item_cross_references /
 // connection_themes / connection_theme_runs / integrity_flags / census_worklist / item_forward_events /
@@ -36,8 +46,8 @@
 //   (c) raw SQL naming the table: `INSERT INTO <table>`, `UPDATE <table> SET`, `DELETE FROM <table>`
 //       (case-insensitive; matches a `pg` client's template-literal queries, the only raw-SQL write shape
 //       found in scripts/ at time of authoring).
-// A file is flagged only when the TABLE NAME matched is one of the doc's registered shared tables — a
-// write to an unrelated, non-shared table (e.g. agent_runs, sources, holdings_quality) is out of this
+// A file is flagged only when the TABLE NAME matched is one of the derived shared table names; a write
+// to an unrelated, non-shared table (e.g. agent_runs, sources, holdings_quality) is out of this
 // registry's scope by design (see the doc's "Open leaks summary" for why a couple of those were
 // deliberately left unregistered rather than padded into the allowlist).
 
@@ -49,25 +59,45 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, ".."); // fsi-app/
-const DOC_PATH = resolve(ROOT, "docs/inventories/shared-dataset-ownership.md");
 
 // ---------------------------------------------------------------------------------------------------
-// 1. Parse the allowlist out of the doc's fenced ```json block. ONE source of truth — this file never
-//    hand-maintains a second copy of who-may-write-what.
+// 1. Parse a file's own SHARED-WRITER header marker, if it has one. ONE source of truth, on the file
+//    itself, this test never hand-copies a second list of who-writes-what.
 // ---------------------------------------------------------------------------------------------------
-export function parseAllowlist(docText) {
-  const m = docText.match(/```json\r?\n([\s\S]*?)\r?\n```/);
-  if (!m) {
-    throw new Error(
-      `shared-writer-registry: could not find a fenced \`\`\`json block in ${DOC_PATH} — the allowlist ` +
-      `must live there (see the doc's "Machine-readable allowlist" section).`,
-    );
+const MARKER_RE = /^\/\/\s*SHARED-WRITER:\s*(.+)$/m;
+
+export function parseWriterMarker(text) {
+  const m = text.match(MARKER_RE);
+  if (!m) return null;
+  const tables = m[1].split(",").map((s) => s.trim()).filter(Boolean);
+  return tables.length > 0 ? tables : null;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// 1b. Derive the allowlist (table -> [files]) and each file's own declaration (file -> [tables]) by
+//     scanning every candidate file for its marker. Table names are whatever the markers name, no
+//     separate hand-maintained vocabulary.
+// ---------------------------------------------------------------------------------------------------
+export function buildDerivedAllowlist(root, files) {
+  const sharedTables = {};
+  const declarations = new Map();
+  for (const absFile of files) {
+    let text;
+    try {
+      text = readFileSync(absFile, "utf8");
+    } catch {
+      continue;
+    }
+    const tables = parseWriterMarker(text);
+    if (!tables) continue;
+    const relFile = relative(root, absFile).replaceAll("\\", "/");
+    declarations.set(relFile, tables);
+    for (const table of tables) {
+      if (!sharedTables[table]) sharedTables[table] = [];
+      sharedTables[table].push(relFile);
+    }
   }
-  const parsed = JSON.parse(m[1]);
-  if (!parsed || typeof parsed !== "object" || typeof parsed.sharedTables !== "object" || parsed.sharedTables === null) {
-    throw new Error(`shared-writer-registry: parsed JSON block has no "sharedTables" object — got: ${m[1].slice(0, 200)}`);
-  }
-  return parsed.sharedTables;
+  return { sharedTables, declarations };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -124,7 +154,16 @@ export function walkScanFiles(root, scanRoots = SCAN_ROOTS, excludedDirNames = E
 // ---------------------------------------------------------------------------------------------------
 const WRITE_VERB_RE = /\.(insert|update|upsert|delete)\s*\(/;
 const FROM_RE = /\.from\(\s*["'`]([A-Za-z_][A-Za-z0-9_]*)["'`]\s*\)/g;
-const GUARDED_RE = /\b(?:guardedInsertMany|guardedInsert|guardedUpdate|guardedDelete|archiveRows)\(\s*["'`]([A-Za-z_][A-Za-z0-9_]*)["'`]/g;
+// guardedUpdateByIds MUST be matched before the shorter guardedUpdate alternative (regex alternation
+// tries branches left to right; guardedUpdate alone would match the "guardedUpdate" prefix of
+// "guardedUpdateByIds(" and then fail the immediately-following "\(" against the literal "B", so
+// ORDER here is load-bearing, not stylistic). Confirmed gap, lane N5 (plan 6.8): the doc's own
+// origin-class-backfill.mjs note already named this exact miss ("missed by the scanner's
+// guardedUpdateByIds( regex, see .discipline/shared-writer-registry.test.mjs's GUARDED_RE, which
+// matches guardedUpdate( but not the ByIds suffix") for one file; the reverse-direction check this
+// lane added surfaced nine more real callers of the SAME helper the old one-directional test never
+// exercised this way.
+const GUARDED_RE = /\b(?:guardedInsertMany|guardedInsert|guardedUpdateByIds|guardedUpdate|guardedDelete|archiveRows)\(\s*["'`]([A-Za-z_][A-Za-z0-9_]*)["'`]/g;
 const RAW_SQL_RE = /\b(?:INSERT\s+INTO\s+([A-Za-z_][A-Za-z0-9_]*)|UPDATE\s+([A-Za-z_][A-Za-z0-9_]*)\s+SET|DELETE\s+FROM\s+([A-Za-z_][A-Za-z0-9_]*))/gi;
 const STATEMENT_WINDOW = 600; // chars scanned after a .from(...) match, capped at the next ';'
 
@@ -179,32 +218,64 @@ export function scanForViolations(root, sharedTables, files) {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// The test.
+// The tests. Both directions (plan 6.8, Rule A, lane N5): a detected write with no declaring marker,
+// and a declaring marker with no detected write.
 // ---------------------------------------------------------------------------------------------------
-test("every shared-dataset writer under scripts/ and src/ is registered in the ownership allowlist", () => {
-  const docText = readFileSync(DOC_PATH, "utf8");
-  const sharedTables = parseAllowlist(docText);
+test("every shared-dataset writer under scripts/, src/, and supabase/functions/ carries a SHARED-WRITER marker", () => {
+  const files = walkScanFiles(ROOT);
+  assert.ok(files.length > 0, "shared-writer-registry: scan found zero candidate files under scripts/ or src/, check SCAN_ROOTS/ROOT resolution.");
+
+  const { sharedTables } = buildDerivedAllowlist(ROOT, files);
   assert.ok(
     Object.keys(sharedTables).length > 0,
-    "shared-writer-registry: SHARED_WRITER_ALLOWLIST parsed to zero tables — the doc's json block is empty or malformed.",
+    "shared-writer-registry: zero SHARED-WRITER markers found anywhere in the scanned tree, the marker regex or SCAN_ROOTS may be broken.",
   );
-
-  const files = walkScanFiles(ROOT);
-  assert.ok(files.length > 0, "shared-writer-registry: scan found zero candidate files under scripts/ or src/ — check SCAN_ROOTS/ROOT resolution.");
 
   const violations = scanForViolations(ROOT, sharedTables, files);
 
   if (violations.length > 0) {
     const lines = violations
-      .map((v) => `  - ${v.file} writes "${v.table}" but is not listed under sharedTables["${v.table}"] in ${relative(ROOT, DOC_PATH)}`)
+      .map((v) => `  - ${v.file} writes "${v.table}" but carries no "// SHARED-WRITER: ${v.table}" header line`)
       .join("\n");
     assert.fail(
       `${violations.length} unregistered shared-dataset writer(s) found:\n${lines}\n\n` +
-      `FIX: either (1) this is a legitimate new writer — add its path to sharedTables["<table>"] in the ` +
-      `fenced json block of ${relative(ROOT, DOC_PATH)}, with a one-line justification in that doc's prose ` +
-      `next to it; or (2) this is a stale/dead writer — git mv it to scripts/_archive/<original-subpath> ` +
-      `(content untouched) and add a tombstone line to scripts/_archive/README.md, per the sunset lane's ` +
-      `evidence gate (zero live inbound references AND superseded-or-completed).`,
+      `FIX: either (1) this is a legitimate new writer, add "// SHARED-WRITER: <table>[, <table>...]" as a ` +
+      `header line in the file, with a one-line justification in docs/inventories/shared-dataset-ownership.md's ` +
+      `prose; or (2) this is a stale/dead writer, git mv it to scripts/_archive/<original-subpath> (content ` +
+      `untouched) and add a tombstone line to scripts/_archive/README.md, per the sunset lane's evidence gate ` +
+      `(zero live inbound references AND superseded-or-completed).`,
+    );
+  }
+});
+
+test("every SHARED-WRITER marker names a table the file actually writes", () => {
+  const files = walkScanFiles(ROOT);
+  const { declarations } = buildDerivedAllowlist(ROOT, files);
+  assert.ok(declarations.size > 0, "shared-writer-registry: zero declared files found (see the other test in this file).");
+
+  const reverseViolations = [];
+  for (const [relFile, tables] of declarations) {
+    const absFile = resolve(ROOT, relFile);
+    let text;
+    try {
+      text = readFileSync(absFile, "utf8");
+    } catch {
+      continue;
+    }
+    const hits = extractWriteHits(text);
+    for (const table of tables) {
+      if (!hits.has(table)) reverseViolations.push({ file: relFile, table });
+    }
+  }
+
+  if (reverseViolations.length > 0) {
+    const lines = reverseViolations
+      .map((v) => `  - ${v.file} declares "// SHARED-WRITER: ${v.table}" but no write to "${v.table}" was detected in it`)
+      .join("\n");
+    assert.fail(
+      `${reverseViolations.length} stale or wrong SHARED-WRITER marker(s) found:\n${lines}\n\n` +
+      `FIX: remove the table name from the header line if the file no longer writes it (or never did), or ` +
+      `fix the write site if the marker is right and the code regressed.`,
     );
   }
 });

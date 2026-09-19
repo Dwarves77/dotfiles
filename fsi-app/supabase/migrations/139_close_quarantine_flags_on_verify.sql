@@ -1,3 +1,4 @@
+-- subject: Migration 139 (Stage B / F5): set_provenance_status trigger gains a CLOSE-ON-VERIFY branch — when validate() recommends 'verified', it resolves any OPEN trigger-created data_quality integrity_flags row for that item (status→resolved, resolved_by='set_provenance_status_trigger'). Fixes the flag surface accreting stale open quarantine flags on items that later recovered (every re-ground / the A6 30-flip revalidation flips dozens of statuses). One-time backfill closed the stale ones already open on currently-verified items (301 resolved; 0 stale remain). Function otherwise byte-identical to 115. APPLIED 2026-06-12. [glyph:verbatim]
 -- Migration 139: set_provenance_status — CLOSE data_quality flags on (re-)verify (F5).
 --
 -- DEFECT: the trigger OPENS a data_quality integrity_flags row on quarantine (migration 115) but never

@@ -1,3 +1,4 @@
+-- subject: Migration 122: institutions table (WHO published, keyed by registrable_domain) + sources.institution_id FK. A grouping/identity dimension, never a merge key; orthogonal to source_role/category. Source-layer fix, defect (b).
 -- Migration 122 — institutions (source grouping/identity dimension)
 --
 -- Date: 2026-06-03

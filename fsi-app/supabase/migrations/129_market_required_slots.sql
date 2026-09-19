@@ -1,3 +1,4 @@
+-- subject: Migration 129: seed item_type_required_slots for market_signal + initiative (signal_event, driving_parties, conversion_trigger, action_now).
 -- Migration 129: seed item_type_required_slots for market_signal + initiative.
 --
 -- WHY: validate_item_provenance criterion 5 passes VACUOUSLY for market_signal

@@ -1,3 +1,4 @@
+-- subject: Operator ruling 2026-09-17 (lane L39). Data: the `item_type_required_slots` descriptions for `penalty_summary` and `primary_deadline` on `regulation` and `directive` now name the source-says-so GAP form that migration 137 gave standard / guidance / framework; a GAP stays licensed only by the source's own text, never by the item type. Live instance 1bb72c94 (84/358/EEC), the only item held by the slot rule that day. APPLIED 2026-09-17 through the management API; read back: both descriptions updated.
 -- 326_regulation_directive_slot_gap_source_says_so.sql
 -- Operator ruling 2026-09-17 ("1bb72c94 do your rec"): the source-characterised GAP allowance that
 -- migration 137 gave penalty_summary and primary_deadline on standard / framework / guidance now applies to

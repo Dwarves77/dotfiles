@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // resolve-signals.mjs -- MAINT step for task 7.2 of the W9 brief-chain build plan, Part 7 (ADR-030
 // rider, 2026-09-12): drains the flywheel-signal:* backlog (1,098 open title-entity-link flags measured
 // 2026-09-12) that analyze-corpus.mjs's own --signals pass, running only inside corpus-turn.yml, never

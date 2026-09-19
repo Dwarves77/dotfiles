@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items, integrity_flags
 // run-population-flywheel.mjs — the population family's own downstream flywheel pass (lane TANDEM,
 // 2026-09-04).
 //

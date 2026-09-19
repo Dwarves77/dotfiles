@@ -1,3 +1,4 @@
+-- subject: Migration 103: intelligence_item_sections table (Q4) with source_ids UUID[] per section. Powers 14-section reader on /regulations/[slug]. Applied 2026-05-24.
 -- Migration 103: intelligence_item_sections table per operator Q4
 -- decision (2026-05-24).
 --

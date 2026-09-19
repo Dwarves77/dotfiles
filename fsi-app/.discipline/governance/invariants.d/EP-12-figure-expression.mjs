@@ -1,0 +1,13 @@
+// EP-12-figure-expression: split from invariants.mjs (plan 6.8, Rule A, lane N5). One entry, one file; see
+// invariants.d/README.md. The comment block below (if any) is exactly what preceded this entry in
+// the array before the split.
+
+export const invariant = {
+    id: 'EP-12-figure-expression',
+    skill: 'environmental-policy-and-innovation',
+    section: 'The Integrity Rule / Figure expression — unit attachment',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    text: 'A unit is never attached to a number unless the source establishes that unit for that exact value (adjacency, or an unambiguous table-header/column relationship) — never by inference. A header-unit figure is expressed as the cell value exactly as rendered PLUS the column header quoted verbatim, so both fragments are verbatim-present; dropping the unit, or emitting the number bare so the grounding gate stops tokenizing it, is forbidden — escaping the gate is not grounding the figure.',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+    anchor: 'Unit attachment is a factual claim, not formatting',
+    enforcedBy: ['migration:224', 'migration:225'],
+    residual: 'ASYMMETRIC by construction, and the asymmetry is the point. The ATTACHED half is enforced LIVE and mechanically: Gate A (migration 224 item_gate_a_state + migration 225 criterion 7 in validate_item_provenance) tokenizes number+unit as ONE literal token via the shared gate-a-match matcher and orphans any token not verbatim-groundable, so an inferred unit self-quarantines the brief — this is the gate that CAUGHT the origin case ("11v 11-EHC 31 12" rendered as "31 tonnes", where 31 was a row identifier). The OMITTED half is NOT mechanically detectable: a figure the brief never emits leaves no token to scan, so "stated the number bare to dodge the gate" and "correctly declined to state an ungroundable figure" are indistinguishable to any scanner. That residue is authoring judgment carried by the prompt contract (system-prompt.ts figure-expression block, synced to this skill). DELIBERATELY NOT closed by loosening the matcher to strip units — that is the dig-fallback class (case-file instance 7, literal-and-exact at every coverage decision) and is forbidden. SANCTIONED DIRECTION if the prompt proves insufficient: a Gate-B-style explicit composed-claim kind linking the verbatim bare-number span to the verbatim header/unit span (auditable rows, scanner stays mechanical), brought to the operator as a proposal before building.',  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
+  };

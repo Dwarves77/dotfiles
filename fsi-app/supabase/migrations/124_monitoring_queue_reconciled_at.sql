@@ -1,3 +1,4 @@
+-- subject: Migration 124: monitoring_queue.reconciled_at — claim marker for the reconcile worker (/api/worker/reconcile) so it consumes change_detected=true rows idempotently. Reconcile-loop activation. [glyph:verbatim]
 -- Migration 124 — monitoring_queue.reconciled_at (reconcile-worker claim marker)
 --
 -- Date: 2026-06-03

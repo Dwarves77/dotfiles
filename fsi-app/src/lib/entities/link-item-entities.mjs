@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // link-item-entities.mjs: linkItemEntities(sb, item), rule 16(e) (lane W9 part 1, task 1.1,
 // 2026-09-11): "every NEW item is connected at birth" applied to the entity spine (migration 282/283).
 // Before this, ONLY the hand-dispatched scripts/entities/backfill-entities.mjs wrote entity_refs /

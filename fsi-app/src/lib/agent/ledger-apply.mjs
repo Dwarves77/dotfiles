@@ -1,3 +1,4 @@
+// SHARED-WRITER: section_claim_provenance
 // ledger-apply.mjs — grounding is NON-DESTRUCTIVE (operator doctrine 2026-07-16). A new grounding is a
 // COMPARISON against the prior claim ledger, never a replacement. This module is the PURE diff: given the
 // existing ledger and the incoming (newly-grounded) claim set, it computes what to

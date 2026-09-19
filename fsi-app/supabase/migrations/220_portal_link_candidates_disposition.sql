@@ -1,3 +1,4 @@
+-- subject: Migration 220 (B1 portal-harvest consumer, scrape-and-build plan 2026-07-19). Adds disposition columns to `portal_link_candidates` (mig 162): `disposition_reason` (why the row left 'candidate' — entity-gate verdict / chokepoint reject reason / mint trail, verbatim from the machine gate), `dispositioned_at`, `item_id` (FK → intelligence_items, ON DELETE SET NULL — the item a promoted row minted). A disposition without a recorded reason is the RD-6 silent-backlog shape; the B1 consumer (src/lib/intake/portal-harvest.ts) stamps all three on every status change. Two-track: **APPLIED 2026-07-19** via apply_migration before the dependent consumer code merged. No data change (existing rows keep NULLs). Reversible (DROP COLUMN). [glyph:verbatim]
 -- Migration 220 — B1 portal-harvest consumer: disposition columns on portal_link_candidates.
 --
 -- The ledger (mig 162) records status (candidate|promoted|rejected) but no WHY and no link to the

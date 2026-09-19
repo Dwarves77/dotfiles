@@ -1,3 +1,4 @@
+-- subject: Migration 233 (watchlist item_type expansion, Landing B of the item-management program, 2026-08-01). Expands `user_watchlist`'s item_type CHECK from ('source','reg','signal') to add 'research' and 'operations' — the Research and Operations detail surfaces had no Watch affordance (spec-audit gap M-5); WatchButton now mounts on both (PR carries the API allowlist + component union widening). `org_watchlist` (077) carries no type CHECK, unchanged. **APPLIED 2026-08-01** via apply_migration before the consumer code merged (two-track policy). Reversible (restore the prior three-value CHECK). [glyph:verbatim]
 -- 233: watchlist item_type expansion (item-management program Landing B, 2026-08-01).
 -- user_watchlist's CHECK was ('source','reg','signal') — research and operations
 -- detail surfaces had no Watch affordance (spec-audit gap M-5). Expand the CHECK;

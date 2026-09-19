@@ -1,3 +1,4 @@
+-- subject: Migration 081 — Admin signal documentation (Option C resolution) [glyph:verbatim]
 -- Migration 081 — Admin signal documentation (Option C resolution)
 --
 -- Date: 2026-05-16

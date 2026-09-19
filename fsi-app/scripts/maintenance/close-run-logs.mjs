@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // close-run-logs.mjs -- MAINT step for task 7.1 of the W9 brief-chain build plan, Part 7 (ADR-030 rider,
 // 2026-09-12): "admin is visibility, never a gate." Run-log rows in integrity_flags are informational --
 // a fleet-charter CLOSE step, a legacy remediation lane, or a citation-harvest batch already wrote its own

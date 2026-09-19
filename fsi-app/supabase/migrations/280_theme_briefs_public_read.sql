@@ -1,3 +1,4 @@
+-- subject: Migration 280 (coordinator, 2026-09-01): `theme_briefs_read` public SELECT policy mirroring 253's `connection_themes_read`, so customer surfaces (ThemeStrip on /research, the research theme-brief card) can read briefs; writes stay service-role-only. Found by lane SURF: RLS-on-with-no-policies made the table invisible to request-scoped clients. Applied 2026-09-01 by the coordinator.
 -- 280 — theme_briefs: public SELECT policy so the customer surfaces can read theme briefs.
 -- Coordinator (integration), 2026-09-01. Found by lane SURF while mounting ThemeStrip on /research.
 --

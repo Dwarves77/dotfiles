@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // compliance-deadline-sync.mjs — the canonical (and, before this lane, only) writer for
 // intelligence_items.compliance_deadline (DATECHAIN lane, 2026-09-11).
 //

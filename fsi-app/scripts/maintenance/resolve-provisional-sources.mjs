@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // resolve-provisional-sources.mjs: MAINT step for task 7.5 item 1 of the W9 brief-chain build plan,
 // Part 7 (ADR-030 rider, 2026-09-12), fixed per docs/plans/defect-fix-plan-2026-09-12.md (D2, D3, D4,
 // D13). Live facts named in the dispatch [CONFIRMED by the coordinator, 2026-09-12]: `provisional_sources`

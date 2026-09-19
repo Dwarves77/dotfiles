@@ -1,3 +1,4 @@
+-- subject: Migration 113: seed item_type_required_slots for the 5 D1 item_types (the provenance-criteria slot table). Sprint 4 Block 1, task 1.2.
 -- Migration 113: Seed item_type_required_slots (Sprint 4 Block 1, task 1.2).
 --
 -- Implements design-doc section 4 STEP 3-adjacent seed for criterion 5

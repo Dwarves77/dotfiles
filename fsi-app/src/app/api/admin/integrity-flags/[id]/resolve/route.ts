@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items
 // POST /api/admin/integrity-flags/[id]/resolve
 //
 // Resolve a single agent-integrity flag on an intelligence_items row.

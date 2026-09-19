@@ -1,3 +1,4 @@
+-- subject: Migration 117: provenance-gate the RPC-routed customer surfaces — adds AND ii.provenance_status = 'verified' to the two query points (full-gate half). Sprint 4 Block 1, task 1.10. [glyph:verbatim]
 -- Migration 117: provenance-gate the RPC-routed customer surfaces
 -- (Sprint 4 Block 1, task 1.10 — full-gate half).
 --

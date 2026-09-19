@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: intelligence_items
 // backfill-entities.mjs — populates the entity spine (migration 282) and the progressive re-keying
 // columns/join table (migration 283) from data already live in the corpus. Lane DP-SPINE,
 // system-completion train, 2026-09-02. See docs/decisions/ADR-024-decision-propagation.md for the

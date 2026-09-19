@@ -1,3 +1,4 @@
+// SHARED-WRITER: intelligence_items, section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
 // provenance-heal.mjs — MAINT dispatch step: heals quarantined/archived-unreasoned/slot-incomplete
 // intelligence_items by attaching the grounding they were missing, per the operator's ruling verbatim
 // (2026-09-03): "if items are being flagged as not credible for the site because of not having sources

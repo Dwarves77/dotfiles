@@ -1,3 +1,4 @@
+-- subject: Migration 104: community_posts.referenced_intelligence_item_ids UUID[] (Q5) + GIN index for reverse-lookup powering Peer Discussion panels. Applied 2026-05-24.
 -- Migration 104: community_posts.referenced_intelligence_item_ids
 -- array column per operator Q5 decision (2026-05-24).
 --

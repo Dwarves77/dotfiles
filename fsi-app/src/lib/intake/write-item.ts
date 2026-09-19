@@ -1,3 +1,4 @@
+// SHARED-WRITER: section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
 // src/lib/intake/write-item.ts
 //
 // THE shared guarded write sequence for an intelligence_items row's evidentiary body -- item ->

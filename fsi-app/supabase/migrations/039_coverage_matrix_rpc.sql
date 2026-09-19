@@ -1,3 +1,4 @@
+-- subject: 039_coverage_matrix_rpc.sql
 -- 039_coverage_matrix_rpc.sql
 -- W2.D — coverage matrix RPC.
 --

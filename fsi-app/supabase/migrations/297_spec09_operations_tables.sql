@@ -1,3 +1,4 @@
+-- subject: Migration 297 (SPEC-09, spec 09 §1.4/§1.5/§1.6): `tce_data_quality` (five 1..5 axes per transport-chain element, `primary_data_share`), `auxiliary_energy_profiles` (stationary load), `grid_connection_queues` (p50/p90 ordered CHECK, SDMX `obs_status`). RLS + authenticated SELECT. **APPLIED 2026-09-03** [CONFIRMED: 10/10/9 columns, RLS on, 0 rows]. [glyph:verbatim]
 -- 297 — spec 09 Operations domain tables: DQI and primary-data share (§1.4), auxiliary energy profiles
 -- (§1.5), grid connection queue (§1.6). Lane SPEC-09, wave 3, 2026-09-03
 -- (docs/specs/09-domain-extensions.md; docs/plans/wave3-lanes-2026-09-03.md).

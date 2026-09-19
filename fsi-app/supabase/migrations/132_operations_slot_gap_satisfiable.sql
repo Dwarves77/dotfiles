@@ -1,3 +1,4 @@
+-- subject: Migration 132: cost_baseline + feasibility_choice slots honestly GAP-satisfiable when the fetched content has no verbatim figure/verdict (the migration-128 pattern for regional_data).
 -- Migration 132: make the Operations cost_baseline + feasibility_choice slots honestly
 -- GAP-satisfiable (the migration-128 pattern, applied to regional_data).
 --

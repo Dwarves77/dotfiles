@@ -1,3 +1,4 @@
+// SHARED-WRITER: item_cross_references, integrity_flags
 // linkStep executor (phase-intake-gate piece 3): turn the deterministic entity plan into DB writes that
 // FEED the existing cross-reference graph — the reconnect that makes autonomous intake populate
 // item_cross_references instead of leaving it to admin curation. Pure planning lives in entity-resolve.mjs;

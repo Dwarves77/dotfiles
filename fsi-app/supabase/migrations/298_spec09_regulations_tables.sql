@@ -1,3 +1,4 @@
+-- subject: Migration 298 (SPEC-09, spec 09 §1.8): `eudr_plot_claims` (`hold_risk` border_hold = blocking alert), `custody_chains` (`double_count_check`, retirement-needs-registry CHECK). RLS + authenticated SELECT. **APPLIED 2026-09-03** [CONFIRMED: 8/9 columns, RLS on, 0 rows]. [glyph:verbatim]
 -- 298 — spec 09 Regulations domain tables: EUDR geo-traceability (§1.8a), book-and-claim custody (§1.8b).
 -- Lane SPEC-09, wave 3, 2026-09-03 (docs/specs/09-domain-extensions.md;
 -- docs/plans/wave3-lanes-2026-09-03.md).

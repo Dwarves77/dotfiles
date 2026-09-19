@@ -1,3 +1,4 @@
+// SHARED-WRITER: census_worklist
 // census-off-vertical.mjs — MAINT dispatch step for R-A: what to do with the census_worklist rows the
 // relevance screen calls off-vertical.
 //

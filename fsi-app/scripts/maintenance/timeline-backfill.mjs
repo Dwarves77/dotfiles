@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SHARED-WRITER: integrity_flags
 // timeline-backfill.mjs -- MAINT step for task 6.1c of the W9 brief-chain build plan (2026-09-11), under
 // ADR-030 ("Items need to be resolved not quarantined... No item should be without some date in the
 // timeline"). Corpus backfill for steps 2-6 of the task brief's ordered date-derivation waterfall (title

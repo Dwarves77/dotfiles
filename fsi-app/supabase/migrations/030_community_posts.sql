@@ -1,3 +1,4 @@
+-- subject: Migration 030 — Community posts [glyph:verbatim]
 -- Migration 030 — Community posts
 --
 -- Date: 2026-05-01
