@@ -31,7 +31,12 @@ import { QUERY, OUTPUT_PATH } from "../maintenance/schema-vocabulary-inventory.m
 import { diffVocabulary } from "./lib/vocab-drift.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+// CHECK_VOCAB_DRIFT_NO_ENV_FILE=1 skips the env-file load. The no-credential tests set it: without it the
+// child process read the env file from disk, so in a worktree that HAS one "no credentials" was false and
+// the self-skip tests failed there and nowhere else (2026-09-18, it stopped lane M2's push).
+if (process.env.CHECK_VOCAB_DRIFT_NO_ENV_FILE !== "1") {
+  try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
+}
 
 /** Mirrors pg-conn.mjs's own candidateConnStrings() gate: the local-link and NEXT_PUBLIC_SUPABASE_URL-
  *  derived pooler candidates both still require SUPABASE_DB_PASSWORD, so these three names cover every
