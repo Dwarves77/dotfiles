@@ -100,3 +100,34 @@ The local coordinator session is paused and this lane runs in a cloud container.
    MEASURED value in the same commit" is withdrawn. If the F45 test reports the measured count differs
    from the ceiling after your change, STOP before the gate and report both numbers; the coordinator
    re-seeds.
+
+## Amendment 2 (coordinator, 2026-09-19 16:39 UTC by the date command, after the lane's STOP at the gate)
+
+Both findings stand [CONFIRMED by the lane's runner output and the gate log]: (1) two readers treat every
+`<family>/*.json` as a run artifact, so the thirteen `family.json` descriptors read as INVALID ARTIFACT
+(`readRunHistory` in `scripts/lib/run-artifact.mjs`, which the lane already patched by excluding the literal
+name, and `scanArtifacts` in `F28-harness-run-integrity.mjs`); (2) `scripts/forward-events/run-extraction.test.mjs`
+asserts by substring that CONVENTION.md still names two forward-events governing files, which now live in the
+descriptor. The write set is extended by exactly these:
+
+1. **One predicate for "is this a run artifact filename".** In `scripts/lib/run-artifact.mjs` export
+   `isRunArtifactFilename(name)`: true for the convention's artifact shape `<family>-run-NNN.json` (read
+   CONVENTION.md's naming rule and match it exactly), false for anything else, `family.json` included.
+   `readRunHistory` uses it (replace the literal-name exclusion). `F28-harness-run-integrity.mjs`'s
+   `scanArtifacts` uses it too; that one edit is now permitted in that file and nothing else there. Before
+   switching, list every `.json` under `scripts/harness-runs/*/` that the predicate would exclude other than
+   the thirteen `family.json`; if the list is not empty, STOP and report it (an artifact named outside the
+   convention is a finding, not something to widen the predicate for). Unit test the predicate in
+   `run-artifact.test.mjs` (both branches).
+2. **The forward-events test asserts the descriptor.** In `run-extraction.test.mjs`, the test
+   "FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's forward-events entry" becomes "matches the
+   forward-events descriptor": deep-equal against `FAMILIES.find(f => f.family === 'forward-events').governing_files`
+   from `family-registry.mjs`. No substring check against prose.
+3. Re-run the acceptance of step 6 (zero fail now expected), the runner (0 violations), the F45 test (the
+   ceiling untouched), then re-stamp the meta-harness marker LAST if any governing file changed after the
+   last stamp (`run-artifact.mjs` is not a governing file of meta-harness unless the descriptor says so;
+   check), commit, `git fetch origin && git rebase origin/master`, and the gate once more (the second and
+   last run).
+
+The `registered` dates inferred from the meta-harness artifacts' own `started_at` (five families) are
+accepted as evidence-based; the lane's session-log entry names the mechanism, as it already does.

@@ -90,3 +90,49 @@ Result; Files changed (path: what); Verification (steps 3 to 6 with commands and
 disk states of step 5 with their counts, confirmation the fake env file is gone); Gate (every
 `[discipline pre-push] step` line, the `gate exit:` line, the pushed head sha); Refutations and findings
 (each labeled [CONFIRMED] or [HYPOTHESIS]); Blockers.
+
+## Amendment 1 (coordinator, 2026-09-19 16:18 UTC by the date command, after the lane's STOP at step 2; first stamped 16:40 from memory, corrected in place)
+
+The lane's finding stands [CONFIRMED by its direct call of `fitnessFunction.check` on the file]: line 243 of
+`market-eia-v2-petroleum-spot-parser.test.mjs` is a pure unit assertion on `decideApply()`'s return value.
+Nothing is wrong with that test; check (c) was file-scoped (any creds assertion in a file that spawns
+anywhere), the same shape as the check (b) false positive step 1 fixed. Step 2 is replaced:
+
+2. **Scope check (c) to assertions on a spawned child's result.** In `findAmbientCredentialAssertions`, a
+   line counts only when it is an assertion mentioning creds or credential AND its text references a
+   child-result field: `.stderr`, `.stdout` or `.status`. (A refusal a child makes is visible only there;
+   an assertion on a plain object is a unit test of a pure function.) Keep the spawn precondition. Update
+   the header's (c) sentence to say so. Tests: keep the RED test as is (`assert.match(res.stderr, /DB creds/)`
+   with a spawn and no helper is still flagged); add a GREEN test: a file that spawns a child in one test
+   and asserts `assert.match(d.reason, /DB creds/)` on a plain object in another is not flagged. The eia
+   parser test file is NOT edited. The write set gains nothing beyond the F48 function and its test.
+
+Then continue with steps 3 to 10 exactly as written (step 3's count becomes 11 of 11).
+
+## Amendment 2 (coordinator, 2026-09-19 16:24 UTC by the date command, after the lane's STOP at step 6; first stamped 16:26, ahead of the clock, corrected in place)
+
+The lane's isolation stands [CONFIRMED by its runner comparison]: the nine F28 violations come from the
+90-file move, because `scripts/turns/run-*.mjs`, `scripts/verify/inaccessible-triage.mjs` and the maintenance
+scripts are governing files of nine harness families, so their live hash moved and each family's stored
+`PENDING-RUN.md` pin went stale. That is cause B of plan section 6.8, which lane N3 removes. Until N3 lands
+the convention still requires the pin, so this lane finishes by hand, and calls it that in its session-log
+entry, never a fix.
+
+Step 6 gains, before its runner check: **re-stamp the nine markers.** From `fsi-app/`, print every family's
+live hash with
+`node -e 'Promise.all([import("./scripts/lib/run-artifact.mjs"), import("./scripts/harness-runs/governing-files.mjs")]).then(([m, g]) => { for (const f of Object.keys(g.GOVERNING_FILES)) console.log(f, m.hashHarnessVersion(g.GOVERNING_FILES[f])); })'`
+and, for each family F28 names (inaccessible-triage, maintenance, fetch-drain, source-sweep, ledger-consume,
+change-detection, propagation, corpus-turn, brief-apply), edit its `scripts/harness-runs/<family>/PENDING-RUN.md`
+the way `fsi-app/scripts/harness-runs/CONVENTION.md` and the lane contract describe: exactly ONE current
+`**harness_version at write time:** \`sha256:<16 hex>\`` line carrying the new hash, the previous one reworded
+as superseded (lane T2, 2026-09-19, env-file loader move), no other change. Check
+`grep -c "^\*\*harness_version at write time:\*\*" fsi-app/scripts/harness-runs/*/PENDING-RUN.md` prints 1
+per file, then `node --test fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.test.mjs` and
+the runner (0 violations). The nine marker files join the write set. Do this LAST among edits, after the
+docs of step 7, since the docs are not governing files but any later edit to a governing file would move
+the hash again.
+
+Two more rules, restated: the lane contract forbids `git stash` (a shared stash stack; the contract names
+it); the comparison the lane ran was restored cleanly this time and is not repeated, by anyone, for any
+reason. And step 6's last sub-step (the tests beside every changed script) is still owed before the gate.
+Then steps 7 to 10 as written.
