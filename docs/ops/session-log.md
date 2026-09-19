@@ -23771,6 +23771,8 @@ is an array) and re-dispatch with that decision made.
 
 Haiku lane, worktree wt-l37, branch lane/l37-snapshots-out-of-index-2026-09-18 from master 1b8432a0.
 
+**Correction (coordinator, after the pre-push suite on the rebased branch) [CONFIRMED by the gate's own failure].** 52 files are out of the index, not 53: `population-33749140151/census-rows.apply-ready.json` is read by path by `src/lib/connections/tag-yield.fixture.test.mjs` as its record-grade data source, so it stays tracked; the coordinator's consumer census had truncated its own grep output before that file. A test input living under a gitignored folder is recorded for the plan (the snapshot folder holds workflow inputs and test inputs, not only scratch).
+
 **Result [CONFIRMED by git diff --cached after git rm --cached, and by git ls-tree before/after].**
 The 53 byte-identical snapshot files (24 groups, 53 files) are removed from the index, never from disk.
 Ignore rule verified (`git check-ignore`). Git history retains every blob (recoverable with `git show 1b8432a0:<path>`).
