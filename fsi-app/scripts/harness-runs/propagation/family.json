@@ -1,0 +1,11 @@
+{
+  "family": "propagation",
+  "registered": "2026-09-02",
+  "registered_by": "lane DP-ENGINE",
+  "governing_files": [
+    "scripts/turns/run-propagation-drain.mjs",
+    "src/lib/propagation/drain.ts",
+    "src/lib/propagation/admissible-for.ts"
+  ],
+  "rationale": "propagation (registered by lane DP-ENGINE, 2026-09-02, system-completion train): the drain driver plus the two propagation-engine modules whose behaviour a run actually exercises, drain.ts (the governed recompute and invalidate loop) and admissible-for.ts (the pollution barrier every consumer reads through)."
+}

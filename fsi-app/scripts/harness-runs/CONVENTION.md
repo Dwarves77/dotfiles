@@ -20,292 +20,45 @@ proposer lane can pull the complete history without a summary standing in the wa
 
 ```
 fsi-app/scripts/harness-runs/
-  CONVENTION.md              -- this file
-  PROPOSER-RUNBOOK.md        -- the cadence: read-all-artifacts-before-proposing
-  mint/
-    mint-run-001.json
-    mint-run-002.json
-    ...
-  screen/
-    screen-run-001.json
-    screen-run-002.json
-    screen-run-003.json
-    ...
-  fetch-drain/
-    fetch-drain-run-001.json
-    fetch-drain-run-002.json
-    ...
-  meta-harness/
-    meta-harness-run-001.json
-    meta-harness-run-002.json
-    meta-harness-run-003.json
-    ...
-  forward-events/
-    forward-events-run-001.json
-    ...
-  source-sweep/
-    source-sweep-run-001.json
-    traces/                       # the family's raw walker results (full traces) — one level BELOW the
-      source-sweep-run-001.raw-result.json   # family dir, so F28's family-level *.json artifact glob
-    ...                                      # never validates a trace as an artifact (2026-09-01)
-  ledger-consume/
-    ledger-consume-run-001.json
-    traces/                       # the family's raw ConsumeResult (full traces) — one level BELOW the
-      ledger-consume-run-001.result.json     # family dir, same reason source-sweep's traces/ exists
-  change-detection/
-    PENDING-RUN.md                # first-run acknowledgment (rule (b)) — no run has landed yet
-    change-detection-run-001.json
-    traces/                       # this family's raw step results (full traces), same one-level-below
-      change-detection-run-001.result.json   # convention as source-sweep/traces/ above
-  propagation/
-    PENDING-RUN.md              -- first-run acknowledgment (rule (b)) — no propagation-run-NNN.json yet
-    propagation-run-001.json
-    traces/                       # per-run drain reports (full traces) — one level BELOW the family dir,
-      propagation-run-001.report.json        # same F28 family-level *.json glob concern as source-sweep
-    ...
-  corpus-turn/
-    PENDING-RUN.md               -- first-run acknowledgment (rule (b)) — no corpus-turn-run-NNN.json yet
-    corpus-turn-run-001.json
-    ...
-  brief-apply/
-    PENDING-RUN.md               -- first-run acknowledgment (rule (b)), no brief-apply-run-NNN.json yet
-    brief-apply-run-001.json
-    ...
-  inaccessible-triage/
-    PENDING-RUN.md               -- first-run acknowledgment (rule (b)) -- no run has landed yet
-    inaccessible-triage-run-001.json
-    ...
-  maintenance/
-    PENDING-RUN.md                -- first-run acknowledgment (rule (b)) -- no maintenance-run-NNN.json yet
-    maintenance-run-001.json
-    traces/                       -- this family's raw per-step summary.json contents (full traces), one
-      maintenance-run-001.summaries.json  -- level BELOW the family dir, same reason source-sweep/traces/
-    ...                                     -- exists: keeps F28's family-level *.json glob from validating
-                                              -- a trace file as if it were a run artifact.
+  CONVENTION.md              # this file
+  PROPOSER-RUNBOOK.md        # the cadence: read-all-artifacts-before-proposing
+  family-registry.mjs        # loads every family's family.json descriptor (lane N2, 2026-09-19)
+  governing-files.mjs        # derives GOVERNING_FILES from every family's descriptor
+  <family>/
+    family.json               # the descriptor: family, registered, registered_by, governing_files,
+                               # rationale (see "Registering a family" below)
+    FAMILY.md                 # optional: the family's own prose, where a family's shape needs more
+                               # than its family.json's rationale field says
+    PENDING-RUN.md             # optional: first-run acknowledgment, or a staleness marker (rule (c))
+    LAST-PROPOSER-PASS.md      # optional: required once the family has two or more run artifacts
+    <family>-run-NNN.json      # one per run
+    traces/                    # optional: the family's raw full traces, one level BELOW the family
+                               # dir, so F28's family-level *.json glob never mistakes a trace (or a
+                               # descriptor) for a run artifact
 ```
 
-One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
-three iterated harnesses in `fsi-app/scripts/mint/`, `fsi-app/scripts/mint/screen-*.mjs`, and
-`supabase/functions/capture-worker/` — plus `meta-harness` itself (Wave MH-4, build plan §3
-"self-application"): the meta-harness layer's own family, whose "runs" are the waves that build or extend
-this substrate (this file, `PROPOSER-RUNBOOK.md`, `run-artifact.mjs`, `F28`) rather than a mint batch, a
-screen round, or a fetch-drain lane — plus `forward-events`, registered over
-`src/lib/forward-events/extract-forward-events.mjs` (moved there from `scripts/forward-events/` in lane
-FIX, 2026-09-01, once the intake mint chokepoint needed to import it as a runtime `src/lib` module): a
-family whose "runs" are neither a mint batch, a
-screen round, a fetch-drain lane, nor a meta-harness wave, but a fifth shape of its own — one extraction
-pass over a defined corpus slice, pulling forward-looking-obligation events (a date, a kind, a source
-span) out of source text; never a mint (nothing is minted) and never a fetch (nothing is fetched) — plus
-`source-sweep` (RT lane, 2026-09-01), registered over `scripts/turns/run-source-sweep.mjs` and the two
-dormant, pure, dep-injected enumeration modules it gives a runtime to for the first time,
-`src/lib/sources/register-walk.mjs` (the date-paged EUR-Lex OJ / Federal Register index walk) and
-`src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk): a sixth shape again, whose "runs" are
-enumeration passes over a source's index/feed for a date range, writing discovered candidate URLs to the
-`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay) — plus
-`ledger-consume` (Lane CONSUME, system-completion plan, 2026-09-02), registered over
-`scripts/turns/run-ledger-consume.mjs` and the two library modules it gives a production runtime to for
-the first time: `src/lib/intake/portal-harvest.ts`'s `consumePortalCandidates` (the READER half of the
-portal-deep-link slice — `persistPortalCandidates`, the WRITER half of the same file, already had a
-runtime via the scheduled check-sources crawl and, separately, `source-sweep` above) and
-`src/lib/llm/first-fetch-classify.ts` (the Haiku content-gate classifier it calls, included because it is
-this family's only spend-bearing call — routed through the spend chokepoint's `spendMessage`, see
-`spend-client.ts`, which is what leaves the `agent_runs` row per call now, not this family's driver): a
-seventh shape, whose "runs" CONSUME candidate rows the
-`portal_link_candidates` ledger already holds (never discover new ones — that is `source-sweep`'s job),
-classify each through the live entity gate, and precompute a chokepoint disposition per candidate
-(`would_mint`/`would_reject` in plan mode — READ-ONLY but NOT free, since classify still spends;
-`promoted`/`rejected` in apply mode, which stays structurally disarmed by a source constant — see that
-file's header — until an operator reviews and flips it).
-`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay).
-plus `change-detection` (lane CD, change-detection runtime, 2026-09-02), registered over
-`scripts/turns/run-change-detection.mjs` and the two library modules it drives directly —
-`src/lib/sources/reconcile.ts`'s `runReconcilePass` (previously reachable only as a callee inside
-`check-sources/route.ts`) and `src/lib/intake/run-intake-cycle.ts`'s `drainChangeSweepUpdates`
-(previously reachable only from `runIntakeCycle`'s own apply-mode tail): a seventh shape again, whose
-"runs" are a three-step chain — detect (POST the deployed check-sources route), reconcile (claim pending
-`monitoring_queue` change rows into `intelligence_changes` + a `staged_updates` bridge), drain (apply +
-re-verify the bridged `update_item` rows) — never a mint, an extraction, or an enumeration walk. NOT added
-as a row to the `harness_version` table below (see that section's own note on why); this family's governing
-files are named directly in F28's `GOVERNING_FILES.'change-detection'` and in this file's own module header
-instead, exactly the acknowledged exception CONVENTION-TABLE-PARITY's hardcoded row count already requires
-a coordinator pass to lift (see `run-artifact.test.mjs`'s and this test's own hardcoded family-count
-assertions — both are a named, pending coordinator item, not an oversight of this lane's).
+One directory per harness family, each with its own `family.json` descriptor (lane N2, 2026-09-19,
+`scripts/harness-runs/family-registry.mjs`; build plan section 6.8, Rule A: "a harness family is a
+directory with a descriptor, never a line in three shared files"). Thirteen families exist today: `mint`,
+`screen`, and `fetch-drain` (the three original iterated harnesses, matching `fsi-app/scripts/mint/`,
+`fsi-app/scripts/mint/screen-*.mjs`, and `supabase/functions/capture-worker/`), `meta-harness` (the
+meta-harness layer's own family, whose "runs" are the waves that build or extend this substrate), and
+`forward-events`, `source-sweep`, `ledger-consume`, `change-detection`, `propagation`, `corpus-turn`,
+`brief-apply`, `inaccessible-triage`, and `maintenance`, registered over the course of the build (see each
+family's own `family.json` for who registered it and when). Where a family's shape needs more explanation
+than its `family.json`'s `rationale` field carries, that explanation lives in the family's own `FAMILY.md`,
+never as a per-family block here that a new registration would have to find and edit.
 
-`propagation` (lane DP-ENGINE, 2026-09-02, system-completion train), registered over
-`scripts/turns/run-propagation-drain.mjs` and the two propagation-engine modules a drain run actually
-exercises, `src/lib/propagation/drain.ts` (the governed invalidate/recompute loop — "propagation
-invalidates, it does not compute," never a trigger) and `src/lib/propagation/admissible-for.ts` (the one
-gate function every `derived_values` consumer calls): a seventh shape, whose "runs" are batched drains of
-the `propagation_events` outbox — walking `derivation_edges` from each undrained event, marking the
-transitive closure stale, and recomputing through the registered `METHODS` seam — never a mint, an
-extraction, a fetch-drain replay, nor an enumeration sweep.
+## Registering a family
 
-`corpus-turn` (lane TURNREQ, 2026-09-04 — closing the 2026-09-04 wiring audit's B1 Gap #2 / B2 §1: "the
-corpus-turn harness family has zero run artifacts... not registered in `scripts/harness-runs/
-governing-files.mjs` either"), registered over the two scripts this lane gave corpus-turn's own real
-selection/export logic for the first time — `scripts/turns/consume-turn-requests.mjs` (bounded,
-oldest-first selection over the `corpus_turn_requests` ticket queue migration 277's trigger fills; ONE
-"what changed" mechanism now, replacing the `last-turn-date.mjs` marker `.github/workflows/corpus-turn.yml`
-used to compute a default `--since` from) and `scripts/turns/export-corpus-for-extraction.mjs` (extended
-this lane with `--ids` so the corpus file `run-extraction.mjs` consumes is built from exactly that
-selection): an eighth shape, whose "runs" are one `.github/workflows/corpus-turn.yml` dispatch — select
-tickets, discover connections, extract + apply forward events, recluster the whole corpus, and (on apply)
-retire exactly the tickets processed, through the guarded path, only after every one of those writes
-succeeded — never a mint, a screen round, an enumeration walk, nor a drain of the propagation outbox.
-Unlike every other family with a canonical `run-*.mjs` entry point, corpus-turn's orchestrator is the
-GitHub Actions workflow itself (`.github/workflows/corpus-turn.yml` chains scripts already governed by
-OTHER families — `discover-for-items.mjs`, and `forward-events`'s own `run-extraction.mjs` — alongside the
-two files this family's own `GOVERNING_FILES` entry lists). See CORPUS-TURN-RUNBOOK.md for the full turn
-shape and `scripts/harness-runs/corpus-turn/PENDING-RUN.md` for why this family starts at zero artifacts
-(no live dispatch was possible from the authoring environment — the same posture `ledger-consume`'s own
-`PENDING-RUN.md` recorded at its own registration, copied here).
-
-`brief-apply` (task 3.4, brief-chain build plan Part 3, 2026-09-11), registered over
-`scripts/turns/apply-record-briefs.mjs` and the four modules a run actually exercises the behavior of:
-`scripts/turns/record-briefs/schema.mjs` (the record-briefs artifact contract this driver validates every
-batch against before touching a live item), `src/lib/agent/canonical-pipeline.ts` (the injected-synthesis
-seam this driver's first per-item step calls, plus the section/ground/grow steps it runs after),
-`src/lib/intake/flywheel-steps.mjs` (the two per-item flywheel steps, discovery and forward-event
-extraction, this driver shares with `apply-staged-update.ts`'s own substantive-update path, task 3.4's own
-extraction of that logic so the two callers can never independently drift on the dedupe key or the
-stale-events detection), and `scripts/turns/io-preflight.mjs` (D32, defect-fix-plan-2026-09-12.md, lane
-L21: the pre-flight IO check and durable run record that gate whether an `--execute` run even starts).
-A ninth shape again, whose "runs" turn a validated batch of session-lane-authored
-full briefs into fully connected items: generate, section, ground, grow, then the per-item flywheel
-(discovery/forward-events/compliance-deadline/entities), then the batch-level unscoped flywheel steps
-(analyze-corpus/derive-obligations/tag-proposals/tag-ratification, via
-`run-population-flywheel.mjs`'s own `runUnscopedFlywheelSteps`); never a mint, an extraction pass, an
-enumeration walk, a ledger consume, a change-detection chain, a propagation drain, nor a corpus turn.
-`scripts/harness-runs/brief-apply/PENDING-RUN.md` records why this family starts at zero artifacts (no
-live dispatch was possible from the authoring environment, the same posture `ledger-consume` and
-`corpus-turn` recorded at their own registration).
-
-**brief-apply's standing metric** (build plan S2's "measurement, not assertion," per family): *applied vs
-quarantined vs generate-failed per run*: of the items a run selected (after `--after-id`/`--limit` and
-the stale-pool-hash pre-check), how many landed `provenance_status='verified'` (`applied`), how many
-generated and grounded but landed some OTHER `provenance_status` (`quarantined`, reported, never hidden),
-and how many never got past `generateBriefFromInjected` at all (`generate_failed`), plus
-`skipped_stale_hash`, the count this run pre-empted before any step ran because the lane's own recorded
-`source_pool_hash` no longer matched the item's current stored pool. The brief-apply-family counterpart to
-`ledger-consume`'s disposition-mix-per-run: a proposer pass reading this family's history sees how much of
-a session lane's authored batch actually reached the live corpus, never only a raw item count.
-
-`maintenance` (lane M9b, 2026-09-18, closing stage-audit-2026-09-18 `s6-gates-harness.md`'s finding: "the
-`maintenance.yml` family uploads an ephemeral artifact instead of committing one" -- every run already wrote
-a structured `summary.json` per step, via `scripts/maintenance/lib/cli.mjs`'s shared `runCli`, but only as
-a 90-day GitHub Actions upload-artifact, never git history a proposer lane could read), registered over
-`.github/workflows/maintenance.yml` itself (the 62-step MAINT orchestrator, dispatch-only, `mode` dry|apply
-per step) and `scripts/maintenance/lib/cli.mjs` (the shared `--mode`/`--arg`/`--out` CLI bootstrap and
-`summary.json` contract every wrapper's `main(opts, deps)` writes through): an eleventh shape, whose "runs"
-are one maintenance dispatch -- a single named step, or every step fanned out dry-only under `step=all` --
-never a mint, a screen round, a fetch-drain replay, an enumeration walk, a ledger consume, a
-change-detection chain, a propagation drain, a corpus turn, nor a brief-apply batch. Unlike every family
-above except `corpus-turn`, `maintenance` has no single canonical `run-*.mjs` entry point (each step is its
-own `scripts/maintenance/<step>.mjs` wrapper, or the `./.github/actions/maintenance-step` composite action)
--- the governing files are the orchestrator itself and the one module every wrapper's CLI shape is built on,
-the same "orchestrator file is the governing file" call `corpus-turn`'s own entry makes for
-`.github/workflows/corpus-turn.yml`. `scripts/harness-runs/maintenance/PENDING-RUN.md` records why this
-family starts at zero artifacts (registered ahead of the coordinator's next live dispatch, the same posture
-`ledger-consume`, `corpus-turn` and `brief-apply` recorded at their own registration).
-
-**maintenance's standing metric** (build plan S2's "measurement, not assertion," per family): *steps run
-clean per dispatch* -- of the steps a run actually executed (one named step, or every step under `step=all`
-dry fan-out), how many wrote a `summary.json` with no nonzero `exitCode` (`steps_with_summary` minus
-`steps_nonzero_exit` in the artifact's own `metrics`) -- the maintenance-family counterpart to
-`ledger-consume`'s disposition-mix-per-run: a proposer pass reading this family's history sees which of the
-62 registered steps are actually landing clean on a given dispatch, never only that the workflow itself ran.
-
-`meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
-respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
-applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
-harness family — meta-harness and forward-events included — gets a new subdirectory and one addition to
-`ALLOWED_FAMILIES` in `run-artifact.mjs` — never a family folded into an existing one just because it
-seemed similar (mint and screen already looked similar to each other before this convention existed, and
-that resemblance is exactly what made the loss below possible).
-
-**meta-harness's standing metric** (build plan §2's "measurement, not assertion," per family): *proposals
-implemented per cycle* — of a meta-harness proposer pass's hypotheses, how many land as a diff in the
-NEXT meta-harness run (retrospective, like screen's operator-overturn rate — not measurable until a next
-run exists to check against; `meta-harness-run-001`..`-003` predate the family's own first proposer pass,
-so it is not yet measurable for any of them, honestly recorded as such rather than defaulted to zero) —
-plus *gate-catch rate*: of the distinct defect classes named across ALL families' `defects_found` history,
-the fraction now caught by a landed, automated, pre-coordinator-review check (a validator gate or a
-fitness function) rather than only by a human/proposer reading full traces after the fact. This is a
-small-N, retrospectively-computed number, not a statistically robust rate — see
-`meta-harness/LAST-PROPOSER-PASS.md` for the current count and its method, recomputed at each meta-harness
-run rather than asserted once and left stale.
-
-**forward-events's standing metric** (build plan §2's "measurement, not assertion," per family): *extraction
-precision* — of the emitted events a human hand-checked against their source text, the fraction whose
-date, kind, and span all match — over events checked, not over all events emitted, since a run over a
-large corpus slice checks a sample, not the whole population (same "checked, not emitted" honesty
-`screen`'s ambiguous rate and `mint`'s validator-pass rate already apply to their own denominators) —
-plus *coverage*: of the items in the run's corpus slice whose brief carries forward-obligation language
-(a renewal date, a notice period, a sunset clause — whatever the family's own extraction protocol defines
-as in-scope), the fraction with at least one extracted event. Precision without coverage would hide a
-harness that only ever finds the easy events; coverage without precision would hide one that emits noise
-to inflate its hit rate — the two are reported together for exactly that reason, the same pairing
-`screen`'s ambiguous rate and operator-overturn rate serve for that family.
-
-**source-sweep's standing metric** (build plan §2's "measurement, not assertion," per family): *candidates
-discovered per walk*, broken down by walker (`register-eurlex` days, `register-federal-register` pages,
-`feed` entries) and by disposition (`upserted` vs `failed` in the ledger write) — the enumeration-family
-counterpart to `fetch-drain`'s capture-success-rate-per-attempt-class. A dry run's plan and an apply run's
-actual ledger write are reported as the same shape (`persist`'s injected counting in dry mode vs its real
-upsert in apply mode — see `run-source-sweep.mjs`'s own header), so the two are directly comparable run
-over run.
-
-**ledger-consume's standing metric**: *disposition mix per run* — of the candidates a run consumed
-(`discovered`), how many were `fetched`, how many reached `classified`, and of those how many resolved to
-a promoted-like disposition (`would_mint`/`promoted`/`exists`) versus a rejected-like one
-(`would_reject`/`rejected`/`not_an_item`) versus `skipped` (an inconclusive fetch or classify — never
-counted as a rejection; see `portal-harvest.ts`'s own `fetchOk` discipline) — the consume-family
-counterpart to `source-sweep`'s candidates-discovered-per-walk. Paired with `est_usd_total` (every
-classify call's real cost — and `input_tokens_total`/`output_tokens_total`, every call's real token
-counts — read back from `FirstFetchClassifyResult`, which the spend chokepoint populates per call; the
-`agent_runs` row itself is written once, by `spendMessage`/`recordSpendCall` in `spend-client.ts`, not by
-this driver — see `run-ledger-consume.mjs`'s header), so a proposer reading this family's history sees
-yield and spend together, never one without the other.
-**change-detection's standing metric** (build plan §2's "measurement, not assertion," per family):
-*chain-completion rate* — of the `monitoring_queue` rows a run's own detect step (or an inherited backlog,
-`--skip-check`) marks `change_detected=true`, the fraction that make it all the way to a drained
-`staged_updates` disposition (`update_applied`/`update_rejected`) in the SAME run, versus the fraction left
-`pending` past `--drain-limit` (`not_drained`, always reported, never silent — the same bounded-and-reported
-posture `source-sweep`'s `notBridged`/`notSwept` and this family's own `drainChangeSweepUpdates` already
-apply) — plus *Browserless cost per detection pass*: `metrics.browserless_units_est`, an ESTIMATE (this
-repo does not document Browserless's own per-render metered price; see `run-change-detection.mjs`'s header
-for the closest live reference), reported per run so a proposer pass can see spend trend alongside
-throughput, the same pairing `mint`'s validator-pass rate and `forward-events`'s precision/coverage pair
-serve for their own families.
-**propagation's standing metric** (build plan §2's "measurement, not assertion," per family): *values
-recomputed per event drained* — of the `propagation_events` closure a drain marks stale, how many are
-actually recomputed through a registered `METHODS[method_id]` (vs left stale because no method is
-registered yet for that `method_id`, counted separately as `skipped_unknown_method` rather than silently
-folded into either bucket) — plus *queue depth before/after*, the same "measurement, not assertion" the
-`propagation_queue_depth` view (migration 284) exposes directly. A dry run's counted closure and an apply
-run's actual invalidation/recompute are reported as the same shape (`invalidate_dependents()`'s own
-dry/apply modes, migration 285), so the two are directly comparable run over run, matching source-sweep's
-own dry-vs-apply comparability above.
-**corpus-turn's standing metric** (build plan §2's "measurement, not assertion," per family): *tickets
-consumed per dispatch* — of the open `corpus_turn_requests` tickets a run selected (`metrics.
-tickets_selected`, bounded by `--limit`), how many were successfully turned AND retired
-(`metrics.consumed`, apply mode only — a dry run always reports `false`, honestly, since it marks
-nothing) — plus *forward events extracted this turn* (`metrics.forward_events_extracted`, read back from
-the SAME turn's own `forward-events` family artifact this dispatch produced, never a fresh count) — the
-corpus-turn-family counterpart to `ledger-consume`'s disposition-mix-per-run: a proposer pass reading this
-family's history sees backlog drawdown (1,709 open at registration, 2026-09-04) alongside what each turn
-actually connected, never one without the other.
-
-**A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
-`meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
-that extends the substrate is most likely to touch (this very wave touched both). Combined with F28 rule
-(c)'s whole-file-hash staleness coupling (deliberately not narrowed — see F28's own header), `meta-harness`
-is structurally the family MOST likely to need a new run or a `PENDING-RUN.md` marker on any given wave,
-including a wave whose only change to the meta-layer is a documentation clarification like this one. This
-is not treated as a defect to fix (narrowing the hash would repeat the exact false-feeling-positive
-tradeoff F28's header already reasoned through and rejected) — it is named here so a future lane is not
-surprised by it, and so a run of unrelated documentation edits does not get mistaken for a real proposal
-cycle just because it happens to be the thing that satisfies rule (c) for a given wave.
+Add the new directory under `scripts/harness-runs/` and its own `family.json` (see the Schema section
+below for the run-artifact shape; `family.json`'s own shape is `{ family, registered, registered_by,
+governing_files, rationale }`, validated by `scripts/harness-runs/family-registry.mjs`). Nothing else is
+edited: `governing-files.mjs`'s `GOVERNING_FILES` and `run-artifact.mjs`'s `ALLOWED_FAMILIES` are both
+DERIVED from every family's descriptor, and this file carries no per-family table or enumeration for a
+registration to find and update. This is the fix for the 2026-09-18 collision: three lanes (M8, M9b, M9a)
+each registered or touched a family and each stopped the merge train, because registering a family used
+to mean appending to the SAME spot in three shared files at once.
 
 **Filename = `run_id` + `.json`.** `run_id` is `<family>-run-<NNN>`, zero-padded 3 digits, monotonic
 per family. `writeRunArtifact` refuses to overwrite an existing file unless the caller explicitly asks
@@ -462,81 +215,33 @@ still exists — if a row is in `per_item`, it is because a real report named th
 outcome. Population-level truth always lives in `full_trace_refs`, never only in `per_item` or
 `metrics` — that is what keeps this schema from becoming the summary the paper's finding warns against.
 
-### `harness_version` — content hash, not a version string
+### `harness_version` (content hash, not a version string)
 
 Computed by `hashHarnessVersion(filePaths)` in `run-artifact.mjs`: SHA-256 over
 `"<relative-path>\n<file content>\n"` for every listed file, sorted by path, truncated to 16 hex chars
-and prefixed `sha256:`. Each family's harness files:
+and prefixed `sha256:`.
 
-**The table below is documentation, not the source.** `scripts/harness-runs/governing-files.mjs`
-(Wave GOV-SINGLE, 2026-09-04) is THE source: F28
-(`.discipline/fitness/functions/F28-harness-run-integrity.mjs`) and every family's own canonical runner
-script (screen-worklist.mjs, run-mint-batch.mjs, run-extraction.mjs, run-ledger-consume.mjs,
-run-propagation-drain.mjs, run-change-detection.mjs, run-source-sweep.mjs) import their list from that one
-module — F28's own re-hash and a runner's own self-hash (the thing it stamps onto `harness_version` when
-it writes an artifact) are therefore the SAME array, not two hand-maintained copies that can silently
-drift apart (they had: `mint`'s runner copy never gained the two Gate-A `src/` files F28's copy did, PR
-#580 — see `governing-files.mjs`'s own header for the full defect). The CONVENTION-TABLE-PARITY test
-(`F28-harness-run-integrity.test.mjs`) parses this table and asserts it matches `governing-files.mjs`'s
-`GOVERNING_FILES` export exactly, so a hand-edited table drifting from the module is caught by CI, not
-trusted on faith — this table exists for a human reader, the module is what every gate actually enforces.
+**The source is each family's own `family.json`, not a table here.** `scripts/harness-runs/
+governing-files.mjs` derives `GOVERNING_FILES` from every family's `family.json` (`governing_files` field;
+lane N2, 2026-09-19). F28 (`.discipline/fitness/functions/F28-harness-run-integrity.mjs`) and every
+family's own canonical runner script (screen-worklist.mjs, run-mint-batch.mjs, run-extraction.mjs,
+run-ledger-consume.mjs, run-propagation-drain.mjs, run-change-detection.mjs, run-source-sweep.mjs) import
+their list from `governing-files.mjs`, so F28's own re-hash and a runner's own self-hash (the thing it
+stamps onto `harness_version` when it writes an artifact) are the SAME array, not two hand-maintained
+copies that can silently drift apart. A hand-maintained markdown table used to sit here and had to be kept
+in sync with `governing-files.mjs` by a dedicated test (CONVENTION-TABLE-PARITY); that table is retired
+(lane N2, 2026-09-19), replaced by the FAMILY-DESCRIPTOR-REALITY test
+(`F28-harness-run-integrity.test.mjs`), which checks every family's own `governing_files` paths exist on
+disk directly, with no intermediate table to drift from either source.
 
-| Family | Hashed files |
-|---|---|
-| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation, imported directly since the re-export shims under scripts/mint/lib/ were deleted lane DEAD-EXEC 2026-09-04), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
-| `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
-| `fetch-drain` | `supabase/functions/capture-worker/index.ts`, `../../../scripts/turns/run-fetch-drain.mjs` (added lane M1, 2026-09-18) |
-| `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `governing-files.mjs` |
-| `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
-| `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
-| `ledger-consume` | `scripts/turns/run-ledger-consume.mjs`, `../../src/lib/intake/portal-harvest.ts`, `../../src/lib/llm/first-fetch-classify.ts` |
-| `change-detection` | `scripts/turns/run-change-detection.mjs`, `../../src/lib/sources/reconcile.ts`, `../../src/lib/intake/run-intake-cycle.ts` |
-| `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
-| `corpus-turn` | `scripts/turns/consume-turn-requests.mjs`, `export-corpus-for-extraction.mjs` |
-| `brief-apply` | `scripts/turns/apply-record-briefs.mjs`, `record-briefs/schema.mjs`, `../../src/lib/agent/canonical-pipeline.ts`, `../../src/lib/intake/flywheel-steps.mjs`, `io-preflight.mjs` |
-| `inaccessible-triage` | `scripts/sources/inaccessible-triage.mjs`, `../../src/lib/sources/primary-fallback.mjs`, `../../src/lib/sources/seek-more.mjs`, `../../src/lib/sources/officialness.mjs`, `../../src/lib/sources/host-authority.ts` |
-| `maintenance` | `scripts/maintenance/lib/cli.mjs`, `../../../../.github/workflows/maintenance.yml` |
-
-**`ledger-consume`, `change-detection` and `propagation`** were staged in this table by Lane SPEND
-(system-completion train, 2026-09-02) ahead of the lanes that registered them, and all three are now
-registered in `ALLOWED_FAMILIES` and `F28-harness-run-integrity.mjs`'s `GOVERNING_FILES` (integrated
-2026-09-02). The CONVENTION-TABLE-PARITY test derives its expectation from `ALLOWED_FAMILIES`: every
-registered family needs a row whose files match `GOVERNING_FILES`, and a row for a family not yet
-registered is tolerated as a pre-registration placeholder, never a mismatch.
-
-`inaccessible-triage` (registered by lane M8, 2026-09-18, closing the 2026-09-18 stage audit's S1
-finding that the acquisition-ladder run over `sources WHERE status='suspended'`
-(`scripts/sources/inaccessible-triage.mjs`) left no committed artifact, only an ephemeral GitHub Actions
-upload of its per-source dossiers): an eleventh shape, whose "runs" are a triage pass over the suspended
-pool -- re-probe the declared primary, a bounded $0/no-LLM alternative search, same-floor qualification
-against the source's own `base_tier` -- never a mint, a screen round, an enumeration walk, a ledger
-consume, a change-detection chain, a propagation drain, a corpus turn, nor a brief apply. Per
-CONVENTION.md's own rule above ("never a family folded into an existing one just because it seemed
-similar"), this is NOT filed under `source-sweep`: it discovers no candidate URLs, writes nothing to
-`portal_link_candidates`, and does not walk a register/feed/sitemap -- its only DB mutation is
-`sources.fetch_status`/`fetch_status_at` (migration 147) on the SAME suspended rows it read, the
-opposite direction of every source-sweep walker's own write.
-
-**inaccessible-triage's standing metric** (build plan S2's "measurement, not assertion," per family):
-*ladder outcome mix per run* -- of the suspended sources a run triaged, how many `recovered` (the
-declared primary is reachable again), how many found an `alternative_found` (a bounded alternative that
-clears the source's own authority floor), and how many stayed `still_inaccessible` (the honest terminal --
-never a silent write-off; every triaged source gets a dossier regardless of outcome) -- plus
-`skipped_time_budget`/`errored`, so a proposer reading this family's history sees how much of the
-suspended pool the ladder actually reached versus how much a bounded dispatch had to leave for the next
-one, the acquisition-ladder counterpart to `source-sweep`'s candidates-discovered-per-walk.
-
-A harness-family README or runbook edit that doesn't touch the files above does not change
-`harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list
-changes (a new file becomes part of the classifier, say), update the table here in the same commit.
-`meta-harness`'s row is the one exception that proves this rule rather than contradicts it: for the
-meta-harness family, THIS file and `PROPOSER-RUNBOOK.md` are not "mere documentation" of some other
-harness's behavior — they ARE the family's behavior (the schema a run artifact must satisfy, the cadence
-a proposer pass must follow), the same deliberate call F28's own header makes for `MINT-RUNBOOK.md`. Note
-also that `meta-harness`'s hashed files are NOT all in one directory the way every other family's are —
-the table's usual shorthand (every file after the first is relative to the first file's own directory)
-still applies via ordinary relative-path notation (`../lib/...`, `../../.discipline/...`), not a new rule;
-see `hashHarnessVersion`'s test coverage in `run-artifact.test.mjs` for the exact resolution.
+A harness-family README or runbook edit that doesn't touch a family's own `governing_files` does not
+change `harness_version`, the hash tracks *behavior-bearing* files, not documentation. If a family's file
+list changes (a new file becomes part of the classifier, say), update that family's own `family.json` in
+the same commit. `meta-harness`'s own list is the one exception that proves this rule rather than
+contradicts it: for the meta-harness family, `CONVENTION.md` and `PROPOSER-RUNBOOK.md` are not "mere
+documentation" of some other harness's behavior, they ARE the family's behavior (the schema a run artifact
+must satisfy, the cadence a proposer pass must follow), the same deliberate call F28's own header makes for
+`MINT-RUNBOOK.md`.
 
 ## Fail-closed, not fail-soft
 

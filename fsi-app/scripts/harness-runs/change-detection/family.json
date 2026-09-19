@@ -1,0 +1,11 @@
+{
+  "family": "change-detection",
+  "registered": "2026-09-02",
+  "registered_by": "lane CD",
+  "governing_files": [
+    "scripts/turns/run-change-detection.mjs",
+    "src/lib/sources/reconcile.ts",
+    "src/lib/intake/run-intake-cycle.ts"
+  ],
+  "rationale": "change-detection (registered by lane CD, change-detection runtime, 2026-09-02): the runtime the detect, reconcile, drain chain never had. Governing files are the driver plus the two library modules it drives directly, reconcile.ts's dryRun projection and run-intake-cycle.ts's now-exported drain entry."
+}
