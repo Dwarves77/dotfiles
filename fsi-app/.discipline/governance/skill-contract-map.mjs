@@ -207,7 +207,7 @@ export const PINNED_MANIFEST = {
     // next free number; M9a's own PR 721 also authored "category 46" and merges first, so this lane's
     // heading, invariant and this comment were renumbered to 47 (coordinator note, 2026-09-18) before
     // this re-pin, so the pinned hash below is of the FINAL (47-numbered) text, never a predicted one.
-    contentHash: '5a875beb0b3b34ce2e8d1e9a96f21e2d77e90d8fbc735f3918acfc1f0f634d2b',
+    contentHash: '53b65bed98e272c58bbb158d1af7125d54c54472c0a7d26e88275b4d3eec5b2f',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/candidate-dwell-audit.mjs',
