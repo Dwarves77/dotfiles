@@ -1,3 +1,4 @@
+// data-audit: label=mode-tag-coverage hard=false
 /** VERIFIER (read-only, editorial-tracking, SOFT): MAP MODE-TAG COVERAGE (P6, 2026-09-06).
  *
  *  BUG (operator, 2026-09-06): "Map mode tag coverage 2.1% (21 of 976 items tagged), needs

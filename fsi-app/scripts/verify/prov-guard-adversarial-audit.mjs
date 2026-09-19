@@ -1,3 +1,4 @@
+// data-audit: label=prov-guard-adversarial hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline.
  *  ADVERSARIAL PROOF — the #43 provenance-verified binding (migration 250).
  *

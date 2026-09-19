@@ -1,3 +1,4 @@
+// data-audit: label=unregistered-span-host hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: source-credibility-model + remediation-discipline.
  *
  *  UNREGISTERED-SPAN-HOST monitor: counts FACT claims whose span host is NOT in the sources registry

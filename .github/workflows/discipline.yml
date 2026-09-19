@@ -334,64 +334,25 @@ jobs:
         # Violations print file:line with the function id, message, and source skill section.
         run: node fsi-app/.discipline/fitness/runner.mjs
 
-      - name: App unit tests requiring npm deps (*.npmtest.mjs + named npm-dependent proofs)
+      - name: App unit tests requiring npm deps (*.npmtest.mjs)
         # The NAMED exclusion from run-test-suite.sh's no-npm-ci glob (red-merge-class fix,
         # 2026-07-08): tests importing npm deps (jiti for TS module import) run HERE, after
-        # npm ci — glob-by-construction, so a new *.npmtest.mjs joins automatically.
+        # npm ci, glob-by-construction, so a new *.npmtest.mjs joins automatically.
         #
-        # NAMED LIST ADDED 2026-08-11 (wiring census). Seven proofs were tracked, green, and executed
-        # by NOTHING. They cannot join the no-npm suite because each reaches an npm package — most of
-        # them TRANSITIVELY, through a relative helper (batch-primitives.test.mjs imports only a
-        # relative module, which imports `pg`), so they look portable to a direct-import check and
-        # pass locally where node_modules exists. They are not renamed to *.npmtest.mjs because
-        # renaming a proof breaks every citation to it in the invariant registry; naming them here
-        # wires them with no identity change. Deps are already in package.json (pg, typescript,
-        # @supabase/supabase-js), so `npm ci` above resolves all of them.
-        #
-        # scripts/turns/apply-record-briefs.npmtest.mjs ADDED 2026-09-11 (task 3.4 fix round 1): this ONE
-        # IS already named *.npmtest.mjs, but the glob above is scoped to fsi-app/src/**, not scripts/**,
-        # so it is named here rather than left git-tracked and run by nothing (CLAUDE.md rule 15). The
-        # FIRST scripts/**/*.npmtest.mjs file in this repo, proves the jiti alias resolution
-        # apply-record-briefs.mjs's own loadPipeline()/loadFlywheelDefect() depend on.
-        #
-        # scripts/turns/record-briefs/section-list-drift.npmtest.mjs ADDED 2026-09-12 (task 6.1b fix round
-        # 1 follow-up): same reason as apply-record-briefs.npmtest.mjs above (fsi-app/scripts/** is outside
-        # the glob) -- proves record-briefs/schema.mjs's mirrored per-format canonical section list stays
-        # in exact sync with the real src/lib/agent/formats/*.ts registry, so that mirror's own drift
-        # cannot go silent.
-        #
-        # scripts/maintenance/resolve-provisional-sources.npmtest.mjs and
-        # scripts/maintenance/backfill-format-type.npmtest.mjs ADDED 2026-09-13 (defect D22 fix + class
-        # fix, docs/plans/defect-fix-plan-2026-09-12.md, lane L9c): same reason as the two scripts/turns/
-        # entries above (fsi-app/scripts/** is outside the glob) -- these prove buildDeps() through the
-        # REAL import graph (real jiti load of a `@/lib/...`-aliased .ts module) with only db.mjs's
-        # write-client seam stubbed, the exact proof missing before D22: resolve-provisional-sources'
-        # own real buildDeps() had never executed against `main()`'s real orchestration in any test, so a
-        # wrapper arg-order bug (checkVerticalFitGate) and a `guardedInsert` return-shape bug
-        # (`inserted.id` vs `inserted.inserted.id`) both reached the first live apply run undetected.
-        # scripts/backfill-item-timelines.npmtest.mjs ADDED 2026-09-16 (lane L20 fix round, review finding
-        # I1): same reason as the two entries above (fsi-app/scripts/** is outside the glob) -- proves
-        # backfill-item-timelines.mjs's own D31 per-item resolution (the per-format section lookup through
-        # TIMELINE_SECTION_BY_FORMAT / findTimelineSectionFor, replacing the old REG_FAMILY-only scope)
-        # routes correctly, so that routing's own regression cannot go uncaught (F23 orphaned-proof).
+        # WIDENED (plan 6.8, Rule A, lane N1) from 'fsi-app/src/**/*.npmtest.mjs' to
+        # 'fsi-app/**/*.npmtest.mjs', and the named list this step used to carry is deleted. The nine
+        # files that list named (batch-primitives, pg-conn, decision-anchors, drift-check,
+        # exclusion-audit, inconclusive-probe, surface-registry, reconcile, layout-guard) are renamed
+        # to *.npmtest.mjs in the same lane, so the wider glob covers them by construction; the five
+        # scripts/**/*.npmtest.mjs files the list separately named (apply-record-briefs,
+        # section-list-drift, resolve-provisional-sources, backfill-format-type,
+        # backfill-item-timelines) were only named because the old glob was scoped to fsi-app/src/**
+        # and never reached fsi-app/scripts/**; the wider glob covers those by construction too. A new
+        # *.npmtest.mjs anywhere under fsi-app/ now joins this step with no edit here, and
+        # execution-wiring.mjs's own npmtestMatcher() is widened to match (see that lane's report).
         run: |
           set -u
-          globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
-          named="fsi-app/scripts/lib/batch-primitives.test.mjs
-          fsi-app/.discipline/rendering/layout-guard/layout-guard.test.mjs
-          fsi-app/scripts/lib/pg-conn.test.mjs
-          fsi-app/scripts/lib/decision-anchors.selftest.mjs
-          fsi-app/scripts/lib/drift-check.selftest.mjs
-          fsi-app/scripts/lib/exclusion-audit.selftest.mjs
-          fsi-app/scripts/lib/inconclusive-probe.selftest.mjs
-          fsi-app/scripts/lib/surface-registry.selftest.mjs
-          fsi-app/src/lib/sources/reconcile.selftest.mjs
-          fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs
-          fsi-app/scripts/turns/record-briefs/section-list-drift.npmtest.mjs
-          fsi-app/scripts/maintenance/resolve-provisional-sources.npmtest.mjs
-          fsi-app/scripts/maintenance/backfill-format-type.npmtest.mjs
-          fsi-app/scripts/backfill-item-timelines.npmtest.mjs"
-          files=$(printf '%s\n%s\n' "$globbed" "$named" | tr -s ' ' | sed '/^$/d')
+          files=$(git ls-files 'fsi-app/**/*.npmtest.mjs' | tr -s ' \n' ' ')
           if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 
       - name: Behavioral goldens (scripts/verify/*.golden.mjs)

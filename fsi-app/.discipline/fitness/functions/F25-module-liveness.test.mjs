@@ -240,15 +240,26 @@ test('findDispatchRoots: an esbuild stub-*.mjs alias target under .discipline/re
   assert.ok(roots.has('fsi-app/.discipline/rendering/smoke/stub-next-link.mjs'));
 });
 
-test('findDispatchRoots: an AUDITS-table entry in run-data-audit-lane.mjs is a dispatch root', () => {
+test('findDispatchRoots: a scripts/verify script carrying a data-audit marker is a dispatch root (plan 6.8, derived AUDITS)', () => {
   const files = {
     '.github/workflows/example.yml': 'jobs: {}\n',
-    'fsi-app/scripts/verify/run-data-audit-lane.mjs':
-      'const AUDITS = [\n  ["one-tier-per-host", "scripts/verify/one-tier-per-host-audit.mjs", true],\n];\n',
+    'fsi-app/scripts/verify/one-tier-per-host-audit.mjs': '// data-audit: label=one-tier-per-host hard=true\nconsole.log("noop");\n',
+    'fsi-app/scripts/holdings-audit.mjs': '// data-audit: label=holdings-audit hard=false\nconsole.log("noop");\n',
+    'fsi-app/scripts/unmarked-helper.mjs': 'console.log("no marker, not an audit");\n',
   };
-  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const list = listOnly({
+    '.github/workflows/*.yml': ['.github/workflows/example.yml'],
+    'fsi-app/scripts/verify/': ['fsi-app/scripts/verify/one-tier-per-host-audit.mjs'],
+    'fsi-app/scripts/': [
+      'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
+      'fsi-app/scripts/holdings-audit.mjs',
+      'fsi-app/scripts/unmarked-helper.mjs',
+    ],
+  });
   const roots = findDispatchRoots('/repo', (f) => files[f], list);
   assert.ok(roots.has('fsi-app/scripts/verify/one-tier-per-host-audit.mjs'));
+  assert.ok(roots.has('fsi-app/scripts/holdings-audit.mjs'));
+  assert.ok(!roots.has('fsi-app/scripts/unmarked-helper.mjs'));
 });
 
 test('findDispatchRoots: a *-golden.mjs / *.golden.mjs file under scripts/verify/ is a dispatch root (run-goldens.mjs auto-discovery)', () => {

@@ -1,3 +1,4 @@
+// data-audit: label=source-vs-item hard=true
 /** VERIFIER (read-only, 0 Browserless): source != item.
  *  GOVERNING: environmental-policy-and-innovation integrity rule ("source is a portal where legislation
  *  lives; an item is a specific finding/regulation") + CLAUDE.md "Source = portal, not regulation".

@@ -1,3 +1,4 @@
+// data-audit: label=column-existence-parity hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: remediation-discipline (§4 category 3 — type-system
  *  drift / schema-vs-code compatibility; sweep-before-claim) + sprint-followups-discipline (schema discipline).
  *

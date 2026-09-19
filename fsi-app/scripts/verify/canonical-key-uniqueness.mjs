@@ -1,3 +1,4 @@
+// data-audit: label=canonical-key-uniqueness hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: environmental-policy-and-innovation + remediation-discipline.
  *
  *  INVARIANT EP-11 (canonical-instrument-key uniqueness — the twin-defect guard): no two VERIFIED,

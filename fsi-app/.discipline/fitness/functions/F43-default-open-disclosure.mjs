@@ -77,6 +77,14 @@
 //
 // NO EXPIRY, NO PATH ALLOWLIST. An allow is per-site and written next to the state it exempts, so
 // the ruling that permits it is read at the same moment as the code it permits.
+//
+// FOLD-64 (moved from the fitness manifest, plan 6.8 lane N1): this function arrived numbered F42,
+// colliding with the card-shell chokepoint's own F42. Both functions are kept; THIS one was
+// renumbered to F43 because the card-shell F42 landed first (train 62) and its number is already
+// cited by SectionCard.tsx, its own invariant, the compose-* audit specs and a dozen
+// `// fitness-allow: F42` markers in product source, so renumbering it would have touched strictly
+// more citations. Its invariant id (RD-67-default-open-disclosure) is distinct from the card-shell
+// RD-67 and did not move.
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';

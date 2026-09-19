@@ -124,20 +124,28 @@ export function findDispatchRoots(
     for (const m of text.matchAll(STUB_RE)) roots.add(`fsi-app/.discipline/rendering/smoke/${m[0]}`);
   }
 
-  // Source 4: scripts/verify/run-data-audit-lane.mjs's own `AUDITS` string table — a dispatch mechanism
-  // distinct from a static import OR a literal workflow path: ~28 scripts/verify/*-audit.mjs files are
-  // named as `["label", "scripts/verify/x-audit.mjs", hardFlag]` entries and run by
-  // `.github/workflows/data-audit-lane.yml` via this ONE indirection. Deliberately narrow (only this one
-  // file's own AUDITS array, the same regex `.discipline/governance/execution-wiring.mjs`'s own
-  // `auditLaneSet()` uses for the identical table — cited, not copied verbatim into general use) rather
-  // than reusing execution-wiring's full `isExecutionWired()`: that resolver's fitness-sentinel surface
-  // scans every fitness function file (F25-module-liveness.mjs included) for ANY `.mjs` path string
-  // literal, which would self-match this very file's own LEGACY_ALLOWLIST entries and silently mark them
-  // "wired" the moment they are written down — a false positive this module cannot risk on itself.
-  try {
-    const src = readFileFn('fsi-app/scripts/verify/run-data-audit-lane.mjs');
-    for (const m of src.matchAll(/\[\s*"[^"]+"\s*,\s*"([^"]+\.mjs)"\s*,/g)) roots.add(normalize(m[1]));
-  } catch { /* run-data-audit-lane.mjs itself is scope-checked like any other module; absence is its own violation */ }
+  // Source 4: run-data-audit-lane.mjs's DERIVED AUDITS (updated, plan 6.8 lane N1, out-of-write-set
+  // necessary fix disclosed in that lane's report). run-data-audit-lane.mjs no longer holds a hand-
+  // written AUDITS array; each audit script under scripts/verify/ or scripts/ (top level) declares
+  // itself with a `// data-audit: label=<label> hard=<true|false>` marker, and its own deriveAudits()
+  // scans for that marker (the same marker execution-wiring.mjs's own auditLaneSet() reads, cited not
+  // copied). Deliberately narrow (only these two directories, one marker line per file, no import) for
+  // the same self-risk reason as before: execution-wiring's fitness-sentinel surface scans every fitness
+  // function file (F25-module-liveness.mjs included) for ANY `.mjs` path string literal, which would
+  // self-match this very file's own LEGACY_ALLOWLIST entries and silently mark them "wired" the moment
+  // they are written down, a false positive this module cannot risk on itself.
+  {
+    const AUDIT_MARKER_RE = /^\/\/ data-audit: label=(\S+) hard=(true|false)$/;
+    for (const dir of ['fsi-app/scripts/verify', 'fsi-app/scripts']) {
+      for (const f of listFilesFn([`${dir}/`])) {
+        if (posix.dirname(f) !== dir || !f.endsWith('.mjs') || isTestFile(f)) continue;
+        let text;
+        try { text = readFileFn(f); } catch { continue; }
+        const markerLine = text.split('\n').find((l) => l.startsWith('// data-audit:'));
+        if (markerLine && AUDIT_MARKER_RE.test(markerLine)) roots.add(f);
+      }
+    }
+  }
 
   // Source 5: behavioral goldens (run-goldens.mjs auto-discovers every `*.golden.mjs`/`*-golden.mjs`
   // under scripts/verify/ — the same suffix coverage-scan.mjs's own PROOF_RE and execution-wiring.mjs's
@@ -234,6 +242,17 @@ export function findDispatchRoots(
         if (!roots.has(target)) { roots.add(target); grew = true; }
       }
     }
+  }
+
+  // Source 9 (plan 6.8, lane N1, out-of-write-set necessary fix disclosed in that lane's report): the
+  // fitness manifest (.discipline/fitness/manifest.mjs) now dynamically imports every
+  // functions/F<N>-*.mjs file by a directory scan rather than one static per-file import line, so the
+  // plain import-graph walk above cannot see it (a computed `import()` specifier is not a string
+  // literal). Every non-test file directly under .discipline/fitness/functions/ is therefore a root,
+  // structurally, mirroring Source 4's "read the real mechanism, not a hand list" principle rather than
+  // reintroducing the hand-maintained duplicate this same lane's manifest change exists to remove.
+  for (const f of listFilesFn(['fsi-app/.discipline/fitness/functions/'])) {
+    if (posix.dirname(f) === 'fsi-app/.discipline/fitness/functions' && !isTestFile(f)) roots.add(f);
   }
 
   return roots;
