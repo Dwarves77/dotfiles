@@ -19,6 +19,7 @@ import {
   FORWARD_EVENTS_GOVERNING_FILES,
 } from "./run-extraction.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
+import { FAMILIES } from "../harness-runs/family-registry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUNNER_PATH = join(HERE, "run-extraction.mjs");
@@ -309,15 +310,20 @@ test("CLI --execute: two consecutive real runs claim distinct, incrementing run 
   }
 });
 
-test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's forward-events entry (documentation, checked against the module by CONVENTION-TABLE-PARITY)", async () => {
-  const conventionMd = readFileSync(join(HERE, "..", "harness-runs", "CONVENTION.md"), "utf8");
-  assert.ok(conventionMd.includes("extract-forward-events.mjs"), "CONVENTION.md must still name the extractor");
-  assert.ok(conventionMd.includes("forward-events/PROTOCOL.md"), "CONVENTION.md must still name PROTOCOL.md");
-  // The old second half of this test read F28's source text for a literal string match — replaced by ONE
-  // consolidated contract test, scripts/harness-runs/governing-files.test.mjs (Wave GOV-SINGLE,
-  // 2026-09-04): this runner's export is now a direct re-export of governing-files.mjs's
-  // GOVERNING_FILES['forward-events'], so it and F28's own copy cannot drift apart by construction.
-  assert.ok(FORWARD_EVENTS_GOVERNING_FILES.length > 0);
+test("FORWARD_EVENTS_GOVERNING_FILES matches the forward-events descriptor (family-registry.mjs, lane N2, 2026-09-19, Amendment 2)", async () => {
+  // CONVENTION.md no longer carries per-family prose or a harness_version table for a substring check to
+  // read (lane N2 moved that content into scripts/harness-runs/forward-events/FAMILY.md and each family's
+  // own family.json); the real source of truth for this family's governing files is now the descriptor
+  // family-registry.mjs loads. This runner's export is a direct re-export of governing-files.mjs's
+  // GOVERNING_FILES['forward-events'], which is itself DERIVED from that same descriptor, so all three
+  // (this export, GOVERNING_FILES, and the descriptor) cannot drift apart by construction.
+  const descriptor = FAMILIES.find((f) => f.family === "forward-events");
+  assert.ok(descriptor, "forward-events must have a registered family.json descriptor");
+  assert.deepEqual(
+    [...FORWARD_EVENTS_GOVERNING_FILES],
+    [...descriptor.governing_files],
+    "FORWARD_EVENTS_GOVERNING_FILES must deep-equal the forward-events descriptor's governing_files",
+  );
 });
 
 // ── DEDUPE-PLUMB (2026-09-04, PROPOSER-5 finding): the extractor's dedupe counts reach the artifact ──

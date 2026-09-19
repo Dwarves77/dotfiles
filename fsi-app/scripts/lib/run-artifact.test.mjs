@@ -26,6 +26,7 @@ import {
   listFamiliesSummary,
   resolveRunIdArg,
   loadRunArtifactJSON,
+  isRunArtifactFilename,
 } from "./run-artifact.mjs";
 import { mkdirSync } from "node:fs";
 
@@ -751,6 +752,47 @@ test("loadRunArtifactJSON RED: unparseable JSON throws a named error naming the 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── isRunArtifactFilename (lane N2, 2026-09-19, Amendment 2): the one predicate every reader of a family
+// directory's *.json files uses to tell a real run artifact apart from anything else (family.json today).
+
+test("isRunArtifactFilename: true for the convention's <family>-run-NNN.json shape, single-word family", () => {
+  assert.equal(isRunArtifactFilename("mint-run-001.json"), true);
+  assert.equal(isRunArtifactFilename("screen-run-999.json"), true);
+});
+
+test("isRunArtifactFilename: true for a hyphenated family name", () => {
+  assert.equal(isRunArtifactFilename("fetch-drain-run-001.json"), true);
+  assert.equal(isRunArtifactFilename("inaccessible-triage-run-012.json"), true);
+});
+
+test("isRunArtifactFilename: false for family.json, the descriptor, never a run artifact", () => {
+  assert.equal(isRunArtifactFilename("family.json"), false);
+});
+
+test("isRunArtifactFilename: false for other family-directory files (PENDING-RUN.md, LAST-PROPOSER-PASS.md, PROTOCOL.md, FAMILY.md)", () => {
+  assert.equal(isRunArtifactFilename("PENDING-RUN.md"), false);
+  assert.equal(isRunArtifactFilename("LAST-PROPOSER-PASS.md"), false);
+  assert.equal(isRunArtifactFilename("PROTOCOL.md"), false);
+  assert.equal(isRunArtifactFilename("FAMILY.md"), false);
+});
+
+test("isRunArtifactFilename: false for a run number not zero-padded to 3 digits, or missing the .json extension", () => {
+  assert.equal(isRunArtifactFilename("mint-run-1.json"), false);
+  assert.equal(isRunArtifactFilename("mint-run-0001.json"), false);
+  assert.equal(isRunArtifactFilename("mint-run-001"), false);
+  assert.equal(isRunArtifactFilename("mint-run-001.json.claim"), false);
+});
+
+test("isRunArtifactFilename: false for a trace file one level below the family dir (traces/<family>-run-NNN.raw-result.json is a different filename entirely, and this predicate is only ever applied to names inside the family dir itself)", () => {
+  assert.equal(isRunArtifactFilename("source-sweep-run-001.raw-result.json"), false);
+});
+
+test("isRunArtifactFilename: false for non-string input, never throws", () => {
+  assert.equal(isRunArtifactFilename(undefined), false);
+  assert.equal(isRunArtifactFilename(null), false);
+  assert.equal(isRunArtifactFilename(42), false);
 });
 
 test("CLI integration: --list against the real retrofitted screen family reads all 3 rounds, sorted, with defect counts intact", () => {

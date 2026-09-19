@@ -1,0 +1,16 @@
+{
+  "family": "mint",
+  "registered": "2026-09-01",
+  "registered_by": "Wave MH-1",
+  "governing_files": [
+    "scripts/mint/MINT-RUNBOOK.md",
+    "scripts/mint/validate-mint-payload.mjs",
+    "scripts/mint/payload-schema.json",
+    "scripts/mint/item-type-required-slots.json",
+    "src/lib/agent/gate-a-scan.mjs",
+    "src/lib/agent/gate-a-match.mjs",
+    "scripts/mint/lib/canonicalize-citation-url.mjs",
+    "src/lib/intake/record-facts.mjs"
+  ],
+  "rationale": "mint has no single canonical entry point of its own beyond run-mint-batch.mjs (Wave MH-5), and its entry here is what that script imports back. The Gate-A scanner and matcher are the single source, imported directly since lane DEAD-EXEC (2026-09-04) deleted the two scripts/mint/lib/ re-export shims (gate-a-scan.mjs and gate-a-match.mjs) that used to sit in front of them: those shims were pure export-from pass-throughs with no logic of their own, and their only production importer (validate-mint-payload.mjs) and their one test importer (record-facts.npmtest.mjs) now both import src/lib/agent/gate-a-scan.mjs and gate-a-match.mjs directly, so the set of content this family hashes is unchanged, only the two now-redundant shim paths were removed from the list."
+}

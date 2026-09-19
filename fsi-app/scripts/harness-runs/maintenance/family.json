@@ -1,0 +1,10 @@
+{
+  "family": "maintenance",
+  "registered": "2026-09-18",
+  "registered_by": "lane M9b",
+  "governing_files": [
+    "../.github/workflows/maintenance.yml",
+    "scripts/maintenance/lib/cli.mjs"
+  ],
+  "rationale": "maintenance (lane M9b, 2026-09-18, stage-audit-2026-09-18 s6-gates-harness.md finding: the maintenance.yml family's runs were recorded only as an ephemeral upload-artifact, never a scripts/harness-runs/ family, so a proposer reading this substrate's history found nothing for the 62-step MAINT orchestrator's own runs even though those runs already had a structured per-step summary.json contract, scripts/maintenance/lib/cli.mjs's runCli). Unlike every family above, maintenance has no single canonical runner script (each step is its own scripts/maintenance/<step>.mjs wrapper, or the ./.github/actions/maintenance-step composite action); the file whose edits actually change what a maintenance run is, is the workflow itself (which step exists, what it is gated on, what it writes) plus the one file every wrapper's CLI shape is built on, scripts/maintenance/lib/cli.mjs (--mode, --arg, --out parsing, the summary.json contract this family's own artifact writer reads back), the same orchestrator-file-is-the-governing-file call corpus-turn's own entry makes for .github/workflows/corpus-turn.yml. The path escapes fsi-app/ with '../' since maintenance.yml lives at the repo root's .github/workflows/, one level above fsi-app, the same escape meta-harness's own '../lib/run-artifact.mjs' entry already uses; hashHarnessVersion resolves every entry independently against fsi-app root (baseDir), so this is not order-sensitive."
+}

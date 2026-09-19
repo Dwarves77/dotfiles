@@ -1,0 +1,13 @@
+{
+  "family": "meta-harness",
+  "registered": "2026-09-01",
+  "registered_by": "Wave MH-4",
+  "governing_files": [
+    "scripts/harness-runs/CONVENTION.md",
+    "scripts/harness-runs/PROPOSER-RUNBOOK.md",
+    "scripts/lib/run-artifact.mjs",
+    ".discipline/fitness/functions/F28-harness-run-integrity.mjs",
+    "scripts/harness-runs/governing-files.mjs"
+  ],
+  "rationale": "meta-harness (Wave MH-4, build plan section 3, self-application) is the meta-harness layer's own family, so its list is declared here too, and it is the one entry that is self-referential twice over: both F28-harness-run-integrity.mjs (F28's own rules) and governing-files.mjs (what defines every family's governing files, meta-harness's own included) are named in meta-harness's own list. A future edit to either file moves the meta-harness family's own harness_version exactly like editing validate-mint-payload.mjs moves mint's, the literal mechanism by which the loop applies to itself (plan section 1) is enforced, not just narrated."
+}

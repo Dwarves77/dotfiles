@@ -1,0 +1,10 @@
+{
+  "family": "corpus-turn",
+  "registered": "2026-09-04",
+  "registered_by": "lane TURNREQ",
+  "governing_files": [
+    "scripts/turns/consume-turn-requests.mjs",
+    "scripts/turns/export-corpus-for-extraction.mjs"
+  ],
+  "rationale": "corpus-turn (registered by lane TURNREQ, 2026-09-04, closing the 2026-09-04 wiring audit's B1 Gap 2 and B2 section 1 finding: the corpus-turn harness family has zero run artifacts and was not registered in governing-files.mjs either). Unlike every family above, corpus-turn has no single canonical run-*.mjs entry point; .github/workflows/corpus-turn.yml itself is the orchestrator, chaining scripts that already belong to other families (discover-for-items.mjs, forward-events's own run-extraction.mjs) with the two scripts this family actually owns and that this same lane gave their first real corpus-turn wiring: consume-turn-requests.mjs (the ticket-queue selection this family's own turns now run over) and export-corpus-for-extraction.mjs (the corpus-file builder those selected ids feed into run-extraction.mjs through, extended this lane with --ids to accept exactly that selection). discover-for-items.mjs and run-extraction.mjs stay out of this list deliberately: they are already governed as part of item_cross_references' plain writer set and the forward-events family respectively, and one governing-file set per family is the convention, not a file double-counted into two families' hashes."
+}

@@ -23,36 +23,23 @@ import crypto from "node:crypto";
 import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+import { FAMILIES } from '../harness-runs/family-registry.mjs'; // lane N2, 2026-09-19: ALLOWED_FAMILIES is derived from this
 
-// "meta-harness" (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family:
-// its runs are the waves that build/extend this substrate itself (MH-1..MH-3, and every wave after). Its
-// governing files (CONVENTION.md, PROPOSER-RUNBOOK.md, this file, and F28 itself — F28's GOVERNING_FILES
-// table) are self-referential by construction — a change to this file is itself a change to one of the
-// meta-harness family's own governing files, exactly the "the loop applies to itself" plan §1 describes.
-export const ALLOWED_FAMILIES = Object.freeze([
-  "mint",
-  "screen",
-  "fetch-drain",
-  "meta-harness",
-  "forward-events",
-  "source-sweep",
-  "ledger-consume",
-  "change-detection",
-  "propagation",
-  "corpus-turn",
-  "brief-apply",
-  // inaccessible-triage (lane M8, 2026-09-18): the suspended-source acquisition-ladder run
-  // (scripts/sources/inaccessible-triage.mjs) -- a run's "unit" is a triage pass over the
-  // status='suspended' pool (roadblock re-probe -> bounded alternative search -> same-floor qualify),
-  // never a mint, an enumeration walk, a ledger consume, or any of the other ten registered shapes;
-  // CONVENTION.md's own registration-order rule forbids folding a genuinely distinct run shape into an
-  // existing family "just because it seemed similar" -- see that file's own header for the full account.
-  "inaccessible-triage",
-  // maintenance (lane M9b, 2026-09-18 -- stage-audit-2026-09-18 s6-gates-harness.md): the 62-step MAINT
-  // orchestrator's own runs, previously recorded only as an ephemeral upload-artifact (90-day retention,
-  // never git history) never as a harness-run family of its own. See governing-files.mjs's entry.
-  "maintenance",
-]);
+// ALLOWED_FAMILIES (lane N2, 2026-09-19, build plan section 6.8 Rule A) is now DERIVED from FAMILIES
+// (scripts/harness-runs/family-registry.mjs), which reads one family.json descriptor per family
+// directory under scripts/harness-runs/. Before this lane, this was a hand-written array, and
+// registering a new family meant appending here, to GOVERNING_FILES (governing-files.mjs), and to two
+// places in CONVENTION.md, the exact shared insertion point that made three lanes (M8, M9b, M9a) collide
+// on 2026-09-18 registering three different families in the same window. Registering a family now means
+// adding a new subdirectory with its own family.json; this file is not touched.
+//
+// "meta-harness" (Wave MH-4, build plan section 3, "self-application") is the meta-harness layer's own
+// family: its runs are the waves that build or extend this substrate itself (MH-1..MH-3, and every wave
+// after). Its governing files (see family-registry.mjs's meta-harness/family.json) are self-referential
+// by construction, a change to run-artifact.mjs or family-registry.mjs is itself a change to one of the
+// meta-harness family's own governing files, exactly the "the loop applies to itself" plan section 1
+// describes.
+export const ALLOWED_FAMILIES = Object.freeze(FAMILIES.map((f) => f.family));
 
 const REQUIRED_TOP_LEVEL = Object.freeze([
   "harness_family",
@@ -91,6 +78,27 @@ function isPlainObject(v) {
 
 function runIdPattern(family) {
   return new RegExp(`^${family}-run-\\d{3}$`);
+}
+
+// General run-artifact filename shape, family-agnostic (lane N2, 2026-09-19, Amendment 2). CONVENTION.md's
+// own naming rule: "Filename = run_id + .json. run_id is <family>-run-<NNN>, zero-padded 3 digits,
+// monotonic per family." A family name is kebab-case (ALLOWED_FAMILIES's own shape, matched by
+// run-artifact.test.mjs's "every family name is kebab-case" test), so the general filename shape, without
+// needing to know which specific family a directory belongs to, is <kebab-case>-run-<3 digits>.json. This
+// is the ONE predicate every reader of a family directory's *.json files uses to tell a real run artifact
+// apart from anything else that happens to end in .json in that same directory (today, only family.json;
+// see readRunHistory and F28-harness-run-integrity.mjs's scanArtifacts, both of which import this instead
+// of repeating the shape or excluding a literal filename by name).
+const RUN_ARTIFACT_FILENAME_RE = /^[a-z]+(?:-[a-z]+)*-run-\d{3}\.json$/;
+
+/**
+ * True when `name` (a bare filename, no directory) matches the convention's run-artifact shape
+ * `<family>-run-NNN.json`; false for anything else, including `family.json`. Pure, no I/O.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isRunArtifactFilename(name) {
+  return typeof name === "string" && RUN_ARTIFACT_FILENAME_RE.test(name);
 }
 
 /**
@@ -417,7 +425,10 @@ export function readRunHistory(dir) {
   const resolved = resolve(dir);
   if (!existsSync(resolved)) return { runs: [], invalid: [] };
 
-  const files = readdirSync(resolved).filter((f) => f.endsWith(".json")).sort();
+  // Only real run artifacts (lane N2, 2026-09-19, Amendment 2): isRunArtifactFilename matches the
+  // convention's <family>-run-NNN.json shape and nothing else, so a family's own family.json descriptor
+  // (or any other non-artifact .json a family directory might someday hold) is never read as a candidate.
+  const files = readdirSync(resolved).filter(isRunArtifactFilename).sort();
   const runs = [];
   const invalid = [];
 
