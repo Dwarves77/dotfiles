@@ -23909,3 +23909,30 @@ admitted mirror is deferred to whichever lane owns that train file tonight.
 
 Not a UI change; no customer surface touched by this branch. The two `.tsx` files touched
 (`AdminDashboard.tsx`, `ThemesView.tsx`) gained a comment line only, no JSX or behavior change.
+## 2026-09-19, coordinator (cloud session, no access to the operator's machine): 6.7 duplicates landed, the process defects they exposed fixed in the same motion
+
+Cloud container, handoff section 0a. Read GitHub and the vault only; touched no train PR. Master moved from `1b8432a0` (#725) to the merges below.
+
+**Landed [CONFIRMED by the merged PRs and their gate logs].** Plan 6.7 rows, each a Sonnet or Haiku lane in this container, each pushed through the repo's pre-push gate (all steps OK) via one locked wrapper: L37 (#726, 52 of 53 duplicate snapshot files out of the index), L35h (#727, eur-lex.europa.eu homed in identifier-variants.mjs, F46 ceiling 1 to 0, the six L35 host-sweep tests rewritten to reuse F46 by import), D2 (#728, the data duplicate census: EP-11 0 twins over 995, one SG title pair pending an entity ruling, SC-13 not holding on live data at two hosts), and L38 (branch pushed, PR follows this entry: 41 admitted-mirror sites dispositioned, one wired, F45 6,174 to 6,132). L36 (#712) merged on the train.
+
+**Machine findings, each with its disposition.**
+- [CONFIRMED] The six L35 host-sweep tests stripped comments with a mid-line `//` rule that also removed everything after the `//` in `https://`, so none could see a URL literal and none was ever proven RED. Fixed in #727 by reuse of F46's own parser and reference set. Three non-sweep users of the same stripper remain (F30-entity-spine.mjs, rules/021-cached-shape-key.mjs, capture-static-primaries.test.mjs lines 667 and 711); they are not host sweeps and are recorded here for a look, not fixed.
+- [CONFIRMED] The per-lane session-log mechanism (`docs/ops/session-log.d/`, D28, lane L18, 2026-09-13) was built, used once, and forgotten: the lane contract kept sending lanes to the shared file, so every lane of 2026-09-18 conflicted on it, including all four of mine. The lane contract and the cloud contract now send lanes to their own file. [REFUTED in the same hour, corrected here] I moved L38's entry there and the gate refused the push: the UX-compliance half of memory-gate.mjs reads only the shared file's diff, so a lane that touched a .tsx cannot satisfy it from a per-lane file. D28 was built half-wired. L38's entry stays in the shared file; lane D28b (dispatched 00:45 UTC, brief in docs/dispatches/lane-briefs/2026-09-18/) makes the UX check read every memory path's diff, with a RED run of the real gate before the fix. This corrects my own statement to the operator earlier tonight that the per-lane structure was a rule change waiting on his decision: the mechanism existed.
+- [CONFIRMED] `fsi-app/scripts/_snapshots/` is gitignored yet holds 1,193 tracked files that workflows (`brief-export.yml` force-add, `population-turn.yml` rows_file) and a test (`tag-yield.fixture.test.mjs`) depend on as inputs. A folder named as scratch is a home for committed inputs. Plan item: give those inputs a tracked home and let the folder be scratch; not started.
+- [CONFIRMED] The `BIAS_TAG_VOCAB` pair L38 deferred is the audit's own row "two recommend-classification routes sharing 85 windows: wire, one handler, two thin routes"; it is that lane's, not a new home.
+- [CONFIRMED] SC-13's "must read 0" does not hold on live data: cdp.net is one page registered twice (with and without www) at tiers 4 and 5; sec.gov carries a tier 2 provisional PDF row beside two tier 1 rows. Data-phase items; the register step only governs new rows and nothing re-measures existing ones.
+
+**Process defects of this session, corrected in place.**
+- My consumer census for L37 was piped through `head -20` and missed the test that reads one of the 53 files; the rebased branch's own gate caught it (ENOENT). A truncated measurement is not a measurement.
+- I predicted the train would stop at #717 (migrations inventory conflict); it merged at 00:01, so the train or a local session resolved it. Prediction refuted, recorded.
+- The D2 lane reported "kept both sides, master first" on its session-log conflict; the diff showed 72 lines of master's m9c entry deleted and its own entry twice. Rule for every merge resolution from here: the diff against master removes zero lines, checked by the coordinator before any push.
+- The auto-mode classifier refuses a force-push and refused the gate wrapper once; a branch already on origin is therefore updated by merging master in, never by rebase, and pushed with a plain push. Written into both contracts.
+- Timestamps I wrote from estimate ran ahead of the clock; corrected to the measured window before any lane copied them.
+- The L38 lane agent died with a container restart after its push; its work was recovered and verified from its worktree and its pushed branch, not from its lost report.
+- My merges of #727 and #726 moved master twice under the train, costing it a rebase and CI cycle each; the train has not merged since #718 (00:13) as of this entry and the next check-in reads it.
+
+**Next.** Open and merge L38's PR; P7 (re-measure the three standing numbers and D2's counts, F50, the board row) once L38 is in; then the handoff's order resumes: M2 and W10-A pushed from the operator's machine, M3 after M1 and M2, the hop proofs, the proof run 6.2, data only after that.
+
+### UX compliance (coordinator)
+
+Not a UI change; no customer surface touched by this branch.
