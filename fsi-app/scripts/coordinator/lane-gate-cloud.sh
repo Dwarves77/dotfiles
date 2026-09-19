@@ -11,7 +11,7 @@
 #   4. prints the gate's step lines and the exit code, and names the full log.
 set -u
 WT="${1:?usage: lane-gate.sh <worktree-root>}"
-SP="${LANE_GATE_SP:?set LANE_GATE_SP to this container's ONE coordinator scratchpad folder; every lane and the coordinator must share it, or two runners can collide (see docs/ops/HANDOFF-2026-09-18.md section 7)}"
+SP="${LANE_GATE_SP:?set LANE_GATE_SP to the ONE coordinator scratchpad folder of this container; every lane and the coordinator must share it or two runners can collide (docs/ops/HANDOFF-2026-09-18.md section 7)}"
 LOCK="$SP/hook.lock"
 NAME="$(basename "$WT")"
 LOG="$SP/gate-$NAME.log"
