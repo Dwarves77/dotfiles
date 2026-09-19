@@ -36,13 +36,19 @@
 //             session-log.md file stays for coordinator entries -- see docs/ops/session-log.d/README.md).
 //   SURFACE = changed paths under fsi-app/src/**/*.{tsx,css}.
 //   Memory gate:  CODE non-empty AND MEMORY empty -> FAIL.
-//   UX gate:      SURFACE non-empty AND the session-log diff for the range has no ADDED line ("^+")
+//   UX gate:      SURFACE non-empty AND the session-log addendum diff for the range (docs/ops/
+//                 session-log.md or the lane's own docs/ops/session-log.d file) has no ADDED line ("^+")
 //                 containing "UX compliance" -> FAIL. Not applicable (no message) when SURFACE is empty.
+//                 (Lane D28b, 2026-09-19: before this fix the CLI main fed uxGateVerdict ONLY docs/ops/
+//                 session-log.md's own diff, so a lane that wrote its UX compliance block into its own
+//                 docs/ops/session-log.d/ file per D28 above -- exactly what memoryGateVerdict already
+//                 accepts -- was refused at push; memoryDiffPaths() below is the fix, see its own header.)
 //
-// PURE CORE (classifyChanged / memoryGateVerdict / uxGateVerdict) takes plain arrays/strings, no git,
-// so memory-gate.test.mjs needs no repo fixture. LIVE DRIVER below gathers `git diff --name-only <range>`
-// and the session-log's own diff text for the range. node builtins + relative imports only (no-npm
-// discipline glob; fsi-app/.discipline/glob-portability.test.mjs enforces this transitively).
+// PURE CORE (classifyChanged / memoryGateVerdict / uxGateVerdict / memoryDiffPaths) takes plain
+// arrays/strings, no git, so memory-gate.test.mjs needs no repo fixture. LIVE DRIVER below gathers
+// `git diff --name-only <range>` and, for every memoryDiffPaths() path, that path's own diff text for
+// the range, concatenated in order. node builtins + relative imports only (no-npm discipline glob;
+// fsi-app/.discipline/glob-portability.test.mjs enforces this transitively).
 //
 // DELIBERATE PARITY DEVIATION (review-7.8.md finding F1, coordinator ruling D6, 2026-09-12): the
 // original inline shell exited the whole step the moment the memory gate failed on a pull_request
@@ -131,11 +137,37 @@ export function uxGateVerdict(files, sessionLogDiffLines, { range = '<range>' } 
     ok: false,
     message:
       `UX compliance gate: this range (${range}) touches a customer surface (${sample}…) but the ` +
-      `session-log addendum added in the same range has no 'UX compliance' block (docs/design/` +
-      `ux-laws.md, DP-2). Add it: per screen, the primary goal, the path, the one primary action, the ` +
-      `feedback state per async action.`,
+      `session-log addendum in the same range (docs/ops/session-log.md or the lane's own docs/ops/` +
+      `session-log.d file) has no 'UX compliance' block (docs/design/ux-laws.md, DP-2). Add it: per ` +
+      `screen, the primary goal, the path, the one primary action, the feedback state per async action.`,
     warnNote: 'warn-only on push',
   };
+}
+
+/**
+ * Lane D28b (2026-09-19): the UX-compliance check's `hasComplianceLine` scan only ever saw
+ * `docs/ops/session-log.md`'s own diff, because the CLI main below built `sessionLogDiffLines` from
+ * that one path alone -- so a lane that writes its UX compliance block into its own
+ * `docs/ops/session-log.d/YYYY-MM-DD-<slug>.md` file (D28's own fix, the mechanism this file's header
+ * already documents under MEMORY) was refused at push even though the vault requirement was satisfied.
+ * `memoryGateVerdict` already accepted the per-lane file; only the UX half never learned about it.
+ *
+ * This is the pure selection function the CLI now uses: which paths' diffs should be combined and
+ * handed to `uxGateVerdict`, in order. `docs/ops/session-log.md` first (if present in the range), then
+ * every file matching SESSION_LOG_D_RE, in the order they appear in `files`. Nothing else -- the
+ * README (no date/slug) and a malformed session-log.d name are excluded, same as `classifyChanged`'s
+ * MEMORY bucket already excludes them. PURE, no filesystem, no git.
+ * @param {string[]} files
+ * @returns {string[]}
+ */
+export function memoryDiffPaths(files) {
+  const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
+  const paths = [];
+  if (list.includes('docs/ops/session-log.md')) paths.push('docs/ops/session-log.md');
+  for (const f of list) {
+    if (SESSION_LOG_D_RE.test(f)) paths.push(f);
+  }
+  return paths;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -155,11 +187,27 @@ export function gitChangedFiles(range) {
   return out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 }
 
-/** `git diff <range> -- docs/ops/session-log.md`, as an array of diff lines (may be empty). */
-export function gitSessionLogDiffLines(range) {
+/**
+ * `git diff <range> -- <path>` for ONE path, as an array of diff lines (may be empty on a missing or
+ * unchanged path -- never throws, matching the original single-path helper's behaviour).
+ */
+function gitDiffLinesForPath(range, path) {
   let out = '';
-  try { out = git(['diff', range, '--', 'docs/ops/session-log.md']); } catch { out = ''; }
+  try { out = git(['diff', range, '--', path]); } catch { out = ''; }
   return out.split(/\r?\n/);
+}
+
+/**
+ * Lane D28b (2026-09-19): the memory addendum's diff for the range, combined across every path
+ * `memoryDiffPaths(files)` names -- `docs/ops/session-log.md` first (if present), then each matching
+ * `docs/ops/session-log.d/` file, in that order -- so `uxGateVerdict` sees the UX compliance block
+ * wherever the lane actually wrote it, not only in the one shared file.
+ * @param {string} range @param {string[]} files
+ * @returns {string[]}
+ */
+export function gitMemoryDiffLines(range, files) {
+  const paths = memoryDiffPaths(files);
+  return paths.flatMap((p) => gitDiffLinesForPath(range, p));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -181,7 +229,7 @@ if (isMainModule(import.meta.url)) {
   let sessionLogDiffLines;
   try {
     files = gitChangedFiles(range);
-    sessionLogDiffLines = gitSessionLogDiffLines(range);
+    sessionLogDiffLines = gitMemoryDiffLines(range, files);
   } catch (e) {
     console.error(String(e.message || e));
     process.exit(2);

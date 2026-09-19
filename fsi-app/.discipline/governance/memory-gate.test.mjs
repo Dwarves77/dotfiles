@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { classifyChanged, memoryGateVerdict, uxGateVerdict } from './memory-gate.mjs';
+import { classifyChanged, memoryGateVerdict, uxGateVerdict, memoryDiffPaths } from './memory-gate.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // classifyChanged
@@ -201,4 +201,67 @@ test('uxGateVerdict: failure message ends the file sample with the single ellips
   assert.ok(v.message.includes('…'), 'message must contain U+2026');
   assert.ok(!v.message.includes('...'), 'message must not contain the three-ASCII-period placeholder');
   assert.equal(v.message.match(/…/g).length, 1, 'exactly one ellipsis glyph');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// memoryDiffPaths (lane D28b, 2026-09-19): the UX-compliance check was fed only docs/ops/session-log.md's
+// own diff by the CLI main, so a lane writing its UX block into its own docs/ops/session-log.d/ file
+// (D28's own fix) was refused at push. This is the pure function the CLI now uses to pick every path
+// whose diff should be combined and handed to uxGateVerdict.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('memoryDiffPaths: the shared file and two per-lane files returns all three, shared first', () => {
+  const r = memoryDiffPaths([
+    'fsi-app/src/x.ts',
+    'docs/ops/session-log.d/2026-09-19-l38.md',
+    'docs/ops/session-log.md',
+    'docs/ops/session-log.d/2026-09-19-d28b.md',
+  ]);
+  assert.deepEqual(r, [
+    'docs/ops/session-log.md',
+    'docs/ops/session-log.d/2026-09-19-l38.md',
+    'docs/ops/session-log.d/2026-09-19-d28b.md',
+  ]);
+});
+
+test('memoryDiffPaths: only a per-lane file present returns just it', () => {
+  const r = memoryDiffPaths(['fsi-app/src/x.ts', 'docs/ops/session-log.d/2026-09-19-l38.md']);
+  assert.deepEqual(r, ['docs/ops/session-log.d/2026-09-19-l38.md']);
+});
+
+test('memoryDiffPaths: the README and a malformed session-log.d name are excluded', () => {
+  const r = memoryDiffPaths([
+    'docs/ops/session-log.d/README.md',
+    'docs/ops/session-log.d/l18.md',
+    'docs/ops/session-log.d/2026-09-13.md',
+  ]);
+  assert.deepEqual(r, []);
+});
+
+test('memoryDiffPaths: no vault file present returns an empty array', () => {
+  const r = memoryDiffPaths(['fsi-app/src/x.ts']);
+  assert.deepEqual(r, []);
+});
+
+test('uxGateVerdict PASSES when the only added "UX compliance" line comes from a per-lane file diff, ' +
+  'combined the way the CLI now builds it', () => {
+  // The CLI concatenates `git diff <range> -- <path>` output for every memoryDiffPaths() path, in order.
+  // docs/ops/session-log.md's own diff (present, but with no UX compliance line) comes first, then the
+  // per-lane file's diff (which does carry the block), mirroring a real lane like L38 or D28b.
+  const sharedDiffLines = [
+    'diff --git a/docs/ops/session-log.md b/docs/ops/session-log.md',
+    '+## 2026-09-19, coordinator: landing notes',
+    '+unrelated line, no compliance block here',
+  ];
+  const perLaneDiffLines = [
+    'diff --git a/docs/ops/session-log.d/2026-09-19-d28b.md b/docs/ops/session-log.d/2026-09-19-d28b.md',
+    '+## 2026-09-19, W9 lane D28b: fix',
+    '+### UX compliance (d28b)',
+    '+Not a UI change; no customer surface touched by this branch.',
+  ];
+  const combined = [...sharedDiffLines, ...perLaneDiffLines];
+  const v = uxGateVerdict(['fsi-app/src/components/Foo.tsx'], combined, { range: 'a..b' });
+  assert.equal(v.applicable, true);
+  assert.equal(v.ok, true);
+  assert.equal(v.message, 'UX compliance gate OK');
 });
