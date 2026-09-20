@@ -126,3 +126,162 @@ test("findApplyInvokedProducerScripts excludes non-producer directories (scripts
   `;
   assert.deepEqual(findApplyInvokedProducerScripts(ymlText), []);
 });
+
+// ---------------------------------------------------------------------------------------------------
+// Recurrence gate (lane M9d correction, 2026-09-20): run 35533637184 failed with zero jobs ("This run
+// likely failed because of a workflow file issue") because the original shape put
+// `PRODUCER_SUMMARY_DIR: ${{ runner.temp }}/producer-summaries` in the JOB-level `env:` block. The
+// `runner` context is not available there per GitHub's context-availability table (only github, needs,
+// strategy, matrix, vars, secrets, inputs are) -- only inside steps. The fix moved the assignment into a
+// step ("Resolve PRODUCER_SUMMARY_DIR") that exports it to $GITHUB_ENV before the first producer step.
+// These three checks make this exact class of defect fail a future PR touching this file, not just this
+// one instance.
+// ---------------------------------------------------------------------------------------------------
+
+/**
+ * Extract the raw lines of a workflow-level (`indent === 0`) or job-level (`indent === 4`, this file's
+ * own indentation for `jobs.produce.env`) `env:` block, keyed off indentation rather than a full YAML
+ * parse -- matching this test file's existing "text scan over a real parser" precedent. A step-level
+ * `env:` block (indented under a `- name: ...` list item, 8+ spaces in this file) is deliberately NOT
+ * matched by either indent value, so a step's own `env:` never counts toward this check.
+ * @param {string} ymlText
+ * @param {number} indent
+ * @returns {string[]} the block's own lines (not including the `env:` line itself), or [] if absent
+ */
+export function extractEnvBlockLines(ymlText, indent) {
+  const lines = ymlText.split("\n");
+  const envLineRe = new RegExp(`^ {${indent}}env:\\s*$`);
+  const startIdx = lines.findIndex((l) => envLineRe.test(l));
+  if (startIdx === -1) return [];
+
+  const block = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === "") continue;
+    const leadingSpaces = line.length - line.trimStart().length;
+    if (leadingSpaces <= indent) break;
+    block.push(line);
+  }
+  return block;
+}
+
+/**
+ * True when any workflow-level or job-level `env:` value in `ymlText` references the `runner` context
+ * (`${{ runner. ... }}`) -- a context unavailable at either level. Step-level `env:` blocks are excluded
+ * by construction (see extractEnvBlockLines).
+ * @param {string} ymlText
+ * @returns {boolean}
+ */
+export function hasRunnerContextInJobOrWorkflowEnv(ymlText) {
+  const workflowLevel = extractEnvBlockLines(ymlText, 0);
+  const jobLevel = extractEnvBlockLines(ymlText, 4);
+  return [...workflowLevel, ...jobLevel].some((line) => line.includes("${{ runner."));
+}
+
+test("producers.yml: no workflow-level or job-level env: value references the runner context", () => {
+  const ymlText = readFileSync(WORKFLOW_PATH, "utf8");
+  assert.equal(
+    hasRunnerContextInJobOrWorkflowEnv(ymlText),
+    false,
+    "the runner context is not available in workflow-level or job-level env: (only inside steps) -- this made run 35533637184 fail with zero jobs"
+  );
+});
+
+test("ATTACK: hasRunnerContextInJobOrWorkflowEnv catches a job-level env: value using the runner context", () => {
+  const fixtureYml = `
+name: Fixture
+on: workflow_dispatch
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    env:
+      SOME_VAR: ${"$"}{{ secrets.SOME_SECRET }}
+      PRODUCER_SUMMARY_DIR: ${"$"}{{ runner.temp }}/producer-summaries
+    steps:
+      - name: A step
+        run: echo hi
+  `;
+  assert.equal(hasRunnerContextInJobOrWorkflowEnv(fixtureYml), true, "the attack fixture must be caught, not silently pass");
+});
+
+test("ATTACK: hasRunnerContextInJobOrWorkflowEnv does not flag a step-level env: value using the runner context (that IS valid)", () => {
+  const fixtureYml = `
+name: Fixture
+on: workflow_dispatch
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    env:
+      SOME_VAR: ${"$"}{{ secrets.SOME_SECRET }}
+    steps:
+      - name: A step with a legitimate step-level runner reference
+        env:
+          TMP_DIR: ${"$"}{{ runner.temp }}/scratch
+        run: echo hi
+  `;
+  assert.equal(hasRunnerContextInJobOrWorkflowEnv(fixtureYml), false);
+});
+
+/**
+ * Index of the step that exports PRODUCER_SUMMARY_DIR to $GITHUB_ENV, or -1 if absent.
+ * @param {string} ymlText
+ * @returns {number}
+ */
+export function findProducerSummaryDirExportIndex(ymlText) {
+  const exportRe = /PRODUCER_SUMMARY_DIR=.*>>\s*"?\$GITHUB_ENV"?/;
+  const m = exportRe.exec(ymlText);
+  return m ? m.index : -1;
+}
+
+/**
+ * Index of every `node <path>.mjs ...--apply...` invocation restricted to scripts/producers/ and
+ * scripts/gen/ (same restriction as findApplyInvokedProducerScripts), returned in source order.
+ * @param {string} ymlText
+ * @returns {number[]}
+ */
+export function findApplyInvokedProducerScriptStepIndices(ymlText) {
+  const indices = [];
+  const lineRe = /node\s+(scripts\/[^\s"]+\.mjs)([^\n]*)/g;
+  let m;
+  while ((m = lineRe.exec(ymlText))) {
+    const scriptPath = m[1];
+    const rest = m[2] ?? "";
+    if (!/--apply\b/.test(rest)) continue;
+    if (!PRODUCER_SCRIPT_DIR_RE.test(scriptPath)) continue;
+    indices.push(m.index);
+  }
+  return indices;
+}
+
+test("producers.yml: PRODUCER_SUMMARY_DIR is exported to GITHUB_ENV in a step that precedes every --apply producer step", () => {
+  const ymlText = readFileSync(WORKFLOW_PATH, "utf8");
+  const exportIdx = findProducerSummaryDirExportIndex(ymlText);
+  assert.notEqual(exportIdx, -1, "no step exports PRODUCER_SUMMARY_DIR to $GITHUB_ENV");
+
+  const producerStepIndices = findApplyInvokedProducerScriptStepIndices(ymlText);
+  assert.ok(producerStepIndices.length > 0, "sanity: expected at least one --apply-invoked producer step");
+
+  const precededByExport = producerStepIndices.every((idx) => idx > exportIdx);
+  assert.ok(precededByExport, "PRODUCER_SUMMARY_DIR must be exported to GITHUB_ENV before every --apply-invoked producer step, not after");
+});
+
+test("ATTACK: the ordering check catches PRODUCER_SUMMARY_DIR exported AFTER a producer step", () => {
+  const fixtureYml = `
+      - name: A producer step that runs BEFORE the export (the defect this attack proves is caught)
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/future-thing-producer.mjs --apply
+          else
+            node scripts/producers/market/future-thing-producer.mjs
+          fi
+
+      - name: Resolve PRODUCER_SUMMARY_DIR (too late)
+        run: |
+          echo "PRODUCER_SUMMARY_DIR=$RUNNER_TEMP/producer-summaries" >> "$GITHUB_ENV"
+  `;
+  const exportIdx = findProducerSummaryDirExportIndex(fixtureYml);
+  assert.notEqual(exportIdx, -1);
+  const producerStepIndices = findApplyInvokedProducerScriptStepIndices(fixtureYml);
+  assert.equal(producerStepIndices.length, 1);
+  assert.equal(producerStepIndices[0] < exportIdx, true, "the fixture's producer step must precede the export, proving the ordering check would fail it");
+});

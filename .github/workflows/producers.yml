@@ -139,13 +139,6 @@ jobs:
       # already use; absent, the helper skips and the 60s/300s cache backstops bound staleness.
       APP_URL: ${{ secrets.APP_URL }}
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
-      # The producers harness family (lane M9d, 2026-09-20, build plan section 6.1 row M9): every
-      # --apply-invoked producer step below calls scripts/producers/lib/producer-summary.mjs's
-      # writeProducerSummary once on its own exit path, writing <PRODUCER_SUMMARY_DIR>/<producer>.json. Set
-      # at job level (not per-step) so every step shares the same directory this run's "Record this run's
-      # own harness-run artifact" step reads back at the end. runner.temp is per-job, per-runner, never
-      # committed -- the artifact this directory feeds IS the durable record.
-      PRODUCER_SUMMARY_DIR: ${{ runner.temp }}/producer-summaries
     steps:
       - uses: actions/checkout@v4
 
@@ -176,6 +169,24 @@ jobs:
 
       - name: Population BEFORE
         run: node scripts/verify/population-report.mjs
+
+      # The producers harness family (lane M9d, 2026-09-20, build plan section 6.1 row M9; corrected
+      # 2026-09-20, same lane): every --apply-invoked producer step below calls
+      # scripts/producers/lib/producer-summary.mjs's writeProducerSummary once on its own exit path,
+      # writing <PRODUCER_SUMMARY_DIR>/<producer>.json. Set here, in a step, and exported via
+      # $GITHUB_ENV so every later step in the job shares the same directory this run's "Record this
+      # run's own harness-run artifact" step reads back at the end. runner.temp is per-job, per-runner,
+      # never committed -- the artifact this directory feeds IS the durable record.
+      #
+      # NOT set at job-level `env:` (the original shape): the `runner` context is not available there
+      # per GitHub's context-availability table (only github, needs, strategy, matrix, vars, secrets,
+      # inputs are) -- it is available inside steps, which is why this is a step's `run:` block instead.
+      # A job-level `env.runner.temp` reference made this workflow fail to parse at all (zero jobs,
+      # "This run likely failed because of a workflow file issue", run 35533637184).
+      - name: Resolve PRODUCER_SUMMARY_DIR
+        run: |
+          echo "PRODUCER_SUMMARY_DIR=$RUNNER_TEMP/producer-summaries" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/producer-summaries"
 
       - name: Eurostat nrg_pc_205 -> regional_data_facts
         if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'regional' || env.RUN_PRODUCER == 'eurostat-nrg-pc-205'
