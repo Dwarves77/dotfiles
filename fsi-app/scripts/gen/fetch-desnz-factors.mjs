@@ -114,7 +114,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { inflateRawSync } from "node:zlib";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeProducerSummary } from "../producers/lib/producer-summary.mjs";
 
+const PRODUCER_NAME = "fetch-desnz-factors";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_FIXTURE_PATH = resolve(HERE, "fixtures/emission-factors/desnz-modal-defaults-2025.json");
 
@@ -870,12 +872,17 @@ async function main() {
 
   if (!apply) {
     console.error("fetch-desnz-factors: DRY-RUN — pass --apply to write the fixture.");
+    // Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). A dry run
+    // resolves targets but writes nothing, so rows_changed is 0 here, never the resolved-target count.
+    // This producer writes a fixture file, not derivation_edges, so edges_authored is null.
+    writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: 0, edges_authored: null, counts: { resolved: extracted.size } });
     return;
   }
 
   fixtureJson.rows = rows;
   writeFileSync(fixturePath, JSON.stringify(fixtureJson, null, 2) + "\n");
   console.error(`fetch-desnz-factors: wrote ${fixturePath}`);
+  writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: extracted.size, edges_authored: null, counts: { resolved: extracted.size } });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

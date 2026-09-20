@@ -145,8 +145,10 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
-import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
+import { authorMarketSeriesDeltaEdges, assertEdgesAuthoredAndRecordSummary } from "./author-market-series-delta.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
+
+const PRODUCER_NAME = "ecb-fx";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane P2); flipped TRUE 2026-09-02 by
 // Lane PROD (system-completion train) in the same commit as migration 281 — see the REVIEWED-CHANGE LOG
@@ -509,11 +511,9 @@ async function main() {
     `unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
   );
 
-  // The run is the gate (lane M5): real rows landed (created + updated > 0) with zero edges authored is
-  // exactly the S4 propagate finding, and must fail the run rather than pass silently. Checked AFTER the
-  // producer's own write has already committed (never blocks or reverts it) and after the counts line
-  // above has printed (so a failed run's log still shows the full outcome breakdown, not just the error).
-  assertEdgesAuthored({ rowsChanged: created + updated, edgesAuthored: authorCounts.authored });
+  // The run is the gate (lane M5), and its outcome is recorded for the producers family (lane M9d).
+  // See assertEdgesAuthoredAndRecordSummary's own header for the full contract.
+  assertEdgesAuthoredAndRecordSummary(PRODUCER_NAME, created + updated, authorCounts, parsedRows.length);
 
   process.exit(0);
 }

@@ -239,6 +239,7 @@ const LIVE_FAMILIES = [
   "maintenance",
   "downstream-chain",
   "brief-export",
+  "producers", // lane M9d, 2026-09-20 (build plan section 6.1 row M9)
 ];
 
 test("FAMILIES: loads the live tree without throwing, one descriptor per registered family", () => {

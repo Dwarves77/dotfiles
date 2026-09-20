@@ -38,11 +38,17 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { parseNrgPc205 } from "../lib/regional/eurostat-nrg-pc-205-parser.mjs";
 import { toCandidateRows, latestPerNaturalKey } from "../../scripts/producers/regional/run-envelope-producer.mjs";
+// F27 producer-seam-proof (lane M9d, 2026-09-20): this producer now composes a FOURTH first-party seam,
+// producer-summary.mjs (via its runEnvelopeProducer return value). This file already proves the other
+// three together; adding this import, and the composition test below, makes it the single proof for the
+// producer's whole seam set.
+import { writeProducerSummary } from "../../scripts/producers/lib/producer-summary.mjs";
 // F46/F27 (lane L35, 2026-09-17): this producer's third first-party seam. ec.europa.eu's one home is
 // eurostat-lc-lci-lev-producer.mjs (safe to import -- guards its own CLI run behind IS_MAIN); this
 // producer's own EUROSTAT_URL now composes from its exported EUROSTAT_DISSEMINATION_API_BASE instead of
@@ -170,4 +176,28 @@ test("both Eurostat producers compose their dataset URL from the SAME disseminat
   assert.equal(EUROSTAT_DISSEMINATION_API_BASE, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data");
   assert.equal(`${EUROSTAT_DISSEMINATION_API_BASE}/nrg_pc_205`, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_pc_205");
   assert.equal(`${EUROSTAT_DISSEMINATION_API_BASE}/lc_lci_lev`, "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lc_lci_lev");
+});
+
+// ── the FOURTH seam: the real fixture-driven reduced row count composes with writeProducerSummary ──────
+test("the producers-family seam: the real fixture's reduced row count composes with writeProducerSummary", () => {
+  const reduced = latestPerNaturalKey(toCandidateRows(parseNrgPc205(FIXTURE, { geo: "EU27_2020", regionCode: "EU" })));
+  assert.equal(reduced.length, 2);
+
+  const dir = mkdtempSync(join(tmpdir(), "eurostat-nrg-pc-205-seam-test-"));
+  const prior = process.env.PRODUCER_SUMMARY_DIR;
+  process.env.PRODUCER_SUMMARY_DIR = dir;
+  try {
+    const outPath = writeProducerSummary({
+      producer: "eurostat-nrg-pc-205", status: "ok",
+      rows_changed: reduced.length, edges_authored: null,
+      counts: { inserted: reduced.length, updated: 0 },
+    });
+    const summary = JSON.parse(readFileSync(outPath, "utf8"));
+    assert.equal(summary.rows_changed, reduced.length, "the composed row count must reach the summary unchanged");
+    assert.equal(summary.edges_authored, null);
+  } finally {
+    if (prior === undefined) delete process.env.PRODUCER_SUMMARY_DIR;
+    else process.env.PRODUCER_SUMMARY_DIR = prior;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

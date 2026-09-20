@@ -38,6 +38,9 @@ import {
 } from "../../../src/lib/regional/bls-oews-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+
+const PRODUCER_NAME = "bls-oews";
 
 loadLocalEnvFile();
 
@@ -74,7 +77,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-await runEnvelopeProducer({
+const result = await runEnvelopeProducer({
   producerName: "bls-oews-producer",
   enabled: ENABLED,
   sourceKey: "bls",
@@ -83,4 +86,13 @@ await runEnvelopeProducer({
     skill: "wo-17-operations-facts-eu-us",
     reason: "$0 BLS OEWS freight/logistics occupation wage producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
   },
+});
+
+// See eurostat-nrg-pc-205-producer.mjs's own copy of this note (lane M9d, brief-m9d Amendment 1 item C.2).
+writeProducerSummary({
+  producer: PRODUCER_NAME,
+  status: "ok",
+  rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
+  edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+  counts: result,
 });

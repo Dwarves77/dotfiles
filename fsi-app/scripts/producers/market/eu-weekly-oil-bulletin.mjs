@@ -52,8 +52,10 @@ import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 // DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
-import { authorMarketSeriesDeltaEdges, assertEdgesAuthored } from "./author-market-series-delta.mjs";
+import { authorMarketSeriesDeltaEdges, assertEdgesAuthoredAndRecordSummary } from "./author-market-series-delta.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
+
+const PRODUCER_NAME = "eu-weekly-oil-bulletin";
 
 const KILL_SWITCH_ENV = "MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED";
 const REGISTRY_ENTRY = producerFor("eu-oil-bulletin");
@@ -157,9 +159,8 @@ async function main() {
     `unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
   );
 
-  // The run is the gate (lane M5): real rows landed with zero edges authored is exactly the S4 propagate
-  // finding and must fail the run, not pass silently. See ecb-fx-producer.mjs's own copy of this note.
-  assertEdgesAuthored({ rowsChanged: created + updated, edgesAuthored: authorCounts.authored });
+  // See ecb-fx-producer.mjs's own copy of this note.
+  assertEdgesAuthoredAndRecordSummary(PRODUCER_NAME, created + updated, authorCounts, parsedRows.length);
 
   process.exit(0);
 }

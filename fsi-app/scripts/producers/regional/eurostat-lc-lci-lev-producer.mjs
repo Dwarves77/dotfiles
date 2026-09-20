@@ -92,6 +92,9 @@ import {
 } from "../../../src/lib/regional/eurostat-lc-lci-lev-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+
+const PRODUCER_NAME = "eurostat-lc-lci-lev";
 
 loadLocalEnvFile();
 
@@ -178,7 +181,7 @@ async function main() {
   // ADR-023-baseline gate (ENABLED, argv --apply) holds. Gate 2 (the env kill switch) was already
   // enforced above — runEnvelopeProducer has no parameter for a third gate, so it is checked here, before
   // the shared orchestrator ever runs, never inside it.
-  await runEnvelopeProducer({
+  const result = await runEnvelopeProducer({
     producerName: "eurostat-lc-lci-lev-producer",
     enabled: ENABLED,
     sourceKey: "eurostat",
@@ -190,5 +193,14 @@ async function main() {
         "(coordinator follow-up, 2026-09-02) so the 'EU' region carries both a labor_markets and an " +
         "operational_cost fact for automate_vs_hire to compute from. Envelope-first per WO-17/ADR-023.",
     },
+  });
+
+  // See eurostat-nrg-pc-205-producer.mjs's own copy of this note (lane M9d, brief-m9d Amendment 1 item C.2).
+  writeProducerSummary({
+    producer: PRODUCER_NAME,
+    status: "ok",
+    rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
+    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    counts: result,
   });
 }

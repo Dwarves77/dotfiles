@@ -52,7 +52,9 @@ import { resolve, dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
 
+const PRODUCER_NAME = "ratify-series-items";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MAP_PATH = resolve(HERE, "../../../src/lib/market/series-item-map.mjs");
 const EXPORT_MARKER = "export const SERIES_ITEM_MAP_RAW = Object.freeze(";
@@ -178,11 +180,13 @@ async function main() {
 
   if (!values.apply) {
     console.log(`DRY RUN — nothing written. ${ratifiedCount} series would be ratified. Pass --apply to write ${mapPath}.`);
+    writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: 0, edges_authored: null, counts: { wouldRatify: ratifiedCount } });
     process.exit(0);
   }
 
   if (ratifiedCount === 0) {
     console.log("apply: nothing to ratify — no series in this artifact reached minted_verified. Leaving the map file unchanged.");
+    writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: 0, edges_authored: null, counts: { ratified: 0 } });
     process.exit(0);
   }
 
@@ -190,6 +194,9 @@ async function main() {
   const newText = renderSeriesItemMapFile(originalText, updated);
   writeFileSync(mapPath, newText, "utf8");
   console.log(`Wrote ${mapPath} — ${ratifiedCount} series ratified.`);
+  // Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). This producer
+  // rewrites a bundled .mjs module, not derivation_edges, so edges_authored is null.
+  writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: ratifiedCount, edges_authored: null, counts: { ratified: ratifiedCount, dispositions } });
 }
 
 if (isMainModule(import.meta.url)) {

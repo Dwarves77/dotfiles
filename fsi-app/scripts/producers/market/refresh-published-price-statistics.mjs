@@ -29,6 +29,9 @@ import {
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+
+const PRODUCER_NAME = "refresh-published-price-statistics";
 
 loadLocalEnvFile();
 
@@ -157,6 +160,13 @@ async function main() {
     }
   }
   console.log(`done — ${created} created, ${updated} updated.`);
+  // Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). This producer
+  // has no notion of derivation_edges of its own, so edges_authored is null, never 0 standing in for
+  // "not applicable" (see producer-summary.mjs's own header).
+  writeProducerSummary({
+    producer: PRODUCER_NAME, status: "ok", rows_changed: created + updated, edges_authored: null,
+    counts: { created, updated, displayRows: displayRows.length, unmapped: unmapped.length },
+  });
   process.exit(0);
 }
 

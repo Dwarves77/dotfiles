@@ -170,6 +170,24 @@ jobs:
       - name: Population BEFORE
         run: node scripts/verify/population-report.mjs
 
+      # The producers harness family (lane M9d, 2026-09-20, build plan section 6.1 row M9; corrected
+      # 2026-09-20, same lane): every --apply-invoked producer step below calls
+      # scripts/producers/lib/producer-summary.mjs's writeProducerSummary once on its own exit path,
+      # writing <PRODUCER_SUMMARY_DIR>/<producer>.json. Set here, in a step, and exported via
+      # $GITHUB_ENV so every later step in the job shares the same directory this run's "Record this
+      # run's own harness-run artifact" step reads back at the end. runner.temp is per-job, per-runner,
+      # never committed -- the artifact this directory feeds IS the durable record.
+      #
+      # NOT set at job-level `env:` (the original shape): the `runner` context is not available there
+      # per GitHub's context-availability table (only github, needs, strategy, matrix, vars, secrets,
+      # inputs are) -- it is available inside steps, which is why this is a step's `run:` block instead.
+      # A job-level `env.runner.temp` reference made this workflow fail to parse at all (zero jobs,
+      # "This run likely failed because of a workflow file issue", run 35533637184).
+      - name: Resolve PRODUCER_SUMMARY_DIR
+        run: |
+          echo "PRODUCER_SUMMARY_DIR=$RUNNER_TEMP/producer-summaries" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/producer-summaries"
+
       - name: Eurostat nrg_pc_205 -> regional_data_facts
         if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'regional' || env.RUN_PRODUCER == 'eurostat-nrg-pc-205'
         run: |
@@ -436,6 +454,53 @@ jobs:
       - name: Population AFTER
         if: always()
         run: node scripts/verify/population-report.mjs
+
+      # Record this run's own harness-run artifact (producers family, lane M9d, 2026-09-20, build plan
+      # section 6.1 row M9). Reads back every <PRODUCER_SUMMARY_DIR>/<producer>.json this firing's
+      # --apply-invoked producer steps wrote (zero when RUN_MODE was dry, or a step never fired), and
+      # folds them into ONE scripts/harness-runs/producers/producers-run-NNN.json. Runs even when a
+      # producer step above failed, same "record it every batch, even when zero" posture as every other
+      # family's own artifact step in this repo.
+      - name: Record this run's own harness-run artifact (producers family)
+        if: always()
+        working-directory: fsi-app
+        env:
+          PR_MODE: ${{ env.RUN_MODE }}
+          PR_RUN_PRODUCER: ${{ env.RUN_PRODUCER }}
+        run: node scripts/producers/emit-producers-artifact.mjs
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/producers/**), same posture
+      # every sibling family workflow already has (copied from downstream-chain.yml's identical step). A
+      # run normally executes against master, typically branch-protected, so this lands on its own branch
+      # and opens a PR rather than pushing straight to whatever ref triggered the run.
+      - name: Commit the producers harness-run artifact and open a PR
+        if: always()
+        # Overrides this job's own `defaults.run.working-directory: fsi-app` (unlike downstream-chain.yml,
+        # which sets working-directory per step and has no job-level default) -- git add/commit/push below
+        # are repo-root-relative, matching every path this step writes.
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fsi-app/scripts/harness-runs/producers
+          if git diff --cached --quiet; then
+            echo "No new producers artifact to commit."
+            exit 0
+          fi
+          branch="producers-artifact/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "producers ${{ env.RUN_MODE }}: run ${{ github.run_id }} (${{ github.event_name }}, producer=${{ env.RUN_PRODUCER }})"
+          # BRANCH-BASE (matches every sibling family's own identical step): re-base the artifact commit
+          # onto the current master tip before the push, so a workflow-file change that landed on master
+          # mid-run cannot make GitHub refuse the branch.
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated producers run (run %s, trigger %s).\n\nMode: %s\nProducer: %s\n\nLands the harness-run artifact for this run under fsi-app/scripts/harness-runs/producers/.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ env.RUN_MODE }}" "${{ env.RUN_PRODUCER }}" > /tmp/producers-pr-body.md
+          bash fsi-app/scripts/turns/deliver-artifact-branch.sh "$branch" "Producers: $branch (mode=${{ env.RUN_MODE }})" /tmp/producers-pr-body.md
 
       # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). A producer
       # apply writes market_series (oil bulletin, ecb-fx, EIA v2), regional_data_facts (Eurostat/BLS —

@@ -24,12 +24,18 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { aggregateLcLciLevForRegion, EU_MEMBER_GEO_CODES } from "../lib/regional/eurostat-lc-lci-lev-parser.mjs";
 import { toCandidateRows, latestPerNaturalKey } from "../../scripts/producers/regional/run-envelope-producer.mjs";
 import { decideApply, fetchAllMemberStates } from "../../scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs";
+// F27 producer-seam-proof (lane M9d, 2026-09-20): this producer now composes a THIRD first-party seam,
+// producer-summary.mjs (via its runEnvelopeProducer return value). This file already proves the other
+// two together; adding this import, and the composition test below, makes it the single proof for the
+// producer's whole seam set.
+import { writeProducerSummary } from "../../scripts/producers/lib/producer-summary.mjs";
 // Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
 // deleted — zero production importers, only test-only re-exports of these two — per its own header's
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
@@ -165,4 +171,29 @@ test("decideApply: --apply with every gate but DB creds is refused", () => {
 test("decideApply: --apply with all three gates satisfied can write", () => {
   const d = decideApply({ apply: true, enabled: true, killSwitchOn: true, hasCreds: true });
   assert.equal(d.canWrite, true);
+});
+
+// ── the THIRD seam: the real fixture-driven candidate count composes with writeProducerSummary ────────
+test("the producers-family seam: the real fixture's reduced row count composes with writeProducerSummary", () => {
+  const jsByGeo = { DE: FIXTURE.DE, FR: FIXTURE.FR };
+  const reduced = latestPerNaturalKey(toCandidateRows(aggregateLcLciLevForRegion(jsByGeo, { geoCodes: ["DE", "FR"], regionCode: "EU" })));
+  assert.ok(reduced.length > 0);
+
+  const dir = mkdtempSync(join(tmpdir(), "eurostat-lc-lci-lev-seam-test-"));
+  const prior = process.env.PRODUCER_SUMMARY_DIR;
+  process.env.PRODUCER_SUMMARY_DIR = dir;
+  try {
+    const outPath = writeProducerSummary({
+      producer: "eurostat-lc-lci-lev", status: "ok",
+      rows_changed: reduced.length, edges_authored: null,
+      counts: { inserted: reduced.length, updated: 0 },
+    });
+    const summary = JSON.parse(readFileSync(outPath, "utf8"));
+    assert.equal(summary.rows_changed, reduced.length, "the composed row count must reach the summary unchanged");
+    assert.equal(summary.edges_authored, null);
+  } finally {
+    if (prior === undefined) delete process.env.PRODUCER_SUMMARY_DIR;
+    else process.env.PRODUCER_SUMMARY_DIR = prior;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -88,14 +88,20 @@ predecessor.
 (`[trace] market_series_delta: ...`), keys received, rows read per key in the lookback window, the
 delta1w outcome, the candidate pair attempted, the authorEdges result, every caught error verbatim, and
 attaches the same lines as a `trace` array on its returned counts object (absent entirely when `--trace`
-is not passed, so the existing counts shape is unchanged). No `scripts/harness-runs/market/` artifact
-exists to write `config.trace` into today; no market/regional producer family is registered in
-`scripts/lib/run-artifact.mjs`'s `ALLOWED_FAMILIES` (mint/screen/fetch-drain/meta-harness/forward-events/
-source-sweep/ledger-consume/change-detection/propagation/corpus-turn/brief-apply are; market and regional
-are not). Registering one is a separate, deliberate act touching `run-artifact.mjs`,
-`scripts/harness-runs/governing-files.mjs`, `scripts/harness-runs/CONVENTION.md`'s family table, and
-`F28-harness-run-integrity.mjs`, out of this lane's write set; the trace mechanism above is built so a
-future artifact writer can pick up `counts.trace` directly once that registration lands.
+is not passed, so the existing counts shape is unchanged).
+
+**[REFUTED, lane M9d, 2026-09-20]** This paragraph previously said no market/regional producer family was
+registered and that registering one was out of scope for a future lane. That is now done: the `producers`
+family (`fsi-app/scripts/harness-runs/producers/family.json`, `FAMILY.md`) is registered, covering all
+eleven `--apply`-invoked producer steps in `producers.yml`, not only the three `market_series` producers
+this section discusses. Every producer script calls `writeProducerSummary`
+(`scripts/producers/lib/producer-summary.mjs`), directly, or through
+`assertEdgesAuthoredAndRecordSummary` (the three `market_series` producers) or
+`recordSeedFactorsSummary` (the two `emission_factors` seeders), on its own exit path, and
+`scripts/producers/emit-producers-artifact.mjs` (`producers.yml`'s own last step) folds this run's
+summaries into one committed `producers-run-NNN.json`. `counts.trace` (when `--trace` is set) is not yet
+read into the artifact by that emitter; it is carried in each summary's own `counts.authorCounts.trace`
+today, a follow-up if a future pass wants it surfaced at the artifact's own top level.
 
 **The run is the gate.** `assertEdgesAuthored({ rowsChanged, edgesAuthored })`
 (`author-market-series-delta.mjs`) is a pure, exported, unit-tested function every producer calls right

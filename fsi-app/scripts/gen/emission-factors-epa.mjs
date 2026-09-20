@@ -15,9 +15,10 @@
  */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadFixtureRows, seedFactors } from "./emission-factors-common.mjs";
+import { loadFixtureRows, seedFactors, recordSeedFactorsSummary } from "./emission-factors-common.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
+const PRODUCER_NAME = "emission-factors-epa";
 const HERE = dirname(fileURLToPath(import.meta.url));
 loadLocalEnvFile();
 
@@ -32,7 +33,10 @@ const CITE = {
 async function main() {
   const rows = loadFixtureRows(FIXTURE);
   const summary = await seedFactors({ label: "epa-seed", rows, cite: CITE, apply: APPLY });
-  if (summary.mode === "apply" && !summary.written && summary.toWrite > 0) process.exit(1);
+
+  // See recordSeedFactorsSummary's own header (lane M9d, F45: the one home shared with
+  // emission-factors-desnz.mjs).
+  if (recordSeedFactorsSummary({ producer: PRODUCER_NAME, summary })) process.exit(1);
 }
 
 main().catch((e) => { console.error("[epa-seed] fatal:", e.message); process.exit(1); });
