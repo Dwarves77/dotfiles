@@ -57,6 +57,7 @@ import { MembersPanel } from "@/components/admin/redesign/MembersPanel";
 import { formatNumber, formatLocaleDateTime } from "@/lib/format";
 import { FlagsRejectionsQueue } from "@/components/admin/redesign/FlagsRejectionsQueue";
 import { CorpusTurnPanel } from "@/components/admin/CorpusTurnPanel";
+import { StatutoryRowsUpload } from "@/components/admin/StatutoryRowsUpload";
 
 interface AdminDashboardProps {
   userId: string;
@@ -124,7 +125,7 @@ const SECTIONS: SectionDef[] = [
   {
     name: "Ingest",
     sub: "Staged updates, flags & rejections, scan scheduling.",
-    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns"],
+    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns", "Statutory rows"],
   },
   {
     name: "Coverage",
@@ -633,6 +634,7 @@ export function AdminDashboard({
       if (tab === "Staged updates") return renderStaged();
       if (tab === "Regulatory scan") return renderScan();
       if (tab === "Corpus turns") return <CorpusTurnPanel />;
+      if (tab === "Statutory rows") return <StatutoryRowsUpload />;
     }
 
     // Coverage

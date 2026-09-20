@@ -23,6 +23,8 @@
 import { useCallback, useRef, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { InkButton, FieldLabel } from "@/components/account/AccountPrimitives";
+import { FilePickRow } from "@/components/ui/FilePickRow";
+import { InlineErrorBanner } from "@/components/ui/InlineErrorBanner";
 
 // Mirrors src/lib/spec09/csv-upload-contract.mjs's UPLOAD_TABLES/TABLE_CONTRACTS keys and labels — kept as
 // plain display data here rather than importing that module client-side (it is written for a Node/server
@@ -148,30 +150,13 @@ export function Spec09CsvUpload() {
 
       <div>
         <FieldLabel>CSV</FieldLabel>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-          <label
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              minHeight: 44,
-              padding: "0 16px",
-              borderRadius: 6,
-              border: "1px solid var(--color-border-medium)",
-              background: "var(--surface)",
-              color: "var(--color-text-primary)",
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Choose CSV file
-            <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleFile} style={{ display: "none" }} />
-          </label>
-          <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-            or paste CSV text below
-          </span>
-        </div>
+        <FilePickRow
+          label="Choose CSV file"
+          hint="or paste CSV text below"
+          accept=".csv,text/csv"
+          onFile={handleFile}
+          inputRef={fileInputRef}
+        />
         <textarea
           value={csvText}
           onChange={(e) => {
@@ -204,21 +189,7 @@ export function Spec09CsvUpload() {
         </InkButton>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          style={{
-            fontSize: 12,
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid var(--color-error)",
-            background: "rgba(220,38,38,0.05)",
-            color: "var(--color-error)",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <InlineErrorBanner message={error} />}
 
       {status === "success" && result && (
         <div style={{ display: "grid", gap: 10 }}>
