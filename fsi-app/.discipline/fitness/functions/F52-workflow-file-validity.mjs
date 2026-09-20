@@ -34,9 +34,26 @@
 //   e. every `workflow_run:` trigger's `workflows:` list entry names some workflow's own top-level
 //      `name:` field, somewhere in the tree.
 //
-// actionlint, locally, when on PATH (brief item 2's local half; CI runs it as its own workflow step
-// instead - see .github/workflows/discipline.yml): never a false red (a real actionlint finding is a
-// violation), never a silent skip (its absence prints a one-line notice, not nothing).
+// actionlint, locally, when on PATH (brief item 2's local half; CI runs it as its own PINNED,
+// checksum-verified step instead - .github/workflows/discipline.yml's fitness-check job, after "Run
+// fitness functions": downloads a named actionlint release archive, verifies it against the sha256 read
+// verbatim from that release's own checksums file, then runs it over .github/workflows/ with no -ignore
+// and no `|| true`): never a false red (a real actionlint finding is a violation), never a silent skip
+// (its absence here prints a one-line notice, not nothing).
+//
+// ON A REFUSAL (what to do when this gate or the CI actionlint step fails a PR): fix the CAUSE in the
+// offending workflow/action file, never widen this gate's allowed contexts, never add a per-line
+// suppression, and never add an actionlint `-ignore` pattern for a NEW finding (an `-ignore` entry is
+// reserved for a pre-existing finding on master that a lane could not fix in its own write set, dated and
+// naming the owner lane - see RD-77's residual). A real finding here means the workflow file itself is
+// wrong, not that the gate is too strict; this class of defect (a file GitHub silently refuses, wired but
+// broken) is exactly what left PR #756 green while shipping a dead workflow.
+//
+// Invariant RD-77 (.discipline/governance/invariants.d/RD-77.mjs) registers this gate; documentation
+// lives here and there rather than in a shared runbook (2026-09-20 correction: an earlier draft of this
+// lane added a section to docs/runbooks/CORPUS-TURN-RUNBOOK.md, which F51 (no-shared-append)'s hotspot
+// check correctly refused as that runbook's third touch inside its churn window - a shared append point,
+// not a place for this lane's own documentation).
 
 import { existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
