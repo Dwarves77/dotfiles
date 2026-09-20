@@ -73,3 +73,7 @@ session-scoped and does not fire inside subagents/workflows (verified 2026-06-07
 - Skill: `remediation-discipline` SKILL.md — Section 4 category 14 (Worktree isolation)
 - Boundary class: `fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md` (why the install is operator-run)
 - [worktrees](../inventories/worktrees.md) — the worktrees inventory recording the live worktrees this doctrine governs (C4 consistency check gates drift)
+
+## Correction, 2026-09-20 (ADR-032)
+
+The two statements above that PreToolUse is session-scoped and does not fire inside sub-agents were true when verified on 2026-06-07 and are false now. [CONFIRMED 2026-09-19] the main checkout's gate audit log recorded eleven denials of a sub-agent's own Edit and Write calls (lane M3). Since lane G1 (PR #754) the skill gate judges the acting agent's own transcript. [HYPOTHESIS, not re-verified] the branching-git ASK described above therefore also fires inside sub-agents; the git hooks remain the backstop that does not depend on it either way.

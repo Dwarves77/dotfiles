@@ -14,6 +14,10 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below — that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from (2026-09-20):** the last TWO entries of [docs/ops/session-log.md](./ops/session-log.md), both headed
+> "2026-09-20, coordinator (local session, ..." (afternoon, then late afternoon; the later one wins): M3b merged (#755), lanes M4, M9d, M7a and T3 in flight, M6
+> amended, the design bundle of 2026-09-07 landed, the owed list in order. The two pointers below are history.
+
 > **Resume from (2026-09-19):** [docs/ops/HANDOFF-2026-09-19-addendum.md](./ops/HANDOFF-2026-09-19-addendum.md), read
 > AFTER the 2026-09-18 handoff named next: the state on the morning of 2026-09-19, the ruling "Do not do work
 > arounds. Fix the problem so it NEVER happens again", and the next steps, starting with the lanes of section 6.8

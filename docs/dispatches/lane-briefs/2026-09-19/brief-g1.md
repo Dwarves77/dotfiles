@@ -65,3 +65,13 @@ Sessions run the MAIN checkout's copy of the gate, so the fix is live only after
 The worktree named at the top is wrong: `wt-hashsep-0911` carries untracked files [CONFIRMED by `git status`].
 Your worktree is `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911` (clean, `node_modules` present). Same
 first commands, same branch name.
+
+## Amendment 2 (coordinator, 2026-09-20; answers lane G1's STOP at the push gate)
+
+[CONFIRMED by lane G1, accepted] F51 check 5 fails on `docs/dispatches/lane-briefs/2026-09-19/README.md`: three coordinator docs PRs (#744, #751, #753) each appended rows to its per-brief table. That table is a hand-edited append list, the exact cause plan 6.8 removed (Cause A); the gate is right and the defect is the coordinator's. It fails EVERY lane's push until fixed, so it is fixed here, cause first:
+1. That README: delete the whole per-brief table. In its place one static paragraph: one file per brief in this directory; amendments are appended in place inside each brief; what each lane landed is recorded in the lane's own `docs/ops/session-log.d/` file and in the coordinator's entries in `docs/ops/session-log.md`; this README carries NO per-brief rows (plan 6.8 Rule A; F51 check 5 caught the table forming on 2026-09-20). Keep the title, the first paragraph and the final "Related:" line as they are.
+2. `fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs`, `HOTSPOT_ALLOWLIST`: one entry for that README path, in the exact shape of the existing entries, dated with today's date from the `date` command, reason: the three coordinator docs PRs named above appended to its table; the table is removed in this same commit so nothing appends to the file again; delete this entry once the file has left the 30-commit window. Nothing else in F51 changes: not the anchor, not the threshold, not any other entry.
+3. Attack tests in `F51-no-shared-append.test.mjs`: (a) the live README contains no line starting with `| brief-` (plant one in a fixture copy and see it caught); (b) with the README hot in a fixture history, the allowlisted path passes and a second, non-allowlisted hot file still fails.
+4. If F51's file is a governing file of any harness family (grep every `family.json`), extend or add that family's `pending/<date>-g1.md`; else nothing.
+5. Commit (`Lane G1: ...`), update your session-log file in the same commit, then run the locked push gate ONCE more as one background task: this is your second and last run. FAIL again = STOP with the refusing step quoted.
+6. You could not write the report and PR-body files (a tool rule refused them). Do not work around it: return the report and the FULL final PR body as text in your final reply; the coordinator's push runner writes the file.
