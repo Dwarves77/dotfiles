@@ -32,6 +32,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { TagChip } from "@/components/ui/Chips";
 import { FactCard } from "@/components/ui/FactCard";
+import { deriveRecordFactCardModel } from "@/lib/detail/fact-card-model";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import type { RecordFactRow } from "@/lib/agent/parse-record-sections";
@@ -63,20 +64,15 @@ export function jurisLabelOf(r: JurisdictionFields): string {
  *  a verbatim span, else a plain label/text line. Byte-identical across
  *  Market, Research and Regulation before this extraction. */
 export function RecordFactCard({ fact }: { fact: RecordFactRow }) {
-  if (fact.kind !== "FACT" || !fact.span) {
+  const model = fact.kind === "FACT" ? deriveRecordFactCardModel(fact) : null;
+  if (!model) {
     return (
       <p style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, color: "var(--ink-2)", margin: "0 0 8px" }}>
         <strong style={{ color: "var(--ink-3)" }}>{fact.label}:</strong> {fact.text || <Absence reason="not in primary source" />}
       </p>
     );
   }
-  return (
-    <FactCard
-      variant="sourced"
-      text={fact.span}
-      source={{ title: fact.label, issuer: fact.sourceName ?? null, date: null, url: fact.sourceUrl ?? null, tier: fact.tier ?? null }}
-    />
-  );
+  return <FactCard model={model} />;
 }
 
 /** The record-grade body: lead StateNote, "Key dates" (when present),
