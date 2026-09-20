@@ -251,6 +251,19 @@ export function writeRunArtifact(dir, artifact, opts = {}) {
   if (!("upstream_run_id" in stamped) && process.env.GITHUB_EVENT_WORKFLOW_RUN_ID) {
     stamped.upstream_run_id = process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
   }
+  // config.github_run_id (lane M3, 2026-09-19, Amendment 2 item 1): THE ONE HOME for a run's own
+  // GitHub Actions run id, stamped here so every family gets it for free rather than each runner
+  // reading process.env.GITHUB_RUN_ID itself. This is what loop-run-id.mjs's resolveLoopRunId matches
+  // against, replacing the earlier (unsound past hop 1) match against config.loop_run_id -- see that
+  // module's own header. A caller-supplied value is never overwritten, matching trigger/upstream_run_id
+  // above; a MISSING field is filled from the current process environment, "" outside GitHub Actions
+  // reads as no run id, so this stamps null rather than an empty string.
+  if (isPlainObject(stamped.config) && !("github_run_id" in stamped.config)) {
+    stamped.config = {
+      ...stamped.config,
+      github_run_id: process.env.GITHUB_RUN_ID ? String(process.env.GITHUB_RUN_ID) : null,
+    };
+  }
 
   const errors = validateRunArtifact(stamped);
   if (errors.length) {

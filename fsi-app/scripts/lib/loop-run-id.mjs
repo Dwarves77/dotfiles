@@ -11,30 +11,25 @@
 // tree (the SAME hydrate-then-read pattern every runner in this repo already uses -- see
 // scripts/lib/run-artifact.mjs's readRunHistory, which this module calls). No network, no DB.
 //
-// CONTRACT: explicit (a --loop-run-id CLI argument, or the value a caller's own workflow-level bash/jq
-// extraction already resolved from the upstream artifact -- see the STOP note below) ALWAYS wins.
-// Otherwise, this function looks for the ONE artifact of `upstreamFamily` whose OWN `config.loop_run_id`
-// equals `upstreamRunId` (the calling workflow's own knowledge of the upstream run's GitHub Actions run
-// id, e.g. `github.event.workflow_run.id`) and returns that artifact's `config.loop_run_id`. It NEVER
-// invents an id: no match (or no `upstreamRunId` given at all) returns null.
+// THE FIX (Amendment 2, 2026-09-19 night, answering this lane's own STOP on Amendment 1 item B). An
+// earlier version of this function matched on `config.loop_run_id`, which was unsound: Amendment 1
+// assumed every artifact records the GitHub run id of the run that wrote it, and none does --
+// source-sweep.yml's own default only holds when the operator leaves `loop_run_id` blank, and the proof
+// run passes an EXPLICIT id, so even hop 1 would have resolved null. The corrected design:
+// `writeRunArtifact` (scripts/lib/run-artifact.mjs) now stamps `config.github_run_id` on EVERY artifact
+// it writes, for every family -- ONE home for a run's own id, present regardless of whether that same
+// run's own `loop_run_id` is explicit, defaulted, or absent. `resolveLoopRunId` below matches on
+// `config.github_run_id`, uniformly, at every hop -- there is no remaining "sound only for hop 1" scope
+// limitation, and hop 2+ (the mint runner reading ledger-consume's artifact; the downstream-chain
+// artifact writer reading population-turn's or corpus-turn's artifact) is wired the same way as hop 1,
+// through this one function.
 //
-// SCOPE, HONESTLY STATED (STOP, this lane's report): this match-by-`config.loop_run_id` mechanism is
-// sound for exactly the hop directly off `source-sweep` (fetch-drain, ledger-consume): source-sweep.yml's
-// own "Resolve loop_run_id" step stamps `config.loop_run_id` to ITS OWN `github.run_id` whenever the
-// operator leaves the workflow_dispatch `loop_run_id` input blank, so `config.loop_run_id` genuinely IS
-// "the recorded GitHub run id of the run that wrote it" for that one family. It does NOT generalize past
-// hop 1: once a downstream hop PROPAGATES the same shared loop_run_id forward (so a later stage's own
-// artifact carries the ORIGINAL sweep's id, not that stage's own actual GitHub Actions run id), no
-// artifact anywhere records a hop's own actual run id, so this same matching scheme cannot find "the
-// ledger-consume artifact that hop N's own workflow_run event names" from a bare numeric run id alone.
-// This lane did not wire this function into hop 2+ (the mint runner reading ledger-consume's loop_run_id;
-// the downstream-chain artifact writer reading population-turn's or corpus-turn's loop_run_id) for
-// exactly this reason -- see this lane's report for the full evidence and the two options a future lane
-// or the coordinator can choose between (a new field recording each run's own actual GitHub Actions run
-// id in every artifact, or wiring bash/jq extraction of the upstream's already-known config.loop_run_id
-// into each consuming workflow's own resolve step, mirroring population-turn.yml's/downstream-chain.yml's
-// existing "THE MECHANISM" artifact-fetch blocks, then passing it through as the `explicit` argument
-// here).
+// CONTRACT: `explicit` (a --loop-run-id CLI argument, or any value a caller already resolved out-of-band)
+// ALWAYS wins. Otherwise, this function looks for the ONE artifact of `upstreamFamily` whose OWN
+// `config.github_run_id` equals `upstreamRunId` (the calling workflow's own knowledge of the upstream
+// run's GitHub Actions run id, e.g. `github.event.workflow_run.id`) and returns THAT artifact's OWN
+// `config.loop_run_id`. It NEVER invents an id: no match, a matched artifact with no `loop_run_id` field
+// at all, or no `upstreamRunId` given in the first place, all return null.
 
 import { readRunHistory } from "./run-artifact.mjs";
 
@@ -62,9 +57,15 @@ export function resolveLoopRunId({ explicit, upstreamFamily, upstreamRunId, harn
   const wantRunId = String(upstreamRunId).trim();
   const { runs } = readRunHistory(harnessRunsDir);
   for (const run of runs) {
-    const recorded = run?.config?.loop_run_id;
-    if (recorded != null && String(recorded).trim() === wantRunId) {
-      return String(recorded).trim();
+    // Match on config.github_run_id (Amendment 2) -- the field writeRunArtifact stamps on every
+    // artifact with the run's OWN GitHub Actions run id, never config.loop_run_id (which may be
+    // explicit, defaulted, or absent, and does not identify the artifact's own run).
+    const recordedRunId = run?.config?.github_run_id;
+    if (recordedRunId != null && String(recordedRunId).trim() === wantRunId) {
+      const loopRunId = run?.config?.loop_run_id;
+      // A matched artifact with no loop_run_id at all (or an empty one) never invents a value here --
+      // null, same as no match, per this module's own contract.
+      return loopRunId != null && String(loopRunId).trim() !== "" ? String(loopRunId).trim() : null;
     }
   }
   return null;

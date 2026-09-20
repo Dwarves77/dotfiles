@@ -36,7 +36,12 @@ function makeValidArtifact(overrides = {}) {
     harness_version: "sha256:abcdef0123456789",
     run_id: "mint-run-001",
     started_at: "2026-09-01T00:49:22Z",
-    config: { batch_size: 6 },
+    // github_run_id fixed explicitly (lane M3, 2026-09-19, Amendment 2 item 1) for the same reason
+    // "trigger" below is fixed: writeRunArtifact only auto-stamps config.github_run_id when the artifact's
+    // config does not already carry it, so every existing byte-faithful round-trip assertion in this file
+    // stays true regardless of the ambient GITHUB_RUN_ID this test process happens to run under (see the
+    // dedicated "github_run_id" test below, which deletes it explicitly to exercise the auto-stamp path).
+    config: { batch_size: 6, github_run_id: null },
     inputs_ref: ["path/to/input.json"],
     per_item: [
       { id: "32006R1692", outcome: "minted", verdict: "valid, 0 orphans", evidence_refs: ["path/to/payload.json"], error: null },
@@ -408,6 +413,56 @@ test("writeRunArtifact: leaves upstream_run_id absent when GITHUB_EVENT_WORKFLOW
   } finally {
     if (prevId === undefined) delete process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;
     else process.env.GITHUB_EVENT_WORKFLOW_RUN_ID = prevId;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── config.github_run_id: THE ONE HOME for a run's own GitHub Actions run id (lane M3, 2026-09-19,
+// Amendment 2 item 1). loop-run-id.mjs's resolveLoopRunId matches on exactly this field. ──────────
+
+test("writeRunArtifact: stamps config.github_run_id from GITHUB_RUN_ID when set and absent from the artifact's config", () => {
+  const dir = tmpDir();
+  const prevId = process.env.GITHUB_RUN_ID;
+  try {
+    process.env.GITHUB_RUN_ID = "18234567890";
+    const artifact = makeValidArtifact();
+    delete artifact.config.github_run_id;
+    const path = writeRunArtifact(dir, artifact);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).config.github_run_id, "18234567890");
+  } finally {
+    if (prevId === undefined) delete process.env.GITHUB_RUN_ID;
+    else process.env.GITHUB_RUN_ID = prevId;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: stamps config.github_run_id null when GITHUB_RUN_ID is unset (a local run outside GitHub Actions)", () => {
+  const dir = tmpDir();
+  const prevId = process.env.GITHUB_RUN_ID;
+  try {
+    delete process.env.GITHUB_RUN_ID;
+    const artifact = makeValidArtifact();
+    delete artifact.config.github_run_id;
+    const path = writeRunArtifact(dir, artifact);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).config.github_run_id, null);
+  } finally {
+    if (prevId === undefined) delete process.env.GITHUB_RUN_ID;
+    else process.env.GITHUB_RUN_ID = prevId;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: a caller-supplied config.github_run_id is never overwritten", () => {
+  const dir = tmpDir();
+  const prevId = process.env.GITHUB_RUN_ID;
+  try {
+    process.env.GITHUB_RUN_ID = "99999999999";
+    const artifact = makeValidArtifact({ config: { batch_size: 6, github_run_id: "caller-supplied" } });
+    const path = writeRunArtifact(dir, artifact);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).config.github_run_id, "caller-supplied");
+  } finally {
+    if (prevId === undefined) delete process.env.GITHUB_RUN_ID;
+    else process.env.GITHUB_RUN_ID = prevId;
     rmSync(dir, { recursive: true, force: true });
   }
 });

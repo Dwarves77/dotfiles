@@ -400,6 +400,7 @@ jobs:
             echo "RUN_MODE=$RUN_MODE"
             echo "RUN_LIMIT=$RUN_LIMIT"
             echo "RUN_LIMIT_FLAG=$RUN_LIMIT_FLAG"
+            echo "RUN_UPSTREAM_RUN_ID=${UPSTREAM_RUN_ID:-}"
             echo "RUN_SOURCE_ID=$RUN_SOURCE_ID"
             echo "RUN_CELEX_PREFIX=$RUN_CELEX_PREFIX"
             echo "RUN_CAPTURE=$RUN_CAPTURE"
@@ -535,12 +536,16 @@ jobs:
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          node scripts/mint/run-mint-batch.mjs \
-            --census-rows "$CENSUS_ROWS_PATH" \
-            --grade record \
-            --execute \
-            --out-dir "$EXPORT_DIR" \
-            || true
+          args=(--census-rows "$CENSUS_ROWS_PATH" --grade record --execute --out-dir "$EXPORT_DIR")
+          # THE POPULATION CAP + loop_run_id (lane M3, 2026-09-19, Amendment 2 item 4): only on a
+          # workflow_run-chained dispatch (RUN_LIMIT_FLAG is --max-items only in that branch of the
+          # resolve step above) does RUN_LIMIT hold the population cap this run actually used; a hand
+          # dispatch's own --limit is a different concept and is never recorded as max_items.
+          # RUN_UPSTREAM_RUN_ID is this dispatch's own upstream ledger-consume run id (empty on a hand
+          # dispatch), already known from github.event.workflow_run.id, never a jq-derived value.
+          if [ "$RUN_LIMIT_FLAG" = "--max-items" ]; then args+=(--max-items "$RUN_LIMIT"); fi
+          if [ -n "$RUN_UPSTREAM_RUN_ID" ]; then args+=(--upstream-run-id "$RUN_UPSTREAM_RUN_ID"); fi
+          node scripts/mint/run-mint-batch.mjs "${args[@]}" || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
