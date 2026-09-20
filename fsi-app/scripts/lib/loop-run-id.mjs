@@ -32,7 +32,7 @@
 // at all, or no `upstreamRunId` given in the first place, all return null.
 
 import { resolve } from "node:path";
-import { readRunHistory } from "./run-artifact.mjs";
+import { readRunHistory, claimRunId, hashHarnessVersion } from "./run-artifact.mjs";
 
 // FAMILY_BY_WORKFLOW_NAME (lane M3b, 2026-09-20, build plan section 6.1 row M3b): the ONE home for
 // workflow-name to harness-family mapping. Keyed by the workflow `name:` line exactly as each yml spells
@@ -94,6 +94,30 @@ export function resolveLoopRunIdFromUpstream({ explicit = null, upstreamName, up
  *   every existing caller's own `--harness-runs-dir scripts/harness-runs/<family>` convention).
  * @returns {string|null} the resolved loop_run_id, or null when nothing resolves (never invented).
  */
+/**
+ * The three-statement sequence every `emit-*-artifact.mjs` writer's own `main()` repeated verbatim
+ * (lane M4, 2026-09-20, F45 duplicate-code: extracted after `emit-brief-export-artifact.mjs` made a
+ * third copy of it, alongside `emit-downstream-chain-artifact.mjs` and `emit-corpus-turn-artifact.mjs`):
+ * this family's own `harness_version` (hashed from its governing files), a freshly claimed `run_id`, and
+ * the `loop_run_id` resolved from the named upstream workflow. Pure composition of the three functions
+ * already exported by this module and `run-artifact.mjs` -- no new logic, only the shared call site.
+ * @param {object} opts
+ * @param {string} opts.family
+ * @param {string} opts.familyDir
+ * @param {readonly string[]} opts.governingFiles
+ * @param {string} opts.fsiRoot
+ * @param {string|null|undefined} opts.upstreamName
+ * @param {string|number|null|undefined} opts.upstreamRunId
+ * @param {string|null} [opts.explicit]
+ * @returns {{harnessVersion:string, runId:string, loopRunId:string|null}}
+ */
+export function resolveHarnessRunContext({ family, familyDir, governingFiles, fsiRoot, upstreamName, upstreamRunId, explicit = null }) {
+  const harnessVersion = hashHarnessVersion(governingFiles, fsiRoot);
+  const runId = claimRunId(familyDir, family);
+  const loopRunId = resolveLoopRunIdFromUpstream({ explicit, upstreamName, upstreamRunId, fsiRoot });
+  return { harnessVersion, runId, loopRunId };
+}
+
 export function resolveLoopRunId({ explicit, upstreamFamily, upstreamRunId, harnessRunsDir }) {
   if (explicit != null && String(explicit).trim() !== "") {
     return String(explicit).trim();

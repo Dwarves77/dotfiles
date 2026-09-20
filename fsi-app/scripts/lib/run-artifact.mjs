@@ -399,6 +399,55 @@ function highestClaimedOrWrittenRunNumber(dir, family) {
  *   single-process collision impossible by construction).
  * @returns {string} the claimed run_id, e.g. "mint-run-007"
  */
+/**
+ * The top-level run-artifact envelope (CONVENTION.md's own shape) as one shared call, not a hand-written
+ * object literal repeated in every `emit-*-artifact.mjs` writer's own `buildArtifact` (F45 duplicate-code,
+ * lane M4, 2026-09-20: `emit-brief-export-artifact.mjs` making a third near-identical copy of this exact
+ * field skeleton, after `emit-downstream-chain-artifact.mjs` and `emit-corpus-turn-artifact.mjs`, is what
+ * this extraction removes). Pure composition, no validation of its own, `writeRunArtifact` still runs
+ * `validateRunArtifact` on the result before anything is written to disk.
+ * @param {object} opts
+ * @param {string} opts.family
+ * @param {string} opts.harnessVersion
+ * @param {string} opts.runId
+ * @param {string} opts.startedAt
+ * @param {object} opts.config
+ * @param {string[]} opts.inputsRef
+ * @param {object[]} opts.perItem
+ * @param {object} opts.metrics
+ * @param {object[]} opts.defectsFound
+ * @param {string[]} opts.fullTraceRefs
+ * @param {string} opts.proposerNotes
+ * @returns {object}
+ */
+export function buildRunArtifactEnvelope({
+  family,
+  harnessVersion,
+  runId,
+  startedAt,
+  config,
+  inputsRef,
+  perItem,
+  metrics,
+  defectsFound,
+  fullTraceRefs,
+  proposerNotes,
+}) {
+  return {
+    harness_family: family,
+    harness_version: harnessVersion,
+    run_id: runId,
+    started_at: startedAt,
+    config,
+    inputs_ref: inputsRef,
+    per_item: perItem,
+    metrics,
+    defects_found: defectsFound,
+    full_trace_refs: fullTraceRefs,
+    proposer_notes: proposerNotes,
+  };
+}
+
 export function claimRunId(dir, family, opts = {}) {
   const maxAttempts = opts.maxAttempts ?? 50;
   const resolved = resolve(dir);

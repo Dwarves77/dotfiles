@@ -35,6 +35,8 @@ import {
   computeVerdictsOwed,
   loadCommittedVerdictedUrls,
   countCandidatesAwaitingVerdict,
+  bucketBriefsOwedByTypeAndAge,
+  renderBriefsOwedLines,
 } from "./population-report.mjs";
 import { TAG_NAMESPACE, SIGNAL_NAMESPACE, GAP_NAMESPACE, ANTICIPATE_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
@@ -837,4 +839,67 @@ test("countCandidatesAwaitingVerdict: a matched-rows (readAllByIds) error is rep
   const result = await countCandidatesAwaitingVerdict(sb, { verdictedUrls: ["https://x/1"] });
   assert.equal(result.count, null);
   assert.match(result.error.message, /kaboom/);
+});
+
+// ── "briefs owed" (lane M4, 2026-09-20, brief-m4.md item 4) ───────────────────────────────────────────
+
+test("bucketBriefsOwedByTypeAndAge: buckets by item_type and age relative to nowMs", () => {
+  const now = Date.parse("2026-09-20T00:00:00Z");
+  const items = [
+    { item_type: "regulation", created_at: "2026-09-18T00:00:00Z" }, // 2 days -> under_7d
+    { item_type: "regulation", created_at: "2026-09-05T00:00:00Z" }, // 15 days -> d7_to_30
+    { item_type: "regulation", created_at: "2026-07-01T00:00:00Z" }, // over 30 -> over_30d
+    { item_type: "market_signal", created_at: "2026-09-19T00:00:00Z" }, // 1 day -> under_7d
+  ];
+  const got = bucketBriefsOwedByTypeAndAge(items, now);
+  assert.deepEqual(got.byType.regulation, { under_7d: 1, d7_to_30: 1, over_30d: 1 });
+  assert.deepEqual(got.byType.market_signal, { under_7d: 1, d7_to_30: 0, over_30d: 0 });
+  assert.equal(got.total, 4);
+  assert.equal(got.uncounted, 0);
+});
+
+test("bucketBriefsOwedByTypeAndAge: an unparseable created_at is counted in uncounted, never guessed into a bucket", () => {
+  const now = Date.parse("2026-09-20T00:00:00Z");
+  const items = [{ item_type: "regulation", created_at: "not-a-date" }, { item_type: "regulation", created_at: null }];
+  const got = bucketBriefsOwedByTypeAndAge(items, now);
+  assert.equal(got.uncounted, 2);
+  assert.equal(got.total, 2);
+  assert.deepEqual(got.byType, {});
+});
+
+test("bucketBriefsOwedByTypeAndAge: a missing item_type is grouped under 'unknown', never dropped", () => {
+  const now = Date.parse("2026-09-20T00:00:00Z");
+  const items = [{ item_type: null, created_at: "2026-09-19T00:00:00Z" }];
+  const got = bucketBriefsOwedByTypeAndAge(items, now);
+  assert.deepEqual(got.byType.unknown, { under_7d: 1, d7_to_30: 0, over_30d: 0 });
+});
+
+test("bucketBriefsOwedByTypeAndAge: zero items -> empty byType, zero total and uncounted", () => {
+  const got = bucketBriefsOwedByTypeAndAge([], Date.now());
+  assert.deepEqual(got.byType, {});
+  assert.equal(got.total, 0);
+  assert.equal(got.uncounted, 0);
+});
+
+test("renderBriefsOwedLines: one line per item_type with a nonzero total, sorted, plus a grand total line", () => {
+  const result = {
+    byType: {
+      market_signal: { under_7d: 1, d7_to_30: 0, over_30d: 0 },
+      regulation: { under_7d: 1, d7_to_30: 1, over_30d: 1 },
+    },
+    total: 4,
+    uncounted: 0,
+  };
+  const lines = renderBriefsOwedLines(result);
+  assert.equal(lines.length, 3);
+  assert.match(lines[0], /market_signal.*1 record-grade stub/);
+  assert.match(lines[1], /regulation.*3 record-grade stub/);
+  assert.match(lines[2], /total.*4 record-grade stub/);
+});
+
+test("renderBriefsOwedLines: an item_type with a zero total across all buckets is omitted from the per-type lines", () => {
+  const result = { byType: { regulation: { under_7d: 0, d7_to_30: 0, over_30d: 0 } }, total: 0, uncounted: 0 };
+  const lines = renderBriefsOwedLines(result);
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /total.*0 record-grade stub/);
 });

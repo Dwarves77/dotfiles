@@ -24,9 +24,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
+import { writeRunArtifact } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
-import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
+import { resolveHarnessRunContext } from "../lib/loop-run-id.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -139,13 +139,13 @@ function main() {
     ? STEPS.map((step) => ({ step, ran: false, exitCode: null, summary: null, pathRel: null }))
     : STEPS.map((step) => readStepSummary(outRoot, step));
 
-  const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], FSI_ROOT);
-  const runId = claimRunId(FAMILY_DIR, FAMILY);
-  const loopRunId = resolveLoopRunIdFromUpstream({
-    explicit: null,
+  const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
+    family: FAMILY,
+    familyDir: FAMILY_DIR,
+    governingFiles: GOVERNING_FILES[FAMILY],
+    fsiRoot: FSI_ROOT,
     upstreamName,
     upstreamRunId,
-    fsiRoot: FSI_ROOT,
   });
 
   const artifact = buildArtifact({

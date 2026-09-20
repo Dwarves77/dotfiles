@@ -157,12 +157,16 @@ export const LOOP_HOPS = [
     producer: { file: '.github/workflows/population-turn.yml', name: 'Population turn' },
     consumer: { file: '.github/workflows/brief-export.yml', name: 'Brief export' },
     trigger: 'workflow_run',
-    family: 'brief-apply',
-    enforceEdge: false,
+    family: 'brief-export',
+    enforceEdge: true,
     enforceFired: false,
     note:
-      'brief-export.yml carries only workflow_dispatch today; no workflow_run edge. Family is brief-apply ' +
-      'for now (M4 may add a dedicated brief-export family). M4 wires this hop.',
+      'Edge landed (lane M4, 2026-09-20, build plan section 6.1 row M4, Amendment 1 section C): ' +
+      'brief-export.yml now carries on.workflow_run.workflows: ["Population turn"], alongside ' +
+      'workflow_dispatch. The brief-export harness family is now registered (by descriptor only, ' +
+      'scripts/harness-runs/brief-export/family.json), replacing the earlier "filed under brief-apply ' +
+      'for now" placeholder. Fired-from-upstream proof is the coordinator\'s proof run (build plan ' +
+      'section 6.2).',
   },
   {
     id: 'brief-apply-to-gate-a-rescan',

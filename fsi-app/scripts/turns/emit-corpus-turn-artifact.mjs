@@ -25,9 +25,9 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
+import { writeRunArtifact } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
-import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
+import { resolveHarnessRunContext } from "../lib/loop-run-id.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -189,13 +189,13 @@ function main() {
   const fe = hasScope ? latestForwardEventsCount(FORWARD_EVENTS_DIR) : { count: null, path: null };
   const feRel = fe.path ? `scripts/harness-runs/forward-events/${fe.path.split("/").pop()}` : null;
 
-  const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], FSI_ROOT);
-  const runId = claimRunId(FAMILY_DIR, FAMILY);
-  const loopRunId = resolveLoopRunIdFromUpstream({
-    explicit: null,
+  const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
+    family: FAMILY,
+    familyDir: FAMILY_DIR,
+    governingFiles: GOVERNING_FILES[FAMILY],
+    fsiRoot: FSI_ROOT,
     upstreamName: "Ledger consume",
     upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
-    fsiRoot: FSI_ROOT,
   });
 
   const artifact = buildArtifact({
