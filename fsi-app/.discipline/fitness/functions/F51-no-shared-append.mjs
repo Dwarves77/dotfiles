@@ -392,6 +392,7 @@ export const HOTSPOT_ALLOWLIST = {
   'docs/plans/complete-system-build-plan-2026-09-04.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/ops/HANDOFF-2026-09-19-addendum.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/audits/system-health-audit-2026-09-17.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
+  'docs/dispatches/lane-briefs/2026-09-19/README.md': { decidedOn: '2026-09-19', reason: 'lane G1, Amendment 2: three coordinator docs PRs (#744, #751, #753) each appended a row to its per-brief table; the table is removed in this same commit so nothing appends to the file again; delete this entry once the file has left the 30-commit window' },
 };
 
 /** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,

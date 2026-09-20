@@ -70,30 +70,46 @@ returns `permissionDecision: "ask"`, so the skill is in context at the decision 
 cannot proceed un-acknowledged. It **fails closed** — any error, empty/unparseable payload, or a
 skill-map that won't load returns `ask`.
 
-## Coverage limit: subagents and workflows (platform constraint)
+## Sub-agents: corrected 2026-09-19 (was "coverage limit", now fixed at the transcript-resolution layer)
 
-**PreToolUse hooks are session-scoped and do NOT fire inside subagents or workflow-spawned agents.**
-Verified empirically 2026-06-07: a subagent dispatched via the Agent tool ran `node x --apply`
-unimpeded — no gate interception, no entry in `.gate-audit.log`. The Claude Code docs confirm the
-subagent/workflow hook scope is undocumented (workflows inherit the tool *allowlist* but make no
-parallel claim for hooks). So a subagent/workflow is a structural bypass for code/data writes — this
-cannot be closed by the hook itself.
+The claim that stood here through 2026-06-07, that PreToolUse hooks are session-scoped and do NOT fire
+inside sub-agents, was disproved by the gate's own `.gate-audit.log` on 2026-09-20 00:55 UTC: lane M3's
+edits under `fsi-app/scripts/turns/` were denied 8 times (`Edit deny edit-governed-skillmissing`) and 3
+times on Write, all logged in the minutes a sub-agent was doing that work, while the main session made
+no edits at all. That is direct proof the hook fired for every one of the sub-agent's calls; the gate
+was never a structural bypass in the way this section used to claim.
 
-Compensating controls (mechanical where possible):
+The real defect was narrower and lived one layer down: the PreToolUse payload's `transcript_path` field
+names the **parent session's** transcript even for a call made inside a sub-agent (Claude Code hooks
+reference, "Common Input Fields": one `transcript_path` per session; a sub-agent call additionally
+carries `agent_id` and `agent_type`, with no separate transcript-path field of its own). Empirically, on
+this machine, a sub-agent's own `Skill` tool_use lands only in a sibling file,
+`<parent-transcript-dir>/<parent-transcript-basename>/subagents/agent-<agent_id>.jsonl` (every line
+there carries `"isSidechain":true`), and never in the parent's own top-level file (0 sidechain lines
+found there across sampled sessions). So a gate that always read `payload.transcript_path` could see a
+skill the *parent* loaded but could never see one the *sub-agent itself* loaded, no matter how many
+times the sub-agent invoked or read it. Lane M3's sub-agent had invoked the skill twice and read its
+SKILL.md twice; none of it was visible from the parent's file.
 
-1. **The dispatch tools (Agent / Task / Workflow) are themselves gated** at the main-session call (those
-   calls DO fire the hook). The gate `ask`s on every dispatch and states the rule, so the bypass cannot
-   be taken silently.
-2. **Binding rule:** mutations — `--apply` data writes, governed-file edits, MCP/repo/deploy writes —
-   execute in the **main session**, where the gate fires. Subagents and workflows are for **read-only
-   investigation** and returning findings; any subagent reasoning about governed content must invoke the
-   Skill tool itself.
-3. **Defense in depth still applies to anything that lands as a commit:** guarded `db.mjs`
-   (cite + snapshot), commit-msg rules, CI, and the invariant meta-gate all still catch mutations that
-   reach the repo, regardless of which session produced them.
+The fix (`governance/agent-transcript.mjs`, wired into `pretooluse-skill-gate.mjs`): when the payload
+carries `agent_id`, the gate resolves and judges that sub-agent's OWN transcript file (the derivation
+above) instead of the parent's. A skill loaded only by the parent no longer satisfies a sub-agent's
+write; the sub-agent that acts is the sub-agent that must have looked. A main-session call (no
+`agent_id`) is unaffected and behaves exactly as before. Fail-closed is unchanged: a derived transcript
+that is missing or unreadable denies with the existing no-transcript tag.
 
-This is the one place "completely wired" has a platform floor: the main session is hard-gated; the
-subagent interior is governed by rule + dispatch-gate + downstream review, not by the PreToolUse hook.
+What remains true, and is a genuinely different limit, not the one retired above: at the **dispatch
+point itself** (the `Agent`/`Task`/`Workflow` tool call that spawns the sub-agent), the gate cannot
+inspect what the sub-agent will do before it exists yet to do it. That call is still gated with an `ask`
+every time, but the ask no longer claims the sub-agent's later calls go ungated, since they do not, they
+are judged against that sub-agent's own transcript the moment it starts calling tools.
+
+- **Correctness** of the acting-agent resolution is proven by `governance/agent-transcript.test.mjs`
+  (the pure derivation, including the attack case: the resolver must never fall back to the unmodified
+  parent path once an `agent_id` is given) and by the added cases in
+  `governance/pretooluse-skill-gate.test.mjs` (a sub-agent payload allowed on its own transcript, denied
+  when only the parent's holds the load, denied fail-closed when its derived transcript is missing, and
+  the main-session path proven unchanged).
 
 ## Correctness vs wiring (two separate proofs)
 

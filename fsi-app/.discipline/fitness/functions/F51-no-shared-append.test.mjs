@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync, readdirSync, existsSync, rmSync, cpSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
@@ -443,15 +443,55 @@ test('underEntryDir: recognizes the four derived directories and docs/ops/sessio
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the six coordinator-owned files', () => {
+test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the seven named entries (six coordinator-owned files plus lane G1 Amendment 2\'s README)', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
       'docs/INDEX.md', 'docs/PROGRAM-BOARD.md', 'docs/audits/system-health-audit-2026-09-17.md',
       'docs/ops/HANDOFF-2026-09-19-addendum.md', 'docs/ops/session-log.md',
       'docs/plans/complete-system-build-plan-2026-09-04.md',
+      'docs/dispatches/lane-briefs/2026-09-19/README.md',
     ].sort(),
   );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// LANE G1 AMENDMENT 2 ATTACK TESTS: F51 check 5 fired on docs/dispatches/lane-briefs/2026-09-19/README.md
+// because three coordinator docs PRs each appended a row to its per-brief table (Cause A, the exact
+// shape plan 6.8 removed elsewhere). The fix (item 1) deleted the table; these tests prove the shape
+// stays gone and that allowlisting this one path does not widen coverage for anything else.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('AMENDMENT 2 ATTACK (a): the live README carries no per-brief table row; planting one in a fixture copy proves the pattern would be caught', () => {
+  const readmePath = join(getRepoRoot(), 'docs/dispatches/lane-briefs/2026-09-19/README.md');
+  const text = readFileSync(readmePath, 'utf8');
+  const tableRowPattern = /^\|\s*brief-/m;
+  assert.equal(tableRowPattern.test(text), false, 'the live README must carry no re-added per-brief table row (plan 6.8 Rule A)');
+  const plantedRegression = text + '\n| brief-x.md | X | a table row growing back |\n';
+  assert.equal(tableRowPattern.test(plantedRegression), true, 'the detection pattern must catch a re-added table row in a fixture copy');
+});
+
+test('AMENDMENT 2 ATTACK (b): the allowlisted README passes check 5, while a second, non-allowlisted hot file in the same fixture history still fails', () => {
+  const { tmp, git } = tmpRepo('f51-check5-readme-');
+  try {
+    const commit = (files, message) => {
+      for (const [path, content] of files) writeFile(join(tmp, path), content);
+      git(['add', '-A']);
+      git(['commit', '-q', '-m', message]);
+    };
+    commit([['seed.txt', '1']], 'seed (anchor)');
+    const anchorSha = git(['rev-parse', 'HEAD']).trim();
+    commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '1'], ['other-hot.txt', '1']], 'c1');
+    commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '2'], ['other-hot.txt', '2']], 'c2');
+    commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '3'], ['other-hot.txt', '3']], 'c3');
+    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    const v = runCheck5(tmp, { anchor: anchorSha });
+    const paths = v.map((x) => x.path);
+    assert.ok(!paths.includes('docs/dispatches/lane-briefs/2026-09-19/README.md'), 'the newly allowlisted README must be excluded');
+    assert.ok(paths.includes('other-hot.txt'), 'a second, non-allowlisted hot file must still be caught; the allowlist entry does not widen coverage');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('check 5 (Amendment 2) wired to the live tree: runCheck5 with the real anchor reports 0 violations (the conversion regime is excluded, no file is allowlisted to force this)', () => {

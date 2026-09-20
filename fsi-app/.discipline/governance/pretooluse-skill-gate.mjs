@@ -17,9 +17,17 @@
 //
 // Wired from ~/.claude/settings.json PreToolUse, matcher
 // "^(Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Workflow|mcp__.+)$".
-// COVERAGE LIMIT (platform): PreToolUse is session-scoped and does NOT fire inside subagents/workflows
-// (verified 2026-06-07). The dispatch tools are gated here at the MAIN-session call so the gap is
-// surfaced; the binding rule is that mutations run in the gated main session (see OUT-OF-REPO-BOUNDARY.md).
+// COVERAGE (platform, corrected 2026-09-19): PreToolUse DOES fire inside sub-agents. The stale claim
+// that it does not (recorded 2026-06-07) was disproved by the gate's own audit log on 2026-09-20 00:55
+// UTC: 8 Edit deny and 3 Write deny entries logged while a sub-agent worked and the main session made
+// no edits at all, meaning the gate had in fact fired for every one of the sub-agent's calls. The real
+// gap was narrower: the payload's transcript_path names the PARENT session's transcript even for a
+// sub-agent's own call, and a sub-agent's Skill tool_use is written only to its own sibling transcript
+// file, never into the parent's, so the parent-path check could never see it (agent-transcript.mjs has
+// the evidence and the fix: resolve the ACTING agent's own transcript from payload.agent_id when
+// present). The dispatch tools (Agent/Task/Workflow) are still gated with an ASK below, but that ASK no
+// longer claims the sub-agent's later calls go ungated, only that this hook cannot inspect the
+// sub-agent's future actions from the dispatch point itself.
 // AUDIT LOG: every decision appends `<iso>\t<tool>\t<decision>\t<tag>` to governance/.gate-audit.log
 // (gitignored) — tool_name + decision ONLY, never tool_input (no secrets/commands logged). This proves
 // the gate fired (incl. inside subagents/workflows) and is the durable "everything went through the skills" record.
@@ -33,6 +41,7 @@ import {
   skillFileReadInTranscript,
 } from "./skill-token.mjs";
 import { isBranchingGitCommand, DOCTRINE } from "./worktree-isolation.mjs";
+import { resolveActingTranscriptPath } from "./agent-transcript.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AUDIT = resolve(HERE, ".gate-audit.log");
@@ -59,7 +68,11 @@ try { payload = JSON.parse(raw); } catch { out("ask", "skill-gate backstop: unpa
 const tool = payload?.tool_name || "";
 TOOL = tool || "?";
 const input = payload?.tool_input || {};
-const transcriptPath = payload?.transcript_path || "";
+// agent_id is present ONLY when this call happens inside a sub-agent (Claude Code hooks reference,
+// "Common Input Fields"). When present, the payload's own transcript_path still names the PARENT
+// session's file, not this sub-agent's own; see agent-transcript.mjs for the evidence and derivation.
+const agentId = payload?.agent_id || "";
+const transcriptPath = resolveActingTranscriptPath(payload?.transcript_path || "", agentId);
 
 let skillsForOp = () => [], skillsForFile = () => [], mapLoaded = false;
 try {
@@ -133,10 +146,10 @@ if (tool === "Bash") {
   const cmd = input.command || "";
   // ── WORKTREE-ISOLATION belt (RD-19), the BELT to the git post-checkout hook's SUSPENDERS. ──
   // A branch/checkout/merge/rebase/worktree op must happen in the agent's assigned worktree, never in the
-  // main checkout. This PreToolUse leg is session-scoped and does NOT fire inside subagents (verified
-  // 2026-06-07), so it catches the ORCHESTRATOR's OWN stray branch ops in the main session; the git
-  // post-checkout hook (fires regardless of session type) is what catches a sub-agent's. We ASK (cannot
-  // read the eventual cwd from the payload) so the op is consciously confirmed against the doctrine.
+  // main checkout. PreToolUse DOES fire inside sub-agents too (corrected 2026-09-19, see the COVERAGE
+  // note at the file header); this leg still cannot read the eventual cwd from the payload, so it ASKs
+  // for either the orchestrator or a sub-agent, and the git post-checkout hook (fires regardless of
+  // session type) remains the SUSPENDERS that catch the actual checkout either way.
   if (isBranchingGitCommand(cmd)) {
     out("ask",
       `GIT BRANCH/CHECKOUT/MERGE/REBASE op. WORKTREE-ISOLATION doctrine (RD-19): ${DOCTRINE} ` +
@@ -170,20 +183,21 @@ if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(tool)) {
     () => out("allow", "", "edit-governed-ok"));                // skill loaded -> frictionless (commit/CI review downstream)
 }
 
-// ── Dispatch tools (Agent / Task / Workflow): spawn subagents whose tool calls are NOT hook-gated —
-// PreToolUse is session-scoped and provably does NOT fire inside subagents (verified 2026-06-07 via the
-// audit log: a subagent's `node x --apply` ran unimpeded, no audit entry). So a subagent/workflow is a
-// gate-bypass for code/data writes. We cannot inspect the subagent's interior, so we ASK at the dispatch
-// point every time (it cannot be silently bypassed) and state the binding rule: mutations run in the
-// gated MAIN session; subagents/workflows are investigation-only and must invoke the Skill tool
-// themselves for any governed reasoning. ──
+// ── Dispatch tools (Agent / Task / Workflow): spawn sub-agents whose LATER tool calls ARE hook-gated
+// (corrected 2026-09-19: PreToolUse fires inside sub-agents, per the audit log evidence at the file
+// header, and the gate now judges the acting sub-agent's own transcript via agent-transcript.mjs). What
+// this dispatch point still cannot do is inspect the sub-agent's future interior from here, at dispatch
+// time, before any of its tool calls exist. So we ASK at the dispatch point every time (it cannot be
+// silently bypassed) and state the binding rule: a sub-agent that reasons about or writes governed
+// content must invoke the Skill tool itself, in its own transcript, before that write, exactly like the
+// main session. ──
 if (["Agent", "Task", "Workflow"].includes(tool)) {
   out("ask",
-    `DISPATCH (${tool}). WARNING: subagent/workflow tool calls do NOT fire this skill gate (session-scoped; ` +
-    `verified). So a dispatched agent can write code/data WITHOUT going through the skills. Binding rule: keep ` +
-    `mutations (--apply data writes, governed-file edits, MCP/repo/deploy writes) in the MAIN session where ` +
-    `this gate fires; use subagents/workflows for READ-ONLY investigation. Any subagent that reasons about ` +
-    `governed content must invoke the Skill tool itself. Approve only if this dispatch honors that.`,
+    `DISPATCH (${tool}). NOTE: the sub-agent's later tool calls ARE gated by this same hook (corrected ` +
+    `2026-09-19), judged against the sub-agent's OWN transcript, not this dispatch call. This ASK exists ` +
+    `because the dispatch point itself cannot inspect what the sub-agent will do before it does it. ` +
+    `Binding rule: a sub-agent that reasons about or writes governed content must invoke the Skill tool ` +
+    `itself, in its own transcript, before that write. Approve only if this dispatch honors that.`,
     "dispatch");
 }
 
