@@ -24,49 +24,21 @@
 // depend on directly); the existing precedent in this directory (secrets-reference-audit.mjs) reads
 // `.github/workflows/*.yml` with a documented, line-based text scan rather than a real parser, and this
 // gate does the same (brief-m9a.md item 3 names this as an acceptable fallback when "grep for an existing
-// yml reader" finds none). `extractWorkflowRunNames` finds the `workflow_run:` block and reads the
-// `workflows:` list's quoted strings; it handles the inline-array form every workflow file in this repo
-// actually uses today (`workflows: ["A", "B"]`) and a multi-line `- "A"` block list as a documented bonus,
-// but is not a general YAML parser - a `workflow_run:` block written in some other valid YAML shape (a
-// flow-mapping list without quotes, a folded scalar) would not be found. Holistic scope (no per-file
-// enumeration, same shape as F23/F25/F27/F47): enumerate() returns a single sentinel and the whole
-// analysis runs once inside check().
+// yml reader" finds none). `extractWorkflowRunNames`/`hasWorkflowRunEdge` moved to the shared
+// `../lib/yml-read.mjs` module (lane F52, 2026-09-20, brief-f52.md item 1) so F52-workflow-file-validity.mjs
+// reads the same `workflow_run:` block the same way instead of a second copy; re-exported here so this
+// file's own callers and its test (which imports them from this module) are unaffected. Holistic scope (no
+// per-file enumeration, same shape as F23/F25/F27/F47): enumerate() returns a single sentinel and the
+// whole analysis runs once inside check().
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { violation } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
 import { LOOP_HOPS } from '../../governance/loop-manifest.mjs';
+import { extractWorkflowRunNames, hasWorkflowRunEdge } from '../lib/yml-read.mjs';
 
-/**
- * Find the `workflow_run:` trigger block's `workflows:` list and return the quoted strings in it, in
- * order. Returns [] when a `workflow_run:` block exists but names no workflows (malformed but not this
- * gate's business to reject); returns null when there is no `workflow_run:` trigger at all.
- * @param {string} ymlText
- * @returns {string[] | null}
- */
-export function extractWorkflowRunNames(ymlText) {
-  const wrMatch = ymlText.match(/^\s*workflow_run:\s*$/m);
-  if (!wrMatch) return null;
-  const rest = ymlText.slice(ymlText.indexOf(wrMatch[0]) + wrMatch[0].length);
-  const workflowsMatch = rest.match(/\bworkflows:\s*(\[[^\]]*\]|(?:\r?\n\s*-\s*.+)+)/);
-  if (!workflowsMatch) return [];
-  const names = [];
-  const strRe = /["']([^"']+)["']/g;
-  let m;
-  while ((m = strRe.exec(workflowsMatch[1]))) names.push(m[1]);
-  return names;
-}
-
-/**
- * @param {string} ymlText
- * @param {string} producerName
- * @returns {boolean}
- */
-export function hasWorkflowRunEdge(ymlText, producerName) {
-  const names = extractWorkflowRunNames(ymlText);
-  return Array.isArray(names) && names.includes(producerName);
-}
+export { extractWorkflowRunNames, hasWorkflowRunEdge };
 
 /**
  * Read every `<family>-run-NNN.json` artifact in a harness-runs family directory and report whether any

@@ -6,6 +6,28 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-09-20 (lane F52): 29 shellcheck notes in workflow run scripts
+
+**Debt (pre-existing shell style, not a workflow-validity defect).** CI run 35538991257 on PR #762
+was the first real run of the new "actionlint (pinned, checksum-verified) over .github/workflows"
+step (RD-77, invariant it guards: a workflow file GitHub would refuse never reaches master). It
+failed with 29 findings, all shellcheck notes actionlint raises on existing `run:` scripts, zero
+from actionlint's own workflow checks (syntax, contexts, expressions, needs, inputs):
+
+- `.github/workflows/discipline.yml`
+- `.github/workflows/ledger-consume.yml`
+- `.github/workflows/maintenance.yml`
+- `.github/workflows/population-turn.yml`
+
+Counts by code: 13 SC2129 (style), 11 SC2086 (info), 3 SC2016 (info), 2 SC2012 (info).
+
+**Response.** The actionlint step now runs with `-shellcheck= -pyflakes=` to disable those two
+integrations, keeping the pin, the sha256 verification, and the failing exit code; see
+`.github/workflows/discipline.yml`'s actionlint step comment for the full record.
+
+**Owner lane:** W-shell (unassigned). **Exit condition:** fix the 29 notes above, then remove
+`-shellcheck=` from the actionlint step in `.github/workflows/discipline.yml`.
+
 ## 2026-09-11: F23's coverage-scan never enumerates fsi-app/.discipline, so its own test suite can carry orphaned proofs undetected
 
 **Defect (enumeration gap, [CONFIRMED]):** `coverage-scan.mjs`'s `ROOTS` constant is
