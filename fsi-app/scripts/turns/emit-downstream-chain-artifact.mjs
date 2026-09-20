@@ -26,6 +26,7 @@ import { resolve, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -63,6 +64,7 @@ export function buildArtifact({
   upstreamName,
   upstreamRunId,
   stepResults,
+  loopRunId = null,
 }) {
   const perItem = stepResults.map((r) => ({
     id: r.step,
@@ -100,6 +102,11 @@ export function buildArtifact({
       skip_reason: skipReason || null,
       upstream_name: upstreamName || null,
       upstream_run_id: upstreamRunId || null,
+      // loop_run_id (lane M3b, 2026-09-20): resolved through the one shared name-to-family map in
+      // scripts/lib/loop-run-id.mjs (FAMILY_BY_WORKFLOW_NAME) rather than a second copy of that map here
+      // -- this family's own upstream is "Population turn" (family "mint") or "Corpus turn" (family
+      // "corpus-turn"), both mapped keys, so the loop id inherited from whichever one triggered this run.
+      loop_run_id: loopRunId,
       steps: [...STEPS],
     },
     inputs_ref: [...STEPS],
@@ -134,9 +141,16 @@ function main() {
 
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], FSI_ROOT);
   const runId = claimRunId(FAMILY_DIR, FAMILY);
+  const loopRunId = resolveLoopRunIdFromUpstream({
+    explicit: null,
+    upstreamName,
+    upstreamRunId,
+    fsiRoot: FSI_ROOT,
+  });
 
   const artifact = buildArtifact({
     stepResults,
+    loopRunId,
     mode,
     skip,
     skipReason,

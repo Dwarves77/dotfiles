@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 import { readStepSummary, buildArtifact, STEPS } from "./emit-downstream-chain-artifact.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 function withTmpDir(fn) {
   const dir = mkdtempSync(join(tmpdir(), "downstream-chain-artifact-test-"));
@@ -125,4 +126,79 @@ test("buildArtifact: one step nonzero exit -> that step 'nonzero_exit', a defect
 
 test("STEPS: the four maintenance-step names this family always runs, in the workflow's own order", () => {
   assert.deepEqual(STEPS, ["tier-opinions", "derive-obligations", "tag-proposals", "apply-classifications"]);
+});
+
+// ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
+
+test("buildArtifact: loopRunId defaults to null when the caller passes nothing", () => {
+  const artifact = buildArtifact({
+    runId: "downstream-chain-run-004",
+    harnessVersion: "sha256:0000000000000000",
+    startedAt: new Date().toISOString(),
+    mode: "apply",
+    skip: false,
+    skipReason: "",
+    upstreamName: "Population turn",
+    upstreamRunId: "12345",
+    stepResults: fourCleanSteps(),
+  });
+  assert.equal(artifact.config.loop_run_id, null);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildArtifact: a loopRunId passed by the caller is recorded verbatim on config.loop_run_id", () => {
+  const artifact = buildArtifact({
+    runId: "downstream-chain-run-005",
+    harnessVersion: "sha256:0000000000000000",
+    startedAt: new Date().toISOString(),
+    mode: "apply",
+    skip: false,
+    skipReason: "",
+    upstreamName: "Population turn",
+    upstreamRunId: "12345",
+    stepResults: fourCleanSteps(),
+    loopRunId: "loop-run-abc-123",
+  });
+  assert.equal(artifact.config.loop_run_id, "loop-run-abc-123");
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("resolveLoopRunIdFromUpstream fixture: an upstream mint artifact with a matching github_run_id resolves its own loop_run_id; a different run id resolves null", () => {
+  withTmpDir((fsiRoot) => {
+    const mintDir = join(fsiRoot, "scripts", "harness-runs", "mint");
+    mkdirSync(mintDir, { recursive: true });
+    writeFileSync(
+      join(mintDir, "mint-run-001.json"),
+      JSON.stringify({
+        harness_family: "mint",
+        harness_version: "sha256:0000000000000000",
+        run_id: "mint-run-001",
+        started_at: new Date().toISOString(),
+        config: { github_run_id: "111", loop_run_id: "loop-x" },
+        inputs_ref: ["x"],
+        per_item: [],
+        metrics: {},
+        defects_found: [],
+        full_trace_refs: ["x"],
+        proposer_notes: "test fixture",
+      }, null, 2) + "\n",
+      "utf8"
+    );
+
+    const matched = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Population turn",
+      upstreamRunId: "111",
+      fsiRoot,
+    });
+    assert.equal(matched, "loop-x");
+
+    const unmatched = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Population turn",
+      upstreamRunId: "999",
+      fsiRoot,
+    });
+    assert.equal(unmatched, null);
+  });
 });

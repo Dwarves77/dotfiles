@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveLoopRunId } from "./loop-run-id.mjs";
+import { resolveLoopRunId, resolveLoopRunIdFromUpstream, FAMILY_BY_WORKFLOW_NAME } from "./loop-run-id.mjs";
+import { LOOP_HOPS } from "../../.discipline/governance/loop-manifest.mjs";
 
 function withTmpDir(fn) {
   const dir = mkdtempSync(join(tmpdir(), "loop-run-id-test-"));
@@ -130,16 +131,23 @@ test("resolveLoopRunId: no upstreamRunId given at all (e.g. a bare workflow_disp
   });
 });
 
-// ── attack form (rule 15): a four-hop chain, matched hop to hop, then one hop's github_run_id is
-// broken and the next hop resolves null. This is the mechanical proof that the fix generalizes past
-// hop 1, the exact gap Amendment 2 closes. ─────────────────────────────────────────────────────────
+// ── attack form (rule 15): a six-hop chain (lane M3b, 2026-09-20, extends M3's original four-hop chain
+// with downstream-chain and propagation), matched hop to hop, then one hop's github_run_id is broken and
+// the next hop resolves null. This is the mechanical proof that the fix generalizes past hop 1, the exact
+// gap Amendment 2 closes, now proven all the way to the propagation hop this lane wires. ──────────────
 
-test("resolveLoopRunId ATTACK: a four-hop chain resolves hop to hop to the sweep's own explicit loop id, distinct from every hop's own run id", () => {
+test("resolveLoopRunId ATTACK: a six-hop chain resolves hop to hop to the sweep's own explicit loop id, distinct from every hop's own run id", () => {
   withTmpDir((base) => {
     const sweepDir = join(base, "source-sweep");
     const fetchDrainDir = join(base, "fetch-drain");
     const ledgerConsumeDir = join(base, "ledger-consume");
-    const mintDir = join(base, "mint");
+    // Hops 5 and 6 resolve through resolveLoopRunIdFromUpstream, which builds its own
+    // harnessRunsDir as `<fsiRoot>/scripts/harness-runs/<family>` (matching every production
+    // caller's convention) -- mint's and downstream-chain's own artifact dirs must sit at that
+    // same path under `base` for hop 5 and hop 6 to find them.
+    const mintDir = join(base, "scripts", "harness-runs", "mint");
+    const downstreamChainDir = join(base, "scripts", "harness-runs", "downstream-chain");
+    const propagationDir = join(base, "propagation");
 
     // Hop 1: source-sweep, an operator-supplied explicit loop id, different from its own run id.
     writeArtifact(sweepDir, "source-sweep", 1, { github_run_id: "1001", loop_run_id: "explicit-loop-id-99" });
@@ -171,9 +179,112 @@ test("resolveLoopRunId ATTACK: a four-hop chain resolves hop to hop to the sweep
     });
     writeArtifact(mintDir, "mint", 1, { github_run_id: "4004", loop_run_id: hop4LoopId });
 
+    // Hop 5: downstream-chain, resolving off hop 4 (mint / "Population turn"), through
+    // resolveLoopRunIdFromUpstream -- the same name-to-family lookup emit-downstream-chain-artifact.mjs
+    // uses in production.
+    const hop5LoopId = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Population turn",
+      upstreamRunId: "4004",
+      fsiRoot: base,
+    });
+    writeArtifact(downstreamChainDir, "downstream-chain", 1, { github_run_id: "5005", loop_run_id: hop5LoopId });
+
+    // Hop 6: propagation, resolving off hop 5 (downstream-chain / "Downstream chain"), through the same
+    // helper run-propagation-drain.mjs uses in production.
+    const hop6LoopId = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Downstream chain",
+      upstreamRunId: "5005",
+      fsiRoot: base,
+    });
+    writeArtifact(propagationDir, "propagation", 1, { github_run_id: "6006", loop_run_id: hop6LoopId });
+
     assert.equal(hop2LoopId, "explicit-loop-id-99");
     assert.equal(hop3LoopId, "explicit-loop-id-99");
     assert.equal(hop4LoopId, "explicit-loop-id-99");
+    assert.equal(hop5LoopId, "explicit-loop-id-99");
+    assert.equal(hop6LoopId, "explicit-loop-id-99");
+  });
+});
+
+// ── FAMILY_BY_WORKFLOW_NAME coverage (lane M3b, 2026-09-20, gate against recurrence) ──────────────────
+// Every hop's own producer.name (loop-manifest.mjs's LOOP_HOPS, read from the committed workflow files)
+// must be an OWN key of FAMILY_BY_WORKFLOW_NAME -- a new hop with an unmapped producer must fail this
+// suite instead of resolving null silently in production. The assertion is a small exported-in-test
+// helper so both the real-manifest pass and the attack failure call the SAME function (rule 15: prove
+// the test bites).
+
+function assertEveryHopProducerIsMapped(hops, map) {
+  for (const hop of hops) {
+    const name = hop.producer.name;
+    if (!Object.prototype.hasOwnProperty.call(map, name)) {
+      throw new Error(`hop "${hop.id}": producer name "${name}" is not an own key of FAMILY_BY_WORKFLOW_NAME`);
+    }
+  }
+}
+
+test("FAMILY_BY_WORKFLOW_NAME: every LOOP_HOPS producer name is a mapped key", () => {
+  assert.doesNotThrow(() => assertEveryHopProducerIsMapped(LOOP_HOPS, FAMILY_BY_WORKFLOW_NAME));
+});
+
+test("FAMILY_BY_WORKFLOW_NAME ATTACK: removing one producer's key from the map makes the SAME assertion fail", () => {
+  const namesInUse = new Set(LOOP_HOPS.map((h) => h.producer.name));
+  assert.ok(namesInUse.size > 0, "LOOP_HOPS must name at least one producer for this attack to be meaningful");
+  const removedName = namesInUse.values().next().value;
+  const brokenMap = { ...FAMILY_BY_WORKFLOW_NAME };
+  delete brokenMap[removedName];
+  assert.throws(
+    () => assertEveryHopProducerIsMapped(LOOP_HOPS, brokenMap),
+    new RegExp(`producer name "${removedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}" is not an own key`)
+  );
+});
+
+// ── resolveLoopRunIdFromUpstream ────────────────────────────────────────────────────────────────────
+
+test("resolveLoopRunIdFromUpstream: a mapped upstream name resolves the same as calling resolveLoopRunId directly", () => {
+  withTmpDir((base) => {
+    const fsiRoot = base;
+    const sweepDir = join(fsiRoot, "scripts", "harness-runs", "source-sweep");
+    writeArtifact(sweepDir, "source-sweep", 1, { github_run_id: "1001", loop_run_id: "explicit-loop-id-99" });
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Source sweep",
+      upstreamRunId: "1001",
+      fsiRoot,
+    });
+    assert.equal(got, "explicit-loop-id-99");
+  });
+});
+
+test("resolveLoopRunIdFromUpstream: an upstream name mapped to null (Data producers, its own loop head) returns explicit, or null", () => {
+  withTmpDir((fsiRoot) => {
+    const gotNull = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Data producers",
+      upstreamRunId: "1001",
+      fsiRoot,
+    });
+    assert.equal(gotNull, null);
+    const gotExplicit = resolveLoopRunIdFromUpstream({
+      explicit: "operator-supplied-loop-id",
+      upstreamName: "Data producers",
+      upstreamRunId: "1001",
+      fsiRoot,
+    });
+    assert.equal(gotExplicit, "operator-supplied-loop-id");
+  });
+});
+
+test("resolveLoopRunIdFromUpstream: an unrecognized upstream name returns explicit, or null, without touching the filesystem", () => {
+  withTmpDir((fsiRoot) => {
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Some Unknown Workflow",
+      upstreamRunId: "1001",
+      fsiRoot,
+    });
+    assert.equal(got, null);
   });
 });
 

@@ -27,6 +27,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -115,6 +116,7 @@ export function buildArtifact({
   corpusPathRel,
   forwardEvents, // { count: number|null, pathRel: string|null }
   perItem,
+  loopRunId = null,
 }) {
   const fullTraceRefs = [];
   const inputsRef = [];
@@ -145,6 +147,11 @@ export function buildArtifact({
       limit: limit ? Number(limit) : null,
       since: since || null,
       signals: !!signals,
+      // loop_run_id (lane M3b, 2026-09-20): this family's upstream is always "Ledger consume" (M3's
+      // design maps "Corpus turn" itself to family "corpus-turn" -- resolving against its own family
+      // here would only ever find null). Resolved through the shared map in scripts/lib/loop-run-id.mjs,
+      // never a second copy of it in this file.
+      loop_run_id: loopRunId,
     },
     inputs_ref: inputsRef,
     per_item: perItem,
@@ -184,6 +191,12 @@ function main() {
 
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], FSI_ROOT);
   const runId = claimRunId(FAMILY_DIR, FAMILY);
+  const loopRunId = resolveLoopRunIdFromUpstream({
+    explicit: null,
+    upstreamName: "Ledger consume",
+    upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    fsiRoot: FSI_ROOT,
+  });
 
   const artifact = buildArtifact({
     runId,
@@ -200,6 +213,7 @@ function main() {
     corpusPathRel,
     forwardEvents: { count: fe.count, pathRel: feRel },
     perItem,
+    loopRunId,
   });
 
   const outPath = writeRunArtifact(FAMILY_DIR, artifact);

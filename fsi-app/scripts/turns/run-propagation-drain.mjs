@@ -42,6 +42,7 @@ import { fileURLToPath } from "node:url";
 import { runPropagationDrain } from "../../src/lib/propagation/drain.ts";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -220,7 +221,22 @@ async function main() {
         // producers" run when this drain was fired by propagation-drain.yml's own workflow_run chaining,
         // or null for a plain hand dispatch — recorded every run, even null (same "record it every batch"
         // posture run-population-flywheel.mjs's own trigger_context field already applies).
-        config: { mode, batch, trigger_context: triggerContext ?? null },
+        config: {
+          mode,
+          batch,
+          trigger_context: triggerContext ?? null,
+          // loop_run_id (lane M3b, 2026-09-20): resolved from triggerContext's own {name, run_id} through
+          // the shared name-to-family map (scripts/lib/loop-run-id.mjs) -- this hop's upstream is either
+          // "Downstream chain" (family downstream-chain) or "Data producers" (its own loop head, no
+          // upstream sweep id to inherit -- resolves null by the map's own contract). Null when there is
+          // no trigger context at all (a plain hand dispatch).
+          loop_run_id: resolveLoopRunIdFromUpstream({
+            explicit: null,
+            upstreamName: triggerContext?.name ?? null,
+            upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
+            fsiRoot: FSI_ROOT,
+          }),
+        },
         inputs_ref: [`mode=${mode}`, `batch=${batch}`],
         per_item: shaped?.perItem ?? [],
         metrics: shaped?.metrics ?? {},

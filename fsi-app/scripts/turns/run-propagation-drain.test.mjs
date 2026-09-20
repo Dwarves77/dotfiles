@@ -3,7 +3,11 @@
 // exercises only the pure exports, so it needs no npm dependency (no `npm ci` required to run it).
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { parseArgs, shapeRunOutput, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
@@ -151,4 +155,87 @@ test("PROPAGATION_GOVERNING_FILES names the driver plus drain.ts and admissible-
     "src/lib/propagation/drain.ts",
     "src/lib/propagation/admissible-for.ts",
   ]);
+});
+
+// ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
+// main() resolves config.loop_run_id from triggerContext?.name / triggerContext?.run_id through
+// resolveLoopRunIdFromUpstream, exactly the call shape proven here. main() itself needs live DB creds
+// (exits 2 without them), so these tests exercise the same call construction directly rather than
+// invoking main().
+
+function withTmpDir(fn) {
+  const dir = mkdtempSync(join(tmpdir(), "propagation-loop-run-id-test-"));
+  try {
+    return fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("loop_run_id resolution: no trigger context (a plain hand dispatch) resolves null", () => {
+  withTmpDir((fsiRoot) => {
+    const triggerContext = null;
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: triggerContext?.name ?? null,
+      upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
+      fsiRoot,
+    });
+    assert.equal(got, null);
+  });
+});
+
+test("loop_run_id resolution: a trigger context naming Downstream chain with a matching upstream artifact resolves that artifact's own loop_run_id", () => {
+  withTmpDir((fsiRoot) => {
+    const dcDir = join(fsiRoot, "scripts", "harness-runs", "downstream-chain");
+    mkdirSync(dcDir, { recursive: true });
+    writeFileSync(
+      join(dcDir, "downstream-chain-run-001.json"),
+      JSON.stringify({
+        harness_family: "downstream-chain",
+        harness_version: "sha256:0000000000000000",
+        run_id: "downstream-chain-run-001",
+        started_at: new Date().toISOString(),
+        config: { github_run_id: "5005", loop_run_id: "loop-x" },
+        inputs_ref: ["x"],
+        per_item: [],
+        metrics: {},
+        defects_found: [],
+        full_trace_refs: ["x"],
+        proposer_notes: "test fixture",
+      }, null, 2) + "\n",
+      "utf8"
+    );
+
+    const triggerContext = { name: "Downstream chain", run_id: 5005, conclusion: "success" };
+    const matched = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: triggerContext?.name ?? null,
+      upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
+      fsiRoot,
+    });
+    assert.equal(matched, "loop-x");
+
+    const otherTriggerContext = { name: "Downstream chain", run_id: 9999, conclusion: "success" };
+    const unmatched = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: otherTriggerContext?.name ?? null,
+      upstreamRunId: otherTriggerContext?.run_id != null ? String(otherTriggerContext.run_id) : null,
+      fsiRoot,
+    });
+    assert.equal(unmatched, null);
+  });
+});
+
+test("loop_run_id resolution: a trigger context naming Data producers (its own loop head) resolves null", () => {
+  withTmpDir((fsiRoot) => {
+    const triggerContext = { name: "Data producers", run_id: 42, conclusion: "success" };
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: triggerContext?.name ?? null,
+      upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
+      fsiRoot,
+    });
+    assert.equal(got, null);
+  });
 });
