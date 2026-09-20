@@ -28,6 +28,16 @@
 //      merge, the last of plan 6.8's conversion lanes, so the conversion itself and three same-day
 //      tree-wide mechanical passes are never counted as hotspot churn) are printed every run, so the NEXT
 //      hotspot is caught while it is forming, not after an evening of stops.
+//      CORRECTED (lane F51b, 2026-09-20, second occurrence): this check FAILED twice by reading only
+//      `origin/master` and refusing bystanders after the fact -- it can never refuse the PR that makes
+//      the third touch (at that PR's own gate master still shows two), and once that PR merges it fails
+//      every unrelated lane. A hotspot is now a VIOLATION only when the lane's OWN range (the same
+//      merge-base(origin/master, HEAD)..HEAD range checks 1-4 already resolve, via change-range.mjs, never
+//      a second way) touches the file: count = touches on origin/master in the window, plus one for this
+//      range, threshold 3 unchanged. The standing number (files at 3+ on origin/master alone) is still
+//      printed every run exactly as before -- that is observability, not a refusal. On master itself, or
+//      any run with an empty or unresolvable range (a push to master, a scheduled or manual run), there is
+//      no change to refuse: the standing number prints and no violations are returned.
 //
 // SCOPE, HONESTLY. Checks 1-3 are static/textual scans of specific, named files -- they are pattern
 // checks against the shapes Cause A and Cause B actually took, not a general ban on the identifiers
@@ -379,12 +389,13 @@ export function runCheck4(root) {
 }
 
 // The six files this build's own coordinator owns by contract (docs/dispatches/lane-common-contract.md's
-// "coordinator only" list plus the plan, the handoff addendum and the audit named in the brief). Seeded
-// from the coordinator's own 2026-09-19 measurement; the other five files that measurement also named
-// (run-artifact.mjs, meta-harness PENDING-RUN.md, CONVENTION.md, governing-files.mjs, F45) are NOT
-// coordinator-owned and are deliberately absent here -- they are expected to fall out of the trailing
-// window on their own now that lanes N1-N5 landed; if one is still hot, that is a finding to report, never
-// a reason to add it here (plan 6.8, lane N6 brief).
+// "coordinator only" list plus the plan, the handoff addendum and the audit named in the brief), plus the
+// lane G1 README entry, plus (2026-09-20, second occurrence, lane F51b) the three files of the ADR-031
+// loop-id resolver's serial-growth chain. Seeded from the coordinator's own 2026-09-19 measurement; the
+// other five files that measurement also named (run-artifact.mjs, meta-harness PENDING-RUN.md,
+// CONVENTION.md, governing-files.mjs, F45) are NOT coordinator-owned and are deliberately absent here --
+// they are expected to fall out of the trailing window on their own now that lanes N1-N5 landed; if one is
+// still hot, that is a finding to report, never a reason to add it here (plan 6.8, lane N6 brief).
 export const HOTSPOT_ALLOWLIST = {
   'docs/ops/session-log.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/INDEX.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
@@ -393,6 +404,9 @@ export const HOTSPOT_ALLOWLIST = {
   'docs/ops/HANDOFF-2026-09-19-addendum.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/audits/system-health-audit-2026-09-17.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/dispatches/lane-briefs/2026-09-19/README.md': { decidedOn: '2026-09-19', reason: 'lane G1, Amendment 2: three coordinator docs PRs (#744, #751, #753) each appended a row to its per-brief table; the table is removed in this same commit so nothing appends to the file again; delete this entry once the file has left the 30-commit window' },
+  'fsi-app/scripts/lib/loop-run-id.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
+  'fsi-app/scripts/lib/loop-run-id.test.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
+  'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
 };
 
 /** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,
@@ -407,14 +421,32 @@ export function countHotspots(perCommitFiles, threshold = 3) {
     .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
 }
 
-/** Parse `git log --first-parent --name-only --pretty=format:%x01%H` output into one array of changed
- *  files per commit (oldest-to-newest order does not matter here, only the per-commit grouping does). */
-export function parseFirstParentLog(raw) {
+/** Shared block-splitter both log parsers below build on: `\x01`-delimited blocks, each a trimmed,
+ *  blanks-dropped array of lines, empty blocks discarded. Pure. */
+function splitLogBlocks(raw) {
   return String(raw ?? '')
     .split('\x01')
     .map((block) => block.split(/\r?\n/).map((s) => s.trim()).filter(Boolean))
-    .filter((lines) => lines.length > 0)
-    .map((lines) => lines.slice(1)); // first line of each block is the commit sha
+    .filter((lines) => lines.length > 0);
+}
+
+/** Parse `git log --first-parent --name-only --pretty=format:%x01%H` output into one array of changed
+ *  files per commit (oldest-to-newest order does not matter here, only the per-commit grouping does). */
+export function parseFirstParentLog(raw) {
+  return splitLogBlocks(raw).map((lines) => lines.slice(1)); // first line of each block is the commit sha
+}
+
+/** Parse `git log --first-parent --name-only --pretty=format:%x01%H%x02%s` output (lane F51b, 2026-09-20)
+ *  into `{ sha, subject, files }` per commit -- check 5's violation message names the prior commits that
+ *  touched a hotspot file (brief item 3(e)), which the sha-only parse above cannot supply. */
+export function parseFirstParentLogDetailed(raw) {
+  return splitLogBlocks(raw).map((lines) => {
+    const [head, ...files] = lines;
+    const sep = head.indexOf('\x02');
+    const sha = sep === -1 ? head : head.slice(0, sep);
+    const subject = sep === -1 ? '' : head.slice(sep + 1);
+    return { sha, subject, files };
+  });
 }
 
 // Amendment 2 (coordinator, 2026-09-19 20:49 UTC), check 5. An EPOCH MARKER, not a measurement: the last
@@ -434,38 +466,92 @@ export const HOTSPOT_WINDOW_ANCHOR_REASON =
   'conversion itself plus three same-day tree-wide mechanical passes, the regime 6.8 replaced, not the ' +
   'one this check guards.';
 
-export function runCheck5(root, { anchor = HOTSPOT_WINDOW_ANCHOR_COMMIT } = {}) {
+/** Pure core of check 5's VIOLATION determination (lane F51b, 2026-09-20, second occurrence). A hotspot
+ *  is a violation only when `rangeFiles` -- the lane's OWN changed-file set -- touches the file: count =
+ *  touches on origin/master in the window (from `masterCommits`), plus one for this range. A hotspot the
+ *  range does not touch is not a violation here (that is the standing number, printed separately by the
+ *  caller from the same `masterCommits`, unfiltered). `existsCheck` lets the production caller skip a file
+ *  that fell out of the tree; tests default it to "exists everywhere" and pin fixtures where it matters.
+ */
+export function evaluateHotspotViolations({
+  masterCommits, rangeFiles, threshold = 3, allowlist = HOTSPOT_ALLOWLIST, existsCheck = () => true,
+}) {
+  const masterCounts = new Map();
+  const fileCommits = new Map();
+  for (const c of masterCommits) {
+    for (const f of c.files) {
+      masterCounts.set(f, (masterCounts.get(f) || 0) + 1);
+      if (!fileCommits.has(f)) fileCommits.set(f, []);
+      fileCommits.get(f).push({ sha: c.sha, subject: c.subject });
+    }
+  }
+  const out = [];
+  for (const f of new Set(rangeFiles || [])) {
+    if (!existsCheck(f)) continue; // fell out of the tree; cannot cause a future conflict
+    if (underEntryDir(f)) continue;
+    if (allowlist[f]) continue;
+    const masterCount = masterCounts.get(f) || 0;
+    const total = masterCount + 1;
+    if (total < threshold) continue;
+    const prior = fileCommits.get(f) || [];
+    const priorText = prior.length ? prior.map((p) => `${p.sha.slice(0, 8)} ${p.subject}`).join('; ') : 'none';
+    out.push({
+      path: f, line: 1,
+      message: `hotspot: this range touches "${f}", already touched by ${masterCount} of the last ${masterCommits.length} first-parent commits of origin/master (reaching ${total} with this range, threshold ${threshold}), and it is neither an entry-directory file, a docs/ops/session-log.d/ file, nor in the dated HOTSPOT_ALLOWLIST. Prior commits: ${priorText}. This range makes the change that causes the hotspot condition (plan 6.8, check 5, second occurrence): restructure so the file is not the shared edit point, or ask the coordinator for a dated HOTSPOT_ALLOWLIST entry.`,
+    });
+  }
+  return out;
+}
+
+export function runCheck5(root, { anchor = HOTSPOT_WINDOW_ANCHOR_COMMIT, range: explicitRange } = {}) {
   let raw;
   try {
     raw = execFileSync(
       'git',
-      ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H', `${anchor}..origin/master`],
+      ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H%x02%s', `${anchor}..origin/master`],
       { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 },
     );
   } catch (e) {
     console.log(`  [F51] check 5 (hotspot standing number) skipped: origin/master or the anchor commit ${anchor.slice(0, 8)} unavailable (${e.message}).`);
     return [];
   }
-  const perCommit = parseFirstParentLog(raw);
-  if (perCommit.length < 3) {
-    console.log(`F51 hotspots (3+ of last ${perCommit.length} first-parent commit(s) after anchor ${anchor.slice(0, 8)}): 0 (fewer than 3 commits since the anchor; no file can reach the threshold yet, skipping)`);
+  const commits = parseFirstParentLogDetailed(raw);
+  if (commits.length < 3) {
+    console.log(`F51 hotspots (3+ of last ${commits.length} first-parent commit(s) after anchor ${anchor.slice(0, 8)}): 0 (fewer than 3 commits since the anchor; no file can reach the threshold yet, skipping)`);
     return [];
   }
-  const hotspots = countHotspots(perCommit);
-  console.log(`F51 hotspots (3+ of last ${perCommit.length} merges after anchor ${anchor.slice(0, 8)}): ${hotspots.length}`);
+  const perCommitFiles = commits.map((c) => c.files);
+  const hotspots = countHotspots(perCommitFiles);
+  console.log(`F51 hotspots (3+ of last ${commits.length} merges after anchor ${anchor.slice(0, 8)}): ${hotspots.length}`);
   for (const [f, c] of hotspots) console.log(`  ${c}  ${f}`);
 
-  const out = [];
-  for (const [f, c] of hotspots) {
-    if (!existsSync(join(root, f))) continue; // fell out of the tree; cannot cause a future conflict
-    if (underEntryDir(f)) continue;
-    if (HOTSPOT_ALLOWLIST[f]) continue;
-    out.push({
-      path: f, line: 1,
-      message: `hotspot: "${f}" changed in ${c} of the last ${perCommit.length} first-parent commits of origin/master after anchor ${anchor.slice(0, 8)}, and is neither an entry-directory file, a docs/ops/session-log.d/ file, nor in the dated HOTSPOT_ALLOWLIST. This is the next Cause A/B candidate forming; investigate why separate lanes keep editing this one file (plan 6.8, check 5).`,
-    });
+  // The lane's own range: reuse the SAME range resolution checks 1-4 use (resolveRange, then
+  // gitChangedFiles), never a second way of deriving "what changed here" (an explicit range is for tests
+  // only). On master itself, or any run with an empty or unresolvable range (a push to master, a
+  // scheduled or manual run), there is no change to refuse: standing number only, printed above.
+  let range = explicitRange ?? null;
+  if (!range) {
+    const resolved = resolveRange({ cwd: root });
+    if (resolved.source === 'unavailable' || !resolved.range) {
+      console.log('  [F51] check 5: no lane range available (push to master, or a scheduled/manual run); standing number only, nothing to refuse.');
+      return [];
+    }
+    range = resolved.range;
   }
-  return out;
+  let rangeFiles;
+  try {
+    rangeFiles = gitChangedFiles(range, { cwd: root });
+  } catch (e) {
+    console.log(`  [F51] check 5: could not read this range's changed files (${e.message}); standing number only.`);
+    return [];
+  }
+  if (rangeFiles.length === 0) return []; // empty range: no change to refuse.
+
+  return evaluateHotspotViolations({
+    masterCommits: commits,
+    rangeFiles,
+    existsCheck: (f) => existsSync(join(root, f)),
+  });
 }
 
 export const fitnessFunction = {
@@ -478,8 +564,12 @@ export const fitnessFunction = {
     'each entry-file category (fitness functions, invariants, harness families, migrations, with a dated ' +
     'allowlist for the two pre-build migration-number duplicates 006 and 007 only); (4) a lane/ branch ' +
     'never touches a coordinator-only file; (5) the standing hotspot count (files changed by 3+ of the ' +
-    'last 30 first-parent commits of origin/master after a dated anchor commit) is printed every run and ' +
-    'any file on it must be an entry-directory file, a session-log.d file, or a dated allowlist entry.',
+    'last 30 first-parent commits of origin/master after a dated anchor commit) is printed every run for ' +
+    'visibility, and is a VIOLATION only when the current lane range itself touches a file that reaches ' +
+    'the threshold (master touches plus one for this range) and is neither an entry-directory file, a ' +
+    'session-log.d file, nor a dated allowlist entry -- so the lane that would make the third touch is ' +
+    'refused at its own gate, and a merged bystander file is never refused after the fact (lane F51b, ' +
+    '2026-09-20, second occurrence).',
   source: 'fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs',
   enumerate() {
     // One anchor file: the scan is tree-and-git-wide, reported once (the F23/F45/F47 shape).

@@ -12,7 +12,8 @@ import { getRepoRoot } from '../../lib/context.mjs';
 import { FAMILIES } from '../../../scripts/harness-runs/family-registry.mjs';
 import {
   scanHandEntries, scanStoredMeasurements, findDuplicateIds, evaluateIdDuplicates, countHotspots,
-  parseFirstParentLog, underEntryDir, runCheck1, runCheck2, runCheck3, runCheck4, runCheck5,
+  parseFirstParentLog, parseFirstParentLogDetailed, evaluateHotspotViolations, underEntryDir,
+  runCheck1, runCheck2, runCheck3, runCheck4, runCheck5,
   ZERO_CEILING_ALLOWLIST, MIGRATION_DUPLICATE_ALLOWLIST, HOTSPOT_ALLOWLIST, HOTSPOT_WINDOW_ANCHOR_COMMIT,
   fitnessFunction,
 } from './F51-no-shared-append.mjs';
@@ -328,6 +329,14 @@ test('parseFirstParentLog: parses the %x01-delimited git log --name-only shape, 
   assert.deepEqual(parseFirstParentLog(raw), [['file1.mjs', 'file2.mjs'], ['file1.mjs']]);
 });
 
+test('parseFirstParentLogDetailed (lane F51b): parses the %x01/%x02-delimited sha+subject+files shape', () => {
+  const raw = '\x01aaa\x02first subject\nfile1.mjs\nfile2.mjs\n\x01bbb\x02second subject\nfile1.mjs\n';
+  assert.deepEqual(parseFirstParentLogDetailed(raw), [
+    { sha: 'aaa', subject: 'first subject', files: ['file1.mjs', 'file2.mjs'] },
+    { sha: 'bbb', subject: 'second subject', files: ['file1.mjs'] },
+  ]);
+});
+
 function initCheck5Repo(tmp, git) {
   // An ANCHOR commit (Amendment 2), touching pre-anchor.txt three times before it lands -- none of that
   // must ever count. Then, AFTER the anchor: three commits touching hot.txt (a hotspot), one commit
@@ -355,37 +364,158 @@ function initCheck5Repo(tmp, git) {
   return anchorSha;
 }
 
-test('check 5 RED: a file changed 3+ times AFTER the anchor, not an entry-directory file, not under session-log.d/, and not allowlisted, is caught', () => {
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// CHECK 5 (lane F51b, 2026-09-20, second occurrence): the check FAILED twice by reading only
+// origin/master and refusing bystanders after the fact. Fixed: a hotspot is a violation only when the
+// CURRENT LANE RANGE touches the file (count = master touches + 1 for this range). The pure core,
+// evaluateHotspotViolations, is tested directly per brief item 3(a)-(e); the git-fixture tests below
+// exercise the same semantics end to end through runCheck5's own range resolution.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+function masterCommit(sha, subject, files) {
+  return { sha, subject, files };
+}
+
+test('evaluateHotspotViolations (a) RED: two prior touches on origin/master plus the range touching the file is a violation', () => {
+  const masterCommits = [
+    masterCommit('aaaaaaaa1111111111111111111111111111aaaa', 'lane A: first touch', ['shared.mjs']),
+    masterCommit('bbbbbbbb2222222222222222222222222222bbbb', 'lane B: second touch', ['shared.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
+  assert.equal(v.length, 1);
+  assert.equal(v[0].path, 'shared.mjs');
+  assert.ok(v[0].message.includes('hotspot:'));
+});
+
+test('evaluateHotspotViolations (b) GREEN: three prior touches on origin/master, range does NOT touch it (the bystander case, T3\'s exact situation) is not a violation', () => {
+  const masterCommits = [
+    masterCommit('a1', 'lane M3: extend the resolver', ['shared.mjs']),
+    masterCommit('a2', 'lane M3b: extend it again', ['shared.mjs']),
+    masterCommit('a3', 'lane M4: extract the shared home', ['shared.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['unrelated-file.mjs'] });
+  assert.deepEqual(v, []);
+});
+
+test('evaluateHotspotViolations (c) GREEN: an empty range never produces a violation regardless of master history', () => {
+  const masterCommits = [
+    masterCommit('a1', 's1', ['shared.mjs']),
+    masterCommit('a2', 's2', ['shared.mjs']),
+    masterCommit('a3', 's3', ['shared.mjs']),
+  ];
+  assert.deepEqual(evaluateHotspotViolations({ masterCommits, rangeFiles: [] }), []);
+});
+
+test('evaluateHotspotViolations (d) RED still: an allowlisted file in the range is skipped, a non-allowlisted one in the same range is not', () => {
+  const masterCommits = [
+    masterCommit('a1', 's1', ['docs/INDEX.md', 'other-hot.mjs']),
+    masterCommit('a2', 's2', ['docs/INDEX.md', 'other-hot.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['docs/INDEX.md', 'other-hot.mjs'] });
+  const paths = v.map((x) => x.path);
+  assert.ok(!paths.includes('docs/INDEX.md'), 'docs/INDEX.md is in the dated HOTSPOT_ALLOWLIST and must be skipped');
+  assert.ok(paths.includes('other-hot.mjs'), 'other-hot.mjs is not allowlisted and must still be caught');
+});
+
+test('evaluateHotspotViolations (e): the violation message names the prior commits (sha and subject)', () => {
+  const masterCommits = [
+    masterCommit('cafe1111111111111111111111111111111111', 'lane M3 (#752): extend the loop-id resolver', ['shared.mjs']),
+    masterCommit('cafe2222222222222222222222222222222222', 'lane M3b (#755): extend it again', ['shared.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
+  assert.equal(v.length, 1);
+  assert.ok(v[0].message.includes('cafe1111'), 'message must name the first prior commit sha (short form)');
+  assert.ok(v[0].message.includes('lane M3 (#752): extend the loop-id resolver'), 'message must name the first prior commit subject');
+  assert.ok(v[0].message.includes('cafe2222'), 'message must name the second prior commit sha (short form)');
+  assert.ok(v[0].message.includes('lane M3b (#755): extend it again'), 'message must name the second prior commit subject');
+});
+
+test('evaluateHotspotViolations: an entry-directory file in the range is excluded even when it would otherwise reach the threshold', () => {
+  const masterCommits = [
+    masterCommit('a1', 's1', ['fsi-app/.discipline/fitness/functions/F900-fixture.mjs']),
+    masterCommit('a2', 's2', ['fsi-app/.discipline/fitness/functions/F900-fixture.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['fsi-app/.discipline/fitness/functions/F900-fixture.mjs'] });
+  assert.deepEqual(v, []);
+});
+
+test('evaluateHotspotViolations: existsCheck excludes a file that fell out of the tree even when the range formally touches it', () => {
+  const masterCommits = [
+    masterCommit('a1', 's1', ['gone.mjs']),
+    masterCommit('a2', 's2', ['gone.mjs']),
+  ];
+  const v = evaluateHotspotViolations({ masterCommits, rangeFiles: ['gone.mjs'], existsCheck: () => false });
+  assert.deepEqual(v, []);
+});
+
+test('check 5 (lane F51b) GREEN, git-fixture end to end: hot.txt has 3 prior touches on origin/master (T3\'s exact situation), but this lane\'s own range does not touch it -- not a violation', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
-    const anchorSha = initCheck5Repo(tmp, git);
+    const anchorSha = initCheck5Repo(tmp, git); // sets refs/remotes/origin/master at the tip, hot.txt touched 3x after the anchor
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'lane-own-file.txt'), '1'); // this lane's own range never touches hot.txt
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane/fixture: unrelated change']);
     const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(v.some((x) => x.path === 'hot.txt' && x.message.includes('hotspot:')), 'hot.txt (3 touches after the anchor) should be a violation');
+    assert.ok(!v.some((x) => x.path === 'hot.txt'), 'hot.txt is a bystander to this lane\'s range and must not be refused');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
 
-test('check 5 GREEN: an entry-directory file, an allowlisted file, and a since-deleted file are all excluded even at 3+ touches after the anchor', () => {
+test('check 5 (lane F51b) RED, git-fixture end to end: this lane\'s own range touches hot.txt, which already has prior touches on origin/master -- refused at this lane\'s own gate', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
-    const anchorSha = initCheck5Repo(tmp, git);
+    const anchorSha = initCheck5Repo(tmp, git); // hot.txt already has 3 prior touches on origin/master
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'hot.txt'), '4'); // this lane's range touches the same hotspot file
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane/fixture: touches the hotspot again']);
+    const v = runCheck5(tmp, { anchor: anchorSha });
+    assert.ok(v.some((x) => x.path === 'hot.txt' && x.message.includes('hotspot:')), 'hot.txt is touched by this lane\'s own range and must be refused');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (lane F51b) GREEN, git-fixture end to end: an entry-directory file and an allowlisted file in this lane\'s own range are excluded even though the range touches them', () => {
+  const { tmp, git } = tmpRepo('f51-check5-');
+  try {
+    const anchorSha = initCheck5Repo(tmp, git); // fixture-entry.mjs (entry dir) and docs/INDEX.md (allowlisted) each have 3 prior touches
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), '4');
+    writeFile(join(tmp, 'docs/INDEX.md'), '4');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane/fixture: touches an entry-dir file and an allowlisted file']);
     const v = runCheck5(tmp, { anchor: anchorSha });
     const paths = v.map((x) => x.path);
-    assert.ok(!paths.includes('fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'entry-directory file must be excluded');
-    assert.ok(!paths.includes('docs/INDEX.md'), 'HOTSPOT_ALLOWLIST entry must be excluded');
-    assert.ok(!paths.includes('gone.txt'), 'a file no longer on disk cannot cause a future conflict, must be excluded');
+    assert.ok(!paths.includes('fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'entry-directory file must be excluded even when the range touches it');
+    assert.ok(!paths.includes('docs/INDEX.md'), 'HOTSPOT_ALLOWLIST entry must be excluded even when the range touches it');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
 
-test('check 5 (Amendment 2) ANCHOR HONOURED: a file touched 3+ times AT OR BEFORE the anchor is never counted, even though it would otherwise be a hotspot', () => {
+test('check 5 (lane F51b) GREEN: on origin/master itself (no lane range), the standing number prints but no violations are returned', () => {
+  const { tmp, git } = tmpRepo('f51-check5-');
+  try {
+    const anchorSha = initCheck5Repo(tmp, git); // HEAD is already refs/remotes/origin/master's own tip; no lane range exists
+    assert.deepEqual(runCheck5(tmp, { anchor: anchorSha }), [], 'on master itself there is no range to refuse, even though hot.txt is a standing hotspot');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (Amendment 2) ANCHOR HONOURED: a file touched 3+ times AT OR BEFORE the anchor is never counted, even if this lane\'s own range touches it', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
     const anchorSha = initCheck5Repo(tmp, git);
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'pre-anchor.txt'), '4'); // this lane's range touches the pre-anchor file
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane/fixture: touches pre-anchor.txt']);
     const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(!v.some((x) => x.path === 'pre-anchor.txt'), 'pre-anchor.txt was touched 3 times but all of them are at or before the anchor');
+    assert.ok(!v.some((x) => x.path === 'pre-anchor.txt'), 'pre-anchor.txt has 0 touches in the post-anchor window, so this lane\'s single touch (total 1) never reaches threshold 3');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -443,7 +573,7 @@ test('underEntryDir: recognizes the four derived directories and docs/ops/sessio
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the seven named entries (six coordinator-owned files plus lane G1 Amendment 2\'s README)', () => {
+test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the ten named entries (six coordinator-owned files, lane G1 Amendment 2\'s README, and the three lane F51b loop-id-resolver files)', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
@@ -451,6 +581,9 @@ test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the seven nam
       'docs/ops/HANDOFF-2026-09-19-addendum.md', 'docs/ops/session-log.md',
       'docs/plans/complete-system-build-plan-2026-09-04.md',
       'docs/dispatches/lane-briefs/2026-09-19/README.md',
+      'fsi-app/scripts/lib/loop-run-id.mjs',
+      'fsi-app/scripts/lib/loop-run-id.test.mjs',
+      'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs',
     ].sort(),
   );
 });
@@ -471,7 +604,7 @@ test('AMENDMENT 2 ATTACK (a): the live README carries no per-brief table row; pl
   assert.equal(tableRowPattern.test(plantedRegression), true, 'the detection pattern must catch a re-added table row in a fixture copy');
 });
 
-test('AMENDMENT 2 ATTACK (b): the allowlisted README passes check 5, while a second, non-allowlisted hot file in the same fixture history still fails', () => {
+test('AMENDMENT 2 ATTACK (b), updated for lane F51b: the allowlisted README is excluded from THIS LANE\'S OWN gate even when its range touches it, while a second, non-allowlisted hot file in the same range still fails', () => {
   const { tmp, git } = tmpRepo('f51-check5-readme-');
   try {
     const commit = (files, message) => {
@@ -483,12 +616,17 @@ test('AMENDMENT 2 ATTACK (b): the allowlisted README passes check 5, while a sec
     const anchorSha = git(['rev-parse', 'HEAD']).trim();
     commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '1'], ['other-hot.txt', '1']], 'c1');
     commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '2'], ['other-hot.txt', '2']], 'c2');
-    commit([['docs/dispatches/lane-briefs/2026-09-19/README.md', '3'], ['other-hot.txt', '3']], 'c3');
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    commit([['unrelated.txt', '1']], 'c3 (a third post-anchor commit so the 3-commit window floor is met)');
+    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']); // README and other-hot.txt each have 2 prior touches
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'docs/dispatches/lane-briefs/2026-09-19/README.md'), '3');
+    writeFile(join(tmp, 'other-hot.txt'), '3');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane/fixture: touches both the allowlisted README and other-hot.txt']);
     const v = runCheck5(tmp, { anchor: anchorSha });
     const paths = v.map((x) => x.path);
-    assert.ok(!paths.includes('docs/dispatches/lane-briefs/2026-09-19/README.md'), 'the newly allowlisted README must be excluded');
-    assert.ok(paths.includes('other-hot.txt'), 'a second, non-allowlisted hot file must still be caught; the allowlist entry does not widen coverage');
+    assert.ok(!paths.includes('docs/dispatches/lane-briefs/2026-09-19/README.md'), 'the allowlisted README must be excluded even though this lane\'s range touches it');
+    assert.ok(paths.includes('other-hot.txt'), 'a second, non-allowlisted hot file this lane\'s range also touches must still be caught; the allowlist entry does not widen coverage');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
