@@ -178,6 +178,7 @@ import { writeFileSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory } from "../lib/run-artifact.mjs";
+import { resolveLoopRunId } from "../lib/loop-run-id.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 // THE DEFECT LEDGER-TEXT CLOSES (coordinator [CONFIRMED], first export run 33902755838, 2026-09-04 17:51
 // — see buildFetchDoc's own comment below for the full account): these three imports are plain ESM (no
@@ -1691,6 +1692,18 @@ async function main() {
     // workflow_run (ledger-consume.yml's own "Export upstream run id" step), when this run was triggered
     // that way; null on an explicit workflow_dispatch or a local run (the env var is unset or blank).
     upstream_run_id: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    // loop_run_id (lane M3, 2026-09-19): ledger-consume.yml chains off "Source sweep" directly (its own
+    // on.workflow_run.workflows, confirmed by reading that file -- NOT "fetch-drain", which has no
+    // workflow_run edge feeding this family anywhere in the repo), so this is the ONE hop
+    // resolveLoopRunId's match-by-config.loop_run_id mechanism is sound for (source-sweep is the loop
+    // head; see loop-run-id.mjs's own header for why this does not generalize past hop 1). No
+    // --loop-run-id CLI flag exists on this runner yet, so `explicit` is always null here.
+    loop_run_id: resolveLoopRunId({
+      explicit: null,
+      upstreamFamily: "source-sweep",
+      upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+      harnessRunsDir: resolve(FSI_ROOT, "scripts", "harness-runs", "source-sweep"),
+    }),
     record_only: parsed.recordOnly,
     limit: parsed.limit,
     source_id: parsed.sourceId,

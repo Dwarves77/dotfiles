@@ -280,6 +280,40 @@ A dry-mode or empty-scope (0 tickets selected) corpus turn is a legitimate no-op
 `downstream-chain.yml`'s own gate reads exactly this artifact's `config.mode`/`metrics.tickets_selected`
 before doing any real work, and logs why it skipped when it does.
 
+## The turns, chained (lane M3, 2026-09-19, build plan section 6.1 row M3)
+
+Before this lane, `corpus-turn.yml` had no upstream trigger of its own  --  only `workflow_dispatch` and a
+`push` to `turn/**` (the 2026-09-05 and 2026-09-18 audits both named this the standing half of finding 5,
+"corpus-turn wired to nothing on either side"; the downstream half, `downstream-chain.yml`, closed
+2026-09-06). The workflow now also carries `on.workflow_run: { workflows: ["Ledger consume"], types:
+[completed] }`, so the loop closes end to end: `source-sweep.yml` → `fetch-drain.yml` /
+`ledger-consume.yml` → `corpus-turn.yml` (this hop) and `population-turn.yml` → `downstream-chain.yml` →
+`propagation-drain.yml`.
+
+**What decides whether a chained firing does anything.** The job itself only proceeds when the
+triggering `ledger-consume` run's own `conclusion` was `"success"` (the same job-level `if:` guard
+`fetch-drain.yml` and `ledger-consume.yml` already carry for their own `workflow_run` triggers). From
+there, `corpus-turn.yml`'s own pre-existing "Select this turn's item scope" step is the ONE gate  --  the
+same one a hand dispatch already goes through, never a second one: it reads the open
+`corpus_turn_requests` ticket queue via `consume-turn-requests.mjs`'s own selection and sets
+`has_scope=false` with a named reason (`"0 open tickets selected  --  a legitimate steady state, nothing to
+turn this dispatch"`) when the queue is empty, skipping every real step (discovery, forward-event
+extraction, ticket-marking) while the job still records its own harness-run artifact and exits 0 green.
+A chained firing that DOES have open tickets runs at `mode=apply`, the standard default `limit` (200), on
+a fresh `turn/<run_id>` branch  --  identical in shape to a hand dispatch, never wider or narrower.
+
+**What a chained run's artifact carries.** `run-artifact.mjs`'s `writeRunArtifact` auto-stamps `trigger:
+"workflow_run"` (from `GITHUB_EVENT_NAME`) and `upstream_run_id` (from `GITHUB_EVENT_WORKFLOW_RUN_ID`,
+exported by this workflow's own "Export upstream run id" step, mirroring `ledger-consume.yml`'s/
+`fetch-drain.yml`'s identical step) on every artifact this family writes from a chained firing  --  the same
+fields the loop-manifest's F50 gate (`.discipline/fitness/functions/F50-loop-wiring.mjs`) reads to decide
+whether a hop has ever fired for real, not merely been wired.
+
+**Loop-manifest status.** `.discipline/governance/loop-manifest.mjs`'s `ledger-consume-to-corpus-turn`
+hop now carries `enforceEdge: true` (the edge exists and is checked against the live yml on every fitness
+run); `enforceFired` stays `false` until the coordinator's proof run (build plan section 6.2) produces a
+real `corpus-turn-run-NNN.json` with `trigger: "workflow_run"` and flips it.
+
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`

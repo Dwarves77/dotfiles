@@ -63,6 +63,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
+import { resolveLoopRunId } from "../lib/loop-run-id.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
@@ -451,6 +452,18 @@ async function main() {
           supabase_project: supabaseUrl,
           upstream_run_id: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
           stuck_cutoff: cutoffIso,
+          // loop_run_id (lane M3, 2026-09-19): fetch-drain.yml chains off "Source sweep" directly (its
+          // own on.workflow_run.workflows), so the ONE hop resolveLoopRunId's match-by-config.loop_run_id
+          // mechanism is sound for (source-sweep is the loop head; its own config.loop_run_id defaults to
+          // its own github.run_id -- see loop-run-id.mjs's own header for why this does not generalize
+          // past hop 1). No --loop-run-id CLI flag exists on this runner yet, so `explicit` is always
+          // null here; a future caller can pass one once the workflow itself resolves it out-of-band.
+          loop_run_id: resolveLoopRunId({
+            explicit: null,
+            upstreamFamily: "source-sweep",
+            upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+            harnessRunsDir: resolve(FSI_ROOT, "scripts", "harness-runs", "source-sweep"),
+          }),
         },
         inputs_ref: [
           `live query: pending_first_fetch status='queued' order by queued_at limit ${limit}`,

@@ -176,6 +176,11 @@ import {
 // verbatim, so every existing import of these two names from this file (apply-mint-batch.test.mjs)
 // keeps working unmodified — the same convention this file already uses for buildAgentRunSearchRows etc.
 import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
+// Rule-16 enrichment (discovery + forward-event extraction), the SAME shared function mint-item.ts (the
+// single-item mint chokepoint) calls -- lane M3, 2026-09-19, closes stage-audit-2026-09-18/s2-mint-gate.md
+// finding 4 (this batch path used to skip both entirely). Injectable via deps.runMintEnrichment (tests use
+// a fake counter; see apply-mint-batch.test.mjs) so no test needs a real Supabase client.
+import { runMintEnrichment } from "../../src/lib/intake/mint-enrichment.ts";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
@@ -516,6 +521,27 @@ export async function applyOnePayload(payload, ctx) {
   }
   const { insSearches, insSections, insClaims, insCitations } = seq;
 
+  // Rule-16 enrichment (discovery + forward-event extraction), lane M3 2026-09-19: the SAME shared
+  // function mint-item.ts's single-item chokepoint calls, run here per minted item  --  closes
+  // stage-audit-2026-09-18/s2-mint-gate.md finding 4 (this batch path used to skip both entirely).
+  // Non-fatal: runMintEnrichment already try/catches each of its own two steps and records a
+  // recordFlywheelDefect row on failure; the outer try/catch here is a second, defensive backstop so a
+  // broken ctx.sb (or a fake that throws) can never abort an otherwise-successful mint.
+  let enrichmentFlags = [];
+  if (ctx.runMintEnrichment) {
+    try {
+      enrichmentFlags = await ctx.runMintEnrichment(ctx.sb, itemId, {
+        id: itemId,
+        item_type: itemRow.item_type,
+        canonical_instrument_key: insItem.inserted.canonical_instrument_key ?? itemRow.canonical_instrument_key ?? null,
+        source_id: sourceId,
+        jurisdiction_iso: itemRow.jurisdiction_iso,
+      });
+    } catch (e) {
+      enrichmentFlags = [`enrichment-call-failed:${e instanceof Error ? e.message : String(e)}`];
+    }
+  }
+
   // The RPC is a pure function; the row's own provenance_status is what the trigger derivation stamped,
   // and only the row is what every reader sees. Both are recorded; the outcome follows the row
   // (classifyMintOutcome, write-item.ts — the SAME function the brief tier's groundBrief could share).
@@ -573,6 +599,10 @@ export async function applyOnePayload(payload, ctx) {
       error: outcome === "minted_verified"
         ? null
         : JSON.stringify({ row_provenance_status: rowStatus, rpc_valid: verdict?.valid ?? null, failures: verdict?.failures ?? [] }),
+      // Rule-16 enrichment outcome (lane M3, 2026-09-19)  --  the same flag vocabulary
+      // src/lib/intake/mint-enrichment.ts's single-item caller (mint-item.ts) records, e.g.
+      // "discovery:2", "forward-events:1", "discovery-failed". Never blocks the mint outcome above.
+      enrichment_flags: enrichmentFlags,
     },
     dbDeltas: {
       items: 1,
@@ -651,6 +681,12 @@ export async function run(values, deps) {
       reason: "Lane POP record-grade population turn (docs/plans/record-tier-population-plan-2026-09-01.md) — coordinator-apply of a --census-rows --grade record mint batch through the guarded write path.",
     },
     apply,
+    // Rule-16 enrichment (lane M3, 2026-09-19)  --  deps.sb is the raw Supabase client runMintEnrichment
+    // needs (discovery + forward-event extraction read/write several tables the guarded db.* helpers
+    // above do not cover); deps.runMintEnrichment lets a test inject a fake counter (a real sb is not
+    // required to prove "called once per minted item"  --  see apply-mint-batch.test.mjs).
+    sb: deps.sb ?? null,
+    runMintEnrichment: deps.runMintEnrichment ?? runMintEnrichment,
   };
 
   const perItemPatches = [];
@@ -841,7 +877,7 @@ async function main() {
     return Array.isArray(data) ? data[0] : data;
   };
 
-  await run(values, { readAll, guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readItemProvenance, rpc });
+  await run(values, { readAll, guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readItemProvenance, rpc, sb });
 }
 
 if (isMainModule(import.meta.url)) {
