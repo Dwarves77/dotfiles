@@ -33,11 +33,17 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { parseOewsResponse, buildOewsSeriesId, OEWS_OCCUPATIONS } from "../lib/regional/bls-oews-parser.mjs";
 import { toCandidateRows, latestPerNaturalKey } from "../../scripts/producers/regional/run-envelope-producer.mjs";
+// F27 producer-seam-proof (lane M9d, 2026-09-20): bls-oews-producer.mjs now composes a THIRD first-party
+// seam, producer-summary.mjs (via its runEnvelopeProducer return value). This file already proves the
+// other two together (parser + run-envelope-producer.mjs); adding this import, and the composition test
+// below, makes it the single proof for the producer's whole seam set.
+import { writeProducerSummary } from "../../scripts/producers/lib/producer-summary.mjs";
 // Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
 // deleted — zero production importers, only test-only re-exports of these two — per its own header's
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
@@ -172,4 +178,28 @@ test("two observations sharing a natural key collapse to exactly one row, newest
   assert.equal(reduced[0].reference_period, "2024");
   assert.equal(reduced[0].value_numeric, 54320);
   assert.equal(reduced[0].value, "54320 USD/year");
+});
+
+// ── the THIRD seam: the real reduced-candidate count composes with writeProducerSummary ────────────────
+test("the producers-family seam: the real fixture's reduced row count composes with writeProducerSummary", () => {
+  const reduced = latestPerNaturalKey(toCandidateRows(parseOewsResponse(FIXTURE)));
+  assert.ok(reduced.length > 0);
+
+  const dir = mkdtempSync(join(tmpdir(), "bls-oews-seam-test-"));
+  const prior = process.env.PRODUCER_SUMMARY_DIR;
+  process.env.PRODUCER_SUMMARY_DIR = dir;
+  try {
+    const outPath = writeProducerSummary({
+      producer: "bls-oews", status: "ok",
+      rows_changed: reduced.length, edges_authored: null,
+      counts: { inserted: reduced.length, updated: 0 },
+    });
+    const summary = JSON.parse(readFileSync(outPath, "utf8"));
+    assert.equal(summary.rows_changed, reduced.length, "the composed row count must reach the summary unchanged");
+    assert.equal(summary.edges_authored, null);
+  } finally {
+    if (prior === undefined) delete process.env.PRODUCER_SUMMARY_DIR;
+    else process.env.PRODUCER_SUMMARY_DIR = prior;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

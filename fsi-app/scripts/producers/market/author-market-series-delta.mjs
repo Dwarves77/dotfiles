@@ -60,6 +60,7 @@ import {
   METHOD_ID as MARKET_SERIES_DELTA_METHOD_ID,
   METHOD_VERSION as MARKET_SERIES_DELTA_METHOD_VERSION,
 } from "../../../src/lib/propagation/methods/market-series-delta.ts";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
 
 const LOOKBACK_DAYS = 21;
 const MARKET_SERIES_SELECT = "id, series_key, reference_period, as_at_date, value_numeric, unit, currency, origin_class";
@@ -180,4 +181,32 @@ export function assertEdgesAuthored({ rowsChanged, edgesAuthored }) {
       `every touched series_key landed in (insufficientHistory/unitMismatch/refused/unknownMethod/errored).`,
     );
   }
+}
+
+/**
+ * THE ONE HOME (lane M9d, 2026-09-20, F45 duplicate-code) for the "call assertEdgesAuthored, record the
+ * producers-family summary, rethrow on failure" shape every one of the three market_series producers
+ * (ecb-fx, eia-v2-petroleum-spot, eu-weekly-oil-bulletin) needed identically after adding
+ * writeProducerSummary, and three copies of an 8-line block is exactly the class F45 exists to catch.
+ * Never changes assertEdgesAuthored's own behaviour; wraps the call site.
+ *
+ * Positional (not options-object) on purpose: the three call sites are otherwise textually identical
+ * enough to form their own new clone window against each other (F45, lane M9d); a positional signature
+ * keeps each call site to the single line its own local variables already differ by.
+ *
+ * @param {string} producer
+ * @param {number} rowsChanged
+ * @param {{ authored: number }} authorCounts DAG-authorship counts; `authored` is what gets recorded.
+ * @param {number} parsedCount rows this run parsed, carried into the summary's own `counts` for context.
+ * @throws {Error} the same error assertEdgesAuthored throws, after recording status:"failed"
+ */
+export function assertEdgesAuthoredAndRecordSummary(producer, rowsChanged, authorCounts, parsedCount) {
+  const edgesAuthored = authorCounts.authored;
+  try {
+    assertEdgesAuthored({ rowsChanged, edgesAuthored });
+  } catch (err) {
+    writeProducerSummary({ producer, status: "failed", rows_changed: rowsChanged, edges_authored: edgesAuthored, reason: err.message });
+    throw err;
+  }
+  writeProducerSummary({ producer, status: "ok", rows_changed: rowsChanged, edges_authored: edgesAuthored, counts: { parsed: parsedCount, authorCounts } });
 }

@@ -40,6 +40,9 @@ import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 // its own run behind IS_MAIN); this producer composes off its exported base instead of a local literal.
 import { EUROSTAT_DISSEMINATION_API_BASE } from "./eurostat-lc-lci-lev-producer.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+
+const PRODUCER_NAME = "eurostat-nrg-pc-205";
 
 loadLocalEnvFile();
 
@@ -59,7 +62,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-await runEnvelopeProducer({
+const result = await runEnvelopeProducer({
   producerName: "eurostat-nrg-pc-205-producer",
   enabled: ENABLED,
   sourceKey: "eurostat",
@@ -68,4 +71,16 @@ await runEnvelopeProducer({
     skill: "wo-17-operations-facts-eu-us",
     reason: "$0 Eurostat nrg_pc_205 electricity-price producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
   },
+});
+
+// Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). No assertion of
+// this producer's own analogous to assertEdgesAuthored exists (that gate is market_series-only, lane M5),
+// so edges_authored is whatever authorAutomateVsHireForRegions actually authored this run, null when the
+// producer never reached that step (disabled, or a dry run with candidates:0, both real "ok" outcomes).
+writeProducerSummary({
+  producer: PRODUCER_NAME,
+  status: "ok",
+  rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
+  edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+  counts: result,
 });

@@ -37,6 +37,7 @@ import { readAll, guardedInsertMany, readClient } from "../lib/db.mjs";
 import { validateFactor } from "../../src/lib/contracts/factor-tier.mjs";
 import { authorEdges } from "../../src/lib/propagation/author-edges.mjs";
 import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
+import { writeProducerSummary } from "../producers/lib/producer-summary.mjs";
 
 const CARBON_METHOD_ID = "carbon_intensity_tkm";
 const CARBON_METHOD_VERSION = "1.0.0";
@@ -228,4 +229,27 @@ export async function seedFactors({ label, rows, cite, apply, readAllFn = readAl
   );
 
   return { mode: "apply", fixtureRows: valid.length, skipped, toWrite: toWrite.length, written: res.inserted, snapshot: res.snapshot, authorCounts };
+}
+
+/**
+ * THE ONE HOME (lane M9d, 2026-09-20, F45 duplicate-code) for the "record the producers-family summary
+ * from a seedFactors() result, fail on the same pre-existing predicate both seeders already used" shape
+ * emission-factors-desnz.mjs and emission-factors-epa.mjs needed identically. Never changes seedFactors'
+ * own return shape or its pre-existing fail predicate; wraps the call site.
+ *
+ * @param {{ producer: string, summary: object }} args `summary` is seedFactors()'s own return value.
+ * @returns {boolean} true when this run's own pre-existing fail predicate ("apply planned rows but wrote
+ *   zero") holds, so the caller can `if (recordAndCheckFailure(...)) process.exit(1)`.
+ */
+export function recordSeedFactorsSummary({ producer, summary }) {
+  const failed = summary.mode === "apply" && !summary.written && summary.toWrite > 0;
+  writeProducerSummary({
+    producer,
+    status: failed ? "failed" : "ok",
+    rows_changed: summary.written ?? 0,
+    edges_authored: summary.authorCounts ? summary.authorCounts.authored : null,
+    reason: failed ? `seedFactors planned ${summary.toWrite} row(s) but wrote 0` : null,
+    counts: summary,
+  });
+  return failed;
 }

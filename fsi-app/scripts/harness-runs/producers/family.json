@@ -1,0 +1,13 @@
+{
+  "family": "producers",
+  "registered": "2026-09-20",
+  "registered_by": "lane M9d",
+  "governing_files": [
+    "../.github/workflows/producers.yml",
+    "scripts/producers/market/author-market-series-delta.mjs",
+    "scripts/producers/regional/run-envelope-producer.mjs",
+    "scripts/producers/emit-producers-artifact.mjs",
+    "scripts/producers/lib/producer-summary.mjs"
+  ],
+  "rationale": "producers (lane M9d, 2026-09-20, build plan section 6.1 row M9, follow-on from lane M5): the market and regional producers (scripts/producers/market/*.mjs, the regional producers behind run-envelope-producer.mjs) are the loop's own data-producers box and the only loop box with NO harness-run family before this lane -- run-artifact.mjs's ALLOWED_FAMILIES (now derived from this directory's descriptors, per build plan section 6.8 Rule A) listed none for producers, and no producer called writeRunArtifact, so a producer run left no artifact, F28 could not check its staleness, F50's data-producers-to-propagation-drain hop had no producer-side family to point at, and lane M5's own assertEdgesAuthored fail-closed assertion had no artifact to record status:\"failed\" in. This registration closes that gap. Governing files: the workflow itself (.github/workflows/producers.yml, whose step list and dry/apply mode define what a producers run is, escaping with '../' since it lives one level above fsi-app/, the same escape downstream-chain's own family.json entry uses), author-market-series-delta.mjs (the shared DAG-authorship + assertEdgesAuthored home every market_series producer calls), run-envelope-producer.mjs (the shared orchestration shell every regional producer calls), and this family's own two new files, the emitter (emit-producers-artifact.mjs) and the per-producer summary writer (lib/producer-summary.mjs) every --apply-invoked producer script now calls on its own exit path. The eleven individual producer scripts (ecb-fx-producer.mjs, eia-v2-petroleum-spot-producer.mjs, eu-weekly-oil-bulletin.mjs, the three regional producers, refresh-published-price-statistics.mjs, fetch-desnz-factors.mjs, emission-factors-{desnz,epa}.mjs, ratify-series-items.mjs) stay OUT of this list deliberately: each writes only a small per-run summary through the one shared writer, never its own copy of the harness-run artifact shape, so their own content changing does not move this family's harness_version -- only the shared writer, the shared authorship modules, and the workflow's own step list do. hashHarnessVersion resolves every entry independently against fsi-app root (baseDir), so this is not order-sensitive."
+}
