@@ -1,48 +1,73 @@
 // CLASS FIX (recurring issue): the discipline "Run discipline test suite" CI job runs `node --test` with
 // NO `npm ci` (deliberate isolation). So a test in that glob that imports jiti, a `.ts` file, or any bare
-// npm package PASSES locally (node_modules present) but FAILS in CI with ERR_MODULE_NOT_FOUND — caught only
+// npm package PASSES locally (node_modules present) but FAILS in CI with ERR_MODULE_NOT_FOUND, caught only
 // after push, as red. This has recurred (audit-gate.test.mjs imported jiti; earlier the meta-gate keyed on
-// the working tree not the committed tree). The class cure is a portability guard that runs IN the glob:
-// it reads the test list out of discipline.yml and asserts every listed file imports ONLY node: builtins and
-// relative .mjs/.js — nothing that needs node_modules. A non-portable test now fails at pre-push (which runs
-// this same glob) instead of in CI. Uses only node builtins, so it is itself portable.
+// the working tree not the committed tree). The class cure is a portability guard that runs IN the suite:
+// it reads the SAME file list the suite runs and asserts every listed file imports ONLY node: builtins and
+// relative .mjs/.js, nothing that needs node_modules. A non-portable test now fails at pre-push (which runs
+// this same suite) instead of in CI. Uses only node builtins, so it is itself portable.
+//
+// SOURCE OF TRUTH (lane T3, 2026-09-20, superseding the 2026-07-04 "reads run-test-suite.sh's text"
+// mechanism). run-test-suite.sh no longer carries a literal glob list to regex-parse: it computes its
+// `node --test` argument list by calling `discoverTests()` in `.discipline/lib/test-discovery.mjs`. This
+// file now imports that SAME function, so the file list checked here is the file list the suite actually
+// runs, not a text-scrape of the shell script (the two could never drift, because there is only one
+// function now, not a resolver plus a parser of the resolver's caller).
+//
+// CONFIRMED historical gap this closes: the old text-scrape regex (`/fsi-app\/[^\s"'\\]+/g`, filtered to
+// tokens ending `.test.mjs` or containing `*`) never matched a BARE `.selftest.mjs` filename with no
+// wildcard, because such a token neither ends in `.test.mjs` nor contains `*`. run-test-suite.sh named the
+// two `src/lib/sources/` selftests that way (no glob, exact filenames), so this guard's portability check
+// silently never ran on `classify-source-role.selftest.mjs` or `instrument-identity.selftest.mjs` for as
+// long as that mechanism existed (verified by running the old regex against the pre-lane-T3 committed
+// `run-test-suite.sh`: it produces 80 tokens, none containing either filename). `discoverTests()` returns
+// those two files as ordinary members of its discovered set, so they are portability-checked like every
+// other file now, by construction, not by a fix to the old regex.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { discoverTests } from "./lib/test-discovery.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); // .discipline -> fsi-app -> repo root
-// SINGLE HOME (guard-fix 1, operator ruling 2026-07-04): the test list lives in run-test-suite.sh — invoked
-// by BOTH CI and pre-push. glob-portability reads its source-of-truth from THERE (the list came OUT of
-// discipline.yml entirely, so there is no stale second home). If the resolved list is ever empty (the state
-// this guard just caught when the list moved), that is a STANDING RED — see the assertion in the test.
 const SUITE = resolve(REPO, "fsi-app/.discipline/run-test-suite.sh");
 
-/** Pull every test path/glob token out of run-test-suite.sh (the BASE + FULL_ONLY lists). */
-function testGlobFromSuite() {
-  const src = readFileSync(SUITE, "utf8");
-  // Tokens look like fsi-app/.discipline/lib/*.test.mjs or fsi-app/src/lib/llm/spend-guard.test.mjs.
-  const toks = src.match(/fsi-app\/[^\s"'\\]+/g) || [];
-  const args = [...new Set(toks.filter((t) => t.endsWith(".test.mjs") || t.includes("*")))];
-  assert.ok(args.length > 0, "run-test-suite.sh must list `node --test` files (empty test list = standing red)");
-  return args;
+/** The exact file list run-test-suite.sh feeds to `node --test`. STANDING RED if ever empty. */
+function suiteFiles() {
+  const files = discoverTests({ repoRoot: REPO });
+  assert.ok(files.length > 0, "test-discovery.mjs resolved to ZERO test paths (empty discovered set = standing red)");
+  return files;
 }
 
-/** Expand a single-level glob (dir/*.test.mjs) or pass an explicit file through. No `**` is used in the glob. */
-function expand(pattern) {
-  if (!pattern.includes("*")) return [pattern];
-  const slash = pattern.lastIndexOf("/");
-  const dir = pattern.slice(0, slash);
-  const suffix = pattern.slice(slash + 1).replace(/^\*/, ""); // *.test.mjs -> .test.mjs
-  try { return readdirSync(resolve(REPO, dir)).filter((f) => f.endsWith(suffix)).map((f) => `${dir}/${f}`); }
-  catch { return []; }
+// THE HAZARD THIS PREVENTS FROM RETURNING: run-test-suite.sh used to carry `dir/*.test.mjs` /
+// `dir/*.selftest.mjs` tokens that the INVOKING SHELL expanded before `node --test` ever ran, so the file
+// list silently differed (or collapsed to zero, on a shell that failed to expand an unmatched glob) by
+// WHICH SHELL ran the script, not by what the suite intended to run. Lane T3 removed every such token in
+// favour of `discoverTests()`; this assertion makes reintroducing one a failing test, not a silent hazard.
+// PURE, takes the script's raw text (never the live file directly), so the attack test below can feed it
+// a synthetic fixture string instead of mutating a real file.
+export function findInlineTestGlobTokens(scriptText) {
+  const noComments = scriptText
+    .split("\n")
+    .map((line) => (line.trim().startsWith("#") ? "" : line.replace(/(^|\s)#.*$/, "$1")))
+    .join("\n");
+  const toks = noComments.match(/\S*\*\S*\.(?:test|selftest)\.mjs\b/g) || [];
+  return [...new Set(toks)];
 }
 
-// MODULE specifiers only. An ES `from` import is `from "x"` (whitespace then quote, NEVER `from(`), so this
-// does not match a Supabase `.from("table")` method call. Dynamic import()/require() use parens.
+// MODULE specifiers only. Dynamic import()/require() use parens. Side-effect import is `import "x"` (no
+// `from`). The `from "x"` form (lane T3, 2026-09-20, coordinator amendment 2) is anchored to a STATEMENT
+// START with the `import`/`export` keyword, not a bare `from` anywhere in the text: the prior unanchored
+// `/\bfrom\s+["']([^"']+)["']/g` matched English prose containing the words "from 'x'" (a test-name string
+// reading "...is counted separately from 'authored'" false-tripped it, CONFIRMED against
+// fsi-app/scripts/producers/regional/run-envelope-producer.test.mjs when lane T3's discovery-by-construction
+// fix first made that directory reachable by this guard). The statement anchor spans multiple lines up to
+// its own `from` (a multi-line `import {\n  a,\n} from "x"` must still be caught), excludes `;`/quote/backtick
+// characters so it cannot cross a real statement boundary into an unrelated later `from`, and does NOT match
+// a Supabase `.from("table")` method call (which never starts a line with `import`/`export`).
 const MODULE_RES = [
-  /\bfrom\s+["']([^"']+)["']/g,                    // import/export ... from "x"
+  /^[ \t]*(?:import|export)\b[^;'"`]*?\bfrom\s*["']([^"']+)["']/gm, // import/export ... from "x" (statement-anchored)
   /\bimport\s+["']([^"']+)["']/g,                  // side-effect import "x"
   /\b(?:import|require)\s*\(\s*["']([^"']+)["']/g,  // import("x") / require("x")
 ];
@@ -64,6 +89,43 @@ function nonPortableSpecifiers(src) {
   }
   return bad;
 }
+
+test("ATTACK: nonPortableSpecifiers does not read English prose as an import (the run-envelope-producer false positive, verbatim)", () => {
+  const src = "test(\"authorAutomateVsHireForRegions: 'skipped-already-authored' is counted separately from 'authored'\", async () => {});";
+  assert.deepEqual(nonPortableSpecifiers(src), []);
+});
+
+test("ATTACK: nonPortableSpecifiers still catches a single-line `import x from \"some-pkg\"`", () => {
+  const src = 'import x from "some-pkg";';
+  const found = nonPortableSpecifiers(src);
+  assert.equal(found.length, 1);
+  assert.match(found[0], /^some-pkg /);
+});
+
+test("ATTACK: nonPortableSpecifiers still catches a MULTI-LINE `import { a, b } from \"some-pkg\"`", () => {
+  const src = 'import {\n  a,\n  b,\n} from "some-pkg";';
+  const found = nonPortableSpecifiers(src);
+  assert.equal(found.length, 1);
+  assert.match(found[0], /^some-pkg /);
+});
+
+test("ATTACK: nonPortableSpecifiers still catches `export { a } from \"some-pkg\"`", () => {
+  const src = 'export { a } from "some-pkg";';
+  const found = nonPortableSpecifiers(src);
+  assert.equal(found.length, 1);
+  assert.match(found[0], /^some-pkg /);
+});
+
+test("ATTACK: nonPortableSpecifiers still passes relative and node: specifiers (import/export/side-effect/dynamic forms)", () => {
+  const src = [
+    'import a from "./relative.mjs";',
+    'export { b } from "../other/relative.mjs";',
+    'import c from "node:fs";',
+    'import "./side-effect.mjs";',
+    'const d = await import("./dynamic-relative.mjs");',
+  ].join("\n");
+  assert.deepEqual(nonPortableSpecifiers(src), []);
+});
 
 // TRANSITIVE CHECK (2026-09-12). The direct-import check above missed two CI reds in one day: layout-guard.test.mjs
 // (PR #632) reached esbuild through run-layout-guard.mjs and the smoke harness, and apply-record-briefs.test.mjs
@@ -124,37 +186,71 @@ function transitiveNonPortable(rootAbs) {
   return [...new Set(bad)]; // a module importing the same package in several statements reports once
 }
 
-test("run-test-suite.sh lists a NON-EMPTY test glob (empty source-of-truth is a standing red)", () => {
-  // The permanent guard against the failure this fix was born from: if the test list ever moves/empties,
+test("test-discovery.mjs resolves a NON-EMPTY test list (empty source-of-truth is a standing red)", () => {
+  // The permanent guard against the failure this fix was born from: if the discovered list ever empties,
   // glob-portability fails LOUDLY instead of silently checking nothing.
-  assert.ok(testGlobFromSuite().length > 0, "run-test-suite.sh resolved to ZERO test paths");
+  assert.ok(suiteFiles().length > 0, "discoverTests() resolved to ZERO test paths");
 });
 
-test("every discipline-glob test imports only node: builtins + relative .mjs (portable to the no-npm-ci CI job)", () => {
-  const files = [...new Set(testGlobFromSuite().flatMap(expand))];
+test("every discipline-suite test imports only node: builtins + relative .mjs (portable to the no-npm-ci CI job)", () => {
+  const files = suiteFiles();
   assert.ok(files.length >= 10, `expected the discipline glob to expand to many files, got ${files.length}`);
   const violations = [];
   for (const rel of files) {
     let src;
     try { src = readFileSync(resolve(REPO, rel), "utf8"); }
-    catch { violations.push(`${rel}: listed in the glob but not readable`); continue; }
+    catch { violations.push(`${rel}: listed in the suite but not readable`); continue; }
     for (const b of nonPortableSpecifiers(src)) violations.push(`${rel}: imports ${b}`);
   }
   assert.equal(
     violations.length, 0,
-    `non-portable imports in the discipline test glob (they pass locally but ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
-    `Fix: a glob test may import ONLY node: builtins and relative .mjs/.js. Put pure logic in a .mjs core and test that.`,
+    `non-portable imports in the discipline test suite (they pass locally but ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
+    `Fix: a suite test may import ONLY node: builtins and relative .mjs/.js. Put pure logic in a .mjs core and test that.`,
   );
 });
 
-test("every discipline-glob test's TRANSITIVE relative-import graph reaches no bare package or alias (the class behind PRs #632 and #640)", () => {
-  const files = [...new Set(testGlobFromSuite().flatMap(expand))];
+test("every discipline-suite test's TRANSITIVE relative-import graph reaches no bare package or alias (the class behind PRs #632 and #640)", () => {
+  const files = suiteFiles();
   const violations = [];
   for (const rel of files) violations.push(...transitiveNonPortable(resolve(REPO, rel)));
   assert.equal(
     violations.length, 0,
-    `transitive non-portable imports reachable from the discipline test glob (green locally, ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
+    `transitive non-portable imports reachable from the discipline test suite (green locally, ERR_MODULE_NOT_FOUND in CI):\n  ${violations.join("\n  ")}\n` +
     `Fix: make the npm import lazy (dynamic import() or require() inside the function that needs it, the db.mjs shape), ` +
-    `or list the test by name in discipline.yml's npm-deps step instead of the no-npm glob.`,
+    `or list the test by name in discipline.yml's npm-deps step instead of the no-npm suite.`,
   );
+});
+
+test("run-test-suite.sh passes NO shell-expanded */.test.mjs or */.selftest.mjs glob token to `node --test` (the file list comes ONLY from discoverTests())", () => {
+  const src = readFileSync(SUITE, "utf8");
+  const found = findInlineTestGlobTokens(src);
+  assert.deepEqual(
+    found, [],
+    `run-test-suite.sh contains a shell-expanded test glob token again: ${JSON.stringify(found)}. ` +
+    `This is the exact hazard lane T3 removed (the file list silently differing, or collapsing to zero, ` +
+    `depending on which shell expands the glob). The list must come only from ` +
+    `\`node .discipline/lib/test-discovery.mjs\`.`,
+  );
+});
+
+test("ATTACK: findInlineTestGlobTokens catches a reintroduced glob token in a fixture script (never a real file)", () => {
+  const fixtureWithGlob = [
+    "#!/bin/sh",
+    "# a comment mentioning fsi-app/foo/*.test.mjs must NOT trip this (it is not code)",
+    "node --test \\",
+    "  fsi-app/.discipline/lib/*.test.mjs \\",
+    "  fsi-app/scripts/lib/*.selftest.mjs",
+  ].join("\n");
+  const found = findInlineTestGlobTokens(fixtureWithGlob);
+  assert.deepEqual(found.sort(), [
+    "fsi-app/.discipline/lib/*.test.mjs",
+    "fsi-app/scripts/lib/*.selftest.mjs",
+  ]);
+
+  const fixtureClean = [
+    "#!/bin/sh",
+    "# a comment mentioning fsi-app/foo/*.test.mjs must NOT trip this (it is not code)",
+    "node \"$DISCOVERY\" --print0 | xargs -0 node --test",
+  ].join("\n");
+  assert.deepEqual(findInlineTestGlobTokens(fixtureClean), []);
 });
