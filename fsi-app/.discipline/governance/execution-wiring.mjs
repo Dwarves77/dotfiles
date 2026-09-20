@@ -10,7 +10,12 @@
 //
 // EXECUTION SURFACES (every way a proof file gets run in CI — derived by READING the runners, so this
 // cannot drift from what CI actually does):
-//   1. run-test-suite.sh          — the no-npm `node --test` suite (globs + literals). CI + pre-push.
+//   1. run-test-suite.sh          - the no-npm `node --test` suite. CI + pre-push. Lane T3, 2026-09-20:
+//                                    run-test-suite.sh no longer carries a hand-kept glob list to
+//                                    regex-parse; both it and this resolver import the SAME
+//                                    `discoverTests()` from `.discipline/lib/test-discovery.mjs`, so the
+//                                    executed set here is the exact set the suite runs, not an
+//                                    approximation of it.
 //   2. *.npmtest.mjs glob          — the npm-deps `node --test` step in discipline.yml (fitness-check job).
 //   3. run-goldens.mjs             — every scripts/verify/*.golden.mjs / *-golden.mjs (behavioral goldens).
 //   4. run-data-audit-lane.mjs     — the AUDITS list (live-data audits, secrets lane).
@@ -38,6 +43,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { discoverTests } from '../lib/test-discovery.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');               // dotfiles repo root
@@ -58,20 +64,14 @@ function patternToRegex(pat) {
   return new RegExp('^' + withGlobs + '$');
 }
 
-// Surface 1: run-test-suite.sh — the args to `node --test`, one per continued line. Extract every token
-// that looks like a repo path ending in .mjs (patterns may contain *). Comments (#...) are stripped.
-function testSuiteMatchers() {
-  const sh = readRepo(`${FSI}/.discipline/run-test-suite.sh`);
-  const out = [];
-  for (const rawLine of sh.split(/\r?\n/)) {
-    const line = rawLine.replace(/#.*$/, '').trim().replace(/\\$/, '').trim();
-    if (!line) continue;
-    for (const tok of line.split(/\s+/)) {
-      if (tok === 'node' || tok === '--test') continue;
-      if (/\.mjs$/.test(tok) && tok.includes('/')) out.push(patternToRegex(tok));
-    }
-  }
-  return out;
+// Surface 1: run-test-suite.sh no longer holds a glob list to regex-parse (lane T3, 2026-09-20); it
+// calls `discoverTests()` from `.discipline/lib/test-discovery.mjs` to build its `node --test` argument
+// list by construction from `git ls-files`. This resolver imports the SAME function and matches by exact
+// path membership in the discovered set, so it can never drift from what the suite actually runs (the
+// prior approach regex-parsed literal glob tokens out of the shell script's text, which is now gone).
+function testSuiteMatcher() {
+  const discovered = new Set(discoverTests({ repoRoot: REPO }));
+  return { test: (p) => discovered.has(p) };
 }
 
 // Surface 2: the *.npmtest.mjs glob wired in discipline.yml. WIDENED (plan 6.8, lane N1, out-of-write-set
@@ -146,7 +146,7 @@ const RENDERING_GUARD = `${FSI}/.discipline/rendering/run-rendering-guard.mjs`;
 let CACHE = null;
 function build() {
   if (CACHE) return CACHE;
-  const regexes = [...testSuiteMatchers(), npmtestMatcher()];
+  const regexes = [testSuiteMatcher(), npmtestMatcher()];
   const golden = goldensMatcher();
   const auditSet = auditLaneSet();
   const sentinelSet = fitnessSentinelSet();
