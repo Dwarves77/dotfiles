@@ -866,6 +866,36 @@ export function partitionByScreen(rows, reviewed = {}) {
   return { mintable, screenedOut };
 }
 
+/** Resolve this run's effective row-count cap from the CLI's own --limit/--max-items strings. Pure,
+ *  same `{ok:true, value} | {ok:false, error}` shape validateModeArg (scripts/lib/run-artifact.mjs) and
+ *  run-ledger-consume.mjs's own --max-promote validation already use.
+ *
+ *  Lane M3, 2026-09-19 (build plan section 6.1 row M3): `maxItemsRaw`, when given, OVERRIDES `limitRaw`
+ *  and is bounded by a hard ceiling of 100 -- the cap that replaces `POPULATION_PAUSED` for a
+ *  workflow_run-chained population-turn dispatch (see that workflow's own header; a hand dispatch's own
+ *  --limit is unaffected, since the chained path is the only caller that ever passes --max-items).
+ *  `limitRaw` alone keeps its own long-standing "any positive number" contract, unchanged.
+ * @param {{limitRaw?: string, maxItemsRaw?: string|null}} args
+ * @returns {{ok: true, value: number} | {ok: false, error: string}}
+ */
+export function resolveExportLimit({ limitRaw = "50", maxItemsRaw = null } = {}) {
+  const limit = Number(limitRaw);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    return { ok: false, error: `--limit must be a positive number (got ${JSON.stringify(limitRaw)}).` };
+  }
+  if (maxItemsRaw == null) {
+    return { ok: true, value: limit };
+  }
+  const maxItems = Number(maxItemsRaw);
+  if (!Number.isFinite(maxItems) || maxItems <= 0 || !Number.isInteger(maxItems)) {
+    return { ok: false, error: `--max-items must be a positive integer (got ${JSON.stringify(maxItemsRaw)}).` };
+  }
+  if (maxItems > 100) {
+    return { ok: false, error: `--max-items must not exceed the hard ceiling of 100 (got ${maxItems}).` };
+  }
+  return { ok: true, value: maxItems };
+}
+
 /** Select the would_mint census rows this run will consider, in order: disposition filter, archive
  *  exclusion, then the optional --source-id / --celex-prefix narrowing, then --limit. Pure.
  *
@@ -1509,6 +1539,10 @@ function usage() {
   return [
     "Usage: node scripts/mint/export-census-rows.mjs [--limit 50] [--source-id <uuid>]",
     "         [--celex-prefix 32024] [--include-held] [--capture] [--out path/to/census-rows.json]",
+    "         [--max-items N]  # lane M3, 2026-09-19: caps a workflow_run-chained population-turn dispatch",
+    "           (default 25 there, hard ceiling 100, enforced here). Overrides --limit when both are given.",
+    "           A hand dispatch's own --limit is unaffected -- --max-items is only ever passed by the",
+    "           chained path (see .github/workflows/population-turn.yml's own resolve step).",
   ].join("\n");
 }
 
@@ -1547,6 +1581,7 @@ export async function main() {
   const { values } = parseArgs({
     options: {
       limit: { type: "string", default: "50" },
+      "max-items": { type: "string" },
       "source-id": { type: "string" },
       "celex-prefix": { type: "string" },
       "include-held": { type: "boolean", default: false },
@@ -1563,11 +1598,12 @@ export async function main() {
     return;
   }
 
-  const limit = Number(values.limit);
-  if (!Number.isFinite(limit) || limit <= 0) {
-    console.error(`export-census-rows: --limit must be a positive number (got ${JSON.stringify(values.limit)}).\n${usage()}`);
+  const limitResolved = resolveExportLimit({ limitRaw: values.limit, maxItemsRaw: values["max-items"] ?? null });
+  if (!limitResolved.ok) {
+    console.error(`export-census-rows: ${limitResolved.error}\n${usage()}`);
     process.exit(1);
   }
+  const limit = limitResolved.value;
 
   loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

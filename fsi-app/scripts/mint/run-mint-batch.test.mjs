@@ -183,6 +183,51 @@ test("buildRunArtifact: a thrown-failure run still produces a SCHEMA-VALID artif
   assert.deepEqual(artifact.full_trace_refs, ["/tmp/bad-batch.json"]);
 });
 
+test("buildRunArtifact: max_items/upstream_run_id/loop_run_id default null when the caller supplies none (a hand dispatch)", () => {
+  const result = runBatch([EXAMPLE_PAYLOAD], { baseDir: HERE });
+  const artifact = buildRunArtifact({
+    runId: "mint-run-003",
+    harnessVersion: "sha256:aaaaaaaaaaaaaaaa",
+    startedAt: "2026-09-19T00:00:00Z",
+    finishedAt: "2026-09-19T00:00:05Z",
+    batchPath: "/tmp/batch.json",
+    outDir: "/tmp/out",
+    execute: true,
+    result,
+    runError: null,
+    applyReadyPath: null,
+    reportPath: null,
+  });
+  assert.deepEqual(validateRunArtifact(artifact), []);
+  assert.equal(artifact.config.max_items, null);
+  assert.equal(artifact.config.upstream_run_id, null);
+  assert.equal(artifact.config.loop_run_id, null);
+});
+
+test("buildRunArtifact: max_items/upstream_run_id/loop_run_id are recorded verbatim when the caller supplies them (a workflow_run-chained dispatch)", () => {
+  const result = runBatch([EXAMPLE_PAYLOAD], { baseDir: HERE });
+  const artifact = buildRunArtifact({
+    runId: "mint-run-004",
+    harnessVersion: "sha256:aaaaaaaaaaaaaaaa",
+    startedAt: "2026-09-19T00:00:00Z",
+    finishedAt: "2026-09-19T00:00:05Z",
+    batchPath: "/tmp/batch.json",
+    outDir: "/tmp/out",
+    execute: true,
+    result,
+    runError: null,
+    applyReadyPath: null,
+    reportPath: null,
+    maxItems: 25,
+    upstreamRunId: "18234567890",
+    loopRunId: "explicit-loop-id-99",
+  });
+  assert.deepEqual(validateRunArtifact(artifact), []);
+  assert.equal(artifact.config.max_items, 25);
+  assert.equal(artifact.config.upstream_run_id, "18234567890");
+  assert.equal(artifact.config.loop_run_id, "explicit-loop-id-99");
+});
+
 // ── enrichRunArtifactMetrics / loadOutcomes (Interface-3 metrics) ─────────────────────────────────
 
 test("enrichRunArtifactMetrics: merges new keys into metrics without touching any other field, never mutates the input", () => {
@@ -276,6 +321,28 @@ test("CLI --execute: artifact written on SUCCESS — a valid batch produces mint
     assert.equal(artifact.defects_found.length, 0);
     assert.ok(existsSync(join(dir, "batch.apply-ready.json")));
     assert.ok(existsSync(join(dir, "batch.mint-batch-report.json")));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI --execute --max-items --upstream-run-id: recorded verbatim in config; loop_run_id resolves null (no matching ledger-consume artifact) rather than crashing or inventing one", () => {
+  const dir = tmpDir();
+  try {
+    const batchPath = join(dir, "batch.json");
+    writeFileSync(batchPath, JSON.stringify([EXAMPLE_PAYLOAD]));
+    const harnessRunsDir = join(dir, "harness-runs", "mint");
+    const res = run([
+      "--batch-file", batchPath, "--execute",
+      "--harness-runs-dir", harnessRunsDir, "--out-dir", dir,
+      "--max-items", "25", "--upstream-run-id", "99999999999-does-not-exist",
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+    const artifact = JSON.parse(readFileSync(join(harnessRunsDir, "mint-run-001.json"), "utf8"));
+    assert.deepEqual(validateRunArtifact(artifact), []);
+    assert.equal(artifact.config.max_items, 25);
+    assert.equal(artifact.config.upstream_run_id, "99999999999-does-not-exist");
+    assert.equal(artifact.config.loop_run_id, null);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

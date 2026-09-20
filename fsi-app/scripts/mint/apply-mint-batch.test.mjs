@@ -403,6 +403,67 @@ function fakeAppliedDb() {
   };
 }
 
+// ── rule-16 enrichment (lane M3, 2026-09-19) ────────────────────────────────────────────────────────────
+// applyOnePayload never imports runMintEnrichment itself  --  it calls ctx.runMintEnrichment, so these tests
+// inject a fake counter and assert the call shape without a real Supabase client (per this lane's brief:
+// "Unit test with a fake client: the batch path calls the shared enrichment once per minted item").
+
+test("applyOnePayload APPLY: calls ctx.runMintEnrichment exactly once for a minted item, with the item id and a signature carrying item_type/canonical_instrument_key/source_id/jurisdiction_iso, and records the returned flags on perItem.enrichment_flags", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const enrichCalls = [];
+  const runMintEnrichment = async (sb, itemId, signature) => {
+    enrichCalls.push({ sb, itemId, signature });
+    return ["discovery:1", "forward-events:2"];
+  };
+  const fakeSb = { marker: "fake-sb" };
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: censusRowIdSet([{ row_id: "cw-1" }]), cite: { skill: "record-tier-population-plan", reason: "test" }, apply: true, sb: fakeSb, runMintEnrichment };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+
+  assert.equal(enrichCalls.length, 1, "runMintEnrichment must be called exactly once for one minted item");
+  assert.equal(enrichCalls[0].sb, fakeSb);
+  assert.equal(enrichCalls[0].itemId, result.perItem.item_id);
+  assert.equal(enrichCalls[0].signature.item_type, "regulation");
+  assert.equal(enrichCalls[0].signature.canonical_instrument_key, "32024R0001");
+  assert.equal(enrichCalls[0].signature.source_id, "src-1");
+  assert.deepEqual(enrichCalls[0].signature.jurisdiction_iso, ["EU"]);
+  assert.deepEqual(result.perItem.enrichment_flags, ["discovery:1", "forward-events:2"]);
+});
+
+test("applyOnePayload APPLY: an M4-blocked payload never calls ctx.runMintEnrichment (nothing was minted)", async () => {
+  const idx = buildItemsIndex([{ id: "existing-1", canonical_instrument_key: "32024R0001", source_url: "https://other.example/doc", archive_reason: null }]);
+  const db = fakeAppliedDb();
+  let calls = 0;
+  const runMintEnrichment = async () => { calls += 1; return []; };
+  const ctx = { db, rpc: async () => ({ valid: true }), itemsIndex: idx, sourcesById: new Map(), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true, sb: {}, runMintEnrichment };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "not_applied_holder_conflict");
+  assert.equal(calls, 0);
+});
+
+test("applyOnePayload APPLY: a write-sequence failure (apply_failed, partial item deleted) never calls ctx.runMintEnrichment", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  db.guardedInsertMany = async (table) => { throw new Error(`${table} refused (U+0000)`); };
+  let calls = 0;
+  const runMintEnrichment = async () => { calls += 1; return []; };
+  const ctx = { db, rpc: async () => ({ valid: true }), itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true, sb: {}, runMintEnrichment };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "apply_failed");
+  assert.equal(calls, 0, "no item survived to enrich");
+});
+
+test("applyOnePayload APPLY: ctx.runMintEnrichment is OPTIONAL  --  an existing caller that builds ctx by hand (no runMintEnrichment) still mints, unchanged (backward compatible)", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: censusRowIdSet([{ row_id: "cw-1" }]), cite: { skill: "record-tier-population-plan", reason: "test" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "minted_verified");
+  assert.deepEqual(result.perItem.enrichment_flags, []);
+});
+
 test("applyOnePayload APPLY: writes in the canonical-pipeline.ts order — intelligence_items, agent_run_searches, intelligence_item_sections, item_gate_a_state BEFORE section_claim_provenance, intelligence_item_citations (run #8: gate after claims left every item quarantined)", async () => {
   const idx = buildItemsIndex([]);
   const db = fakeAppliedDb();

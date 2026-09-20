@@ -64,16 +64,30 @@ name: Downstream chain
 # including a "no real chain work, skip" no-op green run — therefore always gives propagation_events
 # (queued by B4's own DB trigger on any of this chain's writes) a chance to drain.
 #
-# ARTIFACT (maintenance family's own established posture — GitHub Actions artifact only, no committed
-# harness-run family; see this lane's own REPORT for the full F28 reasoning): tier-opinions.mjs,
-# derive-obligations.mjs, tag-proposals.mjs and apply-classifications.mjs are NONE of them registered
-# harness-run families (confirmed: scripts/harness-runs/ has no directory for any of the four; the same
-# fact run-population-flywheel.mjs's own header states for the identical five scripts it wraps) — F28's
-# harness-run-integrity gate governs `scripts/harness-runs/*/` directories only, so it has no opinion on
-# these four either way. maintenance.yml's own dispatch of these same four steps has never uploaded
-# anything but a GitHub Actions artifact (`maintenance-<step>-<run_id>`, this file's own final step); this
-# workflow keeps that exact posture for the chained dispatch rather than inventing a second delivery
-# mechanism for the same four scripts.
+# ARTIFACT (lane M3, 2026-09-19, build plan section 6.1 row M3  --  WIDENED from the ORIGINAL posture below,
+# kept here for the history): tier-opinions.mjs, derive-obligations.mjs, tag-proposals.mjs and
+# apply-classifications.mjs are STILL none of them registered harness-run families of their own
+# (scripts/harness-runs/ has no directory for any of the four; the same fact run-population-flywheel.mjs's
+# own header states for the identical five scripts it wraps)  --  F28's harness-run-integrity gate governs
+# `scripts/harness-runs/*/` directories only, so it still has no opinion on those four scripts either way.
+# But THIS WORKFLOW itself is now a registered family (`downstream-chain`, `scripts/harness-runs/
+# downstream-chain/family.json`, by descriptor only per build plan section 6.8 Rule A  --  no edit to
+# ALLOWED_FAMILIES/governing-files.mjs/CONVENTION.md, both derived): the final step below reads each of
+# the four `./.github/actions/maintenance-step` calls' own `summary.json` (scripts/maintenance/lib/
+# cli.mjs's contract) and commits `downstream-chain-run-NNN.json`
+# (scripts/turns/emit-downstream-chain-artifact.mjs), the SAME committed-artifact-plus-branch-plus-PR
+# posture every other harness family in this repo already has  --  closing the loop-manifest's own
+# `population-turn-to-downstream-chain`/`corpus-turn-to-downstream-chain` `familyPending: true` flags.
+# Recorded on EVERY firing, including a no-op skip (`env.RUN_SKIP == 'true'`), matching every sibling
+# family's own "record it every batch, even when zero" rule (MINT-RUNBOOK.md).
+#
+# ORIGINAL POSTURE (2026-09-06, superseded by the above): "maintenance family's own established posture  -- 
+# GitHub Actions artifact only, no committed harness-run family... maintenance.yml's own dispatch of these
+# same four steps has never uploaded anything but a GitHub Actions artifact
+# (`maintenance-<step>-<run_id>`)... this workflow keeps that exact posture." maintenance.yml itself is
+# UNCHANGED by this lane and keeps its own ephemeral-only posture; only downstream-chain.yml's own runs
+# are now also committed, since this workflow (unlike maintenance.yml's 62-step dispatch-one-step job) is
+# the one place the build plan's loop diagram (section 1) names as a hop with its own family.
 #
 # SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
 # same pair maintenance.yml already injects.
@@ -96,7 +110,14 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  # contents: write (lane M3, 2026-09-19, widened from read-only): this workflow now commits its own
+  # scripts/harness-runs/downstream-chain/downstream-chain-run-NNN.json artifact, the same posture every
+  # other harness-family workflow (corpus-turn.yml, ledger-consume.yml, source-sweep.yml, fetch-drain.yml,
+  # population-turn.yml) already has -- see this file's own header, "ARTIFACT" section, for why this
+  # family previously had none.
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
 
 jobs:
   chain:
@@ -117,6 +138,7 @@ jobs:
         working-directory: fsi-app
         run: |
           set -u
+          echo "STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           EVENT="${{ github.event_name }}"
           echo "event = $EVENT"
 
@@ -233,15 +255,17 @@ jobs:
             echo "downstream-chain proceeding: mode=$RUN_MODE trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
           fi
 
+      # UNCONDITIONAL (lane M3, 2026-09-19; matches corpus-turn.yml's/source-sweep.yml's own setup-node,
+      # which never gates on a skip flag either): the final "Record this chain's own harness-run
+      # artifact" step below runs `always()`, even on a RUN_SKIP=true no-op, so Node must be available on
+      # every firing, not only a real one -- "record it every batch, even when zero."
       - uses: actions/setup-node@v4
-        if: ${{ env.RUN_SKIP != 'true' }}
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install
-        if: ${{ env.RUN_SKIP != 'true' }}
         working-directory: fsi-app
         run: npm ci
 
@@ -307,6 +331,61 @@ jobs:
         if: ${{ always() && env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' }}
         working-directory: fsi-app
         run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
+      # ── record THIS family's own harness-run artifact (lane M3, 2026-09-19; F28 / CONVENTION.md) ──────
+      # "Emission is CODE"  --  the same posture every other harness family in this repo already holds
+      # (corpus-turn.yml's own "Record this turn's own harness-run artifact" step is the direct precedent):
+      # runs on EVERY firing, `always()`, including a RUN_SKIP=true no-op, so a chained dispatch that
+      # found nothing to derive from still leaves a record  --  MINT-RUNBOOK.md's "record it every batch,
+      # even when zero," applied here. Reads UPSTREAM_NAME/UPSTREAM_RUN_ID out of RUN_TRIGGER_CONTEXT
+      # (the same {name, run_id, conclusion} JSON blob the resolve step above already built) rather than
+      # re-deriving them, so there is exactly one place that decides what fired this run.
+      - name: Record this chain's own harness-run artifact (downstream-chain family)
+        if: always()
+        working-directory: fsi-app
+        env:
+          DC_MODE: ${{ env.RUN_MODE }}
+          DC_SKIP: ${{ env.RUN_SKIP }}
+          DC_SKIP_REASON: ${{ env.RUN_SKIP_REASON }}
+          DC_STARTED_AT: ${{ env.STARTED_AT }}
+          DC_OUT_ROOT: ${{ env.OUT_ROOT }}
+        run: |
+          UPSTREAM_NAME=""
+          UPSTREAM_RUN_ID=""
+          if [ -n "${RUN_TRIGGER_CONTEXT:-}" ]; then
+            UPSTREAM_NAME="$(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '.name // empty' 2>/dev/null || true)"
+            UPSTREAM_RUN_ID="$(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '.run_id // empty' 2>/dev/null || true)"
+          fi
+          DC_UPSTREAM_NAME="$UPSTREAM_NAME" DC_UPSTREAM_RUN_ID="$UPSTREAM_RUN_ID" node scripts/turns/emit-downstream-chain-artifact.mjs
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/downstream-chain/**), same
+      # posture every sibling family workflow already has. A run normally executes against master, which
+      # is typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
+      # straight to whatever ref triggered the run.
+      - name: Commit the downstream-chain harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fsi-app/scripts/harness-runs/downstream-chain
+          if git diff --cached --quiet; then
+            echo "No new downstream-chain artifact to commit."
+            exit 0
+          fi
+          branch="downstream-chain/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "downstream-chain ${{ env.RUN_MODE }}: run ${{ github.run_id }} (${{ github.event_name }}, skip=${{ env.RUN_SKIP }})"
+          # BRANCH-BASE (matches every sibling family's own identical step): re-base the artifact commit
+          # onto the current master tip before the push, so a workflow-file change that landed on master
+          # mid-run cannot make GitHub refuse the branch.
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated downstream chain (run %s, trigger %s).\n\nMode: %s\nSkip: %s (%s)\n\nLands the harness-run artifact for this chain under fsi-app/scripts/harness-runs/downstream-chain/.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ env.RUN_MODE }}" "${{ env.RUN_SKIP }}" "${{ env.RUN_SKIP_REASON }}" > /tmp/pr-body.md
+          bash fsi-app/scripts/turns/deliver-artifact-branch.sh "$branch" "Downstream chain: $branch (mode=${{ env.RUN_MODE }})" /tmp/pr-body.md
 
       - name: Upload this run's step artifact(s)
         if: ${{ always() && env.RUN_SKIP != 'true' }}

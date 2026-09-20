@@ -46,7 +46,40 @@ import {
   loadReviewedVerdicts,
   detectNotInForce,
   detectCellarGarbledMetadata,
+  resolveExportLimit,
 } from "./export-census-rows.mjs";
+
+// ── resolveExportLimit (lane M3, 2026-09-19: the max_items cap that replaces POPULATION_PAUSED) ────────
+
+test("resolveExportLimit: --limit alone keeps its long-standing 'any positive number' contract, unaffected", () => {
+  assert.deepEqual(resolveExportLimit({ limitRaw: "50" }), { ok: true, value: 50 });
+  assert.deepEqual(resolveExportLimit({ limitRaw: "500" }), { ok: true, value: 500 }, "a hand dispatch's own --limit is never capped by this function");
+  assert.equal(resolveExportLimit({ limitRaw: "0" }).ok, false);
+  assert.equal(resolveExportLimit({ limitRaw: "-5" }).ok, false);
+  assert.equal(resolveExportLimit({ limitRaw: "not-a-number" }).ok, false);
+});
+
+test("resolveExportLimit: --max-items overrides --limit when both are given", () => {
+  assert.deepEqual(resolveExportLimit({ limitRaw: "50", maxItemsRaw: "25" }), { ok: true, value: 25 });
+});
+
+test("resolveExportLimit: --max-items default (25) is accepted", () => {
+  assert.deepEqual(resolveExportLimit({ maxItemsRaw: "25" }), { ok: true, value: 25 });
+});
+
+test("resolveExportLimit: --max-items at the ceiling (100) is accepted; one above it is refused", () => {
+  assert.deepEqual(resolveExportLimit({ maxItemsRaw: "100" }), { ok: true, value: 100 });
+  const over = resolveExportLimit({ maxItemsRaw: "101" });
+  assert.equal(over.ok, false);
+  assert.match(over.error, /hard ceiling of 100/);
+});
+
+test("resolveExportLimit: --max-items must be a positive integer (zero, negative, fractional, non-numeric all refused)", () => {
+  assert.equal(resolveExportLimit({ maxItemsRaw: "0" }).ok, false);
+  assert.equal(resolveExportLimit({ maxItemsRaw: "-1" }).ok, false);
+  assert.equal(resolveExportLimit({ maxItemsRaw: "2.5" }).ok, false);
+  assert.equal(resolveExportLimit({ maxItemsRaw: "abc" }).ok, false);
+});
 
 // ── classifyItemTypeFromCelexKey ────────────────────────────────────────────────────────────────────
 

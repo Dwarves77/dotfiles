@@ -39,11 +39,14 @@
 // text - the SAME exemption the family check already needs for a not-yet-created harness family, applied
 // uniformly rather than re-derived per hop kind.
 //
-// FAMILY PENDING. Two hops (population-turn-to-downstream-chain, corpus-turn-to-downstream-chain) name
-// family "downstream-chain": the consumer WORKFLOW (downstream-chain.yml) already exists and already
-// carries the workflow_run edge from both producers (confirmed by reading the file, 2026-09-18) - only
-// the HARNESS family (scripts/harness-runs/downstream-chain/ and its ALLOWED_FAMILIES registration in
-// scripts/lib/run-artifact.mjs) is not built yet; lane M3 builds it. `familyPending: true` marks this.
+// FAMILY PENDING, CLOSED (lane M3, 2026-09-19). Two hops (population-turn-to-downstream-chain,
+// corpus-turn-to-downstream-chain) used to name family "downstream-chain" with `familyPending: true`: the
+// consumer WORKFLOW (downstream-chain.yml) already existed and already carried the workflow_run edge from
+// both producers (confirmed by reading the file, 2026-09-18), but the HARNESS family itself
+// (scripts/harness-runs/downstream-chain/) did not exist. Lane M3 registered it BY DESCRIPTOR ONLY (build
+// plan section 6.8 Rule A: family.json + FAMILY.md, no edit to ALLOWED_FAMILIES/governing-files.mjs, both
+// derived from the descriptor) and gave downstream-chain.yml its own committed run artifact; both hops'
+// `familyPending` is now omitted (false is the default for every other hop's own flag).
 //
 // LOOP ORDER matches build plan section 1: sweep -> consume -> mint/corpus-turn -> downstream-chain ->
 // propagation-drain -> brief-export -> gate-a-rescan. Read every workflow file's own `name:` line before
@@ -95,11 +98,12 @@ export const LOOP_HOPS = [
     consumer: { file: '.github/workflows/corpus-turn.yml', name: 'Corpus turn' },
     trigger: 'workflow_run',
     family: 'corpus-turn',
-    enforceEdge: false,
+    enforceEdge: true,
     enforceFired: false,
     note:
-      'corpus-turn.yml carries only workflow_dispatch and push:branches turn/** today; no workflow_run ' +
-      'edge. M3 wires this hop.',
+      'Edge landed (lane M3, 2026-09-19): corpus-turn.yml now carries on.workflow_run.workflows: ["Ledger ' +
+      'consume"], alongside workflow_dispatch and push:branches turn/**. Fired-from-upstream proof is the ' +
+      'coordinator\'s proof run (build plan section 6.2).',
   },
   {
     id: 'population-turn-to-downstream-chain',
@@ -109,10 +113,11 @@ export const LOOP_HOPS = [
     family: 'downstream-chain',
     enforceEdge: true,
     enforceFired: false,
-    familyPending: true,
     note:
       'Edge exists today: downstream-chain.yml carries on.workflow_run.workflows: ["Population turn", ' +
-      '"Corpus turn"]. The downstream-chain harness family (directory + ALLOWED_FAMILIES entry) is M3.',
+      '"Corpus turn"]. The downstream-chain harness family is now registered (lane M3, 2026-09-19, by ' +
+      'descriptor only, scripts/harness-runs/downstream-chain/family.json) -- familyPending cleared. ' +
+      'Fired-from-upstream proof is the coordinator\'s proof run (build plan section 6.2).',
   },
   {
     id: 'corpus-turn-to-downstream-chain',
@@ -122,8 +127,7 @@ export const LOOP_HOPS = [
     family: 'downstream-chain',
     enforceEdge: true,
     enforceFired: false,
-    familyPending: true,
-    note: 'Same edge, same pending family as population-turn-to-downstream-chain above (M3).',
+    note: 'Same edge, same now-registered family as population-turn-to-downstream-chain above (M3).',
   },
   {
     id: 'downstream-chain-to-propagation-drain',

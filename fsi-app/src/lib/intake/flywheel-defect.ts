@@ -12,7 +12,11 @@
 // own header warns a producer must never introduce: one shape, one place, every caller sees the same
 // integrity_flags row structure for a flywheel-defect finding.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { FLYWHEEL_DEFECT_NAMESPACE, createdBy } from "@/lib/connections/flag-namespaces.mjs";
+// Relative import, not the "@/..." alias (lane M3, 2026-09-19): this module is now imported both
+// through Next.js's own bundler (mint-item.ts's "@/lib/intake/mint-enrichment.ts" -> this file) AND
+// directly by plain `node` (apply-mint-batch.mjs, no bundler/jiti loader for that alias -- see
+// src/lib/intake/mint-enrichment.ts's own header for the full reasoning). Same target file either way.
+import { FLYWHEEL_DEFECT_NAMESPACE, createdBy } from "../connections/flag-namespaces.mjs";
 
 export type FlywheelDefectSubtype = "discovery" | "forward-events" | "stale-events" | "compliance-deadline" | "entities" | "timeline";
 

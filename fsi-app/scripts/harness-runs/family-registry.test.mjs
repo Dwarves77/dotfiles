@@ -237,6 +237,7 @@ const LIVE_FAMILIES = [
   "brief-apply",
   "inaccessible-triage",
   "maintenance",
+  "downstream-chain",
 ];
 
 test("FAMILIES: loads the live tree without throwing, one descriptor per registered family", () => {

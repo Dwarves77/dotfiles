@@ -53,6 +53,7 @@ import { resolve, dirname, basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { resolveLoopRunId } from "../lib/loop-run-id.mjs";
 import { buildRecordPayload } from "../../src/lib/intake/record-facts.mjs";
 import { checkTagPresence } from "./lib/tag-presence-check.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
@@ -81,6 +82,7 @@ function usage() {
     "                                        [--harness-runs-dir dir] [--out-dir dir] [--out-basename name]",
     "  node scripts/mint/run-mint-batch.mjs --census-rows path/to/rows.json --grade record [--execute]",
     "                                        [--harness-runs-dir dir] [--out-dir dir] [--out-basename name]",
+    "                                        [--max-items N] [--upstream-run-id id] [--loop-run-id id]",
     "  node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json [--run-id mint-run-NNN]",
     "                                        [--harness-runs-dir dir]",
   ].join("\n");
@@ -360,6 +362,16 @@ export function buildRunArtifact({
   runError,
   applyReadyPath,
   reportPath,
+  // maxItems/upstreamRunId/loopRunId (lane M3, 2026-09-19, Amendment 2 item 4): the mint runner's own
+  // share of "finish the wiring" -- max_items is the population cap this run used, when it was invoked
+  // from a workflow_run-chained population-turn dispatch (population-turn.yml's own RUN_LIMIT under
+  // RUN_LIMIT_FLAG="--max-items"; null on a hand dispatch, which uses a different --limit concept
+  // entirely and never claims to be bounded by the population cap). upstream_run_id/loop_run_id are
+  // resolved by main() through resolveLoopRunId (scripts/lib/loop-run-id.mjs), upstream family
+  // "ledger-consume" -- never invented here, all three default null when the caller supplies none.
+  maxItems,
+  upstreamRunId,
+  loopRunId,
 }) {
   const fullTraceRefs = [batchPath];
   if (applyReadyPath) fullTraceRefs.push(applyReadyPath);
@@ -385,6 +397,9 @@ export function buildRunArtifact({
       out_dir: outDir,
       execute,
       mode: execute ? "execute" : "dry_run",
+      max_items: maxItems ?? null,
+      upstream_run_id: upstreamRunId ?? null,
+      loop_run_id: loopRunId ?? null,
     },
     inputs_ref: [batchPath],
     per_item: result?.perItem ?? [],
@@ -498,6 +513,11 @@ function main() {
       "out-basename": { type: "string" },
       outcomes: { type: "string" },
       "run-id": { type: "string" },
+      // Lane M3, 2026-09-19, Amendment 2 item 4: recorded in config, never enforced here -- the
+      // population cap's hard ceiling is export-census-rows.mjs's own --max-items (resolveExportLimit).
+      "max-items": { type: "string" },
+      "upstream-run-id": { type: "string" },
+      "loop-run-id": { type: "string" },
       help: { type: "boolean", default: false },
     },
     allowPositionals: false,
@@ -603,6 +623,18 @@ function main() {
   } finally {
     if (runId) {
       const harnessVersion = hashHarnessVersion(MINT_GOVERNING_FILES, FSI_ROOT);
+      // Lane M3, 2026-09-19, Amendment 2 item 4: max_items/upstream_run_id are recorded verbatim from
+      // the CLI (never invented; both null when the caller supplies neither, e.g. a hand dispatch);
+      // loop_run_id is resolved through the ONE shared function, upstream family "ledger-consume" (the
+      // family population-turn.yml's own workflow_run chain always names as this run's upstream).
+      const maxItems = values["max-items"] ? Number(values["max-items"]) : null;
+      const upstreamRunId = values["upstream-run-id"] || null;
+      const loopRunId = resolveLoopRunId({
+        explicit: values["loop-run-id"] || null,
+        upstreamFamily: "ledger-consume",
+        upstreamRunId,
+        harnessRunsDir: resolve(FSI_ROOT, "scripts", "harness-runs", "ledger-consume"),
+      });
       const artifact = buildRunArtifact({
         runId,
         harnessVersion,
@@ -615,6 +647,9 @@ function main() {
         runError,
         applyReadyPath,
         reportPath,
+        maxItems: Number.isFinite(maxItems) ? maxItems : null,
+        upstreamRunId,
+        loopRunId,
       });
       const artifactPath = writeRunArtifact(harnessRunsDir, artifact);
       console.log(`Wrote ${artifactPath}`);

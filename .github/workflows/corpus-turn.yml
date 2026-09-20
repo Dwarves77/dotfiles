@@ -106,6 +106,16 @@ on:
   push:
     branches:
       - 'turn/**'
+  # EVENT CHAINING, NOT A SCHEDULE (lane M3, 2026-09-19, build plan section 6.1 row M3; rule 16 is about
+  # `schedule:`/cron blocks, not event chaining  --  see corpus-turn.yml's own W1.4/audit finding this hop
+  # closes: "corpus-turn has no upstream"). Fires this workflow every time a `ledger-consume.yml` run
+  # finishes; the job-level `if:` below only proceeds when that run's own conclusion was `success`, and
+  # "This run's gates + ticket-queue gate" further below (the pre-existing "Select this turn's item scope"
+  # step, unmodified) already skips steps 2-6 with a named reason when zero tickets are open  --  the SAME
+  # mechanism a hand dispatch already relies on, not a second gate.
+  workflow_run:
+    workflows: ["Ledger consume"]
+    types: [completed]
   # schedule:
   #   - cron: '0 7 * * *'   # BUILD MODE (2026-09-01) — see header above; stays commented out until the
   #                          # operator explicitly re-arms it.
@@ -121,6 +131,10 @@ permissions:
 
 jobs:
   turn:
+    # Only proceed on an explicit dispatch/push, or a workflow_run whose triggering run actually SUCCEEDED
+    # -- the SAME conditional fetch-drain.yml/ledger-consume.yml already use for their own workflow_run
+    # trigger (a failed/cancelled ledger-consume produced nothing new worth a turn over).
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
@@ -155,6 +169,14 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
+      # THE UPSTREAM RUN ID (lane M3, 2026-09-19, mirrors ledger-consume.yml's/fetch-drain.yml's own
+      # identical step): every run below reads this back through run-artifact.mjs's own writeRunArtifact
+      # auto-stamp (config.upstream_run_id, and the loop-manifest gate's "trigger" field) so a
+      # workflow_run-fired artifact names the ledger-consume run that triggered it. Empty on an explicit
+      # workflow_dispatch/push (github.event.workflow_run.id is unset on those events).
+      - name: Export upstream run id (workflow_run chaining only)
+        run: echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+
       - name: Resolve this run's mode + branch + limit
         id: turn
         run: |
@@ -166,6 +188,18 @@ jobs:
             echo "mode=apply" >> "$GITHUB_OUTPUT"
             echo "branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "created_branch=false" >> "$GITHUB_OUTPUT"
+            echo "limit=200" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # Chained off "Ledger consume" completing (lane M3, 2026-09-19, build plan section 6.1 row M3,
+            # closing S2 finding 5's upstream half). A chained firing is by definition asking for the real
+            # thing, the same posture the push trigger above already documents for itself  --  mode=apply, the
+            # standard default limit, a fresh turn/<run_id> branch exactly like a hand dispatch creates.
+            # Whether there is any real work to do is decided by "Select this turn's item scope" below
+            # (has_scope=false, a named reason, when the ticket queue is empty)  --  the same gate a hand
+            # dispatch already goes through, not a second one.
+            echo "mode=apply" >> "$GITHUB_OUTPUT"
+            echo "branch=turn/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "created_branch=true" >> "$GITHUB_OUTPUT"
             echo "limit=200" >> "$GITHUB_OUTPUT"
           else
             echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"

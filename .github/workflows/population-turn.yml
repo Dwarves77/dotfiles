@@ -123,21 +123,22 @@ name: Population turn
 # ON A workflow_dispatch: RUN_* mirrors `inputs.*` exactly — unchanged behavior, byte for byte, from
 # before this lane.
 #
-# ON A workflow_run (fired by "Ledger consume" completing): RUN_MODE=apply, RUN_LIMIT=50 (the SAME
-# default a hand dispatch's `limit` input already uses), every other input at its hand-dispatch default
+# ON A workflow_run (fired by "Ledger consume" completing): RUN_MODE=apply, RUN_LIMIT=<resolved max_items,
+# see "THE POPULATION CAP" below, default 25>, every other input at its hand-dispatch default
 # (RUN_CAPTURE=true, RUN_FLYWHEEL_BACKLOG=false, RUN_SOURCE_ID/RUN_CELEX_PREFIX/RUN_ROWS_FILE empty) —
 # ONLY IF ALL of the following hold, checked in this order (any failure sets RUN_SKIP=true with a named
 # reason logged via `::notice::` and every real step below skips, so the JOB ITSELF STILL EXITS 0 GREEN —
 # a refused chain is never a red run, exactly A9/§5's "never a coordinator failure" posture):
-#   1. `vars.POPULATION_PAUSED` (a repository VARIABLE, not a DB flag — see "THE POPULATION STOP" below)
-#      is not `"true"`. Checked FIRST and identically for a hand dispatch too — the pause is universal.
-#   2. The upstream run's own `conclusion` (`github.event.workflow_run.conclusion`) is `"success"`.
-#   3. The upstream run's own harness-run artifact — read from `ledger-consume/<upstream run_id>`, THE
+#   1. The upstream run's own `conclusion` (`github.event.workflow_run.conclusion`) is `"success"`.
+#   2. The upstream run's own harness-run artifact  --  read from `ledger-consume/<upstream run_id>`, THE
 #      MECHANISM below — reports `config.mode == "apply"` AND `config.apply_disarmed == false` (i.e. a
-#      REAL, non-disarmed apply — not a plan run, and not an apply request that
-#      LEDGER_CONSUME_APPLY_ENABLED=false silently downgraded to plan semantics, see run-ledger-consume
-#      .mjs's own ADR-023 gate) AND `metrics.promoted > 0` (candidates actually reached census_worklist).
-#      `metrics.promoted` alone is NOT sufficient — PROMOTED_LIKE_DISPOSITIONS
+#      REAL, non-disarmed apply  --  not a plan run, and not an apply request that armed on zero committed
+#      verdict batches and so ran disarmed). What arms an apply today (lane M2, 2026-09-18; the source
+#      constant this gate used to name is retired): run-ledger-consume.mjs's own `isApplyArmed` check plus
+#      the `max_promote` cap  --  an apply is armed the moment at least one verdict batch is committed under
+#      `scripts/turns/ledger-verdicts/`, capped at `max_promote` candidates per run  --  AND `metrics.promoted
+#      > 0` (candidates actually reached census_worklist). `metrics.promoted` alone is NOT sufficient  -- 
+#      PROMOTED_LIKE_DISPOSITIONS
 #      (run-ledger-consume.mjs) counts a PLAN run's `would_mint` outcomes under the same key, so checking
 #      promoted without also checking mode/apply_disarmed would chain a real population-turn apply off a
 #      run that wrote nothing to the database — an honest-looking number describing a no-op.
@@ -157,21 +158,21 @@ name: Population turn
 # missing new artifact on it is a named no-op, never an error — `git fetch` failures and absent refs are
 # handled the same way (`|| true` / `git rev-parse --verify --quiet`).
 #
-# THE POPULATION STOP — `POPULATION_PAUSED` (lane CHAIN, 2026-09-04; a GitHub Actions repository VARIABLE,
-# `Settings → Secrets and variables → Actions → Variables`, read here as `${{ vars.POPULATION_PAUSED }}`).
-# This is DELIBERATELY NOT the DB-side `system_state.global_processing_paused`/`scrape_cadence` pair RD-23
-# governs (doctrine-register.mjs) — this workflow writes no DB row to arm or disarm it, so RD-23's
-# "exactly one writer, enforced structurally" doctrine (which is about who may WRITE those specific DB
-# columns) does not apply here; POPULATION_PAUSED is a repository-configuration toggle at the Actions
-# layer, set by the coordinator through the GitHub UI/API, the same mechanism as any other repository
-# variable — never a code change, never a migration. The build plan's own §3 sequence states it plainly:
-# "Population slices are stopped until T46 passes (operator, 2026-09-04)" — the coordinator sets
-# `POPULATION_PAUSED=true` NOW (before this chaining lands) and flips it back to `false` once T46's
-# full-system validation passes. While `true`: EVERY dispatch of this workflow — hand OR chained — is a
-# named no-op (RUN_SKIP=true, reason logged, job exits 0 green); `flywheel_backlog: true` dispatches are
-# ALSO paused (population-turn is population-turn regardless of which mode a hand dispatch requests). See
-# `docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s "Population stop" section for the coordinator-facing
-# summary of exactly when to flip this.
+# THE POPULATION CAP  --  `max_items` (lane M3, 2026-09-19, build plan section 6.1 row M3). RETIRES
+# `POPULATION_PAUSED` (lane CHAIN, 2026-09-04's flag-style stop) as this workflow's own gap-closure lane:
+# the T46 validation window this plan's section 6.2 names has since been superseded by build plan section
+# 6's own machine-first sequence, and a binary repository-variable flag left every chained dispatch a
+# named no-op regardless of size  --  a blunt instrument for a plan that now wants the machine bounded, not
+# stopped. `max_items` (workflow_dispatch input, default '25', optional) is the bound instead: on a
+# workflow_run-chained dispatch RUN_LIMIT resolves to this input's value (or 25 when left blank, which is
+# the normal case  --  a chained dispatch carries no `inputs.*` at all); a hand dispatch keeps its own
+# `limit` input entirely unaffected (max_items is never read on that trigger). The hard ceiling (100) is
+# enforced in the RUNNER, not here  --  `export-census-rows.mjs`'s own `--max-items` flag (`resolveExportLimit`,
+# that script's own header) refuses anything above 100, so a bad repository-level value can never slip a
+# slice larger than the ceiling past this workflow's own bash resolution. No writer, no reader, no
+# repository variable to flip: the cap bounds every chained run identically, every time, with no
+# coordinator action required to arm or disarm it. See `docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s
+# "Population cap" section for the coordinator-facing summary.
 
 on:
   workflow_dispatch:
@@ -183,9 +184,14 @@ on:
         type: choice
         options: [dry, apply]
       limit:
-        description: 'Max census_worklist rows this run considers (export-census-rows.mjs --limit).'
+        description: 'Max census_worklist rows this run considers (export-census-rows.mjs --limit). Only read on a hand workflow_dispatch  --  a workflow_run-chained dispatch uses max_items below instead.'
         required: false
         default: '50'
+        type: string
+      max_items:
+        description: 'Lane M3 (2026-09-19): the cap a workflow_run-chained dispatch (fired by "Ledger consume" completing) actually uses in place of limit above  --  replaces the retired POPULATION_PAUSED repository-variable stop with a bounded slice size instead of a binary flag. Hard ceiling 100, enforced in export-census-rows.mjs (--max-items, resolveExportLimit). Not read by a hand workflow_dispatch (which uses limit above); present here so the cap is a visible, documented input rather than a value only the chained code path knows about.'
+        required: false
+        default: '25'
         type: string
       source_id:
         description: 'Optional sources.id — narrow the export to one source.'
@@ -261,15 +267,11 @@ jobs:
       # npm ci (cheap: git fetch of one small branch, no Node needed) so a no-op chained dispatch never
       # pays the install cost. ALWAYS runs and ALWAYS logs its decision (trigger, gate readings, RUN_SKIP
       # + reason) — a skipped run is still a run that says why in its own log, never a silent no-op.
-      - name: Resolve run parameters, trigger context, and the chaining/pause gate
+      - name: Resolve run parameters, trigger context, and the chaining gate
         run: |
           set -u
           EVENT="${{ github.event_name }}"
           echo "event = $EVENT"
-
-          # THE POPULATION STOP — see this file's header. A repository VARIABLE, never a DB write; honoured
-          # identically for a hand dispatch and a chained one (checked first, before anything else).
-          PAUSED="${{ vars.POPULATION_PAUSED }}"
 
           RUN_SKIP=false
           RUN_SKIP_REASON=""
@@ -278,16 +280,13 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN_MODE="${{ inputs.mode }}"
             RUN_LIMIT="${{ inputs.limit }}"
+            RUN_LIMIT_FLAG="--limit"
             RUN_SOURCE_ID="${{ inputs.source_id }}"
             RUN_CELEX_PREFIX="${{ inputs.celex_prefix }}"
             RUN_CAPTURE="${{ inputs.capture }}"
             RUN_ROWS_FILE="${{ inputs.rows_file }}"
             RUN_FLYWHEEL_BACKLOG="${{ inputs.flywheel_backlog }}"
             RUN_BACKLOG_MAX_ARTIFACTS="${{ inputs.backlog_max_artifacts }}"
-            if [ "$PAUSED" = "true" ]; then
-              RUN_SKIP=true
-              RUN_SKIP_REASON="POPULATION_PAUSED=true (repository variable) — hand dispatch honours the pause too; the coordinator flips it at T46 (docs/plans/complete-system-build-plan-2026-09-04.md §3)."
-            fi
 
           elif [ "$EVENT" = "workflow_run" ]; then
             UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
@@ -295,10 +294,21 @@ jobs:
             UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
             echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
 
-            # Chained defaults: mode=apply, everything else at the SAME default a hand dispatch of this
-            # workflow already uses — a chained run is never wider or narrower than a person would pick.
+            # Chained defaults: mode=apply, RUN_LIMIT bounded by THE POPULATION CAP (see this file's own
+            # header  --  max_items' own default, 25; ceiling 100 enforced in export-census-rows.mjs), every
+            # other input at its hand-dispatch default  --  a chained run is never wider or narrower than a
+            # person would pick, and never unbounded the way the retired POPULATION_PAUSED flag's absence
+            # would be. A LITERAL, not `${{ inputs.max_items }}`  --  this file's own header ("CHAINING") and
+            # the "Gate: refuse a new slice..." step below already document why: `inputs.*` is a
+            # workflow_dispatch-only context, and a workflow_run event reading it is exactly the class of
+            # silent-wrong-default bug this workflow was already burned by once.
             RUN_MODE="apply"
-            RUN_LIMIT="50"
+            RUN_LIMIT="25"
+            # --max-items, NOT --limit: export-census-rows.mjs enforces the hard ceiling of 100 only on
+            # --max-items (resolveExportLimit, that script's own header)  --  the chained path must always
+            # pass this flag, never the uncapped --limit, so a future edit that widens RUN_LIMIT above
+            # cannot silently exceed THE POPULATION CAP this file's header documents.
+            RUN_LIMIT_FLAG="--max-items"
             RUN_SOURCE_ID=""
             RUN_CELEX_PREFIX=""
             RUN_CAPTURE="true"
@@ -308,10 +318,7 @@ jobs:
             RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
             echo "trigger_context = $RUN_TRIGGER_CONTEXT"
 
-            if [ "$PAUSED" = "true" ]; then
-              RUN_SKIP=true
-              RUN_SKIP_REASON="POPULATION_PAUSED=true — chained dispatch from workflow_run($UPSTREAM_NAME, run $UPSTREAM_RUN_ID, conclusion=$UPSTREAM_CONCLUSION) is a no-op; the coordinator flips the pause at T46 (docs/plans/complete-system-build-plan-2026-09-04.md §3)."
-            elif [ "$UPSTREAM_CONCLUSION" != "success" ]; then
+            if [ "$UPSTREAM_CONCLUSION" != "success" ]; then
               RUN_SKIP=true
               RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to chain from."
             else
@@ -350,7 +357,7 @@ jobs:
                   echo "ledger-consume artifact = $NEW_ARTIFACT promoted=$PROMOTED effective_mode=$EFFECTIVE_MODE apply_disarmed=$APPLY_DISARMED"
                   if [ "$EFFECTIVE_MODE" != "apply" ] || [ "$APPLY_DISARMED" != "false" ]; then
                     RUN_SKIP=true
-                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (apply_disarmed=$APPLY_DISARMED) — no real writes happened (LEDGER_CONSUME_APPLY_ENABLED is false per ADR-023 until an operator flips it in a reviewed diff), so nothing new reached census_worklist — no-op."
+                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (apply_disarmed=$APPLY_DISARMED)  --  no real writes happened (apply arms only once at least one ledger-verdicts batch is committed, per run-ledger-consume.mjs's own isApplyArmed/max_promote cap; this run had none committed, or ran plan-only), so nothing new reached census_worklist  --  no-op."
                   elif [ "$PROMOTED" -le 0 ]; then
                     RUN_SKIP=true
                     RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID applied for real but metrics.promoted=$PROMOTED — nothing new reached census_worklist — no-op."
@@ -362,7 +369,7 @@ jobs:
           else
             RUN_SKIP=true
             RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
-            RUN_MODE="dry"; RUN_LIMIT="50"; RUN_SOURCE_ID=""; RUN_CELEX_PREFIX=""; RUN_CAPTURE="true"
+            RUN_MODE="dry"; RUN_LIMIT="50"; RUN_LIMIT_FLAG="--limit"; RUN_SOURCE_ID=""; RUN_CELEX_PREFIX=""; RUN_CAPTURE="true"
             RUN_ROWS_FILE=""; RUN_FLYWHEEL_BACKLOG="false"; RUN_BACKLOG_MAX_ARTIFACTS=""
           fi
 
@@ -392,6 +399,8 @@ jobs:
           {
             echo "RUN_MODE=$RUN_MODE"
             echo "RUN_LIMIT=$RUN_LIMIT"
+            echo "RUN_LIMIT_FLAG=$RUN_LIMIT_FLAG"
+            echo "RUN_UPSTREAM_RUN_ID=${UPSTREAM_RUN_ID:-}"
             echo "RUN_SOURCE_ID=$RUN_SOURCE_ID"
             echo "RUN_CELEX_PREFIX=$RUN_CELEX_PREFIX"
             echo "RUN_CAPTURE=$RUN_CAPTURE"
@@ -499,7 +508,11 @@ jobs:
             exit 0
           fi
           mkdir -p "$EXPORT_DIR"
-          args=(--limit "$RUN_LIMIT" --out "$CENSUS_ROWS_PATH")
+          # RUN_LIMIT_FLAG is --limit on a hand workflow_dispatch, --max-items on a workflow_run-chained
+          # dispatch (THE POPULATION CAP, this file's own header)  --  export-census-rows.mjs's own
+          # resolveExportLimit enforces the hard ceiling of 100 only on --max-items, so the chained path
+          # must never fall back to the uncapped --limit flag.
+          args=("$RUN_LIMIT_FLAG" "$RUN_LIMIT" --out "$CENSUS_ROWS_PATH")
           if [ -n "$RUN_SOURCE_ID" ]; then args+=(--source-id "$RUN_SOURCE_ID"); fi
           if [ -n "$RUN_CELEX_PREFIX" ]; then args+=(--celex-prefix "$RUN_CELEX_PREFIX"); fi
           if [ "$RUN_CAPTURE" = "true" ]; then args+=(--capture); fi
@@ -523,12 +536,16 @@ jobs:
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          node scripts/mint/run-mint-batch.mjs \
-            --census-rows "$CENSUS_ROWS_PATH" \
-            --grade record \
-            --execute \
-            --out-dir "$EXPORT_DIR" \
-            || true
+          args=(--census-rows "$CENSUS_ROWS_PATH" --grade record --execute --out-dir "$EXPORT_DIR")
+          # THE POPULATION CAP + loop_run_id (lane M3, 2026-09-19, Amendment 2 item 4): only on a
+          # workflow_run-chained dispatch (RUN_LIMIT_FLAG is --max-items only in that branch of the
+          # resolve step above) does RUN_LIMIT hold the population cap this run actually used; a hand
+          # dispatch's own --limit is a different concept and is never recorded as max_items.
+          # RUN_UPSTREAM_RUN_ID is this dispatch's own upstream ledger-consume run id (empty on a hand
+          # dispatch), already known from github.event.workflow_run.id, never a jq-derived value.
+          if [ "$RUN_LIMIT_FLAG" = "--max-items" ]; then args+=(--max-items "$RUN_LIMIT"); fi
+          if [ -n "$RUN_UPSTREAM_RUN_ID" ]; then args+=(--upstream-run-id "$RUN_UPSTREAM_RUN_ID"); fi
+          node scripts/mint/run-mint-batch.mjs "${args[@]}" || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
