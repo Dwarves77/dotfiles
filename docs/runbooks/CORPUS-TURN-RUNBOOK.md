@@ -1302,3 +1302,42 @@ for itself).
 
 **`estimated_values`'s automate-vs-hire sibling already exists** — `seed-derived-values.mjs`'s
 `seedAutomateVsHire` (documented above) — and is not duplicated by this lane.
+
+## Workflow-file validity gate (F52, lane F52, 2026-09-20)
+
+**Why.** [CONFIRMED, GitHub run 35533637184] Lane M9d put `${{ runner.temp }}` in a job-level `env:` of
+`.github/workflows/producers.yml`. The `runner` context does not exist outside a step, so GitHub refused
+the file and the workflow "failed" with zero jobs on the branch push. PR #756's locked push gate PASSED
+and every required check was green or going green, because nothing in pre-push or CI parsed or validated
+a workflow file as a workflow file before this lane. This is the same "wired but never checked as data"
+gap the loop-manifest's F50 gate (documented above under "The turns, chained") closed for a hop's
+`workflow_run` edge, one layer down: before a file's edges can be trusted, the file itself has to be
+something GitHub would accept.
+
+**What it checks.** `.discipline/fitness/functions/F52-workflow-file-validity.mjs` runs five structural
+checks over every `.github/workflows/*.yml` and `.github/actions/*/action.yml` file, holistically (one
+fitness-runner entry, whole-tree scan, same shape as F50):
+
+- (a) the file parses, has a top-level `on:` and at least one job with `runs-on:` or `uses:` (an
+  `action.yml` has `runs:` with `using:`);
+- (b) a workflow-level or job-level `env:` value references only `github`, `needs`, `strategy`,
+  `matrix`, `vars`, `secrets` or `inputs`, never `runner`, `env`, `steps` or `job` (the M9d class
+  itself, since `runner` only exists inside a step);
+- (c) a job-level `if:` never references `steps.` or `runner.`;
+- (d) every `needs:` names a job that exists in the same file, and every `steps.<id>.outputs` reference
+  inside a job names a step `id:` that exists in that same job;
+- (e) a `workflow_run` trigger's `workflows:` list names a workflow whose own top-level `name:` exists
+  somewhere in the tree.
+
+It reads workflow yml the same documented, line-based way F50 does (no YAML parser is a direct
+dependency of this repository) via the shared `.discipline/fitness/lib/yml-read.mjs` module both
+functions import (extracted from F50 in this lane so the two functions read one `workflow_run:` regex,
+not two). Invariant RD-77 registers this gate; see `.discipline/governance/invariants.d/RD-77.mjs` for
+the residual (this is a five-check structural floor, not a full linter).
+
+**actionlint, the real linter, in CI.** `.github/workflows/discipline.yml`'s `fitness-check` job runs
+`actionlint` (pinned version and sha256, read from actionlint's own GitHub release and checksums file)
+over `.github/workflows/` after the fitness runner step, catching the wider class of GitHub Actions
+defects F52's five checks do not cover. F52 also runs actionlint locally when it is on PATH, and prints
+"actionlint not on PATH, skipped locally; CI runs it" (never a silent skip, never a false red) when it
+is not.

@@ -334,6 +334,24 @@ jobs:
         # Violations print file:line with the function id, message, and source skill section.
         run: node fsi-app/.discipline/fitness/runner.mjs
 
+      - name: actionlint (pinned, checksum-verified) over .github/workflows
+        # Lane F52, 2026-09-20 (invariant RD-77; see docs/runbooks/CORPUS-TURN-RUNBOOK.md "Workflow-file
+        # validity gate"). F52-workflow-file-validity.mjs is a five-check structural floor, not a full
+        # linter (no YAML parser is a direct dependency of this repository); actionlint is the real
+        # linter, pinned to v1.7.12 and its sha256 read verbatim from actionlint's own release checksums
+        # file (rhysd/actionlint, tag v1.7.12, asset actionlint_1.7.12_linux_amd64.tar.gz,
+        # actionlint_1.7.12_checksums.txt), so a compromised or mismatched download fails the step rather
+        # than running unverified code. No existing findings to ignore: F52's own local run (this lane,
+        # actionlint on PATH) and the version-1.7.12 archive both check .github/workflows/*.yml clean on
+        # this commit.
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color .github/workflows/*.yml
+
       - name: App unit tests requiring npm deps (*.npmtest.mjs)
         # The NAMED exclusion from run-test-suite.sh's no-npm-ci glob (red-merge-class fix,
         # 2026-07-08): tests importing npm deps (jiti for TS module import) run HERE, after
