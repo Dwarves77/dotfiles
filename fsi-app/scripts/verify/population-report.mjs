@@ -146,6 +146,80 @@ export async function countBriefsPendingStale(sb, {
   }
 }
 
+// ── "briefs owed" (lane M4, 2026-09-20, build plan section 6.1 row M4, brief-m4.md item 4) ────────────
+// "one line per item type, record-grade items with a stub full_brief, by age bucket" -- so a stub is
+// never silent. STORED COLUMNS ONLY (Amendment 1 section E: "never an expression over a large text
+// column"): item_grade='record' is the same stored-column stub predicate countBriefsPendingStale above
+// already uses (ADR-028: record grade IS the stub state, until a brief-apply run upgrades it in place),
+// never a text-length or content scan of full_brief itself.
+const BRIEFS_OWED_AGE_BUCKETS = Object.freeze(["under_7d", "d7_to_30", "over_30d"]);
+
+/** Pure: bucket a set of record-grade items by item_type and age-since-created_at, relative to `nowMs`.
+ *  An item whose created_at cannot be parsed is not counted in any bucket (never guessed) but is still
+ *  counted in the returned `uncounted` total, so the sum of every bucket plus `uncounted` always equals
+ *  `items.length` -- no row silently vanishes from the total either way.
+ * @param {Array<{item_type?:string|null, created_at?:string|null}>} items
+ * @param {number} nowMs
+ * @returns {{ byType: Record<string, Record<string, number>>, total: number, uncounted: number }}
+ */
+export function bucketBriefsOwedByTypeAndAge(items, nowMs) {
+  const rows = Array.isArray(items) ? items : [];
+  const byType = {};
+  let uncounted = 0;
+  for (const it of rows) {
+    const type = typeof it?.item_type === "string" && it.item_type ? it.item_type : "unknown";
+    const createdMs = Date.parse(it?.created_at ?? "");
+    if (!Number.isFinite(createdMs)) {
+      uncounted++;
+      continue;
+    }
+    const ageDays = (nowMs - createdMs) / (24 * 60 * 60 * 1000);
+    const bucket = ageDays < 7 ? "under_7d" : ageDays < 30 ? "d7_to_30" : "over_30d";
+    if (!byType[type]) byType[type] = { under_7d: 0, d7_to_30: 0, over_30d: 0 };
+    byType[type][bucket]++;
+  }
+  return { byType, total: rows.length, uncounted };
+}
+
+/** The I/O half: one SELECT of the same stored-column stub predicate countBriefsPendingStale already
+ *  uses (item_grade='record', provenance_status='verified', is_archived=false), id/item_type/created_at
+ *  only -- never full_brief itself. `computeBriefsOwed` (pure, above) does the bucketing.
+ * @param {object} sb
+ * @param {{nowMs?: number}} [opts]
+ * @returns {Promise<{result: ReturnType<typeof bucketBriefsOwedByTypeAndAge>|null, error:{message:string}|null}>}
+ */
+export async function countBriefsOwed(sb, { nowMs = Date.now() } = {}) {
+  try {
+    const liveRecordItems = await readAll("intelligence_items", "id, item_type, created_at", {
+      match: (q) => q.eq("item_grade", "record").eq("provenance_status", "verified").eq("is_archived", false),
+      client: sb,
+    });
+    return { result: bucketBriefsOwedByTypeAndAge(liveRecordItems, nowMs), error: null };
+  } catch (e) {
+    return { result: null, error: { message: e.message } };
+  }
+}
+
+/** Pure renderer: the "briefs owed" CLI lines, one per item_type with a nonzero total, plus a grand
+ *  total line. Injectable (pure) so this is testable without a database.
+ * @param {ReturnType<typeof bucketBriefsOwedByTypeAndAge>} result
+ * @returns {string[]}
+ */
+export function renderBriefsOwedLines(result) {
+  const types = Object.keys(result.byType).sort();
+  const lines = [];
+  for (const type of types) {
+    const b = result.byType[type];
+    const typeTotal = b.under_7d + b.d7_to_30 + b.over_30d;
+    if (typeTotal === 0) continue;
+    lines.push(
+      `  briefs owed (${type}): ${typeTotal} record-grade stub(s) -- under 7d: ${b.under_7d}, 7 to 30d: ${b.d7_to_30}, over 30d: ${b.over_30d}`,
+    );
+  }
+  lines.push(`  briefs owed (total): ${result.total} record-grade stub(s) across the corpus.`);
+  return lines;
+}
+
 // Task 3.5 fix round 1 (coordinator review): the two footnotes the "briefs pending" entry's own
 // describeState (below) appends to every non-FILLED render, so a human reading the report -- not only a
 // reader of this file's source -- sees them too.
@@ -831,5 +905,14 @@ if (isMainModule(import.meta.url)) {
     console.log(`  ledger-consume: ${verdictsOwed.count} candidates await a verdict`);
   } else {
     console.log(`  ledger-consume: could not compute candidates awaiting a verdict (${verdictsOwed.error.message})`);
+  }
+  // "Briefs owed" (lane M4, 2026-09-20): so a stub full_brief is never silent (brief-m4.md item 4). Same
+  // "one line, not a STORES row" posture as verdictsOwed above -- never a --strict gate, a nonzero count
+  // is a legitimate mid-build queue depth, not a defect.
+  const briefsOwed = await countBriefsOwed(sb);
+  if (briefsOwed.result !== null) {
+    for (const line of renderBriefsOwedLines(briefsOwed.result)) console.log(line);
+  } else {
+    console.log(`  briefs owed: could not compute (${briefsOwed.error.message})`);
   }
 }

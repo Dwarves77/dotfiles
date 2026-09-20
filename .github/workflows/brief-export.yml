@@ -56,7 +56,43 @@ name: Brief export
 # reads already-stored rows (intelligence_items, section_claim_provenance, intelligence_item_sections,
 # agent_run_searches) via db.mjs's read-only-guarded client. The selection script above is the same shape.
 #
-# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, no `schedule:` block armed.
+# BUILD MODE (CLAUDE.md rule 16): no `schedule:` block armed. workflow_dispatch stays for a hand-named
+# ticket; a `workflow_run` edge (lane M4, 2026-09-20, build plan section 6.1 row M4, Amendment 1 section
+# C) is EVENT CHAINING, not a schedule -- the same distinction corpus-turn.yml's own header draws for its
+# own upstream edge.
+#
+# WIRED AT MINT (lane M4, 2026-09-20). [CONFIRMED by grep of brief-export.yml on master cc038a47] this
+# workflow wrote NO harness artifact before this lane and had no upstream trigger -- the stage audit's
+# own "Mint to brief chain" finding (docs/audits/stage-audit-2026-09-18/README.md). Two changes close
+# that gap:
+#   1. on.workflow_run fires this workflow after "Population turn" completes with conclusion success
+#      (the job-level `if:` below, the SAME gate corpus-turn.yml / downstream-chain.yml already use).
+#      On that trigger, inputs.* does not exist (GitHub Actions only populates it for workflow_dispatch),
+#      so the "Resolve run parameters" step below normalizes RUN_* env vars from inputs.* when dispatched
+#      by hand, or this file's own defaults (selection=record, limit=50, char_budget=3000000, ids blank
+#      -- auto-select) when chained. Every later step reads RUN_*, never inputs.* directly, so both
+#      trigger kinds share one code path.
+#   2. A final step (scripts/turns/emit-brief-export-artifact.mjs, modeled on
+#      emit-downstream-chain-artifact.mjs -- reuses writeRunArtifact/claimRunId/hashHarnessVersion, no
+#      copy of the writer) writes this run's own committed scripts/harness-runs/brief-export/
+#      brief-export-run-NNN.json, `if: always()`, so a chained firing that resolved zero ids still
+#      leaves a record ("record it every batch, even when zero," MINT-RUNBOOK.md section 5). loop_run_id
+#      is resolved through resolveLoopRunIdFromUpstream (scripts/lib/loop-run-id.mjs, lane M3b), upstream
+#      name "Population turn" -- the ONE shared name-to-family map, never a second copy here.
+#
+# NOT BUILT BY THIS LANE (STOP condition named in the lane's own brief, docs/dispatches/lane-briefs/
+# 2026-09-19/brief-m4.md, item 2 and its "Stop conditions" section): landing the export as a committed
+# "batch skeleton" of owed entries on a `brief-lane/<loop_run_id>` branch. schema.mjs's
+# validateRecordBriefsEntry requires a non-empty `body` (the full authored markdown), a `metadata` object
+# that round-trips through the real parseAgentOutput, and a `claims[]` array with every FACT claim's
+# source_span verbatim-checked against the item's pool text -- none of which an auto-export can honestly
+# populate before a session lane has authored anything, and the schema has no "owed"/stub entry state at
+# all. This is exactly the brief's own named stop condition ("the batch skeleton shape is not
+# representable with the existing validator"): extending schema.mjs to accept an unauthored stub entry
+# is a contract decision this lane does not make. This run still lands its existing part-file export
+# (scripts/_snapshots/brief-export/, branch brief-export/<run_id>, unchanged by this lane) -- a session
+# lane starts authoring from that export exactly as it did before this lane, per record-briefs/README.md
+# step 1.
 #
 # SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, the
 # same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires; no new secret name.
@@ -90,6 +126,9 @@ on:
         required: false
         default: '3000000'
         type: string
+  workflow_run:
+    workflows: ["Population turn"]
+    types: [completed]
 
 concurrency:
   group: brief-export
@@ -102,6 +141,9 @@ permissions:
 
 jobs:
   export:
+    # Same gate corpus-turn.yml / downstream-chain.yml already use: a workflow_dispatch always proceeds;
+    # a chained workflow_run only proceeds when the upstream run's own conclusion was success.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -129,13 +171,47 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
+      # RESOLVE RUN PARAMETERS (lane M4, 2026-09-20): normalizes RUN_* env vars from inputs.* on a
+      # workflow_dispatch, or this file's own defaults on a chained workflow_run (inputs.* does not exist
+      # on that trigger at all -- GitHub Actions only populates it for workflow_dispatch). Every later
+      # step reads RUN_*, never inputs.* directly, so both trigger kinds share one code path -- the same
+      # normalize-once-then-read-RUN_* idiom corpus-turn.yml's own "This run's gates" step already uses.
+      - name: Resolve run parameters
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RUN_IDS=${{ inputs.ids }}" >> "$GITHUB_ENV"
+            echo "RUN_SELECTION=${{ inputs.selection }}" >> "$GITHUB_ENV"
+            echo "RUN_LIMIT=${{ inputs.limit }}" >> "$GITHUB_ENV"
+            echo "RUN_AFTER_ID=${{ inputs.after_id }}" >> "$GITHUB_ENV"
+            echo "RUN_CHAR_BUDGET=${{ inputs.char_budget }}" >> "$GITHUB_ENV"
+            echo "RUN_UPSTREAM_NAME=" >> "$GITHUB_ENV"
+            echo "RUN_UPSTREAM_RUN_ID=" >> "$GITHUB_ENV"
+          else
+            # Chained workflow_run firing: no operator-picked ids, no operator-picked limit -- this
+            # file's own defaults (matching the workflow_dispatch input defaults above exactly).
+            echo "RUN_IDS=" >> "$GITHUB_ENV"
+            echo "RUN_SELECTION=record" >> "$GITHUB_ENV"
+            echo "RUN_LIMIT=50" >> "$GITHUB_ENV"
+            echo "RUN_AFTER_ID=" >> "$GITHUB_ENV"
+            echo "RUN_CHAR_BUDGET=3000000" >> "$GITHUB_ENV"
+            echo "RUN_UPSTREAM_NAME=${{ github.event.workflow_run.name }}" >> "$GITHUB_ENV"
+            echo "RUN_UPSTREAM_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+            # loop-run-id.mjs's resolveLoopRunId matches an upstream artifact by config.github_run_id,
+            # which writeRunArtifact stamps from GITHUB_RUN_ID -- for the UPSTREAM run, that is
+            # github.event.workflow_run.id, which run-artifact.mjs's own convention reads from
+            # GITHUB_EVENT_WORKFLOW_RUN_ID (see brief-apply.yml's identical stamp for its own
+            # workflow_run consumers).
+            echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+          fi
+
       - name: This run's gates
         run: |
-          echo "ids         = ${{ inputs.ids }} (blank = auto-select record-grade items per selection)"
-          echo "selection   = ${{ inputs.selection }} (auto-selection only: record = every verified live record-grade item; hollow = title-only stubs)"
-          echo "limit       = ${{ inputs.limit }}"
-          echo "after_id    = ${{ inputs.after_id }} (auto-selection only)"
-          echo "char_budget = ${{ inputs.char_budget }}"
+          echo "trigger     = ${{ github.event_name }}"
+          echo "ids         = $RUN_IDS (blank = auto-select record-grade items per selection)"
+          echo "selection   = $RUN_SELECTION (auto-selection only: record = every verified live record-grade item; hollow = title-only stubs)"
+          echo "limit       = $RUN_LIMIT"
+          echo "after_id    = $RUN_AFTER_ID (auto-selection only)"
+          echo "char_budget = $RUN_CHAR_BUDGET"
           echo "Read-only: db.mjs's readClient() proxy throws on any write; this run never mutates the database."
 
       # SELECTION (this file's own header), only when `ids` is blank. An uncommitted, gitignored
@@ -144,7 +220,7 @@ jobs:
       # archives matches, a different lane's write path).
       - name: Auto-select hollow record-grade stub ids (only when ids is blank)
         id: select
-        if: inputs.ids == ''
+        if: env.RUN_IDS == ''
         run: |
           mkdir -p scripts/tmp
           cat > scripts/tmp/select-record-stub-ids.mjs <<'EOF'
@@ -197,20 +273,22 @@ jobs:
           console.log(`select-record-stub-ids: selection=${selection}; ${items.length} record-grade candidate(s), ${hollow.length} hollow, ${selected.length} selected (limit ${limit}); last selected id ${selected[selected.length - 1] || "(none)"} for the next after_id.`);
           process.stdout.write(`SELECTED_IDS=${selected.join(",")}\n`);
           EOF
-          SELECT_LIMIT="${{ inputs.limit }}" SELECT_AFTER_ID="${{ inputs.after_id }}" SELECT_SELECTION="${{ inputs.selection }}" node scripts/tmp/select-record-stub-ids.mjs | tee /tmp/select.log
+          SELECT_LIMIT="$RUN_LIMIT" SELECT_AFTER_ID="$RUN_AFTER_ID" SELECT_SELECTION="$RUN_SELECTION" node scripts/tmp/select-record-stub-ids.mjs | tee /tmp/select.log
           selected="$(grep '^SELECTED_IDS=' /tmp/select.log | tail -1 | cut -d= -f2-)"
           echo "ids=$selected" >> "$GITHUB_OUTPUT"
           if [ -z "$selected" ]; then
-            echo "::warning::no record-grade items matched selection=${{ inputs.selection }} (after_id=${{ inputs.after_id }}): the export step below will honestly export 0 items."
+            echo "::warning::no record-grade items matched selection=$RUN_SELECTION (after_id=$RUN_AFTER_ID): the export step below will honestly export 0 items."
           fi
 
       - name: Resolve this run's --ids
         id: resolve
         run: |
-          if [ -n "${{ inputs.ids }}" ]; then
-            echo "ids=${{ inputs.ids }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$RUN_IDS" ]; then
+            echo "ids=$RUN_IDS" >> "$GITHUB_OUTPUT"
+            echo "mode=explicit" >> "$GITHUB_OUTPUT"
           else
             echo "ids=${{ steps.select.outputs.ids }}" >> "$GITHUB_OUTPUT"
+            echo "mode=auto" >> "$GITHUB_OUTPUT"
           fi
           echo "out_base=scripts/_snapshots/brief-export/export-${{ github.run_id }}.json" >> "$GITHUB_OUTPUT"
 
@@ -220,9 +298,9 @@ jobs:
           node scripts/turns/export-corpus-for-extraction.mjs \
             --out "${{ steps.resolve.outputs.out_base }}" \
             --ids "${{ steps.resolve.outputs.ids }}" \
-            --limit "${{ inputs.limit }}" \
+            --limit "$RUN_LIMIT" \
             --with-pool-text \
-            --char-budget "${{ inputs.char_budget }}" \
+            --char-budget "$RUN_CHAR_BUDGET" \
             | tee /tmp/brief-export.log
 
       - name: No ids resolved, nothing to export
@@ -230,10 +308,33 @@ jobs:
         run: |
           echo "brief-export: no ids (explicit or auto-selected), nothing exported this run."
 
-      # ONE commit/PR for whatever this run produced, same shape as ledger-consume.yml's own step of the
-      # same name (see that workflow's own comment for exactly why: `git add -f` for a scripts/_snapshots/
-      # path, rebase-onto-master-before-push, deliver-artifact-branch.sh's PR-or-tracked-issue fallback).
-      - name: Commit this run's exported part(s) and open a PR
+      # Record this run's own harness-run artifact (brief-export family, lane M4, 2026-09-20), BEFORE the
+      # commit step below so the SAME commit/PR carries both the export part-file (if any) and this run's
+      # harness artifact -- one commit/PR per run, matching this workflow's own long-standing posture,
+      # never two competing branches for one run's output. Always, even a fully-skipped/zero-id run --
+      # "record it every batch, even when zero" (MINT-RUNBOOK.md section 5), the same posture
+      # emit-downstream-chain-artifact.mjs's own caller (downstream-chain.yml) already holds.
+      - name: Record this run's own harness-run artifact (brief-export family)
+        if: always()
+        env:
+          BE_MODE: ${{ steps.resolve.outputs.mode }}
+          BE_SELECTION: ${{ steps.resolve.outputs.mode == 'explicit' && 'explicit' || env.RUN_SELECTION }}
+          BE_LIMIT: ${{ env.RUN_LIMIT }}
+          BE_UPSTREAM_NAME: ${{ env.RUN_UPSTREAM_NAME }}
+          BE_UPSTREAM_RUN_ID: ${{ env.RUN_UPSTREAM_RUN_ID }}
+          BE_IDS: ${{ steps.resolve.outputs.ids }}
+          # batch_path/branch record what THIS run actually produced (the existing part-file export and
+          # its PR branch, set below) -- never the record-briefs batch-skeleton shape named in this
+          # file's own header "NOT BUILT BY THIS LANE" note, which this lane does not build.
+          BE_BATCH_PATH: ${{ steps.resolve.outputs.out_base }}
+          BE_BRANCH: brief-export/${{ github.run_id }}
+        run: node scripts/turns/emit-brief-export-artifact.mjs
+
+      # ONE commit/PR for whatever this run produced (the export part file, when any, AND this run's own
+      # harness artifact, always), same shape as ledger-consume.yml's own step of the same name (see that
+      # workflow's own comment for exactly why: `git add -f` for a scripts/_snapshots/ path,
+      # rebase-onto-master-before-push, deliver-artifact-branch.sh's PR-or-tracked-issue fallback).
+      - name: Commit this run's exported part(s) and harness artifact, and open a PR
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -243,8 +344,9 @@ jobs:
           if ls scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json >/dev/null 2>&1; then
             git add -f scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json
           fi
+          git add scripts/harness-runs/brief-export
           if git diff --cached --quiet; then
-            echo "No exported part file to commit this run."
+            echo "No exported part file or harness artifact to commit this run."
             exit 0
           fi
           branch="brief-export/${{ github.run_id }}"
@@ -257,9 +359,9 @@ jobs:
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           {
-            printf 'Automated brief export (run %s).\n\n' "${{ github.run_id }}"
-            printf 'ids: %s\nlimit: %s\nchar_budget: %s\n\n' "${{ steps.resolve.outputs.ids }}" "${{ inputs.limit }}" "${{ inputs.char_budget }}"
-            printf 'Lands: numbered, char-budgeted export part(s) under `scripts/_snapshots/brief-export/`. Each item carries its stored claims/sections plus its FULL captured agent_run_searches pool text (`pool: [{url, text}]`), for a session lane to author a brief from stored source material (Part 3 task 3.1 of the W9 brief-chain plan). A part flagged `oversize: true` carries exactly one item whose own size exceeds --char-budget, exported whole rather than truncated.\n'
+            printf 'Automated brief export (run %s, trigger %s).\n\n' "${{ github.run_id }}" "${{ github.event_name }}"
+            printf 'ids: %s\nlimit: %s\nchar_budget: %s\n\n' "${{ steps.resolve.outputs.ids }}" "$RUN_LIMIT" "$RUN_CHAR_BUDGET"
+            printf 'Lands: numbered, char-budgeted export part(s) under `scripts/_snapshots/brief-export/` (when ids resolved), and this run'"'"'s own harness-run artifact under `scripts/harness-runs/brief-export/` (every run, per MINT-RUNBOOK.md section 5). Each item carries its stored claims/sections plus its FULL captured agent_run_searches pool text (`pool: [{url, text}]`), for a session lane to author a brief from stored source material (Part 3 task 3.1 of the W9 brief-chain plan). A part flagged `oversize: true` carries exactly one item whose own size exceeds --char-budget, exported whole rather than truncated.\n'
           } > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Brief export: run ${{ github.run_id }}" /tmp/pr-body.md
 

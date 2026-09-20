@@ -554,3 +554,31 @@ does with a verdict file" section documents `run-ledger-consume.mjs`'s side of t
   default 30) or the database's own disk metrics read busy/saturated. See
   `docs/runbooks/MAINTENANCE-RUNBOOK.md` section 57 for the full budget/cooldown/restart procedure, and
   `scripts/turns/io-preflight.mjs` for the code.
+
+## The chain, automatic and human halves (lane M4, 2026-09-20, build plan section 6.1 row M4)
+
+The stage audit (`docs/audits/stage-audit-2026-09-18/README.md`, "Mint to brief chain") found mint leaves
+a stub `full_brief` and nothing upgrades it: `.github/workflows/brief-export.yml` and `brief-apply.yml`
+were both `workflow_dispatch` only, with a session lane's own authoring pass between them. W9's own goal
+was "wired at mint" -- the authoring step stays human-driven by design (no LLM in runtimes; briefs are
+authored by session lanes, per CLAUDE.md's agent-architecture rules), but everything AROUND that step now
+fires by itself:
+
+- **Automatic**: `brief-export.yml` now also carries a `workflow_run` trigger on "Population turn"
+  completing (alongside its existing `workflow_dispatch`), and writes its own committed
+  `scripts/harness-runs/brief-export/brief-export-run-NNN.json` on every firing, dry or auto-selected,
+  including a zero-id run ("record it every batch, even when zero"). `loop_run_id` is resolved through
+  `resolveLoopRunIdFromUpstream` (`scripts/lib/loop-run-id.mjs`), so a proof run's harness artifacts can be
+  traced hop to hop from the mint that started them.
+- **Human**: a session lane still reads the export's own part file(s) under
+  `scripts/_snapshots/brief-export/` and authors a batch under this directory
+  (`record-briefs-NNN.json`), validated by `validateRecordBriefsFile` (`schema.mjs`) exactly as before this
+  lane. `scripts/turns/apply-record-briefs.mjs` / `brief-apply.yml` are unchanged by this lane.
+
+**Not built by this lane**: landing the export as a committed "batch skeleton" of owed entries on a
+`brief-lane/<loop_run_id>` branch, and a `push` trigger on `brief-apply.yml` running `dry` mode
+automatically for a batch merged to master. Both were named in this lane's own brief
+(`docs/dispatches/lane-briefs/2026-09-19/brief-m4.md`, items 2 and 3) but are out of scope for the reasons
+in this lane's own report: the batch-skeleton shape is not representable with the existing validator (see
+`brief-export.yml`'s own header, "NOT BUILT BY THIS LANE"), and the `brief-apply.yml` push trigger is a
+separate, comparably-sized wiring task this lane did not reach within its own scope.

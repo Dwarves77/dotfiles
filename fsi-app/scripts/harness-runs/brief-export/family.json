@@ -1,0 +1,11 @@
+{
+  "family": "brief-export",
+  "registered": "2026-09-20",
+  "registered_by": "lane M4",
+  "governing_files": [
+    "../.github/workflows/brief-export.yml",
+    "scripts/turns/emit-brief-export-artifact.mjs",
+    "scripts/turns/export-corpus-for-extraction.mjs"
+  ],
+  "rationale": "brief-export (lane M4, 2026-09-20, build plan section 6.1 row M4, Amendment 1 section C, closing the loop-manifest's population-turn-to-brief-export hop, previously filed under the brief-apply family 'for now'): brief-export.yml had a real, wired workflow_dispatch job (export-corpus-for-extraction.mjs, read-only, no LLM, no fetch) but wrote no harness artifact at all [CONFIRMED by grep of brief-export.yml on master cc038a47, no writeRunArtifact call anywhere in its path]. Plan 6.2 requires an artifact at every hop carrying the run's loop id and trigger:workflow_run, and names brief-export specifically. This registration adds the descriptor and the family directory (no edit to any derived list, per build plan section 6.8 Rule A) so a committed brief-export-run-NNN.json can exist. Governing files: the workflow itself (whose new workflow_run trigger and gate define what a brief-export run is), the new emitter script emit-brief-export-artifact.mjs (models emit-downstream-chain-artifact.mjs; the SAME writeRunArtifact/claimRunId/hashHarnessVersion helpers, no copy of the writer), and export-corpus-for-extraction.mjs (the read-only selection/export script the workflow already ran before this lane, whose output shape the artifact's per_item rows describe). Paths escape fsi-app/ with '../' for the workflow file since it lives at the repo root, one level above fsi-app, the same escape the downstream-chain family's own family.json already uses; hashHarnessVersion resolves every entry independently against fsi-app root (baseDir), so this is not order-sensitive."
+}

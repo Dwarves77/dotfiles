@@ -131,23 +131,24 @@ test("resolveLoopRunId: no upstreamRunId given at all (e.g. a bare workflow_disp
   });
 });
 
-// ── attack form (rule 15): a six-hop chain (lane M3b, 2026-09-20, extends M3's original four-hop chain
-// with downstream-chain and propagation), matched hop to hop, then one hop's github_run_id is broken and
-// the next hop resolves null. This is the mechanical proof that the fix generalizes past hop 1, the exact
-// gap Amendment 2 closes, now proven all the way to the propagation hop this lane wires. ──────────────
+// ── attack form (rule 15): a seven-hop chain (lane M4, 2026-09-20, extends M3b's six-hop chain with
+// brief-export), matched hop to hop, then one hop's github_run_id is broken and the next hop resolves
+// null. This is the mechanical proof that the fix generalizes past hop 1, the exact gap Amendment 2
+// closes, now proven all the way to the brief-export hop this lane wires. ──────────────────────────────
 
-test("resolveLoopRunId ATTACK: a six-hop chain resolves hop to hop to the sweep's own explicit loop id, distinct from every hop's own run id", () => {
+test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the sweep's own explicit loop id, distinct from every hop's own run id", () => {
   withTmpDir((base) => {
     const sweepDir = join(base, "source-sweep");
     const fetchDrainDir = join(base, "fetch-drain");
     const ledgerConsumeDir = join(base, "ledger-consume");
-    // Hops 5 and 6 resolve through resolveLoopRunIdFromUpstream, which builds its own
+    // Hops 5, 6 and 7 resolve through resolveLoopRunIdFromUpstream, which builds its own
     // harnessRunsDir as `<fsiRoot>/scripts/harness-runs/<family>` (matching every production
-    // caller's convention) -- mint's and downstream-chain's own artifact dirs must sit at that
-    // same path under `base` for hop 5 and hop 6 to find them.
+    // caller's convention) -- mint's, downstream-chain's and brief-export's own artifact dirs must sit at
+    // that same path under `base` for hop 5, hop 6 and hop 7 to find them.
     const mintDir = join(base, "scripts", "harness-runs", "mint");
     const downstreamChainDir = join(base, "scripts", "harness-runs", "downstream-chain");
     const propagationDir = join(base, "propagation");
+    const briefExportDir = join(base, "scripts", "harness-runs", "brief-export");
 
     // Hop 1: source-sweep, an operator-supplied explicit loop id, different from its own run id.
     writeArtifact(sweepDir, "source-sweep", 1, { github_run_id: "1001", loop_run_id: "explicit-loop-id-99" });
@@ -200,11 +201,23 @@ test("resolveLoopRunId ATTACK: a six-hop chain resolves hop to hop to the sweep'
     });
     writeArtifact(propagationDir, "propagation", 1, { github_run_id: "6006", loop_run_id: hop6LoopId });
 
+    // Hop 7: brief-export, resolving off hop 4 (mint / "Population turn") too -- the loop-manifest's own
+    // population-turn-to-brief-export hop, wired by this lane (M4). Same upstream as hop 5, a different
+    // consumer, proving the shared name-to-family map resolves both branches off the same mint artifact.
+    const hop7LoopId = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Population turn",
+      upstreamRunId: "4004",
+      fsiRoot: base,
+    });
+    writeArtifact(briefExportDir, "brief-export", 1, { github_run_id: "7007", loop_run_id: hop7LoopId });
+
     assert.equal(hop2LoopId, "explicit-loop-id-99");
     assert.equal(hop3LoopId, "explicit-loop-id-99");
     assert.equal(hop4LoopId, "explicit-loop-id-99");
     assert.equal(hop5LoopId, "explicit-loop-id-99");
     assert.equal(hop6LoopId, "explicit-loop-id-99");
+    assert.equal(hop7LoopId, "explicit-loop-id-99");
   });
 });
 
