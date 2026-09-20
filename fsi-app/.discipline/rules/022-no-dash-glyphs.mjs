@@ -12,7 +12,9 @@
 // Trigger: a commit that ADDS at least one line, in a non-exempt path, containing U+2014 (em dash),
 // U+2013 (en dash), or U+00A7 (section sign).
 // Check:   FAIL unless the added line is exempt by PATH (fsi-app/scripts/turns/record-briefs/batches/,
-//          any directory named `fixtures`, or docs/archive/) or carries the literal marker
+//          any directory named `fixtures`, docs/archive/, or a dated design-handoff bundle's own
+//          delivered file -- README.md, support.js, or *.dc.html under
+//          docs/design/handoff-YYYY-MM-DD/) or carries the literal marker
 //          `glyph:verbatim` on the SAME line. The marker is a disclosure, not a silent bypass: a
 //          fixture string or a regex character class that must legitimately contain the glyph names
 //          itself, so a reviewer (or the lane contract's own preflight byte count) can find it, rather
@@ -36,8 +38,21 @@ const MARKER = 'glyph:verbatim';
 // - a directory named `fixtures` (any depth)       test fixture data, not authored prose.
 // - docs/archive/                                  superseded working notes (CLAUDE.md: "not indexed,
 //   not loaded"); present under both docs/archive/ and fsi-app/docs/archive/.
+// - a dated design-handoff bundle's OWN delivered files (README.md, support.js, any *.dc.html) under
+//   docs/design/handoff-YYYY-MM-DD/ -- a verbatim third-party artifact delivered by the operator, which
+//   cannot carry a per-line marker without altering the artifact itself (2026-09-20 lane R22, evidence:
+//   pre-commit hook refused docs/design/handoff-2026-09-07/Caros Ledge UI System.dc.html, 205 added
+//   lines). NOT the whole folder: repo-authored files beside the bundle (DEVIATION-LOG.md, HANDOFF.md,
+//   AUDIT-*.md, SHARED-PART-REPORT-*.md) stay under the rule.
+const DESIGN_HANDOFF_BUNDLE_FILE_RE =
+  /(^|\/)docs\/design\/handoff-\d{4}-\d{2}-\d{2}\/(README\.md|support\.js|[^/]+\.dc\.html)$/;
+
 function normalize(p) {
   return String(p).replaceAll('\\', '/');
+}
+
+function isDesignHandoffBundleFile(path) {
+  return DESIGN_HANDOFF_BUNDLE_FILE_RE.test(normalize(path));
 }
 
 function isExemptPath(path) {
@@ -45,6 +60,7 @@ function isExemptPath(path) {
   if (p.includes('fsi-app/scripts/turns/record-briefs/batches/')) return true;
   if (p.includes('docs/archive/')) return true;
   if (p.split('/').includes('fixtures')) return true;
+  if (isDesignHandoffBundleFile(p)) return true;
   return false;
 }
 
@@ -97,7 +113,8 @@ export const rule = {
         `character class that must contain it), add the literal marker "${MARKER}" on the SAME line.`,
         'This discloses the glyph instead of silently passing it.',
         'Exempt paths (never flagged): fsi-app/scripts/turns/record-briefs/batches/, any `fixtures`',
-        'directory, docs/archive/.',
+        'directory, docs/archive/, and a dated design-handoff bundle\'s own delivered file (README.md,',
+        'support.js, or *.dc.html under docs/design/handoff-YYYY-MM-DD/).',
         'Offending lines:',
         ...displayed.map((o) => `    ${o.path}: ${o.line.trim()}`),
         remainder > 0 ? `    ... and ${remainder} more` : null,
@@ -109,3 +126,4 @@ export const rule = {
 
 export const _GLYPH_RE = GLYPH_RE;
 export const _MARKER = MARKER;
+export const isDesignHandoffBundleFileExempt = isDesignHandoffBundleFile;

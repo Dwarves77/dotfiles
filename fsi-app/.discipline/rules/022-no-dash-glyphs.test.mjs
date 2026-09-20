@@ -188,6 +188,87 @@ test('022 check: PASS for an added glyph under the fsi-app-nested docs/archive/'
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
+// ---------------------------------------------------------------------------
+// Check: design-handoff bundle exemption (lane R22, 2026-09-20)
+// ---------------------------------------------------------------------------
+
+test('022 check: PASS for an added dash in the design-handoff bundle .dc.html file', () => {
+  const path = 'docs/design/handoff-2026-09-07/Caros Ledge UI System.dc.html';
+  const ctx = buildContextFromFixture({
+    message: 'docs: design handoff bundle',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`<p>a ${EM_DASH} b</p>`] },
+  });
+  assert.equal(rule.trigger(ctx), false);
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('022 check: PASS for an added dash in the design-handoff bundle README.md', () => {
+  const path = 'docs/design/handoff-2026-09-07/README.md';
+  const ctx = buildContextFromFixture({
+    message: 'docs: design handoff bundle',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), false);
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('022 check: PASS for an added dash in the design-handoff bundle support.js', () => {
+  const path = 'docs/design/handoff-2026-09-07/support.js';
+  const ctx = buildContextFromFixture({
+    message: 'docs: design handoff bundle',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`// note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), false);
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('022 check: FAIL (attack) for an added dash in a repo-authored file beside the bundle (DEVIATION-LOG.md)', () => {
+  const path = 'docs/design/handoff-2026-09-07/DEVIATION-LOG.md';
+  const ctx = buildContextFromFixture({
+    message: 'docs: deviation log',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), true);
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('022 check: FAIL (attack) for an added dash in docs/design/README.md (not under a dated handoff folder)', () => {
+  const path = 'docs/design/README.md';
+  const ctx = buildContextFromFixture({
+    message: 'docs: design readme',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), true);
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('022 check: FAIL (attack) for an added dash in a nested README.md under the dated handoff folder', () => {
+  const path = 'docs/design/handoff-2026-09-07/nested/README.md';
+  const ctx = buildContextFromFixture({
+    message: 'docs: nested readme',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), true);
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('022 check: FAIL (attack) for an added dash in an undated handoff-notes folder', () => {
+  const path = 'docs/design/handoff-notes/README.md';
+  const ctx = buildContextFromFixture({
+    message: 'docs: undated handoff notes',
+    files: [{ path, additions: 1, deletions: 0 }],
+    addedLines: { [path]: [`note ${EM_DASH} detail`] },
+  });
+  assert.equal(rule.trigger(ctx), true);
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
 test('022 check: PASS for an UNCHANGED line containing a glyph (context, not added)', () => {
   // The file carries a glyph somewhere in its full content, but addedLines for this path is empty
   // (or omits that line) -- rule 022 reads ONLY ctx.getAddedLines, never full file content, so a
