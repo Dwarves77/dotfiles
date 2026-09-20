@@ -24051,3 +24051,23 @@ Every clock time below is from `date -u`, a log or GitHub. Resume from this entr
 ### UX compliance (coordinator)
 
 Not a UI change; no customer surface touched by this branch.
+
+## 2026-09-19, coordinator (local session, night; continues the evening entry above): M3 landed; the skill gate cannot be satisfied from inside a sub-agent (lane G1 dispatched)
+
+Clock times from `date -u`, the gate audit log or GitHub. Resume from this entry.
+
+**M3 merged: PR #752, squash `8b6f32dd`, 2026-09-20 01:19:25 UTC, four required checks pass [CONFIRMED on GitHub].** Vault sync after it: `8e62105d` to `8b6f32dd`, 3 docs files (the evening's docs PR #751 synced at 23:20 UTC, 7 files). Landed: `corpus-turn.yml` chained off "Ledger consume"; rule-16 enrichment in one home (`src/lib/intake/mint-enrichment.ts`) for both mint paths; `POPULATION_PAUSED` replaced by a `max_items` cap; harness family `downstream-chain` by descriptor; three loop-manifest edges at `enforceEdge: true`; and the loop id. Two Sonnet agents (about 800k and 530k tokens), two STOPs, each answered by an appended amendment in `brief-m3.md`.
+
+**The loop id, as landed [CONFIRMED by lane M3, accepted].** My Amendment 1 assumed an artifact records the GitHub run id of the run that wrote it; none did, and the hop-1 match the lane first built held only when the sweep's `loop_run_id` input is blank (the proof run passes an explicit id, so it would have resolved null at hop 1). Amendment 2: the shared writer `scripts/lib/run-artifact.mjs` stamps `config.github_run_id` on every artifact; `resolveLoopRunId` (`scripts/lib/loop-run-id.mjs`) matches on it at every hop; attack tests break one hop and see null cascade. Wired: fetch-drain, ledger-consume (its upstream is source-sweep, not fetch-drain: my brief was wrong, corrected by the lane), the mint runner. **OWED, designed, not landed:** the downstream-chain half, in `scripts/turns/emit-downstream-chain-artifact.mjs` (the exact change is in the lane's session-log file and `report-m3.md`). Proof run 6.2 needs it.
+
+**Why it is owed: the skill gate [CONFIRMED in part].** `pretooluse-skill-gate.mjs` denied the lane's edits to that file at 00:55 UTC (main checkout `.gate-audit.log`: 8 Edit and 3 Write `edit-governed-skillmissing`). [REFUTED] the lane's label "misfire": `skill-map.mjs` governs `fsi-app/scripts/turns/` and `fsi-app/src/lib/intake/` under `environmental-policy-and-innovation` (checked by calling `skillsForFile`). [CONFIRMED] the gate's header is stale: it says PreToolUse does not fire inside sub-agents; it does now. [HYPOTHESIS] the transcript the hook is handed for a sub-agent's call is the parent's, so a sub-agent's own Skill load is never seen and the demand cannot be met from inside a lane (the lane invoked the skill twice and read SKILL.md twice; still denied). Every coming lane that touches a governed path (M4 touches `src/lib/intake/`) would stop the same way. Not worked around (the coordinator did not load the 81 KB skill into its own session to unblock one file): **lane G1**, Sonnet, `wt-landdocs-0911`, branch `lane/g1-skill-gate-agent-transcript-2026-09-19`, brief `brief-g1.md` in this PR: verify the payload facts first, then the gate judges the ACTING agent's own transcript, fail closed kept, attack tests, stale comments corrected. Sessions run the MAIN checkout's copy of the gate, so the fix is live only after merge plus vault sync.
+
+**Rule learned.** A Haiku runner's shell state does not persist between calls: `cd` and variables must be restated in every call, and every runner brief now says so (the first docs runner measured the main checkout instead of its worktree and stopped on its untracked files).
+
+**In flight at write time.** Lane G1 (above). Nothing else runs.
+
+**Next, in order.** (1) G1: verify its report, push through the queue (`wt-landdocs-0911|pr-g1.md|g1`), merge on green, vault sync. (2) Lane M3b, small: the owed downstream-chain change, by a lane that loads the governing skill through the Skill tool first. (3) Amend and dispatch M4, M6, M9d; write M7. (4) Hop proofs, then the 6.2 proof run with `loop_run_id=loop-proof-hop1-2026-09-19`, `enforceFired` flips, F50 to 0, `docs/audits/loop-proof-run-<date>.md`. (5) Data only after 6.2. Next free ids, unchanged: F52, RD-77, migration 330, skill category 49. Tokens at 23:10 UTC by the operator's reading: 62 percent of Fable, 52 percent of all; start the next coordinator session IN the repo folder and read only this entry plus the brief being dispatched.
+
+### UX compliance (coordinator)
+
+Not a UI change; no customer surface touched by this branch.
