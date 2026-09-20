@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,6 +33,26 @@ writeFileSync(LOADED, [
 ].join("\n") + "\n");
 const EMPTY = join(TMP, "empty.jsonl");
 writeFileSync(EMPTY, '{"type":"user","message":{"content":"hi"}}\n'); // no Skill invocation
+
+// ── sub-agent transcript fixtures (2026-09-19 fix: the gate must judge the ACTING agent's own
+// transcript, derived from payload.agent_id via agent-transcript.mjs, not the parent's). Layout mirrors
+// what this machine actually writes: `<parent-dir>/<parent-basename-without-ext>/subagents/agent-<id>.jsonl`.
+const PARENT_NO_SKILL = join(TMP, "parent-no-skill.jsonl");
+writeFileSync(PARENT_NO_SKILL, '{"type":"user","message":{"content":"hi"}}\n'); // parent never loaded it
+const SUBAGENT_OK_DIR = join(TMP, "parent-no-skill", "subagents");
+mkdirSync(SUBAGENT_OK_DIR, { recursive: true });
+const SUBAGENT_OK = join(SUBAGENT_OK_DIR, "agent-subA.jsonl");
+writeFileSync(SUBAGENT_OK, skillLine("environmental-policy-and-innovation") + "\n"); // the sub-agent DID load it
+
+const PARENT_WITH_SKILL = join(TMP, "parent-with-skill.jsonl");
+writeFileSync(PARENT_WITH_SKILL, skillLine("environmental-policy-and-innovation") + "\n"); // PARENT loaded it
+const SUBAGENT_EMPTY_DIR = join(TMP, "parent-with-skill", "subagents");
+mkdirSync(SUBAGENT_EMPTY_DIR, { recursive: true });
+const SUBAGENT_EMPTY = join(SUBAGENT_EMPTY_DIR, "agent-subB.jsonl");
+writeFileSync(SUBAGENT_EMPTY, '{"type":"user","message":{"content":"hi"}}\n'); // the sub-agent itself did NOT
+
+const PA = (tool_name, tool_input, transcript, agent_id) =>
+  JSON.stringify({ tool_name, tool_input, transcript_path: transcript, agent_id });
 
 function decide(payload) {
   const r = spawnSync(process.execPath, [HOOK], { input: payload, encoding: "utf8" });
@@ -96,4 +116,29 @@ test("EFFICACY: deny reason names the missing governing skill", () => {
 test("EFFICACY: Bash --apply names the real per-op skill", () => {
   const reason = reasonOf(P("Bash", { command: "node x.mjs --apply update intelligence_items set provenance_status" }));
   assert.ok(reason.includes("environmental-policy-and-innovation"), `reason did not name per-op skill: ${reason}`);
+});
+
+// ── ACTING-AGENT TRANSCRIPT (2026-09-19 fix, lane G1). Plants the exact defect lane M3 hit on
+// 2026-09-20 00:55 UTC: a sub-agent's OWN Skill load must be what the gate judges, never the parent's. ──
+const GOVERNED_FILE = { file_path: `${ABS}/fsi-app/src/lib/agent/canonical-pipeline.ts` };
+
+test("sub-agent payload: its OWN transcript holds the Skill load -> allow (parent never loaded it)", () => {
+  assert.equal(decide(PA("Edit", GOVERNED_FILE, PARENT_NO_SKILL, "subA")), "allow");
+});
+
+test("ATTACK: sub-agent payload where ONLY the parent transcript holds the Skill load -> deny (a skill loaded solely by the parent does not count for the sub-agent)", () => {
+  assert.equal(decide(PA("Edit", GOVERNED_FILE, PARENT_WITH_SKILL, "subB")), "deny");
+});
+
+test("sub-agent payload whose derived transcript file does not exist -> deny, fail-closed no-transcript tag", () => {
+  const payload = PA("Edit", GOVERNED_FILE, PARENT_NO_SKILL, "sub-does-not-exist");
+  assert.equal(decide(payload), "deny");
+  assert.ok(reasonOf(payload).includes("no session transcript"), reasonOf(payload));
+});
+
+test("main-session payload (no agent_id field at all) is unchanged: parent transcript with skill -> allow", () => {
+  assert.equal(decide(P("Edit", GOVERNED_FILE, LOADED)), "allow");
+});
+test("main-session payload (no agent_id field at all) is unchanged: parent transcript without skill -> deny", () => {
+  assert.equal(decide(P("Edit", GOVERNED_FILE, EMPTY)), "deny");
 });
