@@ -36,6 +36,14 @@ export type { FactCardModel, ClaimNode };
 const ORANGE_KINDS = new Set(["ACTION REQUIRED", "LEGAL CONFIRMATION REQUIRED"]);
 const INFERENCE_KIND = "ANALYTICAL INFERENCE";
 
+/** Amendment 1 section C (coordinator, 2026-09-20): two audits could not tell which component
+ *  rendered a node because no class or attribute survived to the DOM. `data-part` is the
+ *  cross-part convention every later part lane repeats (recorded as "Owed" in this lane's
+ *  session-log entry); `data-kind` is this part's own kind slug, e.g. "action-required". */
+function kindSlug(kind: string): string {
+  return kind.toLowerCase().replace(/\s+/g, "-");
+}
+
 function formFor(kind: string): "orange" | "ink" | "inference" {
   if (kind === INFERENCE_KIND) return "inference";
   if (ORANGE_KINDS.has(kind)) return "orange";
@@ -194,7 +202,13 @@ export function FactCard({ model }: { model: FactCardModel }) {
   const bandTint = form === "orange" ? "var(--action-tint)" : form === "inference" ? "var(--page)" : "var(--tag)";
 
   return (
-    <div className="fact-card-v2" data-fact-card-kind={model.kind} style={cardShape}>
+    <div
+      className="fact-card-v2"
+      data-part="fact-card"
+      data-kind={kindSlug(model.kind)}
+      data-fact-card-kind={model.kind}
+      style={cardShape}
+    >
       {/* Mobile 390 (artboard 20c), below --bp-mobile (768, theme.css's documented breakpoint,
           literal here per every other shared part's own media query): the body grid collapses
           to one column and re-orders to band -> lead -> claim -> provenance-as-footer-line,

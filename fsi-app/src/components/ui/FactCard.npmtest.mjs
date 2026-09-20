@@ -76,3 +76,12 @@ test("mobile stacking below 768px collapses the body grid to a single column wit
 test("the kind word carries data-guard-title (UX contract: title element of every row/card component)", () => {
   assert.match(SOURCE, /data-guard-title style=\{\{ \.\.\.KIND_WORD/);
 });
+
+// Amendment 1 section C (coordinator, 2026-09-20): "the part's root element carries
+// data-part='fact-card' and data-kind='<kind slug>' ... so conformance can be measured instead
+// of guessed" - the fix for two audits that could not tell which component rendered a node.
+test("root element carries data-part=\"fact-card\" and a data-kind slug derived from the kind word", () => {
+  assert.match(SOURCE, /data-part="fact-card"/);
+  assert.match(SOURCE, /data-kind=\{kindSlug\(model\.kind\)\}/);
+  assert.match(SOURCE, /function kindSlug\(kind: string\): string \{/);
+});

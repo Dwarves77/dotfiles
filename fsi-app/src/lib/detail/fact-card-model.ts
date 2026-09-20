@@ -313,16 +313,52 @@ export function parseFactCardModels(markdown: string | null | undefined): FactCa
   return parseFactParagraphs(markdown).flatMap(deriveFactCardModels);
 }
 
+/** Amendment 1 ruling B.3 (coordinator, 2026-09-20): "a deterministic field-to-kind table in
+ *  the model module. A record field maps to DEADLINE, PENALTY, DEFINITION, SCOPE, BASELINE
+ *  TARGET or NATIONAL TARGET only where the field's own key makes the meaning unambiguous
+ *  (name the keys in a table with a test); everything else is SCOPE."
+ *
+ *  Every `slot_key` this table matches against is read from `src/lib/intake/record-facts.mjs`
+ *  (the mint-time extractor that writes the `[slot_key]` prefix `parse-record-sections.ts`
+ *  reads back) - the full slot vocabulary observed there, 2026-09-20: `title`,
+ *  `effective_date`, `primary_deadline`, `jurisdictional_scope`, `penalty_summary`,
+ *  `evidence_agreement_signal`, `source_authority_signal`, `operative_provision`, `addressee`,
+ *  `binding_position`, `due_date`, `corridor_identity`, `in_force_status`. No slot key in this
+ *  vocabulary names a BASELINE TARGET or NATIONAL TARGET row today - the two kinds are in the
+ *  fixed vocabulary for pipeline-authored fact paragraphs (fact-paragraphs.ts's bolded
+ *  lead-ins), not for record-grade rows, so this table has no entries for them; a slot key
+ *  that is genuinely a target figure in the future is a new, named addition here, never a
+ *  guess.
+ *
+ *  Only three keys are unambiguous DEADLINE-kind dates (a date the workspace must act by or
+ *  that the instrument itself takes effect on): `effective_date`, `primary_deadline`,
+ *  `due_date`. Only one is unambiguous PENALTY: `penalty_summary`. `jurisdictional_scope` is
+ *  already the SCOPE word itself, named here so the mapping is complete and testable rather
+ *  than implicit in the fallback. Every other slot key (`title`, `operative_provision`,
+ *  `addressee`, `binding_position`, `corridor_identity`, `in_force_status`,
+ *  `evidence_agreement_signal`, `source_authority_signal`) is NOT unambiguous under this rule
+ *  - `operative_provision` sounds like it could be DEFINITION but a record row's provenance
+ *  extraction gives no reliable signal that the row states a defined TERM rather than a
+ *  requirement or a scope statement - and falls to SCOPE, the same "unknown -> SCOPE" rule the
+ *  pipeline path already uses for a bolded lead-in it cannot classify. */
+const RECORD_SLOT_KIND: Record<string, FactCardKind> = {
+  effective_date: "DEADLINE",
+  primary_deadline: "DEADLINE",
+  due_date: "DEADLINE",
+  penalty_summary: "PENALTY",
+  jurisdictional_scope: "SCOPE",
+};
+
 /** Record-grade fact rows (src/lib/agent/parse-record-sections.ts's `RecordFactRow`, the
- *  verbatim-span facts on record-grade items) carry a free-form field label ("Effective
- *  date", "Penalty amount") rather than a bolded lead-in from the pipeline's fixed kind
- *  vocabulary - there is no rule in parts-brief-2026-09-18.md section 2.1 for mapping an
- *  arbitrary record-field label onto one of the nine kind words. UNRESOLVED, flagged in the
- *  lane report: this helper uses the same "unknown lead-in -> SCOPE" fallback the pipeline
- *  path uses for a bolded lead-in it cannot classify, and shows the record's own field label
- *  as the qualifier (the closest available "what is this card" signal) rather than inventing
- *  a kind-vocabulary mapping the brief never specified. */
+ *  verbatim-span facts on record-grade items) carry a `slotKey` and a humanized `label`
+ *  ("Effective date", "Penalty amount") rather than a bolded lead-in from the pipeline's fixed
+ *  kind vocabulary. `RECORD_SLOT_KIND` above (ruling B.3) maps the unambiguous slot keys onto
+ *  the fixed vocabulary; every other slot key falls to SCOPE, per the same "unknown lead-in ->
+ *  SCOPE" rule the pipeline path uses. The record's own field label is always shown as the
+ *  qualifier regardless of kind - it is the closest available "what specific fact is this"
+ *  signal and the brief does not ask for it to be dropped once a kind is assigned. */
 export function deriveRecordFactCardModel(fact: {
+  slotKey?: string | null;
   label: string;
   span: string | null;
   sourceName?: string | null;
@@ -330,8 +366,9 @@ export function deriveRecordFactCardModel(fact: {
   tier?: number | null;
 }): FactCardModel | null {
   if (!fact.span) return null;
+  const kind = (fact.slotKey && RECORD_SLOT_KIND[fact.slotKey]) || "SCOPE";
   return {
-    kind: "SCOPE",
+    kind,
     qualifier: fact.label,
     figureLead: null,
     figureSubLabel: null,

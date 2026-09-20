@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   deriveFactCardModels,
   parseFactCardModels,
+  deriveRecordFactCardModel,
   toClaimNodes,
   countNoLeadCards,
 } from "./fact-card-model.ts";
@@ -161,4 +162,78 @@ test("attack fixture: production patterns (**Cause:**, *Operational implication:
 test("toClaimNodes strips every forbidden markdown character", () => {
   const nodes = toClaimNodes("# Heading **bold** `code` [link](https://example.com) *stray*");
   assertNoMarkdown(nodes);
+});
+
+// Amendment 1 ruling B.3: the deterministic slot-key -> kind table for record-grade rows.
+test("deriveRecordFactCardModel maps the three deadline-shaped slot keys to DEADLINE", () => {
+  for (const slotKey of ["effective_date", "primary_deadline", "due_date"]) {
+    const model = deriveRecordFactCardModel({ slotKey, label: "Effective date", span: "1 July 2026" });
+    assert.equal(model.kind, "DEADLINE", `${slotKey} -> DEADLINE`);
+    assert.equal(model.qualifier, "Effective date");
+  }
+});
+
+test("deriveRecordFactCardModel maps penalty_summary to PENALTY", () => {
+  const model = deriveRecordFactCardModel({ slotKey: "penalty_summary", label: "Penalty", span: "up to EUR 50000" });
+  assert.equal(model.kind, "PENALTY");
+});
+
+test("deriveRecordFactCardModel maps jurisdictional_scope to SCOPE explicitly", () => {
+  const model = deriveRecordFactCardModel({ slotKey: "jurisdictional_scope", label: "Jurisdictional scope", span: "European Union" });
+  assert.equal(model.kind, "SCOPE");
+});
+
+test("deriveRecordFactCardModel falls back to SCOPE for every slot key not in the unambiguous table", () => {
+  const ambiguous = [
+    "title",
+    "operative_provision",
+    "addressee",
+    "binding_position",
+    "corridor_identity",
+    "in_force_status",
+    "evidence_agreement_signal",
+    "source_authority_signal",
+    "some_future_slot_key_never_seen",
+  ];
+  for (const slotKey of ambiguous) {
+    const model = deriveRecordFactCardModel({ slotKey, label: "A field", span: "some verbatim span" });
+    assert.equal(model.kind, "SCOPE", `${slotKey} -> SCOPE (unknown/ambiguous)`);
+  }
+});
+
+test("deriveRecordFactCardModel returns null for a row with no verbatim span (a GAP row)", () => {
+  assert.equal(deriveRecordFactCardModel({ slotKey: "effective_date", label: "Effective date", span: null }), null);
+});
+
+// Amendment 1 section A: the two measured production insertion points
+// (RegulationDetailSurface.tsx and MarketSignalDetailSurface.tsx, both of which route their
+// non-prose section content through FactBlocks -> parseFactParagraphs -> deriveFactCardModels,
+// the same one path both surfaces share). CONFIRMED cause (this lane, by reading git history):
+// at production sha 6d9d139c the OLD FactCard v1 (deleted by commit f8fb9d86) rendered its
+// `text` prop as a raw React string with no markdown stripping - so an embedded bolded label
+// ("**Cause:**") or a mid-sentence raw URL that fact-paragraphs.ts's own SOURCE_RE trailing-only
+// match did not capture survived into the DOM exactly as measured. This model-based render (v2)
+// replaced that raw-string render with toClaimNodes' markdown-stripping tokenizer before this
+// test file existed; this test fixes the regression by asserting the pipeline both surfaces
+// call produces zero "*" characters in the concatenated claim text for the exact measured
+// shapes ("**Cause:** FACT: ...", "*Source: FAQ ... 02/04/2025.").
+test("both detail surfaces' shared FactBlocks pipeline emits zero literal asterisks for the measured production patterns", () => {
+  const regulationPattern =
+    'FACT: "**Cause:** The instrument requires 40% recyclability by 2030." *Source: FAQ on packaging rules, European Commission, 02/04/2025. https://ec.europa.eu/faq-ppwr.*';
+  const marketPattern =
+    '*Operational implication:* Forwarders quoting EU-origin lanes should budget for the surcharge before Q1 2026. https://ec.europa.eu/climate-action.';
+
+  for (const pattern of [regulationPattern, marketPattern]) {
+    const paragraph = classifyParagraph(pattern);
+    const models = deriveFactCardModels(paragraph);
+    assert.ok(models.length >= 1, `at least one card model for: ${pattern}`);
+    for (const model of models) {
+      const rendered = model.claim.map((n) => n.text).join(" ");
+      assert.ok(!rendered.includes("*"), `no "*" in rendered claim text: ${JSON.stringify(rendered)}`);
+      if (model.qualifier) assert.ok(!model.qualifier.includes("*"), "no \"*\" in qualifier");
+      if (model.provenance?.href) {
+        assert.doesNotMatch(rendered, /https?:\/\//, "a URL never appears in the claim text, only in provenance.href");
+      }
+    }
+  }
 });
