@@ -13,7 +13,11 @@
 // (the primary working tree) instead of its assigned worktree (under .claude/worktrees/). That moved the
 // main checkout's HEAD onto the agent's branch; subsequent orchestrator commits landed on the wrong
 // label and had to be manually untangled. The PreToolUse skill-gate did NOT catch it because PreToolUse
-// is session-scoped and does NOT fire inside subagents/workflows (project memory, verified 2026-06-07).
+// was session-scoped and did NOT fire inside subagents/workflows when this was verified on 2026-06-07.
+// [REFUTED 2026-09-19, lane M3]: it now DOES fire inside sub-agents -- the main checkout's own
+// .gate-audit.log recorded 11 denials of a sub-agent's own Edit/Write calls, and lane G1 (issue 754)
+// made the skill gate judge the acting agent's own transcript, closing the gap this incident exploited.
+// The 2026-06-07 finding stays accurate as history; it no longer describes the present.
 //
 // DETECTION-SIGNAL CHOICE (recorded honestly):
 //   * WHERE (main checkout vs linked worktree) — the CANONICAL git signal: a linked worktree's git-dir

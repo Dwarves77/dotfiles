@@ -14,6 +14,7 @@ import {
   latestForwardEventsCount,
   buildArtifact,
 } from "./emit-corpus-turn-artifact.mjs";
+import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 function tmpDir() {
   return mkdtempSync(join(tmpdir(), "ct-artifact-test-"));
@@ -179,4 +180,57 @@ test("buildArtifact: limit is coerced to a number; a null limit (since-override 
   assert.equal(a.config.limit, 50);
   const b = buildArtifact({ ...BASE_ARGS, limit: null });
   assert.equal(b.config.limit, null);
+});
+
+// ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
+
+test("buildArtifact: loopRunId defaults to null when the caller passes nothing", () => {
+  const artifact = buildArtifact(BASE_ARGS);
+  assert.equal(artifact.config.loop_run_id, null);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildArtifact: a loopRunId passed by the caller is recorded verbatim on config.loop_run_id", () => {
+  const artifact = buildArtifact({ ...BASE_ARGS, loopRunId: "loop-run-abc-123" });
+  assert.equal(artifact.config.loop_run_id, "loop-run-abc-123");
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("resolveLoopRunIdFromUpstream fixture: an upstream ledger-consume artifact with a matching github_run_id resolves its own loop_run_id; a different run id resolves null", () => {
+  const dir = tmpDir();
+  const ledgerConsumeDir = join(dir, "scripts", "harness-runs", "ledger-consume");
+  mkdirSync(ledgerConsumeDir, { recursive: true });
+  writeFileSync(
+    join(ledgerConsumeDir, "ledger-consume-run-001.json"),
+    JSON.stringify({
+      harness_family: "ledger-consume",
+      harness_version: "sha256:0000000000000000",
+      run_id: "ledger-consume-run-001",
+      started_at: new Date().toISOString(),
+      config: { github_run_id: "111", loop_run_id: "loop-x" },
+      inputs_ref: ["x"],
+      per_item: [],
+      metrics: {},
+      defects_found: [],
+      full_trace_refs: ["x"],
+      proposer_notes: "test fixture",
+    }, null, 2) + "\n",
+    "utf8"
+  );
+
+  const matched = resolveLoopRunIdFromUpstream({
+    explicit: null,
+    upstreamName: "Ledger consume",
+    upstreamRunId: "111",
+    fsiRoot: dir,
+  });
+  assert.equal(matched, "loop-x");
+
+  const unmatched = resolveLoopRunIdFromUpstream({
+    explicit: null,
+    upstreamName: "Ledger consume",
+    upstreamRunId: "999",
+    fsiRoot: dir,
+  });
+  assert.equal(unmatched, null);
 });

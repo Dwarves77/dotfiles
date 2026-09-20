@@ -31,7 +31,54 @@
 // `config.loop_run_id`. It NEVER invents an id: no match, a matched artifact with no `loop_run_id` field
 // at all, or no `upstreamRunId` given in the first place, all return null.
 
+import { resolve } from "node:path";
 import { readRunHistory } from "./run-artifact.mjs";
+
+// FAMILY_BY_WORKFLOW_NAME (lane M3b, 2026-09-20, build plan section 6.1 row M3b): the ONE home for
+// workflow-name to harness-family mapping. Keyed by the workflow `name:` line exactly as each yml spells
+// it (loop-manifest.mjs's own comment: "read every workflow file's own name line before trusting a value
+// here" applies equally here). A value of null means the workflow is its own loop head with no upstream
+// sweep id to inherit (Data producers today); resolveLoopRunIdFromUpstream below treats an unknown name
+// the same as a null family, both falling back to `explicit`. This replaces the per-file name maps
+// individual emitters would otherwise grow on their own (emit-downstream-chain-artifact.mjs and
+// emit-corpus-turn-artifact.mjs both resolve through this one map instead of each keeping its own copy).
+export const FAMILY_BY_WORKFLOW_NAME = Object.freeze({
+  "Source sweep": "source-sweep",
+  "Ledger consume": "ledger-consume",
+  "Population turn": "mint",
+  "Corpus turn": "corpus-turn",
+  "Downstream chain": "downstream-chain",
+  "Brief apply": "brief-apply",
+  // Data producers are their own loop head: no sweep id exists upstream of them, so null is the honest
+  // value, not a family this function should search.
+  "Data producers": null,
+});
+
+/**
+ * Resolve a hop's loop_run_id from its upstream workflow's NAME (rather than a caller pre-knowing the
+ * upstream's harness family directory). Looks `upstreamName` up in FAMILY_BY_WORKFLOW_NAME; an unknown
+ * name or a null family returns `explicit ?? null` (never invents a family to search). Otherwise calls
+ * resolveLoopRunId with `harnessRunsDir = <fsiRoot>/scripts/harness-runs/<family>`, matching every
+ * existing caller's own convention (see run-fetch-drain.mjs / run-ledger-consume.mjs).
+ * @param {object} opts
+ * @param {string|null|undefined} opts.explicit - a `--loop-run-id` CLI argument or other out-of-band value.
+ * @param {string|null|undefined} opts.upstreamName - the upstream workflow's `name:` as the yml spells it.
+ * @param {string|number|null|undefined} opts.upstreamRunId - the upstream run's own GitHub Actions run id.
+ * @param {string} opts.fsiRoot - the fsi-app root, used to build the harness-runs directory.
+ * @returns {string|null}
+ */
+export function resolveLoopRunIdFromUpstream({ explicit = null, upstreamName, upstreamRunId, fsiRoot }) {
+  const family = upstreamName != null ? FAMILY_BY_WORKFLOW_NAME[upstreamName] : undefined;
+  if (family == null) {
+    return explicit != null && String(explicit).trim() !== "" ? String(explicit).trim() : null;
+  }
+  return resolveLoopRunId({
+    explicit,
+    upstreamFamily: family,
+    upstreamRunId,
+    harnessRunsDir: resolve(fsiRoot, "scripts", "harness-runs", family),
+  });
+}
 
 /**
  * Resolve the loop_run_id a hop's own artifact should record.
