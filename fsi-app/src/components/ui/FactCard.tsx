@@ -234,7 +234,16 @@ export function FactCard({ model }: { model: FactCardModel }) {
         }
       `}</style>
       <div style={{ ...KIND_BAND, background: bandTint }}>
-        <p data-guard-title style={{ ...KIND_WORD, color: kindWordColor }}>{model.kind}</p>
+        {/* Amendment 2 (lane w10-factcard, 2026-09-20; rendering-guard CI failure): the kind word IS
+            one of the operator's nine fixed FACT_CARD_KINDS values, including the literal "DEADLINE"
+            - a real section 8 vocabulary word for this band, not an unfilled slot label. The rendering
+            guard's placeholder-literal scanner (source-entry-filter.mjs's HEADER_LITERALS) has
+            "deadline" listed for a DIFFERENT reason (a section 8 obligations-table HEADER, an older defect
+            class) and cannot structurally distinguish the two. `data-part-slot="kind-word"` is the
+            narrow, attacked exemption harness.mjs's measureGuard checks for - only text inside this
+            attribute, inside a `data-part="fact-card"` ancestor, AND equal to one of FACT_CARD_KINDS,
+            is exempt; the bare word anywhere else still fails (see harness.test.mjs). */}
+        <p data-guard-title data-part-slot="kind-word" style={{ ...KIND_WORD, color: kindWordColor }}>{model.kind}</p>
         {model.qualifier && <p style={QUALIFIER}>{model.qualifier}</p>}
       </div>
       <div className="fact-card-v2-body" style={BODY_ROW}>

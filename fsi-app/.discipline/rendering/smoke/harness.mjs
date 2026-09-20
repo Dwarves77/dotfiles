@@ -47,6 +47,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { assertGuardClean, detectOverflows, findPlaceholderLiterals, assertBoundsClean } from './guard-assert.mjs';
+// SoT for the FactCard kind vocabulary (lane w10-factcard Amendment 2, 2026-09-20) - reused here so
+// the placeholder-literal exemption below and fact-card-model.ts's own kind list can never drift
+// apart into a hand-duplicated second copy. Node 24 type-strips this .ts import natively (see
+// assertions.test.mjs's own precedent importing relative-time-format.ts the same way).
+import { FACT_CARD_KINDS } from '../../../src/lib/detail/fact-card-model.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -129,8 +134,30 @@ export async function mountBundle(page, bundleJs, mountFn, props) {
  * placeholder-literal scan here reads every table/text-bearing element in the mounted tree instead
  * (`th,td,p,span,li,button,a`) — a strictly WIDER net than the fixture convention, never narrower.
  */
+/**
+ * Pure, DOM-shaped predicate (lane w10-factcard Amendment 2, 2026-09-20): true when `el` sits
+ * inside a `[data-part-slot="kind-word"]` element that itself sits inside a `[data-part="fact-card"]`
+ * ancestor, AND that slot's own text is one of the nine fixed FACT_CARD_KINDS values. This is the
+ * SAME logic inlined into `measureGuard`'s `page.evaluate` callback below (a `page.evaluate` closure
+ * cannot reference an outer-scope function - only serializable data crosses the Node/browser
+ * boundary, so the exported copy here exists for direct unit-testing against fake `closest`-shaped
+ * elements: see harness.test.mjs's attack tests). Both copies read from FACT_CARD_KINDS - no second
+ * vocabulary list.
+ *
+ * Deliberately narrow, same posture as measureGuard's sibling `isDeclaredAbsence` check: a bare
+ * "DEADLINE" with no `data-part-slot="kind-word"` ancestor still reads as a placeholder literal; a
+ * `data-part-slot="kind-word"` outside a `data-part="fact-card"` still reads as one; a marked kind
+ * band whose text is NOT one of the nine kinds (e.g. "TBD") still reads as one.
+ */
+export function isDeclaredKindWord(el, kindWords = FACT_CARD_KINDS) {
+  const slot = el.closest('[data-part-slot="kind-word"]');
+  if (!slot) return false;
+  if (!slot.closest('[data-part="fact-card"]')) return false;
+  return kindWords.includes((slot.textContent || '').trim());
+}
+
 export async function measureGuard(page) {
-  return page.evaluate(() => {
+  return page.evaluate((kindWords) => {
     const els = [document.body, ...document.querySelectorAll('[data-guard-container]')];
     const measurements = els.map((el) => ({
       name: el === document.body ? 'body' : el.getAttribute('data-guard-container') || el.tagName,
@@ -160,9 +187,20 @@ export async function measureGuard(page) {
       for (const a of inner) rest = rest.replace((a.textContent || ''), '');
       return rest.trim() === '';
     };
+    // Inlined copy of the exported `isDeclaredKindWord` above (lane w10-factcard Amendment 2,
+    // 2026-09-20) - a page.evaluate closure cannot reference an outer-scope function, only
+    // serializable data (`kindWords`, the FACT_CARD_KINDS array) crosses the boundary. Same rule as
+    // isDeclaredAbsence just above: narrow by construction, exempts ONLY the declared kind-word slot
+    // inside a real fact card, whose text is one of the nine fixed kinds.
+    const isDeclaredKindWord = (el) => {
+      const slot = el.closest('[data-part-slot="kind-word"]');
+      if (!slot) return false;
+      if (!slot.closest('[data-part="fact-card"]')) return false;
+      return kindWords.includes((slot.textContent || '').trim());
+    };
     const texts = [];
     for (const cell of document.body.querySelectorAll('th,td,p,span,li,button,a')) {
-      if (isDeclaredAbsence(cell)) continue;
+      if (isDeclaredAbsence(cell) || isDeclaredKindWord(cell)) continue;
       const t = (cell.textContent || '').trim();
       if (t) texts.push(t);
     }
@@ -178,7 +216,7 @@ export async function measureGuard(page) {
       if (t) leafTexts.push(t);
     }
     return { measurements, texts, leafTexts };
-  });
+  }, [...FACT_CARD_KINDS]);
 }
 
 /**

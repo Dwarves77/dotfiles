@@ -74,7 +74,16 @@ test("mobile stacking below 768px collapses the body grid to a single column wit
 });
 
 test("the kind word carries data-guard-title (UX contract: title element of every row/card component)", () => {
-  assert.match(SOURCE, /data-guard-title style=\{\{ \.\.\.KIND_WORD/);
+  assert.match(SOURCE, /data-guard-title data-part-slot="kind-word" style=\{\{ \.\.\.KIND_WORD/);
+});
+
+// Amendment 2 (lane w10-factcard, 2026-09-20; rendering-guard CI fix): the kind word is one of the
+// operator's nine fixed FACT_CARD_KINDS, including the literal "DEADLINE" - a real vocabulary word,
+// not an unfilled slot. `data-part-slot="kind-word"` is the narrow, attacked exemption
+// harness.mjs's measureGuard checks for (see harness.npmtest.mjs's attack proof); this asserts the
+// component actually carries the attribute the exemption depends on.
+test("the kind word carries data-part-slot=\"kind-word\" (the rendering-guard's placeholder-literal exemption anchor)", () => {
+  assert.match(SOURCE, /data-part-slot="kind-word"/);
 });
 
 // Amendment 1 section C (coordinator, 2026-09-20): "the part's root element carries
