@@ -461,7 +461,7 @@ Lane W10-A (F49 and the impact meter, 2026-09-18) found eight Anton-title sites 
 
 ### 6.6 Operator decisions surfaced by the lanes
 
-- Region-scoped community rooms: vertical groups are GLOBAL by design today; W6.2 speaks of a regional spine. Decide whether a second, region-scoped room type is wanted, and if so which field is a workspace's region (today `profiles.region` is a per-user array; `organizations` carries no region). Until decided, nothing changes (lane M9c, 2026-09-18).
+- Region-scoped community rooms: vertical groups are GLOBAL by design today; W6.2 speaks of a regional spine. Decide whether a second, region-scoped room type is wanted, and if so which field is a workspace's region (today `profiles.region` is a per-user array; `organizations` carries no region). Until decided, nothing changes (lane M9c, 2026-09-18). **DECIDED 2026-09-20 (ADR-033), operator verbatim: "we need regional rooms and global conversations."** Global vertical rooms stay; a region-scoped room type is added. The membership field and the region list are still open; the lane is parked behind the data-layer tools by the operator's word the same day.
 - Artboard 21 for the design bundle, and the eight cases not drawn in `docs/design/parts-inventory.md` section 4.
 
 ### 6.7 Duplicates: the standing numbers and the remaining removals (operator, 2026-09-18: "we make sure this is a part of it")
