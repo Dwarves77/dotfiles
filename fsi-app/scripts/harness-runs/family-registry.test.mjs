@@ -9,11 +9,12 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import { validateFamilyDescriptor, loadFamilies, FamilyDescriptorError, FAMILIES, HARNESS_RUNS_DIR } from "./family-registry.mjs";
+import { isRunArtifactFilename } from "../lib/run-artifact.mjs";
 
 function validDescriptor(overrides = {}) {
   return {
@@ -42,6 +43,46 @@ function withTempDir(fn) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// True when `dirPath` holds either a committed run artifact (<family>-run-NNN.json, the shape
+// isRunArtifactFilename recognizes) or a pending/ folder (a lane's own acknowledgment that a run is
+// owed). Either one means the directory is a real harness family in use, so it MUST carry a valid
+// family.json; a directory with neither is free to have no descriptor (a scratch dir, traces/, .claims/).
+function hasArtifactOrPending(dirPath) {
+  let entries;
+  try {
+    entries = readdirSync(dirPath, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name === "pending") return true;
+    if (entry.isFile() && isRunArtifactFilename(entry.name)) return true;
+  }
+  return false;
+}
+
+// The protection LIVE_FAMILIES used to give by accident (a family missing from the pinned list would
+// fail the exact-set comparison): every directory under harnessRunsDir that holds a committed run
+// artifact or a pending/ folder but has no family.json is an offender, named here directly rather than
+// inferred from a list going stale. Empty result is the honest, protected state.
+function unregisteredFamilyDirectories(harnessRunsDir) {
+  const resolved = resolve(harnessRunsDir);
+  let entries;
+  try {
+    entries = readdirSync(resolved, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const offenders = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const dirPath = join(resolved, entry.name);
+    if (existsSync(join(dirPath, "family.json"))) continue; // has a descriptor; loadFamilies validates it
+    if (hasArtifactOrPending(dirPath)) offenders.push(entry.name);
+  }
+  return offenders;
 }
 
 // ── validateFamilyDescriptor: shape rules ────────────────────────────────────
@@ -222,38 +263,71 @@ test("RED: an unreadable harnessRunsDir throws a named error, not a raw ENOENT",
 });
 
 // ── the live tree ─────────────────────────────────────────────────────────────
+//
+// No pinned list here (lane R6t, 2026-09-21, build plan section 6.8 follow-up). The prior LIVE_FAMILIES
+// array required every new family lane to edit the same line, which is exactly the shared-insertion-point
+// collision this module exists to remove (see the header above and the 2026-09-18 collision it names).
+// The assertions below derive the expectation from the tree itself: (a) FAMILIES equals exactly the set
+// of directories that carry a family.json, (b) every descriptor is valid (loadFamilies already throws on
+// the first invalid one, so FAMILIES existing at all proves this for the live tree; the per-field check
+// below is the always-true-when-it-loaded belt-and-suspenders), and (c) the protection the old list gave
+// by accident, that a directory holding real work (a committed run artifact or a pending/ folder) can
+// never be silently unregistered.
 
-const LIVE_FAMILIES = [
-  "mint",
-  "screen",
-  "fetch-drain",
-  "meta-harness",
-  "forward-events",
-  "source-sweep",
-  "ledger-consume",
-  "change-detection",
-  "propagation",
-  "corpus-turn",
-  "brief-apply",
-  "inaccessible-triage",
-  "maintenance",
-  "downstream-chain",
-  "brief-export",
-  "producers", // lane M9d, 2026-09-20 (build plan section 6.1 row M9)
-];
-
-test("FAMILIES: loads the live tree without throwing, one descriptor per registered family", () => {
-  const names = FAMILIES.map((f) => f.family).sort();
-  assert.deepEqual(names, [...LIVE_FAMILIES].sort());
+test("(a) FAMILIES equals exactly the set of directories under scripts/harness-runs/ that contain a family.json", () => {
+  const onDisk = readdirSync(HARNESS_RUNS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(HARNESS_RUNS_DIR, entry.name, "family.json")))
+    .map((entry) => entry.name)
+    .sort();
+  const loaded = FAMILIES.map((f) => f.family).sort();
+  assert.deepEqual(loaded, onDisk);
 });
 
-test("FAMILIES: every live descriptor's governing_files is a non-empty array of strings", () => {
+test("(b) every live descriptor's governing_files is a non-empty array of strings", () => {
   for (const f of FAMILIES) {
     assert.ok(Array.isArray(f.governing_files) && f.governing_files.length > 0, f.family);
     for (const path of f.governing_files) assert.equal(typeof path, "string", `${f.family}: ${path}`);
   }
 });
 
+test("(c) PROTECTION: every harness-runs directory holding a committed run artifact or a pending/ folder is a registered family", () => {
+  const offenders = unregisteredFamilyDirectories(HARNESS_RUNS_DIR);
+  assert.deepEqual(offenders, []);
+});
+
 test("HARNESS_RUNS_DIR points at this module's own directory", () => {
   assert.ok(HARNESS_RUNS_DIR.endsWith(join("scripts", "harness-runs")));
+});
+
+// ── (d) attack forms, on a temp fixture tree (rule 15: proven by attack, not by presence) ─────────────
+
+test("ATTACK: a directory with a committed run artifact and no family.json is caught by the (c) protection", () => {
+  withTempDir((root) => {
+    const dir = join(root, "orphan-family");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "orphan-family-run-001.json"), "{}", "utf8");
+    assert.deepEqual(unregisteredFamilyDirectories(root), ["orphan-family"]);
+  });
+});
+
+test("ATTACK: a directory with a pending/ folder and no family.json is caught by the (c) protection", () => {
+  withTempDir((root) => {
+    mkdirSync(join(root, "orphan-family", "pending"), { recursive: true });
+    assert.deepEqual(unregisteredFamilyDirectories(root), ["orphan-family"]);
+  });
+});
+
+// A descriptor whose "family" differs from its directory (the (b) attack) is already proven above by
+// "RED: an invalid descriptor throws a NAMED FamilyDescriptorError naming the file and the reason".
+// loadFamilies throws before FAMILIES could ever contain a mismatched entry, so no separate test repeats
+// it here.
+
+test("ATTACK: a new valid family directory added to the tree passes with no edit to this test", () => {
+  withTempDir((root) => {
+    makeFamilyDir(root, "widget", validDescriptor());
+    makeFamilyDir(root, "new-family", validDescriptor({ family: "new-family" }));
+    const families = loadFamilies(root);
+    assert.deepEqual(families.map((f) => f.family).sort(), ["new-family", "widget"]);
+    assert.deepEqual(unregisteredFamilyDirectories(root), []);
+  });
 });
