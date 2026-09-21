@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(DIR, "ProvisionalReviewTable.tsx"), "utf8");
@@ -15,7 +15,10 @@ const ROWTABLE = readFileSync(resolve(DIR, "../ui/RowTable.tsx"), "utf8");
 // ── Pure helpers ─────────────────────────────────────────────────────────────────────────────────
 // hostOf delegates to the entity spine's real normalizer, which node can import directly (.mjs);
 // rowTier is one expression, re-stated here and asserted against the source so drift fails.
-const { hostFromUrl } = await import(resolve(DIR, "../../lib/entities/host-from-url.mjs"));
+// pathToFileURL (not a raw resolve() path) because Windows' ESM loader refuses a bare "C:\..." path
+// (ERR_UNSUPPORTED_ESM_URL_SCHEME, remediation-discipline category 44's class), the same fix
+// ImpactMeter.npmtest.mjs already applies for its own dynamic import.
+const { hostFromUrl } = await import(pathToFileURL(resolve(DIR, "../../lib/entities/host-from-url.mjs")).href);
 const hostOf = (url) => hostFromUrl(url) || null;
 function rowTier(ps, picked) {
   return picked ?? ps.recommended_tier ?? ps.provisional_tier;
