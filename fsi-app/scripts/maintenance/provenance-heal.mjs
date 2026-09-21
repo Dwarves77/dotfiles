@@ -1,4 +1,9 @@
-// SHARED-WRITER: intelligence_items, section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
+// SHARED-WRITER: intelligence_items, section_claim_provenance, agent_run_searches, intelligence_item_sections
+// (item_gate_a_state moved out of this marker, lane M6b, 2026-09-21: its one writer is now
+// scripts/lib/gate-a-state-writer.mjs, which carries its own SHARED-WRITER marker and the guarded-write
+// call shape the shared-writer-registry test detects. This file only calls the writer module's exported
+// upsert/read functions now -- no item_gate_a_state write site of its own, so the marker would
+// otherwise be stale.)
 // provenance-heal.mjs — MAINT dispatch step: heals quarantined/archived-unreasoned/slot-incomplete
 // intelligence_items by attaching the grounding they were missing, per the operator's ruling verbatim
 // (2026-09-03): "if items are being flagged as not credible for the site because of not having sources

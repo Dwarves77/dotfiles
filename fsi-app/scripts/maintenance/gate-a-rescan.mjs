@@ -1,4 +1,8 @@
-// SHARED-WRITER: item_gate_a_state, intelligence_items
+// SHARED-WRITER: intelligence_items
+// (item_gate_a_state is NOT declared here: its one writer is scripts/lib/gate-a-state-writer.mjs, which
+// carries its own SHARED-WRITER marker and the guarded-write call shape the shared-writer-registry test
+// detects. This file only calls the writer module's exported upsert/read functions -- declaring the
+// table here without a write site of its own in THIS file would be a stale marker.)
 // gate-a-rescan.mjs -- the Gate A re-scan hop (lane M6b, 2026-09-21, build plan section 6.1 row M6,
 // docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md sections C and D).
 //
