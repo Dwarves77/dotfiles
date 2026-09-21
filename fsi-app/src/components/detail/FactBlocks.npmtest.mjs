@@ -24,7 +24,7 @@ test("parses content_md via the one shared fact-paragraphs parser, never a page-
 test("a prose block renders via the shared GfmSection (table/list-capable), not a plain <p>", () => {
   assert.match(SOURCE, /from "@\/components\/shared\/GfmSection"/);
   assert.match(SOURCE, /b\.kind === "prose"/);
-  assert.match(SOURCE, /<GfmSection key=\{i\} markdown=\{b\.text\} \/>/);
+  assert.match(SOURCE, /<GfmSection key=\{`prose-\$\{i\}`\} markdown=\{b\.text\} \/>/);
   assert.doesNotMatch(SOURCE, /<p style=/); // no page-local prose <p> styling reintroduced
 });
 
@@ -32,7 +32,18 @@ test("every non-prose block renders through the one shared FactCard, via the one
   assert.match(SOURCE, /from "@\/components\/ui\/FactCard"/);
   assert.match(SOURCE, /from "@\/lib\/detail\/fact-card-model"/);
   assert.match(SOURCE, /deriveFactCardModels\(b\)/);
-  assert.match(SOURCE, /<FactCard key=\{`\$\{i\}-\$\{j\}`\} model=\{model\} \/>/);
+  assert.match(SOURCE, /<FactCard key=\{j\} model=\{model\} \/>/);
+});
+
+// Lane w10-factcard-d (2026-09-21), build item 4: "All four detail surfaces render fact cards
+// through ItemGroup; no page hand-builds a group (F49)." A consecutive run of non-prose blocks
+// becomes one ItemGroup; a prose block flushes the pending group first. The merge rule (build
+// item 2) runs on the run's models before render.
+test("consecutive non-prose blocks render through the one shared ItemGroup, merge rule applied first, never a page-local group", () => {
+  assert.match(SOURCE, /from "@\/components\/ui\/ItemGroup"/);
+  assert.match(SOURCE, /mergeAdjacentSameKind\(pending\.flatMap\(\(b\) => deriveFactCardModels\(b\)\)\)/);
+  assert.match(SOURCE, /<ItemGroup key=\{`group-\$\{groupIndex\+\+\}`\}>/);
+  assert.match(SOURCE, /function flushGroup\(\)/);
 });
 
 test("an empty/unparseable section renders nothing (honest omission), never an empty card shell", () => {

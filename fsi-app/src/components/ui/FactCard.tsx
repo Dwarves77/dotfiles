@@ -80,12 +80,17 @@ const QUALIFIER: React.CSSProperties = {
   margin: 0,
 };
 
-const BODY_ROW: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "132px 1fr 150px",
-  gap: 14,
-  padding: "12px 14px",
-};
+/** Operator review 2026-09-21 (panel 21c), defect 1c: "the grid is 1fr 150px - the 132px
+ *  column does not exist" when there is no figure lead. `withLead` selects between the two
+ *  grid templates; the card never keeps a blank 132px column for a kind that has no lead. */
+function bodyRow(withLead: boolean): React.CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateColumns: withLead ? "132px 1fr 150px" : "1fr 150px",
+    gap: 14,
+    padding: "12px 14px",
+  };
+}
 
 const FIGURE_SUB_LABEL: React.CSSProperties = {
   fontSize: "var(--fs-10)",
@@ -94,6 +99,14 @@ const FIGURE_SUB_LABEL: React.CSSProperties = {
   textTransform: "uppercase",
   color: "var(--ink-3)",
   margin: "4px 0 0",
+  // Defect 4: "the sub-label is wrapping to two lines in 132px... The sub-label is 10px
+  // uppercase, nowrap, ellipsised if it must be." A deliberate slash pair ("RECOVERY /
+  // RECYCLING") is short enough to fit and renders whole; nowrap+ellipsis is the one rule that
+  // handles both that case and the wrapping "BEFORE NEXT SHIPMENT" case without a special-cased
+  // break-at-slash rule.
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const CLAIM_TEXT: React.CSSProperties = {
@@ -105,17 +118,25 @@ const CLAIM_TEXT: React.CSSProperties = {
   color: "var(--ink)",
 };
 
+/** Operator review 2026-09-21, defect 1b: "Spec: 10.5px / 1.45, gap 2px, T-square inline with
+ *  the source name, four lines max. Column 150px, left rule 1px, no padding-top." Width comes
+ *  from the grid template (150px, see `bodyRow` above); this is the column's own box - gap 2
+ *  (was 4), no padding-top (only paddingLeft), and a 4-line-max clamp on the whole column so an
+ *  unusually long source/org/link run never blows the card past its height budget. */
 const PROVENANCE_COL: React.CSSProperties = {
   borderLeft: "1px solid var(--line-1)",
   paddingLeft: 14,
   display: "flex",
   flexDirection: "column",
-  gap: 4,
+  gap: 2,
   minWidth: 0,
+  maxHeight: "calc(1.45em * 4)",
+  overflow: "hidden",
 };
 
 const PROVENANCE_TEXT: React.CSSProperties = {
   fontSize: "var(--fs-105)",
+  lineHeight: 1.45,
   color: "var(--ink-3)",
   margin: 0,
   overflowWrap: "anywhere",
@@ -166,16 +187,23 @@ function TierSquare({ tier }: { tier: number }) {
   );
 }
 
-function ProvenanceBlock({ model }: { model: FactCardModel }) {
-  if (formFor(model.kind) === "inference") {
+/** Operator review 2026-09-21, defect 1b: "tier square inline with the source name" - the tier
+ *  square was rendering as its own block above `p.source` (stacked, not inline). Takes a raw
+ *  `provenance` (not the whole model) so the same block renders both a card's primary
+ *  provenance and each stacked `additionalClaims[].provenance` (build item 2). */
+function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardModel["provenance"]; inference?: boolean }) {
+  if (inference) {
     return <p style={{ ...PROVENANCE_TEXT, fontStyle: "italic" }}>not citable</p>;
   }
-  const p = model.provenance;
   if (!p || (!p.source && !p.org && !p.href && !p.accessed && p.tier == null)) return null;
   return (
     <>
-      {typeof p.tier === "number" && <TierSquare tier={p.tier} />}
-      {p.source && <p style={PROVENANCE_TEXT}>{p.source}</p>}
+      {(typeof p.tier === "number" || p.source) && (
+        <p style={{ ...PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 }}>
+          {typeof p.tier === "number" && <TierSquare tier={p.tier} />}
+          {p.source && <span>{p.source}</span>}
+        </p>
+      )}
       {p.org && <p style={PROVENANCE_TEXT}>{p.org}</p>}
       {p.href && (
         <a
@@ -469,22 +497,50 @@ export function FactCard(props: FactCardProps) {
         <p data-guard-title data-part-slot="kind-word" style={{ ...KIND_WORD, color: kindWordColor }}>{model.kind}</p>
         {model.qualifier && <p style={QUALIFIER}>{model.qualifier}</p>}
       </div>
-      <div className="fact-card-v2-body" style={BODY_ROW}>
-        <div className="fact-card-v2-lead">
-          {model.figureLead && (
-            <>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-22)", color: form === "orange" ? "var(--action)" : "var(--ink)", margin: 0, lineHeight: 1.1 }}>
-                {model.figureLead}
-              </p>
-              {model.figureSubLabel && <p style={FIGURE_SUB_LABEL}>{model.figureSubLabel}</p>}
-            </>
-          )}
+      {/* Defect 1c: no figure lead -> no lead column at all (bodyRow(false) drops the 132px
+          track); a lead-less kind never keeps a blank column. */}
+      <div className="fact-card-v2-body" style={bodyRow(!!model.figureLead)}>
+        {model.figureLead && (
+          <div className="fact-card-v2-lead">
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-22)", color: form === "orange" ? "var(--action)" : "var(--ink)", margin: 0, lineHeight: 1.1 }}>
+              {model.figureLead}
+            </p>
+            {model.figureSubLabel && <p style={FIGURE_SUB_LABEL}>{model.figureSubLabel}</p>}
+          </div>
+        )}
+        <div className="fact-card-v2-claim-col" style={{ minWidth: 0 }}>
+          <p className="fact-card-v2-claim" style={{ ...CLAIM_TEXT, fontStyle: form === "inference" ? "italic" : "normal", color: form === "inference" ? "var(--ink-2)" : "var(--ink)" }}>
+            {renderClaim(model.claim)}
+          </p>
+          {/* Merge rule (build item 2, fact-card-model.ts's mergeAdjacentSameKind): each
+              additional claim from the merged run is its own paragraph, stacked below the
+              primary claim within the same card. */}
+          {model.additionalClaims?.map((c, i) => (
+            <p
+              key={i}
+              className="fact-card-v2-claim"
+              style={{
+                ...CLAIM_TEXT,
+                marginTop: 10,
+                paddingTop: 10,
+                borderTop: "1px solid var(--line-3)",
+                fontStyle: form === "inference" ? "italic" : "normal",
+                color: form === "inference" ? "var(--ink-2)" : "var(--ink)",
+              }}
+            >
+              {renderClaim(c.claim)}
+            </p>
+          ))}
         </div>
-        <p className="fact-card-v2-claim" style={{ ...CLAIM_TEXT, fontStyle: form === "inference" ? "italic" : "normal", color: form === "inference" ? "var(--ink-2)" : "var(--ink)" }}>
-          {renderClaim(model.claim)}
-        </p>
         <div className="fact-card-v2-provenance" style={PROVENANCE_COL}>
-          <ProvenanceBlock model={model} />
+          <ProvenanceBlock provenance={model.provenance} inference={form === "inference"} />
+          {/* Each stacked claim keeps its own provenance line (build item 2's test contract),
+              separated so the reader can tell which provenance belongs to which claim. */}
+          {model.additionalClaims?.map((c, i) => (
+            <div key={i} style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--line-3)" }}>
+              <ProvenanceBlock provenance={c.provenance} inference={form === "inference"} />
+            </div>
+          ))}
         </div>
       </div>
     </div>

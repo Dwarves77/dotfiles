@@ -24,6 +24,11 @@ const PARTS: PartEntry[] = [
     name: "FactCard",
     summary: "The one part for a sourced claim: kind band, figure lead, claim, provenance column. Nine kinds, three forms, a density=\"matrix\" variant for the operations panel.",
   },
+  {
+    slug: "item-group",
+    name: "ItemGroup",
+    summary: "Wraps fact cards inside an S-section: band pill header, up to 4 visible cards then an \"N more facts\" disclosure, and an optional ACTION strip.",
+  },
 ];
 
 export default async function AdminPartsIndexPage() {

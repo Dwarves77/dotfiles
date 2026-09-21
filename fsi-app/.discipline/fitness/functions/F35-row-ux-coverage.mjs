@@ -87,6 +87,11 @@ export const ROW_COMPONENTS = Object.freeze({
   // shared ListRow part; search-results-smoke.mjs mounts it directly (page.tsx is a server
   // component and cannot be bundled by this harness; see that file's own header).
   'src/components/search/SearchResultsView.tsx': 'search-results-smoke.mjs, the new /search results page (lane W10-CommandBar, ruling 2 of 2026-09-20)',
+  // lane w10-factcard-d, 2026-09-21 (operator review, panel 21c NOT SIGNED): panel-21c-smoke.mjs
+  // mounts both FactCard (data-guard-title on the kind word) and ItemGroup (data-guard-title on
+  // the group title) at 1440, measuring the operator's own acceptance list.
+  'src/components/ui/FactCard.tsx': 'panel-21c-smoke.mjs, the FactCard sign-off measurement (lane w10-factcard-d)',
+  'src/components/ui/ItemGroup.tsx': 'panel-21c-smoke.mjs, the ItemGroup sign-off measurement (lane w10-factcard-d)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

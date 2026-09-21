@@ -41,10 +41,16 @@ test("kind band: 10.5px/800/.12em uppercase kind word, 10.5px muted qualifier, 6
   assert.match(SOURCE, /borderBottom: "1px solid var\(--line-3\)"/);
 });
 
-test("body row is a 132px 1fr 150px grid, gap 14, padding 12px 14px", () => {
-  assert.match(SOURCE, /gridTemplateColumns: "132px 1fr 150px"/);
+// Operator review 2026-09-21 (panel 21c), defect 1c: "When there is no figure lead ... the grid
+// is 1fr 150px - the 132px column does not exist." `bodyRow(withLead)` is the fix: the grid is
+// 132px/1fr/150px only when a figure lead is present, else 1fr/150px, gap 14, padding 12px 14px
+// unchanged either way. The lead `<div>` itself is only rendered when `model.figureLead` is
+// truthy, so a lead-less kind never keeps a blank 132px column.
+test("body row grid is conditional on figureLead: 132px 1fr 150px when present, 1fr 150px when absent; gap 14, padding 12px 14px", () => {
+  assert.match(SOURCE, /gridTemplateColumns: withLead \? "132px 1fr 150px" : "1fr 150px"/);
   assert.match(SOURCE, /gap: 14,/);
   assert.match(SOURCE, /padding: "12px 14px"/);
+  assert.match(SOURCE, /\{model\.figureLead && \(\s*\n\s*<div className="fact-card-v2-lead">/);
 });
 
 test("figure lead uses Anton (--font-display) at --fs-22, in the edge colour", () => {
@@ -72,6 +78,35 @@ test("inference form is 1px dashed all round on var(--page), italic body, no fig
 
 test("provenance column carries a 1px left rule and is never a paragraph under the body", () => {
   assert.match(SOURCE, /PROVENANCE_COL[\s\S]*?borderLeft: "1px solid var\(--line-1\)"/);
+});
+
+// Operator review 2026-09-21, defect 1b: "10.5px / 1.45, gap 2px, T-square inline with the
+// source name, four lines max ... no padding-top."
+test("provenance column: gap 2, no padding-top, 1.45 line-height, tier square inline with the source name, 4-line max clamp", () => {
+  assert.match(SOURCE, /PROVENANCE_COL[\s\S]*?gap: 2,/);
+  assert.doesNotMatch(SOURCE.match(/const PROVENANCE_COL[\s\S]*?\};/)[0], /paddingTop/);
+  assert.match(SOURCE, /PROVENANCE_TEXT[\s\S]*?lineHeight: 1\.45,/);
+  assert.match(SOURCE, /maxHeight: "calc\(1\.45em \* 4\)"/);
+  // Tier square and source name render inside the SAME <p>, not two separate stacked blocks.
+  assert.match(
+    SOURCE,
+    /<p style=\{\{ \.\.\.PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 \}\}>\s*\n\s*\{typeof p\.tier === "number" && <TierSquare tier=\{p\.tier\} \/>\}\s*\n\s*\{p\.source && <span>\{p\.source\}<\/span>\}/
+  );
+});
+
+// Operator review 2026-09-21, defect 4: "the sub-label is wrapping to two lines in 132px ...
+// The sub-label is 10px uppercase, nowrap, ellipsised if it must be."
+test("figure sub-label is nowrap with ellipsis overflow (defect 4: no two-line wrap in the 132px lead column)", () => {
+  assert.match(SOURCE, /FIGURE_SUB_LABEL[\s\S]*?whiteSpace: "nowrap",/);
+  assert.match(SOURCE, /FIGURE_SUB_LABEL[\s\S]*?textOverflow: "ellipsis",/);
+});
+
+// Build item 2 / fact-card-model.ts's mergeAdjacentSameKind: a merged card's extra claims render
+// as their own stacked paragraphs, each with its own provenance line, inside the SAME card.
+test("a merged card's additionalClaims render as stacked claim paragraphs, each with its own provenance line", () => {
+  assert.match(SOURCE, /model\.additionalClaims\?\.map\(\(c, i\) => \(/);
+  assert.match(SOURCE, /renderClaim\(c\.claim\)/);
+  assert.match(SOURCE, /ProvenanceBlock provenance=\{c\.provenance\}/);
 });
 
 test("mobile stacking below 768px collapses the body grid to a single column with provenance as a footer line", () => {
