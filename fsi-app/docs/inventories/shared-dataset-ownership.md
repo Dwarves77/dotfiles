@@ -1069,3 +1069,11 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
     a single-writer registration for a table the enforced JSON array structurally does not cover.
 
 Note (added by lane L17, D26 part (a), defect-fix-plan-2026-09-12, 2026-09-13): `src/lib/intake/run-intake-cycle.ts` writes ONE `agent_run_searches` pool row per record-only mint (the candidate's own captured text in the generate-pool shape canonical-pipeline and the exporter read, asserted by `scripts/lib/pool-row-contract.mjs`), so a record-grade item enters the ledger with its capture stored and never triggers the paid ground path; disposition `record_only`.
+
+Note (added by lane M6, 2026-09-21, build plan section 6.1 row M6, Amendment 1 section E): `scripts/
+maintenance/apply-deferrals.mjs` writes ONE `integrity_flags` row per validated deferral
+(`created_by: "disposition_deferred"`, `recommended_actions: [{deferral: {...}}]`) -- the SAME row shape
+`scripts/verify/quarantine-disposition-audit.mjs`'s read side (and `close-legal-confirmation-rows.mjs`'s
+own companion write, item 14 above) already parse/write. No second reader or writer of that shape is
+introduced. This lane builds the applier only; the coordinator runs it, apply mode, against a reviewed
+53-item deferral file.
