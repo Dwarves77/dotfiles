@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // apply-deferrals.mjs -- MAINT dispatch step (lane M6, 2026-09-21, build plan section 6.1 row M6,
 // Amendment 1 section E). Item 3 of brief-m6.md is SPLIT: this lane BUILDS the applier, it does NOT run
 // it and does NOT wire the quarantine-disposition verifier into the CI data-audit lane (that one-line
