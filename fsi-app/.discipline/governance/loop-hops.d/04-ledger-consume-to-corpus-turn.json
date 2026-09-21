@@ -1,0 +1,10 @@
+{
+  "id": "ledger-consume-to-corpus-turn",
+  "producer": { "file": ".github/workflows/ledger-consume.yml", "name": "Ledger consume" },
+  "consumer": { "file": ".github/workflows/corpus-turn.yml", "name": "Corpus turn" },
+  "trigger": "workflow_run",
+  "family": "corpus-turn",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge landed (lane M3, 2026-09-19): corpus-turn.yml now carries on.workflow_run.workflows: [\"Ledger consume\"], alongside workflow_dispatch and push:branches turn/**. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2)."
+}

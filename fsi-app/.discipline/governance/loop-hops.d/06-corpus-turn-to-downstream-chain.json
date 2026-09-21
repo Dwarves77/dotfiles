@@ -1,0 +1,10 @@
+{
+  "id": "corpus-turn-to-downstream-chain",
+  "producer": { "file": ".github/workflows/corpus-turn.yml", "name": "Corpus turn" },
+  "consumer": { "file": ".github/workflows/downstream-chain.yml", "name": "Downstream chain" },
+  "trigger": "workflow_run",
+  "family": "downstream-chain",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Same edge, same now-registered family as population-turn-to-downstream-chain above (M3)."
+}

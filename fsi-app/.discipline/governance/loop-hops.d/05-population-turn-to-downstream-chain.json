@@ -1,0 +1,10 @@
+{
+  "id": "population-turn-to-downstream-chain",
+  "producer": { "file": ".github/workflows/population-turn.yml", "name": "Population turn" },
+  "consumer": { "file": ".github/workflows/downstream-chain.yml", "name": "Downstream chain" },
+  "trigger": "workflow_run",
+  "family": "downstream-chain",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge exists today: downstream-chain.yml carries on.workflow_run.workflows: [\"Population turn\", \"Corpus turn\"]. The downstream-chain harness family is now registered (lane M3, 2026-09-19, by descriptor only, scripts/harness-runs/downstream-chain/family.json) -- familyPending cleared. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2)."
+}
