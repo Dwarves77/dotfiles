@@ -14,6 +14,7 @@
 // facts.
 
 import type { FactCardModel } from "@/lib/detail/fact-card-model";
+import { toClaimNodes } from "@/lib/detail/fact-card-model";
 
 export interface FactCardFixture {
   label: string;
@@ -172,11 +173,46 @@ export const NO_PROVENANCE_FIXTURE: FactCardFixture = {
   },
 };
 
+/** Lane w10-factcard-c (2026-09-21), item 3: the two measured live leftovers, as sign-off fixtures.
+ *  Both build their `claim` through the real `toClaimNodes` (not hand-typed nodes) so the fixture
+ *  reflects the actual fix rather than a duplicated re-implementation of it - a person reviewing
+ *  /admin/parts/fact-card sees the same shape the production defect showed, now corrected. */
+
+/** Defect 1: a claim with an inline list and bold ("sentence. \n- **Name**, title ...", a
+ *  placeholder name per the integrity rule - never a real person). */
+export const INLINE_LIST_FIXTURE: FactCardFixture = {
+  label: "Defect 1 fixed: inline list + bold inside a claim (was: raw '\\n- **' in the <p>)",
+  model: {
+    kind: "SCOPE",
+    qualifier: "measured production shape, market detail",
+    figureLead: null,
+    claim: toClaimNodes("Effective May 6, 2026.\n- **Jane Doe**, Commercial Director, Example Corp."),
+    provenance: PROVENANCE,
+  },
+};
+
+/** Defect 2: a source line with a second, embedded URL beyond the card's own provenance link (was:
+ *  a bare url rendered in a plain <span>, no <a>). */
+export const EMBEDDED_LINK_FIXTURE: FactCardFixture = {
+  label: 'Defect 2 fixed: a claim carrying a second embedded url, own link node (was: bare url in a <span>)',
+  model: {
+    kind: "ANALYTICAL INFERENCE",
+    qualifier: "Analytical inference",
+    figureLead: null,
+    claim: toClaimNodes(
+      "Forwarders should confirm the notice at https://example.org/first-notice and cross-check the follow-up published at https://example.org/second-notice before quoting the lane."
+    ),
+    provenance: null,
+  },
+};
+
 export const DEFAULT_DENSITY_FIXTURES: FactCardFixture[] = [
   ...KIND_FIXTURES,
   NO_LEAD_FIXTURE,
   LONG_CLAIM_FIXTURE,
   NO_PROVENANCE_FIXTURE,
+  INLINE_LIST_FIXTURE,
+  EMBEDDED_LINK_FIXTURE,
 ];
 
 // ── density="matrix" fixtures (operations panel anatomy) ───────────────────────────────────────

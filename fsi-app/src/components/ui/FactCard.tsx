@@ -122,9 +122,26 @@ const PROVENANCE_TEXT: React.CSSProperties = {
 };
 
 function renderClaim(nodes: ClaimNode[]) {
-  return nodes.map((n, i) =>
-    n.bold ? <b key={i}>{n.text}</b> : <span key={i}>{n.text}</span>
-  );
+  return nodes.map((n, i) => {
+    // Lane w10-factcard-c (2026-09-21) defect 2: a bare url left embedded in a claim's body (a
+    // second, non-provenance url, see fact-card-model.ts's `splitEmbeddedLinks`) renders as a
+    // real anchor, host as its visible text (the same F30 treatment the provenance column's own
+    // link already uses), never as bare text in a `<span>`.
+    if (n.href) {
+      return (
+        <a
+          key={i}
+          href={n.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "inherit", textDecoration: "underline", textDecorationColor: "var(--link-line)" }}
+        >
+          {n.text}
+        </a>
+      );
+    }
+    return n.bold ? <strong key={i}>{n.text}</strong> : <span key={i}>{n.text}</span>;
+  });
 }
 
 function TierSquare({ tier }: { tier: number }) {

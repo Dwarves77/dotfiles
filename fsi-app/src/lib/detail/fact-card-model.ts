@@ -54,6 +54,13 @@ const IMPERATIVE_LEADS = ["Register", "Confirm", "Ask", "Budget", "File", "Reque
 export interface ClaimNode {
   text: string;
   bold?: boolean;
+  /** Present only on an inline link node (lane w10-factcard-c, 2026-09-21): a bare URL left
+   *  embedded in a claim's body after `extractProvenance` below has already promoted the claim's
+   *  OWN trailing/first citation URL to the provenance column. `text` for a link node is always
+   *  `hostFromUrl(href)` - the same "host as visible text" treatment the provenance column's own
+   *  anchor already uses (F30), never a second URL formatter (F45, rule against a duplicate
+   *  formatting implementation). */
+  href?: string | null;
 }
 
 export interface FactCardProvenance {
@@ -189,7 +196,16 @@ function extractProvenance(text: string): { text: string; provenance: FactCardPr
  *  `[text](url)`) and returns an ordered list of { text, bold } nodes. `**bold**` spans
  *  become bold nodes; everything else (including a lone `*italic*` marker, which the rule
  *  gives no separate node type for) is stripped to plain text - no `*` survives into any
- *  node. Never returns an HTML string or a markdown string; always a node array. */
+ *  node. Never returns an HTML string or a markdown string; always a node array.
+ *
+ *  Lane w10-factcard-c (2026-09-21) defect 1: a claim carrying an embedded markdown list line
+ *  ("sentence. \n- **Name**, title ...") reached the card's <p> with the raw "\n- " surviving -
+ *  measured live, market detail, `[data-part="fact-card"] <p>` text beginning "May 6, 2026. \n-
+ *  **". `ClaimNode[]` has no list-item node type (fact-card-model.ts carries no block-level
+ *  structure at all - see the header note above), so the fix this structure already supports is
+ *  INLINE: fold the list marker into flowing prose rather than rendering a real list, per the
+ *  lane brief's "or the model splits it into the claim plus a list block, whichever the model's
+ *  existing structure already supports" - the existing structure supports inline only. */
 export function toClaimNodes(raw: string): ClaimNode[] {
   let text = raw
     .replace(/^\s*#{1,6}\s*/, "") // leading heading marker
@@ -199,6 +215,17 @@ export function toClaimNodes(raw: string): ClaimNode[] {
   // upstream; any link surviving to here is inline and its href is dropped rather than
   // silently left in running text).
   text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+  // Embedded list marker -> inline prose (defect 1, see header note above). A marker at the very
+  // start of the text, or after a newline, becomes a single space; any remaining newline (a list
+  // continuation with no marker, or a stray line break) collapses the same way, then runs of
+  // spaces/tabs left behind by the collapse are squeezed to one.
+  text = text
+    .replace(/^[ \t]*[-*]\s+/, "")
+    .replace(/\n[ \t]*[-*]\s+/g, " ")
+    .replace(/\s*\n+\s*/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 
   const nodes: ClaimNode[] = [];
   const boldRe = /\*\*(.+?)\*\*/g;
@@ -211,11 +238,38 @@ export function toClaimNodes(raw: string): ClaimNode[] {
   }
   if (last < text.length) nodes.push({ text: stripStrayAsterisks(text.slice(last)) });
 
-  return nodes.filter((n) => n.text.length > 0);
+  return nodes.filter((n) => n.text.length > 0).flatMap(splitEmbeddedLinks);
 }
 
 function stripStrayAsterisks(s: string): string {
   return s.replace(/\*/g, "").trim();
+}
+
+const CLAIM_URL_RE = /https?:\/\/[^\s)\]}"'<>]+/g;
+
+/** Lane w10-factcard-c (2026-09-21) defect 2. `extractProvenance` (below) promotes ONE url out of
+ *  a claim - the claim's own trailing citation, or the first bare url anywhere in it - to the
+ *  provenance column. A claim carrying a SECOND, independent url (measured live, market detail: a
+ *  citation line, publisher and date, then a bare url) still had that second url sitting in the
+ *  claim body, reaching `renderClaim`'s plain (non-bold) branch, which wraps it in a `<span>` with
+ *  no `<a>` - the exact "bare url in a `<span>`" shape amendment 1 named. This splits every
+ *  REMAINING url in a node's text into its own link node, `text` set to `hostFromUrl(href)` - the
+ *  same "host as visible text" anchor the provenance column already renders (F30), never a second
+ *  url formatter (F45). Never called on a node produced by the bold-span loop above until after
+ *  that loop, so a bold url (rare, unseen in the corpus) is still caught. */
+function splitEmbeddedLinks(node: ClaimNode): ClaimNode[] {
+  const re = new RegExp(CLAIM_URL_RE);
+  const parts: ClaimNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(node.text))) {
+    if (m.index > last) parts.push({ text: node.text.slice(last, m.index), bold: node.bold });
+    parts.push({ text: hostFromUrl(m[0]), href: m[0] });
+    last = m.index + m[0].length;
+  }
+  if (parts.length === 0) return [node];
+  if (last < node.text.length) parts.push({ text: node.text.slice(last), bold: node.bold });
+  return parts.filter((n) => n.text.length > 0);
 }
 
 // ── Step 5: figure lead extraction ─────────────────────────────────────────────────────

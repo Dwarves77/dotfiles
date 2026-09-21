@@ -100,3 +100,15 @@ test("root element carries data-part=\"fact-card\" and a data-kind slug derived 
   assert.match(SOURCE, /data-kind=\{kindSlug\(model\.kind\)\}/);
   assert.match(SOURCE, /function kindSlug\(kind: string\): string \{/);
 });
+
+// Lane w10-factcard-c (2026-09-21), defects 1 and 2. A bolded run in a claim is a real <strong>
+// element, not <b> (the render-test target the lane brief states); a link node (fact-card-model.ts's
+// `splitEmbeddedLinks`, defect 2's fix for a bare url left embedded in a claim) is a real <a>, never
+// bare text in the plain-text <span> branch.
+test("renderClaim renders a bold node as <strong> (not <b>) and a link node (n.href) as a real <a>, host text, never bare in a <span>", () => {
+  assert.match(SOURCE, /function renderClaim\(nodes: ClaimNode\[\]\) \{/);
+  assert.doesNotMatch(SOURCE, /<b key=\{i\}>/, "bold claim text is never rendered as <b>");
+  assert.match(SOURCE, /n\.bold \? <strong key=\{i\}>\{n\.text\}<\/strong> : <span key=\{i\}>\{n\.text\}<\/span>/);
+  assert.match(SOURCE, /if \(n\.href\) \{/, "a link node is checked before the bold/plain branch");
+  assert.match(SOURCE, /<a[\s\S]{0,120}?href=\{n\.href\}/, "a link node renders a real <a href={n.href}>");
+});

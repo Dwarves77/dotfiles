@@ -237,3 +237,53 @@ test("both detail surfaces' shared FactBlocks pipeline emits zero literal asteri
     }
   }
 });
+
+// Lane W10-FactCard-c (2026-09-21). Two live leftovers measured on production market detail
+// `/market/9d18608f-269e-405a-9ad8-afa638dda928` by a read-only text-node walk, both inside
+// `[data-part="fact-card"] <p>`/claim text: (1) a literal-markdown match, claim text beginning
+// "May 6, 2026. \n- **" followed by a name and a title; (2) five bare `http` URLs in text nodes
+// outside any `<a>`.
+
+test("defect 1: an embedded list marker inside a claim (\"sentence. \\n- **Name**, title\") folds into inline prose - no '*', no leading '- ', the name stays a distinct bold node", () => {
+  // The measured shape, with a placeholder name per the integrity rule (never a real person).
+  const nodes = toClaimNodes("Effective May 6, 2026.\n- **Jane Doe**, Commercial Director, Example Corp.");
+  const rendered = nodes.map((n) => n.text).join("");
+  assert.ok(!rendered.includes("*"), `no literal asterisk survives: ${JSON.stringify(rendered)}`);
+  assert.ok(!rendered.includes("\n"), `no raw newline survives: ${JSON.stringify(rendered)}`);
+  assert.ok(!/(^|\s)-\s/.test(rendered), `no leading list-marker dash survives: ${JSON.stringify(rendered)}`);
+  const bold = nodes.find((n) => n.bold && n.text === "Jane Doe");
+  assert.ok(bold, "the bolded name stays its own bold node, not merged into plain text");
+});
+
+test("defect 1: a bare '- ' at the very start of a claim (no preceding newline) also folds away", () => {
+  const nodes = toClaimNodes("- **Jane Doe**, Commercial Director, Example Corp.");
+  const rendered = nodes.map((n) => n.text).join("");
+  assert.ok(!rendered.startsWith("- "), `no leading list marker: ${JSON.stringify(rendered)}`);
+  assert.ok(!rendered.includes("*"), `no literal asterisk survives: ${JSON.stringify(rendered)}`);
+});
+
+test("defect 2: a claim carrying two embedded urls - the first is claimed as this card's provenance, the second becomes a real link node, never bare text in a <span> (measured: 'citation line, publisher and date, then a bare URL')", () => {
+  const paragraph = classifyParagraph(
+    "*Operational implication:* Forwarders should confirm the notice at https://example.org/first-notice and cross-check the follow-up published at https://example.org/second-notice before quoting the lane."
+  );
+  assert.equal(paragraph.kind, "inference");
+  const models = deriveFactCardModels(paragraph);
+  assert.equal(models.length, 1);
+  const model = models[0];
+
+  // extractProvenance's own rule (first url anywhere -> provenance) claims the first url.
+  assert.equal(model.provenance?.href, "https://example.org/first-notice");
+
+  // The second url is NOT dropped and NOT left as bare text: it becomes its own link node, whose
+  // visible text is the host via hostFromUrl - the same "host as visible text" anchor treatment
+  // the provenance column already uses (F30), never a second url formatter (F45).
+  const linkNode = model.claim.find((n) => n.href === "https://example.org/second-notice");
+  assert.ok(linkNode, "the leftover embedded url survives as a link node, not silently dropped");
+  assert.equal(linkNode.text, "example.org", "the link node's text is hostFromUrl(href), never the raw url");
+
+  // No claim node without an href carries a bare url - the defect's exact shape: a url-looking
+  // string rendered as plain text (FactCard's non-link branch wraps plain text in a <span>).
+  for (const n of model.claim) {
+    if (!n.href) assert.doesNotMatch(n.text, /https?:\/\//, `no bare url outside a link node: ${JSON.stringify(n)}`);
+  }
+});

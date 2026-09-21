@@ -593,7 +593,7 @@ test('underEntryDir: recognizes the five derived directories and docs/ops/sessio
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the eleven named entries (six coordinator-owned files, lane G1 Amendment 2\'s README, the three lane F51b loop-id-resolver files, and the lane R7m loop-manifest.mjs conversion entry)', () => {
+test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the thirteen named entries (six coordinator-owned files, lane G1 Amendment 2\'s README, the three lane F51b loop-id-resolver files, the lane R7m loop-manifest.mjs conversion entry, and the two lane W10-FactCard-c FactCard part files)', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
@@ -605,6 +605,8 @@ test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the eleven na
       'fsi-app/scripts/lib/loop-run-id.test.mjs',
       'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs',
       'fsi-app/.discipline/governance/loop-manifest.mjs',
+      'fsi-app/src/components/ui/FactCard.tsx',
+      'fsi-app/src/components/ui/FactCard.npmtest.mjs',
     ].sort(),
   );
 });
