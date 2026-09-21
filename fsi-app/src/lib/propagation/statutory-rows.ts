@@ -33,6 +33,7 @@ import { computeStatutory, FUELEU_STATUTE_CITATION, FUELEU_FORMULA_VERSION } fro
 import { FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE } from "../statutory/fueleu-annex-iv.mjs";
 import { admissibleFor } from "./admissible-for.ts";
 import { classTierForHost } from "../sources/host-authority.ts";
+import { hostFromUrl } from "../entities/host-from-url.mjs";
 
 // ── Constants (Article 4(2), verified live against EUR-Lex CELEX:32023R1805, see write-statutory.mjs's
 // original header for the full verification note) ──────────────────────────────────────────────────────
@@ -67,12 +68,11 @@ export function validateSourceBlock(source: any, where: string): string[] {
     }
   }
   if (typeof source.url === "string" && source.url.trim()) {
-    let host: string | null;
-    try {
-      host = new URL(source.url).host.replace(/^www\./, "").toLowerCase();
-    } catch {
+    // hostFromUrl (the entity spine's ONE host normalizer, F30 url_host_derivation) returns "" for
+    // anything it can't parse, rather than throwing. An empty host here means the URL was invalid.
+    const host = hostFromUrl(source.url);
+    if (!host) {
       violations.push(`${where}.source.url is not a valid absolute URL: "${source.url}"`);
-      host = null;
     }
     if (host) {
       const tier = classTierForHost(host);
