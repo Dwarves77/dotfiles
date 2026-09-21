@@ -30,6 +30,14 @@
 
 import type { FactCardModel, ClaimNode } from "@/lib/detail/fact-card-model";
 import { hostFromUrl } from "@/lib/entities/host-from-url.mjs";
+import {
+  factHeadline,
+  indexAgainstBase,
+  sourceUrlFromNote,
+  sourceNameFromNote,
+  originClassLabel,
+  derivationLabel,
+} from "@/lib/operations/region-grid.mjs";
 
 export type { FactCardModel, ClaimNode };
 
@@ -177,7 +185,205 @@ function ProvenanceBlock({ model }: { model: FactCardModel }) {
   );
 }
 
-export function FactCard({ model }: { model: FactCardModel }) {
+// ── density="matrix" (operations panel) ─────────────────────────────────────────────────
+//
+// Amendment 1 section B.1 (coordinator, 2026-09-20): the operations matrix panel's fact card is a
+// declared `density="matrix"` variant of this ONE part (lead Anton 18, claim 12.5px, source line),
+// not a second component - "Delete MatrixFactCard; correct its header comment to cite the newer
+// ruling." This is that migration: the anatomy formerly exported as
+// `RegionDimensionMatrix.tsx`'s standalone `MatrixFactCard` function now lives here, reached only
+// through `<FactCard density="matrix" fact={...} baseFact={...} />`. The region/dimension fact rows
+// this branch renders are raw `region-grid.mjs` envelope facts, not classified fact paragraphs, so
+// they carry no kind word from the fixed nine-value vocabulary and this branch draws no kind band -
+// exactly what artboard 08 shows: a headline figure inline with its claim, then a source line, no
+// band above it. Every other visual token (card shape, edge, radius, sizes) is the same "matrix"
+// sizing (18px figure, 12.5px claim/detail, 10.5px source) the artboard specifies for this
+// density, unchanged from the pre-migration behaviour.
+
+/** The first N words of a string, collapsed. The no-figure card's headline is SIX (operator,
+ *  2026-09-09: "the card leads with a 6-word headline in 13px/600"). Fewer than six words in means
+ *  fewer than six out: nothing is padded and nothing is invented. */
+export function sixWordHeadline(text: string, n = 6): string {
+  const words = String(text).trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, n).join(" ");
+}
+
+/** What follows the six-word headline on the no-figure card: "then the claim" (operator). The claim
+ *  is the row's prose when it has any; otherwise it is whatever of the label the headline did not
+ *  already say, so the card never prints the same six words twice. */
+export function claimAfterHeadline(description: string, prose: string | null): string {
+  if (prose) return prose;
+  const words = String(description ?? "").trim().split(/\s+/).filter(Boolean);
+  return words.length > 6 ? words.slice(6).join(" ") : "";
+}
+
+/**
+ * THE MATRIX FACT CARD. One anatomy for both data shapes, because `factHeadline` (region-grid.mjs) is
+ * the one place that decides which slot a fact's data goes into: an enveloped row (migration 267's
+ * value_numeric + unit) yields a formatted figure, a free-text row yields its `value` as the figure
+ * when it is short and numeric, and a sentence yields no figure at all and is set as prose. Nothing
+ * is derived out of the prose and no sentence is ever promoted into the display face.
+ *
+ * SHAPE. The artboard draws a headline figure in the display face INLINE with its description on
+ * one line, then a source line below carrying an underlined link, a date, and a provenance word.
+ * The card's box is the system sheet's sourced fact card: white, 2px solid ink LEFT edge, 1px
+ * `--line-1` the other three sides, radius 0 8px 8px 0.
+ */
+function MatrixFactCardBody({ fact: f, baseFact }: { fact: Record<string, unknown>; baseFact: Record<string, unknown> | null }) {
+  const url = (f.sourceUrl as string) ?? sourceUrlFromNote(f.sourceNote);
+  const name = (f.sourceName as string) ?? sourceNameFromNote(f.sourceNote);
+  const { figure, description, prose } = factHeadline(f);
+  const idx = baseFact ? indexAgainstBase(f, baseFact) : null;
+  // The source line's third element: the provenance word the artboard draws ("official"). It is the
+  // row's own origin class, and its derivation when one is recorded: surfaced, never suppressed
+  // (WO-12 step 4). A row carrying neither falls back to the date the row itself was written, which
+  // is what the artboard's other card shows.
+  const provenance = [originClassLabel(f.originClass), derivationLabel(f.derivation)].filter(Boolean).join(" · ");
+  const written = f.lastUpdated ? String(f.lastUpdated).slice(0, 10) : null;
+  /** The period the figure is FOR, which is the source line's second element. Taken from the row's
+   *  own envelope fields and never derived from the written date: "when the row was typed" and "what
+   *  the figure measures" are different facts and the artboard shows the second one. Null on every
+   *  live row today (the envelope columns are unpopulated), which is why the fixture's own source
+   *  names carry their period the way the artboard's do. */
+  const period = (f.referencePeriod as string) || (f.asAtDate ? String(f.asAtDate).slice(0, 7) : null);
+  /** What sits on the lead line beside the figure or the headline. With a figure it is the row's
+   *  label, which is the operator's "12.5px claim ... on one line". With no figure the label has
+   *  already been spent on the six-word headline, so it is whatever of the label the headline did
+   *  not say, and usually nothing: the claim is then the detail sentence below. */
+  const inlineClaim = figure ? description : claimAfterHeadline(description, null);
+
+  return (
+    <div
+      data-audit="ops-fact-card"
+      data-part="fact-card"
+      data-kind="matrix"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderLeft: "2px solid var(--ink)",
+        borderRadius: "0 8px 8px 0",
+        padding: "12px 14px",
+        margin: "0 0 10px",
+        minWidth: 0,
+      }}
+    >
+      {/* LINE 1. EVERY FACT CARD LEADS WITH ITS FIGURE (operator, 2026-09-09, verbatim): the Anton
+          18 headline figure INLINE with the 12.5px claim, on one line. `baseline` alignment is what
+          makes an 18px display figure and 12.5px body sit on the same line rather than the figure
+          floating above it.
+
+          THE NO-FIGURE BRANCH, which is a real branch and not a sentence in a comment. Operator,
+          same message: "If the pipeline has no figure for a fact, the card leads with a 6-word
+          headline in 13px/600, then the claim." A fact reaches it two ways, both real in the live
+          corpus: a row whose `value` is a sentence rather than a quantity, and a row with no value
+          at all. `factHeadline` (region-grid.mjs) is the single place that decides, and it returns
+          `figure: null` for exactly those two. The headline is the first six words of the row's own
+          label (or of its prose when it has no label): the row's words, truncated, never a sentence
+          the component wrote. */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
+        {figure ? (
+          <span
+            data-audit="ops-fact-figure"
+            data-guard-display="matrix-fact-figure"
+            style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", flexShrink: 0 }}
+          >
+            {figure}
+          </span>
+        ) : (
+          <span
+            data-audit="ops-fact-headline"
+            style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2, color: "var(--ink)", flexShrink: 0 }}
+          >
+            {sixWordHeadline(description || prose || "")}
+          </span>
+        )}
+        {inlineClaim && (
+          <span
+            data-audit="ops-fact-quote"
+            style={{
+              fontSize: "var(--fs-125)",
+              color: "var(--ink)",
+              lineHeight: 1.45,
+              overflowWrap: "anywhere",
+              minWidth: 0,
+              // 72ch is the PROSE's measure, not the column's (operator, 2026-09-09). The claim is
+              // prose, so it carries the same cap as the detail sentence below it. The cell around
+              // it keeps its full width; only the line length is bounded.
+              maxWidth: "72ch",
+            }}
+          >
+            {inlineClaim}
+          </span>
+        )}
+        {idx !== null && (
+          <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", flexShrink: 0 }}>index {Math.round(idx)} vs base</span>
+        )}
+      </div>
+      {/* LINE 2, THE DETAIL SENTENCE: "12.5px, line-height 1.5" (operator, 2026-09-09). It is the
+          row's prose, below the lead line rather than run into it, and it is drawn only when the row
+          HAS prose: a row whose whole content is a figure and a label has no detail sentence and
+          gets no empty box where one would be. Its LINE LENGTH is capped at 72ch; the cell and the
+          panel column around it keep their full measured width. */}
+      {prose && (
+        <p
+          data-audit="ops-fact-detail"
+          style={{
+            fontSize: "var(--fs-125)",
+            lineHeight: 1.5,
+            color: "var(--ink)",
+            margin: "6px 0 0",
+            overflowWrap: "anywhere",
+            maxWidth: "72ch",
+          }}
+        >
+          {prose}
+        </p>
+      )}
+      {/* SOURCE LINE, 10.5px muted, in the shape the operator states and the artboard draws:
+          "Vervo Logistics · 2024-08 · row written 2026-05-28" / "Indeed HK · 2025-09 · row written
+          2026-05-28" / "MOM Occupational Wage Survey · 2025 · official". Three elements: the source
+          name, the period the figure is FOR, and then the row's provenance word when it carries one
+          or the date the row was written when it does not. */}
+      <div data-audit="ops-fact-source" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
+        {name ? (
+          url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 28,
+                color: "var(--ink-2)",
+                textDecoration: "underline",
+                textDecorationColor: "var(--link-line)",
+              }}
+            >
+              {name}
+            </a>
+          ) : (
+            name
+          )
+        ) : (
+          "source not linked"
+        )}
+        {period ? ` · ${period}` : ""}
+        {provenance ? ` · ${provenance}` : written ? ` · row written ${written}` : " · no date on row"}
+      </div>
+    </div>
+  );
+}
+
+type FactCardProps =
+  | { density?: undefined; model: FactCardModel }
+  | { density: "matrix"; fact: Record<string, unknown>; baseFact: Record<string, unknown> | null };
+
+export function FactCard(props: FactCardProps) {
+  if (props.density === "matrix") {
+    return <MatrixFactCardBody fact={props.fact} baseFact={props.baseFact} />;
+  }
+  const { model } = props;
   const form = formFor(model.kind);
 
   const cardShape: React.CSSProperties =

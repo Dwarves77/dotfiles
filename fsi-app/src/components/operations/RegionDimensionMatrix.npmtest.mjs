@@ -43,6 +43,12 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(HERE, "RegionDimensionMatrix.tsx"), "utf8");
+// Lane w10-factcard-b (2026-09-20): the matrix fact-card anatomy (formerly the standalone
+// `MatrixFactCard` function in THIS file) moved to src/components/ui/FactCard.tsx as its
+// density="matrix" branch, per Amendment 1 section B.1. Tests that pin that anatomy's shape now
+// read FACTCARD_SOURCE instead of SOURCE; tests that pin the CALL SITE (this file rendering
+// `<FactCard density="matrix" .../>`) still read SOURCE/CODE.
+const FACTCARD_SOURCE = readFileSync(resolve(HERE, "../ui/FactCard.tsx"), "utf8");
 // CODE is SOURCE with every comment removed. The deletion tests below assert that a retired
 // construct is ABSENT, and this file's own header explains at length which constructs were retired
 // and why: so asserting against the raw text would fail on the explanation rather than on the
@@ -283,16 +289,16 @@ test("a fact with NO figure leads with a six-word headline at 13px/600, then the
   // fact, the card leads with a 6-word headline in 13px/600, then the claim." The branch is proven
   // to RUN by the `ops-matrix-nofigure` mount and spec/operations-matrix-nofigure.json; this test
   // pins its shape in the source.
-  assert.match(SOURCE, /const \{ figure, description, prose \} = factHeadline\(f\)/);
+  assert.match(FACTCARD_SOURCE, /const \{ figure, description, prose \} = factHeadline\(f\)/);
   assert.doesNotMatch(CODE, /<Absence reason="pending" \/>/, "the literal PENDING is deleted, not hidden");
   assert.doesNotMatch(CODE, /reason="pending"/, "in any spelling");
-  assert.match(SOURCE, /data-audit="ops-fact-headline"/);
-  assert.match(SOURCE, /fontSize: 13, fontWeight: 600/);
-  assert.match(SOURCE, /\{sixWordHeadline\(description \|\| prose \|\| ""\)\}/);
+  assert.match(FACTCARD_SOURCE, /data-audit="ops-fact-headline"/);
+  assert.match(FACTCARD_SOURCE, /fontSize: 13, fontWeight: 600/);
+  assert.match(FACTCARD_SOURCE, /\{sixWordHeadline\(description \|\| prose \|\| ""\)\}/);
   // Six words, never padded and never invented: fewer words in, fewer words out.
-  assert.match(SOURCE, /export function sixWordHeadline\(text: string, n = 6\)/);
-  assert.match(SOURCE, /words\.slice\(0, n\)\.join\(" "\)/);
-  const card = SOURCE.slice(SOURCE.indexOf("function MatrixFactCard"), SOURCE.indexOf("// ── Shared cell geometry"));
+  assert.match(FACTCARD_SOURCE, /export function sixWordHeadline\(text: string, n = 6\)/);
+  assert.match(FACTCARD_SOURCE, /words\.slice\(0, n\)\.join\(" "\)/);
+  const card = FACTCARD_SOURCE.slice(FACTCARD_SOURCE.indexOf("function MatrixFactCardBody"), FACTCARD_SOURCE.indexOf("type FactCardProps ="));
   assert.equal(
     (card.match(/var\(--font-display\)/g) ?? []).length,
     1,
@@ -301,18 +307,18 @@ test("a fact with NO figure leads with a six-word headline at 13px/600, then the
 });
 
 test("the detail sentence is 12.5px / 1.5, and its LINE LENGTH is capped at 72ch", () => {
-  assert.match(SOURCE, /data-audit="ops-fact-detail"/);
-  assert.match(SOURCE, /lineHeight: 1\.5,/);
+  assert.match(FACTCARD_SOURCE, /data-audit="ops-fact-detail"/);
+  assert.match(FACTCARD_SOURCE, /lineHeight: 1\.5,/);
   // Operator ruling 2026-09-09: "72ch is the MAX line length of the prose (max-width:72ch on the
   // text block); 560px is the MIN width of the column that holds it." Two constraints on two
   // different boxes, so the cap is a plain 72ch and the `max(560px, ...)` construction is gone; the
   // 560px floor is measured on the column by acceptance leg B, not on the text block.
-  assert.match(SOURCE, /maxWidth: "72ch",/);
-  assert.doesNotMatch(SOURCE, /maxWidth: "max\(/, "the max(560px, 72ch) construction is gone, not merely commented");
+  assert.match(FACTCARD_SOURCE, /maxWidth: "72ch",/);
+  assert.doesNotMatch(FACTCARD_SOURCE, /maxWidth: "max\(/, "the max(560px, 72ch) construction is gone, not merely commented");
 });
 
 test("the claim carries the same 72ch measure as the detail sentence", () => {
-  const card = SOURCE.slice(SOURCE.indexOf("function MatrixFactCard"), SOURCE.indexOf("// ── Shared cell geometry"));
+  const card = FACTCARD_SOURCE.slice(FACTCARD_SOURCE.indexOf("function MatrixFactCardBody"), FACTCARD_SOURCE.indexOf("type FactCardProps ="));
   const quote = card.slice(card.indexOf('data-audit="ops-fact-quote"'));
   assert.match(quote.slice(0, 700), /maxWidth: "72ch",/, "the claim is prose and carries the prose measure");
 });
@@ -321,9 +327,9 @@ test("the source line is source name, then period, then provenance or the row's 
   // The operator's shape, 2026-09-09: "Vervo Logistics · 2024-08 · row written 2026-05-28", and the
   // artboard's: "MOM Occupational Wage Survey · 2025 · official". The build before this one put the
   // written date second and the provenance word third, which is neither.
-  assert.match(SOURCE, /const period = \(f\.referencePeriod as string\) \|\| \(f\.asAtDate \? String\(f\.asAtDate\)\.slice\(0, 7\) : null\)/);
-  assert.match(SOURCE, /\{period \? ` · \$\{period\}` : ""\}/);
-  assert.match(SOURCE, /\{provenance \? ` · \$\{provenance\}` : written \? ` · row written \$\{written\}` : " · no date on row"\}/);
+  assert.match(FACTCARD_SOURCE, /const period = \(f\.referencePeriod as string\) \|\| \(f\.asAtDate \? String\(f\.asAtDate\)\.slice\(0, 7\) : null\)/);
+  assert.match(FACTCARD_SOURCE, /\{period \? ` · \$\{period\}` : ""\}/);
+  assert.match(FACTCARD_SOURCE, /\{provenance \? ` · \$\{provenance\}` : written \? ` · row written \$\{written\}` : " · no date on row"\}/);
 });
 
 // ── What was DELETED, not left dormant (CLAUDE.md rule 13) ──────────────────────────────────────
@@ -340,15 +346,20 @@ test("the expanded-row code path is gone: no colspan cell, no per-region fact gr
 
 test("the two fact-row components are collapsed into one, because factHeadline routes both shapes", () => {
   assert.doesNotMatch(CODE, /function LegacyFactRow|function EnvelopedFactRow/);
-  assert.match(SOURCE, /function MatrixFactCard/);
-  assert.equal((SOURCE.match(/data-audit="ops-fact-card"/g) ?? []).length, 1, "one fact card anatomy, one place");
+  // The anatomy itself (lane w10-factcard-b, 2026-09-20) moved to ui/FactCard.tsx's density="matrix"
+  // branch; this file no longer defines its own fact-card function at all, only the call site.
+  assert.doesNotMatch(CODE, /function MatrixFactCard/, "the standalone component is deleted, not renamed in place");
+  assert.match(FACTCARD_SOURCE, /function MatrixFactCardBody/);
+  assert.equal((FACTCARD_SOURCE.match(/data-audit="ops-fact-card"/g) ?? []).length, 1, "one fact card anatomy, one place");
+  assert.equal((SOURCE.match(/data-audit="ops-fact-card"/g) ?? []).length, 0, "this file no longer draws it directly");
 });
 
 test("the base-region control is gone and indexAgainstBase moved into compare mode rather than dying with it", () => {
   assert.doesNotMatch(CODE, /Compare against/, "the control's own label");
   assert.doesNotMatch(CODE, /baseRegion|setBaseRegion|orderRegions|anyEnveloped|baseFactFor/);
-  // Superseded, not dropped: the library function is still called, from the panel's compare mode.
-  assert.match(CODE, /indexAgainstBase/, "still live: a dead export would be rule 13 the other way round");
+  // Superseded, not dropped: the library function is still called, now from ui/FactCard.tsx's
+  // density="matrix" branch, which the panel's compare mode reaches via <FactCard density="matrix">.
+  assert.match(FACTCARD_SOURCE, /indexAgainstBase/, "still live: a dead export would be rule 13 the other way round");
   assert.match(SOURCE, /const baseFact = compareRows\.find\(\(x\) => x\.fact && isEnvelopedFact\(x\.fact\)\)/);
 });
 
@@ -360,7 +371,7 @@ test("compare mode renders one headline card per region, stacked, each labelled 
   assert.match(SOURCE, /data-audit="ops-compare-label"/);
   assert.match(SOURCE, /const compare = region === null/);
   assert.match(SOURCE, /compareRows\.map\(\(\{ region: r, fact \}\)/);
-  assert.match(SOURCE, /<MatrixFactCard fact=\{fact\} baseFact=\{fact === baseFact \? null : baseFact\} \/>/);
+  assert.match(SOURCE, /<FactCard density="matrix" fact=\{fact\} baseFact=\{fact === baseFact \? null : baseFact\} \/>/);
 });
 
 test("the duplicate <=640px card reflow is deleted from BOTH the component and globals.css", () => {

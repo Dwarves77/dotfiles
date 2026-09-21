@@ -590,7 +590,9 @@ const OPSMATRIX_CLICK_ASIA_D3 = `
 // ── The no-figure branch's fixture, and why it is a fixture and not a comment ────────────────────
 // Operator, 2026-09-09, verbatim: "Every fact card must lead with its FIGURE. If the pipeline has no
 // figure for a fact, the card leads with a 6-word headline in 13px/600, then the claim." That is a
-// REAL BRANCH of MatrixFactCard and it needs a row that reaches it. `factHeadline` returns
+// REAL BRANCH of FactCard's density="matrix" render (src/components/ui/FactCard.tsx, migrated from
+// RegionDimensionMatrix.tsx's own MatrixFactCard by lane w10-factcard-b, 2026-09-20) and it needs a
+// row that reaches it. `factHeadline` returns
 // `figure: null` for a value that is a sentence rather than a quantity, which is the live shape of a
 // free-text row, so the fact below carries one. It is added to ASIA x D5 (Infrastructure capacity),
 // a cell EVERY OTHER MOUNT LEAVES EMPTY, and it is passed as an EXTRA fact to a SEPARATE mount, so
