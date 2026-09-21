@@ -1,0 +1,26 @@
+# Lane W10-FactCard-c: the two live leftovers on the market detail (coordinator, 2026-09-21)
+
+Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-w10-factcard` (has node_modules). Branch: `lane/w10-factcard-c`, cut from `origin/master` (at or past `c3199c05`). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, and brief section 2.1 of `docs/design/parts-brief-2026-09-18.md`. STOP on anything not covered. Small lane: two defects, each with a render test built from the measured pattern.
+
+## Measured on production `c3199c05`, signed in, text-node walk of `main` [CONFIRMED by a read-only auditor, 2026-09-21]
+
+Regulation detail: 0 literal-markdown matches at both depths (was 7 and 56). Market detail `/market/9d18608f-269e-405a-9ad8-afa638dda928`, identical at both depths: 28 fact cards; ONE literal-markdown match INSIDE a fact card (`[data-part="fact-card"]`, a `<p>`), text beginning `May 6, 2026. \n- **` followed by a name and a title; FIVE bare `http` URLs in text nodes outside any `<a>`. [REFUTED] lane FactCard-b's report that no bare URL outside an anchor exists: it read the code; the live page shows five.
+
+## Build
+
+1. **Inline markdown inside a claim.** A claim paragraph that carries a line break and a list line with bold (`sentence. \n- **Name**, title ...`) reaches the card's `<p>` raw. Find where `fact-card-model.ts` hands the claim text to `FactCard.tsx` and why the inline renderer is skipped for this shape (a newline, a list marker, or the bold run after a list marker). Fix in the ONE model or the one part, never on a page: the claim body renders inline emphasis, and a list inside a claim renders as a list (or the model splits it into the claim plus a list block, whichever the model's existing structure already supports; say which and why). Render test: fixture is the measured shape with a placeholder name; assertion: no `*` character and no leading `- ` in the rendered text, and the emphasized run is inside `<strong>`.
+2. **Bare URLs.** On the market detail, find which field prints a URL as text (amendment 1 of 2026-09-20 measured one "citation line, publisher and date, then a bare URL in a `<span>`"; there are five now). Enumerate the insertion points in `MarketSignalDetailSurface.tsx` and whatever it delegates to; route each through the provenance shape the FactCard source line already uses (an anchor with the host as its text through `src/lib/entities/host-from-url.mjs`, F30; never a second URL formatter, F45). Check the other three detail surfaces for the same insertion shape and fix them in the same commit if it is the same shared code; if it is more than four separate places, fix the market surface, list the rest with file and line, and STOP on those. Render test per insertion point: no text node matching `https?://` outside an `<a>`.
+3. `/admin/parts/fact-card` gains both cases as fixtures (a claim with an inline list and bold; a source line with a URL), so the sign-off picture shows them.
+4. Presence report unchanged; add the two fixes to the lane's `docs/ops/session-log.d/` file with a "UX compliance" block.
+
+NOT yours: the card names a real person and an employer. That is a CONTENT defect against the brief contract's workspace-anchored rule; it belongs to the data pass after proof run 6.2. Do not rewrite, hide or filter content in the renderer.
+
+## Gates
+
+- Playwright is not installed on this PC by operator ruling; the Rendering guard is judged on GitHub. Prove the npm suites you touch, `tsc`, the FULL fitness runner (all functions) to 0 violations; restore `fsi-app/.discipline/governance/coverage-report.json` with `git checkout --` if a scan dirtied it; then the locked push gate once, last, as one background task (it is silent for long stretches; that is normal). A FAIL from your own change is fixed at the cause and the gate runs once more; a second FAIL on the same step is a STOP.
+- First tool calls: Skill tool, `fsi-app:environmental-policy-and-innovation`, then `frontend-design`, then `remediation-discipline`.
+- Never `git stash`, never `git add -A`, never `--no-verify`; never run `repin.mjs`, `reseed-f45.mjs`, `repin-skills.mjs`, `resolve-conflicts.mjs`. Commit trailer exactly `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No em dash, en dash or section sign in new prose. F51 check 5: a file already at two master touches in the window that is not an entry-directory file is a STOP with the measurement (count with `git log --first-parent -30 --format=%H origin/master` and per-commit `git diff-tree --name-only -r`, not `git log -30 -- <path>`). No workaround of any kind. You do not push.
+
+## Report
+
+ONE final report, five lines maximum, sent once, no interim messages: commit sha; the cause of each defect with file and line and a status token; fitness violations and push gate result; any STOP with its measurement. Write the PR body `pr-w10-factcard-c.md` into `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-jason`, not your own), with a `## UX compliance` section, ending with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
