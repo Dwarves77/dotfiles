@@ -2,13 +2,18 @@
 // Next 16's route-type validator rejects a route.ts that exports anything besides route handlers/
 // config, so the testable logic lives here and route.ts only wires request parsing + the admin gate).
 //
-// ONE PATH, NOT A FORK. Imports validateRowsFile from scripts/propagation/validate-statutory-rows-file.mjs
-// (the SAME module propagation-drain.yml's pre-flight gate uses) and parseRow/writeOneRow from
-// scripts/propagation/write-statutory.mjs (the SAME functions the CLI --apply path uses). Nothing here
-// reimplements row validation or the write itself , logic.test.mjs asserts these exact import
-// specifiers so a fixture route that re-implements validation fails the assertion.
-import { validateRowsFile } from "../../../../../scripts/propagation/validate-statutory-rows-file.mjs";
-import { parseRow, writeOneRow } from "../../../../../scripts/propagation/write-statutory.mjs";
+// ONE PATH, NOT A FORK. Imports validateRowsFile/parseRow/writeOneRow from
+// src/lib/propagation/statutory-rows.ts , the ONE pure home for this logic (lane M7a FIX, 2026-09-21).
+// scripts/propagation/validate-statutory-rows-file.mjs (propagation-drain.yml's pre-flight gate) and
+// scripts/propagation/write-statutory.mjs (the CLI --apply path) import from the SAME pure home , this
+// route does NOT import either CLI script directly any more: doing so previously dragged
+// scripts/lib/db.mjs's fs-backed guarded-write snapshot path into this route's Vercel function trace
+// (db.mjs computes its snapshot directory from import.meta.url, a statically-resolvable path, so Next's
+// output-file tracer pulled the entire fs-backed scripts/_snapshots/ directory , hundreds of MB of
+// historical run artifacts , into the trace; see docs/ops/session-log.d/2026-09-20-m7a.md's Correction
+// entry for the measured before/after). Nothing here reimplements row validation or the write itself ,
+// logic.test.mjs asserts the route and the CLI both import from this one home and neither defines its own.
+import { validateRowsFile, parseRow, writeOneRow } from "../../../../../src/lib/propagation/statutory-rows.ts";
 
 /**
  * Validate + apply (or preview) a whole statutory rows-file body against statutory_computations.
