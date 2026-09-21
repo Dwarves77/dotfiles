@@ -93,6 +93,30 @@ export function partitionWorklist(rows) {
 }
 
 /**
+ * Filters a raw worklist array to a bounded, item-scoped slice BEFORE partitionWorklist ever sees it
+ * (lane M6b item 4, chained gate-a-rescan.yml step). Pure. `itemIds`, when given (an array or Set),
+ * keeps only rows whose `item_id` is a member -- the exact set the gate-a-rescan run left with
+ * `orphan_count > 0`, never a wider corpus-wide pass. `limit`, when given, caps the RETURNED row count
+ * (applied after the itemIds filter, preserving row order) -- the chained step's own `CHAINED_LIMIT`
+ * bound. Either filter absent/null is a no-op for that axis, so an unfiltered call behaves exactly as
+ * before this lane (every existing caller/test that never passes these options is unaffected).
+ * @param {unknown[]} rows
+ * @param {{ itemIds?: Iterable<string>|null, limit?: number|null }} [opts]
+ * @returns {unknown[]}
+ */
+export function filterWorklistRows(rows, { itemIds = null, limit = null } = {}) {
+  let out = Array.isArray(rows) ? rows : [];
+  if (itemIds) {
+    const wanted = itemIds instanceof Set ? itemIds : new Set(itemIds);
+    out = out.filter((row) => row && wanted.has(row.item_id));
+  }
+  if (typeof limit === "number" && Number.isFinite(limit) && limit >= 0) {
+    out = out.slice(0, limit);
+  }
+  return out;
+}
+
+/**
  * Groups READY worklist rows into the shape heal-provenance.mjs's `deps.foundSourcesForItem` expects:
  * `Map<item_id, { [token]: [{ url, quote }, ...] }>`. Pure. Multiple rows for the same (item_id, token)
  * accumulate — STEP SOURCE tries them in the order given, first match wins (candidateUrlsForOrphan's own
@@ -124,6 +148,10 @@ export function countGroundedViaWorklist(perItem) {
  * @param {{ mode?: "dry"|"apply", arg?: string, out?: string|null }} opts
  * @param {object} deps — every heal-provenance.mjs dep (see buildHealDeps) PLUS `readWorklistFile(path)`
  *   -> Promise<array>, injected so this stays DB/fs-free under `node --test` (rule: DI, DRY by default).
+ *   PLUS (lane M6b item 4) OPTIONAL `itemIdsFilter` (array|Set|null) and `rowLimit` (number|null),
+ *   applied via `filterWorklistRows` immediately after the read, BEFORE partitionWorklist -- the chained
+ *   gate-a-rescan.yml step's own item-id scope and CHAINED_LIMIT bound. Absent on every existing caller
+ *   (provenance-heal's own dispatch, every prior test), so behaviour there is unchanged.
  */
 export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   const path = String(arg ?? "").trim();
@@ -134,9 +162,9 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
     };
   }
 
-  let rows;
+  let rawRows;
   try {
-    rows = await deps.readWorklistFile(path);
+    rawRows = await deps.readWorklistFile(path);
   } catch (e) {
     return {
       step: "attach-found-sources", mode, counts: {}, applied: 0, read_back: {}, exitCode: 1,
@@ -144,9 +172,13 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
     };
   }
 
+  const rows = filterWorklistRows(rawRows, { itemIds: deps.itemIdsFilter ?? null, limit: deps.rowLimit ?? null });
   const { ready, notReady, malformed } = partitionWorklist(rows);
   const baseCounts = {
-    worklist_rows: Array.isArray(rows) ? rows.length : 0,
+    worklist_rows: Array.isArray(rawRows) ? rawRows.length : 0,
+    // rows_offered (brief item 4): the row count AFTER the itemIds/limit filter -- what this run actually
+    // had to work with, distinct from worklist_rows (the file's own total before scoping).
+    rows_offered: rows.length,
     worklist_ready: ready.length,
     worklist_not_ready: notReady.length,
     worklist_malformed: malformed.length,
@@ -157,7 +189,7 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
       step: "attach-found-sources", mode, counts: baseCounts, applied: 0, read_back: {}, exitCode: 0,
       note: notReady.length
         ? `Nothing to do — ${notReady.length} worklist row(s) present but none carry url+quote yet (a seed the browser lane has not filled). No fetch, no write.`
-        : "Nothing to do — the worklist is empty.",
+        : "Nothing to do -- the worklist is empty (or nothing matched this run's own item-id/limit scope).",
     };
   }
 
@@ -184,15 +216,45 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   };
 }
 
+/**
+ * Parses `--items-file <path>` and `--limit <n>` out of raw argv (lane M6b item 4) -- a SEPARATE, small
+ * parse from runCli's own --mode/--arg/--out (that contract stays fixed for every scripts/maintenance/
+ * *.mjs step). Both optional; absent on every existing dispatch. Pure. `--items-file` names a local JSON
+ * file holding either a bare array of item ids or `{ ids: [...] }`; reading it is the CLI entrypoint's
+ * own job (see below), not this parser's.
+ * @param {string[]} argv
+ * @returns {{ itemsFile: string|null, limit: number|null }}
+ */
+export function parseExtraCliArgs(argv) {
+  const get = (flag) => {
+    const i = argv.indexOf(flag);
+    return i >= 0 && i + 1 < argv.length ? argv[i + 1] : undefined;
+  };
+  const itemsFile = get("--items-file") ?? null;
+  const limitRaw = get("--limit");
+  const limit = limitRaw !== undefined ? Number(limitRaw) : null;
+  return { itemsFile, limit: Number.isFinite(limit) ? limit : null };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
+  const { itemsFile, limit } = parseExtraCliArgs(process.argv.slice(2));
   await runCli({
     step: "attach-found-sources",
     main,
     needsDb: true,
-    buildDeps: async () => ({
-      ...(await buildHealDeps()),
-      readWorklistFile: async (path) => JSON.parse(readFileSync(resolve(fsiRoot(), path), "utf8")),
-    }),
+    buildDeps: async () => {
+      let itemIdsFilter = null;
+      if (itemsFile) {
+        const raw = JSON.parse(readFileSync(resolve(fsiRoot(), itemsFile), "utf8"));
+        itemIdsFilter = Array.isArray(raw) ? raw : (Array.isArray(raw?.ids) ? raw.ids : []);
+      }
+      return {
+        ...(await buildHealDeps()),
+        readWorklistFile: async (path) => JSON.parse(readFileSync(resolve(fsiRoot(), path), "utf8")),
+        itemIdsFilter,
+        rowLimit: limit,
+      };
+    },
   });
 }

@@ -1,4 +1,9 @@
-// SHARED-WRITER: intelligence_items, section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
+// SHARED-WRITER: intelligence_items, section_claim_provenance, agent_run_searches, intelligence_item_sections
+// (item_gate_a_state moved out of this marker, lane M6b, 2026-09-21: its one writer is now
+// scripts/lib/gate-a-state-writer.mjs, which carries its own SHARED-WRITER marker and the guarded-write
+// call shape the shared-writer-registry test detects. This file only calls the writer module's exported
+// upsert/read functions now -- no item_gate_a_state write site of its own, so the marker would
+// otherwise be stale.)
 // provenance-heal.mjs — MAINT dispatch step: heals quarantined/archived-unreasoned/slot-incomplete
 // intelligence_items by attaching the grounding they were missing, per the operator's ruling verbatim
 // (2026-09-03): "if items are being flagged as not credible for the site because of not having sources
@@ -78,6 +83,10 @@ import { fileURLToPath } from "node:url";
 import { main as healMain, parseSelection, loadRequiredSlots, computeItemTimeBudgetSeconds } from "../mint/heal-provenance.mjs";
 import { makePoliteFetch } from "../mint/export-census-rows.mjs";
 import { runCli } from "./lib/cli.mjs";
+// SHARED-WRITER extraction (lane M6b, 2026-09-21): item_gate_a_state's update-or-insert now lives in one
+// place, gate-a-state-writer.mjs, so scripts/maintenance/gate-a-rescan.mjs can share the exact same
+// semantics rather than a second hand-copy. Behaviour here is unchanged (see that module's header).
+import { readGateAStateRow, upsertGateAState } from "../lib/gate-a-state-writer.mjs";
 
 // Re-exported unmodified — this wrapper's own `main`/`parseSelection` ARE heal-provenance.mjs's (unlike
 // tag-proposals.mjs/tag-ratification.mjs, whose wrappers add selection-report formatting the core library
@@ -171,11 +180,7 @@ export async function buildHealDeps() {
     // the derived coverage the mint pipeline established (heal #21: 88 of 94 items stuck on criterion 7).
     readClaims: (itemId) => readAll("section_claim_provenance", "id, claim_kind, claim_text, source_span, source_id, search_result_id, section_row_id, basis_claim_id", { match: (q) => q.eq("intelligence_item_id", itemId) }),
     readSections: (itemId) => readAll("intelligence_item_sections", "id, item_id, section_key, section_order, content_md", { match: (q) => q.eq("item_id", itemId) }),
-    readGateAState: async (itemId) => {
-      const { data, error } = await rc.from("item_gate_a_state").select("intelligence_item_id").eq("intelligence_item_id", itemId).maybeSingle();
-      if (error) throw new Error(`provenance-heal: readGateAState failed: ${error.message}`);
-      return data ?? null;
-    },
+    readGateAState: (itemId) => readGateAStateRow(rc, itemId),
     readSourceUrl: async (sourceId) => {
       if (!sourceId) return null;
       const { data, error } = await rc.from("sources").select("url").eq("id", sourceId).maybeSingle();
@@ -253,10 +258,7 @@ export async function buildHealDeps() {
     // here). Writes full_brief with the sentence/clause removed that planBriefHonest already re-
     // verified passes Gate A on the rewrite — never a synthesized/paraphrased replacement.
     updateItemBrief: (itemId, full_brief) => guardedUpdate("intelligence_items", (q) => q.eq("id", itemId), { full_brief }, { cite: CITE }),
-    upsertGateA: (row, exists) =>
-      exists
-        ? guardedUpdate("item_gate_a_state", (q) => q.eq("intelligence_item_id", row.intelligence_item_id), row, { cite: CITE })
-        : guardedInsert("item_gate_a_state", row, { cite: CITE, select: "intelligence_item_id" }),
+    upsertGateA: (row, exists) => upsertGateAState(row, exists, { cite: CITE }),
     touchItem: (itemId) => guardedUpdateByIds("intelligence_items", [itemId], { updated_at: new Date().toISOString() }, { cite: CITE, select: "id" }),
     unarchiveItem: (itemId) => guardedUpdate("intelligence_items", (q) => q.eq("id", itemId), { is_archived: false, archive_reason: null }, { cite: CITE }),
   };

@@ -1,0 +1,12 @@
+{
+  "family": "gate-a-rescan",
+  "registered": "2026-09-21",
+  "registered_by": "lane M6b",
+  "governing_files": [
+    "../.github/workflows/gate-a-rescan.yml",
+    "scripts/maintenance/gate-a-rescan.mjs",
+    "scripts/turns/emit-gate-a-rescan-artifact.mjs",
+    "scripts/lib/gate-a-state-writer.mjs"
+  ],
+  "rationale": "gate-a-rescan (lane M6b, 2026-09-21, build plan section 6.1 row M6, docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md sections C and D, closing the loop-manifest's brief-apply-to-gate-a-rescan and population-turn-to-gate-a-rescan hops): no bulk item_gate_a_state re-scan existed before this lane -- only the per-item scanner (src/lib/agent/gate-a-scan.mjs) and the mint-time/heal-time callers of buildGateARow (src/lib/intake/write-item.ts). This registration adds the descriptor and the family directory (no edit to any derived list, per build plan section 6.8 Rule A) so a committed gate-a-rescan-run-NNN.json can exist. Governing files: the workflow itself (whose workflow_run trigger on Brief apply/Population turn and job gate define what a gate-a-rescan run is), the re-scan script (selection, bounds, per-item Gate A refresh and the provenance-status touch), the new emitter script (models emit-brief-export-artifact.mjs; the SAME writeRunArtifact/claimRunId/hashHarnessVersion/buildRunArtifactEnvelope/resolveHarnessRunContext helpers, no copy of any of them), and gate-a-state-writer.mjs (the one writer for item_gate_a_state this script shares with scripts/maintenance/provenance-heal.mjs). Paths escape fsi-app/ with '../' for the workflow file since it lives at the repo root, one level above fsi-app, the same escape the downstream-chain and brief-export families' own family.json already use; hashHarnessVersion resolves every entry independently against fsi-app root (baseDir), so this is not order-sensitive."
+}

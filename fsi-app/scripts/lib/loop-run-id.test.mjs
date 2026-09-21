@@ -342,3 +342,62 @@ test("resolveLoopRunId ATTACK: breaking one hop's github_run_id makes the NEXT h
     assert.equal(hop4LoopId, null);
   });
 });
+
+// ── gate-a-rescan's own hop (lane M6b, 2026-09-21, build plan section 6.1 row M6): "Gate A rescan" ────
+// chains off EITHER "Brief apply" or "Population turn" completing, per this hop's own workflow_run
+// trigger. No FAMILY_BY_WORKFLOW_NAME edit was needed to support this (both names were already own keys
+// -- see this lane's own brief premise); this attack proves resolution actually works for BOTH.
+
+test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after Brief apply resolves the upstream's loop id", () => {
+  withTmpDir((fsiRoot) => {
+    const briefApplyDir = join(fsiRoot, "scripts", "harness-runs", "brief-apply");
+    writeArtifact(briefApplyDir, "brief-apply", 1, { github_run_id: "4004", loop_run_id: "loop-from-brief-apply" });
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Brief apply",
+      upstreamRunId: "4004",
+      fsiRoot,
+    });
+    assert.equal(got, "loop-from-brief-apply");
+  });
+});
+
+test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after Population turn resolves the upstream's loop id", () => {
+  withTmpDir((fsiRoot) => {
+    const mintDir = join(fsiRoot, "scripts", "harness-runs", "mint");
+    writeArtifact(mintDir, "mint", 1, { github_run_id: "5005", loop_run_id: "loop-from-population-turn" });
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Population turn",
+      upstreamRunId: "5005",
+      fsiRoot,
+    });
+    assert.equal(got, "loop-from-population-turn");
+  });
+});
+
+test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after an unknown upstream name resolves null, never invents a family", () => {
+  withTmpDir((fsiRoot) => {
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: null,
+      upstreamName: "Some Other Workflow",
+      upstreamRunId: "6006",
+      fsiRoot,
+    });
+    assert.equal(got, null);
+  });
+});
+
+test("resolveLoopRunIdFromUpstream: gate-a-rescan's own explicit --loop-run-id wins over either upstream", () => {
+  withTmpDir((fsiRoot) => {
+    const mintDir = join(fsiRoot, "scripts", "harness-runs", "mint");
+    writeArtifact(mintDir, "mint", 1, { github_run_id: "7007", loop_run_id: "loop-that-would-have-resolved" });
+    const got = resolveLoopRunIdFromUpstream({
+      explicit: "operator-forced-loop-id",
+      upstreamName: "Population turn",
+      upstreamRunId: "7007",
+      fsiRoot,
+    });
+    assert.equal(got, "operator-forced-loop-id");
+  });
+});
