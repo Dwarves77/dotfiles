@@ -512,6 +512,12 @@ export function AdminDashboard({
                   note={`${formatNumber(initialEmissionFactorsLiveCount)} live rows · read-only (WO-18)`}
                 />
               </Link>
+              {/* /admin/parts (lane w10-factcard-b, Amendment 1 section B.2): the sign-off picture
+                  for every UI part, one page per part, static fixtures, no database read. Linked
+                  here the same way Emission factors links out to its own route with no sub-nav. */}
+              <Link href="/admin/parts" prefetch={false} className="cl-admin-stat-tile" style={{ textDecoration: "none", display: "block" }}>
+                <StatBlock size="tile" label="Parts" value="1" note="Fixture sign-off pages · no database read" />
+              </Link>
             </div>
 
             {/* Sub-nav.

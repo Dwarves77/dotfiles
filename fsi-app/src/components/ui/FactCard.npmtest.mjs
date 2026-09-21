@@ -22,9 +22,15 @@ test("the v1 variant prop is fully removed, not kept beside the model-based rend
   assert.doesNotMatch(SOURCE, /variant === "sourced"/);
 });
 
-test("FactCard takes a single FactCardModel prop, imported from the one model home", () => {
+test("FactCard takes a FactCardModel prop (default density), imported from the one model home", () => {
   assert.match(SOURCE, /from "@\/lib\/detail\/fact-card-model"/);
-  assert.match(SOURCE, /export function FactCard\(\{ model \}: \{ model: FactCardModel \}\)/);
+  // Lane w10-factcard-b (2026-09-20; Amendment 1 section B.1): the default-density `{ model }` shape
+  // is unchanged, but the component signature is now a discriminated union so the SAME function also
+  // accepts `{ density: "matrix", fact, baseFact }` for the operations panel's fact card (formerly the
+  // standalone MatrixFactCard). One exported FactCard, two prop shapes, never two components.
+  assert.match(SOURCE, /type FactCardProps =\s*\n\s*\| \{ density\?: undefined; model: FactCardModel \}\s*\n\s*\| \{ density: "matrix"; fact: Record<string, unknown>; baseFact: Record<string, unknown> \| null \};/);
+  assert.match(SOURCE, /export function FactCard\(props: FactCardProps\)/);
+  assert.match(SOURCE, /const \{ model \} = props;/);
 });
 
 test("kind band: 10.5px/800/.12em uppercase kind word, 10.5px muted qualifier, 6px 14px padding, 1px rgba(0,0,0,.06) rule below", () => {
