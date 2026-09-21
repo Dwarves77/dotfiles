@@ -1,0 +1,10 @@
+{
+  "id": "population-turn-to-brief-export",
+  "producer": { "file": ".github/workflows/population-turn.yml", "name": "Population turn" },
+  "consumer": { "file": ".github/workflows/brief-export.yml", "name": "Brief export" },
+  "trigger": "workflow_run",
+  "family": "brief-export",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge landed (lane M4, 2026-09-20, build plan section 6.1 row M4, Amendment 1 section C): brief-export.yml now carries on.workflow_run.workflows: [\"Population turn\"], alongside workflow_dispatch. The brief-export harness family is now registered (by descriptor only, scripts/harness-runs/brief-export/family.json), replacing the earlier \"filed under brief-apply for now\" placeholder. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2)."
+}

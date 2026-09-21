@@ -1,26 +1,33 @@
-// Loop manifest (lane M9a, 2026-09-18): the hops of the build plan's own loop
-// (docs/plans/complete-system-build-plan-2026-09-04.md section 1) as DATA, not as a memory of "we wired
-// that." The 2026-09-18 stage audit's own finding (s6-gates-harness.md): every hop of the loop exists as
-// code, but "wired and never fired" is invisible, because nothing states the hops so a gate can check
-// each hop's trigger edge against the real workflow files, each hop's harness family against a real
-// artifact directory, and whether a hop has ever actually fired from its upstream rather than from a
-// person. This file is that data; F50 (.discipline/fitness/functions/F50-loop-wiring.mjs) is the checker
-// that reads it against the live tree.
+// Loop manifest (lane M9a, 2026-09-18; converted to a directory, lane R7m, 2026-09-21): the hops of the
+// build plan's own loop (docs/plans/complete-system-build-plan-2026-09-04.md section 1) as DATA, not as a
+// memory of "we wired that." F50 (.discipline/fitness/functions/F50-loop-wiring.mjs) is the checker that
+// reads this data against the live tree, checking each hop's trigger edge against the real workflow files,
+// each hop's harness family against a real artifact directory, and whether a hop has ever actually fired
+// from its upstream rather than from a person.
+//
+// CONVERSION (category 48, plan 6.8, lane R7m): LOOP_HOPS was a hand-edited array literal in this file --
+// every M lane touching a hop meant editing the same shared array, the exact "a registry is a directory"
+// shape plan 6.8 names. `LOOP_HOPS` is now DERIVED at import by reading `loop-hops.d/`, one file per hop,
+// sorted by filename, frozen. No consumer's import changes (F50, RD-74, loop-manifest.test.mjs,
+// loop-run-id.test.mjs all still `import { LOOP_HOPS } from './loop-manifest.mjs'`). This file keeps only
+// the contract: the shape, the loader, and the validation a hop file must satisfy. The per-hop commentary
+// that used to live in this file's header now lives in each hop's own `note` field (loop-hops.d/*.json).
 //
 // SHAPE. Each hop:
 //   {
-//     id,                          // stable, kebab-case, unique
+//     id,                          // stable, kebab-case, unique across the directory
 //     producer: { file, name },    // the workflow whose completion should trigger this hop
 //     consumer: { file, name },    // the workflow that should react to it
 //     trigger: 'workflow_run' | 'dispatch',
 //     family: '<harness family dir under scripts/harness-runs/>' | null,
 //     enforceEdge: boolean,        // true = the consumer's yml MUST carry the workflow_run edge today
 //     enforceFired: boolean,       // true = an artifact in `family` MUST carry trigger:"workflow_run" today
-//     producerPending: boolean,    // true = producer.file does not exist on this tree yet (a later lane
-//     consumerPending: boolean,    //   creates it) - see "PENDING FILES" below. Default false; omitted
-//                                  //   below for every hop where both are false.
+//     producerPending: boolean,    // true = producer.file does not exist on this tree yet. Optional,
+//                                  //   defaults to false when absent.
+//     consumerPending: boolean,    // true = consumer.file does not exist on this tree yet. Optional.
 //     familyPending: boolean,      // true = `family` is real but its scripts/harness-runs/<family>
 //                                  //   directory and ALLOWED_FAMILIES registration do not exist yet.
+//                                  //   Optional.
 //     note,                        // free text: which lane (M<n>) closes the gap, or why a flag is false.
 //   }
 //
@@ -29,169 +36,80 @@
 // express "the wiring is real, the proof is not" - every hop uses the same enforceEdge/enforceFired pair
 // so the manifest and F50 never need a hop-shape special case.
 //
-// PENDING FILES. Three hops (sweep-to-fetch-drain, brief-apply-to-gate-a-rescan,
-// population-turn-to-gate-a-rescan) name a consumer workflow file that does not exist on this tree yet -
-// fetch-drain.yml (lane M1) and a gate-a-rescan consumer (lane M6; the build plan section 6.1 row M6
-// itself leaves the exact file undecided, ".github/workflows/maintenance.yml (or a gate-a.yml)" - this
-// manifest names the not-yet-decided path as pending rather than presuming maintenance.yml, an existing
-// but otherwise-unrelated multi-purpose workflow, is the intended home). `consumerPending: true` is the
-// explicit, testable flag loop-manifest.test.mjs and F50 both read instead of pattern-matching the note
-// text - the SAME exemption the family check already needs for a not-yet-created harness family, applied
-// uniformly rather than re-derived per hop kind.
-//
-// FAMILY PENDING, CLOSED (lane M3, 2026-09-19). Two hops (population-turn-to-downstream-chain,
-// corpus-turn-to-downstream-chain) used to name family "downstream-chain" with `familyPending: true`: the
-// consumer WORKFLOW (downstream-chain.yml) already existed and already carried the workflow_run edge from
-// both producers (confirmed by reading the file, 2026-09-18), but the HARNESS family itself
-// (scripts/harness-runs/downstream-chain/) did not exist. Lane M3 registered it BY DESCRIPTOR ONLY (build
-// plan section 6.8 Rule A: family.json + FAMILY.md, no edit to ALLOWED_FAMILIES/governing-files.mjs, both
-// derived from the descriptor) and gave downstream-chain.yml its own committed run artifact; both hops'
-// `familyPending` is now omitted (false is the default for every other hop's own flag).
-//
-// LOOP ORDER matches build plan section 1: sweep -> consume -> mint/corpus-turn -> downstream-chain ->
-// propagation-drain -> brief-export -> gate-a-rescan. Read every workflow file's own `name:` line before
-// trusting a value here (F50's manifest self-test fails on a wrong name); every name below was read
-// directly from the committed `.github/workflows/*.yml` files on this branch, 2026-09-18.
+// FILE NAMING. `<order>-<hop-id>.json`, two-digit order prefix, e.g. `01-sweep-to-fetch-drain.json`. The
+// order prefix exists only to keep the build plan section 1 loop order stable on disk (sweep -> consume ->
+// mint/corpus-turn -> downstream-chain -> propagation-drain -> brief-export -> gate-a-rescan); it is
+// dropped from the loaded hop object. A duplicate order prefix or a duplicate `id` is a thrown error, not
+// a silently-accepted collision - the loader is the enforcement, not a convention in a comment.
 
-export const LOOP_HOPS = [
-  {
-    id: 'sweep-to-fetch-drain',
-    producer: { file: '.github/workflows/source-sweep.yml', name: 'Source sweep' },
-    consumer: { file: '.github/workflows/fetch-drain.yml', name: 'Fetch drain' },
-    trigger: 'workflow_run',
-    family: 'fetch-drain',
-    enforceEdge: false,
-    enforceFired: false,
-    consumerPending: true,
-    note:
-      'M1 creates fetch-drain.yml and wires this workflow_run edge, replacing the hand pg_net call. The ' +
-      'fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ' +
-      'ALLOWED_FAMILIES) with real prior artifacts, so only the workflow file and the edge are pending.',
-  },
-  {
-    id: 'sweep-to-ledger-consume',
-    producer: { file: '.github/workflows/source-sweep.yml', name: 'Source sweep' },
-    consumer: { file: '.github/workflows/ledger-consume.yml', name: 'Ledger consume' },
-    trigger: 'workflow_run',
-    family: 'ledger-consume',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge exists today: ledger-consume.yml carries on.workflow_run.workflows: ["Source sweep"]. Nothing ' +
-      'has fired through it as trigger:"workflow_run" yet (M2 closes the apply half and proves it).',
-  },
-  {
-    id: 'ledger-consume-to-population-turn',
-    producer: { file: '.github/workflows/ledger-consume.yml', name: 'Ledger consume' },
-    consumer: { file: '.github/workflows/population-turn.yml', name: 'Population turn' },
-    trigger: 'workflow_run',
-    family: 'mint',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge exists today: population-turn.yml carries on.workflow_run.workflows: ["Ledger consume"]. ' +
-      'Fired-from-upstream proof is M3.',
-  },
-  {
-    id: 'ledger-consume-to-corpus-turn',
-    producer: { file: '.github/workflows/ledger-consume.yml', name: 'Ledger consume' },
-    consumer: { file: '.github/workflows/corpus-turn.yml', name: 'Corpus turn' },
-    trigger: 'workflow_run',
-    family: 'corpus-turn',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge landed (lane M3, 2026-09-19): corpus-turn.yml now carries on.workflow_run.workflows: ["Ledger ' +
-      'consume"], alongside workflow_dispatch and push:branches turn/**. Fired-from-upstream proof is the ' +
-      'coordinator\'s proof run (build plan section 6.2).',
-  },
-  {
-    id: 'population-turn-to-downstream-chain',
-    producer: { file: '.github/workflows/population-turn.yml', name: 'Population turn' },
-    consumer: { file: '.github/workflows/downstream-chain.yml', name: 'Downstream chain' },
-    trigger: 'workflow_run',
-    family: 'downstream-chain',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge exists today: downstream-chain.yml carries on.workflow_run.workflows: ["Population turn", ' +
-      '"Corpus turn"]. The downstream-chain harness family is now registered (lane M3, 2026-09-19, by ' +
-      'descriptor only, scripts/harness-runs/downstream-chain/family.json) -- familyPending cleared. ' +
-      'Fired-from-upstream proof is the coordinator\'s proof run (build plan section 6.2).',
-  },
-  {
-    id: 'corpus-turn-to-downstream-chain',
-    producer: { file: '.github/workflows/corpus-turn.yml', name: 'Corpus turn' },
-    consumer: { file: '.github/workflows/downstream-chain.yml', name: 'Downstream chain' },
-    trigger: 'workflow_run',
-    family: 'downstream-chain',
-    enforceEdge: true,
-    enforceFired: false,
-    note: 'Same edge, same now-registered family as population-turn-to-downstream-chain above (M3).',
-  },
-  {
-    id: 'downstream-chain-to-propagation-drain',
-    producer: { file: '.github/workflows/downstream-chain.yml', name: 'Downstream chain' },
-    consumer: { file: '.github/workflows/propagation-drain.yml', name: 'Propagation drain' },
-    trigger: 'workflow_run',
-    family: 'propagation',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge exists today: propagation-drain.yml carries on.workflow_run.workflows: ["Data producers", ' +
-      '"Downstream chain"]. No artifact in the propagation family records a trigger field yet (this lane ' +
-      'adds the field itself, see scripts/lib/run-artifact.mjs) - no artifact records its trigger yet.',
-  },
-  {
-    id: 'data-producers-to-propagation-drain',
-    producer: { file: '.github/workflows/producers.yml', name: 'Data producers' },
-    consumer: { file: '.github/workflows/propagation-drain.yml', name: 'Propagation drain' },
-    trigger: 'workflow_run',
-    family: 'propagation',
-    enforceEdge: true,
-    enforceFired: false,
-    note: 'Same edge as downstream-chain-to-propagation-drain above; no artifact records its trigger yet.',
-  },
-  {
-    id: 'population-turn-to-brief-export',
-    producer: { file: '.github/workflows/population-turn.yml', name: 'Population turn' },
-    consumer: { file: '.github/workflows/brief-export.yml', name: 'Brief export' },
-    trigger: 'workflow_run',
-    family: 'brief-export',
-    enforceEdge: true,
-    enforceFired: false,
-    note:
-      'Edge landed (lane M4, 2026-09-20, build plan section 6.1 row M4, Amendment 1 section C): ' +
-      'brief-export.yml now carries on.workflow_run.workflows: ["Population turn"], alongside ' +
-      'workflow_dispatch. The brief-export harness family is now registered (by descriptor only, ' +
-      'scripts/harness-runs/brief-export/family.json), replacing the earlier "filed under brief-apply ' +
-      'for now" placeholder. Fired-from-upstream proof is the coordinator\'s proof run (build plan ' +
-      'section 6.2).',
-  },
-  {
-    id: 'brief-apply-to-gate-a-rescan',
-    producer: { file: '.github/workflows/brief-apply.yml', name: 'Brief apply' },
-    consumer: { file: '.github/workflows/gate-a-rescan.yml', name: 'Gate A rescan' },
-    trigger: 'workflow_run',
-    family: null,
-    enforceEdge: false,
-    enforceFired: false,
-    consumerPending: true,
-    note:
-      'M6 builds the gate-a-rescan consumer. Build plan section 6.1 row M6 leaves the exact file open ' +
-      '(".github/workflows/maintenance.yml (or a gate-a.yml)"); this manifest names the undecided path as ' +
-      'pending rather than presuming maintenance.yml, which exists today but carries no gate-a-rescan step ' +
-      'or workflow_run edge, is the intended home.',
-  },
-  {
-    id: 'population-turn-to-gate-a-rescan',
-    producer: { file: '.github/workflows/population-turn.yml', name: 'Population turn' },
-    consumer: { file: '.github/workflows/gate-a-rescan.yml', name: 'Gate A rescan' },
-    trigger: 'workflow_run',
-    family: null,
-    enforceEdge: false,
-    enforceFired: false,
-    consumerPending: true,
-    note: 'Same pending consumer as brief-apply-to-gate-a-rescan above (M6).',
-  },
-];
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+export const LOOP_HOPS_DIR = join(HERE, 'loop-hops.d');
+
+const FILE_NAME_RE = /^(\d{2})-([a-z0-9-]+)\.json$/;
+
+// Fields every hop file MUST declare. `family` is required too, but validated separately (below) since a
+// legitimate value is `null`, which `field in hop` still satisfies - a plain "in" check covers both.
+const REQUIRED_FIELDS = ['id', 'producer', 'consumer', 'trigger', 'family', 'enforceEdge', 'enforceFired', 'note'];
+
+/**
+ * Load and validate LOOP_HOPS from a `loop-hops.d`-shaped directory. Pure over its `dir` argument so
+ * loop-manifest.test.mjs can point it at fixture directories rather than the live one (rule 15: a proof
+ * that does not execute is not a proof - the attack cases below run for real, against real fixture files
+ * on disk, never as a hand-simulated string check).
+ *
+ * @param {string} dir
+ * @returns {ReadonlyArray<object>}
+ */
+export function loadLoopHops(dir) {
+  const entries = readdirSync(dir).filter((name) => name.endsWith('.json')).sort();
+  const seenOrders = new Map(); // order prefix -> filename
+  const seenIds = new Map(); // hop id -> filename
+  const hops = [];
+
+  for (const filename of entries) {
+    const match = FILE_NAME_RE.exec(filename);
+    if (!match) {
+      throw new Error(
+        `loop-manifest: ${filename} does not match the required "<order>-<hop-id>.json" shape (e.g. ` +
+          `"01-sweep-to-fetch-drain.json").`,
+      );
+    }
+    const [, order] = match;
+    if (seenOrders.has(order)) {
+      throw new Error(
+        `loop-manifest: duplicate order prefix "${order}" - ${filename} collides with ${seenOrders.get(order)}.`,
+      );
+    }
+    seenOrders.set(order, filename);
+
+    let hop;
+    try {
+      hop = JSON.parse(readFileSync(join(dir, filename), 'utf8'));
+    } catch (e) {
+      throw new Error(`loop-manifest: ${filename} is not valid JSON (${e.message}).`);
+    }
+
+    for (const field of REQUIRED_FIELDS) {
+      if (!(field in hop)) {
+        throw new Error(`loop-manifest: ${filename} is missing required field "${field}".`);
+      }
+    }
+
+    if (seenIds.has(hop.id)) {
+      throw new Error(
+        `loop-manifest: duplicate hop id "${hop.id}" - ${filename} collides with ${seenIds.get(hop.id)}.`,
+      );
+    }
+    seenIds.set(hop.id, filename);
+
+    hops.push(Object.freeze(hop));
+  }
+
+  return Object.freeze(hops);
+}
+
+export const LOOP_HOPS = loadLoopHops(LOOP_HOPS_DIR);

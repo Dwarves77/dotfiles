@@ -1,0 +1,10 @@
+{
+  "id": "sweep-to-ledger-consume",
+  "producer": { "file": ".github/workflows/source-sweep.yml", "name": "Source sweep" },
+  "consumer": { "file": ".github/workflows/ledger-consume.yml", "name": "Ledger consume" },
+  "trigger": "workflow_run",
+  "family": "ledger-consume",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge exists today: ledger-consume.yml carries on.workflow_run.workflows: [\"Source sweep\"]. Nothing has fired through it as trigger:\"workflow_run\" yet (M2 closes the apply half and proves it)."
+}

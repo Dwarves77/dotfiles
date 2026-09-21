@@ -66,6 +66,7 @@ export const ENTRY_DIRS = [
   'fsi-app/.discipline/governance/invariants.d/',
   'fsi-app/scripts/harness-runs/',
   'fsi-app/.discipline/governance/skill-acks/',
+  'fsi-app/.discipline/governance/loop-hops.d/',
 ];
 
 export function underEntryDir(path) {
@@ -85,6 +86,8 @@ function escapeRegex(s) {
 //   - governing-files.mjs / run-artifact.mjs: a family name used as a hand object-literal key
 //     (`mint: [...]`), or a hand array literal naming a family outside `FAMILIES.map(...)`
 //   - invariants.mjs:      an `id: '...'` entry (the array-literal element shape the split replaced)
+//   - loop-manifest.mjs:   a hand-written `LOOP_HOPS = [` array literal (not the `loadLoopHops(...)` derived
+//     read), or a hand hop `id: '...'` entry (the loop-hops.d/*.json split, lane R7m, replaced)
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 export function scanHandEntries(files, { familyNames = [] } = {}) {
   const out = [];
@@ -95,7 +98,8 @@ export function scanHandEntries(files, { familyNames = [] } = {}) {
       p.endsWith('/harness-runs/governing-files.mjs') || p.endsWith('/scripts/lib/run-artifact.mjs') ||
       p === 'fsi-app/scripts/harness-runs/governing-files.mjs' || p === 'fsi-app/scripts/lib/run-artifact.mjs';
     const isInvariants = p.endsWith('/governance/invariants.mjs') || p === 'fsi-app/.discipline/governance/invariants.mjs';
-    if (!isManifest && !isGoverningFilesOrRunArtifact && !isInvariants) continue;
+    const isLoopManifest = p.endsWith('/governance/loop-manifest.mjs') || p === 'fsi-app/.discipline/governance/loop-manifest.mjs';
+    if (!isManifest && !isGoverningFilesOrRunArtifact && !isInvariants && !isLoopManifest) continue;
 
     const lines = String(text ?? '').split(/\r?\n/);
     lines.forEach((line, idx) => {
@@ -137,6 +141,20 @@ export function scanHandEntries(files, { familyNames = [] } = {}) {
           out.push({
             path: p, line: lineNo,
             message: `hand-written invariant "id:" entry reappeared in invariants.mjs (Rule A, Cause A): "${line.trim()}". Invariants are one file per id under invariants.d/; add a new file there, see invariants.d/README.md.`,
+          });
+        }
+      }
+      if (isLoopManifest) {
+        if (/LOOP_HOPS\s*=\s*\[/.test(line)) {
+          out.push({
+            path: p, line: lineNo,
+            message: `hand-written array literal reappeared assigning LOOP_HOPS directly (Rule A, Cause A): "${line.trim()}". LOOP_HOPS is derived from loop-hops.d/ by loadLoopHops(); add a new hop file there instead of an array literal here.`,
+          });
+        }
+        if (/^\s*id:\s*['"][a-z][a-z0-9-]*['"]/.test(line)) {
+          out.push({
+            path: p, line: lineNo,
+            message: `hand-written hop "id:" entry reappeared in loop-manifest.mjs (Rule A, Cause A): "${line.trim()}". Hops are one file per id under loop-hops.d/; add a new hop file there instead.`,
           });
         }
       }
@@ -238,6 +256,7 @@ const MANIFEST_PATH = 'fsi-app/.discipline/fitness/manifest.mjs';
 const GOVERNING_FILES_PATH = 'fsi-app/scripts/harness-runs/governing-files.mjs';
 const RUN_ARTIFACT_PATH = 'fsi-app/scripts/lib/run-artifact.mjs';
 const INVARIANTS_PATH = 'fsi-app/.discipline/governance/invariants.mjs';
+const LOOP_MANIFEST_PATH = 'fsi-app/.discipline/governance/loop-manifest.mjs';
 const FUNCTIONS_GLOB = 'fsi-app/.discipline/fitness/functions/*.mjs';
 const INVARIANTS_D_GLOB = 'fsi-app/.discipline/governance/invariants.d/*.mjs';
 const MIGRATIONS_GLOB = 'fsi-app/supabase/migrations/*.sql';
@@ -245,7 +264,7 @@ const HARNESS_RUNS_DIR = 'fsi-app/scripts/harness-runs/';
 
 export function runCheck1(root) {
   const familyNames = FAMILIES.map((f) => f.family);
-  const files = [MANIFEST_PATH, GOVERNING_FILES_PATH, RUN_ARTIFACT_PATH, INVARIANTS_PATH]
+  const files = [MANIFEST_PATH, GOVERNING_FILES_PATH, RUN_ARTIFACT_PATH, INVARIANTS_PATH, LOOP_MANIFEST_PATH]
     .map((path) => ({ path, text: readFileOrNull(root, path) }))
     .filter((f) => f.text != null);
   return scanHandEntries(files, { familyNames });
@@ -407,6 +426,7 @@ export const HOTSPOT_ALLOWLIST = {
   'fsi-app/scripts/lib/loop-run-id.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
   'fsi-app/scripts/lib/loop-run-id.test.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
   'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs': { decidedOn: '2026-09-20', reason: 'coordinator, lane F51b: serial lanes M3 (#752), M3b (#755), M4 (#759) each extended the ADR-031 loop-id resolver and its attack chain, one after another, rebased clean, no concurrent edit; lane M6 extends the chain once more. Delete once the file has left the 30-commit window.' },
+  'fsi-app/.discipline/governance/loop-manifest.mjs': { decidedOn: '2026-09-21', reason: "coordinator, lane R7m: the conversion of LOOP_HOPS to loop-hops.d/ is this file's last hand edit; after it a hop is its own file. Delete once the file has left the 30-commit window." },
 };
 
 /** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,

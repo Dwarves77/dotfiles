@@ -12,15 +12,44 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { LOOP_HOPS } from './loop-manifest.mjs';
+import { LOOP_HOPS, loadLoopHops } from './loop-manifest.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, '..', '..');
 const REPO_ROOT = resolve(FSI_ROOT, '..');
+
+// A minimal, otherwise-valid hop object every fixture below starts from and tweaks - keeps each attack
+// fixture's intent (duplicate id / duplicate order / missing field) visible at the call site instead of
+// buried in a repeated literal.
+function validHop(id) {
+  return {
+    id,
+    producer: { file: '.github/workflows/source-sweep.yml', name: 'Source sweep' },
+    consumer: { file: '.github/workflows/ledger-consume.yml', name: 'Ledger consume' },
+    trigger: 'workflow_run',
+    family: null,
+    enforceEdge: false,
+    enforceFired: false,
+    note: 'fixture hop',
+  };
+}
+
+function withFixtureDir(files, run) {
+  const dir = mkdtempSync(join(tmpdir(), 'loop-hops-fixture-'));
+  try {
+    for (const [name, content] of Object.entries(files)) {
+      writeFileSync(join(dir, name), JSON.stringify(content, null, 2));
+    }
+    run(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 function readYamlName(repoRelativePath) {
   const abs = join(REPO_ROOT, repoRelativePath);
@@ -110,6 +139,58 @@ test('every hop declares trigger, enforceEdge and enforceFired as the correct ty
     );
     assert.equal(typeof hop.enforceEdge, 'boolean', `${hop.id}: enforceEdge must be a boolean`);
     assert.equal(typeof hop.enforceFired, 'boolean', `${hop.id}: enforceFired must be a boolean`);
+  }
+});
+
+// ── attack: the directory loader itself (brief-r7m.md item 3, fixture directories, never the live one)
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+test('ATTACK: a duplicate hop id across two files throws', () => {
+  withFixtureDir(
+    { '01-hop-a.json': validHop('same-id'), '02-hop-b.json': validHop('same-id') },
+    (dir) => {
+      assert.throws(() => loadLoopHops(dir), /duplicate hop id "same-id"/);
+    },
+  );
+});
+
+test('ATTACK: a duplicate order prefix across two files throws', () => {
+  withFixtureDir(
+    { '01-hop-a.json': validHop('hop-a'), '01-hop-b.json': validHop('hop-b') },
+    (dir) => {
+      assert.throws(() => loadLoopHops(dir), /duplicate order prefix "01"/);
+    },
+  );
+});
+
+test('ATTACK: a hop file missing a required field throws naming the file', () => {
+  withFixtureDir(
+    {
+      '01-incomplete.json': (() => {
+        const hop = validHop('incomplete-hop');
+        delete hop.trigger;
+        return hop;
+      })(),
+    },
+    (dir) => {
+      assert.throws(
+        () => loadLoopHops(dir),
+        /01-incomplete\.json is missing required field "trigger"/,
+      );
+    },
+  );
+});
+
+// A shape assertion, not a pinned content snapshot (the R6t lesson, remediation-discipline Example 2 /
+// category 48: no pinned list of live entries - the manifest's own content is proven lossless against the
+// pre-conversion hard-coded array once, at conversion time, not re-asserted here so future hop edits never
+// have to touch this test). The live-tree tests above already cover every field's real-world shape; this
+// just pins the CONTRACT the loader promises any caller: a frozen, non-empty array of hop objects.
+test('LOOP_HOPS is a frozen, non-empty array derived from loop-hops.d/', () => {
+  assert.ok(Array.isArray(LOOP_HOPS));
+  assert.ok(Object.isFrozen(LOOP_HOPS));
+  assert.ok(LOOP_HOPS.length > 0);
+  for (const hop of LOOP_HOPS) {
+    assert.ok(Object.isFrozen(hop), `${hop.id}: hop object is not frozen`);
   }
 });
 

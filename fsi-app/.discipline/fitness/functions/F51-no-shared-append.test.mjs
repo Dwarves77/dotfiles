@@ -101,6 +101,25 @@ test('check 1 GREEN: the real (derived) invariants.mjs loader shape passes', () 
   assert.deepEqual(scanHandEntries(files, { familyNames: [] }), []);
 });
 
+test('check 1 RED: a hand-written "LOOP_HOPS = [" array literal in loop-manifest.mjs is caught', () => {
+  const files = [{
+    path: 'fsi-app/.discipline/governance/loop-manifest.mjs',
+    text: "export const LOOP_HOPS = [\n  {\n    id: 'sweep-to-fetch-drain',\n  },\n];\n",
+  }];
+  const v = scanHandEntries(files, { familyNames: [] });
+  assert.equal(v.length, 2, 'both the array-literal line and the hop id: line should be caught');
+  assert.ok(v.some((x) => x.message.includes('hand-written array literal reappeared assigning LOOP_HOPS')));
+  assert.ok(v.some((x) => x.message.includes('hand-written hop "id:" entry reappeared')));
+});
+
+test('check 1 GREEN: the real (derived) loop-manifest.mjs loader shape passes', () => {
+  const files = [{
+    path: 'fsi-app/.discipline/governance/loop-manifest.mjs',
+    text: "export function loadLoopHops(dir) { return Object.freeze(readdirSync(dir).map(readHop)); }\nexport const LOOP_HOPS = loadLoopHops(LOOP_HOPS_DIR);\n",
+  }];
+  assert.deepEqual(scanHandEntries(files, { familyNames: [] }), []);
+});
+
 test('check 1 wired to the live tree: runCheck1 against this real repo is clean', () => {
   assert.deepEqual(runCheck1(getRepoRoot()), []);
 });
@@ -564,16 +583,17 @@ test('check 5 SKIP: the anchor commit itself is unreachable (bad anchor) is skip
   }
 });
 
-test('underEntryDir: recognizes the four derived directories and docs/ops/session-log.d/', () => {
+test('underEntryDir: recognizes the five derived directories and docs/ops/session-log.d/', () => {
   assert.equal(underEntryDir('fsi-app/.discipline/fitness/functions/F1-x.mjs'), true);
   assert.equal(underEntryDir('fsi-app/.discipline/governance/invariants.d/RD-1.mjs'), true);
   assert.equal(underEntryDir('fsi-app/scripts/harness-runs/mint/family.json'), true);
   assert.equal(underEntryDir('fsi-app/.discipline/governance/skill-acks/2026-09-19-n6.md'), true);
+  assert.equal(underEntryDir('fsi-app/.discipline/governance/loop-hops.d/01-sweep-to-fetch-drain.json'), true);
   assert.equal(underEntryDir('docs/ops/session-log.d/2026-09-19-n6.md'), true);
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the ten named entries (six coordinator-owned files, lane G1 Amendment 2\'s README, and the three lane F51b loop-id-resolver files)', () => {
+test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the eleven named entries (six coordinator-owned files, lane G1 Amendment 2\'s README, the three lane F51b loop-id-resolver files, and the lane R7m loop-manifest.mjs conversion entry)', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
@@ -584,6 +604,7 @@ test('check 5 wired to the live tree: HOTSPOT_ALLOWLIST names only the ten named
       'fsi-app/scripts/lib/loop-run-id.mjs',
       'fsi-app/scripts/lib/loop-run-id.test.mjs',
       'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs',
+      'fsi-app/.discipline/governance/loop-manifest.mjs',
     ].sort(),
   );
 });

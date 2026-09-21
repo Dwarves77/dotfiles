@@ -1,0 +1,10 @@
+{
+  "id": "ledger-consume-to-population-turn",
+  "producer": { "file": ".github/workflows/ledger-consume.yml", "name": "Ledger consume" },
+  "consumer": { "file": ".github/workflows/population-turn.yml", "name": "Population turn" },
+  "trigger": "workflow_run",
+  "family": "mint",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge exists today: population-turn.yml carries on.workflow_run.workflows: [\"Ledger consume\"]. Fired-from-upstream proof is M3."
+}

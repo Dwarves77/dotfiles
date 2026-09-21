@@ -1,0 +1,10 @@
+{
+  "id": "downstream-chain-to-propagation-drain",
+  "producer": { "file": ".github/workflows/downstream-chain.yml", "name": "Downstream chain" },
+  "consumer": { "file": ".github/workflows/propagation-drain.yml", "name": "Propagation drain" },
+  "trigger": "workflow_run",
+  "family": "propagation",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Edge exists today: propagation-drain.yml carries on.workflow_run.workflows: [\"Data producers\", \"Downstream chain\"]. No artifact in the propagation family records a trigger field yet (this lane adds the field itself, see scripts/lib/run-artifact.mjs) - no artifact records its trigger yet."
+}

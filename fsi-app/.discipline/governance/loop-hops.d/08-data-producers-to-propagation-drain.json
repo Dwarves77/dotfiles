@@ -1,0 +1,10 @@
+{
+  "id": "data-producers-to-propagation-drain",
+  "producer": { "file": ".github/workflows/producers.yml", "name": "Data producers" },
+  "consumer": { "file": ".github/workflows/propagation-drain.yml", "name": "Propagation drain" },
+  "trigger": "workflow_run",
+  "family": "propagation",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Same edge as downstream-chain-to-propagation-drain above; no artifact records its trigger yet."
+}

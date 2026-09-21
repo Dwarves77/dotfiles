@@ -1,0 +1,11 @@
+{
+  "id": "population-turn-to-gate-a-rescan",
+  "producer": { "file": ".github/workflows/population-turn.yml", "name": "Population turn" },
+  "consumer": { "file": ".github/workflows/gate-a-rescan.yml", "name": "Gate A rescan" },
+  "trigger": "workflow_run",
+  "family": null,
+  "enforceEdge": false,
+  "enforceFired": false,
+  "consumerPending": true,
+  "note": "Same pending consumer as brief-apply-to-gate-a-rescan above (M6)."
+}
