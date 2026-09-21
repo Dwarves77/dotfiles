@@ -13,29 +13,38 @@
 //
 // Both SectionHeading titles ("Due next", "What changed") carry `data-guard-title` (F35 coverage).
 //
-// BESPOKE RUNNER, not the generic runUxSpec — two DISCLOSED, CONFIRMED exception classes, same
+// BESPOKE RUNNER, not the generic runUxSpec. Two DISCLOSED, CONFIRMED exception classes, same
 // posture as regulations-rows-smoke.mjs's `KNOWN_SAFE_PLACEHOLDER_LITERALS` and
 // detail-surfaces-smoke.mjs's `skipAllAssertions`:
 //
-//   - KNOWN_SAFE_PLACEHOLDER_LITERALS ('Action', 'Title', 'Tier', '—'): 'Action' is BandTile's own
-//     real band-label copy (README §0.2 vocabulary), an exact-text collision with HEADER_LITERALS'
-//     §3 action-column word — the identical class regulations-rows-smoke.mjs already documents for
-//     the same word. 'Title'/'Tier' are ListRowColumnHeader's own real column-header labels (README
-//     §0.4 "column headers... uppercase"), the same class detail-surfaces-smoke.mjs documents for
-//     'Title'/'Source'. '—' is ImpactMeter's own documented unscored rendering (README §0.4:
-//     "Unscored = a dashed baseline and an em dash") on any row whose item carries no score —
-//     since HYDRATION-59 that is only a change row whose item is outside the loaded corpus slice
-//     (src/lib/dashboard/brief-rows.ts's documented degrade path) — the same em-dash class
-//     market-rows-smoke.mjs's header describes for `priceStat: null`. None of these are a row's own
+//   - KNOWN_SAFE_PLACEHOLDER_LITERALS ('Action', em dash): 'Action' is BandTile's own real band-label
+//     copy (README section 0.2 vocabulary), an exact-text collision with HEADER_LITERALS' section 3
+//     action-column word, the identical class regulations-rows-smoke.mjs already documents for the
+//     same word. The em dash is ImpactMeter's own documented unscored rendering (README section 0.4,
+//     "Unscored = a dashed baseline and an em dash") on any row whose item carries no score, since
+//     HYDRATION-59 that is only a change row whose item is outside the loaded corpus slice
+//     (src/lib/dashboard/brief-rows.ts's documented degrade path), the same em-dash class
+//     market-rows-smoke.mjs's header describes for `priceStat: null`. Neither is a row's own
 //     fabricated or omitted DATA; confirmed by reading the components that emit them.
+//
+//     AMENDMENT 2 (coordinator, w10-commandbar, 2026-09-21). 'Title'/'Tier', ListRowColumnHeader's
+//     own real column-header labels and this spec's ORIGINAL reason for carrying them here, are
+//     REMOVED from this set. A per-spec safe-word list for a shared part's own labels is a class
+//     problem (the second occurrence, after search-results-smoke.mjs hit the identical collision);
+//     the class fix now lives on the shared part itself: ListRowColumnHeader marks each label
+//     `data-part-slot="column-label"` inside a `data-part="list-row-header"` root
+//     (src/components/ui/ListRow.tsx), and the guard's placeholder leg (`isDeclaredColumnLabel`,
+//     `.discipline/rendering/smoke/harness.mjs`) exempts a HEADER_LITERALS word only when it is the
+//     whole text of a marked slot inside that part, proven by attack in harness.npmtest.mjs. No
+//     caller needs to allow-list this component's labels again.
 //
 //   - MOBILE (375px) now runs every check (lane mobframe, 2026-09-07): the mobile-390 spec
 //     (docs/design/handoff-2026-09-06, delivered 2026-09-07) defines the dashboard's band tiles,
 //     masthead and frame at mobile measures, so the prior "not yet designed" skip for this fixture
 //     no longer applies. DashboardBrief itself contains no ListRow (the dashboard's Due-next/What-
-//     changed rows use ListRow too — see below); overflow/clipped/squeezed-title are asserted at
+//     changed rows use ListRow too, see below); overflow/clipped/squeezed-title are asserted at
 //     375 the same as at 1280.
-//     DESKTOP (1280) keeps every check — that IS this handoff's fidelity target, and runs full here.
+//     DESKTOP (1280) keeps every check, that IS this handoff's fidelity target, and runs full here.
 //     Small-target (law-2) and BandTile counts are asserted at BOTH viewports; a live regression
 //     there fails this spec.
 
@@ -271,7 +280,7 @@ STATES.push(
   },
 );
 
-const KNOWN_SAFE_PLACEHOLDER_LITERALS = new Set(['Action', 'Title', 'Tier', '—']);
+const KNOWN_SAFE_PLACEHOLDER_LITERALS = new Set(['Action', '—']); // glyph:verbatim (em dash is ImpactMeter's real unscored token, not authored prose)
 
 function filteredPlaceholders(texts) {
   return findPlaceholderLiterals(texts).filter((p) => !KNOWN_SAFE_PLACEHOLDER_LITERALS.has(p));

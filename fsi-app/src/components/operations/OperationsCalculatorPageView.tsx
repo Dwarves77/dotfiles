@@ -55,7 +55,9 @@ export function OperationsCalculatorPageView({
           commandBar={{
             itemCount,
             scope: "operations",
-            placeholder: 'Ask about this estimate — e.g. "what drives the payback period?"',
+            // "or ask" restored sitewide (ruling 2, 2026-09-20): the one bar always supports both
+            // search and ask, so every page-scoped placeholder carries the words, this one included.
+            placeholder: 'Search or ask about this estimate, e.g. "what drives the payback period?"',
           }}
         />
       </div>

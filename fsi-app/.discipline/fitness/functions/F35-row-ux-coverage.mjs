@@ -82,6 +82,11 @@ export const ROW_COMPONENTS = Object.freeze({
   // floor and an unbroken long entity name overflowed the row — found by notices-rail-smoke.mjs, which
   // mounts the real component (via NoticesRail, the shared rail Market and all four detail surfaces use).
   'src/components/figures/RecalculationNotice.tsx': 'notices-rail-smoke.mjs (law-2 target-floor + overflow fixes, lane NOTICES)',
+  // lane W10-CommandBar, 2026-09-21, undrawn-cases ruling 2 of 2026-09-20 ("Enter opens the results
+  // page"): SearchResultsView is the presentational half of the new /search route, rows on the
+  // shared ListRow part; search-results-smoke.mjs mounts it directly (page.tsx is a server
+  // component and cannot be bundled by this harness; see that file's own header).
+  'src/components/search/SearchResultsView.tsx': 'search-results-smoke.mjs, the new /search results page (lane W10-CommandBar, ruling 2 of 2026-09-20)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

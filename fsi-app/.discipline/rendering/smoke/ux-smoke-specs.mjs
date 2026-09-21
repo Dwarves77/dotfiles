@@ -18,6 +18,7 @@ import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
 import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
 import { runSmoke as runMapSmoke } from './map-smoke.mjs';
 import { runSmoke as runMastheadBalanceSmoke } from './masthead-balance-smoke.mjs';
+import { runSmoke as runSearchResultsSmoke } from './search-results-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -46,4 +47,7 @@ export const UX_SMOKE_SPECS = [
   // dek content, proving `text-wrap: balance` removes the last-line word orphan at 1440 and at
   // the dashboard's actual masthead content width (masthead-balance-smoke.mjs's own header).
   { name: "masthead-balance", run: runMastheadBalanceSmoke },
+  // lane W10-CommandBar, 2026-09-21: search-results-smoke.mjs mounts the real SearchResultsView
+  // (/search's presentational half), the new results page ruling 2 of 2026-09-20 required.
+  { name: "search-results", run: runSearchResultsSmoke },
 ];

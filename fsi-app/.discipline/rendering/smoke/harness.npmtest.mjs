@@ -17,8 +17,9 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isDeclaredKindWord } from "./harness.mjs";
+import { isDeclaredKindWord, isDeclaredColumnLabel } from "./harness.mjs";
 import { FACT_CARD_KINDS } from "../../../src/lib/detail/fact-card-model.ts";
+import { HEADER_LITERALS } from "../../../src/lib/agent/source-entry-filter.mjs";
 
 /** Minimal fake DOM node: enough of `Element` for `isDeclaredKindWord`'s `.closest()` calls
  *  (attribute-equality selectors only, the only shape this predicate ever asks for). */
@@ -80,4 +81,67 @@ test("a descendant of the kind-word slot (not the slot element itself) still res
   const slot = new FakeEl({ attrs: { "data-part-slot": "kind-word" }, textContent: "PENALTY", parent: card });
   const inner = new FakeEl({ textContent: "PENALTY", parent: slot });
   assert.equal(isDeclaredKindWord(inner, FACT_CARD_KINDS), true);
+});
+
+// isDeclaredColumnLabel - attack proof (lane w10-commandbar Amendment 2, 2026-09-21). THE FAILURE
+// THIS PROVES FIXED: the placeholder-literal scanner quarantined ListRowColumnHeader's own real
+// column-header labels ("Title", "Tier") the moment they exact-matched HEADER_LITERALS (the F-1
+// scanner's table-header vocabulary), which is the SAME false-positive class isDeclaredKindWord
+// above closes for FactCard's kind band - a genuine column-header word drawn by the ONE shared part
+// is indistinguishable, to the detector, from a leaked table-header literal, unless the part marks
+// its own labels and the detector reads that mark. CLAUDE.md rule 15: "a guard is proven by attack,
+// not by presence" - every case below is an attack a looser exemption would let through;
+// `isDeclaredColumnLabel` must return false for every one of them except the single legitimate case.
+
+test("a HEADER_LITERALS word in a plain element (no data-part-slot at all) still FAILS", () => {
+  const bare = new FakeEl({ textContent: "Tier" });
+  assert.equal(isDeclaredColumnLabel(bare, HEADER_LITERALS), false);
+});
+
+test("the column-label word in a marked slot, inside a real list-row header, PASSES", () => {
+  const header = new FakeEl({ attrs: { "data-part": "list-row-header" } });
+  const slot = new FakeEl({ attrs: { "data-part-slot": "column-label" }, textContent: "Tier", parent: header });
+  assert.equal(isDeclaredColumnLabel(slot, HEADER_LITERALS), true);
+  // "Title" (ListRowColumnHeader's other real HEADER_LITERALS collision) passes the same way.
+  const titleSlot = new FakeEl({ attrs: { "data-part-slot": "column-label" }, textContent: "Title", parent: header });
+  assert.equal(isDeclaredColumnLabel(titleSlot, HEADER_LITERALS), true);
+});
+
+test("a marked column-label slot whose text is NOT a HEADER_LITERALS word still FAILS", () => {
+  // "Juris." (the abbreviated jurisdiction label) is not in HEADER_LITERALS - it is a real column
+  // label, but this predicate's job is narrower: exempt only an exact HEADER_LITERALS collision, so
+  // a marked slot carrying a non-colliding word still reads as whatever a plain scan would read it
+  // as (never flagged as a placeholder in the first place, since it was never in HEADER_LITERALS).
+  const header = new FakeEl({ attrs: { "data-part": "list-row-header" } });
+  const slot = new FakeEl({ attrs: { "data-part-slot": "column-label" }, textContent: "TBD", parent: header });
+  assert.equal(isDeclaredColumnLabel(slot, HEADER_LITERALS), false);
+});
+
+test("the column-label marker outside a list-row header still FAILS", () => {
+  const outsideParent = new FakeEl({ attrs: { "data-part": "something-else" } });
+  const slot = new FakeEl({ attrs: { "data-part-slot": "column-label" }, textContent: "Tier", parent: outsideParent });
+  assert.equal(isDeclaredColumnLabel(slot, HEADER_LITERALS), false);
+});
+
+test("a plain <p> carrying the word (not inside the slot at all) still FAILS", () => {
+  const header = new FakeEl({ attrs: { "data-part": "list-row-header" } });
+  const plain = new FakeEl({ attrs: {}, textContent: "Tier", parent: header });
+  assert.equal(isDeclaredColumnLabel(plain, HEADER_LITERALS), false);
+});
+
+test("a longer leaked string merely CONTAINING a HEADER_LITERALS word inside the slot still FAILS", () => {
+  const header = new FakeEl({ attrs: { "data-part": "list-row-header" } });
+  const slot = new FakeEl({
+    attrs: { "data-part-slot": "column-label" },
+    textContent: "Tier | Juris. | Timeline",
+    parent: header,
+  });
+  assert.equal(isDeclaredColumnLabel(slot, HEADER_LITERALS), false);
+});
+
+test("a descendant of the column-label slot (not the slot element itself) still resolves via closest", () => {
+  const header = new FakeEl({ attrs: { "data-part": "list-row-header" } });
+  const slot = new FakeEl({ attrs: { "data-part-slot": "column-label" }, textContent: "Tier", parent: header });
+  const inner = new FakeEl({ textContent: "Tier", parent: slot });
+  assert.equal(isDeclaredColumnLabel(inner, HEADER_LITERALS), true);
 });

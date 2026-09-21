@@ -218,6 +218,7 @@ export function ListRowColumnHeader({
     return (
       <div
         className="cl-list-row-header cl-list-row-header-register"
+        data-part="list-row-header"
         style={{
           display: "grid",
           gridTemplateColumns: REGISTER_GRID,
@@ -228,10 +229,10 @@ export function ListRowColumnHeader({
         }}
       >
         <span aria-hidden="true" />
-        <span style={wrappingCellStyle}>Jurisdiction</span>
-        <span style={wrappingCellStyle}>Active themes</span>
-        <span style={wrappingCellStyle}>Highest band</span>
-        <span style={{ ...wrappingCellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
+        <span data-part-slot="column-label" style={wrappingCellStyle}>Jurisdiction</span>
+        <span data-part-slot="column-label" style={wrappingCellStyle}>Active themes</span>
+        <span data-part-slot="column-label" style={wrappingCellStyle}>Highest band</span>
+        <span data-part-slot="column-label" style={{ ...wrappingCellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
         <span aria-hidden="true" />
       </div>
     );
@@ -239,6 +240,7 @@ export function ListRowColumnHeader({
   return (
     <div
       className="cl-list-row-header"
+      data-part="list-row-header"
       style={{
         display: "grid",
         gridTemplateColumns: GRID,
@@ -254,16 +256,16 @@ export function ListRowColumnHeader({
     >
       <style>{RESPONSIVE_CSS}</style>
       <span aria-hidden="true" />
-      <span style={cellStyle}>Juris.</span>
-      <span style={cellStyle}>{titleLabel}</span>
+      <span data-part-slot="column-label" style={cellStyle}>Juris.</span>
+      <span data-part-slot="column-label" style={cellStyle}>{titleLabel}</span>
       {/* Site-wide parts brief, docs/design/parts-brief-2026-09-18.md 2.16 asks for "Impact" alone,
           dropping the retired low-to-high qualifier. The row variant no longer sorts dimensions
           low-to-high (it draws a stepped fill of the total N/12, ImpactMeter.tsx's own 2026-09-18
           rewrite), so the qualifier it labelled no longer describes what the column shows. */}
-      <span style={cellStyle}>Impact</span>
-      <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>{dueLabel}</span>
-      <span style={cellStyle}>Timeline</span>
-      <span style={cellStyle}>Tier</span>
+      <span data-part-slot="column-label" style={cellStyle}>Impact</span>
+      <span data-part-slot="column-label" style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>{dueLabel}</span>
+      <span data-part-slot="column-label" style={cellStyle}>Timeline</span>
+      <span data-part-slot="column-label" style={cellStyle}>Tier</span>
       <span aria-hidden="true" />
     </div>
   );

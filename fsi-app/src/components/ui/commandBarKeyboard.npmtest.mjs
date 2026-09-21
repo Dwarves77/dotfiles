@@ -12,8 +12,16 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { moveActiveIndex, isOutsidePointerDown, optionId, activeDescendantId, clearButtonVisible, clearButtonLabel } =
-  await jiti.import("./commandBarKeyboard.ts");
+const {
+  moveActiveIndex,
+  isOutsidePointerDown,
+  optionId,
+  activeDescendantId,
+  clearButtonVisible,
+  clearButtonLabel,
+  resolveEnterKeyAction,
+  searchResultsHref,
+} = await jiti.import("./commandBarKeyboard.ts");
 
 // ── clamp, not wrap (dispatch brief, verbatim: "ArrowUp/Down clamp (not wrap)") ──
 test("moveActiveIndex: ArrowDown past the last row CLAMPS at the last row, never wraps to the first", () => {
@@ -80,4 +88,23 @@ test("clearButtonLabel: text present → \"Clear search\"", () => {
 });
 test("clearButtonLabel: no text (dismissing an open listbox over an empty input) → \"Close search\"", () => {
   assert.equal(clearButtonLabel(false), "Close search");
+});
+
+// ── one bar, no toggle (lane W10-CommandBar, 2026-09-21, ruling 2 of 2026-09-20) ────────────────
+
+test("resolveEnterKeyAction: ⌘↵/Ctrl+Enter always asks, even over an active dropdown option", () => {
+  assert.equal(resolveEnterKeyAction(true, -1), "ask");
+  assert.equal(resolveEnterKeyAction(true, 2), "ask");
+});
+test("resolveEnterKeyAction: plain Enter with an active option navigates to it", () => {
+  assert.equal(resolveEnterKeyAction(false, 0), "navigate-active");
+  assert.equal(resolveEnterKeyAction(false, 3), "navigate-active");
+});
+test("resolveEnterKeyAction: plain Enter with no active option opens the results page, never a silent no-op", () => {
+  assert.equal(resolveEnterKeyAction(false, -1), "open-results");
+});
+
+test("searchResultsHref: builds /search?q=<encoded text>, one builder so the bar and the results page never drift", () => {
+  assert.equal(searchResultsHref("ppwr"), "/search?q=ppwr");
+  assert.equal(searchResultsHref("EU ETS & shipping"), "/search?q=EU%20ETS%20%26%20shipping");
 });

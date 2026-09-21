@@ -25,18 +25,17 @@ test("Ask button is full-bar height (40px) with 14px horizontal padding (dc.html
   assert.match(SOURCE, /height:\s*40,\s*\n\s*padding:\s*"0 14px"/);
 });
 
-// ── CMDSEARCH lane (2026-09-09): mode toggle + Ask enablement ───────────────────────────────────
+test("the part root carries data-part=\"command-bar\" (lane W10-CommandBar, 2026-09-21)", () => {
+  assert.match(SOURCE, /data-part="command-bar"/);
+});
+
+// ── one bar, no toggle (lane W10-CommandBar, 2026-09-21, ruling 2 of 2026-09-20) ────────────────
 //
 // No JSX render harness exists in this repo (see workspace/tags/route.npmtest.mjs's own header for
 // why — the component tests here are structural/source-level, same convention as every test above).
-// These assert the STRUCTURE that produces the two required states rather than rendered DOM: (1)
-// Ask disabled/unavailable while ASSISTANT_ENABLED is off, (2) Ask enabled once it flips true, with
-// no further code change — both states are driven by the SAME `assistantEnabled` read on every
-// render, not a value captured once, so the second state requires no new code path, only the flag.
-
-test("Search is the default mode", () => {
-  assert.match(SOURCE, /useState<CommandBarMode>\("search"\)/);
-});
+// The CMDSEARCH lane's 2026-09-09 Search/Ask mode toggle is gone; these assert the STRUCTURE that
+// produces the one-bar behaviour instead: the Ask button disables with a reason while the
+// assistant is unavailable, but the input itself is NEVER disabled: search always works.
 
 test("assistantEnabled comes from the ONE existing server-to-client flag path (useWorkspaceBootstrap), never a second mechanism", () => {
   assert.match(SOURCE, /import \{ useWorkspaceBootstrap \} from "@\/lib\/hooks\/useWorkspaceBootstrap"/);
@@ -45,17 +44,21 @@ test("assistantEnabled comes from the ONE existing server-to-client flag path (u
   // matching the server route's own exact-string ASSISTANT_ENABLED === "true" gate.
 });
 
-test("Ask state 1 (flag OFF): input and button are both disabled, and the input's placeholder says so BEFORE the reader types", () => {
-  assert.match(SOURCE, /const askDisabled = mode === "ask" && !assistantEnabled;/);
-  assert.match(SOURCE, /disabled=\{askDisabled\}[\s\S]{0,400}onChange/); // input carries the disabled prop
-  assert.match(SOURCE, /"The Assistant is currently unavailable"/);
+test("the Ask button disables with a reason while the assistant is unavailable; the input itself carries no disabled prop at all, search always works", () => {
+  assert.match(SOURCE, /const askDisabled = !assistantEnabled;/);
+  assert.match(SOURCE, /"The Assistant is currently unavailable\."/);
   assert.match(SOURCE, /<button[\s\S]{0,200}disabled=\{askDisabled\}/);
+  assert.doesNotMatch(SOURCE, /<input[\s\S]{0,600}disabled=\{askDisabled\}/, "the input must never be disabled, search still works while Ask is down");
 });
 
-test("Ask state 2 (flag ON): the SAME askDisabled/assistantEnabled read renders Ask enabled — no separate code path, no separate placeholder branch to add", () => {
-  // The placeholder ternary's positive branch is the enabled-state copy; proven present alongside
-  // the disabled-state copy asserted above, both keyed off the one `assistantEnabled` boolean.
-  assert.match(SOURCE, /assistantEnabled\s*\n\s*\?\s*"Ask a question…"/);
+test("the Ask button's onClick calls ask() directly and is always labeled \"Ask\", no mode-dependent label or handler", () => {
+  assert.match(SOURCE, /<button[\s\S]{0,200}onClick=\{ask\}/);
+  assert.match(SOURCE, />\s*\n\s*Ask\s*\n\s*<\/button>/);
+});
+
+test("the placeholder always carries \"Search or ask\" and is never replaced by an unavailability message, the bar's copy never implies the whole control is down", () => {
+  assert.match(SOURCE, /placeholder=\{placeholder \?\? `Search or ask across \$\{formatNumber\(itemCount\)\} items…`\}/);
+  assert.doesNotMatch(SOURCE, /"Ask a question…"/);
 });
 
 test("ask() itself refuses to dispatch while the flag is off — belt-and-suspenders beyond the disabled DOM attribute", () => {
@@ -75,37 +78,24 @@ test("empty/short query shows no results dropdown (client-side mirror of the rou
   assert.match(SOURCE, /value\.trim\(\)\.length < MIN_QUERY_LEN/);
 });
 
-// ── SEARCHFIX (2026-09-11): submit control matches the active mode ──────────────────────────────
+// ── one bar, no toggle: Enter's three-way split (lane W10-CommandBar, 2026-09-21) ────────────────
 //
-// Operator report, verbatim: "i hit ask and nothing happens when trying standard search". Root
-// cause: the submit button was hard-wired to the literal text "Ask" and to `ask()` regardless of
-// `mode` — in Search mode (the default) pressing it silently asked the assistant instead of
-// running a search, or (assistant disabled) did nothing visible at all. Fixed to one `submit()`
-// dispatcher, used by both the button's onClick and the form's onSubmit (Enter), so keyboard and
-// click can never diverge.
+// Superseded SEARCHFIX's single submit() dispatcher (2026-09-11, which distinguished Search mode
+// from Ask mode, the mode itself is now gone). The form's plain-Enter fallback now opens the
+// results page; ⌘↵/Ctrl+Enter and the Ask button both call ask() directly; an active dropdown
+// option takes precedence over both, via the pure `resolveEnterKeyAction` decision.
 
-test("one submit() dispatcher drives BOTH the button and Enter — mode decides ask() vs onSearch(), never two separate branches to keep in sync", () => {
+test("the form's onSubmit (plain Enter, not intercepted above) opens the results page via openResultsPage(), never a bare onSearch() re-call", () => {
   assert.match(
     SOURCE,
-    /const submit = \(\) => \{\s*\n\s*if \(mode === "ask"\) ask\(\);\s*\n\s*else onSearch\?\.\(value\.trim\(\)\);\s*\n\s*\};/
+    /onSubmit=\{\(e\) => \{[\s\S]{0,600}e\.preventDefault\(\);\s*\n\s*openResultsPage\(\);\s*\n\s*\}\}/
   );
-  // The form's Enter path calls submit(), not a second inline mode check.
-  assert.match(SOURCE, /onSubmit=\{\(e\) => \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*submit\(\);\s*\n\s*\}\}/);
-  // The button's onClick calls the SAME submit(), not ask() directly.
-  assert.match(SOURCE, /<button[\s\S]{0,200}onClick=\{submit\}/);
-  assert.doesNotMatch(
-    SOURCE,
-    /<button[\s\S]{0,200}onClick=\{ask\}/,
-    "the submit button must never call ask() directly again — that is the exact regression this fix closes"
-  );
+  assert.match(SOURCE, /const openResultsPage = \(\) => \{\s*\n\s*const q = value\.trim\(\);\s*\n\s*if \(!q\) return;\s*\n\s*window\.location\.href = searchResultsHref\(q\);\s*\n\s*\};/);
 });
 
-test("the submit button's label reads what it does in the active mode — \"Search\" in Search mode, \"Ask\" in Ask mode, never a fixed \"Ask\"", () => {
-  assert.match(SOURCE, /\{mode === "ask" \? "Ask" : "Search"\}\s*\n\s*<\/button>/);
-});
-
-test("Search mode's submit control is never disabled — askDisabled is scoped to mode===\"ask\" by construction, so the Search-mode label/handler above are always reachable", () => {
-  assert.match(SOURCE, /const askDisabled = mode === "ask" && !assistantEnabled;/);
+test("⌘↵/Ctrl+Enter resolves to \"ask\" via resolveEnterKeyAction and calls ask(), taking precedence over an active dropdown option", () => {
+  assert.match(SOURCE, /const action = resolveEnterKeyAction\(e\.metaKey \|\| e\.ctrlKey, activeIndex\);/);
+  assert.match(SOURCE, /if \(action === "ask"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*ask\(\);/);
 });
 
 // ── SEARCHKEYS (2026-09-11): Escape / click-outside / arrow-key nav for the results listbox ─────
@@ -114,19 +104,19 @@ test("Search mode's submit control is never disabled — askDisabled is scoped t
 // every test above; these assert the code SHAPE that produces the required behaviour.
 
 test("keyboard/dismissal helpers come from the one sibling module commandBarKeyboard.ts, never a second implementation inline", () => {
-  // Task 4.1b (SEARCHKEYS-B) added two more named imports (clearButtonVisible/clearButtonLabel)
+  // Lane W10-CommandBar added two more named imports (searchResultsHref/resolveEnterKeyAction)
   // from the SAME sibling module to the same import statement, still the one and only import site.
   assert.match(
     SOURCE,
-    /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*clearButtonVisible,\s*\n\s*clearButtonLabel,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/
+    /import \{\s*\n\s*moveActiveIndex,\s*\n\s*isOutsidePointerDown,\s*\n\s*optionId,\s*\n\s*activeDescendantId,\s*\n\s*clearButtonVisible,\s*\n\s*clearButtonLabel,\s*\n\s*searchResultsHref,\s*\n\s*resolveEnterKeyAction,\s*\n\s*\} from "@\/components\/ui\/commandBarKeyboard";/
   );
 });
 
 test("Escape closes the dropdown via a `dismissed` flag, not by clearing `results`; the typed query and fetched rows survive", () => {
   assert.match(SOURCE, /const \[dismissed, setDismissed\] = useState\(false\);/);
   assert.match(SOURCE, /if \(e\.key === "Escape"\) \{[\s\S]{0,200}if \(!showDropdown\) return;\s*\n\s*e\.preventDefault\(\);\s*\n\s*setDismissed\(true\);/);
-  // showDropdown itself gates on !dismissed, not on results being non-null.
-  assert.match(SOURCE, /mode === "search" && !dismissed && value\.trim\(\)\.length >= MIN_QUERY_LEN/);
+  // showDropdown itself gates on !dismissed, unconditional on any mode (one bar, no toggle).
+  assert.match(SOURCE, /const showDropdown = !dismissed && value\.trim\(\)\.length >= MIN_QUERY_LEN/);
 });
 
 test("typing and re-focusing both un-dismiss; the dropdown can reopen without a second Escape-specific escape hatch", () => {
@@ -141,10 +131,10 @@ test("a pointerdown outside both the bar and the portaled listbox dismisses the 
   assert.match(SOURCE, /const listboxRef = useRef<HTMLDivElement>\(null\);/);
 });
 
-test("ArrowDown/ArrowUp move a roving activeIndex through moveActiveIndex (clamped, not wraparound), Enter with no active option leaves normal submit() untouched", () => {
+test("ArrowDown/ArrowUp move a roving activeIndex through moveActiveIndex (clamped, not wraparound); a \"navigate-active\" Enter action calls selectRow", () => {
   assert.match(SOURCE, /if \(e\.key === "ArrowDown"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*setActiveIndex\(\(i\) => moveActiveIndex\(i, 1, searchRows\.length\)\);/);
   assert.match(SOURCE, /if \(e\.key === "ArrowUp"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*setActiveIndex\(\(i\) => moveActiveIndex\(i, -1, searchRows\.length\)\);/);
-  assert.match(SOURCE, /if \(e\.key === "Enter" && activeIndex >= 0\) \{/);
+  assert.match(SOURCE, /if \(action === "navigate-active"\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*selectRow\(activeIndex\);/);
 });
 
 test("Enter-on-an-active-option navigates by clicking the row's own Link anchor, never a second (next/navigation router) navigation path", () => {
@@ -200,7 +190,7 @@ test("a trailing clear/close button sits in the bar, 44x44 CSS px (law 2), hidde
   assert.match(SOURCE, /className="cl-command-bar-clear"/);
   assert.match(SOURCE, /width:\s*44,\s*\n\s*height:\s*44,/);
   assert.match(SOURCE, /showClearButton\s*&&/);
-  assert.match(SOURCE, /const showClearButton = clearButtonVisible\(hasQueryText, showDropdown\) && mode === "search";/);
+  assert.match(SOURCE, /const showClearButton = clearButtonVisible\(hasQueryText, showDropdown\);/);
 });
 
 test("the clear/close button's accessible name switches between the two named states, never a fixed label", () => {

@@ -91,3 +91,31 @@ export function optionId(listboxId: string, index: number): string {
 export function activeDescendantId(listboxId: string, activeIndex: number): string | undefined {
   return activeIndex >= 0 ? optionId(listboxId, activeIndex) : undefined;
 }
+
+/**
+ * ONE BAR, NO TOGGLE (lane W10-CommandBar, 2026-09-21, undrawn-cases ruling 2 of 2026-09-20,
+ * verbatim: "Typing searches ... Enter opens the results page; the Ask button (or ⌘↵) sends the
+ * same text to the assistant scoped to the page."). These two pure decisions replace the removed
+ * Search/Ask mode toggle's branching in CommandBar.tsx.
+ */
+
+/** What a plain `Enter` keystroke on the command bar input resolves to, in priority order:
+ *  1. `metaOrCtrl` (⌘↵ / Ctrl+Enter) always asks the assistant, regardless of any active dropdown
+ *     option, the reader's explicit "ask" gesture wins over an incidentally-highlighted row.
+ *  2. Otherwise, an active option (`activeIndex >= 0`) navigates to it, the same behaviour Enter
+ *     had before this lane.
+ *  3. Otherwise, Enter opens the results page: the bar never silently swallows a plain Enter. */
+export type CommandBarEnterAction = "ask" | "navigate-active" | "open-results";
+
+export function resolveEnterKeyAction(metaOrCtrl: boolean, activeIndex: number): CommandBarEnterAction {
+  if (metaOrCtrl) return "ask";
+  if (activeIndex >= 0) return "navigate-active";
+  return "open-results";
+}
+
+/** The results-page URL Enter-with-no-active-option (or a submit button pressed the same way)
+ *  navigates to. One builder so the query param name/encoding can never drift between the bar and
+ *  the page that reads it (`src/app/search/page.tsx`). */
+export function searchResultsHref(query: string): string {
+  return `/search?q=${encodeURIComponent(query)}`;
+}

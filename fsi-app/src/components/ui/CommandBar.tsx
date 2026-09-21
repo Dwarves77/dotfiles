@@ -23,38 +23,48 @@
  * 2026-09-06): the artboards for those three surfaces scope the prompt to
  * what the page actually holds — "Search sources, workspaces, flags — or
  * ask…", "Search settings — or ask…" — rather than the generic item-count
- * copy. Optional; the generic placeholder is unchanged when omitted.
+ * copy. Optional; the generic placeholder always carries "or ask" (ruling
+ * 2 of 2026-09-20, see ONE BAR below); a caller overriding it keeps the
+ * words "or ask" in its own copy.
  *
- * MODE TOGGLE (CMDSEARCH lane, 2026-09-09, operator verbatim: "we need a
- * simple search function for the site as well as an AI agent" then "a
- * toggel between standard search and AI question in that bar"). The bar's
- * own geometry (40px, border, radius — the artboard's ratified box) is
- * untouched; the toggle is two small tabs living INSIDE that same box,
- * between the glyph and the input. Search is the default mode:
- *   - Search mode: typing calls the bounded workspace read at GET
- *     /api/search (debounced) and renders a small results dropdown using
- *     the SAME shared ListRow every list surface already uses — never a
- *     second row anatomy. `onSearch` (the pre-existing per-page
- *     instant-filter callback some list surfaces pass) still fires on
- *     every keystroke in this mode, unchanged — the dropdown is additive,
- *     not a replacement of that page-local filter.
- *   - Ask mode: unchanged `open-ask-assistant` dispatch, gated on
- *     ASSISTANT_ENABLED. The flag reaches this client component the ONE
- *     existing way a server-only flag reaches the client in this app —
- *     useWorkspaceBootstrap()'s `assistantEnabled` field (see
- *     workspace/bootstrap/route.ts's own header) — never a second
+ * ONE BAR, NO TOGGLE (lane W10-CommandBar, 2026-09-21, undrawn-cases ruling
+ * 2 of 2026-09-20, verbatim: "One bar, no toggle. Typing searches (GET
+ * /api/search, results inline below the bar as you type); Enter opens the
+ * results page; the Ask button (or ⌘↵) sends the same text to the
+ * assistant scoped to the page. Search is not dropped, the toggle is."
+ * This supersedes the CMDSEARCH lane's 2026-09-09 Search/Ask mode toggle
+ * (two tabs inside the bar) below, and only the toggle: the search it
+ * gated stays:
+ *   - Typing (2+ characters, debounced, stale requests cancelled) always
+ *     calls the bounded workspace read at GET /api/search and renders a
+ *     small results dropdown using the SAME shared ListRow every list
+ *     surface already uses, never a second row anatomy. `onSearch` (the
+ *     pre-existing per-page instant-filter callback some list surfaces
+ *     pass) still fires on every keystroke, unchanged; the dropdown is
+ *     additive, not a replacement of that page-local filter.
+ *   - Enter with an active option in the dropdown follows that option's
+ *     href (unchanged, SEARCHKEYS below). Enter with no active option
+ *     opens the results page at `/search?q=<text>` (searchResultsHref,
+ *     commandBarKeyboard.ts) rather than silently doing nothing; the bar
+ *     always has somewhere for a plain Enter to go.
+ *   - ⌘↵ / Ctrl+Enter, or clicking the (always-visible, always labelled
+ *     "Ask") button, dispatches the unchanged `open-ask-assistant` event,
+ *     gated on ASSISTANT_ENABLED. The flag reaches this client component
+ *     the ONE existing way a server-only flag reaches the client in this
+ *     app, useWorkspaceBootstrap()'s `assistantEnabled` field (see
+ *     workspace/bootstrap/route.ts's own header), never a second
  *     flag-plumbing mechanism, and never by exposing the env var or the
- *     model key. While disabled, Ask mode's input is itself disabled and
- *     its placeholder states the reason BEFORE the reader can type
- *     anything; the Ask button carries the same disabled state so no
- *     request to /api/ask (and no raw 503 body) ever reaches the UI.
+ *     model key. While disabled, the Ask button carries the disabled state
+ *     and a title naming the reason, and ask() itself refuses to dispatch
+ *     as a second guard, but SEARCH STILL WORKS: the input is NEVER
+ *     disabled, so a reader can always search even while Ask is down.
  *     Flipping ASSISTANT_ENABLED to true needs no code change here — the
  *     gate reads live bootstrap data on every render.
  *
  * DISMISSAL + KEYBOARD NAVIGATION (lane SEARCHKEYS, 2026-09-11, closing the tech-debt entry
  * SEARCHCLIP logged the same day: "CommandBar Standard Search listbox has no Escape/click-
  * outside/arrow-key handling"). The WAI-ARIA combobox pattern
- * (https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) is followed for Search mode's listbox:
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) is followed for the results listbox:
  *   - The input carries role="combobox"/aria-autocomplete="list", plus the pre-existing
  *     aria-controls/aria-expanded; each option carries role="option" + a stable id, and the
  *     active one carries aria-selected; the input's aria-activedescendant points at it.
@@ -73,9 +83,9 @@
  *     `commandBarKeyboard.ts`'s own `moveActiveIndex` (see that file's header for why this is NOT
  *     a reuse of `TagPopover`'s wrapping `moveHighlight`: same shape, different, deliberately
  *     non-wrapping behaviour this control needs). Enter with an active option navigates to it; the
- *     SAME href a click on that row would follow; taking precedence over the mode's normal
- *     submit() action; Enter with no active option (activeIndex -1, the initial state, or after the
- *     result set changes and resets it) still submits normally.
+ *     SAME href a click on that row would follow; taking precedence over the bar's own Enter
+ *     fallback below. Enter with no active option (activeIndex -1, the initial state, or after the
+ *     result set changes and resets it) opens the results page (ruling 2, 2026-09-20).
  *
  * VISIBLE CLOSE CONTROLS (lane SEARCHKEYS-B, task 4.1b, 2026-09-11). Operator report, verbatim:
  * "When you click off the search bar it needs to close or there needs to be a way to click it
@@ -112,7 +122,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -133,9 +142,9 @@ import {
   activeDescendantId,
   clearButtonVisible,
   clearButtonLabel,
+  searchResultsHref,
+  resolveEnterKeyAction,
 } from "@/components/ui/commandBarKeyboard";
-
-type CommandBarMode = "search" | "ask";
 
 interface SearchResultRow {
   id: string;
@@ -152,15 +161,16 @@ const SEARCH_DEBOUNCE_MS = 250;
 const MIN_QUERY_LEN = 2;
 
 export interface CommandBarProps {
-  /** Total item count for the default placeholder ("Search across N items…"). */
+  /** Total item count for the default placeholder ("Search or ask across N items…"). */
   itemCount: number;
-  /** Called as the reader types/submits a plain search (Enter, not Ask) — the pre-existing
-   *  page-local instant filter over already-loaded rows. Unaffected by the mode toggle's new
-   *  cross-workspace dropdown, which fires from this component's own state. */
+  /** Called on every keystroke: the pre-existing page-local instant filter over already-loaded
+   *  rows. Unaffected by the bar's own cross-workspace dropdown, which fires from this component's
+   *  own state. */
   onSearch?: (query: string) => void;
   /** Page name the Ask call is scoped to (assistant context), e.g. "dashboard". */
   scope?: string;
-  /** Override the default item-count placeholder with a page-scoped prompt (Search mode only). */
+  /** Override the default item-count placeholder with a page-scoped prompt. Callers keep the
+   *  words "or ask" in their own copy (ruling 2, 2026-09-20). */
   placeholder?: string;
 }
 
@@ -171,7 +181,6 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // returns a stable, unique-per-mount id, so aria-controls / aria-activedescendant / each option's
   // id all stay correct with no coordination between instances.
   const listboxId = `cl-command-bar-listbox-${useId()}`;
-  const [mode, setMode] = useState<CommandBarMode>("search");
   const [value, setValue] = useState("");
   const [results, setResults] = useState<SearchResultRow[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -223,9 +232,10 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   }, []);
 
   // Standard Search — bounded workspace read, debounced, cancels its own stale requests. No model
-  // call, no spend: unconditional on ASSISTANT_ENABLED, unlike Ask below.
+  // call, no spend: unconditional on ASSISTANT_ENABLED, unlike Ask below. One bar, no toggle
+  // (ruling 2, 2026-09-20): search runs unconditionally, never gated on a mode.
   useEffect(() => {
-    if (mode !== "search" || value.trim().length < MIN_QUERY_LEN) {
+    if (value.trim().length < MIN_QUERY_LEN) {
       setResults(null);
       setSearching(false);
       return;
@@ -250,22 +260,20 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [mode, value]);
+  }, [value]);
 
   // `!dismissed` (SEARCHKEYS, 2026-09-11): Escape and an outside pointerdown set `dismissed`
   // without touching `results`, so the dropdown hides while the fetched rows stay held; typing
   // (onChange below) or re-focusing the input (onFocus below) un-sets it, reopening the SAME
-  // results rather than re-fetching.
-  const showDropdown =
-    mode === "search" && !dismissed && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
+  // results rather than re-fetching. Unconditional (one bar, no toggle) rather than gated on a mode.
+  const showDropdown = !dismissed && value.trim().length >= MIN_QUERY_LEN && (searching || results !== null);
 
   // Visible close controls (SEARCHKEYS-B, task 4.1b): `hasQueryText` reads the RAW value (not
   // trimmed) so the button's hidden/visible state matches the brief's own wording literally
   // ("hidden when the input is empty") rather than the trimmed length MIN_QUERY_LEN gates search
-  // on. Scoped to Search mode only: Ask mode has no listbox and no persisted-query concept this
-  // control manages; widening it to Ask mode is a separate decision, not this task's scope.
+  // on.
   const hasQueryText = value.length > 0;
-  const showClearButton = clearButtonVisible(hasQueryText, showDropdown) && mode === "search";
+  const showClearButton = clearButtonVisible(hasQueryText, showDropdown);
   const clearLabel = clearButtonLabel(hasQueryText);
   // Focus BEFORE dismissing, not after (caught by the panel-Close-row smoke check while diagnosing
   // this task: refocusing the input fires its OWN onFocus handler, which un-dismisses per task 4.1's
@@ -353,6 +361,9 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     [results],
   );
 
+  // Cmd+Enter / Ctrl+Enter or the Ask button (one bar, no toggle, ruling 2, 2026-09-20). Still refuses
+  // to dispatch while the assistant is unavailable, belt-and-suspenders beyond the button's own
+  // `disabled` DOM attribute and the keyboard shortcut's own gate below.
   const ask = () => {
     if (!assistantEnabled) return;
     const q = value.trim();
@@ -364,23 +375,16 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     );
   };
 
-  // Runs the mode's own action — the SAME thing Enter does in the form's onSubmit below, so the
-  // submit button and the keyboard both go through one path, never two. Search mode's fetch is
-  // already debounced on every keystroke (the useEffect above); this call is what makes Enter/the
-  // button ACT immediately rather than only ever firing implicitly, matching the operator's report
-  // (2026-09-10, verbatim: "i hit ask and nothing happens when trying standard search") — the
-  // submit control used to be hard-wired to `ask()` regardless of `mode`, so pressing it while in
-  // Search mode silently asked the assistant (or did nothing at all when the assistant was
-  // disabled) instead of running a search.
-  const submit = () => {
-    if (mode === "ask") ask();
-    else onSearch?.(value.trim());
+  // Plain Enter with no active dropdown option: open the results page rather than doing nothing.
+  // The SAME action the form's native submit (Enter, not intercepted by onInputKeyDown below)
+  // resolves to; see the form's onSubmit.
+  const openResultsPage = () => {
+    const q = value.trim();
+    if (!q) return;
+    window.location.href = searchResultsHref(q);
   };
 
-  // `askDisabled` is already scoped to Ask mode (`mode === "ask" && !assistantEnabled` is always
-  // false in Search mode, by construction) — Search mode's submit control is never disabled,
-  // matching this component's own header ("unconditional on ASSISTANT_ENABLED, unlike Ask").
-  const askDisabled = mode === "ask" && !assistantEnabled;
+  const askDisabled = !assistantEnabled;
 
   // Navigates to a result row for Enter-on-the-active-option (onInputKeyDown below) by clicking
   // the row's OWN Link anchor (`.cl-row-link`, ListRow's whole-row click target) rather than
@@ -396,11 +400,13 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     option?.querySelector<HTMLAnchorElement>("a.cl-row-link")?.click();
   };
 
-  // Escape / ArrowUp / ArrowDown / Enter-on-an-active-option (SEARCHKEYS, 2026-09-11). Lives on
-  // the input's onKeyDown rather than the form's: Enter with an active option calls
-  // `e.preventDefault()` here, which stops the browser from also firing the form's implicit
-  // submit for that keystroke, so `selectRow` and `submit()` never both run for one Enter press.
-  // Enter with no active option is left alone and falls through to the form's own onSubmit.
+  // Escape / ArrowUp / ArrowDown / Enter (SEARCHKEYS, 2026-09-11; Enter's three-way split and
+  // ⌘↵/Ctrl+Enter added lane W10-CommandBar, 2026-09-21, ruling 2). Lives on the input's onKeyDown
+  // rather than the form's: Enter with an active option, or ⌘↵/Ctrl+Enter, calls
+  // `e.preventDefault()` here, which stops the browser from also firing the form's implicit submit
+  // for that keystroke. Plain Enter with no active option is left alone and falls through to the
+  // form's own onSubmit (openResultsPage); `resolveEnterKeyAction` (commandBarKeyboard.ts) is the
+  // pure decision the three Enter branches below and the form's fallback both agree with.
   const onInputKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       // "Escape with the dropdown already closed does nothing special"; only intercept while open.
@@ -409,7 +415,22 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       setDismissed(true);
       return;
     }
-    if (!showDropdown || searchRows.length === 0) return; // arrows/Enter below only act on an open, non-empty listbox
+    if (e.key === "Enter") {
+      const action = resolveEnterKeyAction(e.metaKey || e.ctrlKey, activeIndex);
+      if (action === "ask") {
+        e.preventDefault();
+        ask();
+        return;
+      }
+      if (action === "navigate-active") {
+        e.preventDefault();
+        selectRow(activeIndex);
+        return;
+      }
+      // "open-results": left alone, falls through to the form's own onSubmit.
+      return;
+    }
+    if (!showDropdown || searchRows.length === 0) return; // arrows below only act on an open, non-empty listbox
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((i) => moveActiveIndex(i, 1, searchRows.length));
@@ -418,55 +439,21 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
     if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => moveActiveIndex(i, -1, searchRows.length));
-      return;
-    }
-    if (e.key === "Enter" && activeIndex >= 0) {
-      // Takes precedence over the form's own onSubmit → submit() for this one case; Enter with no
-      // active option (activeIndex -1) falls through to the form's normal submit handling.
-      e.preventDefault();
-      selectRow(activeIndex);
     }
   };
-
-  // L9 (site-wide layout guard, operator's own numbers: ">= 44px in one dimension and >= 28px in
-  // the other; adjacent targets do not overlap") caught two rounds here, both fixed rather than
-  // exempted:
-  //   (1) A first pass at `padding: "4px 10px"` with no explicit height measured ~23.8px tall — the
-  //       short axis needs >=28px, not >=24px. `height: 30` (below, 2px of margin above the
-  //       28px floor so sub-pixel font-metric rounding never lands exactly on the boundary) fixes
-  //       it outright.
-  //   (2) With height fixed, the "Ask" tab's own text (~4 fewer characters than "Search") measured
-  //       only 42px WIDE — under the required 44px on at least one dimension, since the bar's 40px
-  //       height means neither tab can ever reach 44 tall. `minWidth: 44` makes BOTH tabs clear 44
-  //       on the width axis regardless of label length, so the floor holds by construction rather
-  //       than by each label happening to be long enough.
-  // The group's own 8px gap (was 2) also clears the neighbor-clearance half between the two tabs;
-  // the form's own 10px flex gap already clears the glyph and input on either side.
-  const modeTabStyle = (active: boolean): CSSProperties => ({
-    height: 30,
-    minWidth: 44,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0 10px",
-    fontSize: "var(--fs-105)",
-    fontWeight: 700,
-    letterSpacing: "0.02em",
-    borderRadius: 5,
-    border: "none",
-    background: active ? "var(--card)" : "transparent",
-    color: active ? "var(--ink)" : "var(--ink-3)",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  });
 
   return (
     <form
       ref={formRef}
       role="search"
+      data-part="command-bar"
       onSubmit={(e) => {
+        // Plain Enter, not intercepted above (no active dropdown option, no Cmd/Ctrl): open the
+        // results page (ruling 2, 2026-09-20). The bar's other two actions (navigate to an active
+        // option, ask the assistant) both call e.preventDefault() in onInputKeyDown, so this branch
+        // only ever runs for the "open-results" case.
         e.preventDefault();
-        submit();
+        openResultsPage();
       }}
       className="cl-command-bar"
       style={{
@@ -496,64 +483,13 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       <span aria-hidden="true" className="cl-search-glyph" style={{ fontSize: 14, color: "var(--ink-3)" }}>
         ⌕
       </span>
-      {/* Mode toggle (CMDSEARCH lane, 2026-09-09) — two plain buttons INSIDE the bar's existing box,
-          between the glyph and the input. Keyboard-reachable by construction (Tab to focus,
-          Enter/Space to activate) with no extra mechanism needed. `role="group"` names the pair for
-          assistive tech WITHOUT claiming the ARIA tablist/tab pattern — this is a two-state toggle,
-          not a tabbed panel set, and `role="tablist"` would also collide with the admin page's own
-          unrelated sub-tab row (compose-13-admin.json asserts exactly one `[role="tablist"]` on that
-          page; this bar mounts on every route, admin included). `aria-pressed` is the toggle-button
-          state ARIA names for exactly this shape; the CSS active background carries it visually. */}
-      <div
-        role="group"
-        aria-label="Search mode"
-        className="cl-command-bar-modes"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexShrink: 0,
-          gap: 8,
-          background: "var(--tag, #F0EDE9)",
-          borderRadius: 6,
-          padding: 2,
-        }}
-      >
-        <button
-          type="button"
-          aria-pressed={mode === "search"}
-          className="cl-command-bar-mode-search"
-          // `dismissed` reset (SEARCHKEYS): switching mode is a fresh interaction, so a prior
-          // Escape/outside-click dismissal must not silently suppress the dropdown after coming
-          // back to Search mode with an existing query.
-          onClick={() => {
-            setMode("search");
-            setDismissed(false);
-          }}
-          style={modeTabStyle(mode === "search")}
-        >
-          Search
-        </button>
-        <button
-          type="button"
-          aria-pressed={mode === "ask"}
-          className="cl-command-bar-mode-ask"
-          onClick={() => {
-            setMode("ask");
-            setDismissed(false);
-          }}
-          style={modeTabStyle(mode === "ask")}
-        >
-          Ask
-        </button>
-      </div>
       <input
         id="cl-command-bar-input"
         ref={inputRef}
         value={value}
-        disabled={askDisabled}
         onChange={(e) => {
           setValue(e.target.value);
-          if (mode === "search") onSearch?.(e.target.value);
+          onSearch?.(e.target.value);
           // Re-typing un-dismisses (SEARCHKEYS); "reopen when the user types again".
           setDismissed(false);
         }}
@@ -563,18 +499,13 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           setDismissed(false);
         }}
         onKeyDown={onInputKeyDown}
-        placeholder={
-          mode === "ask"
-            ? assistantEnabled
-              ? "Ask a question…"
-              : "The Assistant is currently unavailable"
-            : (placeholder ?? `Search across ${formatNumber(itemCount)} items…`)
-        }
-        aria-label={mode === "ask" ? "Ask the Intelligence Assistant" : "Search across the workspace"}
-        // WAI-ARIA combobox pattern (SEARCHKEYS, 2026-09-11): role/aria-autocomplete apply in both
-        // modes without harm (Ask mode never populates a listbox, so aria-controls simply points at
-        // an element that stays absent), matching the pre-existing aria-controls/aria-expanded,
-        // which were already unconditional the same way.
+        // One bar, no toggle (ruling 2, 2026-09-20): the input is NEVER disabled, search always
+        // works, even while the Ask button is disabled for an unavailable assistant, so the
+        // placeholder is always the search-or-ask copy, never a "the assistant is unavailable"
+        // message that would suggest the whole bar is down.
+        placeholder={placeholder ?? `Search or ask across ${formatNumber(itemCount)} items…`}
+        aria-label="Search or ask across the workspace"
+        // WAI-ARIA combobox pattern (SEARCHKEYS, 2026-09-11).
         role="combobox"
         aria-autocomplete="list"
         aria-controls={listboxId}
@@ -590,7 +521,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           fontFamily: "inherit",
           fontSize: "var(--fs-13)",
           color: "var(--ink)",
-          cursor: askDisabled ? "not-allowed" : "text",
+          cursor: "text",
           // L12 (site-wide layout guard, lane layoutguard 2026-09-08) [CONFIRMED by measurement on
           // 13 of the 17 routes at 1440 and 1024]: the placeholder is 339-546px of text in a 283px
           // input, so on every one of them a native <input> cut it mid-word with no sign that
@@ -648,17 +579,16 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       >
         ⌘K
       </span>
-      {/* Submit control — one element, one handler, labeled for whichever mode is active (SEARCHFIX,
-          2026-09-11, operator verbatim: "i hit ask and nothing happens when trying standard
-          search"). It used to read "Ask" and call `ask()` unconditionally, so pressing it in
-          Search mode silently asked the assistant (or, with the assistant disabled, did nothing
-          visible at all) instead of running a search. `.cl-command-bar-ask-submit` — the
-          selector masthead.json's audit spec already names — is kept as-is: it is still the ONE
-          submit button in the bar, mode-toggle tabs excluded, same element the spec row means. */}
+      {/* The Ask button: one bar, no toggle (ruling 2, 2026-09-20), always labeled "Ask", always
+          dispatches `ask()` on click, disabled with a reason only while the assistant itself is
+          unavailable. Search is never gated on this control; typing and Enter (no active option,
+          via the form's own onSubmit) work regardless of its disabled state.
+          `.cl-command-bar-ask-submit`, the selector masthead.json's audit spec names, is kept as
+          the class, still the one dark submit-shaped button in the bar. */}
       <button
         type="button"
         className="cl-command-bar-ask-submit"
-        onClick={submit}
+        onClick={ask}
         disabled={askDisabled}
         aria-disabled={askDisabled}
         title={askDisabled ? "The Assistant is currently unavailable." : undefined}
@@ -677,7 +607,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           opacity: askDisabled ? 0.45 : 1,
         }}
       >
-        {mode === "ask" ? "Ask" : "Search"}
+        Ask
       </button>
 
       {/* Standard Search results dropdown — the shared ListRow, never a second row anatomy. Absence
