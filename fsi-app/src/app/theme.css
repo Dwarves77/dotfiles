@@ -69,6 +69,9 @@
   --fs-85: 8.5px;  --fs-95: 9.5px;  --fs-10: 10px;  --fs-105: 10.5px;
   --fs-11: 11px;   --fs-115: 11.5px; --fs-12: 12px; --fs-125: 12.5px;
   --fs-13: 13px;   --fs-14: 14px;
+  /* FactCard v2 figure lead (parts-brief-2026-09-18.md section 2.1: "Anton 22, colour = edge
+     colour"). No larger display size existed in the scale before this lane. */
+  --fs-22: 22px;
 
   /* ── interaction states ── */
   --row-hover:       var(--page);

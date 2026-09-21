@@ -953,13 +953,33 @@ function MatrixPanel({
  * SOURCED_SHAPE): white, 2px solid ink LEFT edge, 1px `--line-1` the other three sides, radius
  * 0 8px 8px 0.
  *
- * WHY NOT `ui/FactCard` ITSELF. Different anatomy, not different styling. FactCard renders a
- * VERBATIM QUOTE under a "FACT" eyebrow with a tier chip and an "Open source" link: the detail
- * surfaces' claim card. This card leads with a FIGURE inline with its label and has no eyebrow, no
- * quotation marks and no tier. Wrapping a figure in FactCard's quote marks would assert it is a
- * verbatim span from the source, which for a derived or formatted figure is false. The box geometry
- * is shared by reading the same system-sheet values; the anatomy is this page's own, exactly as
- * `RowTable` is the table sibling of `ListRow` rather than a variant of it.
+ * SUPERSEDED RULING (lane w10-factcard, Amendment 1 section B.1, coordinator, 2026-09-20). The
+ * 2026-09-09 "different anatomy, not a variant" reasoning below is RETIRED by a later, binding
+ * ruling: "Artboard 08's note draws 'standard fact cards (headline figure Anton 18, quote 12.5px,
+ * source line)' below the matrix: that size is a declared density='matrix' variant of the ONE
+ * part (lead Anton 18, claim 12.5px), not a second component. Delete MatrixFactCard; correct its
+ * header comment to cite the newer ruling." The later ruling wins per this repo's lane contract.
+ *
+ * NOT YET EXECUTED. This lane added the enabling primitive - `ui/FactCard.tsx` v2 now exists with
+ * a model-based render (`src/lib/detail/fact-card-model.ts`) - but did NOT delete this function or
+ * rewire this panel to it: `MatrixFactCard` carries operator-ruled behaviour v2's model has no
+ * field for (the no-figure branch's six-word headline derived from `factHeadline`/
+ * `sixWordHeadline`, the `indexAgainstBase` comparison-row delta, five `data-audit` hooks read by
+ * `spec/operations-matrix-nofigure.json` and the fitness-allow F43 citation above, and the
+ * operator's "card height is constant regardless of selection" acceptance test), and a migration
+ * that dropped or silently changed any of those would be a regression this lane could not verify
+ * without running the app and its spec suite. Reported as an INCOMPLETE ruling execution in this
+ * lane's report, not a silent partial fix - see the session-log entry's "Unresolved" section for
+ * the follow-up scope.
+ *
+ * THE ORIGINAL 2026-09-09 REASONING (kept for context, no longer the standing ruling). Different
+ * anatomy, not different styling. FactCard renders a VERBATIM QUOTE under a "FACT" eyebrow with a
+ * tier chip and an "Open source" link: the detail surfaces' claim card. This card leads with a
+ * FIGURE inline with its label and has no eyebrow, no quotation marks and no tier. Wrapping a
+ * figure in FactCard's quote marks would assert it is a verbatim span from the source, which for a
+ * derived or formatted figure is false. The box geometry is shared by reading the same
+ * system-sheet values; the anatomy is this page's own, exactly as `RowTable` is the table sibling
+ * of `ListRow` rather than a variant of it.
  */
 function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; baseFact: Record<string, unknown> | null }) {
   const url = (f.sourceUrl as string) ?? sourceUrlFromNote(f.sourceNote);
