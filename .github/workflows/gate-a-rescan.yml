@@ -1,0 +1,254 @@
+name: Gate A rescan
+
+# LANE M6b (2026-09-21), build plan section 6.1 row M6, the last hop before proof run 6.2. Read
+# docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md sections C and D before changing this
+# file.
+#
+# WHAT THIS RUNS. scripts/maintenance/gate-a-rescan.mjs -- the bulk item_gate_a_state re-scan: any item
+# whose stored gate_a_version has fallen behind the live scanner (GATE_A_VERSION,
+# src/lib/agent/gate-a-scan.mjs), or that has no state row at all, gets re-scanned (fresh Gate B derived
+# coverage per item) and, when the result actually changed, has its provenance_status re-derived through
+# the same guarded touch rederive-record-provenance.mjs already uses. $0, no LLM, no fetch: every input
+# is already-stored rows.
+#
+# CHAINED, off EITHER "Brief apply" or "Population turn" completing (the loop-manifest's own
+# brief-apply-to-gate-a-rescan and population-turn-to-gate-a-rescan hops), plus a workflow_dispatch for a
+# hand-named ticket. A chained (workflow_run) firing is ALWAYS bounded at 50 items
+# (gate-a-rescan.mjs's own resolveLimit -- enforced in the script, not only here) and always runs in
+# `dry` mode ONLY on the CHAINED attach-found-sources half (see below); the rescan step itself follows
+# this run's own resolved mode (a chained firing's mode is always `apply` -- a re-scan is read-then-write
+# against already-stored rows, never a fetch, so there is nothing for a chained dry run to protect that a
+# workflow_dispatch's own `dry` default does not already cover for a hand-run ticket).
+#
+# CHAINED ATTACH-FOUND-SOURCES (brief item 4). When the rescan leaves any item with orphan_count > 0,
+# the SAME job runs scripts/maintenance/attach-found-sources.mjs, scoped via --items-file (the exact ids
+# left orphaned) and --limit 50 (CHAINED_LIMIT), over each committed READY worklist under
+# scripts/_worklists/attach-found-sources-*.json (never a .seed.json or .fixture.json file -- those are
+# unfilled seeds and the committed test fixture, not live worklists). On a workflow_run trigger this step
+# runs in `dry` mode ONLY (it can fetch; build mode holds fetching to explicit dispatch, CLAUDE.md rule
+# 16) -- on workflow_dispatch it follows the `mode` input. Zero matching worklist files, or a worklist
+# with zero rows in scope, is a recorded result (config.attach.rows_offered: 0), not an error.
+#
+# ONE ARTIFACT, BOTH STEPS. scripts/turns/emit-gate-a-rescan-artifact.mjs reads back both steps' own
+# summary.json (written via --out, scripts/maintenance/lib/cli.mjs's contract) and records one
+# gate-a-rescan-run-NNN.json artifact -- never two competing records for one run.
+#
+# BUILD MODE (CLAUDE.md rule 16): no `schedule:` block. workflow_dispatch stays for a hand-named ticket;
+# the workflow_run edges are EVENT CHAINING, not a schedule -- the same distinction every other chained
+# workflow in this repo already draws.
+#
+# F52 (workflow-file-validity): every workflow/job env value below references only github, needs,
+# strategy, matrix, vars, secrets, inputs -- anything runner-derived (a computed mode, a resolved
+# upstream name/id) is set through $GITHUB_ENV in a step, never in a job-level env: block. No job `if:`
+# references `steps.` or `runner.`. Every workflow_run.workflows entry below names a real workflow's own
+# `name:` field ("Brief apply", "Population turn" -- confirmed against those files' own first lines).
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires; no new secret name.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read/plan, write nothing. apply = write through the guarded path (item_gate_a_state upserts, and the intelligence_items touch when a scan result changed).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      limit:
+        description: 'Max items this run re-scans. Ignored on a chained (workflow_run) firing, which is always bounded at 50 by the script itself. A dispatch value above 2000 is REFUSED, never clamped -- see gate-a-rescan.mjs resolveLimit.'
+        required: false
+        default: '500'
+        type: string
+      loop_run_id:
+        description: 'Optional explicit loop_run_id (wins over any upstream resolution). Leave blank on a normal dispatch.'
+        required: false
+        default: ''
+        type: string
+  workflow_run:
+    workflows: ["Brief apply", "Population turn"]
+    types: [completed]
+
+concurrency:
+  group: gate-a-rescan
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  rescan:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      # RESOLVE RUN PARAMETERS -- the ONE place that turns inputs.* (workflow_dispatch) or the chained
+      # event (workflow_run) into the GAR_* vocabulary gate-a-rescan.mjs's own buildDeps reads, and the
+      # OUT_* paths later steps write summary.json to. Every later step reads these, never inputs.*/the
+      # raw event directly -- the same normalize-once-then-read idiom brief-export.yml's own "Resolve run
+      # parameters" step already uses.
+      - name: Resolve run parameters
+        run: |
+          echo "GAR_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "OUT_ROOT=$RUNNER_TEMP/gate-a-rescan-${{ github.run_id }}" >> "$GITHUB_ENV"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "GAR_TRIGGER=workflow_dispatch" >> "$GITHUB_ENV"
+            echo "GAR_MODE=${{ inputs.mode }}" >> "$GITHUB_ENV"
+            echo "GAR_LIMIT=${{ inputs.limit }}" >> "$GITHUB_ENV"
+            echo "GAR_LOOP_RUN_ID=${{ inputs.loop_run_id }}" >> "$GITHUB_ENV"
+            echo "GAR_UPSTREAM_NAME=" >> "$GITHUB_ENV"
+            echo "GAR_UPSTREAM_RUN_ID=" >> "$GITHUB_ENV"
+          else
+            echo "GAR_TRIGGER=workflow_run" >> "$GITHUB_ENV"
+            echo "GAR_MODE=apply" >> "$GITHUB_ENV"
+            echo "GAR_LIMIT=" >> "$GITHUB_ENV"
+            echo "GAR_LOOP_RUN_ID=" >> "$GITHUB_ENV"
+            echo "GAR_UPSTREAM_NAME=${{ github.event.workflow_run.name }}" >> "$GITHUB_ENV"
+            echo "GAR_UPSTREAM_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+            # loop-run-id.mjs's resolveLoopRunId matches an upstream artifact by config.github_run_id,
+            # which writeRunArtifact stamps from GITHUB_RUN_ID -- for the UPSTREAM run, that is
+            # github.event.workflow_run.id (see brief-export.yml's identical stamp for its own consumers).
+            echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: This run's gates
+        run: |
+          echo "trigger  = $GAR_TRIGGER"
+          echo "mode     = $GAR_MODE"
+          echo "limit    = $GAR_LIMIT (blank on a chained run -- gate-a-rescan.mjs's own resolveLimit forces 50)"
+          echo "upstream = $GAR_UPSTREAM_NAME (run $GAR_UPSTREAM_RUN_ID)"
+
+      - name: gate-a-rescan.mjs
+        run: |
+          mkdir -p "$OUT_ROOT/gate-a-rescan"
+          node scripts/maintenance/gate-a-rescan.mjs --mode "$GAR_MODE" --out "$OUT_ROOT/gate-a-rescan" | tee /tmp/gate-a-rescan.log
+
+      # CHAINED attach-found-sources (brief item 4): only when the rescan left orphaned items. Reads the
+      # rescan's own summary.json (jq, a single extraction call -- no logic beyond it belongs in this
+      # step per F52's "no inline script longer than a call") for the item ids with orphan_count > 0.
+      - name: Resolve orphaned item ids from the rescan's own summary
+        id: orphans
+        run: |
+          IDS_FILE="$OUT_ROOT/gate-a-rescan-orphan-ids.json"
+          jq '[.per_item[] | select(.orphan_count_after > 0) | .id]' "$OUT_ROOT/gate-a-rescan/summary.json" > "$IDS_FILE"
+          COUNT=$(jq 'length' "$IDS_FILE")
+          echo "ids_file=$IDS_FILE" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "$COUNT orphaned item id(s) after this run's rescan."
+
+      # workflow_run: attach runs dry ONLY (it can fetch -- build mode holds fetching to explicit
+      # dispatch, CLAUDE.md rule 16). workflow_dispatch: follows the mode input.
+      - name: Resolve the attach step's own mode
+        id: attach_mode
+        run: |
+          if [ "$GAR_TRIGGER" = "workflow_run" ]; then
+            echo "mode=dry" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=$GAR_MODE" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: attach-found-sources.mjs (chained, scoped to this run's own orphans)
+        if: steps.orphans.outputs.count != '0'
+        run: |
+          mkdir -p "$OUT_ROOT/attach-found-sources"
+          shopt -s nullglob
+          worklists=(scripts/_worklists/attach-found-sources-*.json)
+          real_worklists=()
+          for f in "${worklists[@]}"; do
+            case "$f" in
+              *.seed.json|*.fixture.json) continue ;;
+              *) real_worklists+=("$f") ;;
+            esac
+          done
+          if [ "${#real_worklists[@]}" -eq 0 ]; then
+            echo "no committed ready worklist under scripts/_worklists/attach-found-sources-*.json -- nothing to attach this run."
+            echo '{"step":"attach-found-sources","mode":"'"${{ steps.attach_mode.outputs.mode }}"'","counts":{"rows_offered":0},"applied":0,"note":"no ready worklist file on the tree"}' > "$OUT_ROOT/attach-found-sources/summary.json"
+          else
+            for f in "${real_worklists[@]}"; do
+              node scripts/maintenance/attach-found-sources.mjs \
+                --mode "${{ steps.attach_mode.outputs.mode }}" \
+                --arg "$f" \
+                --items-file "${{ steps.orphans.outputs.ids_file }}" \
+                --limit 50 \
+                --out "$OUT_ROOT/attach-found-sources" \
+                | tee -a /tmp/attach-found-sources.log
+            done
+          fi
+
+      - name: No orphaned items this run, nothing to attach
+        if: steps.orphans.outputs.count == '0'
+        run: echo "gate-a-rescan left zero orphaned items -- attach-found-sources is skipped this run."
+
+      # Record this run's own harness-run artifact (gate-a-rescan family), BEFORE the commit step below
+      # so the SAME commit/PR carries it -- one commit/PR per run, matching every sibling family's own
+      # posture. Always, even a fully-skipped/zero-item run -- "record it every batch, even when zero"
+      # (MINT-RUNBOOK.md section 5).
+      - name: Record this run's own harness-run artifact (gate-a-rescan family)
+        if: always()
+        env:
+          GAR_EVENT_TRIGGER: ${{ env.GAR_TRIGGER }}
+          GAR_RESCAN_SUMMARY_PATH: ${{ env.OUT_ROOT }}/gate-a-rescan/summary.json
+          GAR_ATTACH_SUMMARY_PATH: ${{ env.OUT_ROOT }}/attach-found-sources/summary.json
+        run: node scripts/turns/emit-gate-a-rescan-artifact.mjs
+
+      # ONE commit/PR for this run's own harness artifact, same shape every sibling family workflow
+      # already has (see brief-export.yml / downstream-chain.yml's own identical step).
+      - name: Commit this run's harness artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/gate-a-rescan
+          if git diff --cached --quiet; then
+            echo "No new gate-a-rescan artifact to commit."
+            exit 0
+          fi
+          branch="gate-a-rescan/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "gate-a-rescan $GAR_MODE: run ${{ github.run_id }} (${{ github.event_name }})"
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated Gate A rescan (run %s, trigger %s).\n\nMode: %s\nUpstream: %s (%s)\n\nLands this run'"'"'s own harness-run artifact under fsi-app/scripts/harness-runs/gate-a-rescan/.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "$GAR_MODE" "$GAR_UPSTREAM_NAME" "$GAR_UPSTREAM_RUN_ID" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Gate A rescan: run ${{ github.run_id }} (mode=$GAR_MODE)" /tmp/pr-body.md
+
+      - name: Upload this run's step artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-a-rescan-${{ github.run_id }}
+          path: |
+            ${{ env.OUT_ROOT }}/
+            /tmp/gate-a-rescan.log
+            /tmp/attach-found-sources.log
+          if-no-files-found: ignore
+          retention-days: 90
