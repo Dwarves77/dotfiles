@@ -3,9 +3,8 @@
   "producer": { "file": ".github/workflows/brief-apply.yml", "name": "Brief apply" },
   "consumer": { "file": ".github/workflows/gate-a-rescan.yml", "name": "Gate A rescan" },
   "trigger": "workflow_run",
-  "family": null,
-  "enforceEdge": false,
+  "family": "gate-a-rescan",
+  "enforceEdge": true,
   "enforceFired": false,
-  "consumerPending": true,
-  "note": "M6 builds the gate-a-rescan consumer. Build plan section 6.1 row M6 leaves the exact file open (\".github/workflows/maintenance.yml (or a gate-a.yml)\"); this manifest names the undecided path as pending rather than presuming maintenance.yml, which exists today but carries no gate-a-rescan step or workflow_run edge, is the intended home."
+  "note": "Edge landed (lane M6b, 2026-09-21): .github/workflows/gate-a-rescan.yml now carries on.workflow_run.workflows: [\"Brief apply\", \"Population turn\"]. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2)."
 }
