@@ -165,7 +165,17 @@ test("B48: the row root has padding-right:12px", () => {
 });
 
 test("B49: ListRowColumnHeader is 30px tall", () => {
-  assert.match(SOURCE, /className="cl-list-row-header"[\s\S]{0,120}height: 30,/);
+  // Amendment 2 inserted a `data-part="list-row-header"` attribute between the className and the
+  // style block, pushing `height: 30,` past the original {0,120} window. Match through the added
+  // attribute explicitly (rather than blindly widening the window) so this still ties to the SAME
+  // element: className="cl-list-row-header" (exact, so the register variant's
+  // "cl-list-row-header cl-list-row-header-register" className does not satisfy it) followed by the
+  // data-part attribute, then the style block containing height: 30, within a tight bound of the
+  // style block's own opening.
+  assert.match(
+    SOURCE,
+    /className="cl-list-row-header"[\s\S]{0,80}data-part="list-row-header"[\s\S]{0,120}height: 30,/
+  );
 });
 
 test("B50-B53: jurisdiction-code cell is fs-11/700/0.06em on --ink-2 (#5A6B67), not --ink-3", () => {
@@ -214,7 +224,9 @@ test("the row's meta line can actually shrink, so its own ellipsis is the thing 
 test("the IMPACT column header reads 'Impact' alone, on cellStyle, no wrapping needed", () => {
   const retiredQualifier = ["low", "high"].join(" → ");
   assert.doesNotMatch(SOURCE, new RegExp(retiredQualifier));
-  assert.match(SOURCE, /<span style=\{cellStyle\}>Impact<\/span>/);
+  // Amendment 2 added `data-part-slot="column-label"` ahead of `style={cellStyle}` on this span;
+  // tolerate that (or any other) attribute in between rather than pin the exact attribute set.
+  assert.match(SOURCE, /<span[^>]*style=\{cellStyle\}>Impact<\/span>/);
 });
 
 test("impactCellStyle/wrappingCellStyle still exist and still wrap at a word boundary, for the register-variant headers", () => {

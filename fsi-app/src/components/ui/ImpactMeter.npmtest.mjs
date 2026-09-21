@@ -257,5 +257,7 @@ test("ListRow.tsx's column header no longer renders the retired qualifier (brief
   // it, which this test file must not itself satisfy).
   const retiredQualifier = ["low", "high"].join(" → ");
   assert.doesNotMatch(listRowSource, new RegExp(retiredQualifier));
-  assert.match(listRowSource, /<span style=\{cellStyle\}>Impact<\/span>/);
+  // Amendment 2 added `data-part-slot="column-label"` ahead of `style={cellStyle}` on this span;
+  // tolerate that (or any other) attribute in between rather than pin the exact attribute set.
+  assert.match(listRowSource, /<span[^>]*style=\{cellStyle\}>Impact<\/span>/);
 });
