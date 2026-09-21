@@ -35,25 +35,29 @@
 //     ListRow.tsx or in RegulationsLedger/WatchlistSurface/DashboardBrief, which already load real CSS
 //     in their own smoke specs and stay clean. Fixed at the cause: inject `fullAppCss()` the same way
 //     those specs do, rather than changing the shared header part.
-//   - 'Tier' placeholder-literal, same class as dashboard-brief-smoke.mjs's
-//     KNOWN_SAFE_PLACEHOLDER_LITERALS. ListRowColumnHeader's default-variant header renders the
+//   - 'Tier' placeholder-literal, same class as dashboard-brief-smoke.mjs's (former)
+//     KNOWN_SAFE_PLACEHOLDER_LITERALS entry. ListRowColumnHeader's default-variant header renders the
 //     literal word "Tier" (ListRow.tsx line ~266) as its own real column-header label (README section
 //     0.4, "column headers... uppercase"), an exact-text collision with source-entry-filter.mjs's
 //     HEADER_LITERALS set (built for section 15 sources-table and section 8 obligations-table
-//     headers, not for a list-row column header). dashboard-brief-smoke.mjs already documents and
-//     allow-lists this exact literal ('Title', 'Tier') for the same component; regulations-rows-
-//     smoke.mjs documents the same class for 'Action' (BandTile's own label). No other list surface's
-//     smoke spec has hit this because RegulationsLedger/MarketIntelLedger/etc. do NOT mount
-//     `.cl-list-row-header` at all (see `.discipline/rendering/audit/spec/mobile-02-regulations-
-//     list.json`'s own note): this is the first `runUxSpec`-based spec to mount the shared header's
-//     default variant, so it is also the first to need the allow-list `runUxSpec` already exposes via
-//     `knownSafePlaceholders` (used by market/operations/research-rows-smoke.mjs for 'Action'). Never
-//     edit the detector's literal list or the HEADER_LITERALS SoT: this is the sanctioned per-spec
-//     allow-list, not an exemption on the guard.
+//     headers, not for a list-row column header).
 //
-// Neither finding required touching ListRow.tsx, ListRowColumnHeader, or SearchResultsView: the
-// header row IS the shared part (`ListRowColumnHeader`, same GRID as the rows beneath it, F45/F49).
-// Both fixes are in this fixture file only.
+// AMENDMENT 2 ruling (coordinator, 2026-09-21): the per-spec `knownSafePlaceholders` allow-list this
+// file originally carried for 'Tier' is REMOVED. A per-spec safe-word list is the second occurrence
+// of the same stop (dashboard-brief-smoke.mjs first, this file second), and every future spec that
+// mounts the shared header would need the same edit, an instance patch to a class problem. The
+// class fix (FactCard part 1's precedent, PR #763, `2b2ac415`): ListRowColumnHeader now marks each
+// column-header label `data-part-slot="column-label"` with the root carrying
+// `data-part="list-row-header"` (src/components/ui/ListRow.tsx), and the guard's placeholder leg
+// (`isDeclaredColumnLabel`, `.discipline/rendering/smoke/harness.mjs`) exempts a HEADER_LITERALS word
+// ONLY when it is the whole text of an element carrying that slot inside that part, proven by attack
+// in harness.npmtest.mjs. This spec no longer needs `knownSafePlaceholders` at all; the exemption
+// lives on the shared part, not per caller.
+//
+// Neither finding required touching SearchResultsView: the header row IS the shared part
+// (`ListRowColumnHeader`, same GRID as the rows beneath it, F45/F49). The CSS-injection fix is in
+// this fixture file only; the column-label fix is in ListRow.tsx + harness.mjs (the shared part and
+// its detector), not per spec.
 
 import { runUxSpec } from './ux-harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
@@ -140,10 +144,5 @@ export async function runSmoke(browser) {
         expectTitles: MAX_RESULTS,
       },
     ],
-    // See this file's header, "'Tier' placeholder-literal": ListRowColumnHeader's real column-header
-    // label collides with the F-1 HEADER_LITERALS set; dashboard-brief-smoke.mjs allow-lists the same
-    // literal for the same component. `runUxSpec` (ux-harness.mjs) already exposes this exact
-    // mechanism for market/operations/research-rows-smoke.mjs's 'Action' collision.
-    knownSafePlaceholders: ['Tier'],
   });
 }

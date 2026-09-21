@@ -52,6 +52,14 @@ import { assertGuardClean, detectOverflows, findPlaceholderLiterals, assertBound
 // apart into a hand-duplicated second copy. Node 24 type-strips this .ts import natively (see
 // assertions.test.mjs's own precedent importing relative-time-format.ts the same way).
 import { FACT_CARD_KINDS } from '../../../src/lib/detail/fact-card-model.ts';
+// SoT for the placeholder-literal detector's own table-header vocabulary (lane w10-commandbar
+// Amendment 2, 2026-09-21) - reused here on the SAME basis as FACT_CARD_KINDS above, so the
+// column-label exemption below can never drift into a hand-duplicated second copy of the words it
+// exempts. This is the shared-header cause fix: a genuine column-header word drawn by the ONE
+// shared ListRowColumnHeader part (src/components/ui/ListRow.tsx) is indistinguishable, to the
+// detector, from a leaked table-header literal, unless the part marks its own labels and the
+// detector reads that mark - the same mechanism the kind-word exemption above already proved.
+import { HEADER_LITERALS } from '../../../src/lib/agent/source-entry-filter.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -156,8 +164,33 @@ export function isDeclaredKindWord(el, kindWords = FACT_CARD_KINDS) {
   return kindWords.includes((slot.textContent || '').trim());
 }
 
+/**
+ * Pure, DOM-shaped predicate (lane w10-commandbar Amendment 2, 2026-09-21): true when `el` sits
+ * inside a `[data-part-slot="column-label"]` element that itself sits inside a
+ * `[data-part="list-row-header"]` ancestor, AND that slot's own text (lowercased, trimmed) is one
+ * of the words in `headerLiterals` (HEADER_LITERALS, the F-1 placeholder detector's own table-header
+ * vocabulary). Same shape as `isDeclaredKindWord` above: exported for direct unit-testing (see
+ * harness.npmtest.mjs's attack tests), inlined into `measureGuard`'s `page.evaluate` callback below
+ * because a page.evaluate closure cannot reference an outer-scope function - only serializable data
+ * crosses the Node/browser boundary.
+ *
+ * Deliberately narrow, same posture as `isDeclaredKindWord`: a bare "Tier" with no
+ * `data-part-slot="column-label"` ancestor still reads as a placeholder literal; a
+ * `data-part-slot="column-label"` outside a `data-part="list-row-header"` still reads as one; a
+ * marked column label whose text is NOT a HEADER_LITERALS word still reads as one; a marked slot
+ * whose text is a LONGER string merely containing a HEADER_LITERALS word (e.g. "Tier | Juris. |
+ * Timeline") still reads as one, because the whole trimmed text must equal the word, not merely
+ * contain it.
+ */
+export function isDeclaredColumnLabel(el, headerLiterals = HEADER_LITERALS) {
+  const slot = el.closest('[data-part-slot="column-label"]');
+  if (!slot) return false;
+  if (!slot.closest('[data-part="list-row-header"]')) return false;
+  return headerLiterals.has((slot.textContent || '').trim().toLowerCase());
+}
+
 export async function measureGuard(page) {
-  return page.evaluate((kindWords) => {
+  return page.evaluate(({ kindWords, headerLiterals }) => {
     const els = [document.body, ...document.querySelectorAll('[data-guard-container]')];
     const measurements = els.map((el) => ({
       name: el === document.body ? 'body' : el.getAttribute('data-guard-container') || el.tagName,
@@ -198,9 +231,21 @@ export async function measureGuard(page) {
       if (!slot.closest('[data-part="fact-card"]')) return false;
       return kindWords.includes((slot.textContent || '').trim());
     };
+    // Inlined copy of the exported `isDeclaredColumnLabel` above (lane w10-commandbar Amendment 2,
+    // 2026-09-21) - same page.evaluate-closure constraint as isDeclaredKindWord just above: only
+    // serializable data (`headerLiterals`, the HEADER_LITERALS array) crosses the boundary. Narrow by
+    // construction, exempts ONLY the declared column-label slot inside a real list-row header, whose
+    // WHOLE trimmed, lowercased text is a table-header word - a longer leaked string containing that
+    // word still fails.
+    const isDeclaredColumnLabel = (el) => {
+      const slot = el.closest('[data-part-slot="column-label"]');
+      if (!slot) return false;
+      if (!slot.closest('[data-part="list-row-header"]')) return false;
+      return headerLiterals.includes((slot.textContent || '').trim().toLowerCase());
+    };
     const texts = [];
     for (const cell of document.body.querySelectorAll('th,td,p,span,li,button,a')) {
-      if (isDeclaredAbsence(cell) || isDeclaredKindWord(cell)) continue;
+      if (isDeclaredAbsence(cell) || isDeclaredKindWord(cell) || isDeclaredColumnLabel(cell)) continue;
       const t = (cell.textContent || '').trim();
       if (t) texts.push(t);
     }
@@ -216,7 +261,7 @@ export async function measureGuard(page) {
       if (t) leafTexts.push(t);
     }
     return { measurements, texts, leafTexts };
-  }, [...FACT_CARD_KINDS]);
+  }, { kindWords: [...FACT_CARD_KINDS], headerLiterals: [...HEADER_LITERALS] });
 }
 
 /**
