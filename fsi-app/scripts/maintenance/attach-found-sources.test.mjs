@@ -9,6 +9,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   main, isWorklistRowReady, partitionWorklist, groupWorklistByItem, countGroundedViaWorklist, CITE,
+  filterWorklistRows, parseExtraCliArgs,
 } from "./attach-found-sources.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -70,6 +71,53 @@ test("countGroundedViaWorklist: counts only via:'worklist' source-step entries, 
     { steps: {} },
   ];
   assert.equal(countGroundedViaWorklist(perItem), 2);
+});
+
+// ── filterWorklistRows / parseExtraCliArgs (lane M6b item 4, pure) ─────────────────────────────────
+
+test("filterWorklistRows: with no options, is a no-op (identity over the array)", () => {
+  const rows = [{ item_id: "i1" }, { item_id: "i2" }];
+  assert.deepEqual(filterWorklistRows(rows), rows);
+  assert.deepEqual(filterWorklistRows(rows, {}), rows);
+});
+
+test("filterWorklistRows: itemIds keeps only rows whose item_id is a member, preserving order", () => {
+  const rows = [
+    { item_id: "i1", token: "a" }, { item_id: "i2", token: "b" }, { item_id: "i3", token: "c" },
+  ];
+  const got = filterWorklistRows(rows, { itemIds: ["i3", "i1"] });
+  assert.deepEqual(got, [rows[0], rows[2]]);
+});
+
+test("filterWorklistRows: itemIds accepts a Set, same as an array", () => {
+  const rows = [{ item_id: "i1" }, { item_id: "i2" }];
+  assert.deepEqual(filterWorklistRows(rows, { itemIds: new Set(["i2"]) }), [rows[1]]);
+});
+
+test("filterWorklistRows: limit caps the returned row count after the itemIds filter, preserving order", () => {
+  const rows = [{ item_id: "i1" }, { item_id: "i2" }, { item_id: "i3" }];
+  assert.deepEqual(filterWorklistRows(rows, { limit: 2 }), [rows[0], rows[1]]);
+  assert.deepEqual(filterWorklistRows(rows, { itemIds: ["i1", "i2", "i3"], limit: 1 }), [rows[0]]);
+});
+
+test("filterWorklistRows: non-array input never throws, returns []", () => {
+  assert.deepEqual(filterWorklistRows(undefined), []);
+  assert.deepEqual(filterWorklistRows(null, { itemIds: ["i1"] }), []);
+});
+
+test("parseExtraCliArgs: absent flags -> both null", () => {
+  assert.deepEqual(parseExtraCliArgs([]), { itemsFile: null, limit: null });
+});
+
+test("parseExtraCliArgs: reads --items-file and --limit", () => {
+  assert.deepEqual(
+    parseExtraCliArgs(["--mode", "apply", "--items-file", "scripts/tmp/ids.json", "--limit", "50"]),
+    { itemsFile: "scripts/tmp/ids.json", limit: 50 },
+  );
+});
+
+test("parseExtraCliArgs: a non-numeric --limit is null, never NaN", () => {
+  assert.deepEqual(parseExtraCliArgs(["--limit", "banana"]), { itemsFile: null, limit: null });
 });
 
 // ── main() end to end, against the REAL heal-provenance.mjs STEP SOURCE ─────────────────────────────
@@ -197,6 +245,41 @@ test("main: re-dispatching the SAME worklist after the token already grounded is
   const second = await main({ mode: "apply", arg: "scripts/_worklists/fixture.json" }, deps);
   assert.equal(second.counts.grounded_via_worklist, 0, "the token is no longer a Gate-A orphan, so the worklist candidate is never re-tried");
   assert.equal(claims.length, 1, "no second claim row written");
+});
+
+test("main: deps.itemIdsFilter/rowLimit (lane M6b item 4) scope the worklist BEFORE grouping -- an excluded item's row never reaches heal-provenance", async () => {
+  const ITEMS_2 = {
+    "item-a": { id: "item-a", item_type: "regulation", source_url: null, full_brief: "The levy is set at €711,000 under this measure." },
+    "item-b": { id: "item-b", item_type: "regulation", source_url: null, full_brief: "The fine is set at €900 under this measure." },
+  };
+  const deps = fakeHealDeps({
+    readByIds: async (ids) => ids.map((id) => ITEMS_2[id]),
+    readWorklistFile: async () => [
+      { item_id: "item-a", token: "€711,000", url: "https://notices.example.gov/levy", quote: "The levy is set at €711,000 under this measure." },
+      { item_id: "item-b", token: "€900", url: "https://notices.example.gov/fine", quote: "The fine is set at €900 under this measure." },
+    ],
+    itemIdsFilter: ["item-a"],
+  });
+  const r = await main({ mode: "dry", arg: "scripts/_worklists/fixture.json" }, deps);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.counts.worklist_rows, 2, "the file's own total row count is unaffected");
+  assert.equal(r.counts.rows_offered, 1, "the scoped row count reflects the itemIds filter");
+  assert.equal(r.counts.items_selected, 1);
+  assert.deepEqual(r.heal.per_item.map((p) => p.id), ["item-a"]);
+});
+
+test("main: deps.rowLimit caps rows_offered even when every row is otherwise ready", async () => {
+  const deps = fakeHealDeps({
+    readWorklistFile: async () => [
+      { item_id: "item-a", token: "€711,000", url: "https://notices.example.gov/levy", quote: "The levy is set at €711,000 under this measure." },
+    ],
+    rowLimit: 0,
+  });
+  const r = await main({ mode: "dry", arg: "scripts/_worklists/fixture.json" }, deps);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.counts.rows_offered, 0);
+  assert.equal(r.applied, 0);
+  assert.match(r.note, /Nothing to do/);
 });
 
 // ── the COMMITTED fixture file itself (scripts/_worklists/attach-found-sources.fixture.json) ───────
