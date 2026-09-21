@@ -17,10 +17,53 @@
 //
 // STATE AXIS: no-query (the bar's own landing state) / empty (a query with zero matches) / one-row /
 // extreme (MAX_RESULTS-worth of long titles, the honest "showing the top N" banner).
+//
+// Rendering guard amendment (replacement agent, 2026-09-21, PR #769 Rendering guard failure). Both
+// causes below are [HYPOTHESIS, code-read], diagnosed by reading ListRow.tsx, theme.css, the sibling
+// smoke specs and the guard's own detector code. NOT independently re-run in-browser here (Playwright
+// is not installed on this PC, operator ruling; the guard is judged again on GitHub after push).
+//
+//   - CSS injection. This spec mounted SearchResultsView with no CSS at all, unlike
+//     regulations-rows-smoke.mjs and dashboard-brief-smoke.mjs, which both inject `fullAppCss()`
+//     (smoke-fixtures.mjs) before mounting. ListRowColumnHeader's header cells size themselves with
+//     `fontSize: "var(--fs-95)"` (9.5px, theme.css) inside FIXED pixel columns (GRID =
+//     "3px 56px 1fr 88px 84px 76px 40px 44px" in ListRow.tsx: 56px Juris., 76px Timeline, 40px Tier).
+//     With no theme.css loaded, `var(--fs-95)` resolves to nothing and the browser falls back to its
+//     default font size, so "Juris." / "Timeline" / "Tier" no longer fit their columns, producing the
+//     guard's "3 text run(s) clipped" finding. This never reproduces on the real `/search` page (Next
+//     loads theme.css and globals.css for every route); it is a gap in THIS fixture, not in
+//     ListRow.tsx or in RegulationsLedger/WatchlistSurface/DashboardBrief, which already load real CSS
+//     in their own smoke specs and stay clean. Fixed at the cause: inject `fullAppCss()` the same way
+//     those specs do, rather than changing the shared header part.
+//   - 'Tier' placeholder-literal, same class as dashboard-brief-smoke.mjs's
+//     KNOWN_SAFE_PLACEHOLDER_LITERALS. ListRowColumnHeader's default-variant header renders the
+//     literal word "Tier" (ListRow.tsx line ~266) as its own real column-header label (README section
+//     0.4, "column headers... uppercase"), an exact-text collision with source-entry-filter.mjs's
+//     HEADER_LITERALS set (built for section 15 sources-table and section 8 obligations-table
+//     headers, not for a list-row column header). dashboard-brief-smoke.mjs already documents and
+//     allow-lists this exact literal ('Title', 'Tier') for the same component; regulations-rows-
+//     smoke.mjs documents the same class for 'Action' (BandTile's own label). No other list surface's
+//     smoke spec has hit this because RegulationsLedger/MarketIntelLedger/etc. do NOT mount
+//     `.cl-list-row-header` at all (see `.discipline/rendering/audit/spec/mobile-02-regulations-
+//     list.json`'s own note): this is the first `runUxSpec`-based spec to mount the shared header's
+//     default variant, so it is also the first to need the allow-list `runUxSpec` already exposes via
+//     `knownSafePlaceholders` (used by market/operations/research-rows-smoke.mjs for 'Action'). Never
+//     edit the detector's literal list or the HEADER_LITERALS SoT: this is the sanctioned per-spec
+//     allow-list, not an exemption on the guard.
+//
+// Neither finding required touching ListRow.tsx, ListRowColumnHeader, or SearchResultsView: the
+// header row IS the shared part (`ListRowColumnHeader`, same GRID as the rows beneath it, F45/F49).
+// Both fixes are in this fixture file only.
 
 import { runUxSpec } from './ux-harness.mjs';
+import { fullAppCss } from './smoke-fixtures.mjs';
 
 const ENTRY = `
+(() => {
+  const style = document.createElement('style');
+  style.textContent = ${JSON.stringify(fullAppCss())};
+  document.head.appendChild(style);
+})();
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { SearchResultsView } from '@/components/search/SearchResultsView';
@@ -97,5 +140,10 @@ export async function runSmoke(browser) {
         expectTitles: MAX_RESULTS,
       },
     ],
+    // See this file's header, "'Tier' placeholder-literal": ListRowColumnHeader's real column-header
+    // label collides with the F-1 HEADER_LITERALS set; dashboard-brief-smoke.mjs allow-lists the same
+    // literal for the same component. `runUxSpec` (ux-harness.mjs) already exposes this exact
+    // mechanism for market/operations/research-rows-smoke.mjs's 'Action' collision.
+    knownSafePlaceholders: ['Tier'],
   });
 }
