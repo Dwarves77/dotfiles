@@ -374,10 +374,12 @@ jobs:
         # and never reached fsi-app/scripts/**; the wider glob covers those by construction too. A new
         # *.npmtest.mjs anywhere under fsi-app/ now joins this step with no edit here, and
         # execution-wiring.mjs's own npmtestMatcher() is widened to match (see that lane's report).
-        run: |
-          set -u
-          files=$(git ls-files 'fsi-app/**/*.npmtest.mjs' | tr -s ' \n' ' ')
-          if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
+        #
+        # ONE HOME (lane G2, 2026-09-21, invariant RD-79): the discovery + command below moved into
+        # fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh, which this step and the pre-push hook's
+        # step 3e both call, so the two surfaces cannot drift the way they did on PR #769 (CI failed
+        # this step; the push gate never ran it at all). Do not inline the command back here.
+        run: sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh
 
       - name: Behavioral goldens (scripts/verify/*.golden.mjs)
         # WIRING-TRUTH FIX (2026-08-09, Decision 2): the behavioral goldens were `selftest:`-cited as

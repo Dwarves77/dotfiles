@@ -240,6 +240,47 @@ fi
 echo "[discipline pre-push] step 3d (fitness runner, live tree, CI parity): OK"
 
 # ---------------------------------------------------------------------------
+# Step 3e: npm-dependent test suites, the SAME discovery + command as CI's "App unit tests
+# requiring npm deps (*.npmtest.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
+# ---------------------------------------------------------------------------
+# CLASS FIX for the gap PR #769 exposed: PR #769 passed this hook locally and FAILED CI's Fitness
+# functions job on the npmtest step (three tests asserting component source text broke on a markup
+# change), because this hook had NO step that ran *.npmtest.mjs at all, "sTOP pushing when it will
+# fail Discipline engine / Fitness functions" (operator ruling, 2026-09-21). The discovery and
+# command live in ONE home, fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh, called by this step
+# AND by discipline.yml's own step, so the two surfaces cannot drift again. Requires fsi-app's npm
+# deps installed in THIS worktree; the shared script fails loud (never silently skips, never installs
+# by itself) when fsi-app/node_modules is absent or empty.
+if ! sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh >"$PRE_PUSH_LOG_DIR/npmtest.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3e FAIL: npm-dependent test suites (*.npmtest.mjs):" >&2
+  tail -60 "$PRE_PUSH_LOG_DIR/npmtest.log" >&2
+  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/npmtest.log" >&2
+  exit 1
+fi
+tail -10 "$PRE_PUSH_LOG_DIR/npmtest.log"
+echo "[discipline pre-push] step 3e (npm-dependent test suites, CI parity): OK"
+
+# ---------------------------------------------------------------------------
+# Step 3f: behavioral goldens, the SAME command as CI's "Behavioral goldens (scripts/verify/
+# *.golden.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
+# ---------------------------------------------------------------------------
+# The RD-79 parity check (F54) reads every test-running step of discipline.yml's "Fitness functions"
+# job, not only the npmtest step named in the incident: this job also runs every behavioral golden
+# under fsi-app/scripts/verify/ after npm ci, and that step was equally unwired locally before this
+# lane. Pure goldens pass here; LIVE-DB goldens self-skip (exit 2) for want of secrets, same as CI.
+# run-goldens.mjs resolves its own file discovery relative to itself (no cwd dependency), so it is
+# called with the same repo-root-relative path CI's working-directory: fsi-app + run: node
+# scripts/verify/run-goldens.mjs resolves to, byte-for-byte, which is what F54 checks for.
+if ! node fsi-app/scripts/verify/run-goldens.mjs >"$PRE_PUSH_LOG_DIR/goldens.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3f FAIL: behavioral goldens (scripts/verify/*.golden.mjs):" >&2
+  tail -60 "$PRE_PUSH_LOG_DIR/goldens.log" >&2
+  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/goldens.log" >&2
+  exit 1
+fi
+tail -5 "$PRE_PUSH_LOG_DIR/goldens.log"
+echo "[discipline pre-push] step 3f (behavioral goldens, CI parity): OK"
+
+# ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)
 # ---------------------------------------------------------------------------
 # tsc-noEmit is slow (~10-30s); run last so quick failures abort first.

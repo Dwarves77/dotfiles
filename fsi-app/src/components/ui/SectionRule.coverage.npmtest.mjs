@@ -18,11 +18,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, join, relative } from "node:path";
+import { resolve, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(here, "..", "..");
+
+// path.relative() returns OS-native separators; on Windows that's backslash, which never matches
+// this file's forward-slash literals ("components/ui/SectionCard.tsx"). Same fix as run-artifact.mjs
+// / glob.mjs / the review-apply test helpers' own `posix()`: normalize to POSIX before comparing.
+const posix = (p) => p.split(sep).join("/");
 
 function countRealMounts(text) {
   let count = 0;
@@ -57,7 +62,7 @@ test("SectionCard is the ONE place the rule is mounted, and it mounts it in both
 test("no file outside src/components/ui mounts <SectionRule /> itself any more", () => {
   const offenders = [];
   for (const file of allTsx(ROOT)) {
-    const rel = relative(ROOT, file);
+    const rel = posix(relative(ROOT, file));
     if (rel.startsWith("components/ui/")) continue;
     if (countRealMounts(readFileSync(file, "utf8")) > 0) offenders.push(rel);
   }
@@ -133,7 +138,7 @@ test("ruling 5.2's band-grouping card is the only caller that suppresses the rul
   assert.doesNotMatch(shell, /function Card\(/, "the shell has gone back to defining its own card");
   const offenders = [];
   for (const file of allTsx(ROOT)) {
-    const rel = relative(ROOT, file);
+    const rel = posix(relative(ROOT, file));
     if (rel === "components/list-surface/ListSurfaceShell.tsx") continue;
     if (rel === "components/ui/SectionCard.tsx") continue;
     if (/suppressRuleForBandGrouping/.test(readFileSync(file, "utf8"))) offenders.push(rel);
