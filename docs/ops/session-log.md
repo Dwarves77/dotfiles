@@ -24229,3 +24229,5 @@ Clock times from GitHub (UTC). Resume from this entry and `docs/dispatches/lane-
 ### UX compliance (coordinator)
 
 Not a UI change; docs only.
+
+**Addendum, 2026-09-22 (push of this entry).** The first push of this branch FAILED the locked gate on `funded-pass-lock-golden.mjs` ("first acquisition succeeds :: ok=true takeover=true") while two lanes' gates ran at the same time on this PC [CONFIRMED from the goldens log]. The golden acquires the live `funded_pass_runlock` row with fixture pids, so concurrent gates collide on it; a docs-only branch cannot cause it. OWED (lane G4, before the next parallel pair): every golden that touches shared live state runs in a rolled-back transaction or under a per-run key (the `pause-flag-guard-proof.mjs` pattern), proven by two concurrent runs. Until then, gates on this PC run one at a time.
