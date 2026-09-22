@@ -325,6 +325,67 @@ test('L9: facet checkboxes meet the hit-target floor at 1440', async (t) => {
   assert.deepEqual(facet, [], `facet checkbox findings: ${JSON.stringify(facet)}`);
 });
 
+// ── UI-75 followup: closed <details> content is not "visible" to the collector ─────────────────
+// [CONFIRMED by lane UI-75's live Playwright probe]: a CLOSED <details> gives its non-summary
+// content a real, non-zero getBoundingClientRect() in Chromium (content-visibility: hidden, not
+// display:none), so collect.mjs's `visible()` used to call it visible and L2/L9 flagged it against
+// real content it geometrically overlaps - 54 false findings on /settings
+// (BriefingScheduleSection's closed "Jurisdiction weighting" disclosure). Attack, red then green,
+// against the REAL collector in a REAL chromium page - this is the one place in this file that
+// exercises collect.mjs itself rather than the pure rules.mjs detectors, because the defect is in
+// what the collector calls "visible", not in a detector's judgement of an already-collected bundle.
+test('a closed <details> is not visible to the collector; open, it is; its <summary> always is', async (t) => {
+  let chromium;
+  try {
+    ({ chromium } = createRequire(import.meta.url)('playwright'));
+  } catch {
+    t.skip('playwright is not installed in this lane; see the L9 real-chromium test above for the same posture');
+    return;
+  }
+  const { collectLayout } = await import('./collect.mjs');
+  const html = `<!doctype html><html><body><main>
+    <div style="position:relative;width:400px;height:120px;">
+      <section style="position:absolute;top:0;left:0;width:200px;height:60px;background:#fff;">
+        Sibling content, a real card
+      </section>
+      <details id="d" style="position:absolute;top:0;left:0;width:200px;height:60px;">
+        <summary role="button" style="width:200px;height:40px;">Central America</summary>
+        <button style="position:absolute;top:0;left:0;width:200px;height:60px;">Hidden action</button>
+      </details>
+    </div>
+  </main></body></html>`;
+  const browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
+  );
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html);
+
+    // RED-then-GREEN, closed: the button geometrically overlaps the sibling section, but it must
+    // not appear as a measured box or a measured hit target while the details is closed.
+    const closed = await collectLayout(page);
+    assert.ok(!closed.boxes.some((b) => /Hidden action/.test(b.name)), 'closed details content must not be a measured L2 box');
+    assert.ok(!closed.targets.some((t2) => /Hidden action/.test(t2.name)), 'closed details content must not be a measured L9 target');
+    // The <summary> is the one thing the reader can see and click while closed - it stays measured.
+    const closedSummary = closed.targets.find((t2) => /Central America/.test(t2.name));
+    assert.ok(closedSummary, 'a <summary> inside a closed <details> must still be a measured hit target');
+    assert.ok(closedSummary.width > 0 && closedSummary.height > 0, 'the summary target has a real, non-zero box');
+
+    // Open it: the SAME overlap is now real content, and must be found.
+    await page.evaluate(() => { document.getElementById('d').open = true; });
+    const open = await collectLayout(page);
+    const openButton = open.boxes.find((b) => /Hidden action/.test(b.name));
+    assert.ok(openButton, 'once opened, the same content must be a measured L2 box');
+    const openTarget = open.targets.find((t2) => /Hidden action/.test(t2.name));
+    assert.ok(openTarget, 'once opened, the same content must be a measured L9 target');
+    // And its <summary> is still visible and measured, open or closed.
+    const openSummary = open.targets.find((t2) => /Central America/.test(t2.name));
+    assert.ok(openSummary, 'the <summary> stays a measured hit target while open too');
+  } finally {
+    await browser.close();
+  }
+});
+
 // ── L10 ───────────────────────────────────────────────────────────────────────────────────────
 const manifest = { artboard: 'p11', cards: ['Vol IV · No. 36 · Sunday 6 September 2026', 'Watched · 1', 'Recalculation notices'], rail: ['Filters', 'Legend'] };
 
