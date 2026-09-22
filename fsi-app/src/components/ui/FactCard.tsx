@@ -122,7 +122,38 @@ const CLAIM_TEXT: React.CSSProperties = {
  *  the source name, four lines max. Column 150px, left rule 1px, no padding-top." Width comes
  *  from the grid template (150px, see `bodyRow` above); this is the column's own box - gap 2
  *  (was 4), no padding-top (only paddingLeft), and a 4-line-max clamp on the whole column so an
- *  unusually long source/org/link run never blows the card past its height budget. */
+ *  unusually long source/org/link run never blows the card past its height budget.
+ *
+ *  RE-DERIVED 2026-09-21 (lane w10-factcard-d round 2, rendering-guard run 35677086619 still
+ *  reported the identical 144px on the identical 3 cards after the minHeight:24 removal - a
+ *  change to the link row had ZERO measured effect). Root cause: the clamp above read
+ *  `calc(1.45em * 4)`, and `em` here resolves against PROVENANCE_COL's own COMPUTED font-size -
+ *  which this element never sets, so it inherits the document default (16px), not the 10.5px
+ *  (`--fs-105`) this column's own text actually renders at. The clamp was therefore
+ *  4 * 1.45 * 16 = 92.8px, not the intended ~4 lines of THIS column's own text - roughly 30px too
+ *  generous, so a card whose provenance genuinely needs more than its natural 4-row height (the
+ *  fixture's shared "Example Regulation, Article 6" / "Example Regulatory Body" strings do not
+ *  fit the 150px column - 14px paddingLeft - 1px border = 135px content width at 10.5px/700
+ *  weight, so the source and/or org row very likely wraps to a second line) clips at 92.8px
+ *  instead of the correct ~72px, comfortably wide enough to still blow the 140px card ceiling.
+ *  This also explains the "identical before and after" result directly: the clamp was the actual
+ *  ceiling on the provenance column's rendered height in BOTH runs, so shortening one interior
+ *  row (the link, previously minHeight:24) never changed the column's final rendered height at
+ *  all - the column was already being cut off at the (wrong) 92.8px line regardless.
+ *
+ *  Fix: express the clamp in this column's OWN deterministic units instead of an inherited `em`.
+ *  20px is TierSquare's own rendered height (18px content + its 1px top+bottom border, content-
+ *  box, no box-sizing override anywhere in this file) for row 1 (tier square inline with the
+ *  source name - the tallest of the 4 rows); the remaining 3 rows (org / link / accessed) are
+ *  each one PROVENANCE_TEXT line (`var(--fs-105)` * 1.45 = 15.225px) plus this column's own 2px
+ *  gap ahead of it. This is the column's real, un-wrapped 4-row height (~71.675px) - the clamp
+ *  now equals what 4 ordinary single-line rows already render at, so normal content is never
+ *  truncated by it, and it only engages (protecting the card's height budget) when a source/org
+ *  string is long enough to wrap beyond a single line, which is exactly the "four lines max"
+ *  ceiling the operator's spec describes. See FactCard.npmtest.mjs for the pure-math proof this
+ *  arithmetic is checked against (labelled [HYPOTHESIS] there - Playwright cannot run in this
+ *  sandbox per operator ruling, so the exact live-Chromium figure is not independently confirmed;
+ *  the reasoning above is a re-derivation from the component's own real box model, not a guess). */
 const PROVENANCE_COL: React.CSSProperties = {
   borderLeft: "1px solid var(--line-1)",
   paddingLeft: 14,
@@ -130,7 +161,7 @@ const PROVENANCE_COL: React.CSSProperties = {
   flexDirection: "column",
   gap: 2,
   minWidth: 0,
-  maxHeight: "calc(1.45em * 4)",
+  maxHeight: "calc(20px + (3 * ((var(--fs-105) * 1.45) + 2px)))",
   overflow: "hidden",
 };
 
@@ -206,20 +237,38 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
       )}
       {p.org && <p style={PROVENANCE_TEXT}>{p.org}</p>}
       {p.href && (
-        // Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21, rendering-guard run
-        // 35663598703): this row previously carried a forced 24px min-height, a leftover from before this
-        // lane's own defect-1b fix (present unchanged across the v1->v2 rewrite; git-blame shows
-        // no revision ever set it deliberately for THIS row's own layout). Every failing card in
-        // the operator's acceptance run (panel-21c@1440, three "144px with only 1-2 claim lines"
-        // violations) was exactly the set of cards whose provenance carries an href - the cards
-        // without one (LEGAL CONFIRMATION REQUIRED's counsel-only provenance, the inference form's
-        // "not citable" line) never failed. Forcing this ONE provenance row to 24px against its
-        // siblings' natural ~15px (10.5px/1.45) line height was the specific "provenance column
-        // forcing a taller row via its own line-height even when the claim is short" defect the
-        // operator's review named - a fixed min-height, not a spec number (the operator's own
-        // spec for this column states 10.5px/1.45, gap 2px, no padding-top; it never states a
-        // min-height for the link line). Removing it lets the link sit at its natural line height
-        // like every other provenance row, matching the spec exactly.
+        // Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21). History: this row
+        // originally carried a forced `minHeight: 24`; that was removed (rendering-guard run
+        // 35663598703) on the theory it would let the link "sit at its natural line height like
+        // the rest of the column" - but the row never had `lineHeight: 1.45` (PROVENANCE_TEXT's
+        // own value) in the first place, so its "natural" height was actually the browser's
+        // unscoped `normal` line-height at 10.5px, not the ~15.225px its siblings render at -
+        // an unmeasured, font-metric-dependent number, not a match. Confirmed by re-run
+        // 35677086619: the same 3 cards still failed at the identical 144px, which means the
+        // link row was never the actual height bottleneck (see PROVENANCE_COL's own header
+        // comment for the real cause - the maxHeight clamp's `em` resolving against an inherited
+        // 16px instead of this column's own 10.5px). Fixed here for spec-consistency regardless:
+        // `lineHeight: 1.45` matches PROVENANCE_TEXT (the operator's spec covers the whole
+        // column, not 3 of its 4 rows) and makes this row's height deterministic instead of
+        // relying on an unscoped browser default.
+        //
+        // Regression 2 (this round): removing `minHeight: 24` with nothing in its place dropped
+        // the link's real CLICKABLE height under the law-2 floor (measured in production:
+        // `a[example.com] 91x12px` etc - width fine, height collapsed). Fix is an expanded HIT
+        // AREA, not a taller VISIBLE row: `padding: 5px 0` grows the anchor's own border-box to
+        // >=24px tall (15.225 + 10 = 25.225), and the equal `margin: -5px 0` cancels that growth
+        // out of the flex column's own layout contribution (a negative margin's flow contribution
+        // is `border-box height + margin`, so 25.225 + -5 + -5 = 15.225 - unchanged from before),
+        // so PROVENANCE_COL's total natural height, and therefore the maxHeight clamp headroom
+        // above, is untouched. `CardFoot.tsx`'s `FootLink` uses real padding instead of this same
+        // technique specifically because ITS row sits at the outer edge of an `overflow: hidden`
+        // ancestor, where an enlarged hit area would itself get clipped; this row is the 3rd of 4
+        // inside PROVENANCE_COL (which also clips at its own maxHeight), with a sibling row on
+        // each side, so the +-5px expansion stays inside the column's clip bounds in both the
+        // un-wrapped case (checked against PROVENANCE_COL's own re-derived 71.675px budget) and
+        // the wrapped/clamped case (this row is never the one that gets cut - `p.accessed`, the
+        // last row, is). No other interactive element sits within 8px (both neighbours are plain
+        // `<p>` text), so the law-2 24px floor applies here, not the 44px one.
         <a
           href={p.href}
           target="_blank"
@@ -227,12 +276,15 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
           style={{
             fontSize: "var(--fs-105)",
             fontWeight: 700,
+            lineHeight: 1.45,
             color: "var(--ink)",
             textDecoration: "underline",
             textDecorationColor: "var(--link-line)",
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
+            padding: "5px 0",
+            margin: "-5px 0",
           }}
         >
           {hostFromUrl(p.href)} <span aria-hidden="true">&#8599;</span>
