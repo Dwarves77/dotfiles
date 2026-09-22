@@ -45,6 +45,9 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
+import { useSectionScrollSpy } from "@/lib/detail/use-section-scroll-spy";
+import { sectionIndexNavStyle, sectionIndexStripStyle } from "@/components/ui/section-index-styles";
+import { SectionIndexLink } from "@/components/ui/SectionIndexLink";
 
 // ── Header ──────────────────────────────────────────────────────────────
 
@@ -475,46 +478,18 @@ export function SectionIndex({
   // items are plain 6px-radius links ("S2 Obligations") — not the previous bare flex row of
   // middot-separated underline-free links. `active` tracks the section currently in view via
   // IntersectionObserver, so the filled pill is a real scroll-spy state, not a static "first item
-  // always filled" fake.
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    if (sections.length === 0) return;
-    const els = sections.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => el != null);
-    if (els.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          const idx = els.indexOf(visible[0].target as HTMLElement);
-          if (idx >= 0) setActive(idx);
-        }
-      },
-      { rootMargin: "-64px 0px -70% 0px", threshold: 0 },
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections.map((s) => s.id).join("|")]);
+  // always filled" fake. The observer setup itself moved to `useSectionScrollSpy`
+  // (src/lib/detail/use-section-scroll-spy.ts, F45 duplicate-code, lane W10-ActionCard-a,
+  // 2026-09-21) shared with the new `src/components/ui/SectionIndex.tsx` part; this component's own
+  // shape and props are unchanged.
+  const active = useSectionScrollSpy(sections.map((s) => s.id));
 
   if (sections.length === 0) return null;
   return (
     <nav
       aria-label="Section index"
       className="cl-section-index"
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 5,
-        background: "var(--page)",
-        padding: "6px 0",
-        marginBottom: 16,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        flexWrap: "wrap",
-        maxWidth: "100%",
-      }}
+      style={{ ...sectionIndexNavStyle(), justifyContent: "space-between", flexWrap: "wrap" }}
     >
       {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "SECTION INDEX": "sticky at the top of
           main.overflow-y-auto, scrolls sideways, chips min-height 36") — the index already sticks
@@ -527,60 +502,30 @@ export function SectionIndex({
       `}</style>
       <div
         data-guard-strip
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: "var(--card)",
-          border: "1px solid var(--line-1)",
-          borderRadius: 8,
-          padding: 4,
-          fontSize: "12.5px",
-          overflowX: "auto",
-          whiteSpace: "nowrap",
-          minWidth: 0,
-          maxWidth: "100%",
-        }}
+        style={sectionIndexStripStyle({ overflowX: "auto", whiteSpace: "nowrap", maxWidth: "100%" })}
       >
         {sections.map((s, i) => {
           const isActive = i === active;
           return (
-            <a
+            // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production rendered "S6 Operational
+            // requirem" and a bare "S7", cut mid-glyph at the card's right edge, and pushed the
+            // Summary/Full brief toggle onto a second row. Root cause [CONFIRMED by comparing
+            // the two markups]: the artboard's index uses SHORT tab labels ("S1 Cost baseline")
+            // and the product passes the section's full title ("S1 Operational cost baseline"),
+            // so seven of them do not fit the row. The artboard's own treatment is a short tab,
+            // so the tab is bounded here, in the shared part, and truncates with a real ellipsis
+            // instead of a mid-glyph cut. The full label stays reachable on `title`, and the
+            // link's own accessible name is the full label, so nothing is lost to a reader or to
+            // assistive technology.
+            <SectionIndexLink
               key={s.id}
-              href={`#${s.id}`}
-              className="cl-section-index-link"
-              aria-current={isActive ? "true" : undefined}
-              // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production rendered "S6 Operational
-              // requirem" and a bare "S7", cut mid-glyph at the card's right edge, and pushed the
-              // Summary/Full brief toggle onto a second row. Root cause [CONFIRMED by comparing
-              // the two markups]: the artboard's index uses SHORT tab labels ("S1 Cost baseline")
-              // and the product passes the section's full title ("S1 Operational cost baseline"),
-              // so seven of them do not fit the row. The artboard's own treatment is a short tab,
-              // so the tab is bounded here, in the shared part, and truncates with a real ellipsis
-              // instead of a mid-glyph cut. The full label stays reachable on `title`, and the
-              // link's own accessible name is the full label, so nothing is lost to a reader or to
-              // assistive technology.
+              id={s.id}
+              isActive={isActive}
               title={s.label}
-              style={{
-                fontSize: "12.5px",
-                fontWeight: isActive ? 700 : 600,
-                color: isActive ? "#FFFFFF" : "var(--ink-2)",
-                background: isActive ? "var(--brand)" : "transparent",
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                minHeight: 44,
-                borderRadius: 6,
-                padding: "6px 12px",
-                maxWidth: SECTION_TAB_MAX_WIDTH,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
+              sizing={{ maxWidth: SECTION_TAB_MAX_WIDTH, overflow: "hidden", textOverflow: "ellipsis" }}
             >
               S{i + 1} {s.label}
-            </a>
+            </SectionIndexLink>
           );
         })}
       </div>

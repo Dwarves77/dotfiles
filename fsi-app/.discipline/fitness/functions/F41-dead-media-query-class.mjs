@@ -64,6 +64,11 @@ const CROSS_COMPONENT_CLASSES = new Map([
   ['cl-tier-chip', 'src/components/ui/Chips.tsx'],
   ['cl-absence', 'src/components/ui/Absence.tsx'],
   ['cl-section-heading-aside', 'src/components/ui/SectionHeading.tsx'],
+  // Lane W10-ActionCard-a (2026-09-21, F45 duplicate-code dedup): DetailShell.tsx's SectionIndex
+  // and the new src/components/ui/SectionIndex.tsx part both mounted this class inline before
+  // extraction; the shared `<a>` shell now lives in SectionIndexLink.tsx, so neither caller's own
+  // file text carries the literal className any more, only the imported component's render does.
+  ['cl-section-index-link', 'src/components/ui/SectionIndexLink.tsx'],
 ]);
 
 const MEDIA_BLOCK_RE = /@media[^{]*\{/g;
