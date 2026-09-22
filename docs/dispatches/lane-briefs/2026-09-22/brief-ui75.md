@@ -1,0 +1,22 @@
+# Lane UI-75: the 75 defects the Rendering guard could not see until it had the real fonts (coordinator, 2026-09-22)
+
+Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911`, which holds lane G3 at `ad14aef8` on `lane/g3-guard-real-fonts` (G3 is built, green locally, NOT pushed). You continue on THAT branch with new commits (G3 and this lane push as one PR, because G3's guard would be red on CI without these fixes, and nothing pushes red). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, `docs/design/parts-brief-2026-09-18.md` section 1, and G3's audit `docs/ops/session-log.d/2026-09-22-g3-audit.md` (the full failure list is the work order). STOP on anything not covered; a case the design bundle does not draw is ASKED, never invented.
+
+## The work order [CONFIRMED by the guard with real fonts, G3, run at master `af898bc2`]
+
+75 failures, all layout guard: L2 (34) two elements with visible content intersect; L9 (31) an interactive target below the 44x28 floor or two adjacent targets overlap; L6 (8) a card missing its 3px top rule; L7 (2) Anton outside the allowlist. By route: `/settings` 58 (L2 and L9, at 1024 and 1440), `/watchlist` 8 (L6), `/research` 4 (L9), `/map` 2 (L9), `/profile` 1 (L9), `/admin` 2 (L7).
+
+## Rules of work
+
+1. Parts, not pages (operator, verbatim in the parts brief: "nothing is fixed on a page"). For each route, find which shared PART draws the failing element; fix the part once so every call site is fixed; a page never gets a local patch. Class over instance: 58 failures on `/settings` are almost certainly two or three causes (enumerate them first, by element, from the audit's list). Reuse before construction: `SectionCard` owns card chrome (L6: the 8 watchlist cards must render through it, not a hand-built shell, F42); the Anton allowlist is the operator's, so L7 is fixed by using the body face on those two elements, never by adding to the allowlist; hit targets meet law 2 (44px, or 24px with 8px clearance) by the expanded hit-area pattern already in `ListRow.tsx`'s column header (padding with equal negative margin), never by growing the visible box beyond the design.
+2. Never edit the guard, its detectors, the layout-guard baseline (`layout-guard/baseline.mjs`), or any allowlist. If a finding looks like a detector defect rather than a page defect, STOP with the element and the measurement.
+3. Prove by measurement: run the real guard locally (`node .discipline/rendering/run-rendering-guard.mjs` from `fsi-app`, output to a file, read selectively) after each cause is fixed; the lane ends only when it prints PASS with zero failures, twice in a row. Read-only for the database; no fixtures changed except to add a case you fixed.
+4. Presence report per part touched (route, file, line) and a "UX compliance" block in `docs/ops/session-log.d/2026-09-22-ui75.md`.
+
+## Gates
+
+`npm ci` and `npm install --no-save playwright@1.61.1 --no-audit --no-fund` are already done in this worktree. Every npm suite with CI's shared script, `tsc`, the FULL fitness runner (all functions) to 0 violations, restore `coverage-report.json` if dirtied, then the locked push gate once as one background task (silence is normal; `signal 9` is contention, wait and retry once); a second FAIL on the same step with a named test is a STOP. First tool calls: Skill tool, `fsi-app:environmental-policy-and-innovation`, then `frontend-design`, then `remediation-discipline`. Never `git stash`, never `git add -A`, never `--no-verify`. Commit trailer exactly `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No em dash, en dash or section sign in new prose. F42, F45, F49, F43, F36, F40 bind. F51 check 5 now measures concurrency; serial edits of a part's home are allowed. You do not push. Past about 400k tokens, commit what is green and report which causes are done.
+
+## Report
+
+ONE final report, seven lines maximum, sent once, no interim messages: commit sha(s); the causes found (count) with part and file each; the guard's final result quoted (must be PASS twice); npm totals, fitness violations, gate exit code; any STOP with its measurement. Update `pr-g3.md` in `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad): retitle the first line `## Lanes G3 and UI-75: the Rendering guard measures the real fonts (RD-80), and the 75 defects it then found are fixed at the part`, add a Summary bullet per cause, keep the last line.

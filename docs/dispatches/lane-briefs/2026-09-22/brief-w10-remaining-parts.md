@@ -1,0 +1,41 @@
+# The remaining part lanes, in the operator's order (coordinator, 2026-09-22)
+
+One brief per part below; each is dispatched by the coordinator as its own Sonnet lane, ONE at a time after the previous merges (they share the detail and list surface files). Every lane inherits the COMMON BLOCK at the end verbatim. Model: Sonnet. Worktrees, clean, each holding a merged branch: `wt-landdocs-0911`, `wt-p5a-nonreg`, `wt-p2-batch-005`, `wt-l25-slot-mirror` (cut new branches from `origin/master`; `npm ci` and `npm install --no-save playwright@1.61.1 --no-audit --no-fund` in the worktree's `fsi-app` first).
+
+Standing state when this file was written: master at or past `bfde1be8`; FactCard signed 2026-09-22 with corrections (lane FactCard-e); ActionCard, Timeline, SectionIndex parts built (ActionCard-a) and being wired into the regulation surface (ActionCard-b); ItemGroup built (FactCard-d). Operator's lane order (parts-brief 1.4): FactCard, ItemGroup + SectionHeader, Masthead + ActionCard, CommandBar, ListRow + Absence + Chips, StateNote, RailCard + StatBlock, NavCard.
+
+## 1. W10-SectionHeader
+
+Brief: `brief-w10-sectionheader.md` in this folder (written). Dispatch after ActionCard-b merges.
+
+## 2. W10-Masthead (with ActionCard already wired)
+
+Read parts-brief 2.4 (MASTHEAD, artboard 21a) and 2.6; bundle ruling 3 (auth frame: `/login`, `/signup`, `/onboarding` keep artboards 16 and 17, no nav card, no command bar, the Masthead IS used there inside the right panel). Build: one Masthead part (`data-part="masthead"`: eyebrow, Anton title, dek, the size ramp the artboard gives; 34/28 as measured on the live site 2026-09-20) used on every page including the auth frame; every page-local masthead deleted. This lane CLEARS the eight dated F49 Anton allowlist entries (the "Anton allow-entries expire with the Masthead lane, no extension" ruling of 2026-09-20): delete them, and F49 must pass with them gone. Presence report for every route (17 routes plus `/watchlist`, `/privacy`, `/invitations`). Fixture `/admin/parts/masthead` from a frozen real record. Also from the live-site measurement of 2026-09-20: mobile top bar 59 against 56 stated, content column 758 against 778: fix both at the part or shell that owns them, measured by the guard at 375 and 1440.
+
+## 3. W10-CommandBar parts page
+
+Small. `/admin/parts/command-bar`, the sign-off picture for the part built by lane W10-CommandBar (#769): the bar at 1440 and 375, the inline results state with real search results frozen from a real query, the Ask-disabled state, the page-scoped placeholder variants (enumerate by grep). Add to the parts index. No change to the part unless the fixture reveals a defect; then fix at the part and say so.
+
+## 4. W10-ListRow (with Absence and Chips)
+
+Read parts-brief 2.5 and the row sections; bundle screens 00, 01, 02, 04, 06, 08, 11, 20 (the 2026-09-20 refresh note says these changed). Build: ListRow is the one row part on every list surface (regulations, market, research, operations, community, watchlist, `/search`, the admin lists); the Absence convention (small-caps reason, never caps body text) and Chips (including the M7b grade chip, a data-driven chip for item_grade) are parts of their own with `data-part`; every list surface renders through them; no page retypes row styles (F49). The row meter stays the live ImpactMeter (ruling 5). Impact meter fixture at N = 4, 8, 12 and unscored (the W10-A2 remainder) lives on `/admin/parts/list-row`. Presence report per surface. Frozen real rows for the fixture.
+
+## 5. W10-StateNote
+
+Read parts-brief 2.7 (STATE NOTE). Build: one StateNote part (`data-part="state-note"`, the edge and tint per band) used for every empty, loading, error and "not scored" state on every surface, and as the Timeline callout (ActionCard-a used it if it existed; reconcile to one). Every page-local note deleted. The research legend's "Not scored" [HYPOTHESIS from 2026-09-20] and the watchlist "no re-check column" are checked here and fixed if real. Fixture `/admin/parts/state-note`, every variant, frozen real text.
+
+## 6. W10-RailCard (with StatBlock)
+
+Read parts-brief 2.8 and 2.9; bundle ruling 5 (legend rail card: one live ImpactMeter frozen at N = 8 next to the text, no diagram), ruling 7 (`/admin/factors` is a list surface with an absence convention; every admin route uses the same frame, masthead, SectionCard, StatBlock, ListRow). Build: RailCard (`data-part="rail-card"`) and StatBlock (`data-part="stat-block"`) as the only rail and stat parts on every surface, including the dashboard rail ("At a glance", "Impact assessment", which the operator's review called correct: keep their content, move them onto the parts) and the admin dashboard. Fixture pages for both from frozen real values.
+
+## 7. W10-NavCard
+
+Read parts-brief 2.10 (NAV CARD) and bundle ruling 3 (no nav card on the auth frame) and ruling 6 (`/market/series` is a new route with the same frame and masthead, "Market / Series board" eyebrow; the inline board comes off `/market`; the header link "Series board" points to it). Build: NavCard as the one navigation card part; `/market/series` built (the 2026-09-20 measurement found it 404); the Research themes rendered as a facet row, not a tile grid (same measurement); "Global room room" on Community fixed at the part that prints it. Fixture `/admin/parts/nav-card`.
+
+## 8. After the parts: the machine
+
+Hop proofs and proof run 6.2 (handoff 2026-09-18 section 3 step 4), then M7c (F53, RD-78 reserved), M4b, then the 6.3 data pass, whose first work order is the record-briefs batch over the 975 thin record-grade regulations (counted 2026-09-22: 27 under 1,000 characters, 948 between 1,000 and 2,999, of 1,323 verified). The layout guard's baseline (`layout-guard/baseline.mjs`, 563 suppressed findings, expiring 2026-10-15) is an operator ruling owed: expire early and route each finding to its part, or let it expire.
+
+## COMMON BLOCK (verbatim in every lane prompt)
+
+First tool calls: Skill tool, `fsi-app:environmental-policy-and-innovation`, then `frontend-design`, then `remediation-discipline`. Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, the parts-brief sections named, and open the artboards named with the Read tool before writing component code. The bundle is the standard; the artboard wins over the README and you say so; a case not drawn is ASKED (STOP), never invented. Operator rulings 2026-09-22: no analysis text is ever cut to fit a layout, the layout adapts; fixtures render from a frozen real record (`src/components/ui/__fixtures__/`, SELECT only, id and date in the header), never invented strings; a fixture with placeholder text is not reviewable; the real Rendering guard runs locally (`node .discipline/rendering/run-rendering-guard.mjs` from `fsi-app`, output to a file, read selectively) and must print PASS twice before the gate. Parts, not pages: one file per part, `data-part` on its root, every call site on every route, a presence report (route, file, line) and a "UX compliance" block in `docs/ops/session-log.d/<date>-<lane>.md`. Reuse before construction (grep first; F45 must not rise; F42, F49, F43, F36, F40 bind). Gates: every npm suite with CI's shared script, `tsc`, the FULL fitness runner (all functions) to 0 violations, restore `coverage-report.json` if dirtied, then the locked push gate once as one background task (silence is normal; `signal 9` is contention, wait and retry once; a second FAIL on the same step with a named test is a STOP). Never `git stash`, never `git add -A`, never `--no-verify`. Trailer exactly `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. No em dash, en dash or section sign in new prose. No workaround of any kind. You do not push. Past about 400k tokens, commit what is green and report which items are done. ONE final report, six lines maximum, sent once, no interim messages, and a PR body file in the coordinator scratchpad `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (that exact path, `C--Users-jason`), first line the PR title as `## Lane <name>: <what>`, then `## Summary`, `## Evidence`, `## UX compliance`, last line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
