@@ -29,6 +29,13 @@ import { createRequire } from "node:module";
 import { buildFixtures, VIEWPORTS } from "./fixtures.mjs";
 import { detectOverflows, findPlaceholderLiterals } from "./assertions.mjs";
 import { measureUx, assertUxClean } from "./ux-assert.mjs";
+// RD-80 (lane G3, 2026-09-22): the application's own font files, one home in smoke-fixtures.mjs.
+// Injected here, at the single place every page this runner opens is created, so EVERY fixture leg
+// (including the fixtures.mjs legacy legs, which carry only a hand-copied `--font-sans` fallback
+// stack and never call fullAppCss()) gets the real declared faces, not only the fixtures that
+// happen to already read fullAppCss(). See smoke-fixtures.mjs's own header for why this is the one
+// home and what a failed check means.
+import { assertFontsReady } from "./smoke/smoke-fixtures.mjs";
 // Addendum item 8 (2026-09-07, operator ruling): dated, per-page 375 exemptions for the five list
 // pages + /map — see exemptions-375.mjs's own header for the full mechanism and why it is not a
 // global viewport relaxation.
@@ -107,6 +114,28 @@ import { runLayoutGuard } from "./layout-guard/run-layout-guard.mjs";
 // `require.resolve("playwright")` succeeded in the same shell.
 const { chromium } = createRequire(import.meta.url)("playwright");
 
+// RD-80 build item 4: determinism knobs set explicitly in the browser context, in the harness, not
+// the workflow, so CI (Ubuntu) and a local run (Windows/macOS) launch every page identically.
+// `chromium.launch()` itself has no locale/timezone/colour-scheme surface (those are context-level);
+// `browser.newPage(options)` is documented as equivalent to `browser.newContext(options).newPage()`,
+// so passing these on every `newPage()` call gives each page its own context carrying them,
+// cheaper than threading a shared context through every call site, and just as deterministic since
+// none of these legs share a context across fixtures.
+const DETERMINISM_CONTEXT = {
+  deviceScaleFactor: 1,
+  locale: "en-US",
+  timezoneId: "UTC",
+  colorScheme: "light",
+};
+
+// RD-80 build item 3: every measurement pass awaits the real font files loading, then asserts each
+// declared family+weight actually resolved, never a silent fallback. `assertFontsReady`
+// (smoke-fixtures.mjs, the one home) is injected via addStyleTag rather than relying on the
+// fixture's own HTML to already carry fullAppCss(), so this covers every leg this runner opens,
+// including the fixtures.mjs legacy legs that never call fullAppCss(). It returns the failed specs
+// rather than throwing, so the runner can keep measuring the rest of the tree and report every
+// finding in one pass (RD-80 build item 6) instead of crashing on the first one.
+
 async function measure(page) {
   return page.evaluate(() => {
     const els = [document.body, ...document.querySelectorAll("[data-guard-container]")];
@@ -125,11 +154,12 @@ async function measure(page) {
 }
 
 async function measureUxOn(browser, html, width) {
-  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  const page = await browser.newPage({ viewport: { width, height: 900 }, ...DETERMINISM_CONTEXT });
   await page.setContent(html, { waitUntil: "load" });
+  const fontFailures = await assertFontsReady(page);
   const ux = await measureUx(page);
   await page.close();
-  return ux;
+  return { ...ux, fontFailures };
 }
 
 async function main() {
@@ -152,11 +182,16 @@ async function main() {
 
   for (const fx of fixtures) {
     for (const width of VIEWPORTS) {
-      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      const page = await browser.newPage({ viewport: { width, height: 900 }, ...DETERMINISM_CONTEXT });
       await page.setContent(fx.html, { waitUntil: "load" });
+      const fontFailures = await assertFontsReady(page);
       const { measurements, texts } = await measure(page);
       await page.close();
       checks++;
+
+      if (fontFailures.length) {
+        failures.push(`${fx.id}@${width}: RD-80 fonts did not resolve before measurement: ${fontFailures.join(", ")}`);
+      }
 
       const overflows = detectOverflows(measurements);
       const placeholders = findPlaceholderLiterals(texts);
@@ -169,6 +204,9 @@ async function main() {
       // browser rather than only against hand-fed measurements (lane mapclip, 2026-09-08).
       if (fx.ux) {
         const ux = await measureUxOn(browser, fx.html, width);
+        if (ux.fontFailures.length) {
+          failures.push(`${fx.id}@${width}: RD-80 fonts did not resolve before measurement: ${ux.fontFailures.join(", ")}`);
+        }
         const uxFailures = assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux);
         if (fx.expectUxFailure) {
           if (!uxFailures.some((f) => fx.expectUxFailure.test(f))) {
