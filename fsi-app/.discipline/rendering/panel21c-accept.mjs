@@ -12,6 +12,15 @@
 //
 // Proven red-then-green in panel21c-accept.test.mjs (the no-npm suite), same pattern
 // ux-assert.test.mjs uses for its own pure core.
+//
+// Sign-off 2026-09-22, correction 1 (binding update): "the column is not clipped ... the card
+// grows if the column is taller than the claim." The 140px rule's original "unless the claim
+// exceeds 4 lines" exemption is widened to also cover a provenance column that genuinely needs
+// more than its ordinary one-line-per-row height (the wrapped-source-name case, or any source/org
+// string long enough to run past a single line even with the drop-org rule applied) - `c.
+// provenanceLineCount`, when supplied, is checked the same way `c.claimLineCount` already is.
+// `provenanceLineCount` is OPTIONAL (existing callers/tests that never set it keep their old
+// behaviour, since `undefined` treats as "1 line", never granting an exemption it didn't ask for).
 
 /**
  * @param {{
@@ -23,6 +32,9 @@
  *       kindSlug: string,
  *       heightPx: number,
  *       claimLineCount: number,
+ *       provenanceLineCount?: number, // sign-off 2026-09-22: optional; the provenance column's
+ *                                      // own rendered line count, an independent exemption from
+ *                                      // claimLineCount for the 140px rule
  *       hasLeadColumn: boolean,   // true when the body grid reserves the 132px lead track
  *       hasFigureLead: boolean,   // true when a non-empty lead element actually rendered
  *       captionAboveCard: boolean, // true when a text node/element sits above the card, inside
@@ -58,8 +70,11 @@ export function checkPanel21cAcceptance(m) {
       if (c.hasLeadColumn && !c.hasFigureLead) {
         violations.push(`group ${gi} card ${ci}: reserves the 132px lead column with no figure lead rendered`);
       }
-      if (c.heightPx > 140 && c.claimLineCount <= 4) {
-        violations.push(`group ${gi} card ${ci}: ${c.heightPx}px tall (> 140px) with a claim of only ${c.claimLineCount} line(s)`);
+      const provenanceLineCount = c.provenanceLineCount ?? 1;
+      if (c.heightPx > 140 && c.claimLineCount <= 4 && provenanceLineCount <= 4) {
+        violations.push(
+          `group ${gi} card ${ci}: ${c.heightPx}px tall (> 140px) with a claim of only ${c.claimLineCount} line(s) and provenance of only ${provenanceLineCount} line(s)`
+        );
       }
       if (prevKind !== null && c.kindSlug === prevKind) {
         violations.push(`group ${gi} card ${ci}: same kind ("${c.kindSlug}") as the previous card, adjacent`);

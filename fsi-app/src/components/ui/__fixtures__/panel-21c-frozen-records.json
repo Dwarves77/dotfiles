@@ -1,0 +1,51 @@
+{
+  "_frozen": {
+    "reason": "Operator sign-off 2026-09-22 (lane W10-FactCard-e), correction 2: 'NO GENERIC TEXT IN ANY FIXTURE ... replace with real records from the database, as the artboard does.' Every string below is copied verbatim from a read-only SELECT against the live Caro's Ledge Supabase project (kwrsbpiseruzbfwjpvsp), frozen at the date below. No field here is invented or paraphrased beyond the display trims noted per-field.",
+    "frozen_at": "2026-09-22",
+    "project_id": "kwrsbpiseruzbfwjpvsp",
+    "regulation_item_id": "018dcbf1-42e3-49f5-8029-01804818b3f8",
+    "regulation_query": "select id, title, instrument_identifier, source_url, item_type, jurisdictions, last_regenerated_at from intelligence_items where instrument_identifier ilike '%1999/652%'",
+    "regulation_source_query": "select ii.id, ii.source_id, s.name, s.institution_id, s.base_tier, s.effective_tier, s.url from intelligence_items ii left join sources s on s.id = ii.source_id where ii.id = '018dcbf1-42e3-49f5-8029-01804818b3f8'",
+    "regulation_accessed_query": "select id, result_url, searched_at, result_chars from agent_run_searches where intelligence_item_id = '018dcbf1-42e3-49f5-8029-01804818b3f8' order by searched_at desc",
+    "regulation_claims_query": "select claim_text, claim_kind, source_span, source_tier_at_grounding, extracted_at from section_claim_provenance where intelligence_item_id = '018dcbf1-42e3-49f5-8029-01804818b3f8' order by extracted_at",
+    "matrix_fact_id": "f6f28fc9-1039-4235-874f-f4f3d3969052",
+    "matrix_query": "select id, region_id, dimension, fact_label, value, value_numeric, unit, currency, source_note, reference_period, origin_class, last_updated from regional_data_facts where value ilike '%14,747%'",
+    "matrix_region_query": "select * from regions where id = 'ba0962b1-da0e-4be9-83b3-b8f0237d75b9'"
+  },
+  "regulation": {
+    "itemId": "018dcbf1-42e3-49f5-8029-01804818b3f8",
+    "instrumentIdentifier": "31999D0652",
+    "title": "COMMISSION DECISION of 15 September 1999 confirming the measures notified by Belgium pursuant to Article 6(6) of Directive 94/62/EC of the European Parliament and the Council on packaging and packaging waste (notified under document number C(1999) 2919) (Only the Dutch text is authentic) (Text with EEA relevance) (1999/652/EC)",
+    "shortCite": "Decision 1999/652/EC",
+    "sourceName": "EUR-Lex",
+    "sourceOrg": "European Commission",
+    "sourceUrl": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0652",
+    "tier": 1,
+    "accessed": "accessed 4 Sep 2026",
+    "accessedRaw": "2026-09-04",
+    "enforcementBody": "The Interregional Commission for Packaging and the relevant Belgian Regional Government (Flanders, Wallonia, Brussels)",
+    "costMechanism": "Economic operators fund take-back and recycling either directly or by contracting an agreed body (\"organisme agree\") that itself meets the confirmed recycling and recovery targets.",
+    "claims": {
+      "baselineTarget": "Article 6(1)(a) establishes that, no later than 30 June 2001, between 50 % as a minimum and 65 % as a maximum by weight of the packaging waste will be recovered.",
+      "recyclingWithinBaseline": "within this general target, and within the same time limit, between 25 % as a minimum and 45 % as a maximum by weight of the totality of packaging materials contained in packaging waste will be recycled, with a minimum of 15 % by weight for each packaging material.",
+      "nationalTargets": "for 1998: 45 % recycling - 70 % recovery - for 1999: 50 % recycling - 80 % recovery.",
+      "takeBackObligation": "This Cooperation Agreement sets out the obligation for economic operators (packaging fillers and users, including importers in case the packaging was filled outside Belgium) to takeback and recycle/recover the packaging materials contained in the packaging waste put on the market",
+      "jurisdictionalScope": "This Decision is addressed to the Kingdom of Belgium.",
+      "cooperationAgreementAdoption": "The Cooperation Agreement was adopted by means of a Decree of 21 January 1997 of the Flanders Region, a Decree of 16 January 1997 of the Walloon Region and an Ordinance of 24 January 1997 of the Brussels Region (all published in the Moniteur of 5 March 1997)."
+    }
+  },
+  "matrixFact": {
+    "id": "f6f28fc9-1039-4235-874f-f4f3d3969052",
+    "regionId": "ba0962b1-da0e-4be9-83b3-b8f0237d75b9",
+    "regionLabel": "Asia, Singapore + Hong Kong",
+    "dimension": "labor_markets",
+    "factLabel": "Hong Kong - Warehouse Worker Monthly Wage",
+    "value": "HKD 14,747/month average; top earners up to HKD 30,000/month (90th percentile)",
+    "displayValue": "HKD 14,747",
+    "displayUnit": "HKD / mo",
+    "sourceName": "Indeed HK",
+    "sourceUrl": "https://hk.indeed.com/career/warehouse-worker/salaries",
+    "referencePeriod": "2025-09",
+    "lastUpdated": "2026-05-28"
+  }
+}

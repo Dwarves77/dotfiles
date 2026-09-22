@@ -66,6 +66,34 @@ test('GREEN: a card over 140px is fine when its claim genuinely exceeds 4 lines'
   assert.equal(checkPanel21cAcceptance(m).ok, true);
 });
 
+// Sign-off 2026-09-22, correction 1: the provenance column is no longer clipped, so a card whose
+// PROVENANCE (not only its claim) genuinely needs more than 140px is fine too - the four-line case
+// and the two-line-name case (source wraps, org dropped, still up to 4 conceptual rows).
+test('GREEN: a card over 140px is fine when its provenance column genuinely needs more than 4 ordinary lines (the four-line / two-line-name cases)', () => {
+  const m = goodMeasurements();
+  m.groups[0].cards[0].heightPx = 150;
+  m.groups[0].cards[0].claimLineCount = 1;
+  m.groups[0].cards[0].provenanceLineCount = 5;
+  assert.equal(checkPanel21cAcceptance(m).ok, true);
+});
+
+test('RED: a card over 140px with a short claim AND a short (<=4-line) provenance still fails - provenanceLineCount is not a blanket exemption', () => {
+  const m = goodMeasurements();
+  m.groups[0].cards[0].heightPx = 220;
+  m.groups[0].cards[0].claimLineCount = 2;
+  m.groups[0].cards[0].provenanceLineCount = 4;
+  const result = checkPanel21cAcceptance(m);
+  assert.equal(result.ok, false);
+  assert.ok(result.violations.some((v) => v.includes('220px')));
+});
+
+test('GREEN: provenanceLineCount is optional; omitting it never grants an exemption it did not ask for', () => {
+  const m = goodMeasurements();
+  m.groups[0].cards[0].heightPx = 130; // under 140px regardless
+  assert.equal(m.groups[0].cards[0].provenanceLineCount, undefined);
+  assert.equal(checkPanel21cAcceptance(m).ok, true);
+});
+
 test('RED: two adjacent cards of the same kind fail, the COUNT defect (merge rule not applied)', () => {
   const m = goodMeasurements();
   m.groups[0].cards[1].kindSlug = m.groups[0].cards[0].kindSlug;

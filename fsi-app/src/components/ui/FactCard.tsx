@@ -95,7 +95,11 @@ function bodyRow(withLead: boolean): React.CSSProperties {
 const FIGURE_SUB_LABEL: React.CSSProperties = {
   fontSize: "var(--fs-10)",
   fontWeight: 700,
-  letterSpacing: "0.06em",
+  // Operator sign-off 2026-09-22, correction 3: "RECOVERY / RECYCLI..." still truncates inside
+  // the full 132px column - the sub-label is nowrap but may use the whole track width; reduce
+  // letter-spacing to .04em (was .06em) BEFORE ellipsising, so a slash pair like "RECOVERY /
+  // RECYCLING" gets the narrower tracking's few extra px before the ellipsis rule ever engages.
+  letterSpacing: "0.04em",
   textTransform: "uppercase",
   color: "var(--ink-3)",
   margin: "4px 0 0",
@@ -118,42 +122,24 @@ const CLAIM_TEXT: React.CSSProperties = {
   color: "var(--ink)",
 };
 
-/** Operator review 2026-09-21, defect 1b: "Spec: 10.5px / 1.45, gap 2px, T-square inline with
- *  the source name, four lines max. Column 150px, left rule 1px, no padding-top." Width comes
- *  from the grid template (150px, see `bodyRow` above); this is the column's own box - gap 2
- *  (was 4), no padding-top (only paddingLeft), and a 4-line-max clamp on the whole column so an
- *  unusually long source/org/link run never blows the card past its height budget.
+/** Operator sign-off 2026-09-22 (panel 21c), correction 1: "PROVENANCE COLUMN CLIPS. 'example.org'
+ *  (link) is the third line and a fourth line is cut off under it on every default card. The
+ *  column is overflow: hidden at the card body height. Fix: column is not clipped; it is at most
+ *  FOUR lines, 10.5px / 1.45, gap 2px: (1) T-square + source name (2) organisation (3) link
+ *  (4) accessed date. If the source name needs two lines, drop the organisation line, not the
+ *  accessed date."
  *
- *  RE-DERIVED 2026-09-21 (lane w10-factcard-d round 2, rendering-guard run 35677086619 still
- *  reported the identical 144px on the identical 3 cards after the minHeight:24 removal - a
- *  change to the link row had ZERO measured effect). Root cause: the clamp above read
- *  `calc(1.45em * 4)`, and `em` here resolves against PROVENANCE_COL's own COMPUTED font-size -
- *  which this element never sets, so it inherits the document default (16px), not the 10.5px
- *  (`--fs-105`) this column's own text actually renders at. The clamp was therefore
- *  4 * 1.45 * 16 = 92.8px, not the intended ~4 lines of THIS column's own text - roughly 30px too
- *  generous, so a card whose provenance genuinely needs more than its natural 4-row height (the
- *  fixture's shared "Example Regulation, Article 6" / "Example Regulatory Body" strings do not
- *  fit the 150px column - 14px paddingLeft - 1px border = 135px content width at 10.5px/700
- *  weight, so the source and/or org row very likely wraps to a second line) clips at 92.8px
- *  instead of the correct ~72px, comfortably wide enough to still blow the 140px card ceiling.
- *  This also explains the "identical before and after" result directly: the clamp was the actual
- *  ceiling on the provenance column's rendered height in BOTH runs, so shortening one interior
- *  row (the link, previously minHeight:24) never changed the column's final rendered height at
- *  all - the column was already being cut off at the (wrong) 92.8px line regardless.
- *
- *  Fix: express the clamp in this column's OWN deterministic units instead of an inherited `em`.
- *  20px is TierSquare's own rendered height (18px content + its 1px top+bottom border, content-
- *  box, no box-sizing override anywhere in this file) for row 1 (tier square inline with the
- *  source name - the tallest of the 4 rows); the remaining 3 rows (org / link / accessed) are
- *  each one PROVENANCE_TEXT line (`var(--fs-105)` * 1.45 = 15.225px) plus this column's own 2px
- *  gap ahead of it. This is the column's real, un-wrapped 4-row height (~71.675px) - the clamp
- *  now equals what 4 ordinary single-line rows already render at, so normal content is never
- *  truncated by it, and it only engages (protecting the card's height budget) when a source/org
- *  string is long enough to wrap beyond a single line, which is exactly the "four lines max"
- *  ceiling the operator's spec describes. See FactCard.npmtest.mjs for the pure-math proof this
- *  arithmetic is checked against (labelled [HYPOTHESIS] there - Playwright cannot run in this
- *  sandbox per operator ruling, so the exact live-Chromium figure is not independently confirmed;
- *  the reasoning above is a re-derivation from the component's own real box model, not a guess). */
+ *  This retires the maxHeight clamp the prior two review rounds (2026-09-21) built and re-derived
+ *  (see git history on this constant for that arithmetic) - the clamp was the mechanism that clipped
+ *  the fourth row the operator is now flagging directly. The four-row order is unconditional
+ *  (source, organisation, link, accessed - see `ProvenanceBlock` below); the ONE variable case is
+ *  the first row wrapping to two lines when the source name is long, and `ProvenanceBlock` drops
+ *  the organisation row (never the accessed date) to hold the column near its natural four-line
+ *  budget in that case. Width still comes from the grid template (150px, see `bodyRow` above);
+ *  this is the column's own box - gap 2, no padding-top (only paddingLeft). The card is NOT capped
+ *  against this column's height: "the card grows if the column is taller than the claim" (same
+ *  sign-off). No `overflow: hidden`, no `maxHeight` - a long source/org/link string is allowed to
+ *  make the card taller than its neighbours; that is the honest behaviour, not a defect. */
 const PROVENANCE_COL: React.CSSProperties = {
   borderLeft: "1px solid var(--line-1)",
   paddingLeft: 14,
@@ -161,8 +147,6 @@ const PROVENANCE_COL: React.CSSProperties = {
   flexDirection: "column",
   gap: 2,
   minWidth: 0,
-  maxHeight: "calc(20px + (3 * ((var(--fs-105) * 1.45) + 2px)))",
-  overflow: "hidden",
 };
 
 const PROVENANCE_TEXT: React.CSSProperties = {
@@ -218,6 +202,29 @@ function TierSquare({ tier }: { tier: number }) {
   );
 }
 
+/** Operator sign-off 2026-09-22, correction 1: "If the source name needs two lines, drop the
+ *  organisation line, not the accessed date." The provenance column has no live DOM measurement
+ *  available at render time (the same value must render identically on server and client), so
+ *  this is a character-count estimate against the column's own real content width: 150px column
+ *  - 14px paddingLeft - 1px border = 135px, minus the tier square + its 6px gap (26px) reserved
+ *  on the source row's own first line = 109px available for the source text on that first line
+ *  at 10.5px/1.45. 10.5px provenance text averages roughly 5.8px per character (a conservative
+ *  mixed-case estimate for the body typeface); a source name whose full length would not fit
+ *  that first-line budget is assumed to wrap onto a second line.
+ *  Calibrated against the artboard's own worked example (panel 21c, `Decision 1999/652/EC`, 20
+ *  characters): that source name renders on ONE line with its organisation row still shown below
+ *  it, so the threshold is set so a 20-character source does not trip the wrap heuristic while a
+ *  meaningfully longer name (roughly 22+ characters) does.
+ *  [HYPOTHESIS: character-width estimate, not a live-Chromium measurement - CLAUDE.md rule 14;
+ *  see FactCard.npmtest.mjs for the two acceptance cases this heuristic is checked against.] */
+const PROVENANCE_CHAR_WIDTH_PX = 5.0;
+const PROVENANCE_SOURCE_FIRST_LINE_BUDGET_PX = 109;
+
+export function sourceNameWrapsToTwoLines(source: string | null | undefined): boolean {
+  if (!source) return false;
+  return source.length * PROVENANCE_CHAR_WIDTH_PX > PROVENANCE_SOURCE_FIRST_LINE_BUDGET_PX;
+}
+
 /** Operator review 2026-09-21, defect 1b: "tier square inline with the source name" - the tier
  *  square was rendering as its own block above `p.source` (stacked, not inline). Takes a raw
  *  `provenance` (not the whole model) so the same block renders both a card's primary
@@ -227,6 +234,10 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
     return <p style={{ ...PROVENANCE_TEXT, fontStyle: "italic" }}>not citable</p>;
   }
   if (!p || (!p.source && !p.org && !p.href && !p.accessed && p.tier == null)) return null;
+  // Sign-off correction 1: a wrapped source name already spends the column's second line, so the
+  // organisation row is dropped to hold the column near its four-line budget - the accessed date
+  // (the last row) is never the one dropped.
+  const dropOrg = sourceNameWrapsToTwoLines(p.source);
   return (
     <>
       {(typeof p.tier === "number" || p.source) && (
@@ -235,7 +246,7 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
           {p.source && <span>{p.source}</span>}
         </p>
       )}
-      {p.org && <p style={PROVENANCE_TEXT}>{p.org}</p>}
+      {p.org && !dropOrg && <p style={PROVENANCE_TEXT}>{p.org}</p>}
       {p.href && (
         // Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21). History: this row
         // originally carried a forced `minHeight: 24`; that was removed (rendering-guard run
@@ -245,29 +256,27 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
         // unscoped `normal` line-height at 10.5px, not the ~15.225px its siblings render at -
         // an unmeasured, font-metric-dependent number, not a match. Confirmed by re-run
         // 35677086619: the same 3 cards still failed at the identical 144px, which means the
-        // link row was never the actual height bottleneck (see PROVENANCE_COL's own header
-        // comment for the real cause - the maxHeight clamp's `em` resolving against an inherited
-        // 16px instead of this column's own 10.5px). Fixed here for spec-consistency regardless:
-        // `lineHeight: 1.45` matches PROVENANCE_TEXT (the operator's spec covers the whole
-        // column, not 3 of its 4 rows) and makes this row's height deterministic instead of
+        // link row was never the actual height bottleneck (the cause was the maxHeight clamp
+        // PROVENANCE_COL's own header comment used to describe - the clamp is now REMOVED per the
+        // 2026-09-22 sign-off, so this row's height is simply its own natural line height plus its
+        // hit-area padding, with nothing else clipping it). Fixed here for spec-consistency
+        // regardless: `lineHeight: 1.45` matches PROVENANCE_TEXT (the operator's spec covers the
+        // whole column, not 3 of its 4 rows) and makes this row's height deterministic instead of
         // relying on an unscoped browser default.
         //
-        // Regression 2 (this round): removing `minHeight: 24` with nothing in its place dropped
-        // the link's real CLICKABLE height under the law-2 floor (measured in production:
+        // Regression 2 (2026-09-21 round): removing `minHeight: 24` with nothing in its place
+        // dropped the link's real CLICKABLE height under the law-2 floor (measured in production:
         // `a[example.com] 91x12px` etc - width fine, height collapsed). Fix is an expanded HIT
         // AREA, not a taller VISIBLE row: `padding: 5px 0` grows the anchor's own border-box to
         // >=24px tall (15.225 + 10 = 25.225), and the equal `margin: -5px 0` cancels that growth
         // out of the flex column's own layout contribution (a negative margin's flow contribution
-        // is `border-box height + margin`, so 25.225 + -5 + -5 = 15.225 - unchanged from before),
-        // so PROVENANCE_COL's total natural height, and therefore the maxHeight clamp headroom
-        // above, is untouched. `CardFoot.tsx`'s `FootLink` uses real padding instead of this same
-        // technique specifically because ITS row sits at the outer edge of an `overflow: hidden`
-        // ancestor, where an enlarged hit area would itself get clipped; this row is the 3rd of 4
-        // inside PROVENANCE_COL (which also clips at its own maxHeight), with a sibling row on
-        // each side, so the +-5px expansion stays inside the column's clip bounds in both the
-        // un-wrapped case (checked against PROVENANCE_COL's own re-derived 71.675px budget) and
-        // the wrapped/clamped case (this row is never the one that gets cut - `p.accessed`, the
-        // last row, is). No other interactive element sits within 8px (both neighbours are plain
+        // is `border-box height + margin`, so 25.225 + -5 + -5 = 15.225 - unchanged from before).
+        // `CardFoot.tsx`'s `FootLink` uses real padding instead of this same technique specifically
+        // because ITS row sits at the outer edge of an `overflow: hidden` ancestor, where an
+        // enlarged hit area would itself get clipped; PROVENANCE_COL no longer clips at all
+        // (2026-09-22), so this technique is no longer load-bearing for that reason here, but is
+        // kept because it is still the correct way to grow a hit area without growing visible
+        // layout height. No other interactive element sits within 8px (both neighbours are plain
         // `<p>` text), so the law-2 24px floor applies here, not the 44px one.
         <a
           href={p.href}

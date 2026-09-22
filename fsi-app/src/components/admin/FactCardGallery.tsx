@@ -17,12 +17,31 @@
  * claim, a card with no provenance) moves BELOW the panel-21c fixture under one plain heading,
  * each variant inside its own ItemGroup (build item 5's "each variant inside a group, never a
  * caption above a card").
+ *
+ * Operator sign-off 2026-09-22, correction 3: "The '10 more facts below' line is fixture chrome,
+ * remove from the part (the ItemGroup disclosure is the only overflow affordance)." Fourteen
+ * default-density fixtures inside one ItemGroup tripped ItemGroup's real 4-card visible cap and
+ * showed its `MoreBelowDisclosure` ("10 more facts below") - a genuine, correct control on a real
+ * item group, but here it was only an accident of cramming every reference variant into a single
+ * group. `chunkIntoGroupsOf4` splits the reference gallery across as many ItemGroups as it takes
+ * to keep every one at or under its 4-card visible cap, so the disclosure never fires on this
+ * page; the real ItemGroup component and its real overflow control are untouched.
  */
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FactCard } from "@/components/ui/FactCard";
 import { ItemGroup } from "@/components/ui/ItemGroup";
 import type { FactCardFixture, MatrixFixture } from "@/lib/detail/fact-card-fixtures";
 import type { PanelGroupFixture } from "@/lib/detail/fact-card-panel21c-fixture";
+
+const GALLERY_GROUP_SIZE = 4;
+
+function chunkIntoGroupsOf4<T>(items: T[]): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += GALLERY_GROUP_SIZE) {
+    chunks.push(items.slice(i, i + GALLERY_GROUP_SIZE));
+  }
+  return chunks;
+}
 
 const PLAIN_HEADING: React.CSSProperties = {
   fontSize: 15,
@@ -72,17 +91,24 @@ export function FactCardGallery({
         <p style={PLAIN_HEADING}>Variant gallery</p>
         <p style={PLAIN_SUBHEADING}>Reference only: every kind, every form, no-lead, long claim, no provenance, density=&quot;matrix&quot;.</p>
 
-        <ItemGroup title="Default density">
-          {defaultFixtures.map((f) => (
-            <FactCard key={f.label} model={f.model} />
-          ))}
-        </ItemGroup>
+        {chunkIntoGroupsOf4(defaultFixtures).map((chunk, i, all) => (
+          <ItemGroup key={`default-${i}`} title={all.length > 1 ? `Default density (${i + 1} of ${all.length})` : "Default density"}>
+            {chunk.map((f) => (
+              <FactCard key={f.label} model={f.model} />
+            ))}
+          </ItemGroup>
+        ))}
 
-        <ItemGroup title='density="matrix" (operations panel variant)'>
-          {matrixFixtures.map((f) => (
-            <FactCard key={f.label} density="matrix" fact={f.fact} baseFact={f.baseFact} />
-          ))}
-        </ItemGroup>
+        {chunkIntoGroupsOf4(matrixFixtures).map((chunk, i, all) => (
+          <ItemGroup
+            key={`matrix-${i}`}
+            title={all.length > 1 ? `density="matrix" (operations panel variant) (${i + 1} of ${all.length})` : 'density="matrix" (operations panel variant)'}
+          >
+            {chunk.map((f) => (
+              <FactCard key={f.label} density="matrix" fact={f.fact} baseFact={f.baseFact} />
+            ))}
+          </ItemGroup>
+        ))}
       </SectionCard>
     </div>
   );
