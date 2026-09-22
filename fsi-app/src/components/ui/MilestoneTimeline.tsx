@@ -28,6 +28,7 @@
 import type { TimelineEntry } from "@/types/resource";
 import { classifyTimelineEntries } from "./milestone-timeline-classify";
 import type { TimelineDotState } from "./milestone-timeline-classify";
+import { passedDotStyle, nextDotStyle, aheadDotStyle, timelineTrackStyle } from "./timeline-dot-styles";
 
 export interface MilestoneTimelineProps {
   entries?: TimelineEntry[] | null;
@@ -75,57 +76,16 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
         position: "relative",
       }}
     >
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: 4,
-          right: 4,
-          top: "50%",
-          height: 2,
-          background: `linear-gradient(90deg, var(--awareness) 0%, var(--awareness) ${greenPercent}%, rgba(0,0,0,.12) ${greenPercent}%)`,
-          transform: "translateY(-50%)",
-        }}
-      />
+      <span aria-hidden="true" style={timelineTrackStyle(greenPercent)} />
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", position: "relative" }}>
         {classified.map(({ state }, i) => {
           if (state === "passed") {
-            return (
-              <span
-                key={i}
-                aria-hidden="true"
-                style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--awareness)" }}
-              />
-            );
+            return <span key={i} aria-hidden="true" style={passedDotStyle(6)} />;
           }
           if (state === "next") {
-            return (
-              <span
-                key={i}
-                aria-hidden="true"
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: "50%",
-                  background: bandHex,
-                  boxShadow: `0 0 0 2px ${bandHex}33`,
-                }}
-              />
-            );
+            return <span key={i} aria-hidden="true" style={nextDotStyle(bandHex, 9, 2)} />;
           }
-          return (
-            <span
-              key={i}
-              aria-hidden="true"
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--card)",
-                border: "1px solid rgba(0,0,0,.28)",
-              }}
-            />
-          );
+          return <span key={i} aria-hidden="true" style={aheadDotStyle(6)} />;
         })}
       </span>
     </span>

@@ -22,7 +22,12 @@
 
 import type { UrgencyBand } from "@/lib/urgency/bands";
 
-export function BandChip({ band }: { band: UrgencyBand }) {
+/**
+ * `withWindow` (lane W10-ActionCard-a, 2026-09-21, artboard 21b's own pill: "IMMEDIATE . <= 90
+ * DAYS" as one badge). Additive, defaulted off: every existing caller (label alone) is byte-for-
+ * byte unchanged; the ActionCard part is the first to opt in.
+ */
+export function BandChip({ band, withWindow }: { band: UrgencyBand; withWindow?: boolean }) {
   return (
     <span
       style={{
@@ -42,6 +47,7 @@ export function BandChip({ band }: { band: UrgencyBand }) {
     >
       <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: band.cssVar }} />
       {band.label}
+      {withWindow && band.window ? ` · ${band.window}` : ""}
     </span>
   );
 }
