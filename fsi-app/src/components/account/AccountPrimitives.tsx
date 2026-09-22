@@ -234,6 +234,16 @@ export function SegmentedControl<T extends string>({
               // Alert bands group ran 10px past its own column.
               padding: "6px 10px",
               minHeight: 24,
+              // Lane UI-75 (layout-guard L9, RD-67): real font metrics land the narrowest labels
+              // ("Tue"/"Thu", the briefing-day segments) under the 44px floor at 10px padding.
+              // These segments are flush against one another (a 1px border between them, not an
+              // 8px-clearance gap), so the floor is the 44px-long-axis rule, not the 24px
+              // alternative. A per-segment `minWidth` widens only the genuinely narrow labels
+              // (Mon/Tue/Wed/Thu/Fri) by a few px rather than repeating the blanket-padding
+              // increase that already regressed the Alert bands column once (see the comment
+              // above).
+              minWidth: 44,
+              textAlign: "center" as const,
               fontSize: 12,
               fontWeight: 600,
               whiteSpace: "nowrap",

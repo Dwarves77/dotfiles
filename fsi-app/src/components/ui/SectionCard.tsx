@@ -73,8 +73,11 @@ import { SectionRule } from "@/components/ui/SectionRule";
 export interface SectionCardProps {
   children: ReactNode;
   /** The rendered element. Defaults to `div`; `section`/`header`/`aside` where the card is a
-   *  landmark in the page's outline (the masthead is a `header`, the matrix a `section`). */
-  as?: "div" | "section" | "header" | "aside" | "article";
+   *  landmark in the page's outline (the masthead is a `header`, the matrix a `section`); `li`
+   *  where the card is one row of a `<ul>`/`<ol>` list (the recalculation-notice list, lane
+   *  UI-75, RD-67/F42: a hand-built `<li className="cl-row-card">` skipped the shared shell and
+   *  therefore never mounted `<SectionRule/>`, the class L6 measures). */
+  as?: "div" | "section" | "header" | "aside" | "article" | "li";
   /** Content padding ON THE CARD. Supplying it switches the rule to the absolutely positioned
    *  layout so the rule still spans the full card width rather than being inset by the padding. */
   padding?: string | number;
