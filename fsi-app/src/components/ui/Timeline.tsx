@@ -32,6 +32,7 @@
 import type { TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { StateNote } from "@/components/ui/StateNote";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { pluralize } from "@/lib/format";
 import { passedDotStyle, nextDotStyle, aheadDotStyle, timelineTrackStyle } from "@/components/ui/timeline-dot-styles";
 import {
@@ -143,18 +144,7 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref }: Ti
 function TimelineHeader({ total, passed, nextDate }: { total: number; passed: number; nextDate: string | null }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 17,
-          textTransform: "uppercase",
-          letterSpacing: "0.02em",
-          color: "var(--ink)",
-          margin: 0,
-        }}
-      >
-        Timeline
-      </p>
+      <SectionLabel>Timeline</SectionLabel>
       <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
         {total} {pluralize(total, "milestone")} {"·"} {passed} passed
         {nextDate ? ` · next ${formatDayMonthYear(nextDate)}` : ""}

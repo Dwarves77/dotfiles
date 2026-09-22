@@ -29,6 +29,16 @@ const PARTS: PartEntry[] = [
     name: "ItemGroup",
     summary: "Wraps fact cards inside an S-section: band pill header, up to 4 visible cards then an \"N more facts\" disclosure, and an optional ACTION strip.",
   },
+  {
+    slug: "action-card",
+    name: "ActionCard",
+    summary: "The merged detail-page card (panel 21b): pill row, action row, EXPOSURE, TIMELINE with its callout. Replaces the three separate header/exposure/timeline cards.",
+  },
+  {
+    slug: "section-index",
+    name: "SectionIndex",
+    summary: "The detail-page section strip: Sn plus a short name that never truncates, the Summary | Full brief depth switch at its right end, no standalone switch row.",
+  },
 ];
 
 export default async function AdminPartsIndexPage() {

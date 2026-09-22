@@ -20,6 +20,9 @@ import { runSmoke as runMapSmoke } from './map-smoke.mjs';
 import { runSmoke as runMastheadBalanceSmoke } from './masthead-balance-smoke.mjs';
 import { runSmoke as runSearchResultsSmoke } from './search-results-smoke.mjs';
 import { runSmoke as runPanel21cSmoke } from './panel-21c-smoke.mjs';
+import { runSmoke as runActionCardSmoke } from './action-card-smoke.mjs';
+import { runSmoke as runSectionIndexSmoke } from './section-index-smoke.mjs';
+import { runSmoke as runRecordGradeSmoke } from './record-grade-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -55,4 +58,16 @@ export const UX_SMOKE_SPECS = [
   // FactCard, PANEL_21C_GROUPS) at 1440 against the operator's own acceptance list via the pure
   // detector in panel21c-accept.mjs (proven red-then-green in panel21c-accept.test.mjs).
   { name: "panel-21c", run: runPanel21cSmoke },
+  // lane w10-actioncard-b, 2026-09-22, build item 7 (registered permanently; part A registered
+  // these two specs only temporarily to self-check locally, per the lane contract's own
+  // instruction to revert before commit): mounts the real ActionCard/Timeline and the real
+  // SectionIndex against the regulation surface's own fixture data.
+  { name: "action-card", run: runActionCardSmoke },
+  { name: "section-index", run: runSectionIndexSmoke },
+  // lane w10-actioncard-b, 2026-09-22, addendum ([CONFIRMED on production bfde1be8]: the
+  // record-grade regulation page rendered 4 fact cards with ZERO [data-part="item-group"]).
+  // Mounts the real ItemGroup + RecordFactCard against a frozen real record
+  // (record-grade-fixture.ts, item f8268063-0e07-4562-82da-a1373d6dd797) in the two-group shape
+  // RegulationDetailSurface.tsx's RecordGradeSections now renders.
+  { name: "record-grade", run: runRecordGradeSmoke },
 ];

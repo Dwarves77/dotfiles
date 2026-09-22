@@ -25,7 +25,7 @@
  * invents one), never caps body text.
  */
 
-import type { ReactNode, CSSProperties } from "react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import type { TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import type { AbsenceReason } from "@/components/ui/Absence";
@@ -34,6 +34,7 @@ import { Absence } from "@/components/ui/Absence";
 import { ActionRow } from "@/components/ui/ActionRow";
 import { Timeline } from "@/components/ui/Timeline";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { classifyMilestones, nextMilestoneClause } from "@/lib/detail/timeline-math";
 
 export interface ActionCardExposureValue {
@@ -50,6 +51,10 @@ export interface ActionCardProps {
   meta?: string | null;
   /** Applied workspace tags. Empty/undefined renders no tags row and no label at all (review 1a). */
   tags?: string[] | null;
+  /** Lane W10-ActionCard-b (2026-09-22): the interactive tag popover (add/remove), a page-level
+   *  concern (it fetches and mutates) that does not belong in this no-fetch part. Rendered inline
+   *  so the trigger and panel stay inside the one card; omitted renders nothing. */
+  tagPopover?: ReactNode;
 
   onExport: () => void;
   onShare: () => void;
@@ -74,8 +79,24 @@ const CLAMP_3: CSSProperties = {
   overflow: "hidden",
 };
 
+// Operator ruling (lane W10-ActionCard-b, 2026-09-22, verbatim): "You don't limit the number of
+// characters in an analysis of something just because it doesn't flow you adjust how the pages set
+// up. We need all of the text and all of the information from the analysis." The 3-line clamp is a
+// CLOSED default, never a truncation: a cell whose content overflows 3 lines gets a "Show more"
+// affordance that lifts the clamp in place (no content is ever dropped from the DOM).
 function ExposureCell({ label, cell }: { label: string; cell: ActionCardExposureValue }) {
   const hasValue = cell.value !== null && cell.value !== undefined && cell.value !== "";
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const valueRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (expanded) return;
+    const el = valueRef.current;
+    if (!el) return;
+    setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [cell.value, expanded]);
+
   return (
     <div style={{ minWidth: 0 }}>
       <p
@@ -90,9 +111,46 @@ function ExposureCell({ label, cell }: { label: string; cell: ActionCardExposure
       >
         {label}
       </p>
-      <div data-audit="exposure-value" style={{ fontSize: "var(--fs-125)", lineHeight: 1.5, color: "var(--ink)", overflowWrap: "anywhere", ...CLAMP_3 }}>
+      <div
+        ref={valueRef}
+        data-audit="exposure-value"
+        style={{
+          fontSize: "var(--fs-125)",
+          lineHeight: 1.5,
+          color: "var(--ink)",
+          overflowWrap: "anywhere",
+          ...(expanded ? {} : CLAMP_3),
+        }}
+      >
         {hasValue ? cell.value : <Absence reason={cell.absenceReason ?? "not in primary source"} />}
       </div>
+      {hasValue && overflowing && (
+        // Law 2 hit-target floor (44px, or 24px with 8px clearance): the text itself is ~16px
+        // tall, so vertical padding gets the box to 24px with margin providing the clearance
+        // (layout guard L9, 2026-09-22, never previously run against the live route).
+        <button
+          type="button"
+          data-audit="exposure-expand"
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            marginTop: 8,
+            marginBottom: 8,
+            fontSize: "var(--fs-105)",
+            fontWeight: 700,
+            color: "var(--ink-3)",
+            background: "none",
+            border: "none",
+            padding: "4px 0",
+            minHeight: 28,
+            display: "inline-flex",
+            alignItems: "center",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
     </div>
   );
 }
@@ -103,6 +161,7 @@ export function ActionCard({
   tier,
   meta,
   tags,
+  tagPopover,
   onExport,
   onShare,
   watch,
@@ -147,6 +206,8 @@ export function ActionCard({
         </div>
       )}
 
+      {tagPopover && <div style={{ marginTop: hasTags ? 8 : 10 }}>{tagPopover}</div>}
+
       {/* Action row (reused, byte-identical chrome across all four detail surfaces). */}
       <div style={{ marginTop: 14 }}>
         <ActionRow onExport={onExport} onShare={onShare} watch={watch} onTag={onTag} exportDisabled={exportDisabled} />
@@ -156,18 +217,9 @@ export function ActionCard({
 
       {/* EXPOSURE: four cells, each clamped at 3 lines (review item 2). */}
       <div>
-        <p
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 17,
-            textTransform: "uppercase",
-            letterSpacing: "0.02em",
-            color: "var(--ink)",
-            margin: "0 0 12px",
-          }}
-        >
-          Exposure
-        </p>
+        <div style={{ marginBottom: 12 }}>
+          <SectionLabel>Exposure</SectionLabel>
+        </div>
         <div
           className="cl-exposure-grid"
           style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 18 }}

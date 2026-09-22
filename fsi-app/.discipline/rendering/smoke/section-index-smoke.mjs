@@ -62,7 +62,10 @@ async function measureAcceptance(page) {
     const nav = document.querySelector('[data-part="section-index"]');
     const links = nav ? [...nav.querySelectorAll('.cl-section-index-link')] : [];
     const labelBoxes = links.map((l) => ({ text: l.textContent, scrollWidth: l.scrollWidth, clientWidth: l.clientWidth }));
-    const switchGroups = [...document.querySelectorAll('[role="group"][aria-label="Section depth"]')];
+    // aria-label is "Summary depth" (DetailShell.tsx's SummaryDepthSwitch, the reused control,
+    // see SectionIndex.tsx's own header on reuse-before-construction), not "Section depth": this
+    // spec's own selector had never actually been run against the real component until now.
+    const switchGroups = [...document.querySelectorAll('[role="group"][aria-label="Summary depth"]')];
     // "no standalone row": every switch group found must be a DIRECT CHILD of the nav itself, never
     // a sibling element below it (which is what the prior standalone-row defect looked like).
     const switchShapes = switchGroups.map((g) => ({ isChildOfNav: g.parentElement === nav }));
