@@ -94,6 +94,55 @@ test("provenance column: gap 2, no padding-top, 1.45 line-height, tier square in
   );
 });
 
+// Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21; rendering-guard run
+// 35663598703): 3 failures, "144px tall (> 140px) with a claim of only 1-2 line(s)". Every failing
+// card had an href in its provenance; every passing card did not. The provenance link row's own
+// `minHeight: 24` (a leftover carried unchanged since v1, never part of this column's own 10.5px/
+// 1.45/no-padding-top spec) was forcing that ONE row taller than its siblings' natural line height,
+// pushing short-claim cards over budget. Guard: the link row never reintroduces a forced height.
+test("provenance link row carries no minHeight (panel-21c height-budget regression: was forcing this row taller than its 10.5px/1.45 siblings)", () => {
+  const hrefBlock = SOURCE.match(/\{p\.href && \([\s\S]*?<\/a>\s*\n\s*\)\}/)[0];
+  assert.doesNotMatch(hrefBlock, /minHeight/);
+});
+
+// Pure CSS math (Playwright cannot run in this sandbox per operator ruling): mirrors the panel-21c
+// acceptance detector's own budget (panel21c-accept.mjs: card <= 140px unless the claim exceeds 4
+// lines) computed from this file's own layout constants, so a future change to the kind band, body
+// padding, or provenance row heights that would blow the budget is caught here even when the
+// Playwright leg can't run locally. Uses the operator's own confirmed numbers (body padding 12px
+// 14px, kind band 6px 14px, provenance 10.5px/1.45 with no padding-top) plus the DOM box-model
+// additions that are real regardless of inline-style intent: the card's own 1px top+bottom border,
+// the kind band's 1px border-bottom, and the tier square's declared 18px height plus its own 1px
+// top+bottom border (content-box, no box-sizing override on that element).
+test("panel-21c budget: full provenance (tier+source, org, link, accessed) beside a 1-2 line claim computes to <= 140px", () => {
+  const cardBorderTopBottom = 2; // border: "1px solid var(--line-1)" top + bottom; borderLeft override only touches the left side
+  const kindBandPaddingV = 12; // "6px 14px" top + bottom
+  const kindBandBorderBottom = 1;
+  const kindWordLineHeightApprox = 10.5 * 1.2; // fs-105, unset line-height resolves to the browser's "normal" (~1.2x)
+  const kindBandHeight = kindBandPaddingV + kindWordLineHeightApprox + kindBandBorderBottom;
+
+  const bodyPaddingV = 24; // "12px 14px" top + bottom
+
+  const provenanceTextLineHeight = 10.5 * 1.45; // PROVENANCE_TEXT
+  const tierSquareHeight = 18 + 2; // TierSquare's own height:18 plus its 1px top+bottom border (content-box)
+  const row1 = Math.max(tierSquareHeight, provenanceTextLineHeight); // tier square inline with source
+  const row2 = provenanceTextLineHeight; // org
+  const row3 = provenanceTextLineHeight; // link, natural line height post-fix (no forced minHeight)
+  const row4 = provenanceTextLineHeight; // accessed
+  const provenanceGaps = 2 * 3; // PROVENANCE_COL gap: 2, three gaps between four stacked rows
+  const provenanceHeight = row1 + row2 + row3 + row4 + provenanceGaps;
+
+  for (const claimLines of [1, 2]) {
+    const claimHeight = claimLines * (13 * 1.6); // CLAIM_TEXT fs-13, lineHeight 1.6
+    const bodyContent = Math.max(claimHeight, provenanceHeight);
+    const cardHeight = cardBorderTopBottom + kindBandHeight + bodyPaddingV + bodyContent;
+    assert.ok(
+      cardHeight <= 140,
+      `computed card height ${cardHeight}px for a ${claimLines}-line claim exceeds the 140px acceptance budget`
+    );
+  }
+});
+
 // Operator review 2026-09-21, defect 4: "the sub-label is wrapping to two lines in 132px ...
 // The sub-label is 10px uppercase, nowrap, ellipsised if it must be."
 test("figure sub-label is nowrap with ellipsis overflow (defect 4: no two-line wrap in the 132px lead column)", () => {

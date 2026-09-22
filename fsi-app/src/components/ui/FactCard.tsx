@@ -206,6 +206,20 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
       )}
       {p.org && <p style={PROVENANCE_TEXT}>{p.org}</p>}
       {p.href && (
+        // Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21, rendering-guard run
+        // 35663598703): this row previously carried a forced 24px min-height, a leftover from before this
+        // lane's own defect-1b fix (present unchanged across the v1->v2 rewrite; git-blame shows
+        // no revision ever set it deliberately for THIS row's own layout). Every failing card in
+        // the operator's acceptance run (panel-21c@1440, three "144px with only 1-2 claim lines"
+        // violations) was exactly the set of cards whose provenance carries an href - the cards
+        // without one (LEGAL CONFIRMATION REQUIRED's counsel-only provenance, the inference form's
+        // "not citable" line) never failed. Forcing this ONE provenance row to 24px against its
+        // siblings' natural ~15px (10.5px/1.45) line height was the specific "provenance column
+        // forcing a taller row via its own line-height even when the claim is short" defect the
+        // operator's review named - a fixed min-height, not a spec number (the operator's own
+        // spec for this column states 10.5px/1.45, gap 2px, no padding-top; it never states a
+        // min-height for the link line). Removing it lets the link sit at its natural line height
+        // like every other provenance row, matching the spec exactly.
         <a
           href={p.href}
           target="_blank"
@@ -216,7 +230,6 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
             color: "var(--ink)",
             textDecoration: "underline",
             textDecorationColor: "var(--link-line)",
-            minHeight: 24,
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
