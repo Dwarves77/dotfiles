@@ -123,11 +123,24 @@ test("an unknown list position renders the Absence convention, never a fabricate
   assert.match(SOURCE, /<Absence reason="not in primary source" \/>/);
 });
 
-test("SectionIndex renders sticky (position: sticky), the README §0.5 'sticky section index' requirement", () => {
+// F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): the sticky nav's own style object moved
+// into the shared `sectionIndexNavStyle()` helper (section-index-styles.ts), consumed by BOTH this
+// component and the new src/components/ui/SectionIndex.tsx part, so the two can never disagree on
+// stickiness. The call site and the helper's own definition are checked separately.
+const SECTION_INDEX_STYLES_SOURCE = readFileSync(
+  resolve(dirname(fileURLToPath(import.meta.url)), "..", "ui", "section-index-styles.ts"),
+  "utf8",
+);
+
+test("SectionIndex calls the shared sticky-nav style helper, not a hand-typed style object", () => {
   const start = SOURCE.indexOf("export function SectionIndex");
   const end = SOURCE.indexOf("export function", start + 1);
   const body = SOURCE.slice(start, end === -1 ? undefined : end);
-  assert.match(body, /position: "sticky"/);
+  assert.match(body, /sectionIndexNavStyle\(\)/);
+});
+
+test("sectionIndexNavStyle renders sticky (position: sticky), the README section 0.5 'sticky section index' requirement", () => {
+  assert.match(SECTION_INDEX_STYLES_SOURCE, /position: "sticky"/);
 });
 
 // Lane uiactions (2026-09-07, design ruling R3): the Summary | Full brief depth switch — TWO
@@ -190,9 +203,14 @@ test("section index tabs are bounded and truncate with a real ellipsis, with the
   // and pushed the Summary/Full brief toggle onto a second row. The artboard uses SHORT tab labels
   // ("S1 Cost baseline"); the product passes the section's full title, so the tab is bounded here
   // in the shared part and truncates properly instead of being cut by the container.
+  //
+  // F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): the tab `<a>` itself moved into the
+  // shared SectionIndexLink.tsx (consumed by both this component and the new
+  // src/components/ui/SectionIndex.tsx part); this file now only supplies the ellipsis SIZING at
+  // its own call site, not the `<a>` markup.
   assert.match(SOURCE, /const SECTION_TAB_MAX_WIDTH = \d+;/);
   assert.match(SOURCE, /maxWidth: SECTION_TAB_MAX_WIDTH/);
-  const link = SOURCE.slice(SOURCE.indexOf('className="cl-section-index-link"'), SOURCE.indexOf("S{i + 1} {s.label}"));
+  const link = SOURCE.slice(SOURCE.indexOf("<SectionIndexLink"), SOURCE.indexOf("S{i + 1} {s.label}"));
   assert.match(link, /textOverflow: "ellipsis"/);
   assert.match(link, /title=\{s\.label\}/, "the full label stays reachable");
 });

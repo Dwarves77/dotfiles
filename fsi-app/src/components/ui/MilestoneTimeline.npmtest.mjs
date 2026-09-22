@@ -61,14 +61,24 @@ test("empty input returns an empty classification, never a fabricated row", () =
 // `node --test`; the audit harness and the rendering guard's smoke specs are the real-DOM check).
 import { readFileSync } from "node:fs";
 const TSX_SOURCE = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "MilestoneTimeline.tsx"), "utf8");
+// F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): the track's own style object (height,
+// gradient) moved into the shared `timelineTrackStyle` helper in timeline-dot-styles.ts, consumed
+// by BOTH MilestoneTimeline.tsx and the new Timeline.tsx (ActionCard's full-card timeline), so the
+// two views can never draw the track differently. The assertions below moved with it; the two
+// components' own call sites (`style={timelineTrackStyle(greenPercent)}`) are checked separately.
+const DOT_STYLES_SOURCE = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "timeline-dot-styles.ts"), "utf8");
+
+test("MilestoneTimeline calls the shared track-style helper, not a hand-typed style object", () => {
+  assert.match(TSX_SOURCE, /style=\{timelineTrackStyle\(greenPercent\)\}/);
+});
 
 test("track is 2px tall (was 1px, flat, no green segment)", () => {
-  assert.match(TSX_SOURCE, /height: 2,\s*\n\s*background: `linear-gradient/);
+  assert.match(DOT_STYLES_SOURCE, /height: 2,/);
 });
 
 test("track renders a green-to-'next'-dot gradient with a hard colour stop, not a flat line", () => {
   assert.match(
-    TSX_SOURCE,
+    DOT_STYLES_SOURCE,
     /linear-gradient\(90deg, var\(--awareness\) 0%, var\(--awareness\) \$\{greenPercent\}%, rgba\(0,0,0,\.12\) \$\{greenPercent\}%\)/
   );
 });
