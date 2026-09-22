@@ -134,13 +134,22 @@ export function ListSurfaceSortRow({
         {options.map((opt) => {
           const isActive = opt.key === active;
           return (
+            // Lane UI-75 (layout-guard L9, RD-67): real font metrics landed the "30d"/"90d"
+            // options a fraction of a pixel under the operator's 44px floor. CORRECTION (same
+            // lane): an outer padding + equal negative margin was tried first, split from the
+            // design's own visible padding on an inner span; it cleared L9 but ate into this
+            // row's own 10px flex `gap`, dropping the mobile UX-smoke adjacent-clearance check
+            // (the law-2 24px/8px-clearance alternative, `research-rows` spec at 375/1280) from
+            // 10px to 6px between options, a regression the first pass did not run far enough to
+            // catch. A 1px-per-side padding increase clears the 44px floor without touching the
+            // row's gap.
             <button
               key={opt.key}
               type="button"
               onClick={() => onSelect(opt.key)}
               style={{
-                padding: "5px 10px",
-                minHeight: 24,
+                padding: "5px 11px",
+                minHeight: 28,
                 borderRadius: 6,
                 fontWeight: 600,
                 border: "none",

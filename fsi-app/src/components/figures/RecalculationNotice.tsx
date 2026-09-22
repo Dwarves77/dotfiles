@@ -20,6 +20,7 @@
 import type { SupersededNotice } from "@/lib/propagation/methods/superseded-notices.ts";
 import { formatNumber, formatLocaleDateTime } from "@/lib/format";
 import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
+import { SectionCard } from "@/components/ui/SectionCard";
 
 export interface RecalculationNoticeItem extends SupersededNotice {
   /** The entity/decision's human-readable name, when resolvable (entities.display_name-shaped). Falls
@@ -49,7 +50,7 @@ export interface RecalculationNoticeProps {
 function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
   const versionChanged = n.oldMethodVersion !== n.newMethodVersion;
   return (
-    <li className="cl-row-card" style={{ listStyle: "none", marginBottom: 10 }}>
+    <SectionCard as="li" padding="16px 20px" style={{ listStyle: "none", marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         {/* minWidth:0 + overflowWrap:anywhere (RD-60/F35, notices-rail-smoke.mjs's extreme-data case):
             a flex item's default min-width is its intrinsic content width, so an unbroken long entity
@@ -87,7 +88,7 @@ function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
           Triggered by a {n.triggeringEvent.changeKind} on {n.triggeringEvent.table} ({n.triggeringEvent.pk}), {formatLocaleDateTime(new Date(n.triggeringEvent.occurredAt))}
         </div>
       )}
-    </li>
+    </SectionCard>
   );
 }
 

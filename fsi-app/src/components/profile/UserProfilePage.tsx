@@ -529,7 +529,20 @@ function QuickLinksRail() {
           <a
             key={`${l.href}-${i}`}
             href={l.href}
-            style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}
+            // Lane UI-75 (layout-guard L9, RD-67): a single line of 12.5px text is ~18.8px tall,
+            // under the operator's 28px hit-target floor. The expanded hit-area pattern (padding
+            // on the link, an equal negative margin so the card's own row gap is unaffected)
+            // grows the click target the guard measures without widening or heightening what the
+            // reader sees.
+            style={{
+              fontSize: "12.5px",
+              fontWeight: 600,
+              color: "var(--color-primary)",
+              textDecoration: "none",
+              display: "inline-block",
+              padding: "5px 0",
+              margin: "-5px 0",
+            }}
           >
             {l.label}
           </a>

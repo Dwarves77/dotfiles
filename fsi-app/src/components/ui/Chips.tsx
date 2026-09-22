@@ -306,7 +306,14 @@ export function FilterChip({
         background: active ? "var(--brand)" : "var(--tag)",
         border: "1px solid transparent",
         borderRadius: "var(--radius-pill)",
-        padding: "5px 11px",
+        // Lane UI-75 (layout-guard L9, RD-67): real font metrics left the shortest labels
+        // (e.g. "Rail") a fraction of a pixel under the operator's 44px hit-target floor at
+        // 1024/1440. This component's mobile media query (FILTER_GROUP_MOBILE_CSS above)
+        // re-styles `.cl-filter-chip` by class selector and does not touch padding, so the
+        // ListSurfaceSortRow split-element hit-slop pattern is not safe here without also
+        // rewriting that selector coupling; a 1px-per-side padding increase (11px -> 12px)
+        // clears the floor at every measured width with no visible-size change beyond that.
+        padding: "5px 12px",
         cursor: "pointer",
         fontFamily: "inherit",
       }}

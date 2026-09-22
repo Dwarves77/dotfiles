@@ -29,10 +29,89 @@ const LONG = (n, word = "extremely-long-token") =>
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const APP_DIR = join(HERE, "../../../src/app");
 
+// ── RD-80 (lane G3, 2026-09-22): the application's own font files, one home ────────────────────
+// Prior state [CONFIRMED, 2026-09-22 diagnosis]: fullAppCss() read globals.css + theme.css only;
+// the fonts are `@fontsource/*` imports in layout.tsx, so no `@font-face` ever reached a mounted
+// fixture, `document.fonts.size` was 0 on every guard page, and both declared font stacks
+// (`--font-sans`, `--font-display`) resolved to whatever OS fallback the running machine happened
+// to carry, a DIFFERENT fallback on Ubuntu CI than on Windows, so the same commit measured
+// different text-dependent layout (clipping, wrapping, hit targets, card heights) on each platform.
+// Fix: vendor the exact woff2 files the app ships (weights + latin subset only, per layout.tsx's
+// @fontsource imports; each package's LICENSE sits beside its files) and declare @font-face rules
+// against them here, in the ONE place every consumer of fullAppCss()/fullAppCssCompiled() reads,
+// no smoke spec declares its own. `font-display: block` (never "swap" or "auto") so a measurement
+// never runs against the fallback-during-load frame.
+//
+// data: URIs, not `file://`, per compose-composite.mjs's own header (same directory, pre-existing):
+// "a `file://` subresource from an opaque origin is blocked by the browser", every page this
+// harness opens is a `page.setContent()` document (an about:blank/opaque origin), which is exactly
+// that case, [CONFIRMED, 2026-09-22]: a `file://` @font-face `src` in that context left every
+// declared face permanently `unloaded` (`document.fonts.check()` false after `document.fonts.ready`
+// resolved with nothing pending, since a face nobody has referenced never starts loading) and an
+// explicit `document.fonts.load()` call threw `NetworkError`. Base64-inlining removes the
+// cross-origin fetch entirely; the four vendored files total under 80 KB, trivial inlined.
+const FONTS_DIR = join(HERE, "../fixtures/fonts");
+const fontFileDataUri = (family, file) =>
+  `data:font/woff2;base64,${readFileSync(join(FONTS_DIR, family, file)).toString("base64")}`;
+
+let _fontFaceCssCache = null;
+export function fontFaceCss() {
+  if (_fontFaceCssCache) return _fontFaceCssCache;
+  const jakarta = (weight) =>
+    `@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:${weight};font-display:block;src:url('${fontFileDataUri("plus-jakarta-sans", `plus-jakarta-sans-latin-${weight}-normal.woff2`)}') format('woff2');}`;
+  const anton = `@font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:block;src:url('${fontFileDataUri("anton", "anton-latin-400-normal.woff2")}') format('woff2');}`;
+  _fontFaceCssCache = [jakarta(400), jakarta(500), jakarta(600), jakarta(700), jakarta(800), anton].join("\n");
+  return _fontFaceCssCache;
+}
+
+// The weight/family pairs every measurement pass must confirm resolved via `document.fonts.check`
+// before trusting a layout measurement taken against them (RD-80 build item 3). Kept here, beside
+// the declarations, so the two can never drift apart.
+export const REQUIRED_FONT_CHECKS = [
+  "400 16px 'Plus Jakarta Sans'",
+  "500 16px 'Plus Jakarta Sans'",
+  "600 16px 'Plus Jakarta Sans'",
+  "700 16px 'Plus Jakarta Sans'",
+  "800 16px 'Plus Jakarta Sans'",
+  "400 16px 'Anton'",
+];
+
+// The single "load the real faces onto this page and confirm they resolved" routine (RD-80 build
+// item 3), shared by run-rendering-guard.mjs (where every fixture leg calls it after setContent) and
+// by rd-80-real-fonts.npmtest.mjs (which calls the SAME function against a bare page, so the test
+// proves the harness's real code path rather than a reimplementation of it). A face is lazy, it does
+// not start loading until something on the page matches it, so this calls `document.fonts.load()`
+// explicitly for every required spec before awaiting `document.fonts.ready`; without that, a fixture
+// that never renders the exact family+weight text would read "ready" with nothing pending and every
+// `check()` would report false even though the face is perfectly loadable. Returns the specs that
+// failed to resolve (empty = every declared face loaded); never throws, so a caller can fold the
+// result into its own failure list instead of crashing the whole run on the first miss.
+//
+// `document.fonts.check()` ALONE is not sufficient [CONFIRMED, 2026-09-22, this lane, by attack]: it
+// reads VACUOUSLY TRUE when the FontFaceSet holds ZERO entries for that family at all, the exact
+// "no @font-face reached this page" failure this function exists to catch would report as a clean
+// pass on `check()` alone. So this also confirms a `loaded` FontFace actually EXISTS in
+// `document.fonts` for the family+weight before trusting `check()`'s answer.
+export async function assertFontsReady(page) {
+  await page.addStyleTag({ content: fontFaceCss() });
+  return page.evaluate(async (checks) => {
+    await Promise.all(checks.map((spec) => document.fonts.load(spec)));
+    await document.fonts.ready;
+    const loaded = [...document.fonts].filter((f) => f.status === "loaded");
+    return checks.filter((spec) => {
+      const m = spec.match(/^(\d+)\s+\d+px\s+'([^']+)'$/);
+      if (!m) return true;
+      const [, weight, family] = m;
+      const registered = loaded.some((f) => f.family.replace(/^['"]|['"]$/g, "") === family && f.weight === weight);
+      return !registered || !document.fonts.check(spec);
+    });
+  }, REQUIRED_FONT_CHECKS);
+}
+
 export function fullAppCss() {
   const globals = readFileSync(join(APP_DIR, "globals.css"), "utf8");
   const theme = readFileSync(join(APP_DIR, "theme.css"), "utf8");
-  return `${theme}\n${globals}`;
+  return `${fontFaceCss()}\n${theme}\n${globals}`;
 }
 
 // ── Compiled app CSS, Tailwind utilities included (lane compose-other, 2026-09-08) ─────────────────
@@ -58,7 +137,7 @@ export async function fullAppCssCompiled() {
     from: join(APP_DIR, "globals.css"),
   });
   const theme = readFileSync(join(APP_DIR, "theme.css"), "utf8");
-  _compiledCache = `${theme}\n${result.css}`;
+  _compiledCache = `${fontFaceCss()}\n${theme}\n${result.css}`;
   return _compiledCache;
 }
 

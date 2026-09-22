@@ -41,3 +41,8 @@ fsi-app/.discipline/**        text eol=lf
 # NOTE FOR WINDOWS CHECKOUTS: this only takes effect on files as they are re-checked-out. After merging,
 # run `git add --renormalize .` once (or delete and re-checkout the tree) so an existing CRLF working copy
 # is converted; until then a stale local copy can still show the phantom failures described above.
+
+# RD-80 (lane G3, 2026-09-22): the rendering guard's vendored font files are binary (woff2). Without
+# this, `git add` on a Windows checkout silently CRLF-normalized the file as text on staging [CONFIRMED
+# by cmp, this lane] - a corrupted font file that would still look like a valid add. Binary, explicit.
+*.woff2 binary

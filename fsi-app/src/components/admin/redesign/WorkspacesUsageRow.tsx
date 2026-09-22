@@ -166,11 +166,18 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
         {/* dc.html p13 draws every figure in this card in ink, "May 28" included:
             a join date is not a severity, and the green it used to render in was
             the only coloured numeral on the artboard that the artboard does not
-            colour (lane admin60, 2026-09-08). */}
+            colour (lane admin60, 2026-09-08). Lane UI-75 (RD-67/F42, layout-guard
+            L7): a join date is a DATE STRING, not a count or numeral, and is not
+            in the operator's Anton allowlist (page-title, card-title,
+            band-tile-numeral, stat-block-numeral, headline-figure,
+            timeline-callout, matrix-cell-score, matrix-fact-figure,
+            nav-wordmark), so the allowlist is never grown to fit a finding, and this
+            one element renders in the body face instead, same size and weight
+            treatment as the other tiles' figures. */}
         {newestLabel ? (
-          <p style={figure}>{newestLabel}</p>
+          <p style={{ ...figure, fontFamily: "var(--font-sans)" }}>{newestLabel}</p>
         ) : (
-          <p style={{ ...figure, color: "var(--text-2)" }}>—</p>
+          <p style={{ ...figure, fontFamily: "var(--font-sans)", color: "var(--text-2)" }}>—</p> // glyph:verbatim
         )}
         <p style={sub}>{newestSub}</p>
       </div>

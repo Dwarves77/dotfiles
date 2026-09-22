@@ -22,9 +22,33 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
     const r = el.getBoundingClientRect();
     return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
   };
+  // UI-75 FOLLOWUP (lane G3b, 2026-09-22): a CLOSED <details> gives its non-summary content a real,
+  // non-zero getBoundingClientRect() in Chromium - `content-visibility: hidden`, not `display: none`
+  // - so the plain style checks below used to call it "visible". That produced 54 false L2/L9
+  // findings on /settings (button[Central America] etc, BriefingScheduleSection's closed
+  // "Jurisdiction weighting" disclosure) reported against real content below it. Three checks, in
+  // order: (1) an explicit ancestor-walk for a closed <details> whose content the element is not
+  // the summary of - mechanical, does not depend on a specific browser's content-visibility
+  // behaviour; (2) the computed `content-visibility: hidden` value directly, the CSS property the
+  // browser actually sets; (3) `checkVisibility()` where the browser exposes it, as a second, more
+  // complete opinion (opacity/visibility/content-visibility:auto). A <summary> inside a closed
+  // <details> stays visible and its own hit target is still measured - it is the one thing the
+  // reader can see and click.
   const visible = (el) => {
     const s = cs(el);
     if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) === 0) return false;
+    if (s.contentVisibility === 'hidden') return false;
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) {
+        const summary = p.querySelector(':scope > summary');
+        if (!(summary && (summary === el || summary.contains(el)))) return false;
+      }
+    }
+    if (typeof el.checkVisibility === 'function') {
+      try {
+        if (!el.checkVisibility({ contentVisibilityAuto: true, opacityProperty: true, visibilityProperty: true })) return false;
+      } catch { /* unsupported option shape on this engine - the checks above already covered it */ }
+    }
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
