@@ -7,6 +7,7 @@ import {
   deriveRecordFactCardModel,
   toClaimNodes,
   countNoLeadCards,
+  mergeAdjacentSameKind,
 } from "./fact-card-model.ts";
 import { classifyParagraph } from "./fact-paragraphs.ts";
 
@@ -286,4 +287,93 @@ test("defect 2: a claim carrying two embedded urls - the first is claimed as thi
   for (const n of model.claim) {
     if (!n.href) assert.doesNotMatch(n.text, /https?:\/\//, `no bare url outside a link node: ${JSON.stringify(n)}`);
   }
+});
+
+// ── mergeAdjacentSameKind (operator review 2026-09-21, panel 21c defect 2: "COUNT") ─────────
+
+function mkModel(kind, claimText, provText) {
+  return {
+    kind,
+    qualifier: null,
+    figureLead: null,
+    figureSubLabel: null,
+    claim: [{ text: claimText }],
+    provenance: provText ? { source: provText, org: null, href: null, accessed: null, tier: null } : null,
+  };
+}
+
+test("mergeAdjacentSameKind: no two adjacent cards of one kind survive, for a run mixing several kinds", () => {
+  const input = [
+    mkModel("SCOPE", "scope a", "src-a"),
+    mkModel("SCOPE", "scope b", "src-b"),
+    mkModel("SCOPE", "scope c", "src-c"),
+    mkModel("DEFINITION", "def a", "src-d"),
+    mkModel("DEFINITION", "def b", "src-e"),
+    mkModel("PENALTY", "penalty a", "src-f"),
+  ];
+  const out = mergeAdjacentSameKind(input);
+  for (let i = 1; i < out.length; i++) {
+    assert.notEqual(out[i].kind, out[i - 1].kind, `adjacent cards ${i - 1} and ${i} share a kind`);
+  }
+  assert.equal(out.length, 3, "3 runs (SCOPE x3, DEFINITION x2, PENALTY x1) collapse to 3 cards");
+});
+
+test("mergeAdjacentSameKind: order is preserved across kinds", () => {
+  const input = [mkModel("PENALTY", "p1"), mkModel("SCOPE", "s1"), mkModel("SCOPE", "s2"), mkModel("DEFINITION", "d1")];
+  const out = mergeAdjacentSameKind(input);
+  assert.deepEqual(
+    out.map((m) => m.kind),
+    ["PENALTY", "SCOPE", "DEFINITION"]
+  );
+});
+
+test("mergeAdjacentSameKind: a merged card keeps every claim and every provenance", () => {
+  const input = [mkModel("SCOPE", "scope a", "src-a"), mkModel("SCOPE", "scope b", "src-b"), mkModel("SCOPE", "scope c", "src-c")];
+  const out = mergeAdjacentSameKind(input);
+  assert.equal(out.length, 1);
+  const merged = out[0];
+  assert.equal(merged.claim[0].text, "scope a");
+  assert.equal(merged.provenance.source, "src-a");
+  assert.equal(merged.additionalClaims.length, 2);
+  assert.equal(merged.additionalClaims[0].claim[0].text, "scope b");
+  assert.equal(merged.additionalClaims[0].provenance.source, "src-b");
+  assert.equal(merged.additionalClaims[1].claim[0].text, "scope c");
+  assert.equal(merged.additionalClaims[1].provenance.source, "src-c");
+});
+
+test("mergeAdjacentSameKind: the no-lead and led cases merge only with their own kind", () => {
+  const led = { ...mkModel("BASELINE TARGET", "led claim", "src-a"), figureLead: "50-65%" };
+  const noLead = mkModel("BASELINE TARGET", "no-lead claim", "src-b");
+  const otherKindLed = { ...mkModel("NATIONAL TARGET", "other claim", "src-c"), figureLead: "80%" };
+
+  // Same kind (BASELINE TARGET), one led one not: still merges - lead-having-ness never blocks a
+  // same-kind merge.
+  const merged = mergeAdjacentSameKind([led, noLead]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].figureLead, "50-65%", "the first card's own lead survives unchanged");
+  assert.equal(merged[0].additionalClaims.length, 1);
+
+  // Different kind, even though both carry a figure lead: never merges just because both have a
+  // lead - kind is the only merge key.
+  const notMerged = mergeAdjacentSameKind([led, otherKindLed]);
+  assert.equal(notMerged.length, 2);
+});
+
+test("mergeAdjacentSameKind: ANALYTICAL INFERENCE cards merge like any other kind", () => {
+  const input = [mkModel("ANALYTICAL INFERENCE", "inference a"), mkModel("ANALYTICAL INFERENCE", "inference b")];
+  const out = mergeAdjacentSameKind(input);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].additionalClaims.length, 1);
+});
+
+test("parseFactCardModels applies the merge rule end to end: three consecutive SCOPE facts collapse to one card", () => {
+  const md = [
+    'FACT: "**SCOPE.** First scope fact." *Source: Reg A, EUR-Lex, 2024. https://eur-lex.europa.eu/a.*',
+    'FACT: "**SCOPE.** Second scope fact." *Source: Reg A, EUR-Lex, 2024. https://eur-lex.europa.eu/b.*',
+    'FACT: "**SCOPE.** Third scope fact." *Source: Reg A, EUR-Lex, 2024. https://eur-lex.europa.eu/c.*',
+  ].join("\n\n");
+  const models = parseFactCardModels(md);
+  assert.equal(models.length, 1);
+  assert.equal(models[0].kind, "SCOPE");
+  assert.equal(models[0].additionalClaims.length, 2);
 });

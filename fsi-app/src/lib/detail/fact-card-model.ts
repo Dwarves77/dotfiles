@@ -78,6 +78,14 @@ export interface FactCardModel {
   figureSubLabel?: string | null;
   claim: ClaimNode[];
   provenance?: FactCardProvenance | null;
+  /** Present only on a MERGED card (lane w10-factcard-d, operator review 2026-09-21 defect 2:
+   *  "consecutive facts of the same kind in one item MERGE into one card with a stacked claim,
+   *  each claim its own paragraph, its own provenance line"). Built by `mergeAdjacentSameKind`
+   *  below. The primary `claim`/`provenance` fields above stay the FIRST claim in the run
+   *  unchanged - every subsequent same-kind claim in the run becomes one entry here, in order.
+   *  Absent (undefined) on every non-merged card, which is the common case and keeps the
+   *  original two-field shape untouched for every existing caller. */
+  additionalClaims?: { claim: ClaimNode[]; provenance?: FactCardProvenance | null }[];
 }
 
 // ── Step 1: bolded lead-in -> kind word (rule: unknown lead-in -> SCOPE) ───────────────
@@ -361,10 +369,42 @@ export function deriveFactCardModels(paragraph: FactParagraph): FactCardModel[] 
   return models;
 }
 
+/** Operator review 2026-09-21 (panel 21c), defect 2 "COUNT": "21c never renders more than 3
+ *  cards in a group and never renders two cards of the same kind back to back... consecutive
+ *  facts of the same kind in one item MERGE into one card with a stacked claim (each claim its
+ *  own paragraph, its own provenance line)." This is the merge, applied at the MODEL level (the
+ *  review's own instruction: "The rule is in the pipeline mapping, not the component") over an
+ *  already-derived, ORDERED list of `FactCardModel`s. ANALYTICAL INFERENCE cards merge like any
+ *  other kind - the review's "never two cards of the same kind back to back" names no exception,
+ *  and an inference run reads naturally as one stacked-claim card the same way a run of SCOPE
+ *  facts does.
+ *
+ *  A run's merged card keeps the FIRST card's kind/qualifier/figureLead/figureSubLabel/claim/
+ *  provenance untouched; every subsequent same-kind card in the run appends to
+ *  `additionalClaims` in order, keeping every claim and every provenance (build item 2's test
+ *  contract). A led card and a no-lead card of the same kind still merge - kind is the only
+ *  merge key, matching the review's "the no-lead and led cases merge only with their own kind"
+ *  (i.e. lead-having-ness never crosses kinds INTO a merge; it also never blocks a merge WITHIN
+ *  one kind). Order is preserved: this is a single left-to-right pass, no re-sorting. */
+export function mergeAdjacentSameKind(models: FactCardModel[]): FactCardModel[] {
+  const out: FactCardModel[] = [];
+  for (const m of models) {
+    const prev = out[out.length - 1];
+    if (prev && prev.kind === m.kind) {
+      prev.additionalClaims = [...(prev.additionalClaims ?? []), { claim: m.claim, provenance: m.provenance ?? null }];
+      continue;
+    }
+    out.push({ ...m });
+  }
+  return out;
+}
+
 /** Convenience wrapper: content_md -> FactCardModel[] in one call, for callers that don't
- *  need the intermediate FactParagraph[] (mirrors parseFactParagraphs's own signature). */
+ *  need the intermediate FactParagraph[] (mirrors parseFactParagraphs's own signature). Applies
+ *  `mergeAdjacentSameKind` so every caller of this entry point gets the merge rule for free -
+ *  see that function's header for the rule it enforces. */
 export function parseFactCardModels(markdown: string | null | undefined): FactCardModel[] {
-  return parseFactParagraphs(markdown).flatMap(deriveFactCardModels);
+  return mergeAdjacentSameKind(parseFactParagraphs(markdown).flatMap(deriveFactCardModels));
 }
 
 /** Amendment 1 ruling B.3 (coordinator, 2026-09-20): "a deterministic field-to-kind table in

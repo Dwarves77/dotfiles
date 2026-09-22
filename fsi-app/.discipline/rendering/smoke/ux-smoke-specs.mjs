@@ -19,6 +19,7 @@ import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
 import { runSmoke as runMapSmoke } from './map-smoke.mjs';
 import { runSmoke as runMastheadBalanceSmoke } from './masthead-balance-smoke.mjs';
 import { runSmoke as runSearchResultsSmoke } from './search-results-smoke.mjs';
+import { runSmoke as runPanel21cSmoke } from './panel-21c-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -50,4 +51,8 @@ export const UX_SMOKE_SPECS = [
   // lane W10-CommandBar, 2026-09-21: search-results-smoke.mjs mounts the real SearchResultsView
   // (/search's presentational half), the new results page ruling 2 of 2026-09-20 required.
   { name: "search-results", run: runSearchResultsSmoke },
+  // lane w10-factcard-d, 2026-09-21, build item 6: measures the panel-21c fixture (ItemGroup +
+  // FactCard, PANEL_21C_GROUPS) at 1440 against the operator's own acceptance list via the pure
+  // detector in panel21c-accept.mjs (proven red-then-green in panel21c-accept.test.mjs).
+  { name: "panel-21c", run: runPanel21cSmoke },
 ];

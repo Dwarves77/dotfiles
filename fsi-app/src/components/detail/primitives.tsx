@@ -32,6 +32,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { TagChip } from "@/components/ui/Chips";
 import { FactCard } from "@/components/ui/FactCard";
+import { ItemGroup } from "@/components/ui/ItemGroup";
 import { deriveRecordFactCardModel } from "@/lib/detail/fact-card-model";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -95,16 +96,26 @@ export function RecordFactsBody({
   return (
     <>
       <StateNote>{leadNote}</StateNote>
+      {/* Lane w10-factcard-d (2026-09-21), build item 4: "All four detail surfaces render fact
+          cards through ItemGroup; no page hand-builds a group (F49)." Record-grade rows carry no
+          band/action-strip data (a different slot vocabulary than the pipeline-authored kind
+          vocabulary the merge rule targets - see ItemGroup.tsx's own header on why band/
+          actionStrip stay unset), so this group renders title-only. */}
       {dateFacts.length > 0 && (
-        <div style={{ margin: "14px 0" }}>
-          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Key dates</p>
+        <ItemGroup title="Key dates">
           {dateFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />)}
+        </ItemGroup>
+      )}
+      {otherFacts.length > 0 ? (
+        <ItemGroup title="Verbatim facts">
+          {otherFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />)}
+        </ItemGroup>
+      ) : (
+        <div style={{ margin: "14px 0" }}>
+          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Verbatim facts</p>
+          <Absence reason="not in primary source" />
         </div>
       )}
-      <div style={{ margin: "14px 0" }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>Verbatim facts</p>
-        {otherFacts.length > 0 ? otherFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />) : <Absence reason="not in primary source" />}
-      </div>
       {tags && tags.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {tags.map((t) => <TagChip key={t}>{t}</TagChip>)}
