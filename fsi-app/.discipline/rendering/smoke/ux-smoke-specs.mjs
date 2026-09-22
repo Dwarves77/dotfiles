@@ -23,6 +23,7 @@ import { runSmoke as runPanel21cSmoke } from './panel-21c-smoke.mjs';
 import { runSmoke as runActionCardSmoke } from './action-card-smoke.mjs';
 import { runSmoke as runSectionIndexSmoke } from './section-index-smoke.mjs';
 import { runSmoke as runRecordGradeSmoke } from './record-grade-smoke.mjs';
+import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -70,4 +71,9 @@ export const UX_SMOKE_SPECS = [
   // (record-grade-fixture.ts, item f8268063-0e07-4562-82da-a1373d6dd797) in the two-group shape
   // RegulationDetailSurface.tsx's RecordGradeSections now renders.
   { name: "record-grade", run: runRecordGradeSmoke },
+  // lane W10-SectionHeader, 2026-09-22, build item 1 verification: mounts each detail surface's
+  // record-grade and full-brief fixtures (regulation/market/research record-grade, all four
+  // full-brief) and asserts every [data-part="fact-card"] has an [data-part="item-group"]
+  // ancestor, site-wide, both grades.
+  { name: "item-group-coverage", run: runItemGroupCoverageSmoke },
 ];
