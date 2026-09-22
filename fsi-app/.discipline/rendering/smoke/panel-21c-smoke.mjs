@@ -90,10 +90,18 @@ const MEASURE_FN = `
         const hasLeadColumn = gridCols.trim().startsWith('132px');
         const leadEl = cardEl.querySelector('.fact-card-v2-lead');
         const hasFigureLead = !!leadEl && (leadEl.textContent || '').trim().length > 0;
+        // Sign-off 2026-09-22, correction 1: the provenance column is no longer clipped, so its
+        // real rendered line count (not just the claim's) can justify a card over 140px.
+        const provenanceEl = cardEl.querySelector('.fact-card-v2-provenance');
+        const provenanceRect = provenanceEl ? provenanceEl.getBoundingClientRect() : { height: 0 };
+        const provenanceStyle = provenanceEl ? getComputedStyle(provenanceEl) : null;
+        const provenanceRowLineHeight = provenanceStyle ? parseFloat(provenanceStyle.fontSize) * 1.45 || 1 : 1;
+        const provenanceLineCount = provenanceEl ? Math.max(1, Math.round(provenanceRect.height / provenanceRowLineHeight)) : 1;
         return {
           kindSlug: kindSlugOf(cardEl),
           heightPx: Math.round(rect.height),
           claimLineCount,
+          provenanceLineCount,
           hasLeadColumn,
           hasFigureLead,
           captionAboveCard: captionAbove(bodyEl, cardEl),

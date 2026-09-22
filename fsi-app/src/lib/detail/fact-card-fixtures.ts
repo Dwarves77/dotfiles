@@ -7,26 +7,34 @@
 // src/app/admin/parts/fact-card/page.tsx, which is the only production importer (F25 module
 // liveness).
 //
-// Every fixture is HAND-BUILT, never derived from a real corpus row: this page exists to show the
-// PART's anatomy, not to report live data (that is /admin/factors's job for a different table). The
-// integrity rule (environmental-policy-and-innovation skill) governs product content, not UI fixture
-// prose; these strings are deliberately generic placeholders, never presented as real regulatory
-// facts.
+// Operator sign-off 2026-09-22 (lane W10-FactCard-e), correction 2: "NO GENERIC TEXT IN ANY
+// FIXTURE ... replace with real records from the database, as the artboard does ... Fixtures read
+// from a frozen real record, never from invented strings." The provenance below is no longer
+// hand-typed: it is read from src/components/ui/__fixtures__/panel-21c-frozen-records.json, a
+// SELECT-only snapshot of two live intelligence_items/regional_data_facts rows (see that file's own
+// `_frozen` header for the exact queries and the freeze date). The claim SENTENCES on each kind
+// fixture stay hand-composed reference prose (the part's own anatomy is what this page teaches, not
+// a live brief render - see ItemGroup.tsx's own header for why hand-authored group/action copy is
+// legitimate here), but every quoted regulatory fact and every provenance field (source, org, link,
+// accessed date, tier) traces to the frozen record, never to an invented string.
 
 import type { FactCardModel } from "@/lib/detail/fact-card-model";
 import { toClaimNodes } from "@/lib/detail/fact-card-model";
+import frozen from "@/components/ui/__fixtures__/panel-21c-frozen-records.json";
 
 export interface FactCardFixture {
   label: string;
   model: FactCardModel;
 }
 
+const REG = frozen.regulation;
+
 const PROVENANCE = {
-  tier: 1,
-  source: "Example Regulation, Article 6",
-  org: "Example Regulatory Body",
-  href: "https://example.org/regulation",
-  accessed: "2026-09-01",
+  tier: REG.tier,
+  source: REG.shortCite,
+  org: REG.sourceOrg,
+  href: REG.sourceUrl,
+  accessed: REG.accessed,
 };
 
 /** One fixture per kind in FACT_CARD_KINDS (9 kinds), each with a figure lead where the kind's own
@@ -192,7 +200,8 @@ export const INLINE_LIST_FIXTURE: FactCardFixture = {
 };
 
 /** Defect 2: a source line with a second, embedded URL beyond the card's own provenance link (was:
- *  a bare url rendered in a plain <span>, no <a>). */
+ *  a bare url rendered in a plain <span>, no <a>). Sign-off correction 2: the two demo URLs are the
+ *  frozen record's own two real source URLs, never an invented "example.org" address. */
 export const EMBEDDED_LINK_FIXTURE: FactCardFixture = {
   label: 'Defect 2 fixed: a claim carrying a second embedded url, own link node (was: bare url in a <span>)',
   model: {
@@ -200,9 +209,42 @@ export const EMBEDDED_LINK_FIXTURE: FactCardFixture = {
     qualifier: "Analytical inference",
     figureLead: null,
     claim: toClaimNodes(
-      "Forwarders should confirm the notice at https://example.org/first-notice and cross-check the follow-up published at https://example.org/second-notice before quoting the lane."
+      `Forwarders should confirm the notice at ${REG.sourceUrl} and cross-check the follow-up published at ${frozen.matrixFact.sourceUrl} before quoting the lane.`
     ),
     provenance: null,
+  },
+};
+
+/** Operator sign-off 2026-09-22, build item 4: "add the four-line provenance and the two-line-name
+ *  cases to the fixture page and the spec." Both cases below trace to the same frozen record; only
+ *  the source-name field differs, so the two fixtures isolate exactly the one variable the sign-off
+ *  describes (see FactCard.tsx's `sourceNameWrapsToTwoLines`). */
+
+/** The ordinary four-line case: source (+ tier square), organisation, link, accessed date, all four
+ *  rows rendered with no clip - the column is allowed to be its natural height. */
+export const FOUR_LINE_PROVENANCE_FIXTURE: FactCardFixture = {
+  label: "Four-line provenance (source, organisation, link, accessed date - no clip)",
+  model: {
+    kind: "DEFINITION",
+    qualifier: "provenance acceptance case",
+    figureLead: null,
+    claim: [{ text: REG.claims.jurisdictionalScope }],
+    provenance: PROVENANCE,
+  },
+};
+
+/** The two-line-name case: a source name long enough to wrap onto a second line drops the
+ *  organisation row (never the accessed date) per the sign-off's drop rule. The name itself is a
+ *  real verbatim substring of the frozen record's own title (see panel-21c-frozen-records.json),
+ *  not an invented long string. */
+export const TWO_LINE_NAME_FIXTURE: FactCardFixture = {
+  label: "Two-line source name (organisation dropped; source, link, accessed date remain)",
+  model: {
+    kind: "DEFINITION",
+    qualifier: "provenance acceptance case",
+    figureLead: null,
+    claim: [{ text: REG.claims.jurisdictionalScope }],
+    provenance: { ...PROVENANCE, source: REG.title.slice(0, 41).trim() },
   },
 };
 
@@ -213,6 +255,8 @@ export const DEFAULT_DENSITY_FIXTURES: FactCardFixture[] = [
   NO_PROVENANCE_FIXTURE,
   INLINE_LIST_FIXTURE,
   EMBEDDED_LINK_FIXTURE,
+  FOUR_LINE_PROVENANCE_FIXTURE,
+  TWO_LINE_NAME_FIXTURE,
 ];
 
 // ── density="matrix" fixtures (operations panel anatomy) ───────────────────────────────────────
@@ -227,19 +271,21 @@ export interface MatrixFixture {
   baseFact: Record<string, unknown> | null;
 }
 
+const MATRIX_FACT = frozen.matrixFact;
+
 export const MATRIX_FIXTURES: MatrixFixture[] = [
   {
     label: "density=\"matrix\", figure branch",
     fact: {
       label: "Warehouse worker monthly wage",
-      value: "HKD 14,747",
+      value: MATRIX_FACT.displayValue,
       valueNumeric: 14747,
-      unit: "HKD / mo",
-      sourceName: "Indeed HK",
-      sourceUrl: "https://example.org/indeed-hk-wages",
-      referencePeriod: "2025-09",
+      unit: MATRIX_FACT.displayUnit,
+      sourceName: MATRIX_FACT.sourceName,
+      sourceUrl: MATRIX_FACT.sourceUrl,
+      referencePeriod: MATRIX_FACT.referencePeriod,
       originClass: "official",
-      lastUpdated: "2026-05-28",
+      lastUpdated: MATRIX_FACT.lastUpdated,
     },
     baseFact: null,
   },

@@ -18,10 +18,13 @@ const {
   NO_PROVENANCE_FIXTURE,
   INLINE_LIST_FIXTURE,
   EMBEDDED_LINK_FIXTURE,
+  FOUR_LINE_PROVENANCE_FIXTURE,
+  TWO_LINE_NAME_FIXTURE,
   DEFAULT_DENSITY_FIXTURES,
   MATRIX_FIXTURES,
 } = jiti("./fact-card-fixtures.ts");
 const { FACT_CARD_KINDS } = jiti("./fact-card-model.ts");
+const { PANEL_21C_GROUPS } = jiti("./fact-card-panel21c-fixture.ts");
 
 test("every one of the nine FACT_CARD_KINDS has a fixture", () => {
   const kinds = KIND_FIXTURES.map((f) => f.model.kind).sort();
@@ -43,7 +46,7 @@ test("the no-provenance fixture has provenance: null and is not the inference ki
   assert.notEqual(NO_PROVENANCE_FIXTURE.model.kind, "ANALYTICAL INFERENCE");
 });
 
-test("DEFAULT_DENSITY_FIXTURES is the union of all six groups", () => {
+test("DEFAULT_DENSITY_FIXTURES is the union of all eight groups", () => {
   assert.equal(
     DEFAULT_DENSITY_FIXTURES.length,
     KIND_FIXTURES.length +
@@ -51,8 +54,48 @@ test("DEFAULT_DENSITY_FIXTURES is the union of all six groups", () => {
       1 /* long claim */ +
       1 /* no provenance */ +
       1 /* lane w10-factcard-c: inline list + bold */ +
-      1 /* lane w10-factcard-c: embedded link */
+      1 /* lane w10-factcard-c: embedded link */ +
+      1 /* sign-off 2026-09-22 build item 4: four-line provenance */ +
+      1 /* sign-off 2026-09-22 build item 4: two-line source name */
   );
+});
+
+// Operator sign-off 2026-09-22, correction 2 (binding on every future part lane's fixtures too):
+// "A test fails if any fixture text matches /example\.(org|com)|Example (Regulation|Regulatory)/i."
+test("no fixture (default density, matrix, or panel-21c group) carries generic placeholder text", () => {
+  const BANNED = /example\.(org|com)|Example (Regulation|Regulatory)/i;
+  const collected = [];
+  for (const f of DEFAULT_DENSITY_FIXTURES) {
+    collected.push(JSON.stringify(f.model));
+  }
+  for (const f of MATRIX_FIXTURES) {
+    collected.push(JSON.stringify(f.fact), JSON.stringify(f.baseFact));
+  }
+  for (const g of PANEL_21C_GROUPS) {
+    collected.push(g.title, g.qualifier, g.actionStrip?.text ?? "");
+    for (const f of g.cards) collected.push(JSON.stringify(f.model));
+  }
+  const offenders = collected.filter((s) => BANNED.test(s));
+  assert.deepEqual(offenders, [], "no fixture text may match the banned generic-placeholder pattern");
+});
+
+// Build item 4's two acceptance cases, as fixture DATA (FactCard.npmtest.mjs covers the component
+// logic that consumes this data - sourceNameWrapsToTwoLines - by reading FactCard.tsx's own
+// source; this file only asserts the fixtures carry the shape that logic is meant to react to).
+test("the four-line-provenance fixture carries all four provenance fields (source, org, link, accessed) with a short source name that does not trip the wrap heuristic", () => {
+  const p = FOUR_LINE_PROVENANCE_FIXTURE.model.provenance;
+  assert.ok(p.source && p.org && p.href && p.accessed, "all four provenance fields are present");
+  // Mirrors FactCard.tsx's own sourceNameWrapsToTwoLines threshold (5.0px/char, 109px budget):
+  // this fixture's source name must stay UNDER that budget so all four rows render.
+  assert.ok(p.source.length * 5.0 <= 109, `source "${p.source}" must fit the first-line budget`);
+});
+
+test("the two-line-name fixture carries a source name long enough to wrap (dropping organisation) while still carrying its own link and accessed date", () => {
+  const p = TWO_LINE_NAME_FIXTURE.model.provenance;
+  assert.ok(p.source.length * 5.0 > 109, `source "${p.source}" must exceed the first-line budget to trigger the wrap heuristic`);
+  assert.ok(p.href, "link is still present");
+  assert.ok(p.accessed, "accessed date is still present (never the field that gets dropped)");
+  assert.ok(p.org, "the fixture still CARRIES an org value - the component's render logic drops it, not the fixture data");
 });
 
 // Lane w10-factcard-c (2026-09-21), item 3: the two measured live-leftover fixtures render through
