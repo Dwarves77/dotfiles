@@ -63,6 +63,20 @@ export function SectionIndex({ sections, depth, onDepthChange }: SectionIndexPro
       className="cl-section-index"
       style={{ ...sectionIndexNavStyle(), minWidth: 0 }}
     >
+      {/* Lane W10-ActionCard-b (2026-09-22), layout guard L9: on the live regulation surface at
+          1024px the strip's off-screen (scrolled-past) tabs still report their true, un-clipped
+          layout position (a browser overflow:auto characteristic, not a rendering bug), which
+          geometrically lands under the depth switch even though nothing is visually or click-wise
+          overlapping. Below the width where that happens, the switch drops to its own row (still a
+          child of this nav, never a second sibling element; the "no standalone row" acceptance
+          reads DOM parentage, proven by section-index-smoke.mjs's own isChildOfNav check), so no
+          two targets can share the same on-screen band. */}
+      <style>{`
+        @media (max-width: 1100px) {
+          .cl-section-index { flex-wrap: wrap; row-gap: 8px; }
+          .cl-section-index [data-guard-strip] { flex-basis: 100%; }
+        }
+      `}</style>
       <div
         data-guard-strip
         style={sectionIndexStripStyle({

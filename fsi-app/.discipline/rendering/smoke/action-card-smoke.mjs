@@ -31,10 +31,13 @@ import { createRoot } from 'react-dom/client';
 import { ActionCard } from '@/components/ui/ActionCard';
 
 let root = null;
+// harness.mjs's mountBundle passes props structured-cloned across the page.evaluate boundary
+// (plain data only, no functions, see its own header). onExport/onShare are supplied here,
+// IN-PAGE, rather than over the wire.
 window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
-  root.render(React.createElement(ActionCard, props));
+  root.render(React.createElement(ActionCard, { ...props, onExport: () => {}, onShare: () => {} }));
 };
 `;
 
@@ -65,8 +68,6 @@ const NINE_MILESTONES = Array.from({ length: 9 }, (_, i) => ({
   status: i < 4 ? 'past' : i === 4 ? 'current' : 'future',
 }));
 
-function noop() {}
-
 const STATES = [
   {
     label: 'default',
@@ -74,7 +75,7 @@ const STATES = [
       band: ACTION_BAND, kindLabel: 'Regulation', tier: 1,
       meta: '4 sources · T1 primary · regenerated Sep 18',
       tags: ['High-value cargo', 'Ocean'],
-      onExport: noop, onShare: noop, watch: null,
+      watch: null,
       where: { value: 'Ocean freight · European EEA port call' },
       whoPays: { value: 'Vessel operator is obligated' },
       yourLanes: { value: 'Connect shipment data' },
@@ -87,7 +88,7 @@ const STATES = [
       band: AWARENESS_BAND, kindLabel: 'Decision', tier: 1,
       meta: '1 source · T1 primary · brief regenerated Sep 12',
       tags: null,
-      onExport: noop, onShare: noop, watch: null,
+      watch: null,
       where: { value: 'Belgium · packaging placed on the Belgian market' },
       whoPays: { value: 'Economic operators, fillers and importers' },
       yourLanes: { value: 'Connect shipment data' },
@@ -103,7 +104,7 @@ const STATES = [
       band: ACTION_BAND, kindLabel: 'Standard', tier: 3,
       meta: '1 source · T3 primary · regenerated Sep 4',
       tags: ['Fine art'],
-      onExport: noop, onShare: noop, watch: null,
+      watch: null,
       where: { value: 'Global · cross-border art logistics' },
       whoPays: { value: null },
       yourLanes: { value: 'Connect shipment data' },
@@ -116,7 +117,7 @@ const STATES = [
       band: ACTION_BAND, kindLabel: 'Regulation', tier: 1,
       meta: '9 sources · T1 primary · regenerated Sep 20',
       tags: ['Ocean'],
-      onExport: noop, onShare: noop, watch: null,
+      watch: null,
       where: { value: 'Ocean freight' },
       whoPays: { value: 'Vessel operator' },
       yourLanes: { value: 'Connect shipment data' },
@@ -129,7 +130,7 @@ const STATES = [
       band: AWARENESS_BAND, kindLabel: 'Guidance', tier: 4,
       meta: '1 source · T4 primary · regenerated Aug 30',
       tags: [],
-      onExport: noop, onShare: noop, watch: null,
+      watch: null,
       where: { value: 'European Union' },
       whoPays: { value: 'Not obligated directly' },
       yourLanes: { value: 'Connect shipment data' },
