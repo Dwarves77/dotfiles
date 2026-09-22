@@ -21,26 +21,52 @@ test("Masthead's <h1> carries letterSpacing 0.04em", () => {
   assert.match(block, /letterSpacing: "0\.04em"/);
 });
 
-test("DetailSection's <h2> carries letterSpacing 0.04em (was 0.02em, item A9)", () => {
+// UPDATED (lane W10-SectionHeader, 2026-09-22): DetailSection's own inline <h2>+aside was replaced
+// by the shared SectionHeader part (parts-brief-2026-09-18.md section 2.3, F49: no page/component
+// retypes a part's literal styles once the part exists), same pattern as SectionHeading's own
+// promotion below. The .04em assertion follows the component; DetailSection is checked by the
+// import/delegation test that proves it renders through SectionHeader, not its own markup.
+test("DetailSection renders its S-section head through the shared SectionHeader, not a page-local <h2>", () => {
   const text = readFileSync(resolve(ROOT, "components/detail/DetailShell.tsx"), "utf8");
+  assert.match(text, /import \{ SectionHeader \} from "@\/components\/ui\/SectionHeader"/);
   const start = text.indexOf("export function DetailSection");
   const end = text.indexOf("// ── Page wrapper:");
   const block = text.slice(start, end);
-  assert.match(block, /letterSpacing: "0\.04em"/);
-  assert.doesNotMatch(block, /letterSpacing: "0\.02em"/);
+  assert.match(block, /<SectionHeader\b/);
+  assert.doesNotMatch(block, /<h2/);
+});
+
+// UPDATED (lane W10-SectionHeader, 2026-09-22, F45 duplicate-code): SectionHeader.tsx and
+// SectionHeading.tsx both render an Anton/20px/.04em/--ink title <h2>; the shared style is
+// extracted once to `section-title-style.ts` (SECTION_TITLE_STYLE) rather than duplicated inline
+// in both files. The .04em assertion now lives on that ONE shared module; both components are
+// checked by the import that proves each spreads it into its own <h2>.
+test("SECTION_TITLE_STYLE (the one shared Anton section-title style) carries letterSpacing 0.04em", () => {
+  const text = readFileSync(resolve(ROOT, "components/ui/section-title-style.ts"), "utf8");
+  assert.match(text, /letterSpacing: "0\.04em"/);
+  assert.doesNotMatch(text, /letterSpacing: "0\.02em"/);
+});
+
+test("the shared SectionHeader's <h2> spreads SECTION_TITLE_STYLE, not a page-local style block", () => {
+  const text = readFileSync(resolve(ROOT, "components/ui/SectionHeader.tsx"), "utf8");
+  assert.match(text, /import \{ SECTION_TITLE_STYLE \} from "@\/components\/ui\/section-title-style"/);
+  const start = text.indexOf("<h2");
+  const end = text.indexOf("</h2>");
+  const block = text.slice(start, end);
+  assert.match(block, /\.\.\.SECTION_TITLE_STYLE/);
 });
 
 // UPDATED (lane comp-11, 2026-09-08): SectionHeading was promoted out of DashboardBrief into the
 // shared ui/ layer, because artboard 11 carries the byte-identical card head on both its cards and
 // a second copy would have been the duplication CLAUDE.md rule 13 forbids. The .04em assertion
 // follows the component; the two callers are checked by the import that proves each uses it.
-test("the shared SectionHeading's <h2> carries letterSpacing 0.04em (was 0.02em, item A9)", () => {
+test("the shared SectionHeading's <h2> spreads SECTION_TITLE_STYLE, not a page-local style block", () => {
   const text = readFileSync(resolve(ROOT, "components/ui/SectionHeading.tsx"), "utf8");
+  assert.match(text, /import \{ SECTION_TITLE_STYLE \} from "@\/components\/ui\/section-title-style"/);
   const start = text.indexOf("<h2");
   const end = text.indexOf("</h2>");
   const block = text.slice(start, end);
-  assert.match(block, /letterSpacing: "0\.04em"/);
-  assert.doesNotMatch(block, /letterSpacing: "0\.02em"/);
+  assert.match(block, /\.\.\.SECTION_TITLE_STYLE/);
 });
 
 test("DashboardBrief renders its card heads through the shared SectionHeading, not a page-local copy", () => {

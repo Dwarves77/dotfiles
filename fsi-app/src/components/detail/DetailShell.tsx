@@ -43,6 +43,7 @@ import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Masthead } from "@/components/ui/Masthead";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import { useSectionScrollSpy } from "@/lib/detail/use-section-scroll-spy";
@@ -593,45 +594,30 @@ export function SummaryDepthSwitch({ depth, onChange }: { depth: SummaryDepth; o
 
 // ── Sections of fact cards, <=72ch ──────────────────────────────────────
 
-export function DetailSection({ id, title, aside, children }: { id: string; title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+export function DetailSection({
+  id,
+  title,
+  aside,
+  index,
+  children,
+}: {
+  id: string;
+  title: string;
+  aside?: React.ReactNode;
+  /** "S2"-style ordinal, e.g. 2 -> "S2". Optional, never invented: a caller passes it only when it
+   *  has a real ordinal source (parts-brief-2026-09-18.md section 2.3, SectionHeader.tsx's own
+   *  header note). */
+  index?: number | null;
+  children: React.ReactNode;
+}) {
   return (
-    <SectionCard as="section" id={id} padding="16px 20px" style={{ marginBottom: 16, scrollMarginTop: 56 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-        {/* data-guard-title (item D3, 2026-09-08): a section heading IS a title in the rendered tree,
-            and the squeezed-title detector (ux-assert.mjs) had nothing to measure on any detail
-            surface below the masthead. Marking it here, once, covers all four surfaces and lets a
-            section BODY component render rows only — which is what the three spec-09 panels moved
-            onto the Operations profile this round now do. */}
-        {/* data-guard-display="card-title" added FOLD 63 (2026-09-08). This h2 IS a card title, and
-            its type is SectionHeading.tsx's own, declaration for declaration: Anton via
-            --font-display, weight 400, 20px, 0.04em, uppercase, margin 0, --ink. SectionHeading
-            stamps `data-guard-display="card-title"`; this one did not, so the site-wide layout
-            guard's L7 (Anton display-type allowlist) reported every detail-surface section heading
-            on every detail route as unsanctioned Anton, against an allowlist entry that already
-            reads "card title (README type scale: display titles 20px)". The marker was missing, not
-            the sanction, so this closes a guard blind spot rather than widening the rule: L7 still
-            fails on Anton anywhere outside the seven named ids. Found because item D3 moved three
-            spec-09 panels onto the Operations profile and their three new headings joined the same
-            pre-existing class (h2[Summary], h2[Sources] were already in it). */}
-        <h2
-          data-guard-title
-          data-guard-display="card-title"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            /* README §0.4 type scale: card titles 20px (artboard p3 section header, "Summary"). */
-            fontSize: 20,
-            margin: 0,
-            color: "var(--ink)",
-          }}
-        >
-          {title}
-        </h2>
-        {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
-      </div>
-      <div style={{ maxWidth: "72ch" }}>{children}</div>
+    <SectionCard as="section" id={id} padding="0" style={{ marginBottom: 16, scrollMarginTop: 56, overflow: "hidden" }}>
+      {/* lane W10-SectionHeader, 2026-09-22: every S-section on every detail surface renders through
+          the one shared SectionHeader part (parts-brief-2026-09-18.md section 2.3) instead of a
+          hand-typed h2+aside (F49). data-guard-title/data-guard-display live on SectionHeader's own
+          h2 now, unchanged markers, same guard coverage (item D3 / FOLD 63, 2026-09-08). */}
+      <SectionHeader index={index != null ? `S${index}` : null} title={title} meta={aside} />
+      <div style={{ padding: "16px 20px", maxWidth: "72ch" }}>{children}</div>
     </SectionCard>
   );
 }

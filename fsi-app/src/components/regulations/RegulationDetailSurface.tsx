@@ -205,6 +205,14 @@ export function RegulationDetailSurface({
     [dynamicSectionsByIndexId]
   );
 
+  // lane W10-SectionHeader, 2026-09-22: SectionHeader's "S2"-style ordinal, reused from the SAME
+  // REGULATION_SECTION_INDEX table (section-index-data.ts) SectionIndex itself already reads,
+  // never a second, duplicated name/order table.
+  const sectionOrdinal = (indexId: string): number | null => {
+    const i = REGULATION_SECTION_INDEX.findIndex((e) => e.id === indexId);
+    return i >= 0 ? i + 1 : null;
+  };
+
   const hasPenalties = hasPenaltyContent(r);
   const indexEntries: SectionIndexEntry[] = useMemo(
     () =>
@@ -335,7 +343,7 @@ export function RegulationDetailSurface({
           {/* Artboard 03 (dc.html #p3, S1 "Summary"): aside reads "Generated · 30-second read" for a
               synthesized brief. A record-grade item is captured verbatim, not generated, so it keeps
               no aside here (RecordGradeSections already states that distinction as its own StateNote). */}
-          <DetailSection id="summary" title="Summary" aside={isRecord ? undefined : "Generated · 30-second read"}>
+          <DetailSection id="summary" title="Summary" aside={isRecord ? undefined : "Generated · 30-second read"} index={sectionOrdinal("summary")}>
             {isRecord ? (
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (
@@ -358,20 +366,20 @@ export function RegulationDetailSurface({
               .map((e) => {
                 const s = dynamicSectionsByIndexId.get(e.id)!;
                 return (
-                  <DetailSection key={s.section_key} id={e.id} title={CANONICAL_HEADINGS[s.section_key]}>
+                  <DetailSection key={s.section_key} id={e.id} title={CANONICAL_HEADINGS[s.section_key]} index={sectionOrdinal(e.id)}>
                     <FactBlocks markdown={s.content_md} maxGroups={depth === "summary" ? 1 : undefined} />
                   </DetailSection>
                 );
               })}
 
           {depth === "full" && hasPenaltyContent(r) && (
-            <DetailSection id="penalties" title="Penalties" aside="From the regulatory brief">
+            <DetailSection id="penalties" title="Penalties" aside="From the regulatory brief" index={sectionOrdinal("penalties")}>
               <PenaltyFacts r={r} />
             </DetailSection>
           )}
 
           {depth === "full" && (
-            <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+            <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined} index={sectionOrdinal("sources")}>
               {sourceRows.length > 0 ? (
                 <SourcesGrid rows={sourceRows} />
               ) : (

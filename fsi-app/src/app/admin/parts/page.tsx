@@ -39,6 +39,11 @@ const PARTS: PartEntry[] = [
     name: "SectionIndex",
     summary: "The detail-page section strip: Sn plus a short name that never truncates, the Summary | Full brief depth switch at its right end, no standalone switch row.",
   },
+  {
+    slug: "section-header",
+    name: "SectionHeader",
+    summary: "Every S-section head on every detail surface: ordinal + Anton title + right meta, 1px rule under the whole header block, never under the title alone.",
+  },
 ];
 
 export default async function AdminPartsIndexPage() {

@@ -31,6 +31,7 @@
  */
 
 import type { ReactNode } from "react";
+import { SECTION_TITLE_STYLE } from "@/components/ui/section-title-style";
 
 export interface SectionHeadingProps {
   title: ReactNode;
@@ -88,16 +89,7 @@ export function SectionHeading({ title, aside }: SectionHeadingProps) {
       <h2
         data-guard-title
         data-guard-display="card-title"
-        style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 400,
-          fontSize: 20,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          margin: 0,
-          color: "var(--ink)",
-          whiteSpace: "nowrap",
-        }}
+        style={{ ...SECTION_TITLE_STYLE, whiteSpace: "nowrap" }}
       >
         {title}
       </h2>
