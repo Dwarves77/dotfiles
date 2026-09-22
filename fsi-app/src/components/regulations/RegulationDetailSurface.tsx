@@ -35,34 +35,28 @@
  * non-verified content never fabricated.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { nowFrom } from "@/lib/render-now";
 import { recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { Absence } from "@/components/ui/Absence";
 import { StateNote } from "@/components/ui/StateNote";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { ActionCard } from "@/components/ui/ActionCard";
+import { SectionIndex, REGULATION_SECTION_INDEX, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
   ImpactRailCard,
   InThisListStat,
   DetailRail,
-  DetailExposure,
   AtAGlanceCard,
   RailLegend,
-  type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
-import { TagChip } from "@/components/ui/Chips";
 import { formatDate } from "@/lib/format";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
@@ -77,6 +71,7 @@ import { scoreResource } from "@/lib/scoring";
 import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";
 import { sourceEntriesOf, SourcesGrid, clampTier } from "@/components/detail/SourcesGrid";
 import { jurisLabelOf, RecordFactCard } from "@/components/detail/primitives";
+import { ItemGroup } from "@/components/ui/ItemGroup";
 import {
   parseRecordSections,
   splitKeyDateFacts,
@@ -133,6 +128,19 @@ const CANONICAL_HEADINGS: Record<string, string> = {
   "11": "Operational requirements",
 };
 
+// Lane W10-ActionCard-b (2026-09-22), review item 5: the section-index short-name id
+// (REGULATION_SECTION_INDEX, section-index-data.ts) each existing `section_key` maps to. Order of
+// REGULATION_SECTION_INDEX itself is the review's canonical order (Substantive requirements before
+// Registration/Operations, Compliance chain last before Penalties/Sources); this map only says
+// WHICH index id a given pipeline section_key fills, not the order (the index table owns order).
+const SECTION_KEY_TO_INDEX_ID: Record<string, string> = {
+  "3": "obligations",
+  "8": "requirements",
+  "10": "registration",
+  "11": "operations",
+  "4": "compliance",
+};
+
 export function RegulationDetailSurface({
   resource: r,
   changelog,
@@ -169,7 +177,7 @@ export function RegulationDetailSurface({
   const meta = joinMetaSegments([groupLabel || jurisLabel, ...splitMetaSegments(deck)]);
 
   const isRecord = r.itemGrade === "record";
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
 
   const dynamicSections = useMemo(
@@ -178,12 +186,51 @@ export function RegulationDetailSurface({
   );
   const sourceRows = useMemo<SourceEntry[]>(() => sourceEntriesOf(r), [r]);
 
-  const indexEntries: SectionIndexEntry[] = [
-    { id: "summary", label: "Summary" },
-    ...(isRecord ? [] : dynamicSections.map((s) => ({ id: `sec-${s.section_key}`, label: CANONICAL_HEADINGS[s.section_key] }))),
-    ...(hasPenaltyContent(r) ? [{ id: "penalties", label: "Penalties" }] : []),
-    { id: "sources", label: "Sources" },
-  ];
+  // Lane W10-ActionCard-b, build item 2: section order per REGULATION_SECTION_INDEX
+  // (Summary, Obligations, Requirements, Registration, Operations, Compliance, Penalties,
+  // Sources) on every regulation, keyed by the index id each pipeline section_key maps to.
+  const dynamicSectionsByIndexId = useMemo(() => {
+    const map = new Map<string, IntelligenceItemSectionRow>();
+    if (!isRecord) {
+      for (const s of dynamicSections) {
+        const indexId = SECTION_KEY_TO_INDEX_ID[s.section_key];
+        if (indexId) map.set(indexId, s);
+      }
+    }
+    return map;
+  }, [dynamicSections, isRecord]);
+
+  const orderedDynamicEntries = useMemo(
+    () => REGULATION_SECTION_INDEX.filter((e) => dynamicSectionsByIndexId.has(e.id)),
+    [dynamicSectionsByIndexId]
+  );
+
+  const hasPenalties = hasPenaltyContent(r);
+  const indexEntries: SectionIndexEntry[] = useMemo(
+    () =>
+      REGULATION_SECTION_INDEX.filter((e) => {
+        if (e.id === "summary" || e.id === "sources") return true;
+        if (e.id === "penalties") return hasPenalties;
+        return dynamicSectionsByIndexId.has(e.id);
+      }),
+    [dynamicSectionsByIndexId, hasPenalties]
+  );
+
+  // Trajectory sentence moved to S1 Summary (review item 5 / brief item 5); ActionCard's fourth
+  // EXPOSURE cell is NEXT MILESTONE, computed internally from the `timeline` prop.
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
+
+  const actionCardMeta =
+    [
+      sourceRows.length > 0
+        ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+            typeof r.sourceTier === "number" ? ` · T${clampTier(r.sourceTier)} primary` : ""
+          }`
+        : null,
+      regen ? `regenerated ${regen.label}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
@@ -196,89 +243,56 @@ export function RegulationDetailSurface({
           dek={meta}
           placeholder="Ask about this regulation — e.g. when does the largest deadline hit"
         />
-        <DetailHeader
+        {/* Lane W10-ActionCard-b (2026-09-22), build item 1: ONE ActionCard (panel 21b) replaces
+            the three separate cards this surface used to render (DetailHeader + DetailExposure +
+            DetailTimeline): pill row, action row, rule, EXPOSURE, rule, TIMELINE, callout. The
+            per-item priority menu (retag/dismiss/archive) has no slot in the merged card's props;
+            it renders as a small control immediately above the card, functionally unchanged, not
+            inside a second bordered box. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+          <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
+        </div>
+        <ActionCard
           band={band}
+          kindLabel="Regulation"
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          extraChips={
-            <>
-              <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
-              {/* Artboard 03 chip row (dc.html #p3): "Action · <= 6 months" · Regulation · Ocean ·
-                  Emissions · T1 · "7 sources · T1 primary". This surface rendered the band pill and
-                  the tier alone; the type/mode/topic chips the other three detail surfaces have
-                  carried since lane uidetails2 were missing here, so the row read as a different
-                  page. Same shared TagChip, same order, omitted where the item has no value. */}
-              <TagChip>Regulation</TagChip>
-              {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.replace(/^./, (c) => c.toUpperCase())}</TagChip>)}
-              {r.topic && <TagChip>{r.topic}</TagChip>}
-              {/* D23 part (d) (defect-fix-plan-2026-09-12.md): last in the chip row, immediately
-                  beside the tier chip DetailHeader renders right after extraChips - "a regenerated
-                  brief becomes a customer-visible change" applies to the detail surface too. */}
-              {regen && <TagChip>{`Brief regenerated ${regen.label}`}</TagChip>}
-            </>
+          meta={actionCardMeta}
+          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          onExport={() =>
+            downloadMarkdownBrief(r, {
+              filenamePrefix: "regulation",
+              metaRows: [
+                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                r.priority ? `- Priority: ${r.priority}` : null,
+                r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
+                r.url ? `- Source: ${r.url}` : null,
+              ],
+            })
           }
-          headerStat={
-            sourceRows.length > 0
-              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
-                  typeof r.sourceTier === "number" ? ` · T${clampTier(r.sourceTier)} primary` : ""
-                }`
-              : null
-          }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "regulation",
-                  metaRows: [
-                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                    r.priority ? `- Priority: ${r.priority}` : null,
-                    r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="reg"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
+          onShare={() => shareResource(r)}
+          onTag={() => setTagOpen((v) => !v)}
+          exportDisabled={!(r.fullBrief || r.url)}
+          watch={
+            <WatchButton
+              itemType="reg"
+              itemId={String(r.id)}
+              variant="row"
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
             />
           }
+          where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
+          whoPays={{ value: r.costMechanism || null }}
+          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          timeline={r.timeline}
         />
 
         {showIntegrityBanner && <IntegrityBanner phrase={r.agentIntegrityPhrase!} />}
 
-        {/* EXPOSURE (artboard 03, dc.html #p3, directly under the header card: WHERE / WHO PAYS /
-            YOUR LANES / TRAJECTORY). DetailShell's shared DetailExposure has existed since lane
-            uidetails2 and 05/07/09 all mount it; 03 was the one detail surface that never called it,
-            which is why its capture showed no EXPOSURE region. Same four columns, same fields, same
-            Absence reasons as the other three — not a fixture gap. */}
-        <DetailExposure
-          items={[
-            { label: "Where", value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || <Absence reason="not in primary source" /> },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            {
-              label: "Trajectory",
-              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
-            },
-          ]}
-        />
+        {upcomingObligations && <div style={{ marginTop: 16 }}>{upcomingObligations}</div>}
 
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        {upcomingObligations && <div style={{ marginBottom: 16 }}>{upcomingObligations}</div>}
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -325,7 +339,7 @@ export function RegulationDetailSurface({
             {isRecord ? (
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (
-              <BriefSummary r={r} changelog={changelog} dispute={dispute} />
+              <BriefSummary r={r} changelog={changelog} dispute={dispute} trajectory={trajectoryNode} />
             )}
             {depth === "full" && r.fullBrief && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
@@ -334,26 +348,37 @@ export function RegulationDetailSurface({
             )}
           </DetailSection>
 
+          {/* Section order (review item 5, build item 2): REGULATION_SECTION_INDEX's own order.
+              Summary depth (build item 3): S1 above is always in full; ONLY the Obligations section
+              renders (its first ItemGroup only, via FactBlocks' maxGroups). Every other dynamic
+              section, Penalties, and Sources are hidden until Full brief depth. */}
           {!isRecord &&
-            dynamicSections.map((s) => (
-              <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={CANONICAL_HEADINGS[s.section_key]}>
-                <FactBlocks markdown={s.content_md} />
-              </DetailSection>
-            ))}
+            orderedDynamicEntries
+              .filter((e) => depth === "full" || e.id === "obligations")
+              .map((e) => {
+                const s = dynamicSectionsByIndexId.get(e.id)!;
+                return (
+                  <DetailSection key={s.section_key} id={e.id} title={CANONICAL_HEADINGS[s.section_key]}>
+                    <FactBlocks markdown={s.content_md} maxGroups={depth === "summary" ? 1 : undefined} />
+                  </DetailSection>
+                );
+              })}
 
-          {hasPenaltyContent(r) && (
+          {depth === "full" && hasPenaltyContent(r) && (
             <DetailSection id="penalties" title="Penalties" aside="From the regulatory brief">
               <PenaltyFacts r={r} />
             </DetailSection>
           )}
 
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
-            {sourceRows.length > 0 ? (
-              <SourcesGrid rows={sourceRows} />
-            ) : (
-              <Absence reason="not in primary source" />
-            )}
-          </DetailSection>
+          {depth === "full" && (
+            <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+              {sourceRows.length > 0 ? (
+                <SourcesGrid rows={sourceRows} />
+              ) : (
+                <Absence reason="not in primary source" />
+              )}
+            </DetailSection>
+          )}
         </DetailLayout>
       </DetailPageWrapper>
     </div>
@@ -383,7 +408,17 @@ function PenaltyFacts({ r }: { r: Resource }) {
   );
 }
 
-function BriefSummary({ r, changelog, dispute }: { r: Resource; changelog: ChangeLogEntry[]; dispute: Dispute | null }) {
+function BriefSummary({
+  r,
+  changelog,
+  dispute,
+  trajectory,
+}: {
+  r: Resource;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+  trajectory?: ReactNode;
+}) {
   const shortText = r.whatIsIt || r.note || "";
   const hasAny = !!shortText || !!r.fullBrief;
   if (!hasAny) {
@@ -393,19 +428,34 @@ function BriefSummary({ r, changelog, dispute }: { r: Resource; changelog: Chang
       </StateNote>
     );
   }
+  // Lane W10-ActionCard-b (2026-09-22), review item 7: `item_changelog.new_value` is repurposed by
+  // scripts/lib/changelog.mjs (recordItemChange) to carry the BATCH IDENTIFIER for a full_brief/
+  // timeline change ("record-briefs-007"), never reader content. The change sentence lives in
+  // `impact`. Rendering `c.now || c.prev` (the prior code, RegulationDetailSurface.tsx pre-lane)
+  // showed that internal batch id as if it were the change description. Fixed at the source: only
+  // `impact` renders, and an entry with no `impact` is dropped, never the id.
+  const changeSentences = changelog.map((c) => c.impact).filter((s): s is string => !!s);
   return (
     <>
       {shortText && (
         <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch", color: "var(--ink)" }}>{shortText}</p>
       )}
-      {changelog.length > 0 && (
+      {trajectory && (
+        <div style={{ margin: "0 0 14px" }}>
+          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
+            Trajectory
+          </p>
+          <div style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, color: "var(--ink-2)" }}>{trajectory}</div>
+        </div>
+      )}
+      {changeSentences.length > 0 && (
         <div style={{ marginTop: 6 }}>
           <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
             What changed
           </p>
-          {changelog.slice(0, 3).map((c, i) => (
+          {changeSentences.slice(0, 3).map((s, i) => (
             <p key={i} style={{ fontSize: "var(--fs-13)", lineHeight: 1.6, margin: "0 0 6px", color: "var(--ink-2)" }}>
-              {c.now || c.prev}
+              {s}
             </p>
           ))}
         </div>
@@ -442,25 +492,39 @@ function RecordGradeSections({
       </StateNote>
       {dateFacts.length > 0 && (
         <div style={{ margin: "14px 0" }}>
-          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
-            Key dates
-          </p>
-          {dateFacts.map((f) => (
-            <RecordFactCard key={f.slotKey} fact={f} />
-          ))}
+          <ItemGroup title="Key dates">
+            {dateFacts.map((f) => (
+              <RecordFactCard key={f.slotKey} fact={f} />
+            ))}
+          </ItemGroup>
         </div>
       )}
       <div style={{ margin: "14px 0" }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px", display: "flex", justifyContent: "space-between" }}>
-          <span>Verbatim facts</span>
-          {parsed && parsed.slotFieldCount > 0 && (
-            <span style={{ fontWeight: 700 }}>{parsed.gaps.length} of {parsed.slotFieldCount} record fields not stated by the source</span>
-          )}
-        </p>
         {otherFacts.length > 0 ? (
-          otherFacts.map((f) => <RecordFactCard key={f.slotKey} fact={f} />)
+          <>
+            {/* The gaps-count line renders as its own row, not ItemGroup's `qualifier` slot: at
+                375px the two together squeezed "Verbatim facts" into a 2-line wrap inside its
+                header row (F35, ux-smoke-specs.mjs "record-grade" @375). A short metadata count
+                (not analysis text, the no-truncation ruling doesn't bind here) reads fine as its
+                own line above the group. */}
+            {parsed && parsed.slotFieldCount > 0 && (
+              <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: "0 0 6px", fontWeight: 700 }}>
+                {parsed.gaps.length} of {parsed.slotFieldCount} record fields not stated by the source
+              </p>
+            )}
+            <ItemGroup title="Verbatim facts">
+              {otherFacts.map((f) => (
+                <RecordFactCard key={f.slotKey} fact={f} />
+              ))}
+            </ItemGroup>
+          </>
         ) : (
-          <Absence reason="not in primary source" />
+          <>
+            <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
+              Verbatim facts
+            </p>
+            <Absence reason="not in primary source" />
+          </>
         )}
       </div>
       {r.tags && r.tags.length > 0 && (

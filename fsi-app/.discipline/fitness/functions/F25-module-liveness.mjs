@@ -1015,32 +1015,10 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'n/a: permanent shared test double; re-review only if every importing test is deleted or a real production caller appears (which would itself be a design smell for a test fake)',
   },
 
-  // Lane W10-ActionCard-a (2026-09-21, brief part A of 2): the ActionCard/SectionIndex UX smoke
-  // specs, built and proven locally (temporarily registered in ux-smoke-specs.mjs, run against the
-  // rendering guard, then reverted per the lane contract's own instruction: "revert the registry
-  // before commit"). Part A builds the parts and their fixtures only; Part B wires ActionCard into
-  // the live regulation surface AND registers these two specs permanently in ux-smoke-specs.mjs
-  // (this lane's session-log entry, docs/ops/session-log.d/2026-09-21-w10-actioncard-a.md, carries
-  // that item on Part B's to-do list). Not a dormant capability in the seek-more sense: it has a
-  // named next commit that wires it, not an indefinite "someone should wire this" gap.
-  {
-    file: 'fsi-app/.discipline/rendering/smoke/action-card-smoke.mjs',
-    reason:
-      'Built by lane W10-ActionCard-a (part A of 2), proven locally against the rendering guard with ' +
-      'the registry temporarily edited then reverted per the lane contract. Registration in ' +
-      'ux-smoke-specs.mjs is Part B\'s to-do item 7 (docs/ops/session-log.d/2026-09-21-w10-actioncard-a.md), ' +
-      'landing in the same lane that wires ActionCard into the live regulation surface.',
-    reviewByPhase: 'Part B of lane W10-ActionCard-a: register in ux-smoke-specs.mjs, then remove this entry',
-  },
-  {
-    file: 'fsi-app/.discipline/rendering/smoke/section-index-smoke.mjs',
-    reason:
-      'Built by lane W10-ActionCard-a (part A of 2), proven locally against the rendering guard with ' +
-      'the registry temporarily edited then reverted per the lane contract. Registration in ' +
-      'ux-smoke-specs.mjs is Part B\'s to-do item 7 (docs/ops/session-log.d/2026-09-21-w10-actioncard-a.md), ' +
-      'landing in the same lane that wires ActionCard into the live regulation surface.',
-    reviewByPhase: 'Part B of lane W10-ActionCard-a: register in ux-smoke-specs.mjs, then remove this entry',
-  },
+  // Lane W10-ActionCard-a's two entries for action-card-smoke.mjs / section-index-smoke.mjs are
+  // REMOVED here (lane w10-actioncard-b, 2026-09-22, build item 6): both specs are now registered
+  // permanently in ux-smoke-specs.mjs, which is itself a production importer under F25's own
+  // fixture-page convention.
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

@@ -62,9 +62,15 @@ export function DetailTagRow({
         />
       ))}
       <TagPopover itemId={itemId} onChange={reload} open={open} onOpenChange={onOpenChange} />
-      <span style={{ fontSize: "var(--fs-95)", color: "var(--ink-3)", letterSpacing: "0.04em" }}>
-        workspace tags
-      </span>
+      {/* Lane W10-ActionCard-b (2026-09-22), review item 1a: no "workspace tags" label when there
+          are no applied tags. The label previously rendered unconditionally, which is exactly the
+          defect ActionCard's own tags row was built to avoid; this row carries the same rule now
+          that it renders alongside ActionCard via the tagPopover slot. */}
+      {applied.length > 0 && (
+        <span style={{ fontSize: "var(--fs-95)", color: "var(--ink-3)", letterSpacing: "0.04em" }}>
+          workspace tags
+        </span>
+      )}
     </div>
   );
 }
