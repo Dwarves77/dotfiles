@@ -480,6 +480,8 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
     return (
       <div
         className="cl-list-row-register"
+        data-part="list-row"
+        data-part-variant="register"
         style={{
           display: "grid",
           gridTemplateColumns: REGISTER_GRID,
@@ -697,6 +699,8 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
   return (
     <div
       className="cl-list-row"
+      data-part="list-row"
+      data-part-variant="list"
       style={{
         display: "grid",
         gridTemplateColumns: GRID,

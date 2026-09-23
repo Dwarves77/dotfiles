@@ -30,6 +30,7 @@ import type { UrgencyBand } from "@/lib/urgency/bands";
 export function BandChip({ band, withWindow }: { band: UrgencyBand; withWindow?: boolean }) {
   return (
     <span
+      data-part="chip-band"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -82,6 +83,7 @@ export function TierChip({ tier, max = 6 }: { tier: number; max?: number }) {
       <style>{TIER_CHIP_MOBILE_CSS}</style>
       <span
         className="cl-tier-chip"
+        data-part="chip-tier"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -132,6 +134,7 @@ export function TagChip({ children, variant = "detail" }: { children: React.Reac
   return (
     <span
       className={row ? "cl-tag-chip cl-tag-chip-row" : "cl-tag-chip"}
+      data-part="chip-tag"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -171,6 +174,7 @@ export function WorkspaceTagPill({
 }) {
   return (
     <span
+      data-part="chip-workspace-tag"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -260,7 +264,7 @@ const FILTER_GROUP_MOBILE_CSS = `
  *  scrolls as one unit inside a horizontal strip (<768px). */
 export function FilterChipGroup({ label, children }: FilterChipGroupProps) {
   return (
-    <div className="cl-filter-group" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+    <div className="cl-filter-group" data-part="chip-filter-group" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <style>{FILTER_GROUP_MOBILE_CSS}</style>
       <span
         className="cl-filter-group-label"
@@ -296,6 +300,7 @@ export function FilterChip({
     <button
       type="button"
       className="cl-filter-chip"
+      data-part="chip-filter"
       data-active={active ? "true" : "false"}
       onClick={onClick}
       aria-pressed={active}
@@ -320,5 +325,50 @@ export function FilterChip({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * GradeChip, the M7b grade chip (site-wide parts brief, docs/design/parts-brief-2026-09-18.md
+ * section 4/2.10): a data-driven chip for `intelligence_items.item_grade`, folded into the chip
+ * family so no page builds its own grade pill (lane M7, `complete-system-build-plan-2026-09-04.md`
+ * row M7 last mile: "RecordGradeBadge.tsx (folded into Chips)"). Renders nothing for the historical
+ * "brief" grade (the default) or when the grade is not yet known to a surface's mapper (undefined),
+ * the same fail-open posture the folded-in `RecordGradeBadge` used and every other lens badge in
+ * this app follows: an absent signal renders nothing, never a placeholder.
+ *
+ * Chip family rule 2.5 (2026-09-07, restated 2.10): the tier square is the ONLY bordered chip. A
+ * grade is not a band (no severity colour) and not a tier (no T1-T6 rank), so this renders on the
+ * neutral `TagChip` treatment (#F5F2EE fill, no border, uppercase, row-scale type) rather than
+ * inventing a third visual language. It is deliberately its own export (not a `TagChip` call site)
+ * because a grade chip is DATA-DRIVEN (reads `itemGrade` and decides whether to render at all),
+ * which the parts brief separates from `kind`, a caller-supplied label `TagChip` renders unconditionally.
+ *
+ * Wiring the chip into every list row and detail masthead is lane M7b's own scope (per
+ * `docs/ops/session-log.md`, 2026-09-20/22: "M7b (grade chip, NoticesRail) waits on the ListRow
+ * part lane"); this lane builds the part itself, with `data-part`, so M7b has one home to call.
+ */
+export function GradeChip({ itemGrade }: { itemGrade?: "record" | "brief" }) {
+  if (itemGrade !== "record") return null;
+  return (
+    <span
+      data-part="chip-grade"
+      title="Catalogue record: every fact below is quoted directly from the source document. A synthesized full brief is a separate, later upgrade for this item."
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        fontSize: "var(--fs-95)",
+        fontWeight: 700,
+        color: "var(--ink)",
+        background: "var(--tag)",
+        borderRadius: 3,
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        padding: "2px 6px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Catalogue record
+    </span>
   );
 }

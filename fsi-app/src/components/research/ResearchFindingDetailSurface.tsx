@@ -24,7 +24,9 @@
  *
  * KEPT, RELOCATED: the theme-brief "Cluster synthesis" card and
  * ItemConnectionsCard (rail, matching the artboard's CONNECTIONS + CLUSTER
- * SYNTHESIS cards), related-findings (closing section), RecordGradeBadge,
+ * SYNTHESIS cards), related-findings (closing section), the grade chip (`GradeChip`, folded into
+ * `src/components/ui/Chips.tsx` by lane W10-ListRow, 2026-09-22; wiring it onto this surface is
+ * lane M7b's scope, not yet done here),
  * WatchButton/Export/Share actions, source-tier legend (folded into the
  * shared RailLegend + the Sources section's own tier chips).
  */

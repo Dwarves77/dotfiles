@@ -210,7 +210,8 @@ export interface Resource {
   // detail header's "Brief regenerated <date>" line).
   lastRegeneratedAt?: string | null;
   // Item tier (Lane POP, 2026-09-01; migration 278 intelligence_items.item_grade). "record" = extracted
-  // FACT/GAP spans only, no synthesized brief yet — surfaces label these via RecordGradeBadge. Absent
+  // FACT/GAP spans only, no synthesized brief yet; surfaces label these via GradeChip (Chips.tsx,
+  // folded from RecordGradeBadge by lane W10-ListRow, 2026-09-22). Absent
   // (undefined) on any mapper the owning RPC doesn't yet project this column through — dormant
   // passthrough, same pattern as jurisdictionIso's migration-272 rollout; never defaulted client-side.
   itemGrade?: "record" | "brief";

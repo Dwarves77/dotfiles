@@ -26,7 +26,7 @@
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
 import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
-import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import { GradeChip } from "@/components/ui/Chips";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 
@@ -155,7 +155,7 @@ function OperationsItemCard({ item }: { item: Resource }) {
                 same as every other RecordGradeBadge call site) — 0 of the live Operations corpus
                 carries item_grade='record' today (measured 2026-09-05), so this proves out on the
                 UX smoke fixture (which sets itemGrade) ahead of the population catching up. */}
-            <RecordGradeBadge itemGrade={item.itemGrade} />
+            <GradeChip itemGrade={item.itemGrade} />
             {jurisdiction && (
               <span style={{ color: "var(--color-text-muted)", fontWeight: 600 }}>
                 {jurisdiction}
