@@ -54,8 +54,17 @@ test("the scope and verticals lines still balance rather than orphan a word (ope
 test("a notice link renders only when it has a real target: no '#' href fallback", () => {
   // Production's only `#`-href anchor across all fifteen pages was this fallback, on /settings'
   // "See audit log →", and it was dead on click. Ruling 1.1's class is that a dead control is a
-  // defect, so the component can no longer manufacture a target it does not have.
+  // defect, so the component can no longer manufacture a target it does not have. W10-StateNote
+  // (2026-09-23) moved this banner onto the shared StateNote part (one home for the border-left
+  // 3px / radius 0 6px 6px 0 / 9px 12px shape); the guarantee now lives in the ternary that
+  // decides whether StateNote's own `action` prop is passed at all.
   assert.doesNotMatch(SOURCE, /notice\.linkHref \?\? "#"/);
-  assert.match(SOURCE, /\{notice\.linkLabel && notice\.linkHref && \(/);
-  assert.match(SOURCE, /href=\{notice\.linkHref\}/);
+  assert.match(SOURCE, /notice\.linkLabel && notice\.linkHref \? \{ label: notice\.linkLabel, href: notice\.linkHref \} : undefined/);
+  assert.match(SOURCE, /<StateNote/);
+});
+
+test("the notice banner delegates to StateNote rather than retyping its shape (F42/F49 one-home)", () => {
+  assert.doesNotMatch(SOURCE, /borderLeft: "3px solid var\(--ink-3\)"/);
+  assert.doesNotMatch(SOURCE, /borderRadius: "0 6px 6px 0"/);
+  assert.match(SOURCE, /import \{ StateNote \} from "@\/components\/ui\/StateNote"/);
 });

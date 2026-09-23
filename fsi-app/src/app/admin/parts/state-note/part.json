@@ -1,0 +1,5 @@
+{
+  "slug": "state-note",
+  "name": "StateNote",
+  "summary": "The one strip for every empty, loading, error and not-scored/awareness state and every detail-callout or action strip: border-left 3px solid <band>, band tint background, radius 0 6px 6px 0."
+}
