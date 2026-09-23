@@ -121,6 +121,25 @@ test('check 1 GREEN: the real (derived) loop-manifest.mjs loader shape passes', 
   assert.deepEqual(scanHandEntries(files, { familyNames: [] }), []);
 });
 
+test('check 1 RED: a hand-written "PARTS: PartEntry[] = [" array literal in admin/parts/page.tsx is caught', () => {
+  const files = [{
+    path: 'fsi-app/src/app/admin/parts/page.tsx',
+    text: "const PARTS: PartEntry[] = [\n  {\n    slug: 'fact-card',\n  },\n];\n",
+  }];
+  const v = scanHandEntries(files, { familyNames: [] });
+  assert.equal(v.length, 2, 'both the array-literal line and the slug entry line should be caught');
+  assert.ok(v.some((x) => x.message.includes('hand-written array literal reappeared assigning PARTS')));
+  assert.ok(v.some((x) => x.message.includes('hand-written part "slug:" entry reappeared')));
+});
+
+test('check 1 GREEN: the real (derived) admin/parts/page.tsx loader shape passes', () => {
+  const files = [{
+    path: 'fsi-app/src/app/admin/parts/page.tsx',
+    text: "import { loadPartEntries } from \"@/lib/admin/parts-registry\";\nconst parts = loadPartEntries();\n",
+  }];
+  assert.deepEqual(scanHandEntries(files, { familyNames: [] }), []);
+});
+
 test('check 1 wired to the live tree: runCheck1 against this real repo is clean', () => {
   assert.deepEqual(runCheck1(getRepoRoot()), []);
 });

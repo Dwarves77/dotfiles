@@ -1,0 +1,5 @@
+{
+  "slug": "item-group",
+  "name": "ItemGroup",
+  "summary": "Wraps fact cards inside an S-section: band pill header, up to 4 visible cards then an \"N more facts\" disclosure, and an optional ACTION strip."
+}
