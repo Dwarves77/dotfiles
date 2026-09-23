@@ -83,7 +83,21 @@ test("sanity: the OLD `!!user && !orgId` predicate DOES show the banner in the u
   test("frame outer row: height 100vh and display flex are inline, not Tailwind-class-only", () => {
     assert.match(SOURCE, /style=\{\{ backgroundColor: "var\(--desk\)", display: "flex", height: "100vh" \}\}/);
   });
-  test("frame content column: flex: '1 1 0%' is inline (grid/flex sizing must not depend on a compiled-Tailwind-only class)", () => {
-    assert.match(SOURCE, /flex: "1 1 0%"/);
+  // STOP 1 fix, coordinator amendment 2, 2026-09-22 [CONFIRMED by a real Playwright mount]: the
+  // prior flex row (`display: "flex"` + content column `flex: "1 1 0%"`) let the nav card's own
+  // `marginLeft: 16` (Sidebar.tsx) subtract from the content column's share. A flex item's margin
+  // is part of its outer box, so a fixed-width item's margin comes straight out of the sibling's
+  // share. The content column measured 764px at 1440 instead of the artboard's 778px, a 16px
+  // shortfall exactly equal to the margin. The artboard's own model
+  // (`display:grid;grid-template-columns:252px 1fr`) does not leak this way: a grid TRACK absorbs
+  // its child's margin, so switching this row to the same two-track grid reproduces the artboard's
+  // box model exactly (Sidebar.tsx's `<aside>` no longer sets an explicit `width: 252`, so it
+  // stretches to fill its 252px track minus its own margin, the same way the artboard's nav card
+  // does).
+  test("frame content column: gridTemplateColumns '252px minmax(0, 1fr)' is inline (grid sizing must not depend on a compiled-Tailwind-only class)", () => {
+    assert.match(SOURCE, /display: "grid", gridTemplateColumns: "252px minmax\(0, 1fr\)"/);
+  });
+  test("frame content column no longer carries the flex-row sizing that leaked the nav card's margin into its share", () => {
+    assert.doesNotMatch(SOURCE, /flex: "1 1 0%"/);
   });
 }

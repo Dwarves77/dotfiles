@@ -133,9 +133,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       className="justify-center"
       style={{ backgroundColor: "var(--desk)", display: "flex", height: "100vh" }}
     >
-      <div className="w-full" style={{ maxWidth: 1440, display: "flex" }}>
+      {/* STOP 1 fix, coordinator amendment 2, 2026-09-22 [CONFIRMED by a real Playwright mount]:
+          this row was `display: "flex"` with the nav card (Sidebar.tsx) carrying its own
+          `marginLeft: 16`. In a flex row a fixed-width item's own margin is OUTER-box size, so it
+          subtracts from the sibling's share: content column measured 764px at 1440 instead of the
+          artboard's 778px, a 16px shortfall exactly equal to the nav card's left margin. The
+          artboard's own model (dc.html: `display:grid;grid-template-columns:252px 1fr`) does not
+          have this leak: a grid TRACK absorbs its child's margin, so a 252px track with a
+          16px-margin child renders that child's own content box at 236px, the outer (margin) box
+          still exactly filling the 252px track, nothing is subtracted from track 2. Switching this
+          row to the same two-track grid (fixed 252px nav track, `minmax(0, 1fr)` content track) and
+          letting Sidebar.tsx's `<aside>` size itself via default grid stretch (no explicit
+          `width: 252` any more, see that file) reproduces the artboard's box model exactly: the
+          content column now gets the full 1440-252=1188px second track, matching the artboard's
+          778px content column once PageFrame's own padding/gap/rail arithmetic (README section 0.3)
+          is applied, instead of losing 16px to the margin leak.
+
+          MOBILE REGRESSION GUARD, same edit: Sidebar.tsx's desktop `<aside>` is `hidden md:flex`
+          (display:none below 768). An explicit CSS grid track does NOT collapse just because the
+          item inside it is display:none. Unlike the old flex row, which simply repacked around a
+          hidden item, a bare `"252px minmax(0, 1fr)"` grid would leave a blank 252px gap on mobile.
+          The scoped `<style>` below collapses the frame to a single `minmax(0, 1fr)` track at the
+          same 768px boundary Tailwind's `md:` prefix uses, so the content column reclaims the full
+          width below 768 exactly as it did under the old flex row. */}
+      <style>{`
+        @media (max-width: 767px) { .cl-app-frame { grid-template-columns: minmax(0, 1fr) !important; } }
+      `}</style>
+      <div
+        className="w-full cl-app-frame"
+        style={{ maxWidth: 1440, display: "grid", gridTemplateColumns: "252px minmax(0, 1fr)" }}
+      >
         <Sidebar drawerOpen={drawerOpen} onDrawerClose={() => setDrawerOpen(false)} />
-        <div className="min-w-0 flex flex-col" style={{ background: "var(--page)", flex: "1 1 0%", minHeight: 0 }}>
+        <div className="min-w-0 flex flex-col" style={{ background: "var(--page)", minHeight: 0 }}>
           {/* Mobile top bar (mobile-390 spec, TOP BAR): replaces the
               desktop nav card below 768, sibling of <main/> (not inside
               it) so it never scrolls away. */}
