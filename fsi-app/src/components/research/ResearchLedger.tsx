@@ -43,7 +43,8 @@ import { ListSurfaceSortRow } from "@/components/list-surface/ListSurfaceSortRow
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { RailCard } from "@/components/ui/RailCard";
+import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   liveFacetCounts,

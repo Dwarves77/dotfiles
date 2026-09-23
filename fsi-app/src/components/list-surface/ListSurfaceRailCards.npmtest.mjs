@@ -14,31 +14,18 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-// UPDATED (fold 62, 2026-09-08). These four assertions described RailCard as a card it TYPED:
-// its own five declarations plus a hand-mounted `<SectionRule/>` above a padded inner wrapper.
-// Lane cardrule moved every card in the product onto the shared `SectionCard` (operator item A1:
-// the rule "is part of the card component, not a decoration"), so the rule, the border, the
-// radius, the shadow and `overflow: hidden` are no longer this file's to get right, and asserting
-// that it still types them would be asserting the defect. What the assertions protect is
-// unchanged and is now guaranteed by construction: this card comes from the shared shell, its
-// content is padded by an INNER wrapper so the rule still sits at the true top edge, and the
-// audit hook still reaches the outer card element. F42 closes the class mechanically.
-test("RailCard is the shared SectionCard, not a card shell typed here", () => {
-  assert.match(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard";/);
-  assert.doesNotMatch(SOURCE, /import \{ SectionRule \}/);
-  // The chrome belongs to SectionCard now: no local copy of any of it.
-  const cardBlock = SOURCE.slice(SOURCE.indexOf("export function RailCard"), SOURCE.indexOf("</SectionCard>"));
-  assert.doesNotMatch(cardBlock, /boxShadow: "var\(--shadow-card\)"/);
-  assert.doesNotMatch(cardBlock, /borderRadius: "var\(--radius-card\)"/);
-});
-
-test("RailCard's content is padded by an INNER wrapper, so the shared rule still spans the true top edge", () => {
-  assert.match(SOURCE, /<SectionCard dataAudit=\{dataAudit\}>\s*\n\s*<div style=\{\{ padding: "14px 16px" \}\}>/);
-});
-
-test("RailCard accepts an optional dataAudit prop and passes it to the card element", () => {
-  assert.match(SOURCE, /dataAudit\?:\s*string/);
-  assert.match(SOURCE, /<SectionCard dataAudit=\{dataAudit\}>/);
+// UPDATED (lane W10-RailCard, 2026-09-22). `RailCard` was typed IN THIS FILE from fold-62 through
+// lane W10-ListRow-2 (its own five-property SectionCard shell, `headLink`, `dataAudit`). It moved
+// to the shared `src/components/ui/RailCard.tsx` part in this lane; the prior-art comment at this
+// file's own top explains why (it is now the ONE rail-card part, site-wide, not scoped to the five
+// list surfaces). The four assertions that used to check RailCard's own shape here now live in
+// `src/components/ui/RailCard.npmtest.mjs`; what THIS file still owns is that it imports the part
+// rather than a local copy, and that its own surface-specific cards (Legend included) still pass
+// the shape RailCard expects.
+test("RailCard is imported from the shared ui part, never typed locally in this file", () => {
+  assert.match(SOURCE, /import \{ RailCard \} from "@\/components\/ui\/RailCard";/);
+  assert.doesNotMatch(SOURCE, /export function RailCard/, "the list-surface file must not re-define the part it now imports");
+  assert.doesNotMatch(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard";/, "SectionCard is RailCard's own dependency now, not this file's");
 });
 
 test('LegendRailCard passes dataAudit="legend-rail" through to its RailCard', () => {
@@ -50,11 +37,10 @@ test('LegendRailCard passes dataAudit="legend-rail" through to its RailCard', ()
 // above; the real-DOM proof is compose-02-regulations-list.json against the audit harness's
 // `compose-02-regulations` mount, and the window/cap logic has its own runtime proof in
 // src/lib/forward-events/obligation-rail-select.npmtest.mjs.
-test("RailCard accepts an optional headLink and renders it only when passed, so no existing card's head moves", () => {
-  assert.match(SOURCE, /headLink\?:\s*\{ label: string; href: string \}/);
-  assert.match(SOURCE, /\{headLink \? \(/);
-  assert.match(SOURCE, /\) : \(\s*\n\s*<p style=\{\{ \.\.\.RAIL_CARD_TITLE_STYLE, margin: "0 0 10px" \}\}>\{title\}<\/p>/);
-});
+// (`RailCard`'s `headLink` prop itself, its type, and the mutual-exclusivity with `headRight`, is
+// typed and tested in `src/components/ui/RailCard.npmtest.mjs`, not duplicated here; the literal
+// call-site assertion below, "carries the artboard's exact head label", already covers this file's
+// own responsibility: that ObligationsRailCard PASSES headLink correctly.)
 
 test("ObligationsRailCard reads the EXISTING bounded obligations route, never a new Supabase query", () => {
   assert.match(SOURCE, /fetch\("\/api\/obligations\/upcoming\?limit=8"/);

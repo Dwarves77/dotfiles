@@ -1,0 +1,5 @@
+{
+  "slug": "rail-card",
+  "name": "RailCard",
+  "summary": "The one rail-card shell on every surface (plain title, headLink, headRight, titleHref/titleCount variants), including the legend's live ImpactMeter frozen at N=8 and the detail rail's At a glance / Impact assessment / In this list cards."
+}

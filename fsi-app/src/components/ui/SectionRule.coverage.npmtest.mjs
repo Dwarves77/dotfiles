@@ -79,7 +79,6 @@ test("every card component that used to mount the rule by hand now renders <Sect
     "components/detail/DetailShell.tsx",
     "components/ui/Masthead.tsx",
     "components/list-surface/ListSurfaceShell.tsx",
-    "components/list-surface/ListSurfaceRailCards.tsx",
     "components/account/AccountPrimitives.tsx",
     "components/map/MapPageView.tsx",
     "components/watchlist/WatchlistSurface.tsx",
@@ -93,7 +92,6 @@ test("every card component that used to mount the rule by hand now renders <Sect
     "components/profile/UserProfilePage.tsx",
     "components/sources/ProvisionalReviewTable.tsx",
     "components/admin/AdminDashboard.tsx",
-    "components/admin/redesign/AdminIssuesRail.tsx",
     "components/admin/redesign/WorkspacesUsageRow.tsx",
     // FOLD 63 (2026-09-08). Two files JOIN this list and one LEAVES it, and both moves are the
     // structure changing, not the invariant.
@@ -123,10 +121,35 @@ test("every card component that used to mount the rule by hand now renders <Sect
   }
 });
 
-test("DetailShell's eight cards are eight SectionCards (the count moved from rules to cards)", () => {
+// MOVED (lane W10-RailCard, 2026-09-22): `ListSurfaceRailCards.tsx` and
+// `admin/redesign/AdminIssuesRail.tsx` left the FILES table above the same day the shared
+// `RailCard` part (`components/ui/RailCard.tsx`) was extracted, and both now render every one of
+// their titled rail cards through `<RailCard>` rather than `<SectionCard>` directly. The invariant
+// this whole file protects (no hand-rolled card shell; the rule/border/radius/shadow are owned by
+// one component) still holds, one indirection further: RailCard is itself required (above, by
+// F42-card-shell-outside-section-card.test.mjs and by RailCard.npmtest.mjs's own shell tests) to
+// render SectionCard, so a caller of RailCard can never regress into a hand-typed card.
+test("ListSurfaceRailCards.tsx and AdminIssuesRail.tsx render through the shared RailCard part, not SectionCard directly", () => {
+  for (const rel of ["components/list-surface/ListSurfaceRailCards.tsx", "components/admin/redesign/AdminIssuesRail.tsx"]) {
+    const text = readFileSync(resolve(ROOT, rel), "utf8");
+    assert.match(text, /from "@\/components\/ui\/RailCard"/, `${rel}: does not import the shared RailCard part`);
+    assert.match(text, /<RailCard\b/, `${rel}: does not render RailCard`);
+    assert.doesNotMatch(text, /from "@\/components\/ui\/SectionCard"/, `${rel}: should no longer import SectionCard directly, RailCard owns that now`);
+  }
+});
+
+test("DetailShell's eight cards are eight cards, SectionCard (direct) plus RailCard (through the shared rail-card part)", () => {
   const text = readFileSync(resolve(ROOT, "components/detail/DetailShell.tsx"), "utf8");
-  const opens = text.match(/^\s*<SectionCard\b/gm) ?? [];
-  assert.equal(opens.length, 8);
+  // Lane W10-RailCard, 2026-09-22: four of the original eight `<SectionCard>` mounts (At a glance,
+  // Legend, Impact assessment, In this list) moved onto the shared `<RailCard>` part, which is
+  // itself required (RailCard.npmtest.mjs) to render SectionCard; the invariant this test names
+  // ("eight cards, no hand-rolled shell") is unchanged; only which of the two part-level
+  // components each card renders through moved.
+  const sectionCardOpens = text.match(/^\s*<SectionCard\b/gm) ?? [];
+  const railCardOpens = text.match(/^\s*<RailCard\b/gm) ?? [];
+  assert.equal(sectionCardOpens.length, 4);
+  assert.equal(railCardOpens.length, 4);
+  assert.equal(sectionCardOpens.length + railCardOpens.length, 8);
 });
 
 // FOLD 62 (2026-09-08): the shell mounts `SectionCard` DIRECTLY at the band card rather than

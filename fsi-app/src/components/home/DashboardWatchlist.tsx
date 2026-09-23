@@ -27,7 +27,8 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
+import { RailCard } from "@/components/ui/RailCard";
+import { RailEmptyFrame } from "./DashboardRailCard";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem } from "@/lib/data";
@@ -67,20 +68,21 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
 
   if (visible.length === 0) {
     return (
-      <DashboardRailCard title="Watchlist" titleHref="/watchlist">
+      <RailCard title="Watchlist" titleHref="/watchlist" dataAudit="watchlist-rail">
         <RailEmptyFrame
           body="Nothing watched yet. Watch any regulation, source, or market signal to see its updates here."
           cta={{ label: "Browse what to watch →", href: "/regulations" }}
         />
-      </DashboardRailCard>
+      </RailCard>
     );
   }
 
   return (
-    <DashboardRailCard
+    <RailCard
       title="Watchlist"
       titleHref="/watchlist"
-      count={`${formatNumber(visible.length)} of ${formatNumber(items.length)}`}
+      dataAudit="watchlist-rail"
+      titleCount={`${formatNumber(visible.length)} of ${formatNumber(items.length)}`}
     >
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {visible.map((item) => {
@@ -120,6 +122,6 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
           );
         })}
       </ul>
-    </DashboardRailCard>
+    </RailCard>
   );
 }

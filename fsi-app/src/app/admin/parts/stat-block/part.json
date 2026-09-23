@@ -1,0 +1,5 @@
+{
+  "slug": "stat-block",
+  "name": "StatBlock",
+  "summary": "The one stat part for profile and admin counters (stack, row, tile layouts; default and critical tone) with a sign-off fixture built on the frozen ListRow records."
+}

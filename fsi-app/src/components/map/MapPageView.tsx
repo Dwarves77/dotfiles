@@ -55,7 +55,8 @@ import { StateNote } from "@/components/ui/StateNote";
 import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { RailCard } from "@/components/ui/RailCard";
+import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { formatNumber } from "@/lib/format";
 
 const MapView = dynamic(

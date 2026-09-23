@@ -4,13 +4,16 @@
  * Rail cards shared by the five list surfaces (Legend is identical text on
  * every artboard 02/04/06/08/11; a plain summary card is the generic
  * fallback for a surface-specific rail card this lane did not build —
- * logged per-page in DEVIATION-LOG.md). Not a src/components/ui/ part
- * (only the five list surfaces use these); kept here to avoid a five-way
- * copy of the same JSX.
+ * logged per-page in DEVIATION-LOG.md). The shared shell (`RailCard`,
+ * `data-part="rail-card"`) moved to `src/components/ui/RailCard.tsx` in lane
+ * W10-RailCard, 2026-09-22, and it is the ONE rail-card part, used site-wide,
+ * not scoped to the five list surfaces any more. This file keeps the
+ * list-surface-specific cards built on top of it (Obligations, Carbon cost,
+ * Next data drops, Legend), since only these five surfaces consume them.
  */
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { RailCard } from "@/components/ui/RailCard";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { Absence } from "@/components/ui/Absence";
@@ -24,72 +27,6 @@ import {
 } from "@/lib/forward-events/obligation-rail-select.mjs";
 import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
 import { nowFrom } from "@/lib/render-now";
-
-/** The card-head label type, shared by RailCard's title and FiltersRailCard's own head. */
-const RAIL_CARD_TITLE_STYLE: React.CSSProperties = {
-  fontSize: "var(--fs-105)",
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--ink-3)",
-  margin: 0,
-};
-
-// Ruling 5.1 (2026-09-07, CLOSED): every panel/section card carries the dark-grey graduated 3px
-// rule above its title, full card width, top edge, no radius on the rule. Design audit B163/B165/
-// B170 (2026-09-07, docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md, list-surface.json /
-// section-card-lists.json) found this rail card and the facets card (ListSurfaceShell.tsx)
-// rendered NO rule at all — the base lane's own DEVIATION-LOG entry named rolling SectionRule onto
-// this file as later-lane scope; this is that lane.
-export function RailCard({
-  title,
-  children,
-  dataAudit,
-  headLink,
-}: {
-  title: string;
-  children: ReactNode;
-  /** Design-audit hook (../../.discipline/rendering/audit) — a stable selector for a real page
-   *  composition mount, since a caller like LegendRailCard mounts this with no wrapper div of its
-   *  own. Optional: only the callers a compose-*.json spec needs to address by name pass it. */
-  dataAudit?: string;
-  /** Optional right-aligned link on the card head's baseline — artboard 02/id="p2" draws one on the
-   *  "Obligations · next 30 days" card ("Calendar →") and none on Legend. Omitted callers render the
-   *  head exactly as before (a bare title paragraph), so no existing card's geometry moves. */
-  headLink?: { label: string; href: string };
-}) {
-  return (
-    <SectionCard dataAudit={dataAudit}>
-      <div style={{ padding: "14px 16px" }}>
-        {headLink ? (
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "0 0 10px" }}>
-            <p style={RAIL_CARD_TITLE_STYLE}>{title}</p>
-            <a
-              href={headLink.href}
-              style={{
-                minHeight: 24,
-                display: "inline-flex",
-                alignItems: "center",
-                flexShrink: 0,
-                // Artboard 02/id="p2" head link: 11px, weight 600.
-                fontSize: "var(--fs-11)",
-                fontWeight: 600,
-                color: "var(--ink)",
-                textDecoration: "underline",
-                textDecorationColor: "rgba(0,0,0,.3)",
-              }}
-            >
-              {headLink.label}
-            </a>
-          </div>
-        ) : (
-          <p style={{ ...RAIL_CARD_TITLE_STYLE, margin: "0 0 10px" }}>{title}</p>
-        )}
-        {children}
-      </div>
-    </SectionCard>
-  );
-}
 
 // FILTERS rail card (operator audit 2026-09-07: "the filters were not above the regulations, they
 // were on the right — same on every page"; artboard 02/id="p2" FILTERS card: title + "Clear N" link,
@@ -261,63 +198,50 @@ export function FiltersRailCard({ groups }: { groups: ListSurfaceFacetGroup[] })
   const activeCount = useMemo(() => shown.filter((g) => g.selected !== null).length, [shown]);
   const clearAll = () => shown.forEach((g) => g.onSelect(null));
   if (shown.length === 0) return null;
+  // Artboard 02/id="p2" draws `Clear 1` (one facet active) and artboard 04/id="p4" draws a bare
+  // `Clear` (none active) in the SAME head position, so the link is part of the card's drawn
+  // anatomy in both states and is rendered unconditionally here, lane lists60, 2026-09-08, closing
+  // the fold's "the rail Filters card has no Clear link" item, which was this control hiding itself
+  // whenever the fixture had no active facet. With nothing selected it is `disabled`: the
+  // artboard's own geometry and type are kept (11px/600 ink, 24px box) so the card still looks like
+  // the image, and a press that would clear nothing is refused rather than silently doing nothing
+  // (operator audit P0 1.1's class). Lane W10-RailCard: this heads through RailCard's `headRight`
+  // slot now, not a hand-rolled flex header: same button, same markup, one shell.
+  const clearButton = (
+    <button
+      type="button"
+      onClick={clearAll}
+      disabled={activeCount === 0}
+      style={{
+        minHeight: 24,
+        background: "none",
+        border: "none",
+        padding: 0,
+        fontSize: "var(--fs-11)",
+        fontWeight: 700,
+        color: "var(--ink)",
+        textDecoration: "underline",
+        textDecorationColor: "rgba(0,0,0,.3)",
+        cursor: activeCount === 0 ? "default" : "pointer",
+        fontFamily: "inherit",
+      }}
+    >
+      {activeCount === 0 ? "Clear" : `Clear ${activeCount}`}
+    </button>
+  );
   return (
-    <SectionCard dataAudit="filters-rail">
-      <div style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-          <p
-            style={{
-              fontSize: "var(--fs-105)",
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--ink-3)",
-              margin: 0,
-            }}
-          >
-            Filters
-          </p>
-          {/* Artboard 02/id="p2" draws `Clear 1` (one facet active) and artboard 04/id="p4" draws a
-              bare `Clear` (none active) in the SAME head position, so the link is part of the card's
-              drawn anatomy in both states and is rendered unconditionally here — lane lists60,
-              2026-09-08, closing the fold's "the rail Filters card has no Clear link" item, which was
-              this control hiding itself whenever the fixture had no active facet. With nothing
-              selected it is `disabled`: the artboard's own geometry and type are kept (11px/600 ink,
-              24px box) so the card still looks like the image, and a press that would clear nothing
-              is refused rather than silently doing nothing (operator audit P0 1.1's class). */}
-          <button
-            type="button"
-            onClick={clearAll}
-            disabled={activeCount === 0}
-            style={{
-              minHeight: 24,
-              background: "none",
-              border: "none",
-              padding: 0,
-              fontSize: "var(--fs-11)",
-              fontWeight: 700,
-              color: "var(--ink)",
-              textDecoration: "underline",
-              textDecorationColor: "rgba(0,0,0,.3)",
-              cursor: activeCount === 0 ? "default" : "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {activeCount === 0 ? "Clear" : `Clear ${activeCount}`}
-          </button>
-        </div>
-        {/* gap 0, not 14 (lane railfacets, 2026-09-08, item C2): each group now carries the
-            artboard's own `padding:10px 0` and its `border-bottom:1px solid rgba(0,0,0,.06)`, so the
-            10px either side of the rule IS the separation. A flex gap on top of that would push the
-            groups 14px further apart than the image and leave the rule floating off-centre between
-            them. */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {shown.map((group) => (
-            <FacetSection key={group.key} group={group} />
-          ))}
-        </div>
+    <RailCard title="Filters" dataAudit="filters-rail" headRight={clearButton}>
+      {/* gap 0, not 14 (lane railfacets, 2026-09-08, item C2): each group now carries the
+          artboard's own `padding:10px 0` and its `border-bottom:1px solid rgba(0,0,0,.06)`, so the
+          10px either side of the rule IS the separation. A flex gap on top of that would push the
+          groups 14px further apart than the image and leave the rule floating off-centre between
+          them. */}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {shown.map((group) => (
+          <FacetSection key={group.key} group={group} />
+        ))}
       </div>
-    </SectionCard>
+    </RailCard>
   );
 }
 

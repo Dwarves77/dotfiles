@@ -81,3 +81,10 @@ test("tile label/numeral row carries data-guard-container for the shared cell-bo
   const block = tileBlock();
   assert.match(block, /data-guard-container="stat-tile-row"/);
 });
+
+// ── lane W10-RailCard, 2026-09-22: data-part="stat-block" on every render branch (stack, row, tile) ──
+
+test("every returned root element carries data-part=\"stat-block\" (stack, row, tile)", () => {
+  const matches = SOURCE.match(/data-part="stat-block"/g) ?? [];
+  assert.equal(matches.length, 3, "tile, row and stack branches must each stamp the part attribute");
+});

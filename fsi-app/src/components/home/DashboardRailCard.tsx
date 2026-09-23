@@ -1,86 +1,20 @@
 "use client";
 
 /**
- * DashboardRailCard + RailEmptyFrame — shared rail primitives for the
- * Dashboard (TEMPLATE 01, HANDOFF §6.3 + mock).
- *
- * DashboardRailCard: a titled white card (uppercase muted eyebrow title,
- * optional count) — the container for Watchlist / By owner.
- *
- * RailEmptyFrame: the honest-state frame (HANDOFF §4) — 1px dashed
- * rgba(0,0,0,0.25) border, bg --color-bg-base, radius 6, a muted one-liner
- * stating what is absent, and a recovery CTA. One pattern for every empty rail
+ * RailEmptyFrame, shared honest-state primitive for the Dashboard (TEMPLATE 01, HANDOFF section
+ * 6.3 + mock, section 4): 1px dashed rgba(0,0,0,0.25) border, bg --color-bg-base, radius 6, a
+ * muted one-liner stating what is absent, and a recovery CTA. One pattern for every empty rail
  * widget so the honest-state language stays identical.
+ *
+ * `DashboardRailCard` (the card shell this frame used to sit inside) was removed in lane
+ * W10-RailCard, 2026-09-22: its only consumer, `DashboardWatchlist.tsx`, now mounts the shared
+ * `src/components/ui/RailCard.tsx` part instead (`titleHref`/`titleCount` cover the same "title is
+ * the entry point, count beside it" shape this file used to hand-roll). `RailEmptyFrame` stays,
+ * it is a distinct empty-state primitive, not a card shell, and is out of this lane's scope (the
+ * empty/loading/error state part is StateNote's lane).
  */
 
 import Link from "next/link";
-import type { ReactNode } from "react";
-
-export function DashboardRailCard({
-  title,
-  count,
-  titleHref,
-  children,
-}: {
-  title: string;
-  count?: string;
-  /** When set, the card title becomes the entry point to the card's full
-   *  surface. OPTIONAL by design: most rail widgets have no page behind them,
-   *  and a title that looks clickable but is not is worse than a plain one. The
-   *  title is the affordance rather than a separate "View all" link because the
-   *  card is already labelled by it, so there is nothing to duplicate. */
-  titleHref?: string;
-  children: ReactNode;
-}) {
-  const titleStyle = {
-    fontSize: 10,
-    fontWeight: 800,
-    letterSpacing: "0.13em",
-    textTransform: "uppercase" as const,
-    color: "var(--color-text-muted)",
-    margin: 0,
-  };
-
-  return (
-    <div
-      style={{
-        background: "var(--color-bg-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        padding: "14px 16px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 8,
-          margin: "0 0 8px",
-        }}
-      >
-        {titleHref ? (
-          // Law-2 floor (docs/design/ux-laws.md #2): a 10px-font, zero-padding title link renders
-          // ~11px tall — well under both the 44px target size and the 24px+8px-clearance
-          // alternative. `minHeight: 28` + inline-flex reaches the small-target floor without
-          // changing the visible type scale.
-          <Link
-            href={titleHref}
-            prefetch={false}
-            style={{ ...titleStyle, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 28 }}
-          >
-            {title} →
-          </Link>
-        ) : (
-          <p style={titleStyle}>{title}</p>
-        )}
-        {count && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)" }}>{count}</span>
-        )}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 export function RailEmptyFrame({
   body,

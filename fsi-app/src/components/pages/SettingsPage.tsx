@@ -11,7 +11,7 @@ import { BAND_ORDER, type PlatformPriority } from "@/lib/urgency/bands";
 import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
 import { SectionIndex, type SectionIndexEntry } from "@/components/detail/DetailShell";
-import { RailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { RailCard } from "@/components/ui/RailCard";
 import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import {

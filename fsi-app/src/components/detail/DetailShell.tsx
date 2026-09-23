@@ -42,6 +42,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { RailCard } from "@/components/ui/RailCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
@@ -721,15 +722,16 @@ export interface AtAGlanceRow {
   value: React.ReactNode;
 }
 
+// Lane W10-RailCard, 2026-09-22: this card's shell (SectionCard + 14px/16px padding + 10.5px/800/
+// .12em uppercase muted header "At a glance") was a hand-retyped copy of the same shell the list
+// surfaces' rail cards, the dashboard rail, and the admin "Issues queue" rail each retyped
+// separately, now the one shared `RailCard` part. Content (the label/value grid, the Absence
+// convention on an empty set) is unchanged; only the shell moved.
 export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
   const present = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
   if (present.length === 0) return null;
   return (
-    <SectionCard>
-      <div style={{ padding: "14px 16px" }}>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
-        At a glance
-      </p>
+    <RailCard title="At a glance" dataAudit="at-a-glance-rail">
       {/* dc.html #p3 "At a glance" card: grid-template-columns:96px 1fr;gap:7px 12px (row-gap 7,
           column-gap 12) — a fixed label column, not `auto`. */}
       <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: "7px 12px", fontSize: "var(--fs-12)" }}>
@@ -744,8 +746,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
           </>
         ))}
       </div>
-      </div>
-    </SectionCard>
+    </RailCard>
   );
 }
 
@@ -757,11 +758,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
 
 export function RailLegend() {
   return (
-    <SectionCard>
-      <div style={{ padding: "14px 16px" }}>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
-        Legend
-      </p>
+    <RailCard title="Legend" dataAudit="detail-legend-rail">
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-2)", lineHeight: 1.5 }}>
         <p style={{ margin: 0 }}>
           <strong style={{ color: "var(--ink)" }}>Impact</strong> — four scored dimensions, sorted low to
@@ -775,8 +772,7 @@ export function RailLegend() {
           commentary.
         </p>
       </div>
-      </div>
-    </SectionCard>
+    </RailCard>
   );
 }
 
@@ -784,14 +780,9 @@ export function RailLegend() {
 
 export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
   return (
-    <SectionCard>
-      <div style={{ padding: "14px 16px" }}>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
-        Impact assessment
-      </p>
+    <RailCard title="Impact assessment" dataAudit="impact-assessment-rail">
       <ImpactMeter scores={scores} variant="full" />
-      </div>
-    </SectionCard>
+    </RailCard>
   );
 }
 
@@ -893,16 +884,13 @@ export function InThisListStat({
       : null;
 
   return (
-    <SectionCard padding="14px 16px">
+    <RailCard title={`In this list${params?.list ? ` · ${params.list}` : ""}`} dataAudit="in-this-list-rail">
       <Suspense fallback={null}>
         <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
       <Suspense fallback={null}>
         <InThisListNeighborsBridge onParams={(p, n) => setNeighbors({ prev: p, next: n })} />
       </Suspense>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
-        In this list{params?.list ? ` · ${params.list}` : ""}
-      </p>
       <p style={{ fontSize: "var(--fs-13)", color: "var(--ink)", margin: "0 0 8px" }}>
         {known ? `${pos} of ${of}${band ? ` in ${band.label}` : ""}` : <Absence reason="not in primary source" />}
       </p>
@@ -940,6 +928,6 @@ export function InThisListStat({
           </span>
         )}
       </div>
-    </SectionCard>
+    </RailCard>
   );
 }
