@@ -937,7 +937,7 @@ export function CommunityRooms({
             {/* ══ Room index — artboard 12's table ══ */}
             <SectionCard dataAudit="room-index">
               <SectionHeading
-                title={`${roomName} room`}
+                title={roomName}
                 aside={`${threads.length} discussion${threads.length === 1 ? "" : "s"} · ${threads.length} shown · ${selected.roster.length} member${selected.roster.length === 1 ? "" : "s"} here`}
               />
               {threads.length > 0 && (
@@ -955,7 +955,7 @@ export function CommunityRooms({
               <CardFoot
                 left={
                   threads.length === 0
-                    ? `Be first in the ${roomName} room. No discussions here yet — post what you saw on the ground this week.`
+                    ? `Be first in the ${roomName}. No discussions here yet, post what you saw on the ground this week.`
                     : "Threads reference ledger items by link — the ledger keeps the scoring."
                 }
                 right={
@@ -970,15 +970,15 @@ export function CommunityRooms({
             <SectionCard dataAudit="new-post">
               <SectionHeading
                 title={`New post · ${roomName}`}
-                aside={`Posts to the ${roomName} room`}
+                aside={`Posts to the ${roomName}`}
               />
               <div style={{ padding: "14px 16px" }}>
                 <textarea
                   ref={composerRef}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  aria-label={`Post to the ${roomName} room`}
-                  placeholder={`Ask the ${roomName} room — a lane observation, a handler question, a document worth sharing…`}
+                  aria-label={`Post to the ${roomName}`}
+                  placeholder={`Ask the ${roomName}, a lane observation, a handler question, a document worth sharing…`}
                   disabled={!selected.joined || !selected.groupId}
                   rows={3}
                   style={{

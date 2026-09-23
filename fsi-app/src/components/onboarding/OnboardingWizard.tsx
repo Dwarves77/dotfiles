@@ -14,7 +14,20 @@ import { AuthFrame } from "@/components/auth/AuthFrame";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { DEFAULT_NOTIFICATION_PREFS } from "@/components/profile/NotificationPreferences";
 import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
+import { Masthead } from "@/components/ui/Masthead";
+import { formatLocaleDate } from "@/lib/format";
 import { Check, AlertCircle, Star } from "lucide-react";
+
+/**
+ * The right-panel masthead's `dateLabel` (amendment 1, ruling 1, 2026-09-22): every step in this
+ * wizard renders inside AuthFrame's right panel, and AuthFrame's own left-panel eyebrow computes
+ * this same "long weekday, month day, year" string from a fresh `new Date()` read at render. This
+ * mirrors that existing pattern (not a new one) rather than threading a server-chosen instant
+ * through the wizard's own step tree.
+ */
+function authDateLabel(): string {
+  return formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // OnboardingWizard — UI system handoff 2026-09-06, README screen 17
@@ -318,25 +331,12 @@ function StepModesJurisdictions({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            fontSize: 24,
-            lineHeight: 1.1,
-            color: "var(--ink)",
-            margin: 0,
-          }}
-        >
-          Where do you move freight?
-        </h1>
-        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5, maxWidth: "62ch" }}>
-          This scopes every count, tile and row you will see. Change it any
-          time in Account → Jurisdictions.
-        </p>
-      </div>
+      <Masthead
+        size="detail"
+        title="Where do you move freight?"
+        dek="This scopes every count, tile and row you will see. Change it any time in Account → Jurisdictions."
+        dateLabel={authDateLabel()}
+      />
 
       <div>
         <SectionHeader>Modes</SectionHeader>
@@ -476,26 +476,12 @@ function StepSectors({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            fontSize: 24,
-            lineHeight: 1.1,
-            color: "var(--ink)",
-            margin: 0,
-          }}
-        >
-          Which sectors do you watch?
-        </h1>
-        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5 }}>
-          Pick all that apply. We use these to weight regulatory urgency,
-          filter feeds, and translate intelligence into your context. You
-          can change them any time.
-        </p>
-      </div>
+      <Masthead
+        size="detail"
+        title="Which sectors do you watch?"
+        dek="Pick all that apply. We use these to weight regulatory urgency, filter feeds, and translate intelligence into your context. You can change them any time."
+        dateLabel={authDateLabel()}
+      />
 
       <div>
         <SectionHeader>
@@ -596,26 +582,12 @@ function SectorPill({
 function StepBriefing() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            fontSize: 24,
-            lineHeight: 1.1,
-            color: "var(--ink)",
-            margin: 0,
-          }}
-        >
-          How should we brief you?
-        </h1>
-        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5 }}>
-          We&apos;ve started you off with a conservative set of defaults.
-          Higher-volume notifications are off until you opt in. You can
-          change these any time from Settings.
-        </p>
-      </div>
+      <Masthead
+        size="detail"
+        title="How should we brief you?"
+        dek="We’ve started you off with a conservative set of defaults. Higher-volume notifications are off until you opt in. You can change these any time from Settings."
+        dateLabel={authDateLabel()}
+      />
       <BriefingScheduleSection />
     </div>
   );
@@ -641,23 +613,12 @@ function StepDone({ router }: { router: ReturnType<typeof useRouter> }) {
         >
           <Check size={22} />
         </div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            fontSize: 24,
-            color: "var(--ink)",
-            margin: 0,
-          }}
-        >
-          You&apos;re set up
-        </h1>
-        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", lineHeight: 1.5 }}>
-          Your dashboard is filtered against your modes, jurisdictions and
-          sector profile, and your briefing is conservative by default. You
-          can revisit any of this from Account or Settings any time.
-        </p>
+        <Masthead
+          size="detail"
+          title="You’re set up"
+          dek="Your dashboard is filtered against your modes, jurisdictions and sector profile, and your briefing is conservative by default. You can revisit any of this from Account or Settings any time."
+          dateLabel={authDateLabel()}
+        />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <Button variant="primary" onClick={() => router.push("/")} style={{ padding: "10px 16px", fontSize: "var(--fs-125)", fontWeight: 700 }}>
             Go to dashboard

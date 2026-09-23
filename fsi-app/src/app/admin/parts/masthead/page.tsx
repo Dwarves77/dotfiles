@@ -9,7 +9,7 @@
  * invented strings"; reuse before construction: the same frozen fixture module every other W10
  * parts page already reads).
  *
- * Two states, matched to the two real size calls already live on the product's own routes:
+ * Three states, matched to the real size/context calls live on the product's own routes:
  *   - size="list" (34px title): the shape every list surface (dashboard, regulations, market,
  *     research, operations, community, admin/factors) renders through.
  *   - size="detail" (28px title): the shape every detail surface (regulation/[slug],
@@ -17,6 +17,10 @@
  *     record's own full instrument title (unabridged, per the operator's "no analysis text is ever
  *     cut to fit a layout" ruling, proves the Anton title wraps rather than truncating on a long
  *     legal name).
+ *   - the AUTH-FRAME variant (amendment 1, ruling 1, 2026-09-22): the shape rendered inside
+ *     AuthFrame's right panel on /login, /signup and every onboarding step, size="detail",
+ *     narrower column (380px, matching AuthFrame's own form width), the page's own real text
+ *     ("Sign in"), no command bar (the artboard draws none there).
  *
  * The record id and its own date fact are shown in the header line above each state, per the
  * operator's fixture convention (id and date visible, not just consumed).
@@ -95,6 +99,18 @@ export default async function AdminPartsMastheadPage() {
             dek="European Commission · EUR-Lex"
             eyebrowSuffix="Regulations / European Union"
           />
+        </SectionCard>
+
+        <SectionCard padding="0" style={{ overflow: "hidden" }} dataAudit="masthead-gallery-auth-frame">
+          <div style={{ padding: "10px 20px 0", fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
+            auth-frame variant (size=&quot;detail&quot;, 380px column, no command bar), /login&apos;s own
+            real text, as rendered inside AuthFrame&apos;s right panel
+          </div>
+          <div style={{ padding: "16px 20px 20px" }}>
+            <div style={{ width: 380 }}>
+              <Masthead title="Sign in" size="detail" dateLabel={dateLabel} nowIso={nowIso} />
+            </div>
+          </div>
         </SectionCard>
       </div>
     </>
