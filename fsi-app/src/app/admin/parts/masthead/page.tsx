@@ -33,6 +33,7 @@
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { PartsPageHeading } from "@/components/admin/PartsPageHeading";
 import { formatLocaleDate } from "@/lib/format";
 import { nowFrom, renderNowIso } from "@/lib/render-now";
 import {
@@ -56,20 +57,9 @@ export default async function AdminPartsMastheadPage() {
 
   return (
     <>
-      <div style={{ padding: "28px 36px 0" }}>
-        <h1
-          style={{
-            fontSize: "var(--fs-13)",
-            fontWeight: 800,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            margin: "0 0 4px",
-          }}
-        >
-          Masthead, 2 states, frozen real record (EC 391/2009, id {RECORD_GRADE_FIXTURE_ITEM_ID}), no database read
-        </h1>
-      </div>
+      <PartsPageHeading>
+        Masthead, 2 states, frozen real record (EC 391/2009, id {RECORD_GRADE_FIXTURE_ITEM_ID}), no database read
+      </PartsPageHeading>
       <div style={{ padding: "16px 36px 80px", maxWidth: 1000, display: "flex", flexDirection: "column", gap: 24 }}>
         <SectionCard padding="0" style={{ overflow: "hidden" }} dataAudit="masthead-gallery-list">
           <div style={{ padding: "10px 20px 0", fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
