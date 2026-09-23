@@ -1732,7 +1732,16 @@ window.__mount = () => {
 // ── Community (12) full-page composition mount ──────────────────────────────────────────────────
 const COMMUNITY_ROOMS_FIXTURE = [
   {
-    key: 'GLOBAL', name: 'Global', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
+    // L10 fix, coordinator answer 2026-09-23 [CONFIRMED by run-rendering-guard.mjs]: this fixture's
+    // GLOBAL room carried `name: 'Global'`, one word, against ROOMS' own `name: 'Global room'`
+    // (src/lib/community/rooms.ts) and the p12 manifest's own card title "Global room"
+    // (manifests.json). The room-index card's <h2 data-guard-title> renders `roomName` verbatim, so
+    // the fixture's wrong name is what the guard measured as card "GLOBAL" - a stale test fixture,
+    // not a CommunityRooms.tsx defect (the component renders whatever name its data gives it,
+    // correctly). Only failed unbaselined at 1024 because the SAME finding at 1440 was already in
+    // the dated baseline (baseline.json: "L10|/community|1440|/community"); the underlying cause is
+    // width-independent.
+    key: 'GLOBAL', name: 'Global room', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
     itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
     liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
     threads: [
