@@ -110,6 +110,9 @@ function escapeRegex(s) {
 //   - invariants.mjs:      an `id: '...'` entry (the array-literal element shape the split replaced)
 //   - loop-manifest.mjs:   a hand-written `LOOP_HOPS = [` array literal (not the `loadLoopHops(...)` derived
 //     read), or a hand hop `id: '...'` entry (the loop-hops.d/*.json split, lane R7m, replaced)
+//   - src/app/admin/parts/page.tsx: a hand-written `PARTS: PartEntry[] = [` array literal (not the
+//     `loadPartEntries(...)` derived read, src/lib/admin/parts-registry.ts), or a hand `slug: '...'`
+//     entry (the src/app/admin/parts/<slug>/part.json split, lane W10-ListRow-2, replaced)
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 export function scanHandEntries(files, { familyNames = [] } = {}) {
   const out = [];
@@ -121,7 +124,8 @@ export function scanHandEntries(files, { familyNames = [] } = {}) {
       p === 'fsi-app/scripts/harness-runs/governing-files.mjs' || p === 'fsi-app/scripts/lib/run-artifact.mjs';
     const isInvariants = p.endsWith('/governance/invariants.mjs') || p === 'fsi-app/.discipline/governance/invariants.mjs';
     const isLoopManifest = p.endsWith('/governance/loop-manifest.mjs') || p === 'fsi-app/.discipline/governance/loop-manifest.mjs';
-    if (!isManifest && !isGoverningFilesOrRunArtifact && !isInvariants && !isLoopManifest) continue;
+    const isAdminPartsPage = p.endsWith('/app/admin/parts/page.tsx') || p === 'fsi-app/src/app/admin/parts/page.tsx';
+    if (!isManifest && !isGoverningFilesOrRunArtifact && !isInvariants && !isLoopManifest && !isAdminPartsPage) continue;
 
     const lines = String(text ?? '').split(/\r?\n/);
     lines.forEach((line, idx) => {
@@ -177,6 +181,20 @@ export function scanHandEntries(files, { familyNames = [] } = {}) {
           out.push({
             path: p, line: lineNo,
             message: `hand-written hop "id:" entry reappeared in loop-manifest.mjs (Rule A, Cause A): "${line.trim()}". Hops are one file per id under loop-hops.d/; add a new hop file there instead.`,
+          });
+        }
+      }
+      if (isAdminPartsPage) {
+        if (/PARTS\s*:\s*PartEntry\[\]\s*=\s*\[/.test(line)) {
+          out.push({
+            path: p, line: lineNo,
+            message: `hand-written array literal reappeared assigning PARTS (Rule A, Cause A): "${line.trim()}". PARTS is derived from loadPartEntries() (src/lib/admin/parts-registry.ts), never an array literal here.`,
+          });
+        }
+        if (/^\s*slug:\s*['"][a-z][a-z0-9-]*['"]/.test(line)) {
+          out.push({
+            path: p, line: lineNo,
+            message: `hand-written part "slug:" entry reappeared in admin/parts/page.tsx (Rule A, Cause A): "${line.trim()}". Parts are one file per slug under src/app/admin/parts/<slug>/part.json; add a new part.json file there instead.`,
           });
         }
       }
@@ -279,6 +297,7 @@ const GOVERNING_FILES_PATH = 'fsi-app/scripts/harness-runs/governing-files.mjs';
 const RUN_ARTIFACT_PATH = 'fsi-app/scripts/lib/run-artifact.mjs';
 const INVARIANTS_PATH = 'fsi-app/.discipline/governance/invariants.mjs';
 const LOOP_MANIFEST_PATH = 'fsi-app/.discipline/governance/loop-manifest.mjs';
+const ADMIN_PARTS_PAGE_PATH = 'fsi-app/src/app/admin/parts/page.tsx';
 const FUNCTIONS_GLOB = 'fsi-app/.discipline/fitness/functions/*.mjs';
 const INVARIANTS_D_GLOB = 'fsi-app/.discipline/governance/invariants.d/*.mjs';
 const MIGRATIONS_GLOB = 'fsi-app/supabase/migrations/*.sql';
@@ -286,7 +305,7 @@ const HARNESS_RUNS_DIR = 'fsi-app/scripts/harness-runs/';
 
 export function runCheck1(root) {
   const familyNames = FAMILIES.map((f) => f.family);
-  const files = [MANIFEST_PATH, GOVERNING_FILES_PATH, RUN_ARTIFACT_PATH, INVARIANTS_PATH, LOOP_MANIFEST_PATH]
+  const files = [MANIFEST_PATH, GOVERNING_FILES_PATH, RUN_ARTIFACT_PATH, INVARIANTS_PATH, LOOP_MANIFEST_PATH, ADMIN_PARTS_PAGE_PATH]
     .map((path) => ({ path, text: readFileOrNull(root, path) }))
     .filter((f) => f.text != null);
   return scanHandEntries(files, { familyNames });

@@ -65,7 +65,6 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource } from "@/lib/scoring";
 import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";

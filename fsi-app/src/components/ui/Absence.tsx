@@ -140,6 +140,8 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         data-absence="dash"
         aria-label={reason}
         title={reason}
+        data-part="absence"
+        data-part-variant="dash"
         style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
       >
         {"—"}
@@ -156,6 +158,8 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         // while a bare "—" anywhere else in the product stays a placeholder literal and still
         // fails the guard.
         className="cl-absence"
+        data-part="absence"
+        data-part-variant="narrow"
         data-absence="narrow"
         aria-label={reason}
         title={reason}
@@ -196,7 +200,7 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
   // rendering a second token is a red audit row rather than something the operator finds on his
   // phone.
   return (
-    <span className="cl-absence" style={ABSENCE_TEXT_STYLE}>
+    <span className="cl-absence" data-part="absence" data-part-variant="reason" style={ABSENCE_TEXT_STYLE}>
       {reason}
     </span>
   );
