@@ -23,6 +23,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 import { Button } from "@/components/ui/Button";
 import { AuthFrame } from "@/components/auth/AuthFrame";
+import { Masthead } from "@/components/ui/Masthead";
+import { formatLocaleDate } from "@/lib/format";
 import {
   AuthTabs,
   AuthField,
@@ -92,6 +94,15 @@ export default function LoginPage() {
   return (
     <AuthFrame>
       <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Amendment 1 ruling 1 (2026-09-22): the right panel renders the shared Masthead
+            (eyebrow + Anton title + dek) above the form; the left identity panel stays exactly
+            as AuthFrame draws it. Title is the page's own text (the active tab's own label,
+            already shown on this route), not invented copy. */}
+        <Masthead
+          size="detail"
+          title="Sign in"
+          dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        />
         <AuthTabs active="signin" redirect={redirect !== "/" ? redirect : null} />
 
         {magicSent ? (

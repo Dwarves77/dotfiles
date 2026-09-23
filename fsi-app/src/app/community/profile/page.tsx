@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import { loadCommunityShellContext } from "@/lib/community/shell-context";
 import { ProfileForm } from "@/components/community/ProfileForm";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -30,22 +31,9 @@ export default async function CommunityProfilePage() {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <header>
-          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: same reason as
-              community/benchmarks/page.tsx's own h2 marker. No matching part. Review-by:
-              SectionHeader lane / operator ruling.) */}
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 22,
-              fontWeight: 400,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              color: "var(--color-text-primary)",
-              margin: 0,
-            }}
-          >
-            Your profile
-          </h2>
+          {/* W10-Masthead (2026-09-22): F49 allow-entry expired (ruling 2026-09-20); replaced with
+              the SectionHeader part, same reasoning across all six /community/* sub-routes. */}
+          <SectionHeader title="Your profile" />
           <p
             style={{
               fontSize: 12,

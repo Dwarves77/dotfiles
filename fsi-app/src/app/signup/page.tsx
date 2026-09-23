@@ -19,6 +19,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { AuthFrame } from "@/components/auth/AuthFrame";
+import { Masthead } from "@/components/ui/Masthead";
+import { formatLocaleDate } from "@/lib/format";
 import {
   AuthTabs,
   AuthField,
@@ -115,6 +117,13 @@ export default function SignupPage() {
   return (
     <AuthFrame>
       <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Amendment 1 ruling 1 (2026-09-22): shared Masthead above the form, same treatment
+            as /login. */}
+        <Masthead
+          size="detail"
+          title="Create account"
+          dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        />
         <AuthTabs active="signup" redirect={redirect} />
 
         {submitted ? (

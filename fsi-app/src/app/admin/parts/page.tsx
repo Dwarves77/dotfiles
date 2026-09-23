@@ -44,6 +44,11 @@ const PARTS: PartEntry[] = [
     name: "SectionHeader",
     summary: "Every S-section head on every detail surface: ordinal + Anton title + right meta, 1px rule under the whole header block, never under the title alone.",
   },
+  {
+    slug: "masthead",
+    name: "Masthead",
+    summary: "The one Masthead part on every route, auth frame included: eyebrow, Anton title (34 list / 28 detail), dek, one command bar.",
+  },
 ];
 
 export default async function AdminPartsIndexPage() {

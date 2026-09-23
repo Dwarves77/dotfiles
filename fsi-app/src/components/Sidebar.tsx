@@ -395,7 +395,15 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
       <aside
         className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
-          width: 252,
+          // STOP 1 fix, coordinator amendment 2, 2026-09-22: no explicit `width: 252` any more.
+          // AppShell.tsx's frame row is now a CSS grid (`gridTemplateColumns: "252px
+          // minmax(0, 1fr)"`), and this aside is that grid's first track. Grid's default
+          // `justify-self: stretch` sizes an `auto`-width item to fill its track MINUS its own
+          // margins, so this card renders its own content box at 252 - 16(marginLeft) - 0 = 236px
+          // while its outer (margin) box still exactly fills the 252px track, the artboard's own
+          // box model (a grid track absorbs its child's margin), not the flex-row leak the prior
+          // fixed `width: 252` produced (252 + 16 margin = 268px consumed from the row, 16px more
+          // than the track, stealing exactly 16px from the content column's share).
           height: "auto",
           // Inline, not a `self-stretch` Tailwind class: the design-audit harness
           // (fsi-app/.discipline/rendering/audit) mounts this component with only

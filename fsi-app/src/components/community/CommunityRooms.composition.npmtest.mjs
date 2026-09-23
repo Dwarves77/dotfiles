@@ -53,7 +53,9 @@ test("the composer is its own NEW POST card, not a control inside the discussion
   assert.doesNotMatch(indexCard, /<textarea/);
   assert.match(SOURCE, /dataAudit="new-post"/);
   assert.match(SOURCE, /title=\{`New post · \$\{roomName\}`\}/);
-  assert.match(SOURCE, /aside=\{`Posts to the \$\{roomName\} room`\}/);
+  // Same stale-assertion class as the empty-state fix above: ROOMS' own `name` already ends in
+  // "room", so a literal trailing " room" here would demand "Posts to the EU room room."
+  assert.match(SOURCE, /aside=\{`Posts to the \$\{roomName\}`\}/);
 });
 
 test("the tiles carry the room NAME, never the 3-char short key", () => {
@@ -106,7 +108,15 @@ test("the empty state and 'Start a discussion' both live in the card FOOT, never
     SOURCE.indexOf('dataAudit="new-post"')
   );
   assert.match(indexCard, /<CardFoot/);
-  assert.match(indexCard, /Be first in the \$\{roomName\} room/);
+  // L10 fix follow-on, coordinator answer 2026-09-23 [CONFIRMED]: this assertion demanded a
+  // literal second "room" after ${roomName} ("Be first in the ${roomName} room"). Every ROOMS
+  // entry's own `name` already ends in "room" (src/lib/community/rooms.ts: "Global room", "EU
+  // room", "United States room", ...), so that pattern would only pass if the rendered sentence
+  // read "Be first in the EU room room." - a duplicated word. CommunityRooms.tsx's actual text
+  // ("Be first in the ${roomName}. No discussions...") avoids the duplication and is correct; this
+  // assertion was stale against the room-name format and had never been execution-wired into
+  // run-test-suite.sh (npmtest.mjs is CI/locked-gate only), so the drift went undetected.
+  assert.match(indexCard, /Be first in the \$\{roomName\}\./);
   assert.match(indexCard, /Start a discussion/);
   // The empty state is the foot's own left text, not a paragraph in the card body.
   const foot = indexCard.slice(indexCard.indexOf("<CardFoot"));

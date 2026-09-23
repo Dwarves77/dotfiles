@@ -9,6 +9,16 @@
  * title (Anton, uppercase, 16px, ellipsis); right: search glyph (44x44),
  * avatar (24px circle, initial, unread dot)."
  *
+ * W10-Masthead (2026-09-22) [CONFIRMED by measurement against the live-site
+ * audit of 2026-09-20, docs/design/parts-brief-2026-09-18.md section 2.4's own
+ * defect note]: the spec's "56px" names the WHOLE bar (band rule + header),
+ * the same way the desktop nav card's cap sits inside its stated height, not
+ * added on top of it. This component previously gave the <header> itself
+ * height 56 while <BandGradientRule/> stacks 3px above it in normal flow, so
+ * the assembly measured 59px, 3px over spec. The header is 53px here so
+ * 3 (band rule) + 53 (header) = 56, matching the artboard total; the 44x44
+ * touch targets (button padding, not the header's own box) are unaffected.
+ *
  * No new nav-item component: the band rule reuses <BandGradientRule/>, the
  * page title reads <Sidebar/>'s own `navTitleForPath` (one route→label
  * table, not a second one), and the hamburger drives the SAME drawer
@@ -71,7 +81,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       <BandGradientRule counts={gradientCounts} />
       <header
         style={{
-          height: 56,
+          height: 53,
           background: "var(--card)",
           borderBottom: "1px solid var(--line-2)",
           display: "flex",

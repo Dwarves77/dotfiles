@@ -7,6 +7,7 @@ import {
   type BrowseRow,
 } from "@/components/community/BrowseGroupsGrid";
 import type { CommunityGroupSummary } from "@/components/community/types";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -168,56 +169,31 @@ export default async function CommunityBrowsePage({
       initialRegion={requestedRegion}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <header
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: same reason as
-                community/benchmarks/page.tsx's own h2 marker. No matching part. Review-by:
-                SectionHeader lane / operator ruling.) */}
-            <h2
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 22,
-                fontWeight: 400,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                color: "var(--color-text-primary)",
-                margin: 0,
-              }}
-            >
-              Browse public groups · {activeRegionLabel}
-            </h2>
-            <p
-              style={{
-                fontSize: 12,
-                color: "var(--color-text-muted)",
-                margin: "4px 0 0",
-              }}
-            >
-              {browseRows.length} public group
-              {browseRows.length === 1 ? "" : "s"} visible. Private groups are
-              invitation-only and appear in your sidebar once you&apos;re a
-              member.
-            </p>
-          </div>
-          {privacyFilter !== "public" && (
-            <span
-              style={{
-                fontSize: 11,
-                color: "var(--color-text-muted)",
-                fontStyle: "italic",
-              }}
-            >
-              Filter: showing public only (private groups require invitation).
-            </span>
-          )}
+        <header>
+          {/* W10-Masthead (2026-09-22): F49 allow-entry expired (ruling 2026-09-20); replaced with
+              the SectionHeader part, same reasoning across all six /community/* sub-routes. The
+              right-aligned filter note moves into SectionHeader's own `meta` slot rather than a
+              second flex row, so this is one header block, not a page-local re-layout of it. */}
+          <SectionHeader
+            title={`Browse public groups · ${activeRegionLabel}`}
+            meta={
+              privacyFilter !== "public"
+                ? "Filter: showing public only (private groups require invitation)."
+                : undefined
+            }
+          />
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--color-text-muted)",
+              margin: "4px 0 0",
+            }}
+          >
+            {browseRows.length} public group
+            {browseRows.length === 1 ? "" : "s"} visible. Private groups are
+            invitation-only and appear in your sidebar once you&apos;re a
+            member.
+          </p>
         </header>
 
         <BrowseGroupsGrid

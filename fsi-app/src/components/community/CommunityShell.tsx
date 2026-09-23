@@ -35,10 +35,12 @@ import {
 } from "react";
 import Link from "next/link";
 import { CommunitySidebar } from "./CommunitySidebar";
-import { CommunityMasthead } from "./CommunityMasthead";
+import { CommunitySearchBar } from "./CommunitySearchBar";
 import { CommunityRegionTabs } from "./CommunityRegionTabs";
 import { CommunitySearchResults } from "./CommunitySearchResults";
 import { Toast } from "@/components/ui/Toast";
+import { Masthead } from "@/components/ui/Masthead";
+import { formatLocaleDate } from "@/lib/format";
 import type {
   CommunityCurrentUser,
   CommunityInvitation,
@@ -115,23 +117,35 @@ export function CommunityShell({
       />
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <CommunityMasthead
-          onSearchSubmit={(query, scope) => {
-            const q = query.trim();
-            if (q.length < 2) {
-              showToast("Type at least 2 characters to search");
-              return;
-            }
-            setSearch({
-              query: q,
-              scope: scope.toLowerCase() as
-                | "all"
-                | "posts"
-                | "groups"
-                | "people",
-            });
-          }}
-        />
+        {/* lane W10-Masthead, amendment 1 ruling 2 (2026-09-22): the shared Masthead part
+            (eyebrow + Anton title + dek), same as every other list surface. The scoped
+            posts/groups/people search below it stays its own control, see
+            CommunitySearchBar.tsx's header for why it is not built on the shared CommandBar. */}
+        <div style={{ padding: "24px 36px 0" }}>
+          <Masthead
+            size="list"
+            title="Community"
+            dek="Regional working groups, public forums, connect with peers across the industry"
+            dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          />
+          <CommunitySearchBar
+            onSearchSubmit={(query, scope) => {
+              const q = query.trim();
+              if (q.length < 2) {
+                showToast("Type at least 2 characters to search");
+                return;
+              }
+              setSearch({
+                query: q,
+                scope: scope.toLowerCase() as
+                  | "all"
+                  | "posts"
+                  | "groups"
+                  | "people",
+              });
+            }}
+          />
+        </div>
         <CommunityRegionTabs
           regions={regions}
           counts={regionCounts}
