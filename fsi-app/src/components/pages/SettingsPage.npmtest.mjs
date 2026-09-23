@@ -36,7 +36,10 @@ test("right column is Briefing schedule, Appearance, Data & supersessions — in
 });
 
 test("the rail cards are the SHARED RailCard, not a page-local card frame", () => {
-  assert.match(SOURCE, /import \{ RailCard \} from "@\/components\/list-surface\/ListSurfaceRailCards"/);
+  // Lane W10-RailCard, 2026-09-22: RailCard's canonical home moved from
+  // list-surface/ListSurfaceRailCards.tsx to the site-wide ui/RailCard.tsx part; every caller,
+  // including this page, now imports the ui part directly.
+  assert.match(SOURCE, /import \{ RailCard \} from "@\/components\/ui\/RailCard"/);
   assert.ok(!/function\s+SettingsRailCard/.test(SOURCE), "a page-local rail card was forked");
 });
 

@@ -40,8 +40,8 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
+import { RailCard } from "@/components/ui/RailCard";
 import {
-  RailCard,
   LegendRailCard,
   CarbonCostRailCard,
   NextDataDropsRailCard,

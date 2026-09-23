@@ -94,7 +94,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
       </span>
     );
     return (
-      <div>
+      <div data-part="stat-block">
         <div
           data-guard-container="stat-tile-row"
           style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}
@@ -165,7 +165,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
 
   if (layout === "row") {
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+      <div data-part="stat-block" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
         <span style={{ minWidth: 0 }}>
           {label_}
           {note_}
@@ -176,7 +176,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
   }
 
   return (
-    <div>
+    <div data-part="stat-block">
       {label_}
       <div style={{ margin: "4px 0 0" }}>{numeral}</div>
       {note_}

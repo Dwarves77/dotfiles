@@ -14,16 +14,22 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-// UPDATED (fold 62, 2026-09-08): the rule is not mounted here any more, and that is the fix.
-// Lane cardrule made it a property of the card (operator item A1), so this rail card renders the
-// shared `SectionCard`, which mounts the rule unconditionally along with the border, the radius
-// and the shadow this card used to omit. Asserting a local `<SectionRule/>` would now assert the
-// structure the operator ruled wrong; asserting the card is the shared one is strictly stronger,
-// because a card that cannot be built without its rule cannot lose it.
-test("the card is the shared SectionCard, which mounts ruling 5.1's rule for it", () => {
-  assert.match(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard"/);
+// UPDATED (lane W10-RailCard, 2026-09-22): this rail moved from mounting `SectionCard` directly
+// (fold 62, 2026-09-08) onto the shared `RailCard` part (`src/components/ui/RailCard.tsx`), which
+// is itself built on `SectionCard`. Ruling 5.1's rule, border, radius and shadow are still
+// guaranteed by construction, one level further removed. `RailCard`'s own shell contract is tested
+// in `RailCard.npmtest.mjs`; this file's responsibility is that AdminIssuesRail consumes the part
+// (never a local SectionCard/SectionRule copy) and passes the computed total through `headRight`.
+test("the card is the shared RailCard part, never a local SectionCard/SectionRule copy", () => {
+  assert.match(SOURCE, /import \{ RailCard \} from "@\/components\/ui\/RailCard"/);
+  assert.doesNotMatch(SOURCE, /import \{ SectionCard \}/);
   assert.doesNotMatch(SOURCE, /import \{ SectionRule \}/);
-  assert.match(SOURCE, /<SectionCard dataAudit="rail-card"/);
+  assert.match(SOURCE, /<RailCard title="Issues queue" dataAudit="rail-card" headRight=\{totalBadge\} style=\{\{ minWidth: 0 \}\}>/);
+});
+
+test("the computed total badge is passed through RailCard's headRight slot, not a hand-rolled header row", () => {
+  assert.match(SOURCE, /const totalBadge = \(/);
+  assert.doesNotMatch(SOURCE, /<h2\b/, "the title is RailCard's own <p>, not a locally-typed <h2>");
 });
 
 test("no wrong-direction border-bottom divider under the title (the exact bug ruling 4.1/5.1 removes)", () => {

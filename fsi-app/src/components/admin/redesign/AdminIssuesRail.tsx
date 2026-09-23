@@ -21,7 +21,7 @@
 
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber } from "@/lib/format";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { RailCard } from "@/components/ui/RailCard";
 
 export interface IssueNavTarget {
   section: string;
@@ -118,77 +118,53 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
   // binding invariant: the badge equals its list, always.
   const total = rows.reduce((t, r) => t + r.count, 0);
 
+  const totalBadge = (
+    <span
+      aria-label={`${formatNumber(total)} items need attention`}
+      style={{
+        fontFamily: "var(--font-display)",
+        fontSize: 18,
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+        color: total > 0 ? "var(--sev-critical)" : "var(--ink-3)",
+      }}
+    >
+      {formatNumber(total)}
+    </span>
+  );
+
   return (
-    // Operator item A1 (2026-09-08): the admin rail card ("Coverage gaps (critical)" among its
-    // rows) is the shared `SectionCard`, which owns the rule, the border, the radius and the
-    // shadow. Ruling 5.1 unchanged: rule above the title, no divider below it.
-    <SectionCard dataAudit="rail-card" style={{ minWidth: 0 }}>
-      {/* Admin spacing pass (task 7.5 item 4, 2026-09-12): one consistent 8pt inner padding across
-          the right rail's three cards (this one, WorkspacesUsageRow's rail form, and
-          ReadOnlyControlsCard); was an asymmetric off-grid "12px 16px 14px" here. */}
-      <div style={{ padding: "16px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: 8,
-            gap: 12,
-          }}
-        >
-          <h2
-            style={{
-              fontSize: 10.5,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              fontWeight: 700,
-              margin: 0,
-              color: "var(--ink-3)",
-            }}
-          >
-            Issues queue
-          </h2>
-          <span
-            aria-label={`${formatNumber(total)} items need attention`}
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 18,
-              lineHeight: 1,
-              fontVariantNumeric: "tabular-nums",
-              color: total > 0 ? "var(--sev-critical)" : "var(--ink-3)",
-            }}
-          >
-            {formatNumber(total)}
-          </span>
-        </div>
-
-        {/* Lane adminlayout (2026-09-08), the operator's item 5: "Issues queue rows are 11 rows
-            tall at ~40px, design is 24px rows with the count right-aligned tabular; zero rows
-            muted." The rows were ~40px because each title WRAPPED to two lines in the 300px rail
-            and carried 8px of gap on top of that. The title is now one line at 24px with the
-            count right-aligned and tabular beside it, and the list gap is gone (each row's own
-            hairline is the separation). */}
-        <div style={{ display: "flex", flexDirection: "column", fontSize: 12 }}>
-          {rows.map((r) => (
-            <RailButton key={r.key} row={r} onNavigate={onNavigate} />
-          ))}
-        </div>
-
-        <p
-          style={{
-            fontSize: 10.5,
-            color: "var(--ink-3)",
-            margin: "8px 0 0",
-          }}
-        >
-          {error
-            ? "Refresh error — showing last snapshot."
-            : loading && !counts
-              ? "Loading queue…"
-              : "Refreshes every 60s · zero-count rows stay quiet — a zero is a fact, not an alarm."}
-        </p>
+    // Lane W10-RailCard, 2026-09-22: the shared `RailCard` part (its `headRight` slot carries the
+    // computed total badge). Operator item A1 (2026-09-08) is unchanged in substance: the shell
+    // is still the shared card shell that owns the rule, border, radius and shadow; it is simply
+    // no longer a hand-rolled copy of that shell.
+    <RailCard title="Issues queue" dataAudit="rail-card" headRight={totalBadge} style={{ minWidth: 0 }}>
+      {/* Lane adminlayout (2026-09-08), the operator's item 5: "Issues queue rows are 11 rows
+          tall at ~40px, design is 24px rows with the count right-aligned tabular; zero rows
+          muted." The rows were ~40px because each title WRAPPED to two lines in the 300px rail
+          and carried 8px of gap on top of that. The title is now one line at 24px with the
+          count right-aligned and tabular beside it, and the list gap is gone (each row's own
+          hairline is the separation). */}
+      <div style={{ display: "flex", flexDirection: "column", fontSize: 12 }}>
+        {rows.map((r) => (
+          <RailButton key={r.key} row={r} onNavigate={onNavigate} />
+        ))}
       </div>
-    </SectionCard>
+
+      <p
+        style={{
+          fontSize: 10.5,
+          color: "var(--ink-3)",
+          margin: "8px 0 0",
+        }}
+      >
+        {error
+          ? "Refresh error — showing last snapshot." // glyph:verbatim
+          : loading && !counts
+            ? "Loading queue…"
+            : "Refreshes every 60s · zero-count rows stay quiet — a zero is a fact, not an alarm."} {/* glyph:verbatim */}
+      </p>
+    </RailCard>
   );
 }
 

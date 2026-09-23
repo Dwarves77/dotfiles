@@ -13,6 +13,7 @@
  */
 
 import { SectionCard } from "@/components/ui/SectionCard";
+import { StatBlock } from "@/components/ui/StatBlock";
 import { useMemo } from "react";
 import { memberDisplayName } from "@/lib/admin/member-display-name";
 import { formatLocaleDate } from "@/lib/format";
@@ -133,86 +134,94 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
     ? [memberDisplayName(derived.newest), derived.newest.role].filter(Boolean).join(" · ")
     : "no joins yet";
 
-  // dc.html p13's rail card: one bordered card, 2x2 inside, 26px figures, no
-  // per-tile border. The row layout keeps four separate bordered cards.
+  // dc.html p13's rail card: one bordered card, 2x2 inside, 26px figures, no per-tile border. The
+  // row layout keeps four separate bordered cards and "stays exactly as it is" (operator item A1,
+  // 2026-09-08): untouched by lane W10-RailCard/StatBlock below.
   const rail = layout === "rail";
-  const cell: React.CSSProperties = rail ? { display: "grid", gap: 2 } : CARD;
-  const figure: React.CSSProperties = rail ? { ...FIGURE, fontSize: 26 } : FIGURE;
-  const eyebrow: React.CSSProperties = rail ? { ...EYEBROW, fontSize: 10, margin: 0 } : EYEBROW;
-  const sub: React.CSSProperties = rail ? { ...SUB, fontSize: 10.5, margin: 0 } : SUB;
 
-  // Operator item A1 (2026-09-08): the RAIL form of this block is a card, so it is the shared
-  // `SectionCard`; it had no rule and no shadow. The non-rail form is a bare 4-column grid inside
-  // another card, not a card of its own, and stays exactly as it is.
+  if (rail) {
+    // Lane W10-RailCard, 2026-09-22: the rail form's four cells (eyebrow / 26px Anton figure / note)
+    // are exactly StatBlock's `layout="stack"` shape (label / Anton numeral / note). StatBlock's
+    // stack numeral is 26px by construction, the same size this file used to hand-type only for the
+    // rail branch. Reuse-before-construction: no new component, the existing shared part fits
+    // without adaptation. The row (non-rail) form's 30px figure does NOT match StatBlock's fixed 26px
+    // and is unrelated to "rail" in the RailCard/StatBlock sense, so it is untouched (see above).
+    return (
+      <SectionCard padding="16px" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <StatBlock label="Companies" value={derived.companies} note={companiesSub} />
+        <StatBlock label="Individuals" value={derived.individuals} note={individualsSub} />
+        {/* dc.html p13 draws every figure in this card in ink, "May 28" included: a join date is
+            not a severity, and the green it used to render in was the only coloured numeral on
+            the artboard that the artboard does not colour (lane admin60, 2026-09-08). Lane UI-75
+            (RD-67/F42, layout-guard L7): a join date is a DATE STRING, not a count or numeral, and
+            is not in the operator's Anton allowlist, so StatBlock's own Anton numeral treatment is
+            wrong for this cell specifically: it stays the body face via a plain <p>, matching the
+            other tiles' geometry (26px figure line) without StatBlock's fixed Anton font. */}
+        <div style={{ display: "grid", gap: 2 }}>
+          <p style={{ ...EYEBROW, fontSize: 10, margin: 0 }}>Newest join</p>
+          {newestLabel ? (
+            <p style={{ ...FIGURE, fontSize: 26, fontFamily: "var(--font-sans)" }}>{newestLabel}</p>
+          ) : (
+            <p style={{ ...FIGURE, fontSize: 26, fontFamily: "var(--font-sans)", color: "var(--text-2)" }}>—</p> // glyph:verbatim
+          )}
+          <p style={{ ...SUB, fontSize: 10.5, margin: 0 }}>{newestSub}</p>
+        </div>
+        {/* Active this month, HONEST-PENDING (section 4): per-org activity events are known new backend
+            (section 7). The rail form carries no dashed frame of its own (only the non-rail form does),
+            so StatBlock's plain stack fits unmodified; the em-dash and the "populates when..." note
+            already say honest-pending, per the file's original comment. */}
+        <StatBlock label="Active this month" value="—" note="populates when per-org activity events ship" /> {/* glyph:verbatim */}
+      </SectionCard>
+    );
+  }
+
   const cells = (
     <>
       {/* Companies */}
-      <div style={cell}>
-        <p style={eyebrow}>Companies</p>
-        <p style={figure}>{derived.companies}</p>
-        <p style={sub}>{companiesSub}</p>
+      <div style={CARD}>
+        <p style={EYEBROW}>Companies</p>
+        <p style={FIGURE}>{derived.companies}</p>
+        <p style={SUB}>{companiesSub}</p>
       </div>
 
       {/* Individuals */}
-      <div style={cell}>
-        <p style={eyebrow}>Individuals</p>
-        <p style={figure}>{derived.individuals}</p>
-        <p style={sub}>{individualsSub}</p>
+      <div style={CARD}>
+        <p style={EYEBROW}>Individuals</p>
+        <p style={FIGURE}>{derived.individuals}</p>
+        <p style={SUB}>{individualsSub}</p>
       </div>
 
       {/* Newest join */}
-      <div style={cell}>
-        <p style={eyebrow}>Newest join</p>
-        {/* dc.html p13 draws every figure in this card in ink, "May 28" included:
-            a join date is not a severity, and the green it used to render in was
-            the only coloured numeral on the artboard that the artboard does not
-            colour (lane admin60, 2026-09-08). Lane UI-75 (RD-67/F42, layout-guard
-            L7): a join date is a DATE STRING, not a count or numeral, and is not
-            in the operator's Anton allowlist (page-title, card-title,
-            band-tile-numeral, stat-block-numeral, headline-figure,
-            timeline-callout, matrix-cell-score, matrix-fact-figure,
-            nav-wordmark), so the allowlist is never grown to fit a finding, and this
-            one element renders in the body face instead, same size and weight
-            treatment as the other tiles' figures. */}
+      <div style={CARD}>
+        <p style={EYEBROW}>Newest join</p>
         {newestLabel ? (
-          <p style={{ ...figure, fontFamily: "var(--font-sans)" }}>{newestLabel}</p>
+          <p style={{ ...FIGURE, fontFamily: "var(--font-sans)" }}>{newestLabel}</p>
         ) : (
-          <p style={{ ...figure, fontFamily: "var(--font-sans)", color: "var(--text-2)" }}>—</p> // glyph:verbatim
+          <p style={{ ...FIGURE, fontFamily: "var(--font-sans)", color: "var(--text-2)" }}>—</p> // glyph:verbatim
         )}
-        <p style={sub}>{newestSub}</p>
+        <p style={SUB}>{newestSub}</p>
       </div>
 
       {/* Active this month — HONEST-PENDING (§4): per-org activity events are
           known new backend (§7). Dashed frame, brass eyebrow, em-dash. */}
       <div
-        style={
-          rail
-            ? cell
-            : {
-                ...CARD,
-                border: "1px dashed var(--color-border-strong)",
-                background: "var(--color-background)",
-              }
-        }
+        style={{
+          ...CARD,
+          border: "1px dashed var(--color-border-strong)",
+          background: "var(--color-background)",
+        }}
       >
         {/* Same: the artboard's eyebrows are all --ink-3. The brass marked this
             as the honest-pending tile, which its own em-dash figure and its
             "populates when per-org activity events ship" sub already say. */}
-        <p style={eyebrow}>Active this month</p>
-        <p style={{ ...figure, color: "var(--text-2)" }}>—</p>
-        <p style={sub}>populates when per-org activity events ship</p>
+        <p style={EYEBROW}>Active this month</p>
+        <p style={{ ...FIGURE, color: "var(--text-2)" }}>—</p> {/* glyph:verbatim */}
+        <p style={SUB}>populates when per-org activity events ship</p>
       </div>
     </>
   );
 
-  // Admin spacing pass (task 7.5 item 4, 2026-09-12): 8pt-grid padding + gap (rail form was
-  // "14px 16px" / gap 14; row form's gap was 12) so the rail's three cards (this one, AdminIssuesRail,
-  // ReadOnlyControlsCard) share one inner-padding value and the whole admin surface shares one gap unit.
-  return rail ? (
-    <SectionCard padding="16px" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      {cells}
-    </SectionCard>
-  ) : (
+  return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, margin: "0 0 14px" }}>{cells}</div>
   );
 }
