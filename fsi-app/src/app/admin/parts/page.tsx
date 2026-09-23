@@ -49,6 +49,11 @@ const PARTS: PartEntry[] = [
     name: "Masthead",
     summary: "The one Masthead part on every route, auth frame included: eyebrow, Anton title (34 list / 28 detail), dek, one command bar.",
   },
+  {
+    slug: "command-bar",
+    name: "CommandBar",
+    summary: "The one search/ask control (lane W10-CommandBar #769): typing searches inline, Enter opens results, Ask sends the same text to the assistant. One bar, no toggle.",
+  },
 ];
 
 export default async function AdminPartsIndexPage() {
