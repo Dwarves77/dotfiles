@@ -53,6 +53,7 @@ export function StateNote({ band, children, action }: StateNoteProps) {
   const bg = band ? band.tintCssVar : "var(--tag)";
   return (
     <div
+      data-part="state-note"
       style={{
         display: "flex",
         alignItems: "center",

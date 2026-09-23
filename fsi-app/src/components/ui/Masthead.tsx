@@ -22,6 +22,7 @@
 import type { ReactNode } from "react";
 import { CommandBar } from "@/components/ui/CommandBar";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { StateNote } from "@/components/ui/StateNote";
 import { nowFrom } from "@/lib/render-now";
 
 const EDITORIAL_VOLUME = "IV";
@@ -220,31 +221,19 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
       </div>
       </div>
       {notice && (
-        <div
-          style={{
-            margin: "0 16px 16px",
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 12,
-            alignItems: "center",
-            padding: "9px 12px",
-            borderLeft: "3px solid var(--ink-3)",
-            background: "var(--color-surface-overlay)",
-            borderRadius: "0 6px 6px 0",
-          }}
-        >
-          <span style={{ fontSize: "12.5px" }}>{notice.text}</span>
-          {/* DEFECT 5, lane opsclip (train 61, 2026-09-08). This link used to fall back to a bare
-              hash when no target was given, which produced the only hash-href anchor in the whole
-              product: /settings' "See audit log", which the click-through proved dead (clicking
-              appends the hash to the URL and does nothing else). Ruling 1.1's class is that a dead
-              control is a defect, so the fallback is gone, a notice with no target renders NO
-              link, and a label can never again be shipped as a control that does nothing. */}
-          {notice.linkLabel && notice.linkHref && (
-            <a href={notice.linkHref} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
-              {notice.linkLabel}
-            </a>
-          )}
+        // W10-StateNote (2026-09-23): this was a hand-typed duplicate of StateNote's own shape
+        // (border-left 3px solid; radius 0 6px 6px 0; padding 9px 12px), one home now. DEFECT 5,
+        // lane opsclip (train 61, 2026-09-08), stays true through the swap: this link used to fall
+        // back to a bare hash when no target was given, which produced the only hash-href anchor
+        // in the whole product (/settings' "See audit log"), which the click-through proved dead.
+        // Ruling 1.1's class is that a dead control is a defect, so the fallback stays gone. The
+        // action prop is passed only when both linkLabel and linkHref exist.
+        <div style={{ margin: "0 16px 16px" }}>
+          <StateNote
+            action={notice.linkLabel && notice.linkHref ? { label: notice.linkLabel, href: notice.linkHref } : undefined}
+          >
+            {notice.text}
+          </StateNote>
         </div>
       )}
     </SectionCard>
