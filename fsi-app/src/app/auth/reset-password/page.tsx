@@ -18,6 +18,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
 import { AuthFrame } from "@/components/auth/AuthFrame";
 import { AuthField, AuthErrorBanner, AUTH_INPUT_STYLE } from "@/components/auth/AuthPanel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
@@ -46,13 +47,12 @@ export default function ResetPasswordPage() {
     <AuthFrame>
       <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
-          {/* fitness-allow: F49 (case not drawn, lane w10a 2026-09-18: inventory's Anton grep missed
-              this var(--font-display) h1. SectionHeading does not match: fixed 20px, padded, inline
-              aside, not a bare 22px title over a block <p>. No matching part. Review-by: SectionHeader
-              lane / operator ruling on auth-page scope, docs/design/parts-inventory.md case 4.) */}
-          <h1 style={{ fontFamily: "var(--font-display)", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 22, color: "var(--ink)", margin: 0 }}>
-            Reset your password
-          </h1>
+          {/* W10-Masthead (2026-09-22): the F49 allow-entry expired with this lane (ruling
+              2026-09-20, "Anton allow-entries expire with the Masthead lane, no extension").
+              SectionHeader (lane W10-SectionHeader, merged ahead of this one) is now the matching
+              part for a bare Anton title with no rule under it; the description stays a plain <p>
+              below, which F49 never flagged (no card-shell/chip/state-note literal on it). */}
+          <SectionHeader title="Reset your password" />
           <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6 }}>
             We&apos;ll email you a link to set a new password.
           </p>

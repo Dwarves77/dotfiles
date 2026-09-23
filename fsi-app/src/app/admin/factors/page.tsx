@@ -12,6 +12,10 @@
  *     for the RLS-scoped read (emission_factors + data_sources both grant SELECT TO authenticated —
  *     migration 258 — so the platform-admin's own session reads without a service-role key).
  *   - src/components/admin/AdminDashboard.tsx's `<PageMasthead eyebrow title meta />` header block.
+ *     W10-Masthead (2026-09-22): this route now composes the shared `<Masthead/>`
+ *     (src/components/ui/Masthead.tsx) instead of the page-local `<PageMasthead/>`, one Masthead
+ *     part on every route, per the site-wide parts brief section 2.4. `AdminDashboard.tsx` (a
+ *     shared component under `src/components/admin/**`, out of this route's write set) is unchanged.
  *   - src/components/admin/ErrorGroupsView.tsx's read-only table shape: `var(--surface)` /
  *     `var(--color-border)` card, uppercase 10.5px column heads, dashed-border empty state. This page
  *     inlines the same shape rather than adding a new shared component, matching WO-18's write set
@@ -23,8 +27,9 @@
  */
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
-import { PageMasthead } from "@/components/shell/PageMasthead";
-import { formatDate } from "@/lib/format";
+import { Masthead } from "@/components/ui/Masthead";
+import { formatDate, formatLocaleDate } from "@/lib/format";
+import { nowFrom, renderNowIso } from "@/lib/render-now";
 
 interface FactorRow {
   factor_id: string;
@@ -100,12 +105,17 @@ export default async function AdminFactorsPage() {
   const live = rows.filter((r) => !r.superseded_by);
   const superseded = rows.length - live.length;
 
+  const nowIso = renderNowIso();
+
   return (
     <>
-      <PageMasthead
-        eyebrow="Platform admin · emission factors"
+      <Masthead
         title="Emission factors"
-        meta={
+        size="list"
+        dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+        nowIso={nowIso}
+        eyebrowSuffix="Platform admin · emission factors"
+        dek={
           error
             ? "Could not read emission_factors — see server log."
             : `${rows.length} row${rows.length === 1 ? "" : "s"} · ${live.length} live` +
