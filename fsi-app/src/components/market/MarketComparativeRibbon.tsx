@@ -75,6 +75,7 @@
  * it, so the token is the vocabulary's own "pending" in p4's type treatment.
  */
 
+import Link from "next/link";
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
 import { selectHeadlineSeries } from "@/lib/market/headline-series-select.mjs";
@@ -221,9 +222,11 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
               not the number of series; the denominator is every observed series. */}
           {formatNumber(selection.familiesShown)} of {formatNumber(selection.totalSeries)} · dated,
           sourced observations ·{" "}
-          <a href="#market-series-board" style={{ color: "inherit", textDecoration: "underline" }}>
+          {/* Lane W10-NavCard (2026-09-23, bundle ruling 6): was `#market-series-board`, an in-page
+              anchor to a section removed from this page in the same lane; now the standalone route. */}
+          <Link href="/market/series" style={{ color: "inherit", textDecoration: "underline" }}>
             Series board →
-          </a>
+          </Link>
         </span>
       </div>
 

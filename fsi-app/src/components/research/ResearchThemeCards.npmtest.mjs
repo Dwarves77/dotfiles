@@ -27,22 +27,24 @@ test("the four descriptions the artboard states are the taxonomy's, verbatim", (
   assert.match(TAXONOMY, /CSRD omnibus, ISSB S2, emerging frameworks\./);
 });
 
-test("a theme the artboard gives no description renders the head row alone, never invented copy", () => {
-  assert.match(SOURCE, /\{description && \(/);
+test("a theme with no description is never invented copy; the description carries as a native tooltip", () => {
+  assert.match(SOURCE, /title=\{description\}/);
 });
 
-test("each card is a real control with a 44px hit target and a pressed state, not a decorative tile", () => {
+test("each pill is a real control with a pressed state and law-2's 24px+8px-clearance alternative, not a decorative tile", () => {
   assert.match(SOURCE, /type="button"/);
   assert.match(SOURCE, /aria-pressed=\{isSelected\}/);
-  assert.match(SOURCE, /minHeight: 44/);
+  assert.match(SOURCE, /minHeight: 36/);
+  assert.match(SOURCE, /gap: 8/);
 });
 
-test("clicking the selected card clears the theme (the facet is a toggle, like every other facet)", () => {
+test("clicking the selected pill clears the theme (the facet is a toggle, like every other facet)", () => {
   assert.match(SOURCE, /onClick=\{\(\) => onSelect\(isSelected \? null : theme\.key\)\}/);
 });
 
-test("the artboard's four-across grid and its selected-border value", () => {
-  assert.match(SOURCE, /gridTemplateColumns: "repeat\(4, 1fr\)"/);
+test("fixed lane W10-NavCard 2026-09-23: a wrapping facet row, not a tile grid, and the selected-border value carries over", () => {
+  assert.match(SOURCE, /display: "flex", flexWrap: "wrap"/);
+  assert.doesNotMatch(SOURCE, /gridTemplateColumns: "repeat/);
   assert.match(SOURCE, /isSelected \? "var\(--brand\)" : "var\(--line-1\)"/);
 });
 

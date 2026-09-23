@@ -9,12 +9,15 @@
  *   - <MarketIntelLedger> — five severity tiles → three-band strip → Ask bar
  *     → severity-banded signal ledger (HANDOFF §6.4). Reuses the TEMPLATE 02
  *     index archetype.
- *   - <MarketSeriesBoard> — WO-16 layer 3: the missing reader for `market_series`, a
- *     different table from the intelligence-item rows above (dated numeric observations —
- *     EU oil bulletin product prices, EEX/ECB/EIA once built — not signal cards). Grouped
- *     by registry producer (src/lib/market/series-registry.mjs) via the pure
- *     buildSeriesBoard transform (src/lib/market/series-board-view-model.mjs); renders the
- *     honest "registered, not yet populated" state per producer instead of a blank hole.
+ *   - Series board (`market_series`, WO-16 layer 3): a different table from the
+ *     intelligence-item rows above (dated numeric observations, EU oil bulletin product
+ *     prices, EEX/ECB/EIA once built, not signal cards), grouped by registry producer
+ *     (src/lib/market/series-registry.mjs) via the pure buildSeriesBoard transform
+ *     (src/lib/market/series-board-view-model.mjs). MOVED off this page (lane W10-NavCard,
+ *     2026-09-23, bundle ruling 6) to its own route, `src/app/market/series/page.tsx`. This
+ *     page still runs `fetchMarketSeriesBoard()` (below) because MarketIntelLedger's
+ *     `headlineSeries`/`carbonCorridors` props still need the result; only the standalone
+ *     MarketSeriesBoard render is gone from here.
  *
  * COUNTS (binding — THE severity card-swap): the tiles read
  * get_surface_counts('market').by_severity, the band strip reads .by_band,
@@ -45,7 +48,6 @@ import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { renderNowIso } from "@/lib/render-now";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
-import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
 // Carbon cost per FEU overlay (spec 02 §6 item 3, lane CORR, 2026-09-02): "the single most defensible
 // 'only we do this' component available to us." No fetch lives in CarbonCostOverlay itself (CORR write
@@ -214,10 +216,14 @@ export default async function Market() {
       {/* PERF-10 (2026-09-04): watchMembership is null — no per-viewer batch read runs on this page at
           all (see this file's header); each row's WatchButton resolves its own watch state
           client-side instead of arriving pre-seeded. */}
-      {/* id target for the embedded Headline series card's "Series board →" link above. */}
-      <div id="market-series-board">
-        <MarketSeriesBoard board={seriesBoard} watchMembership={null} nowIso={renderNowIso()} />
-      </div>
+      {/* The Series board no longer renders inline here (lane W10-NavCard, 2026-09-23, bundle
+          ruling 6 + parts-brief 2.15 PAGE SCOPE: "Series board → /market/series"). It moved to its
+          own route, src/app/market/series/page.tsx, which fetches the identical
+          fetchMarketSeriesBoard() result. MarketComparativeRibbon's "Series board →" link (below,
+          via the `headlineSeries` prop above) now points at that route instead of the
+          `#market-series-board` in-page anchor. `seriesBoard` itself stays fetched on THIS page
+          (Promise.all above) because MarketIntelLedger's `headlineSeries`/`carbonCorridors` props
+          still need it; only the standalone board render is gone. */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p
           style={{
