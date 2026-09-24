@@ -94,6 +94,20 @@ export const REQUIRED_FONT_CHECKS = [
 // `document.fonts` for the family+weight before trusting `check()`'s answer.
 export async function assertFontsReady(page) {
   await page.addStyleTag({ content: fontFaceCss() });
+  return verifyFontsLoaded(page);
+}
+
+// The same confirmation WITHOUT injecting anything (lane MASTHEAD-AUTH, 2026-09-24, RD-82): it
+// asks whether the stylesheet the page ALREADY carries declared and loaded every required face.
+// The layout guard and the auth page leg mount through `fullAppCssCompiled()`, which does carry
+// `fontFaceCss()`, but neither ever checked that the faces resolved before measuring, so a change
+// that dropped the declarations from that stylesheet would have measured every title in a fallback
+// face and still passed. `assertFontsReady` injects first and so can never see that; this is the
+// precondition that can, and its attack test (rd-82-title-words.npmtest.mjs) mounts a page whose
+// CSS lacks the declarations and requires it to fail. `document.fonts.load()` here loads only what
+// the page itself declared: with no @font-face for a family it resolves to nothing, the registered
+// check below finds no loaded FontFace, and the spec is reported.
+export async function verifyFontsLoaded(page) {
   return page.evaluate(async (checks) => {
     await Promise.all(checks.map((spec) => document.fonts.load(spec)));
     await document.fonts.ready;

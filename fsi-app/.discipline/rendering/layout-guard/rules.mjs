@@ -13,13 +13,13 @@
 //                    extended here to every pair of layout boxes on the page, with the exclusion
 //                    set L2 needs), L9 (ux-assert detectSmallTargets is the law-2 mobile floor;
 //                    the operator's L9 is a different, site-wide floor and reuses boxGap).
-//   NEW              L1, L4, L5, L6, L7, L8, L10, L12.
+//   NEW              L1, L4, L5, L6, L7, L8, L10, L12; L13 (RD-82, lane MASTHEAD-AUTH, 2026-09-24).
 //
 // A FINDING NEVER SAYS ONLY "FAILED". Every finding carries `rule`, `route`, `width`, `element`
 // (what was measured) and `measured` (the numbers), because the operator's closing instruction was
 // exactly that: "a guard that says only 'failed' costs more than it saves".
 
-import { boxGap } from '../ux-assert.mjs';
+import { boxGap, detectWordBrokenTitles } from '../ux-assert.mjs';
 import { LAW2_DESKTOP_EXEMPTIONS, activeLaw2Exemptions } from '../exemptions-law2-desktop.mjs';
 import { latestTrainWave } from '../../fitness/functions/F25-module-liveness.mjs';
 import {
@@ -485,7 +485,24 @@ export function checkL12(m) {
   return out;
 }
 
-export const RULE_IDS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12'];
+/**
+ * L13 NO TITLE BREAKS INSIDE A WORD. NEW (RD-82, lane MASTHEAD-AUTH, 2026-09-24). A heading or
+ * marked title whose content box is narrower than the rendered width of its longest word must
+ * break that word; the operator saw it on /login, "SIGN IN" one letter per line, after two green
+ * guard runs. None of L1-L12 measured a title against its own words: L11 reads overflow (a title
+ * that breaks has none), and ux-assert's squeezed-title ratio runs only in the UX smoke slot. The
+ * detector is ux-assert.mjs's `detectWordBrokenTitles`, CALLED here rather than restated (the L11
+ * precedent), so the site-wide guard and the UX slot hold one definition. Its word widths are
+ * measured in each element's own computed font, which is why the runner refuses to measure a page
+ * whose declared faces did not load (see run-layout-guard.mjs, the RD-82 precondition).
+ */
+export function checkL13(m) {
+  return detectWordBrokenTitles(m.titleWords || []).map((t) =>
+    finding('L13', m, t.name, `content box ${px(t.contentWidth)}px < longest word "${t.word}" ${px(t.longestWordWidth)}px`,
+      'a heading or title is narrower than its longest word, so it breaks inside the word'));
+}
+
+export const RULE_IDS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12', 'L13'];
 
 /** Provenance, reported by the runner so the table always says which rules were new. */
 export const RULE_PROVENANCE = {
@@ -501,6 +518,7 @@ export const RULE_PROVENANCE = {
   L10: 'new',
   L11: 'already covered (ux-assert detectClippedText, lane opsclip) - called, not restated',
   L12: 'new',
+  L13: 'new (RD-82: a heading or title narrower than its longest word; detector shared with ux-assert)',
 };
 
 /** Run every rule over one measurement bundle. */
@@ -518,5 +536,6 @@ export function checkAll(m, { manifest = null, deviations = [], detectClippedTex
     ...checkL10(m, manifest, deviations),
     ...checkL11(m, detectClippedText),
     ...checkL12(m),
+    ...checkL13(m),
   ];
 }

@@ -60,7 +60,28 @@ export function AuthFrame({ children }: { children: ReactNode }) {
         padding: "16px 0",
       }}
     >
+      {/* PHONE WIDTH (lane MASTHEAD-AUTH, 2026-09-24). Below 768 the frame is ONE column, the
+          README's own rule for every surface ("Below 768 the layout is one column", handoff
+          2026-09-07 section 0.3; "375 must not clip", Mobile 390). The two-track split had no
+          narrow form: at 375 the identity panel's min-content (393px: 56px padding either side of
+          the nowrap band legend) took the first track and the sign-in panel the second, starting
+          at x=393, so the frame's own overflow:hidden clipped the whole form off a 375px screen
+          [CONFIRMED live on carosledge.com /login and /signup, logged out, 2026-09-24: tracks
+          "393.094px 96px", every input past the right edge]. The form panel leads the single
+          column (ux-laws 1 and 9: the reader's one goal on these routes is the form, so it comes
+          first; the identity mark and the disclaimer follow it), the frame drops its 900px desktop
+          artboard height, and both panels take the mobile spec's 16px side gutter. 768 and up is
+          unchanged. The <style> sits here, outside the grid, so the grid's own children (and the
+          design audit's structural selectors on them) are untouched. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-auth-frame { grid-template-columns: minmax(0, 1fr) !important; min-height: 0 !important; }
+          .cl-auth-identity { order: 2; padding: 28px 16px !important; border-right: 0 !important; border-top: 1px solid var(--line-1); gap: 24px; }
+          .cl-auth-panel { order: 1; padding: 24px 16px !important; }
+        }
+      `}</style>
       <div
+        className="cl-auth-frame"
         style={{
           width: 1440,
           maxWidth: "100%",
@@ -75,6 +96,7 @@ export function AuthFrame({ children }: { children: ReactNode }) {
       >
         {/* Identity panel — identical on every logged-out/setup route. */}
         <div
+          className="cl-auth-identity"
           style={{
             background: "var(--card)",
             borderRight: "1px solid var(--line-1)",
@@ -211,6 +233,7 @@ export function AuthFrame({ children }: { children: ReactNode }) {
 
         {/* Right panel — caller content (form, wizard step, ...). */}
         <div
+          className="cl-auth-panel"
           style={{
             display: "flex",
             alignItems: "center",

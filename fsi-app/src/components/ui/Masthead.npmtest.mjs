@@ -32,6 +32,23 @@ test("at 1440 the row is dc.html's own grid", () => {
   assert.match(rule, /gap: 10px 24px !important;/);
 });
 
+// Lane MASTHEAD-AUTH (2026-09-24): the 1440 grid reserves the command bar's 420px column, so it
+// applies only to a masthead that renders a bar. Unscoped, it left the auth frame's title track at
+// 0px (a 330px row minus 24 gap minus 420) and "SIGN IN" broke one letter per line; measured and
+// guarded by the rendering guard's L13 (RD-82). A masthead with no bar keeps the flex row at every
+// width, so its title takes the whole row.
+test("the 1440 grid applies only to a masthead that renders a command bar", () => {
+  const rule = SOURCE.slice(SOURCE.indexOf("@media (min-width: 1440px)"), SOURCE.indexOf("`}</style>"));
+  for (const part of ["cl-masthead-row", "cl-masthead-titleblock", "cl-masthead-cmdbar"]) {
+    assert.match(rule, new RegExp(`\\.cl-masthead\\[data-masthead-cmdbar\\] \\.${part} \\{`));
+    assert.doesNotMatch(rule, new RegExp(`\\.cl-masthead \\.${part} \\{`));
+  }
+  assert.match(
+    SOURCE,
+    /dataAttributes=\{commandBar \? \{ "data-masthead-size": size, "data-masthead-cmdbar": "" \} : \{ "data-masthead-size": size \}\}/,
+  );
+});
+
 test("below 1440 the row keeps the flex behaviour it already had", () => {
   assert.match(
     SOURCE,

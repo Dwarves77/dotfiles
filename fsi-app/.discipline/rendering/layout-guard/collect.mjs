@@ -11,9 +11,10 @@
 // nobody remembered to mark, which is where the defects are.
 
 import { RENDERED_TEXT_SRC } from '../browser/rendered-text.mjs';
+import { TITLE_WORDS_SRC, TITLE_WORDS_SELECTOR } from '../ux-assert.mjs';
 import { POSITION_ALLOWLIST, SCROLLER_ALLOWLIST, ANTON_ALLOWLIST, ABSENCE_HOST, NOT_A_CARD } from './allowlists.mjs';
 
-const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonAllowlist, absenceHost, notACard }) => {
+const COLLECT = ({ renderedTextSrc, titleWordsSrc, titleWordsSelector, positionAllowlist, scrollerAllowlist, antonAllowlist, absenceHost, notACard }) => {
   // eslint-disable-next-line no-new-func
   const renderedText = new Function(`return (${renderedTextSrc})`)();
 
@@ -492,6 +493,10 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
     targets,
     commandBar,
     textRuns,
+    // L13 (RD-82): every heading/title's content box against its longest word, measured by the ONE
+    // in-page implementation ux-assert.mjs also injects into measureUx.
+    // eslint-disable-next-line no-new-func
+    titleWords: new Function(`return (${titleWordsSrc})`)()(titleWordsSelector),
   };
 };
 
@@ -499,6 +504,8 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
 export async function collectLayout(page) {
   return page.evaluate(COLLECT, {
     renderedTextSrc: RENDERED_TEXT_SRC,
+    titleWordsSrc: TITLE_WORDS_SRC,
+    titleWordsSelector: TITLE_WORDS_SELECTOR,
     positionAllowlist: POSITION_ALLOWLIST,
     scrollerAllowlist: SCROLLER_ALLOWLIST,
     antonAllowlist: ANTON_ALLOWLIST,

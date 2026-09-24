@@ -15,6 +15,60 @@
 // src/lib/urgency/bands.ts (not a hand-typed string).
 
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
+import { fullAppCssCompiled, verifyFontsLoaded } from './smoke-fixtures.mjs';
+import { AUDIT_MOUNTS, mountExtraCss } from '../audit/mounts.mjs';
+import { measureUx, assertUxClean } from '../ux-assert.mjs';
+
+// ── The real auth PAGES at phone and desktop width (lane MASTHEAD-AUTH, 2026-09-24, RD-82) ──────
+// The shared-chrome leg below never mounted the Masthead the auth frame's right panel has carried
+// since W10-Masthead (#786), and nothing else measured these pages under 1024: the layout guard runs
+// only 1440 and 1024, and this spec's 380 leg reads scroll overflow, which the frame's own
+// `overflow: hidden` swallows. So two defects shipped past two green guard runs: "SIGN IN" one
+// letter per line at 1440, and, at 375, the whole sign-in form clipped off-screen to the right.
+// This leg mounts the REAL /login, /signup and onboarding pages, through the design audit's own
+// compose mounts (the same entries and stubs the layout guard uses, not a second reproduction), at
+// 375, 1024 and 1440, and holds them to exactly the two rules those defects broke:
+//   - RD-82: no heading or title narrower than its longest word (ux-assert detectWordBrokenTitles);
+//   - no element clipped past the viewport's right edge (ux-assert detectClippedOverflow).
+// The rest of assertUxClean (the law-2 target floor) is NOT asserted here: its findings on these
+// pages ("Privacy", "Forgot password?", the tab strip, "+ N more jurisdictions") are the layout
+// guard's dated L9 baseline entries, whose clearing the operator scheduled after the UI round
+// (baseline.mjs, 2026-09-09); asserting them here would re-open that ruling from a side door.
+// RD-80's loaded-faces check runs first: a word width is only meaningful in the declared face.
+const PAGE_MOUNTS = ['compose-login', 'compose-signup', 'compose-onboarding'];
+const PAGE_VIEWPORTS = [375, 1024, 1440];
+
+async function runPageLeg(browser) {
+  const failures = [];
+  let checks = 0;
+  const css = await fullAppCssCompiled();
+  for (const id of PAGE_MOUNTS) {
+    const mount = AUDIT_MOUNTS[id];
+    const js = await bundleEntry(mount.entry, { alias: mount.alias || {} });
+    for (const width of PAGE_VIEWPORTS) {
+      const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
+      try {
+        await page.setViewportSize({ width, height: 900 });
+        await page.addStyleTag({ content: css });
+        const extra = mountExtraCss(mount);
+        if (extra) await page.addStyleTag({ content: extra });
+        await mountBundle(page, js, '__mount', null);
+        await page.waitForTimeout(200);
+        checks++;
+        const missing = await verifyFontsLoaded(page);
+        if (missing.length) {
+          failures.push(`auth-page[${id}@${width}]: declared faces not loaded, refusing to measure on a fallback: ${missing.join(', ')}`);
+          continue;
+        }
+        const ux = await measureUx(page);
+        failures.push(...assertUxClean(`auth-page[${id}@${width}]`, { titleWords: ux.titleWords, clipped: ux.clipped }));
+      } finally {
+        await page.close();
+      }
+    }
+  }
+  return { checks, failures };
+}
 
 const ENTRY = `
 import React from 'react';
@@ -90,6 +144,10 @@ export async function runSmoke(browser) {
       await page.close();
     }
   }
+
+  const pageLeg = await runPageLeg(browser);
+  checks += pageLeg.checks;
+  failures.push(...pageLeg.failures);
 
   return { checks, failures };
 }
