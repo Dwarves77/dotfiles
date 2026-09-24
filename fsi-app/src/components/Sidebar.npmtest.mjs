@@ -161,7 +161,10 @@ test("D24: the mobile drawer panel declares BOTH 100vh and 100dvh (dvh declared 
 });
 
 test("D24: the mobile drawer's <aside> uses the .cl-mobile-drawer-panel class and no longer carries the buggy vh-only h-screen class", () => {
-  const drawerAsideMatch = SOURCE.match(/<aside\s+className="[^"]*cl-mobile-drawer-panel[^"]*"/);
+  // Lane W10-NavCard (2026-09-23) added `data-part="nav-card"` between `<aside` and
+  // `className` on both this element and the desktop card below; the pattern tolerates an
+  // optional attribute in between rather than requiring className immediately after <aside.
+  const drawerAsideMatch = SOURCE.match(/<aside\s+(?:[a-zA-Z-]+="[^"]*"\s+)*className="[^"]*cl-mobile-drawer-panel[^"]*"/);
   assert.ok(drawerAsideMatch, "the drawer <aside> must carry the cl-mobile-drawer-panel class");
   assert.doesNotMatch(drawerAsideMatch[0], /h-screen/, "the old 100vh-only Tailwind class must be gone from this element");
 });

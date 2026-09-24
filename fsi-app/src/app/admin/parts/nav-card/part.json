@@ -1,0 +1,5 @@
+{
+  "slug": "nav-card",
+  "name": "NavCard",
+  "summary": "The one navigation card part (Sidebar.tsx, data-part=\"nav-card\"): 252px desktop card and 288px mobile drawer, four-band 3px cap, Brief/Intelligence/Network sections, two-row Account+Admin footer. Hidden on the auth frame."
+}

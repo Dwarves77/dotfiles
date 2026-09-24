@@ -44,8 +44,12 @@ test("title text matches the artboard exactly: 'Headline series', not the file's
   assert.doesNotMatch(SOURCE, />\s*Comparative ribbon\s*</);
 });
 
-test("summary line links to the series board anchor, never a raw URL in running text", () => {
-  assert.match(SOURCE, /href="#market-series-board"/);
+// UPDATED (lane W10-NavCard, 2026-09-23, bundle ruling 6): the series board is now its own route,
+// not an in-page anchor; the link is a Next <Link>, not a raw <a href="#...">.
+test("summary line links to the /market/series route via next/link, never a raw URL in running text", () => {
+  assert.match(SOURCE, /import Link from "next\/link";/);
+  assert.match(SOURCE, /<Link href="\/market\/series"/);
+  assert.doesNotMatch(SOURCE, /href="#market-series-board"/);
   assert.doesNotMatch(SOURCE, /https?:\/\//);
 });
 
@@ -67,6 +71,16 @@ test("market/page.tsx passes the ribbon as headlineSeries (embedded), not as a s
   );
 });
 
-test("market/page.tsx anchors the series board section with id='market-series-board' for the summary line's link target", () => {
-  assert.match(PAGE_SOURCE, /id="market-series-board"/);
+// UPDATED (lane W10-NavCard, 2026-09-23, bundle ruling 6): the inline board + its anchor id are
+// gone from /market; the board renders at its own route, src/app/market/series/page.tsx.
+test("market/page.tsx no longer mounts the inline series board or its anchor id", () => {
+  assert.doesNotMatch(PAGE_SOURCE, /id="market-series-board"/);
+  assert.doesNotMatch(PAGE_SOURCE, /<MarketSeriesBoard\b/);
+});
+
+test("market/series/page.tsx mounts MarketSeriesBoard against the same fetchMarketSeriesBoard() fetch", () => {
+  const seriesPageSource = readFileSync(resolve(here, "..", "..", "app", "market", "series", "page.tsx"), "utf8");
+  assert.match(seriesPageSource, /import \{ MarketSeriesBoard \} from "@\/components\/market\/MarketSeriesBoard";/);
+  assert.match(seriesPageSource, /fetchMarketSeriesBoard\(\)/);
+  assert.match(seriesPageSource, /title="Market \/ Series board"/);
 });

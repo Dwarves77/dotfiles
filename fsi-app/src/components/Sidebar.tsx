@@ -393,6 +393,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
           produced, the same way the content column already does one flex
           item over. */}
       <aside
+        data-part="nav-card"
         className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
           // STOP 1 fix, coordinator amendment 2, 2026-09-22: no explicit `width: 252` any more.
@@ -483,6 +484,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
             onClick={onDrawerClose}
           />
           <aside
+            data-part="nav-card"
             className="cl-mobile-drawer-panel fixed top-0 left-0 flex flex-col overflow-y-auto"
             style={{ width: 288, background: "var(--card)", borderRight: "1px solid var(--line-1)" }}
           >
