@@ -24247,3 +24247,19 @@ Clock times from GitHub (UTC). Resume from this entry, then the handoff sections
 ### UX compliance (coordinator)
 
 Not a UI change; docs only.
+
+
+## 2026-09-24, operator rulings (UI system, via Claude Design): seven rulings on the open items of the 2026-09-23 entry; the fresh session's order
+
+Recorded by the coordinator as the operator adopted them, verbatim in substance. No ADR (ruling 8 withdrawn by the operator).
+
+1. **Content column: 780.** The frame's layout tracks sum to 780 and the Masthead lane measured 780.0 at 1440; the README is wrong. Change the README to 780. No frame lane.
+2. **Market, Research, Operations section order:** the detail pages' S-order: 01 Summary, 02 Substantive / Series / Findings, 03 Exposure, 04 Timeline, 05 Sources, 06 Related. Numbers are fixed; a missing section is omitted, never renumbered.
+3. **Community search: keep its own box for now,** restyled with CommandBar's parts (height, radius, border, placeholder style) so it looks the same. Its endpoint and result shape stay. Moving it fully onto CommandBar is BACKLOG: a separate lane that extends CommandBar.
+4. **Watchlist re-check column: keep it** as the date cell ("Re-checked 3d"); the list row gains no column. The drawn header is fixed, not the caption.
+5. **`/admin/factors` onto ListRow:** factor name = title; scope and unit = meta line; value = impact-meter slot as a number with no bar; effective date = date slot; source = tier slot; edit = overflow menu.
+6. **Live regulation page (`/regulations/d2da85da-0912-497a-b645-31e4ca73cd18`):** Masthead and CommandBar have landed, so check it by hand against `screens/` now; first in the fresh session.
+7. **Layout-guard baseline:** not extended past 2026-10-15. Each part's sign-off removes the suppressions it resolves, so the count (563) falls as lanes close.
+8. Withdrawn. The 24-hour per-part sign-off stays as it is (no lapse to approved).
+
+Fresh session order: (1) live regulation page check; (2) README to 780; (3) restyle Community's search box to CommandBar's parts; (4) watchlist re-check date cell, then the `/admin/factors` row mapping; (5) hop proofs, then proof run 6.2. Then M7c, M4b, and 6.3 data after 6.2 passes. Next free ids unchanged from the 2026-09-23 entry.
