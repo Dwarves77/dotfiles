@@ -14,6 +14,11 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below — that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from (2026-09-24):** the 2026-09-24 "coordinator (local session, close)" entry of
+> [docs/ops/session-log.md](./ops/session-log.md): seven operator rulings landed (#793), admin access restored, and
+> the "no workspace"/no-Admin defect diagnosed. Next: lane AUTH-IDENTITY, brief at
+> [docs/dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md](./dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md).
+
 > **Resume from (2026-09-20):** the last THREE entries of [docs/ops/session-log.md](./ops/session-log.md), all headed
 > "2026-09-20, coordinator (local session, ..." (afternoon, late afternoon, evening; the latest wins, and its addendum of 22:00 UTC is the state): M3b merged (#755), lanes M4, M9d, M7a and T3 in flight, M6
 > amended, the design bundle of 2026-09-07 landed, the owed list in order. The two pointers below are history.
