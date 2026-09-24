@@ -24291,3 +24291,12 @@ Fresh session order: (1) live regulation page check; (2) README to 780; (3) rest
   - G5 if gate crashes recur.
 - **Playwright live checks:** they attach to the operator's Chrome over CDP on port 9222. Chrome must be fully quit first, or the flag is ignored.
 - **Next free ids** are unchanged: F55, RD-82, migration 330, skill category 51.
+
+## 2026-09-24, coordinator (addendum after close): live Playwright check; three defects briefed
+
+- Live checker in place: `fsi-app/scripts/tmp/live-check.mjs` (gitignored). It is Playwright headless on the operator's saved session, which is kept outside the repo.
+- Findings, brief `docs/dispatches/lane-briefs/2026-09-24/brief-live-findings.md`:
+  1. The nav footer shows `jasonlosh@gmail.com` while the server session is hotmail. This folds into AUTH-IDENTITY.
+  2. `/login` "SIGN IN" breaks one letter per line, a regression from #786. New lane MASTHEAD-AUTH: a guard rule for titles narrower than their longest word, plus a precondition that the declared fonts actually loaded (operator reminder: the build used the wrong font).
+  3. The ruling-6 regulation page redirects to a slug that renders "This page doesn't exist".
+- Fresh session order: AUTH-IDENTITY, then MASTHEAD-AUTH, then the live regulation check, then the rest of the close entry's list.
