@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-gate";
 
 /**
  * Server-side auth + workspace bootstrap.
@@ -65,6 +66,12 @@ export interface ServerBootstrap {
    * can produce that composition without an additional query.
    */
   workspaceSectors: string[];
+  /**
+   * `profiles.is_platform_admin` for THIS user, read through the same predicate `/admin`'s gate uses
+   * (src/lib/auth/platform-admin-gate.ts). The nav shows Admin on this bit, never on the workspace role
+   * (lane AUTH-IDENTITY, 2026-09-24).
+   */
+  isPlatformAdmin: boolean;
 }
 
 const EMPTY: ServerBootstrap = {
@@ -74,7 +81,33 @@ const EMPTY: ServerBootstrap = {
   role: null,
   sectors: [],
   workspaceSectors: [],
+  isPlatformAdmin: false,
 };
+
+/**
+ * The lookup could not produce an answer (lane AUTH-IDENTITY, 2026-09-24). Thrown instead of returning a
+ * shape, because every shape this module returns is a FACT a consumer acts on: `orgId: null` means "this
+ * user has no workspace" to AppShell's banner and to /onboarding's redirect. Before this, a failed
+ * org_memberships read returned `orgId: null` (data was simply `null`, the error was never read), which is
+ * the same false "no workspace" the client-side defect produced. The identity route answers 503 for it and
+ * the client retries; `resolveServerBootstrap()` rethrows it so a server page renders its error boundary
+ * instead of redirecting a real member into "create a workspace".
+ */
+export class IdentityLookupError extends Error {
+  constructor(step: string, cause: unknown) {
+    const detail =
+      cause && typeof cause === "object" && "message" in cause
+        ? String((cause as { message: unknown }).message)
+        : String(cause);
+    super(`identity lookup failed at ${step}: ${detail}`);
+    this.name = "IdentityLookupError";
+  }
+}
+
+/** auth-js marks network and 5xx failures with this name (errors.js, isAuthRetryableFetchError). */
+function isTransientAuthError(error: unknown): boolean {
+  return !!error && typeof error === "object" && (error as { name?: unknown }).name === "AuthRetryableFetchError";
+}
 
 /**
  * Pure core of resolveServerBootstrap: given an already-authenticated Supabase client, resolve the
@@ -87,6 +120,10 @@ export async function resolveServerBootstrapFromClient(
   supabase: SupabaseClient
 ): Promise<ServerBootstrap> {
   const { data, error } = await supabase.auth.getClaims();
+  // A transient auth failure (network, 5xx) is NOT "signed out": answering anonymous here let the
+  // browser's own session (onAuthStateChange) pair a signed-in user with a no-org answer. Every other
+  // auth error (no session, expired or invalid JWT) is a real anonymous answer, unchanged.
+  if (error && isTransientAuthError(error)) throw new IdentityLookupError("getClaims", error);
   if (error || !data?.claims?.sub) return EMPTY;
   const user: ServerBootstrapUser = { id: data.claims.sub, email: data.claims.email ?? null };
 
@@ -117,18 +154,23 @@ export async function resolveServerBootstrapFromClient(
       .maybeSingle(),
     supabase
       .from("profiles")
-      .select("sector_overrides")
+      .select("sector_overrides, is_platform_admin")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
+
+  // Lane AUTH-IDENTITY: read the errors. A failed read is not an empty row (CLAUDE.md, agent/run
+  // error-swallow post-mortem: a `data` destructure without `error` is the bug shape).
+  if (membershipRes.error) throw new IdentityLookupError("org_memberships", membershipRes.error);
+  if (profileRes.error) throw new IdentityLookupError("profiles", profileRes.error);
 
   const membership = membershipRes.data;
   const org =
     (membership?.organizations as
       | { id?: string; name?: string; workspace_settings?: { sector_profile: string[] | null }[] | null }
       | null) || null;
-  const sectors =
-    (profileRes.data as { sector_overrides: string[] | null } | null)?.sector_overrides ?? [];
+  const profile = profileRes.data as { sector_overrides: string[] | null; is_platform_admin?: unknown } | null;
+  const sectors = profile?.sector_overrides ?? [];
 
   const orgId = org?.id || membership?.org_id || null;
   const workspaceSectors = org?.workspace_settings?.[0]?.sector_profile ?? [];
@@ -140,6 +182,7 @@ export async function resolveServerBootstrapFromClient(
     role: (membership?.role as ServerBootstrap["role"]) || null,
     sectors,
     workspaceSectors,
+    isPlatformAdmin: isPlatformAdminProfile(profile),
   };
 }
 
@@ -148,7 +191,10 @@ export const resolveServerBootstrap = cache(
     try {
       const supabase = await createSupabaseServerClient();
       return await resolveServerBootstrapFromClient(supabase);
-    } catch {
+    } catch (e) {
+      // A failed lookup must reach the page's error boundary, never read as anonymous/no-org (see
+      // IdentityLookupError). Anything else (e.g. no request scope) keeps the soft EMPTY fallback.
+      if (e instanceof IdentityLookupError) throw e;
       return EMPTY;
     }
   }

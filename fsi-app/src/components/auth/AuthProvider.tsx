@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { User } from "@supabase/supabase-js";
-import { resolveAuthSeed, type AuthSeed, type BootstrapLike } from "@/components/shell/bootstrap-seed";
+import type { AuthSeed, IdentityStatus } from "@/components/shell/bootstrap-seed";
+import { createIdentityLoader, type IdentityLoader } from "@/components/auth/identity-loader";
 // PERF-12 (2026-09-04, ADR-027 §2): mounted here rather than src/app/layout.tsx — that file is
 // PERF-10's write set for this train, and AuthProvider is already the outermost CLIENT boundary
 // every page renders inside (layout.tsx itself is a Server Component). One QueryClient for the
@@ -61,6 +62,23 @@ interface AuthContext {
    * care about `user`, not `orgId`.
    */
   loading: boolean;
+  /**
+   * Where the identity lookup stands (lane AUTH-IDENTITY, 2026-09-24): `pending` | `resolved` |
+   * `error`. `error` means every attempt of the last round failed; `orgId` is then `undefined`
+   * (unknown), never `null`. AppShell renders the error note with Retry for it and withholds the "No
+   * workspace yet" banner, which only a `resolved` null may show. See bootstrap-seed.ts.
+   */
+  identityStatus: IdentityStatus;
+  /** True while a re-armed round runs after an `error` (the Retry action's pending state). */
+  retryingIdentity: boolean;
+  /** Starts one new lookup round after an `error`; a no-op otherwise. */
+  retryIdentity: () => void;
+  /**
+   * `profiles.is_platform_admin` for the signed-in user, as the identity route read it through the
+   * SAME predicate `/admin`'s gate admits on (src/lib/auth/platform-admin-gate.ts). The nav's Admin
+   * row reads this, never the workspace role, so the link shows exactly when the route admits.
+   */
+  isPlatformAdmin: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -68,6 +86,10 @@ const AuthContext = createContext<AuthContext>({
   user: null,
   orgId: undefined,
   loading: true,
+  identityStatus: "pending",
+  retryingIdentity: false,
+  retryIdentity: () => {},
+  isPlatformAdmin: false,
   signOut: async () => {},
 });
 
@@ -89,8 +111,10 @@ const AuthContext = createContext<AuthContext>({
  * is what actually lets a route with no dynamic API of its own build `○`. `resolveAuthSeed`
  * (bootstrap-seed.ts) is REUSED unchanged for the pure "resolved bootstrap shape → seed" mapping
  * this file always delegated to — only the transport (client fetch instead of a server-rendered,
- * `use()`-consumed promise) changed. This fetch fires once per browser session (AuthProvider never
- * unmounts across a client-side navigation, same as before), not once per navigation.
+ * `use()`-consumed promise) changed. This lookup runs once per browser session (AuthProvider never
+ * unmounts across a client-side navigation, same as before), not once per navigation; since lane
+ * AUTH-IDENTITY (2026-09-24) a FAILED lookup is retried on a bounded schedule instead of being read as
+ * "no workspace" for the tab's life (see identity-loader.ts).
  *
  * TRADE-OFF, STATED HONESTLY (not claimed as a pure win): on a DOCUMENT load, the identity fetch is
  * now ALWAYS a client round trip (previously sometimes free — shared, via React `cache()`, with
@@ -110,17 +134,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // state ("no org"), and the pre-fix `string | null` default conflated "unresolved" with it.
   const [orgId, setOrgId] = useState<string | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [identityStatus, setIdentityStatus] = useState<IdentityStatus>("pending");
+  const [retryingIdentity, setRetryingIdentity] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const loaderRef = useRef<IdentityLoader | null>(null);
   // Mirrors `user` for the cross-tab SIGNED_IN check below (needs the LATEST known value inside a
   // callback registered once — see that effect's own comment for why a plain closure over `user`
   // would be stale).
   const knownUserRef = useRef<User | null>(null);
 
-  const seed = useCallback((bootstrap: BootstrapLike | null) => {
-    const applied: AuthSeed = resolveAuthSeed(bootstrap);
+  // Receives only APPLIED answers (identity-loader.ts gates them with shouldApplySeed).
+  const seed = useCallback((applied: AuthSeed) => {
+    setIdentityStatus(applied.status);
+    setLoading(false);
+    if (applied.status === "error") {
+      // Lane AUTH-IDENTITY: a failed lookup is UNKNOWN, not "no workspace". `user` is left to the
+      // browser session (onAuthStateChange below), orgId stays unknown, the workspace store is not
+      // touched (no role, no org written from a non-answer), and Admin stays hidden until a real answer.
+      setOrgId(undefined);
+      setIsPlatformAdmin(false);
+      return;
+    }
     knownUserRef.current = applied.user as User | null;
     setUser(applied.user as User | null);
     setOrgId(applied.orgId);
-    setLoading(false);
+    setIsPlatformAdmin(applied.isPlatformAdmin);
     // Hydrate the workspace store. The store is module-scoped, not React
     // state, so this is safe to do outside a render.
     if (applied.orgId) {
@@ -132,24 +170,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useWorkspaceStore.getState().setSectorProfile(applied.sectors);
   }, []);
 
-  // PERF-10: the client-side identity fetch this provider now seeds itself from — see this file's
-  // header. Fires once (empty deps); this component mounts once per browser session. A failed
-  // fetch (network error, non-200) seeds the anonymous default via resolveAuthSeed(null) — never
-  // leaves `loading: true` forever, and never renders a WRONG signed-in state.
+  // PERF-10: the client-side identity fetch this provider seeds itself from (see this file's header).
+  // Lane AUTH-IDENTITY (2026-09-24): no longer a single shot. identity-loader.ts runs a bounded round
+  // (3 attempts with backoff); a round that fails ends in the `error` state, and ONE new round is
+  // re-armed by window focus, by the tab becoming visible, or by the error note's Retry. No polling.
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/auth/identity", { credentials: "same-origin" })
-      .then((r) => (r.ok ? (r.json() as Promise<BootstrapLike>) : null))
-      .then((body) => {
-        if (!cancelled) seed(body);
-      })
-      .catch(() => {
-        if (!cancelled) seed(null);
-      });
+    const loader = createIdentityLoader({
+      fetchIdentity: async () => {
+        const r = await fetch("/api/auth/identity", { credentials: "same-origin", cache: "no-store" });
+        return r.ok ? r.json() : null;
+      },
+      onSeed: seed,
+      onRetrying: setRetryingIdentity,
+      schedule: (fn, ms) => window.setTimeout(fn, ms),
+      cancel: (handle) => window.clearTimeout(handle as number),
+    });
+    loaderRef.current = loader;
+    loader.start();
+    const onFocus = () => loader.rearm();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loader.rearm();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      cancelled = true;
+      loader.stop();
+      loaderRef.current = null;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [seed]);
+
+  const retryIdentity = useCallback(() => {
+    loaderRef.current?.rearm();
+  }, []);
 
   // Listen for cross-tab auth changes. Don't refetch user data — the
   // seeded bootstrap is the source of truth for the current request. On
@@ -192,7 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryProvider>
-      <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
+      <AuthContext.Provider
+        value={{ user, orgId, loading, identityStatus, retryingIdentity, retryIdentity, isPlatformAdmin, signOut }}
+      >
         {children}
       </AuthContext.Provider>
     </QueryProvider>

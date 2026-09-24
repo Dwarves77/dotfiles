@@ -22,19 +22,44 @@
  * THE FIX: `orgId` is now three-valued (`undefined` = unresolved, `null` = resolved-no-org, `string` =
  * resolved-with-org — see AuthProvider.tsx's AuthContext interface). This predicate renders the banner
  * ONLY for a RESOLVED null; `undefined` renders nothing, same as the rest of the shell's loading chrome.
+ *
+ * FOURTH STATE (lane AUTH-IDENTITY, 2026-09-24) [CONFIRMED root cause by code read; live instance the
+ * operator's 16:51Z sign-in]: a FAILED identity lookup used to seed `orgId: null` too, so this banner
+ * told an owner with a correct membership row "No workspace yet". The lookup's own status now rides
+ * alongside (`identityStatus`: pending | resolved | error, see bootstrap-seed.ts), and the banner
+ * requires `resolved`. The `error` state gets its own note with a Retry action
+ * (computeShowIdentityErrorNote below), never this banner and never a silent empty.
  */
 export function computeShowNoWorkspaceBanner(params: {
   user: unknown;
   /** Three-valued — see this file's header. MUST be `orgId === null`, never a bare falsy check. */
   orgId: string | null | undefined;
+  /** The lookup's status. Only `resolved` may assert "no workspace". */
+  identityStatus: "pending" | "resolved" | "error";
   pathname: string;
   /** Route prefixes where the banner is suppressed (already mid-setup-flow, no need to nag). */
   suppressRoutes: readonly string[];
 }): boolean {
-  const { user, orgId, pathname, suppressRoutes } = params;
+  const { user, orgId, identityStatus, pathname, suppressRoutes } = params;
   return (
+    identityStatus === "resolved" &&
     !!user &&
     orgId === null &&
     !suppressRoutes.some((r) => pathname.startsWith(r))
   );
+}
+
+/**
+ * The error note (lane AUTH-IDENTITY): shown when the lookup's last round failed for a viewer the
+ * browser holds a session for. A viewer with no session gets nothing (there is no workspace to fail to
+ * load). Suppressed on the same setup routes as the banner, which render their own chrome.
+ */
+export function computeShowIdentityErrorNote(params: {
+  user: unknown;
+  identityStatus: "pending" | "resolved" | "error";
+  pathname: string;
+  suppressRoutes: readonly string[];
+}): boolean {
+  const { user, identityStatus, pathname, suppressRoutes } = params;
+  return identityStatus === "error" && !!user && !suppressRoutes.some((r) => pathname.startsWith(r));
 }

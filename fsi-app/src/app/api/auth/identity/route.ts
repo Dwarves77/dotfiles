@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { resolveServerBootstrapFromClient, type ServerBootstrap } from "@/lib/api/server-bootstrap";
-import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 
 // GET /api/auth/identity — PERF-10 (2026-09-04, root-cause fix,
 // docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md Follow-up).
@@ -44,16 +44,22 @@ async function handleGET() {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (e) {
-    console.error("[api/auth/identity] resolution failed, returning anonymous shape:", e);
+    // Lane AUTH-IDENTITY (2026-09-24): a failed resolution is answered as a FAILURE (503), never as the
+    // anonymous 200 shape it used to return. That shape carried `orgId: null`, and the client paired it
+    // with the browser's own session user, which is exactly "signed in, no workspace": the false banner
+    // and the missing Admin row the operator saw at 16:51Z. The client (identity-loader.ts) retries a
+    // non-200 on a bounded schedule. The failure is also recorded in error_events now: before this, a
+    // failed lookup here left no trace, which is why the 16:51Z cause could not be read back.
+    console.error("[api/auth/identity] resolution failed, answering 503:", e);
+    await captureError({ side: "server", route: "/api/auth/identity", error: e });
     return NextResponse.json(
-      { user: null, orgId: null, orgName: "", role: null, sectors: [], workspaceSectors: [] } satisfies ServerBootstrap,
-      { headers: { "Cache-Control": "private, no-store" } }
+      { error: "identity_lookup_failed" },
+      { status: 503, headers: { "Cache-Control": "private, no-store", "Retry-After": "1" } }
     );
   }
 }
 
 // R0.2 first-party error tracking: capture thrown failures as error_events groups, then rethrow
-// (matching every other route in this codebase's convention) — though handleGET above already
-// catches its own resolution errors and returns the anonymous shape, so this is a backstop for a
-// failure in NextResponse.json itself, not the normal path.
+// (matching every other route in this codebase's convention). handleGET above captures and answers
+// its own resolution failures, so this is a backstop for a failure in NextResponse.json itself.
 export const GET = withErrorCapture("/api/auth/identity", handleGET);

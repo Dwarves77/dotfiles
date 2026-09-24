@@ -19,10 +19,54 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { computeShowNoWorkspaceBanner } = await jiti.import("./app-shell-banner.ts");
+const { computeShowNoWorkspaceBanner, computeShowIdentityErrorNote } = await jiti.import("./app-shell-banner.ts");
+const { resolveAuthSeed } = await jiti.import("./shell/bootstrap-seed.ts");
 
 const SUPPRESS = ["/workspace/new", "/invitations/", "/onboarding", "/login", "/auth", "/signup"];
-const base = { pathname: "/regulations", suppressRoutes: SUPPRESS };
+// Every pre-AUTH-IDENTITY case below is a RESOLVED lookup; the lookup's status is now an input.
+const base = { pathname: "/regulations", suppressRoutes: SUPPRESS, identityStatus: "resolved" };
+
+// ── Lane AUTH-IDENTITY failing-first (2026-09-24). The live shape: the operator (a real owner, rows
+// correct) signed in, the one identity fetch failed, AuthProvider applied resolveAuthSeed(null), and
+// the shell said "No workspace yet". This test drives the banner with EXACTLY what a failed lookup
+// produces. On origin/master (44187dfa) that is `orgId: null` and the predicate shows the banner. ──
+test("AUTH-IDENTITY failing-first: a FAILED identity lookup with a signed-in session never shows 'No workspace yet'", () => {
+  const failed = resolveAuthSeed(null);
+  const shown = computeShowNoWorkspaceBanner({
+    ...base,
+    user: { id: "2b7d21eb" },
+    orgId: failed.orgId,
+    identityStatus: failed.status,
+  });
+  assert.equal(shown, false);
+});
+
+test("AUTH-IDENTITY: the failed state renders the error note (with Retry) instead; never for a resolved or pending lookup", () => {
+  const user = { id: "2b7d21eb" };
+  assert.equal(computeShowIdentityErrorNote({ ...base, user, identityStatus: "error" }), true);
+  assert.equal(computeShowIdentityErrorNote({ ...base, user, identityStatus: "resolved" }), false);
+  assert.equal(computeShowIdentityErrorNote({ ...base, user, identityStatus: "pending" }), false);
+  assert.equal(computeShowIdentityErrorNote({ ...base, user: null, identityStatus: "error" }), false, "no session, nothing to fail to load");
+  assert.equal(computeShowIdentityErrorNote({ ...base, user, identityStatus: "error", pathname: "/onboarding" }), false);
+});
+
+test("AUTH-IDENTITY: a resolved-null org shows the banner only when the status is resolved (pending and error withhold it)", () => {
+  const user = { id: "u1" };
+  assert.equal(computeShowNoWorkspaceBanner({ ...base, user, orgId: null, identityStatus: "resolved" }), true);
+  assert.equal(computeShowNoWorkspaceBanner({ ...base, user, orgId: null, identityStatus: "pending" }), false);
+  assert.equal(computeShowNoWorkspaceBanner({ ...base, user, orgId: null, identityStatus: "error" }), false);
+});
+
+// AppShell mounts the note with the house error treatment and wires Retry to the provider.
+{
+  const SRC = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "AppShell.tsx"), "utf8");
+  test("AppShell renders the identity error note as a CRITICAL-band StateNote whose action calls retryIdentity", () => {
+    assert.match(SRC, /showIdentityErrorNote && \(/);
+    assert.match(SRC, /band=\{bandFromPriority\("CRITICAL"\)\}/);
+    assert.match(SRC, /retryIdentity/);
+    assert.match(SRC, /identityStatus,\n\s+pathname,/);
+  });
+}
 
 test("signed-out: no user -> banner withheld regardless of orgId", () => {
   assert.equal(computeShowNoWorkspaceBanner({ ...base, user: null, orgId: undefined }), false);
@@ -52,6 +96,7 @@ test("suppressed route: resolved-null org on a suppress-listed path never shows 
   const shown = computeShowNoWorkspaceBanner({
     user: { id: "u1" },
     orgId: null,
+    identityStatus: "resolved",
     pathname: "/workspace/new",
     suppressRoutes: SUPPRESS,
   });

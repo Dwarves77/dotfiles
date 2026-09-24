@@ -8,7 +8,9 @@ import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceOverridesHydration } from "@/lib/hooks/useWorkspaceOverridesHydration";
-import { computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
+import { computeShowIdentityErrorNote, computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
+import { StateNote } from "@/components/ui/StateNote";
+import { bandFromPriority } from "@/lib/urgency/bands";
 
 // UI system handoff 2026-09-06 (README screens 16/17): /login, /signup,
 // /onboarding and /workspace/new render the AuthFrame identity split
@@ -33,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // from server props; the workspaceStore hydrates in a useEffect, so
   // its server-side value is null and the banner condition triggered
   // a flash even for users with populated workspaces.
-  const { user, orgId } = useAuth();
+  const { user, orgId, identityStatus, retryingIdentity, retryIdentity } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
   // Mobile drawer open/close — lifted here (mobile-390 spec, lane
@@ -79,9 +81,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // resolved to an id -> normal product surface. Predicate lives in app-shell-banner.ts, not inline,
   // so it is unit-testable with node --test + jiti (this repo has no JSX mount infra — see that
   // file's own header) — see AppShell.npmtest.mjs for the four-state proof.
+  // Lane AUTH-IDENTITY (2026-09-24): the lookup's own status is the FIFTH input. A failed lookup is
+  // never "no workspace": the banner requires `resolved`, and `error` renders the StateNote error note
+  // with Retry instead (see app-shell-banner.ts and bootstrap-seed.ts).
   const showNoWorkspaceBanner = computeShowNoWorkspaceBanner({
     user,
     orgId,
+    identityStatus,
+    pathname,
+    suppressRoutes: NO_WORKSPACE_BANNER_SUPPRESS,
+  });
+  const showIdentityErrorNote = computeShowIdentityErrorNote({
+    user,
+    identityStatus,
     pathname,
     suppressRoutes: NO_WORKSPACE_BANNER_SUPPRESS,
   });
@@ -200,6 +212,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
         )}
+          {/* Lane AUTH-IDENTITY: the failed-lookup state. The house error variant (the CRITICAL band
+              StateNote with a Retry action, the same treatment DashboardBrief's failure note uses),
+              saying what failed, that nothing in the account changed, and how to recover. Retry
+              acknowledges at once ("Retrying…") while the re-armed round runs; the note leaves on
+              success, or stays with Retry available if the round fails again. */}
+          {showIdentityErrorNote && (
+            <div role="status" aria-live="polite" style={{ padding: "12px 16px 0" }}>
+              <StateNote
+                band={bandFromPriority("CRITICAL")}
+                action={{
+                  label: retryingIdentity ? "Retrying…" : "Retry",
+                  onClick: retryingIdentity ? undefined : retryIdentity,
+                }}
+              >
+                We couldn&rsquo;t load your workspace and role just now. Nothing in your account has
+                changed. Retry, or it will try again when you return to this tab.
+              </StateNote>
+            </div>
+          )}
           {/* No page-wide disclaimer bar. Operator ruling 2026-09-08, which also
               WITHDREW the earlier suggestion of a 10px line under the nav Admin
               row: there is no disclaimer anywhere in the frame. The legal wording

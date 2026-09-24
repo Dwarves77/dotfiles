@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { noWorkspaceLabel } from "@/components/shell/bootstrap-seed";
 import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
@@ -110,6 +112,9 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
   const orgId = useWorkspaceStore((s) => s.orgId);
+  // Lane AUTH-IDENTITY: an empty orgName is "no workspace" only when the identity lookup RESOLVED;
+  // a failed lookup leaves it empty too and must not be told it has none (noWorkspaceLabel).
+  const { identityStatus } = useAuth();
   const isOwner = userRole === "owner";
   const isAdmin = userRole === "owner" || userRole === "admin";
   const { total: adminAttentionTotal } = useAdminAttention();
@@ -315,7 +320,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
           eyebrowSuffix="Personal"
           dek={
             <>
-              {email} · <b style={{ color: "var(--ink)" }}>{orgName || "No workspace"}</b>
+              {email} · <b style={{ color: "var(--ink)" }}>{orgName || noWorkspaceLabel(identityStatus, "No workspace")}</b>
               {userRole ? ` · ${capitalize(userRole)}` : ""}
               {memberSince ? ` · member since ${memberSince}` : ""}
             </>
@@ -413,7 +418,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
                 orgName
                   ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
                   : memberSince
-                    ? "Not in a workspace"
+                    ? noWorkspaceLabel(identityStatus, "Not in a workspace")
                     : "Join date not recorded"
               }
             />

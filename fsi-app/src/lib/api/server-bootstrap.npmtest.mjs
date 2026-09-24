@@ -89,6 +89,7 @@ test("authenticated: getClaims returns claims.sub + claims.email, full bootstrap
     role: "member",
     sectors: ["ocean"],
     workspaceSectors: ["ocean", "air"],
+    isPlatformAdmin: false,
   });
 });
 
@@ -195,5 +196,54 @@ test("resolveServerBootstrap outside a request context → fails soft to EMPTY, 
     role: null,
     sectors: [],
     workspaceSectors: [],
+    isPlatformAdmin: false,
   });
+});
+
+// ── Lane AUTH-IDENTITY (2026-09-24): a FAILED read is never an empty row. Before this, a failed
+// org_memberships read returned `data: null` and the error was never read, so the bootstrap said
+// `orgId: null`: "this user has no workspace", the same false state as the client-side defect. ──
+function erroringClient({ membershipError = null, profileError = null, claimsError = null } = {}) {
+  const ok = (data) => async () => ({ data, error: null });
+  return {
+    auth: {
+      async getClaims() {
+        return claimsError ? { data: null, error: claimsError } : { data: { claims: { sub: "user-1", email: "a@x.example" } }, error: null };
+      },
+    },
+    from(table) {
+      const single = table === "org_memberships"
+        ? (membershipError ? async () => ({ data: null, error: membershipError }) : ok(null))
+        : (profileError ? async () => ({ data: null, error: profileError }) : ok({ sector_overrides: [], is_platform_admin: true }));
+      const q = { select() { return q; }, eq() { return q; }, order() { return q; }, limit() { return q; }, maybeSingle: single };
+      return q;
+    },
+  };
+}
+
+test("AUTH-IDENTITY: an org_memberships read error THROWS IdentityLookupError, never resolves to orgId null", async () => {
+  await assert.rejects(
+    () => resolveServerBootstrapFromClient(erroringClient({ membershipError: { message: "statement timeout" } })),
+    (e) => e.name === "IdentityLookupError" && /org_memberships/.test(e.message),
+  );
+});
+
+test("AUTH-IDENTITY: a profiles read error THROWS IdentityLookupError (the platform-admin bit is unknown, not false)", async () => {
+  await assert.rejects(
+    () => resolveServerBootstrapFromClient(erroringClient({ profileError: { message: "connection reset" } })),
+    (e) => e.name === "IdentityLookupError" && /profiles/.test(e.message),
+  );
+});
+
+test("AUTH-IDENTITY: a TRANSIENT auth failure (AuthRetryableFetchError) throws; it is not 'signed out'", async () => {
+  await assert.rejects(
+    () => resolveServerBootstrapFromClient(erroringClient({ claimsError: { name: "AuthRetryableFetchError", message: "fetch failed", status: 0 } })),
+    (e) => e.name === "IdentityLookupError" && /getClaims/.test(e.message),
+  );
+});
+
+test("AUTH-IDENTITY: the platform-admin bit is carried from the profiles row", async () => {
+  const b = await resolveServerBootstrapFromClient(erroringClient());
+  assert.equal(b.isPlatformAdmin, true);
+  assert.equal(b.orgId, null, "a SUCCESSFUL empty membership read is still a real no-org answer");
 });

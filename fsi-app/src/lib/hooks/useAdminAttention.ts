@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { authHeaders } from "@/lib/api/authed-fetch";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { shouldShowAdminNav } from "@/components/shell/bootstrap-seed";
 
 export interface AdminAttentionCounts {
   provisional_sources_pending: number;
@@ -195,7 +195,7 @@ function subscribe(cb: (s: SingletonState) => void): () => void {
  *
  * Polls /api/admin/attention every 60 seconds when ALL of the following hold:
  *   - the user is authenticated
- *   - the user is a platform admin (workspace role owner|admin)
+ *   - the user is a platform admin (profiles.is_platform_admin, via useAuth; not the workspace role)
  *   - the document is visible (document.visibilityState === "visible")
  *
  * Stops polling automatically when the tab is hidden and resumes on
@@ -212,10 +212,12 @@ function subscribe(cb: (s: SingletonState) => void): () => void {
  * shared layout that fanned out to 2+ duplicate fetches per navigation.
  */
 export function useAdminAttention(): UseAdminAttention {
-  const { user, loading: authLoading } = useAuth();
-  const userRole = useWorkspaceStore((s) => s.userRole);
-  const isAdmin = userRole === "owner" || userRole === "admin";
-  const enabled = !authLoading && !!user && isAdmin;
+  // Lane AUTH-IDENTITY (2026-09-24): /api/admin/attention is platform-admin gated (requireAdminRoute ->
+  // isPlatformAdmin), so the hook enables on the SAME bit the nav's Admin row reads, never on the
+  // workspace role. A workspace owner who is not platform staff used to fire a 403 on every poll.
+  const { user, loading: authLoading, identityStatus, isPlatformAdmin } = useAuth();
+  const enabled =
+    !authLoading && !!user && shouldShowAdminNav({ status: identityStatus, isPlatformAdmin });
 
   const [snapshot, setSnapshot] = useState<SingletonState>(() =>
     enabled ? singleton.state : { counts: null, loading: false, error: null }
