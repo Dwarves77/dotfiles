@@ -24263,3 +24263,31 @@ Recorded by the coordinator as the operator adopted them, verbatim in substance.
 8. Withdrawn. The 24-hour per-part sign-off stays as it is (no lapse to approved).
 
 Fresh session order: (1) live regulation page check; (2) README to 780; (3) restyle Community's search box to CommandBar's parts; (4) watchlist re-check date cell, then the `/admin/factors` row mapping; (5) hop proofs, then proof run 6.2. Then M7c, M4b, and 6.3 data after 6.2 passes. Next free ids unchanged from the 2026-09-23 entry.
+
+## 2026-09-24, coordinator (local session, close): operator rulings landed; admin access restored; the "no workspace" defect diagnosed; START FRESH
+
+- **Rulings:** seven operator rulings recorded in the entry above (PR #793, `1f72906f`). Ruling 8 was withdrawn: the 24-hour per-part sign-off stays as is, with no ADR.
+- **Admin access:**
+  - The operator's only account in use is jasonlosh@hotmail.com (`2b7d21eb-...`). It is platform admin and owner of "Dietl / Rockit", and it was never changed [CONFIRMED by SELECT].
+  - The coordinator wrongly looked up jasonlosh@gmail.com (`a0764ff3-...`, a real account dormant since 2026-06-05), assuming the app sign-in matched the Claude account email. It set that account's `is_platform_admin` to true, then back to false by operator ruling. Only hotmail is platform admin now [CONFIRMED].
+  - Lesson: never infer the app account from the assistant account's email; ask or read `auth.users`.
+- **Operator ruling (database agents):** database agents MAY write, but only the statements the coordinator approved; they never decide on their own what to change. This replaces "database agents SELECT-only" from HANDOFF-2026-09-18.
+- **Defect** [HYPOTHESIS, strongly evidenced]: a single failed `/api/auth/identity` fetch per tab collapses to a resolved-no-org state. The result is "No workspace yet" and no Admin, sticky for the tab's life. Seen by the operator on two computers at 16:51Z.
+  - The redeploy-cache theory is [REFUTED].
+  - Why that request failed is unknown; it needs Vercel runtime logs, and the Vercel MCP needs the operator's authorization.
+  - Second defect [CONFIRMED by code read]: the Sidebar Admin item gates on workspace role, while `/admin` gates on `is_platform_admin`.
+  - Brief: `docs/dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md` (lane AUTH-IDENTITY).
+- **Aside, unverified here:** a Supabase advisor flagged `public.derivation_edges` with RLS disabled. Owed: verify, then fix or refute.
+- **Fresh session order:**
+  0. Lane AUTH-IDENTITY.
+  1. Live regulation page check against `screens/`.
+  2. README content column to 780.
+  3. Restyle Community's search box with CommandBar's parts.
+  4. Watchlist re-check date cell, then the `/admin/factors` row mapping.
+  5. Hop proofs, then proof run 6.2; then M7c, M4b, and 6.3 data after 6.2 passes.
+- **Owed cleanup:**
+  - Move the `/admin/parts` pages off `PageMasthead.tsx`, then delete it.
+  - Community search fully onto CommandBar (backlog).
+  - G5 if gate crashes recur.
+- **Playwright live checks:** they attach to the operator's Chrome over CDP on port 9222. Chrome must be fully quit first, or the flag is ignored.
+- **Next free ids** are unchanged: F55, RD-82, migration 330, skill category 51.

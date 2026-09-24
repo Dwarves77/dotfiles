@@ -305,6 +305,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [lane-briefs/2026-09-05/README](./dispatches/lane-briefs/2026-09-05/README.md) — Index + format spec (export meta, phase(), agent(prompt,{label,phase,model}), max 2 concurrent agents, worktree-per-lane, gates, REPORT contract) for the 92 Workflow-tool lane-brief files this build day dispatched
 - [lane-briefs/2026-09-18/README](./dispatches/lane-briefs/2026-09-18/README.md): the cloud coordinator session's five lane briefs with their in-place amendments (L37, L35h, D2, L38 and the common cloud contract), and the gate wrapper they name
 - [lane-briefs/2026-09-19/README](./dispatches/lane-briefs/2026-09-19/README.md): the plan 6.8 lane briefs (N0 to N6 and T2) with their in-place amendments, dispatched from the cloud on 2026-09-19, each row naming its PR
+- [lane-briefs/2026-09-24/brief-auth-identity-retry](./dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md): lane AUTH-IDENTITY, a failed `/api/auth/identity` fetch must not collapse to a resolved-no-org state, and the Sidebar Admin item must gate on the same check as `/admin`
 - [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — brief for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. Scripts run from `fsi-app/` and load `.env.local`; writes hit PRODUCTION Supabase (dev/prod shared) — use the guarded path. Contains no credential values, only env-var names
 
 ## sprint-1
