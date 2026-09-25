@@ -89,12 +89,28 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
     // declarations. Ruling 5.2 (2026-09-07) is unchanged and is now structural: the rule the card
     // mounts is the dark grey gradation, never the band-coloured rule (which stays confined to the
     // nav card cap / mobile top bar / drawer).
-    <SectionCard as="header" className="cl-masthead" dataAttributes={{ "data-masthead-size": size }}>
+    <SectionCard
+      as="header"
+      className="cl-masthead"
+      dataAttributes={commandBar ? { "data-masthead-size": size, "data-masthead-cmdbar": "" } : { "data-masthead-size": size }}
+    >
       <div className="cl-masthead-body" style={{ padding: "18px 24px 20px" }}>
       {/* Mobile spec (MASTHEAD): padding 14px 16px 0, VOL line 9.5px/700,
           title 24px/line-height 1.08 margin-top 5px, scope line 12px, the
           command bar drops to full width under the title. Below 768
           (theme.css's documented --bp-mobile). */}
+      {/* The wide-viewport grid below is SCOPED TO A MASTHEAD THAT RENDERS A COMMAND BAR
+          (`data-masthead-cmdbar`, lane MASTHEAD-AUTH, 2026-09-24). Its 420px track is the bar's
+          column, and a masthead with no bar has nothing to put in it. Unscoped, the rule reserved
+          that track anyway on the auth frame's right panel (/login, /signup, onboarding: no
+          command bar, a 330px or 470px row), leaving the title track at max(0, 330 - 24 - 420) =
+          0px, so "SIGN IN" broke one letter per line [CONFIRMED, 2026-09-24, real chromium on the
+          guard's own mounts and read-only on the live /login: title content box 0.0px at a 1440
+          viewport on /login and /signup, 26.0px on onboarding; 330px and 365px at 1024, where
+          the rule does not apply]. A masthead without a bar keeps the flex row at every width,
+          so its title takes the whole row. The rendering guard's L13 (RD-82) fails any title
+          narrower than its longest word. This note lives outside the <style> text on purpose:
+          the guard reads a style tag's text as page text. */}
       <style>{`
         /* D2 fix (operator report 2026-09-07): "the top text under Jason's Brief" — the scope
            line ("N items across N surfaces...") and the verticals line — wrapped with a one-word
@@ -142,16 +158,17 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           .cl-masthead .cl-masthead-row { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .cl-masthead .cl-masthead-cmdbar { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }
         }
-        /* dc.html's own masthead row, at the width every artboard is drawn at. */
+        /* dc.html's own masthead row, at the width every artboard is drawn at, and only on a
+           masthead that renders a command bar (see the JSX note just above this style tag). */
         @media (min-width: 1440px) {
-          .cl-masthead .cl-masthead-row {
+          .cl-masthead[data-masthead-cmdbar] .cl-masthead-row {
             display: grid !important;
             grid-template-columns: minmax(0,1fr) 420px !important;
             align-items: end !important;
             gap: 10px 24px !important;
           }
-          .cl-masthead .cl-masthead-titleblock { flex: none !important; }
-          .cl-masthead .cl-masthead-cmdbar { flex: none !important; min-width: 0 !important; }
+          .cl-masthead[data-masthead-cmdbar] .cl-masthead-titleblock { flex: none !important; }
+          .cl-masthead[data-masthead-cmdbar] .cl-masthead-cmdbar { flex: none !important; min-width: 0 !important; }
         }
       `}</style>
       <p

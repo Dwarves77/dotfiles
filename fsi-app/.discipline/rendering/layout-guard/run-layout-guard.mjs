@@ -20,7 +20,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
-import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
+import { fullAppCssCompiled, verifyFontsLoaded } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from '../audit/mounts.mjs';
 import { detectClippedText } from '../ux-assert.mjs';
 import { collectLayout } from './collect.mjs';
@@ -78,6 +78,16 @@ export async function measureAllRoutes(browser, { widths = LAYOUT_WIDTHS, only =
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
         await page.waitForTimeout(400);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+        // RD-82 PRECONDITION (lane MASTHEAD-AUTH, 2026-09-24): no measurement on a fallback face.
+        // L13 compares each title with its longest word in the title's own face, and L7/L9/L11
+        // are text-width dependent too; until now this runner never confirmed the stylesheet it
+        // mounts had actually loaded the declared faces. A route whose faces did not resolve is a
+        // harness error (never baselined, so it always fails), not a set of findings.
+        const missingFaces = await verifyFontsLoaded(page);
+        if (missingFaces.length) {
+          errors.push({ route: route.route, width, message: `RD-82 precondition: declared faces not loaded, refusing to measure on a fallback: ${missingFaces.join(', ')}` });
+          continue;
+        }
         const bundle = await collectLayout(page);
         checks += 1;
         const m = { ...bundle, route: route.route, artboard: route.artboard, width };

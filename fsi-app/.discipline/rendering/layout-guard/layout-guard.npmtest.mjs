@@ -24,7 +24,7 @@ import { createRequire } from 'node:module';
 import {
   checkL1, checkL2, checkL3, checkL4, checkL5, checkL6, checkL7, checkL8, checkL9, checkL10,
   isL9DesktopExempt,
-  checkL12, normaliseCardTitle, RULE_IDS, RULE_PROVENANCE,
+  checkL12, checkL13, normaliseCardTitle, RULE_IDS, RULE_PROVENANCE,
 } from './rules.mjs';
 import {
   FRAME_SPEC, POSITION_ALLOWLIST, SCROLLER_ALLOWLIST, ANTON_ALLOWLIST, ABSENCE_ANYWHERE,
@@ -438,6 +438,19 @@ test('L12 catches an intersecting hint and a cut placeholder, and passes a decla
   assert.match(hits[0].measured, /boxes intersect/);
 });
 
+// ── L13 (RD-82, lane MASTHEAD-AUTH, 2026-09-24) ───────────────────────────────────────────────────
+test('L13 names the title, its box and its longest word, from the /login measurement on master', () => {
+  const red = base({ route: '/login', titleWords: [{ name: 'h1[Sign in]', contentWidth: 0, longestWordWidth: 51.3, word: 'Sign', containerWidth: 380 }] });
+  const hits = checkL13(red);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].rule, 'L13');
+  assert.equal(hits[0].element, 'h1[Sign in]');
+  assert.equal(hits[0].measured, 'content box 0px < longest word "Sign" 51.3px');
+  const green = base({ route: '/login', titleWords: [{ name: 'h1[Sign in]', contentWidth: 330, longestWordWidth: 51.3, word: 'Sign', containerWidth: 380 }] });
+  assert.deepEqual(checkL13(green), []);
+  assert.deepEqual(checkL13(base()), [], 'a bundle with no titleWords (an older collector) is not a finding');
+});
+
 // ── The allowlists are data, and the data is complete ──────────────────────────────────────────
 test('every allowlist entry carries a reason and a source - an exception with neither is a hole', () => {
   for (const list of [POSITION_ALLOWLIST, SCROLLER_ALLOWLIST, ANTON_ALLOWLIST]) {
@@ -519,8 +532,9 @@ test('every route names a mount that mounts.mjs defines', () => {
   }
 });
 
-test('every one of the twelve rules has a stated provenance', () => {
-  assert.equal(RULE_IDS.length, 12);
+test('every one of the thirteen rules has a stated provenance', () => {
+  // L13 (RD-82, lane MASTHEAD-AUTH, 2026-09-24): a heading or title narrower than its longest word.
+  assert.equal(RULE_IDS.length, 13);
   for (const id of RULE_IDS) {
     assert.ok(RULE_PROVENANCE[id], `${id} has no provenance`);
     assert.match(RULE_PROVENANCE[id], /new|extended|already covered/);

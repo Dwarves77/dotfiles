@@ -10,6 +10,7 @@ import {
   detectClippedText,
   detectSmallTargets,
   detectSqueezedTitles,
+  detectWordBrokenTitles,
   assertUxClean,
   boxGap,
   TARGET_MIN_PX,
@@ -175,5 +176,53 @@ test("detectClippedText holds a column header to fitting outright, ellipsis or n
       { name: 'span[IMPACT LOW → HIGH]', overflowX: 0, overflowY: 0, textOverflow: 'clip', clamped: false, inStrip: false, mustFit: true },
     ]),
     [],
+  );
+});
+
+// RD-82 (lane MASTHEAD-AUTH, 2026-09-24): a heading or title narrower than its longest word. The
+// measurements are the ones taken on master 44187dfa in a real chromium, the guard's own compose
+// mounts, the declared faces loaded: /login's "SIGN IN" had a 0.0px content box against a 51.3px
+// "SIGN"; onboarding's title a 26.0px box against a 103.8px "FREIGHT?".
+test('RD-82 RED: the /login and onboarding titles as measured on master break inside a word', () => {
+  const hits = detectWordBrokenTitles([
+    { name: 'h1[Sign in]', contentWidth: 0, longestWordWidth: 51.3, word: 'Sign' },
+    { name: 'h1[Where do you move freigh]', contentWidth: 26, longestWordWidth: 103.8, word: 'freight?' },
+  ]);
+  assert.equal(hits.length, 2);
+  const lines = assertUxClean('auth@1440', { titleWords: hits });
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /2 heading\/title\(s\) narrower than their longest word/);
+  assert.match(lines[0], /h1\[Sign in\] content 0px < "Sign" 51px/);
+});
+
+test('RD-82 GREEN: the same titles after the fix (330px and 470px boxes) are clean', () => {
+  assert.deepEqual(
+    detectWordBrokenTitles([
+      { name: 'h1[Sign in]', contentWidth: 330, longestWordWidth: 51.3, word: 'Sign' },
+      { name: 'h1[Where do you move freigh]', contentWidth: 470, longestWordWidth: 103.8, word: 'freight?' },
+    ]),
+    [],
+  );
+  assert.deepEqual(assertUxClean('auth@1440', { titleWords: [] }), []);
+});
+
+test('RD-82: sub-pixel rounding is tolerated, a real shortfall is not', () => {
+  assert.deepEqual(detectWordBrokenTitles([{ name: 'h2[x]', contentWidth: 80, longestWordWidth: 80.4, word: 'x' }]), []);
+  assert.equal(detectWordBrokenTitles([{ name: 'h2[x]', contentWidth: 80, longestWordWidth: 81, word: 'x' }]).length, 1);
+  assert.deepEqual(detectWordBrokenTitles(null), []);
+});
+
+test('RD-82: a word wider than the whole container must break (the extreme-data token), a word that fits it must not', () => {
+  // The community extreme fixture's 100-character unbroken token, 778px, in a 300px card: no layout
+  // could fit it, so breaking it is the designed last resort, not a squeezed box.
+  assert.deepEqual(
+    detectWordBrokenTitles([{ name: 'h3[token]', contentWidth: 275, longestWordWidth: 778, word: 'freightforwarder...', containerWidth: 300 }]),
+    [],
+  );
+  // "SIGN" in the 380px masthead card whose title track collapsed to 0px: it fits the card, so
+  // the box was squeezed.
+  assert.equal(
+    detectWordBrokenTitles([{ name: 'h1[Sign in]', contentWidth: 0, longestWordWidth: 51.3, word: 'Sign', containerWidth: 380 }]).length,
+    1,
   );
 });
