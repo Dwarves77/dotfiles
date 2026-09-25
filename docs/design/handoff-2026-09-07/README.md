@@ -39,7 +39,7 @@ Red and orange are hot, blue and green cool: the step from Action to Monitor is 
 
 - Frame width `1440`, page background `#FAFAF8`, canvas/desk `#E9E6E0`.
 - **Nav `252px`, always** — one width, so the page never shifts on navigation (the audit found two nav widths).
-- Content grid: `padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start`. At 1440 that is a **778px content column** and a **300px rail**.
+- Content grid: `padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start`. At 1440 that is a **780px content column** (measured; ruled 2026-09-25) and a **300px rail**.
 - Nav card: white, `border-radius:10px`, `margin:16px 0 16px 16px`, band-gradient 3px cap, sections `Brief / Intelligence / Network / Operator`, counts right-aligned in each row.
 - **Masthead** convention stays: `VOL IV · No. 36 · <date>` line, Anton title (34px list/dashboard, 28px detail), dek or breadcrumb, then the command bar.
 - **Command bar** replaces every per-page ask panel: 40px tall, `⌕` glyph, placeholder "Search or ask across 1,434 items…", `⌘K` hint, dark `Ask` button. Typing searches; Ask sends the same text to the assistant scoped to the current page.
@@ -55,7 +55,7 @@ Red and orange are hot, blue and green cool: the step from Action to Monitor is 
 = band spine (full-bleed 56px block in the band colour) · jurisdiction code · title + meta line · impact meter · due date + days · timeline · tier · `⋯`.
 Hover `background:#FAFAF8`; row divider `1px solid rgba(0,0,0,.06)`; the whole row is the click target (the audit found two competing click affordances — this is the only one). Title truncates with ellipsis; meta line is `11px` muted.
 
-**Impact meter** (kept and used everywhere). Four scored dimensions (cost, compliance, client-facing, operational), each 0–3, summed to `N/12`. **Row variant (revised 2026-09-18):** four rising bars, 8px wide, heights 6 / 9 / 12 / 15, gap 2, track `#E5E1DB`, radius 1.5. The bars are a stepped fill of the TOTAL, not the four dimensions: each bar holds 3 points and fills from the bottom, left to right (`fill_i = clamp(N − 3i, 0, 3) / 3` of its height). All filled bars share one colour, read off the severity ramp at `N/12`: green `#16A34A` at 1 → amber `#CA8A04` at 4 → orange `#F97316` at 7 → red `#DC2626` at 12 (linear interpolation between stops; never through olive). A 1/12 is one low green stub; a 12/12 is four full red bars; two rows with the same total look identical. `N/12` beside it in tabular numerals. Column header reads "Impact" only. Unscored = four dashed outlines and an em dash, never a word. The per-dimension breakdown is shown only in the **full variant** (detail rail, dashboard): one continuous bar per dimension over the green→orange→red ramp, revealed from the left by the score.
+**Impact meter** (kept and used everywhere). Four scored dimensions (cost, compliance, client-facing, operational), each 0–3, summed to `N/12`. **Row variant (revised 2026-09-18):** four rising bars, 8px wide, heights 6 / 9 / 12 / 15, gap 2, track `#E5E1DB`, radius 1.5. The bars are a stepped fill of the TOTAL, not the four dimensions: each bar holds 3 points and fills from the bottom, left to right (`fill_i = clamp(N − 3i, 0, 3) / 3` of its height). All filled bars share one colour, read off the severity ramp at `N/12`: green `#16A34A` at 1 → amber `#CA8A04` at 4 → orange `#F97316` at 7 → red `#DC2626` at 12 (linear interpolation between stops; never through olive). A 1/12 is one low green stub; a 12/12 is four full red bars; two rows with the same total look identical. `N/12` beside it in tabular numerals. Column header reads "Impact" only. No score yet = four dashed outlines plus "needs scoring inputs" (ruled 2026-09-25). The per-dimension breakdown is shown only in the **full variant** (detail rail, dashboard): one continuous bar per dimension over the green→orange→red ramp, revealed from the left by the score.
 
 **Milestone timeline** (kept and used everywhere). Passed = filled green dot; next = larger dot in the item's band colour with a ring; ahead = hollow dot; track green to today, `rgba(0,0,0,.12)` beyond. Row variant is 76px wide; the detail header carries the full-width version with date labels, and the callout is always the next obligation.
 
@@ -65,7 +65,7 @@ Hover `background:#FAFAF8`; row divider `1px solid rgba(0,0,0,.06)`; the whole r
 
 **Chips.** Only band chips carry colour (tinted pill, band dot, band-coloured label). Tier is a bordered square `T1`–`T6`. Kind, mode and topic are neutral tags on `#F5F2EE`. Filter chips are grouped in labelled sets (Mode / Band / Region) so a wrapped group keeps its label.
 
-**Absence.** A small-caps reason from a fixed vocabulary sits where the value would: `not in primary source · pending · unscored · connect data`. No grey boxes, no red, never a second full row.
+**Absence (revised 2026-09-25).** If the value exists in the data, show it. If it can't exist yet, a small-caps line names the data it needs, starting with "needs": `needs primary-source figure · needs one more month of series · needs your shipment data · connect ↗ · needs scoring inputs`. The words "pending", "unscored" and "not scored" never render. No grey boxes, no red, never a second full row.
 
 **Buttons / stat blocks.** One primary per view, in ink `#5A5552`. Stat block (label / Anton numeral / note) is what profile and admin counters use — never a band tile.
 
@@ -218,4 +218,4 @@ Tablet 1024 is not in this bundle. Mobile 390 is artboard 20 (`20-mobile-390.png
 4. **Dashboard "What changed".** Stays on ListRow. Strike it from the FactCard consumer list; FactCard consumers are the four details, the operations matrix panel, and research findings.
 5. **Legend rail card.** One live ImpactMeter frozen at N=8 next to the text, exactly as artboard 0 and every list artboard draw it. No diagram.
 6. **/market/series.** New route, same frame and masthead, "Market / Series board" eyebrow. The inline board comes off /market; the header link "Series board →" points to it.
-7. **/admin sub-routes.** Inside the program. Every admin route is the same frame, masthead, SectionCard, StatBlock, ListRow. /admin/factors is a list surface using ListRow with an absence convention for unscored factors.
+7. **/admin sub-routes.** Inside the program. Every admin route is the same frame, masthead, SectionCard, StatBlock, ListRow. /admin/factors is a list surface using ListRow with the absence convention ("needs …") for factors that have no value yet.
