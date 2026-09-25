@@ -138,18 +138,21 @@ test("ListSurfaceRailCards.tsx and AdminIssuesRail.tsx render through the shared
   }
 });
 
-test("DetailShell's eight cards are eight cards, SectionCard (direct) plus RailCard (through the shared rail-card part)", () => {
+test("DetailShell's five remaining cards are five cards, SectionCard (direct) plus RailCard (through the shared rail-card part)", () => {
   const text = readFileSync(resolve(ROOT, "components/detail/DetailShell.tsx"), "utf8");
   // Lane W10-RailCard, 2026-09-22: four of the original eight `<SectionCard>` mounts (At a glance,
   // Legend, Impact assessment, In this list) moved onto the shared `<RailCard>` part, which is
-  // itself required (RailCard.npmtest.mjs) to render SectionCard; the invariant this test names
-  // ("eight cards, no hand-rolled shell") is unchanged; only which of the two part-level
-  // components each card renders through moved.
+  // itself required (RailCard.npmtest.mjs) to render SectionCard. Check 2 (lane PARITY-PARTS,
+  // 2026-09-24) then retired DetailHeader/DetailExposure/DetailTimeline entirely (superseded by
+  // ActionCard, mounted via Masthead's own actionSlot, never a card DetailShell.tsx itself owns),
+  // dropping three of this file's own SectionCard mounts. The invariant this test names ("no
+  // hand-rolled shell") is unchanged; the count is not - DetailSection (1, SectionCard) plus
+  // AtAGlanceCard/ImpactRailCard/RailLegend/InThisListStat (4, RailCard) is five now, not eight.
   const sectionCardOpens = text.match(/^\s*<SectionCard\b/gm) ?? [];
   const railCardOpens = text.match(/^\s*<RailCard\b/gm) ?? [];
-  assert.equal(sectionCardOpens.length, 4);
+  assert.equal(sectionCardOpens.length, 1);
   assert.equal(railCardOpens.length, 4);
-  assert.equal(sectionCardOpens.length + railCardOpens.length, 8);
+  assert.equal(sectionCardOpens.length + railCardOpens.length, 5);
 });
 
 // FOLD 62 (2026-09-08): the shell mounts `SectionCard` DIRECTLY at the band card rather than
