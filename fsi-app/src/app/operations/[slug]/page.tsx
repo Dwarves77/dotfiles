@@ -11,8 +11,9 @@
  *   - Eyebrow label: "Operations" (not "Research").
  *
  * Slug resolves by legacy_id OR uuid (same pattern as /research/[slug]).
- * UUID → legacy_id redirect (307) when the URL is a raw uuid and the row
- * has a legacy_id.
+ * UUID → legacy_id redirect (307) when the URL is a raw uuid, and ONLY to a
+ * URL that renders (applyIdRedirect, src/lib/detail/id-redirect.ts; lane
+ * REG-REDIRECT 2026-09-24): an item no surface admits 404s at the uuid URL.
  *
  * Section data: fetched via fetchIntelligenceItemSections (reused, not
  * reimplemented). Passed to OperationsDetailSurface which renders the 8
@@ -34,12 +35,12 @@
  * PERF-10 note for the full mechanism).
  */
 
-import { notFound, redirect } from "next/navigation";
-import { loadDetail } from "@/lib/detail/load-detail";
+import { notFound } from "next/navigation";
+import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
+import { isItemUuid } from "@/lib/detail/id-redirect";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
-import { getServiceSupabase } from "@/lib/supabase-service";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 // Item D3 (UI fix round 2026-09-08): the DQI / auxiliary-energy / grid-queue material moved off the
 // /operations LIST (it sat below artboard 08's last card) onto this profile as three S-sections. These
@@ -53,9 +54,6 @@ import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import { NoticesRail } from "@/components/figures/NoticesRail";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Related items cap.
 const RELATED_LIMIT = 5;
@@ -130,26 +128,10 @@ export default async function OperationsDetailPage({
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
-  // UUID → slug redirect (same as /research/[slug]). Must resolve (or fall
-  // through) BEFORE fetchIntelligenceItem — cannot join loadDetail's
-  // parallel bundle.
-  let redirectTo: string | null = null;
-  if (UUID_RE.test(id)) {
-    try {
-      const supabase = getServiceSupabase();
-      const { data: byId } = await supabase
-        .from("intelligence_items")
-        .select("legacy_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (byId?.legacy_id) {
-        redirectTo = `/operations/${encodeURIComponent(byId.legacy_id)}`;
-      }
-    } catch {
-      // Soft-fail; fetchIntelligenceItem still tries by uuid below.
-    }
-  }
-  if (redirectTo) redirect(redirectTo);
+  // UUID → slug step (lane REG-REDIRECT, 2026-09-24): redirects only to a URL that renders, 404s an
+  // item no surface admits at the uuid URL. See regulations/[slug]/page.tsx and
+  // src/lib/detail/id-redirect.ts. Outside any try/catch (redirect()/notFound() throw).
+  await applyIdRedirect("operations", id);
 
   const result = await loadDetail<ItemScoped>({
       surface: "operations",
@@ -183,7 +165,7 @@ export default async function OperationsDetailPage({
           let relatedReason: ItemScoped["relatedReason"] = "none";
           let sourceFetchStatus: string | null = null;
           try {
-            const isUuid = UUID_RE.test(id);
+            const isUuid = isItemUuid(id);
             const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
             const { data: self } = await supabase
               .from("intelligence_items")

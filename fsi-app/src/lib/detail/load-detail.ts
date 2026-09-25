@@ -58,6 +58,7 @@
 // the right function with the right arguments," and load-detail-core.test.mjs
 // already exercises that shape with equivalent stub deps.
 import { unstable_cache } from "next/cache";
+import { notFound, redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   fetchIntelligenceItem,
@@ -78,6 +79,7 @@ import {
   type DetailDeps,
   type DetailCoreResult,
 } from "./load-detail-core";
+import { ID_REDIRECT_COLUMNS, resolveIdRedirect, type IdRedirectRow } from "./id-redirect";
 
 export { DETAIL_CACHE_REVALIDATE_SECONDS };
 export type { ItemScopedCtx, ViewerScopedCtx, DetailDeps };
@@ -158,4 +160,28 @@ export async function loadDetail<ItemScoped, ViewerScoped = undefined>(
     cacheTags: [itemTag(config.id), surfaceDetailTag(config.surface)],
   });
   return result as DetailResult<ItemScoped, ViewerScoped>;
+}
+
+/** The uuid lookup behind applyIdRedirect. Throws on a missing service client or a PostgREST error (the
+ *  `error` is destructured, never dropped: fsi-app/.claude/CLAUDE.md's agent/run error-swallow post-mortem);
+ *  resolveIdRedirect turns a throw into "render", so loadDetail keeps the final, fail-closed say. */
+async function lookupItemForIdRedirect(uuid: string): Promise<IdRedirectRow | null> {
+  const { data, error } = await getServiceSupabase()
+    .from("intelligence_items")
+    .select(ID_REDIRECT_COLUMNS)
+    .eq("id", uuid)
+    .maybeSingle();
+  if (error) throw new Error(`id-redirect lookup failed: ${error.message}`);
+  return (data as IdRedirectRow | null) ?? null;
+}
+
+/** Lane REG-REDIRECT (2026-09-24): the uuid -> slug step every `[slug]` page runs before loadDetail. It
+ *  redirects only to a URL that renders, and calls notFound() at the uuid URL for an item no surface admits
+ *  (see id-redirect.ts for the rule and the defect it replaces). Must be awaited OUTSIDE any try/catch in
+ *  the page: redirect() and notFound() throw Next's control-flow errors. It cannot join loadDetail's
+ *  parallel bundle, since it decides whether that load happens at this URL at all. */
+export async function applyIdRedirect(surface: DetailSurface, id: string): Promise<void> {
+  const decision = await resolveIdRedirect(surface, id, lookupItemForIdRedirect);
+  if (decision.kind === "redirect") redirect(decision.to);
+  if (decision.kind === "not-found") notFound();
 }
