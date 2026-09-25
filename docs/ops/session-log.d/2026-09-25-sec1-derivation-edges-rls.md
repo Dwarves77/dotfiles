@@ -24,14 +24,33 @@ asserts denial (SQLSTATE 42501); also asserts service_role (BYPASSRLS) still rea
 Self-registers into `run-data-audit-lane.mjs` via the `// data-audit: label=... hard=true` marker
 (verified the marker regex matches; no manual wiring edit needed).
 
-**Could not run live this session**, exit 2 (self-skip, by design). This session's environment has no
-`SUPABASE_DB_URL`/`DATABASE_URL`/`SUPABASE_DB_PASSWORD`, no local `supabase link` artifact
-(`supabase/.temp/`), and no `NEXT_PUBLIC_SUPABASE_URL`, `scripts/lib/pg-conn.mjs`'s resolution order
-found no candidate. Only the Supabase MCP (API-key channel, not a direct-`pg.Client` connection) was
-available, which the verifier's design deliberately does not use (it needs role-level `SET LOCAL ROLE`
-inside a raw Postgres session to impersonate anon/authenticated, which PostgREST/MCP cannot do). The
-verifier is execution-wired (self-registers in the data-audit lane) and will run for real in the
-CI-with-secrets lane, which does carry these credentials.
+**The standalone script self-skips in this session (exit 2, by design)**, no direct-`pg.Client`
+credentials (`SUPABASE_DB_URL`/`DATABASE_URL`/`SUPABASE_DB_PASSWORD`/local `supabase link`) are
+available here for its `SET LOCAL ROLE` impersonation. It is execution-wired (self-registers in the
+data-audit lane) and will run for real in the CI-with-secrets lane.
+
+**Per coordinator direction, the attack was ALSO run live through Supabase MCP `execute_sql`** as one
+statement, a single `DO $$ ... $$` block: for each of `anon` and `authenticated`, `SET LOCAL ROLE`, then
+SELECT, INSERT, UPDATE, DELETE against `public.derivation_edges`, each inside its own
+`BEGIN ... EXCEPTION WHEN insufficient_privilege` sub-block recording denied/allowed, `RESET ROLE`
+between roles, then `RAISE EXCEPTION` with the collected result string so the whole DO block (and every
+probe write inside it) rolled back. Live output, verbatim from the raised exception text:
+
+```
+SEC1_ADVERSARIAL_RESULT: anon:select=denied; anon:insert=denied; anon:update=denied; anon:delete=denied;
+authenticated:select=denied; authenticated:insert=denied; authenticated:update=denied;
+authenticated:delete=denied; final_count_pre_rollback=24
+```
+
+All eight outcomes `denied`. A follow-up `SELECT count(*)` after the rollback confirmed `row_count=24`
+(the exception rolled back every probe write; nothing persisted). [CONFIRMED, this session, MCP
+`execute_sql`].
+
+**Apply mechanism note.** Migration 330 was applied through the Supabase MCP `apply_migration` tool, not
+the Supabase CLI (`supabase db push`), this session had no local `supabase link`/CLI context, only the
+MCP connection. `apply_migration` writes the same `supabase_migrations.schema_migrations` row the CLI
+would; confirmed live: `version=20260925184917`, `name=330_derivation_edges_rls` is present in that
+table. [CONFIRMED, this session, MCP `execute_sql`].
 
 **Decisions.** No SELECT policy added (deny-all) rather than mirroring `derived_values_admissible`,
 since `derivation_edges` has no reader outside the service-role propagation lib, so a gated view would
