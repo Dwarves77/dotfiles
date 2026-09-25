@@ -1,4 +1,4 @@
-# Caro's Ledge — Operating Manual
+# Caro's Ledge  -  Operating Manual
 
 This repo is the source of truth for the Caro's Ledge product (Freight Sustainability Intelligence) and its project memory. Read this file first, every session. It is the constitution: stable rules, not session state. Session state lives in the files listed under Loading Priority.
 
@@ -32,22 +32,22 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 ## Loading priority
 
 1. This file.
-2. `docs/INDEX.md` — then open only what the task needs.
-3. `docs/PROGRAM-BOARD.md` — **the resume state**: the thread table with state, evidence, and deferrals.
+2. `docs/INDEX.md`  -  then open only what the task needs.
+3. `docs/PROGRAM-BOARD.md`  -  **the resume state**: the thread table with state, evidence, and deferrals.
 4. `docs/ops/` followups + tail of `docs/ops/session-log.md`.
 5. Task-relevant ADRs and runbooks.
 6. **Before writing any `.tsx` or `.css` under `fsi-app/src`:** `docs/design/ux-laws.md` and `docs/design/design-principles.md` (DP-1, DP-2). Enforced, not advisory: F35 + the rendering guard's UX smoke slot measure every row component at 375 px (RD-60), and the discipline CI fails a PR touching a surface without a "UX compliance" block in its session-log addendum. Executor lanes read `docs/dispatches/lane-common-contract.md`.
 7. Code.
 
 `fsi-app/STATUS.md` is **NOT** in this list (operator ruling 2026-08-14). It describes April
-state — branch `redesign/full-migration`, PR #5 draft — and fed stale lane state to sessions that
+state  -  branch `redesign/full-migration`, PR #5 draft  -  and fed stale lane state to sessions that
 followed the protocol correctly, which is worse than a file nobody reads. It is retained as a
 historical record with a header saying so; PROGRAM-BOARD is the resume state. The one live thing it
 carried, the migration two-track policy, is stated in full in standing rule 3 below and does not
 depend on it.
 
 Loading is not automatic. `CLAUDE.md` only auto-loads when the session's cwd is the repo root, so
-a session started elsewhere never sees this list — the SessionStart hook in `.claude/settings.json`
+a session started elsewhere never sees this list  -  the SessionStart hook in `.claude/settings.json`
 emits the read-path from outside the file to break that circularity.
 
 Load narrowly. Reference material constrains you; working artifacts are input. Do not bulk-load docs/.
@@ -56,7 +56,7 @@ Load narrowly. Reference material constrains you; working artifacts are input. D
 
 1. **Facts live in Supabase.** Regulatory facts, spans, tiers, and their integrity are owned by the database, validators, and quarantine lanes. Docs cite record IDs and migration numbers; they never restate published facts. Never hand-edit published rows; changes go through migrations and lanes.
 2. **Never fabricate** numbers, results, sources, or client names. Placeholders plus a question beat confident fiction.
-3. **Migration two-track policy**: schema DDL applies via Supabase CLI before the dependent code commits; data migrations commit with consumer code and run after merge. (Stated here in full. The former "see STATUS.md" pointer is dropped — STATUS.md is historical as of 2026-08-14.)
+3. **Migration two-track policy**: schema DDL applies via Supabase CLI before the dependent code commits; data migrations commit with consumer code and run after merge. (Stated here in full. The former "see STATUS.md" pointer is dropped  -  STATUS.md is historical as of 2026-08-14.)
 4. **Decisions become ADRs** at the moment they are made: `docs/decisions/ADR-NNN-kebab.md`, frontmatter id/title/status/date/scope/supersedes/related. Enforcement trailer is deprecated (ADR-009 postscript); the convention is binding.
 5. **Machine evidence never lands in docs/ top level.** Execute logs, runlogs, snapshots, raw JSON → `docs/archive/logs/` if worth keeping, gitignored scratch (`fsi-app/scripts/tmp/`, `_snapshots/`, `_plans/`) if regenerable.
 6. **Session logs** go to `docs/ops/session-log.md` as dated appended entries. Never into this file.
@@ -65,28 +65,50 @@ Load narrowly. Reference material constrains you; working artifacts are input. D
 9. **No credentials in the repo.** `.env` stays untracked; see .gitignore history for the perftoken incident.
 10. **Dates in filenames** for anything point-in-time. Undated facts become landmines when the project changes its mind.
 11. **Context is a metered resource.** In a long agentic session the dominant cost is not what gets generated, it is context re-read: every turn re-bills the whole conversation, so cost is context size multiplied by turn count, not the sum of the work. Measured 2026-08-07: one 17-day session reached 1.34B cache-read tokens against 856k tokens of actual product. Therefore: never call a list endpoint to answer a metadata question when a targeted query exists (`list_triggers` returns every charter body, roughly 300k tokens per call); route unavoidably large or noisy tool output through a subagent with an explicit do-not-echo contract so the payload lands in its context and only the conclusion returns; prefer `get_page_text` over screenshots, which are permanent context residents; and when a session passes roughly 200k of context on finished work, say so and recommend a fresh session rather than carrying the history forward. Scheduled workers pay a fixed startup cost per firing, so fewer firings with larger batches beat frequent small ones, and every recurring worker must check a kill switch before doing work (see `docs/runbooks/fleet-budget-control.md`).
-12. **PDFs are never opened with the Read tool.** An interactive session that Reads a PDF renders its pages as images, and images are permanent context residents that re-bill on every subsequent turn (rule 11's cost model at its worst). Convert to text first (`pdftotext`, `pymupdf`) and read the text; open an actual page image only when layout itself is the question, and route it through a subagent when possible. The ingestion side already complies — capture-worker v1.3 extracts PDF text server-side as a declared transform — this rule covers interactive reading.
-13. **A flag is a commitment, not a comment.** (Operator-ratified 2026-08-08.) Anything a session labels a problem, landmine, edge, or debt is WORK: fix it in the same motion, or deliver it decision-ready (mechanism built, investigation done, exact commands staged) where a ruling, a live worktree, or missing access blocks execution. "Flagged for later" without either is the anti-pattern this rule retires. The bar is best-possible engineering, not adequate. Corollary: investigating a flag can refute it — a flag that dissolves under evidence gets a same-session correction wherever it was recorded, never a quiet drop.
+12. **PDFs are never opened with the Read tool.** An interactive session that Reads a PDF renders its pages as images, and images are permanent context residents that re-bill on every subsequent turn (rule 11's cost model at its worst). Convert to text first (`pdftotext`, `pymupdf`) and read the text; open an actual page image only when layout itself is the question, and route it through a subagent when possible. The ingestion side already complies  -  capture-worker v1.3 extracts PDF text server-side as a declared transform  -  this rule covers interactive reading.
+13. **A flag is a commitment, not a comment.** (Operator-ratified 2026-08-08.) Anything a session labels a problem, landmine, edge, or debt is WORK: fix it in the same motion, or deliver it decision-ready (mechanism built, investigation done, exact commands staged) where a ruling, a live worktree, or missing access blocks execution. "Flagged for later" without either is the anti-pattern this rule retires. The bar is best-possible engineering, not adequate. Corollary: investigating a flag can refute it  -  a flag that dissolves under evidence gets a same-session correction wherever it was recorded, never a quiet drop.
 
 14. **A finding is a hypothesis until it is verified, and it is labeled either way.** (Operator-directed 2026-08-09, after eight retractions in one session: a "truncation defect" that was real treaty text, a "no RLS" table that had RLS, an escalation scope that was already gated, "EUR-Lex is capture-dead" against 645 live captures, a per-item cost off by ~10x.) The failure was structural, not careless: findings were produced by a read-then-report pass and entered the operator's view as CONCLUSIONS while still being PATTERN MATCHES. That is worse than no audit, because it burns operator attention on phantoms and makes the real findings unbelievable.
     Binding, and mechanically checkable: every finding in an audit, register, or report carries an explicit status token, and no finding may be stated to the operator without one.
-    - `[CONFIRMED]` — independently re-verified against the live system or a written repro, by a method named in the finding.
-    - `[HYPOTHESIS]` — read from code/docs and plausible, NOT yet verified. Must be spoken as a hypothesis in prose too ("this looks like X; unverified").
-    - `[REFUTED]` — investigated and found false. Refuted findings are corrected IN PLACE, never silently deleted (rule 13's corollary).
+    - `[CONFIRMED]`  -  independently re-verified against the live system or a written repro, by a method named in the finding.
+    - `[HYPOTHESIS]`  -  read from code/docs and plausible, NOT yet verified. Must be spoken as a hypothesis in prose too ("this looks like X; unverified").
+    - `[REFUTED]`  -  investigated and found false. Refuted findings are corrected IN PLACE, never silently deleted (rule 13's corollary).
     Severity (P0/P1/P2) is orthogonal to status: a `[HYPOTHESIS]` P0 is a thing to go verify, not a thing to report as broken. Enforced by `scripts/verify/audit-finding-status.mjs`; a docs/audits file with unlabeled findings fails the check.
 
-15. **A proof that does not execute is not a proof, and a guard is proven by attack, not by presence.** (Operator-directed 2026-08-09, after the wiring-truth sweep: all 15 behavioral goldens were `selftest:`-cited as enforcement and run by NOTHING — two silently red for weeks — and 13 registry-cited `audit:` verifiers were absent from the data-audit lane; separately, the mig-118 provenance guard passed its build-time "triggers exist and are ENABLED" check while being defeatable with one `set_config` call.) Two binding consequences:
-    - **Execution over existence.** A verifier (golden, audit, self-test) that is git-tracked but run by no lane is a lie the coverage gate must not rubber-stamp. Every `selftest:`/`audit:` enforcer must be EXECUTION-WIRED — actually run by `run-test-suite.sh`, the npmtest glob, `run-goldens.mjs`, `run-data-audit-lane.mjs`, a fitness sentinel spawn, or the rendering job. Enforced by `.discipline/governance/execution-wiring.mjs` inside the invariant-coverage meta-gate (negative-tested by `execution-wiring.test.mjs`): a cited-but-unrun proof now FAILS the gate. New verifiers self-skip (exit 2) without creds rather than crash, so a no-cred run is diagnosable, never a false red.
-    - **Attack, don't assert presence.** A security-critical invariant (a DB guard, a credential binding, an auth gate) is proven by an ADVERSARIAL check — a scripted attack wired into a lane that MUST fail — not by asserting its enforcement object exists or is enabled. The mig-250 provenance binding ships with `scripts/verify/prov-guard-adversarial-audit.mjs` (forged-input escalation denied under rollback) as the template. Presence checks are necessary, never sufficient.
+15. **A proof that does not execute is not a proof, and a guard is proven by attack, not by presence.** (Operator-directed 2026-08-09, after the wiring-truth sweep: all 15 behavioral goldens were `selftest:`-cited as enforcement and run by NOTHING  -  two silently red for weeks  -  and 13 registry-cited `audit:` verifiers were absent from the data-audit lane; separately, the mig-118 provenance guard passed its build-time "triggers exist and are ENABLED" check while being defeatable with one `set_config` call.) Two binding consequences:
+    - **Execution over existence.** A verifier (golden, audit, self-test) that is git-tracked but run by no lane is a lie the coverage gate must not rubber-stamp. Every `selftest:`/`audit:` enforcer must be EXECUTION-WIRED  -  actually run by `run-test-suite.sh`, the npmtest glob, `run-goldens.mjs`, `run-data-audit-lane.mjs`, a fitness sentinel spawn, or the rendering job. Enforced by `.discipline/governance/execution-wiring.mjs` inside the invariant-coverage meta-gate (negative-tested by `execution-wiring.test.mjs`): a cited-but-unrun proof now FAILS the gate. New verifiers self-skip (exit 2) without creds rather than crash, so a no-cred run is diagnosable, never a false red.
+    - **Attack, don't assert presence.** A security-critical invariant (a DB guard, a credential binding, an auth gate) is proven by an ADVERSARIAL check  -  a scripted attack wired into a lane that MUST fail  -  not by asserting its enforcement object exists or is enabled. The mig-250 provenance binding ships with `scripts/verify/prov-guard-adversarial-audit.mjs` (forged-input escalation denied under rollback) as the template. Presence checks are necessary, never sufficient.
 16. **Build mode holds the scrape cadence OFF, and no session proposes flipping it.** (Operator-stated repeatedly; restated 2026-09-03 after a session asked again: "we are setting no cadence at this time because we are building the site.") `system_state.scrape_cadence='off'` is the build-mode state (`docs/plans/finish-plan-2026-09-02.md`: no standing schedules during build, every runtime by explicit dispatch; ADR-023). Expected consequences, not defects: `/api/worker/check-sources` exits at its gate with 0 sources checked, the change-detection runtime detects nothing and only reconciles and drains, `sources.last_checked` stays at its last pre-hold value. Items whose sources may have changed are held as stale and KEPT in the ledger, never archived or flagged for it; they refresh when the operator sets a scrape time after build. A session that frames the cadence as a decision waiting on the operator has not loaded memory.
 
 17. **Nothing in this build runs alone.** (Operator, 2026-09-04, verbatim: "there is no thing within this entire build that works on its own ever. Everything works in tandem. It is important that this is a rule. Everything works together, that's the purpose of the flywheel and the harness.") A mint is not done until the flywheel has connected it (discovery, forward events, analysis, obligations, tags) and the harness has recorded the outcome in the run's own artifact; an analysis is not done until its result is written where the surfaces read it. A runtime that ends without triggering its downstream is a defect in the runtime, never a note for a coordinator; a coordinator who dispatches the upstream and leaves the downstream for later has skipped the build. Measured cost of the violation, 2026-09-03/04: six population slices (~650 items) applied with no flywheel pass, and 551 record items minted with only their title as a fact, live on customer surfaces.
 18. **A figure with a source is published with that source's rating; the source is found and rated, never the figure refused.** (Operator, 2026-09-04, verbatim, ruling on the 386 orphan figures whose source was missing or above the per-type authority floor: "get the source. then rate the source. it's that simple. this isn't hard, find the source and then publish the data on the site.") The heal registers the cited page as a source through the registry (tier from the institution class table, never hand-typed), captures it, grounds the figure verbatim on it, and the surface shows the rating; criterion 3 of `validate_item_provenance` records the claim's tier against the type floor and no longer refuses (migration 302 amends 138/141/202). What stays refused: a figure with no source anywhere (ungrounded), and any span that is not verbatim in a capture (ADR-016). A session that quarantines an item because its source is "too low" instead of rating it has not loaded memory.
 
+19. **Examples are not scope.** (Operator, 2026-09-24/25, verbatim: "we have a whole page built to ONE
+    idea i thought of"; "It's not about automate and hire. That's one item"; "Tariffs and trade were an
+    example of future structure"; "an example of how this system can be used in the future." Decision 5,
+    2026-09-25.) An example in a spec, brief, or dispatch illustrates a class; it is never the scope of
+    the build. Mechanics: every section that carries an example marks it illustrative and states the
+    full question the section answers plus a coverage test that reaches beyond that one example; a lane
+    report closing that section confirms generalization, naming what else the section now covers, not
+    only the example; a discipline check flags a section that carries an example with no coverage
+    requirement attached. Memory: examples-are-not-scope.
+
+20. **Artboards govern look; the operator and the coordinator govern system.** (Operator, 2026-09-24/25,
+    verbatim: "we are matching artboards for layout and design, not for how we build the site as a
+    system"; "the artboard is done by claude design which only designs the look, we design the tools and
+    the functions"; "if you ever have a part of this build that doesnt match the design, then we need to
+    change the design to fit those systems and tools.") An artboard fixes visual layout, spacing, type,
+    and colour. It never fixes data structure, information architecture beyond layout, or product
+    behaviour  -  those are ruled in conversation with the operator, same as any other product decision.
+    When a build lane finds a divergence between what the system needs and what the current artboard
+    shows, the lane does not silently pick a side: it builds to the system's need and records the
+    divergence on a DESIGN CHANGES OWED list for Claude Design, cited by artboard number and ruling.
+    Memory: system-drives-design.
+
 ## Memory conventions
 
 - INDEX.md gains a line for every new living doc, same commit. **Prior-art before creation:** before creating a doc, check INDEX.md for an existing one that serves the role and extend it, rather than creating a duplicate (reuse-before-construction, for docs).
-- Docs cross-link with **markdown relative links** (`[text](../dir/file.md)`): 2 to 5 real relationships, no keyword spam; new docs are born-linked, orphans get reported not force-linked. Real-doc links are markdown; conceptual anchors (rule-*, vocabulary-*) stay plain text, never `[[wikilinks]]`. (ADR-010 amendment 2026-07-13 — supersedes the earlier wikilink convention.)
+- Docs cross-link with **markdown relative links** (`[text](../dir/file.md)`): 2 to 5 real relationships, no keyword spam; new docs are born-linked, orphans get reported not force-linked. Real-doc links are markdown; conceptual anchors (rule-*, vocabulary-*) stay plain text, never `[[wikilinks]]`. (ADR-010 amendment 2026-07-13  -  supersedes the earlier wikilink convention.)
 - Contradiction audit: periodically (align with the monthly spot-check lane) scan living docs for statements that disagree; flag for operator ruling.
 - Cross-project and personal memory live in the private brain repo, not here. This repo is Caro's Ledge only.
 
