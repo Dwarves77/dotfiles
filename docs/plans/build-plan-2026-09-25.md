@@ -175,6 +175,8 @@ that get promoted to standing gates are provably run by a lane, not merely prese
 
 ## 4. Sequence and lane briefs (headline)
 
+**Operator ruling R14 (2026-09-25):** tools that manage the data are built and complete before any data on the site is updated; see [session-log.d/2026-09-25-operator-ruling-r14.md](../ops/session-log.d/2026-09-25-operator-ruling-r14.md). Every lane below that would change live data waits; lanes build the managing tools first. 6.3 data (migration 299 + 146-item re-mint, brief batches, statutory upload) and any audit remediation that writes data are held behind the tools.
+
 Model assignment: **Sonnet** for anything requiring judgment (design read, extraction logic,
 cross-referencing rulings); **Haiku** for mechanical work (running an existing script, pushing a
 branch, formatting a findings register from tool output). No Opus sub-agents. Any brief marked
