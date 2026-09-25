@@ -17,14 +17,16 @@ test("every REGULATION_SECTION_INDEX short name is at most 14 characters", () =>
   }
 });
 
-test("REGULATION_SECTION_INDEX carries all 8 sections, in review item 5's canonical order", () => {
+// Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card, moved into a
+// trailing "related" section, appended after "sources" (review item 5's own 8, unchanged in order).
+test("REGULATION_SECTION_INDEX carries all 8 review-item-5 sections plus the trailing 'related' entry, in order", () => {
   assert.deepEqual(
     REGULATION_SECTION_INDEX.map((e) => e.id),
-    ["summary", "obligations", "requirements", "registration", "operations", "compliance", "penalties", "sources"],
+    ["summary", "obligations", "requirements", "registration", "operations", "compliance", "penalties", "sources", "related"],
   );
   assert.deepEqual(
     REGULATION_SECTION_INDEX.map((e) => e.shortName),
-    ["Summary", "Obligations", "Requirements", "Registration", "Operations", "Compliance", "Penalties", "Sources"],
+    ["Summary", "Obligations", "Requirements", "Registration", "Operations", "Compliance", "Penalties", "Sources", "Related"],
   );
 });
 

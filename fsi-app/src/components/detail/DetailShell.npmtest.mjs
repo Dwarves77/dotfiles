@@ -20,8 +20,11 @@ const SOURCE = readFileSync(
 // replaces) — the vocabulary checks below care about CODE, not comments describing the change.
 const CODE_ONLY = SOURCE.replace(/\/\*[\s\S]*?\*\//g, "");
 
-test("imports the shared parts rather than reimplementing them (StateNote, ImpactMeter, Absence)", () => {
-  assert.match(SOURCE, /from "@\/components\/ui\/StateNote"/);
+// StateNote is no longer imported by this file directly (check 2, lane PARITY-PARTS, 2026-09-24,
+// retired DetailHeader/DetailTimeline, its only direct callers here) - it is still a shared part,
+// consumed via band-context.tsx/ItemGroup.tsx instead. Asserting an import this file genuinely does
+// not carry would be testing against dead code (CLAUDE.md rule 13).
+test("imports the shared parts rather than reimplementing them (ImpactMeter, Absence)", () => {
   assert.match(SOURCE, /from "@\/components\/ui\/ImpactMeter"/);
   assert.match(SOURCE, /from "@\/components\/ui\/Absence"/);
 });
