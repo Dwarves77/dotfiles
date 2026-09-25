@@ -1,7 +1,8 @@
 // UX smoke spec: SectionIndex. Lane W10-ActionCard-a, 2026-09-21, operator review items 4 and 6.
 // Mounts the REAL `SectionIndex` (src/components/ui/SectionIndex.tsx) with the real
-// `REGULATION_SECTION_INDEX` table and the review's own eight anchored sections, measured at
-// 1440x900 and 375x812.
+// `REGULATION_SECTION_INDEX` table, measured at 1440x900 and 375x812. The review's own eight
+// anchored sections plus check 8's trailing "related" entry (lane PARITY-PARTS, 2026-09-24;
+// Connections moved out of the rail), nine total.
 //
 // Acceptance measured here, verbatim from the brief's step 7:
 //   - no index label with scrollWidth > clientWidth (never truncates)
@@ -66,9 +67,14 @@ async function measureAcceptance(page) {
     // see SectionIndex.tsx's own header on reuse-before-construction), not "Section depth": this
     // spec's own selector had never actually been run against the real component until now.
     const switchGroups = [...document.querySelectorAll('[role="group"][aria-label="Summary depth"]')];
-    // "no standalone row": every switch group found must be a DIRECT CHILD of the nav itself, never
-    // a sibling element below it (which is what the prior standalone-row defect looked like).
-    const switchShapes = switchGroups.map((g) => ({ isChildOfNav: g.parentElement === nav }));
+    // Operator check 7 (lane PARITY-PARTS, 2026-09-24): "no standalone row" now means the switch is
+    // a DOM descendant of the SAME bordered strip card the tabs render in ([data-guard-strip]), not
+    // literally `g.parentElement === nav` (the restructure that fixed check 7 wraps the switch in
+    // its own flexShrink:0 div, itself a child of the strip, which is a child of nav - two levels
+    // deep, correctly nested, but no longer a DIRECT nav child). A sibling card pinned outside the
+    // strip (the pre-fix shape) fails this the same way it always did.
+    const strip = document.querySelector('[data-guard-strip]');
+    const switchShapes = switchGroups.map((g) => ({ isChildOfNav: !!(strip && strip.contains(g)) }));
     return {
       linkCount: links.length,
       labelBoxes,
@@ -98,9 +104,11 @@ export async function runSmoke(browser) {
         const guard = await measureGuard(page);
 
         const acceptance = await measureAcceptance(page);
+        // Operator check 8 (lane PARITY-PARTS, 2026-09-24): REGULATION_SECTION_INDEX gained a
+        // trailing "related" entry (Connections moved out of the rail), 9 entries now, not 8.
         checks += 1;
-        if (acceptance.linkCount !== 8) {
-          failures.push(`${label}: expected 8 section-index links, found ${acceptance.linkCount}`);
+        if (acceptance.linkCount !== 9) {
+          failures.push(`${label}: expected 9 section-index links, found ${acceptance.linkCount}`);
         }
         checks += 1;
         for (const t of detectTruncatedLabels(acceptance.labelBoxes)) {
