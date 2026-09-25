@@ -573,11 +573,8 @@ function IntegrityBanner({ phrase }: { phrase: string }) {
         </div>
         <div style={{ color: "var(--ink)" }}>
           The agent self-flagged this brief with the phrase{" "}
-          <code style={{ background: "var(--tag)", border: "1px solid var(--line-1)", borderRadius: 3, padding: "1px 6px" }}>{phrase}</code>. Resolve in{" "}
-          <a href="/admin#integrity-flags" style={{ color: "var(--action)", fontWeight: 700, textDecoration: "underline" }}>
-            /admin → Integrity flags
-          </a>
-          .
+          <code style={{ background: "var(--tag)", border: "1px solid var(--line-1)", borderRadius: 3, padding: "1px 6px" }}>{phrase}</code>. This
+          concern is queued for review.
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { decidePlatformAdmin, isPlatformAdminProfile } from "@/lib/auth/platform-admin-gate";
 
 /**
  * Platform-admin gate.
@@ -33,7 +34,8 @@ export async function isPlatformAdmin(
     .maybeSingle();
 
   if (error || !data) return false;
-  return data.is_platform_admin === true;
+  // One predicate for every platform-admin read (lane AUTH-IDENTITY): platform-admin-gate.ts.
+  return isPlatformAdminProfile(data);
 }
 
 /**
@@ -57,21 +59,15 @@ export async function requirePlatformAdmin(
   redirectPath: string = "/admin"
 ): Promise<{ userId: string; email: string }> {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // The decision lives in platform-admin-gate.ts (lane AUTH-IDENTITY, 2026-09-24), the same module whose
+  // predicate the identity route uses to tell the nav whether to show Admin, so the two cannot drift.
+  const decision = await decidePlatformAdmin(supabase);
 
-  if (!user) {
+  if (decision.kind === "anonymous") {
     redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("is_platform_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error || !data || data.is_platform_admin !== true) {
+  if (decision.kind === "denied") {
     // Non-platform-admin users land at /. Matches the existing no-permission
     // UX on /admin prior to this change. Operator-side: grant by setting
     // profiles.is_platform_admin = true via service-role DB write; the
@@ -79,5 +75,5 @@ export async function requirePlatformAdmin(
     redirect("/");
   }
 
-  return { userId: user.id, email: user.email || "" };
+  return { userId: decision.userId, email: decision.email };
 }

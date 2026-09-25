@@ -33,6 +33,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { shouldShowAdminNav } from "@/components/shell/bootstrap-seed";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
@@ -112,10 +113,16 @@ export interface SidebarProps {
 
 export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, signOut, identityStatus, isPlatformAdmin } = useAuth();
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
-  const isAdmin = userRole === "owner" || userRole === "admin";
+  // ONE admin gate (lane AUTH-IDENTITY, 2026-09-24). The Admin row links to /admin, whose gate
+  // (requirePlatformAdmin) admits on `profiles.is_platform_admin`, so the row shows on exactly that
+  // bit, read by the identity route through the same predicate (src/lib/auth/platform-admin-gate.ts).
+  // It used to show for any WORKSPACE owner or admin: a link the route bounced for a workspace owner
+  // who is not platform staff, and a link that vanished for the platform admin whenever the role was
+  // missing. The badge still names the caller's workspace role, when there is one.
+  const isAdmin = shouldShowAdminNav({ status: identityStatus, isPlatformAdmin });
   const { data: bootstrap } = useWorkspaceBootstrap();
   const counts = bootstrap?.navCounts;
   // The Account row is itself the trigger for the menu the deleted third row
@@ -348,21 +355,24 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               )}
               {/* dc.html p1 badge, verbatim: 9.5px / 700 / .08em, 2px 6px inside a
                   1px rgba(0,0,0,.2) border at radius 4. The word is the caller's real
-                  role, never a hardcoded OWNER. */}
-              <span
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  padding: "2px 6px",
-                  border: "1px solid rgba(0,0,0,.2)",
-                  borderRadius: 4,
-                  color: "var(--ink)",
-                }}
-              >
-                {userRole}
-              </span>
+                  role, never a hardcoded OWNER; a platform admin with no workspace role
+                  gets no badge rather than an empty bordered box. */}
+              {userRole && (
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    padding: "2px 6px",
+                    border: "1px solid rgba(0,0,0,.2)",
+                    borderRadius: 4,
+                    color: "var(--ink)",
+                  }}
+                >
+                  {userRole}
+                </span>
+              )}
             </span>
           </Link>
         )}
