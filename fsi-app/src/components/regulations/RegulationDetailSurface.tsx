@@ -35,7 +35,9 @@
  * non-verified content never fabricated.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { mergeObligationEvents } from "@/lib/detail/timeline-math";
+import { KIND_LABELS as OBLIGATION_KIND_LABELS } from "@/lib/forward-events/kind-labels.mjs";
 import { nowFrom } from "@/lib/render-now";
 import { recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
@@ -109,7 +111,6 @@ interface Props {
   /** Hero deck sub-line, e.g. "IMO MEPC · adopted 7 July 2023 · in force". */
   deck?: string;
   initialOwner?: { userId: string; name: string } | null;
-  upcomingObligations?: React.ReactNode;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -153,7 +154,6 @@ export function RegulationDetailSurface({
   groupLabel,
   deck,
   initialOwner = null,
-  upcomingObligations = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -178,6 +178,34 @@ export function RegulationDetailSurface({
   const isRecord = r.itemGrade === "record";
   const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+
+  // Operator ruling (lane PARITY-PARTS, 2026-09-25): "Upcoming-obligations strip: remove it as a
+  // separate element. Show each obligation in the timeline instead." The strip's own data
+  // (item_forward_events, via GET /api/obligations/upcoming?itemId=) is fetched here - the SAME
+  // request-scoped route UpcomingObligationsStrip.tsx already called, reused rather than
+  // re-implemented - and merged into `r.timeline` below (mergeObligationEvents, timeline-math.ts) so
+  // each obligation becomes one TIMELINE marker instead of a second card. Empty on fetch failure or
+  // while loading: an obligation that hasn't arrived yet is honestly absent from the merge, never a
+  // fabricated placeholder marker.
+  const [obligationEvents, setObligationEvents] = useState<{ event_date: string; event_kind: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/obligations/upcoming?itemId=${encodeURIComponent(r.id)}&limit=20`, { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : { events: [] }))
+      .then((result: { events?: { event_date: string; event_kind: string }[] }) => {
+        if (!cancelled) setObligationEvents(result.events ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setObligationEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [r.id]);
+  const mergedTimeline = useMemo(
+    () => mergeObligationEvents(r.timeline ?? [], obligationEvents, OBLIGATION_KIND_LABELS),
+    [r.timeline, obligationEvents]
+  );
 
   const dynamicSections = useMemo(
     () => sections.filter((s) => s.section_key in CANONICAL_HEADINGS && (s.content_md || "").trim()),
@@ -241,6 +269,11 @@ export function RegulationDetailSurface({
       .filter(Boolean)
       .join(" · ") || null;
 
+  // Operator ruling (lane PARITY-PARTS, 2026-09-25): the merged marker set (r.timeline plus the
+  // obligation events above) overrides commonActionCardProps' plain `r.timeline` below. "+N more"
+  // jumps to the Obligation Register section's own existing anchor (`id="obligation-register"`,
+  // ObligationRegisterFilterBar.tsx - already there for the rail's "Calendar ->" link; this reuses
+  // it, not a second anchor).
   const actionCard = (
     <ActionCard
       bare
@@ -261,20 +294,22 @@ export function RegulationDetailSurface({
       }
       {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "reg", initialWatched, initialTeamWatched, initialTeamAvailable })}
       where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
+      timeline={mergedTimeline}
+      moreMarkersHref="#obligation-register"
+      overflow={<HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />}
     />
   );
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
-        {/* Lane W10-ActionCard-b (2026-09-22) + operator check 2 (lane PARITY-PARTS, 2026-09-24):
-            ActionCard (band pill + action row + exposure + timeline) now renders INSIDE the one
-            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell), not
-            as a sibling card below it. The per-item priority menu has no slot in the merged card's
-            props, so it renders as a small control immediately above the WHOLE masthead card. */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-          <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
-        </div>
+        {/* Lane W10-ActionCard-b (2026-09-22) + operator check 2 (lane PARITY-PARTS, 2026-09-24) +
+            operator ruling (lane PARITY-PARTS, 2026-09-25): ActionCard (band pill + action row +
+            exposure + timeline) renders INSIDE the one masthead card via DetailMasthead's
+            `actionSlot` (bare, no second SectionCard shell). The per-item priority menu, which used
+            to render as a small control immediately above the WHOLE masthead card (its own separate
+            row), now mounts as the LAST control in the action row itself (ActionCard's `overflow`
+            prop above) - no longer a sibling element at all. */}
         <DetailMasthead
           title={r.title}
           band={band}
@@ -320,15 +355,6 @@ export function RegulationDetailSurface({
                 <>
                   <OwnerTeamCard resource={r} initialOwner={initialOwner} />
                   <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
-                  {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): UpcomingObligationsStrip was
-                      rendering as a second white-bordered card between the masthead and the section
-                      index (a sibling card the check forbids). Its own file header already documents
-                      the detail variant as "a small optional rail card" - it had simply never been
-                      moved to the rail. Artboard 03's rail does not draw a distinct card for it either
-                      when the item has nothing due beyond what TIMELINE/EXPOSURE already show, so this
-                      keeps the component's own honest empty-render contract (nothing when there is
-                      nothing) rather than fabricating a slot for it. */}
-                  {upcomingObligations}
                 </>
               }
               legend={<RailLegend />}

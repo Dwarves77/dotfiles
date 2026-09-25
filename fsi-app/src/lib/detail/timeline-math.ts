@@ -86,8 +86,13 @@ export function timelineHeaderCounts(classified: ClassifiedMilestone[]): Timelin
   return { total: classified.length, passed, nextDate: next ? next.entry.date : null };
 }
 
-const COLLAPSE_THRESHOLD = 8;
-const COLLAPSE_SHOW = 3;
+// Operator ruling (lane PARITY-PARTS, 2026-09-25), SUPERSEDES review item 3's original "more than
+// eight collapses to the next-three" rule: "With more than 4, show the next 4 then '+N more'." The
+// original 8/3 pair predates the timeline carrying obligation markers merged in from the removed
+// UpcomingObligationsStrip (mergeObligationEvents below); a busier marker set is now the norm, not
+// the exception, so the tighter 4/4 window is the current, binding rule.
+const COLLAPSE_THRESHOLD = 4;
+const COLLAPSE_SHOW = 4;
 
 export interface CollapsedTimeline {
   visible: ClassifiedMilestone[];
@@ -95,12 +100,13 @@ export interface CollapsedTimeline {
   collapsed: boolean;
 }
 
-/** Review item 3: "Seven dates on one line at 1440 is fine; more than eight collapses to the
- *  next-three plus '+N'." At 8 or fewer, every milestone renders. Above 8, the visible set is the
- *  "next" milestone plus the two immediately following it (the reader's actual forward-looking
- *  window); when no "next" is classified (every milestone already passed), the trailing three
+/** At COLLAPSE_THRESHOLD (4) or fewer, every milestone renders. Above 4, the visible set is the
+ *  "next" milestone plus the three immediately following it (the reader's actual forward-looking
+ *  window); when no "next" is classified (every milestone already passed), the trailing four
  *  (the most recently passed) are shown instead, since that is the same "closest to the reader's
- *  present" window on the other side of the track. `hiddenCount` is what the "+N" chip renders. */
+ *  present" window on the other side of the track. `hiddenCount` is what the "+N more" chip renders,
+ *  as a link to the obligations-register section when the caller (Timeline's `moreMarkersHref`)
+ *  supplies one. */
 export function collapseTimeline(classified: ClassifiedMilestone[]): CollapsedTimeline {
   if (classified.length <= COLLAPSE_THRESHOLD) {
     return { visible: classified, hiddenCount: 0, collapsed: false };
@@ -125,4 +131,51 @@ export function nextMilestoneClause(classified: ClassifiedMilestone[]): string |
   if (!next) return null;
   const days = daysBetween(next.entry.date);
   return `${next.entry.label} · ${formatDayMonthYear(next.entry.date)} · ${daysPhrase(days)}`;
+}
+
+/** An item_forward_events row shape ("upcoming obligation"), minimal - only the three fields this
+ *  merge needs, so this module stays decoupled from the full UpcomingEvent type (read-upcoming.mjs /
+ *  UpcomingObligationsStripView.tsx). */
+export interface ObligationEventLike {
+  event_date: string;
+  event_kind: string;
+}
+
+/**
+ * Operator ruling (lane PARITY-PARTS, 2026-09-25): "Upcoming-obligations strip: remove it as a
+ * separate element. Show each obligation in the timeline instead." Merges item_forward_events rows
+ * (the SAME data the removed strip read) into the item_timelines-derived `timeline` array, ONE
+ * marker per obligation, so TimelineDot's existing date-above/label-below rendering is reused
+ * unchanged rather than building a second marker shape.
+ *
+ * `date` is kept as the RAW `event_date` ('YYYY-MM-DD'), matching the existing convention every
+ * `timeline` entry already uses (item_timelines' own `milestone_date` reaches this module unformatted
+ * too - TimelineDot renders `entry.date` verbatim, and `daysBetween`/`formatDayMonthYear` both parse
+ * it as raw ISO). Reformatting only the merged entries here would make them display-inconsistent
+ * with the milestones already on the track AND break `daysBetween` the moment a merged entry becomes
+ * classified "next" - so this stays consistent with the pre-existing (unformatted-display) contract
+ * rather than introducing a second one. `label` is the SHORT `kindLabels[event_kind]` name (never
+ * the long `obligation_text` prose the strip showed - that stays reachable from the item's own
+ * Obligation Register row, not duplicated onto a ~60px dot label).
+ *
+ * A forward event landing on the exact same calendar date as an existing timeline entry (either an
+ * item_timelines milestone or another forward event already merged) is dropped: the earlier entry
+ * already carries that date, so a second identical-date dot would be visual noise, not new
+ * information. Order is preserved (existing `timeline` entries first, in their given order, then
+ * surviving forward events in their given order) - `classifyMilestones`/`collapseTimeline` rely on
+ * array order for "next", so this function does not itself sort by date.
+ */
+export function mergeObligationEvents(
+  timeline: TimelineEntry[],
+  events: ObligationEventLike[],
+  kindLabels: Record<string, string>,
+): TimelineEntry[] {
+  const seenDates = new Set(timeline.map((t) => t.date));
+  const merged = [...timeline];
+  for (const ev of events) {
+    if (!ev.event_date || seenDates.has(ev.event_date)) continue;
+    seenDates.add(ev.event_date);
+    merged.push({ date: ev.event_date, label: kindLabels[ev.event_kind] ?? ev.event_kind });
+  }
+  return merged;
 }

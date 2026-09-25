@@ -70,6 +70,10 @@ export interface ActionCardProps {
   watch: ReactNode;
   onTag?: () => void;
   exportDisabled?: boolean;
+  /** Operator ruling (lane PARITY-PARTS, 2026-09-25): the per-item overflow control (today,
+   *  regulations' priority "⋯"), rendered as the last control in ActionRow. See ActionRow's own
+   *  `overflow` prop for the full contract; this only threads it through. */
+  overflow?: ReactNode;
 
   where: ActionCardExposureValue;
   whoPays: ActionCardExposureValue;
@@ -78,6 +82,11 @@ export interface ActionCardProps {
   timeline?: TimelineEntry[] | null;
   onFullSchedule?: () => void;
   fullScheduleHref?: string;
+  /** Operator ruling (lane PARITY-PARTS, 2026-09-25): the TIMELINE's "+N more" chip, when more than
+   *  4 markers exist, jumps to the item's own obligations-register section (the "ObligationRegister"
+   *  block) rather than sitting as inert text. Optional: a page with obligations but no such section
+   *  omits this and "+N more" renders as plain text, same as before this ruling. */
+  moreMarkersHref?: string;
   /**
    * Operator check 2 (lane PARITY-PARTS, 2026-09-24): when ActionCard is embedded inside
    * `Masthead`'s own `actionSlot` (`.cl-masthead`'s SectionCard), it renders its content in a
@@ -193,7 +202,9 @@ export function ActionCard({
   timeline,
   onFullSchedule,
   fullScheduleHref,
+  moreMarkersHref,
   bare = false,
+  overflow,
 }: ActionCardProps) {
   const classified = classifyMilestones(timeline ?? []);
   const nextClause = nextMilestoneClause(classified);
@@ -228,7 +239,7 @@ export function ActionCard({
 
       {/* Action row (reused, byte-identical chrome across all four detail surfaces). */}
       <div style={{ marginTop: 14 }}>
-        <ActionRow onExport={onExport} onShare={onShare} watch={watch} onTag={onTag} exportDisabled={exportDisabled} />
+        <ActionRow onExport={onExport} onShare={onShare} watch={watch} onTag={onTag} exportDisabled={exportDisabled} overflow={overflow} />
       </div>
 
       <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "16px 0" }} aria-hidden="true" />
@@ -258,7 +269,7 @@ export function ActionCard({
 
       <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "16px 0" }} aria-hidden="true" />
 
-      <Timeline entries={timeline} band={band} onFullSchedule={onFullSchedule} fullScheduleHref={fullScheduleHref} />
+      <Timeline entries={timeline} band={band} onFullSchedule={onFullSchedule} fullScheduleHref={fullScheduleHref} moreMarkersHref={moreMarkersHref} />
     </>
   );
 
