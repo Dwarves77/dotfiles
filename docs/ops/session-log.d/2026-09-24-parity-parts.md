@@ -125,14 +125,62 @@ coordinator's data-plan investigation, per the ruling that this is out of this l
   content as a `Related` section) so the rail no longer duplicates a masthead-adjacent card; no new user
   action added to the rail, no feedback-state change.
 
+## Addendum 2026-09-24 (later same day): gate 6 fixes, local 12-route harness, resolved
+
+Gate 6's first run failed at step 3b (invariant-coverage meta-gate): RD-84's `enforcedBy` cited the
+rendering-guard smoke MODULE (`parity-checks-smoke.mjs`) directly; the execution-wiring resolver only
+recognizes the guard ENTRYPOINT (`run-rendering-guard.mjs`) as wired for a smoke spec (Surface 6,
+SF-10's own precedent). Corrected the citation to the entrypoint. Also added the skill-ack the
+skill-drift gate required for this lane's addition to `remediation-discipline/SKILL.md` (commit
+`48d78caf` had landed without one). Both fixes: commits `148404dc`, `13219f93`. Gate 6 then PASSed
+clean.
+
+Per coordinator ruling, built a LOCAL copy of the outer dotfiles repo's `fsi-app/scripts/tmp/
+artboard-parity.mjs` at this worktree's own gitignored `fsi-app/scripts/tmp/artboard-parity-local.mjs`:
+`BASE` overridable via `ARTBOARD_PARITY_BASE` env var (default stays production, unchanged behavior),
+the operator's storageState cookies rewritten to the `localhost` domain IN MEMORY ONLY (never written,
+printed, or copied - the rewrite happens inside `loadStorageStateForBase()` and the result is handed
+directly to `browser.newContext()`), ROOT/SRC repointed at this worktree so FAIL source-locations
+resolve to this lane's own files, and PROOF writing to `proof-local/` instead of `proof/` so a local
+run never collides with the outer repo's production proof set.
+
+Ran `npm run build` then `npx next start -p 3000` in this worktree, confirmed localhost auth held (HTTP
+200 on `/`, no login redirect) with the rewritten cookies, then ran all 12 routes:
+`ARTBOARD_PARITY_BASE=http://localhost:3000 node scripts/tmp/artboard-parity-local.mjs`.
+
+First full run surfaced two real findings, both investigated and fixed, not just reported:
+
+1. **[CONFIRMED, this lane, by direct read]** the copied harness's own check-1 logic still had the
+   PRE-ruling bug (`if (!strip) reasons.push('no ACTION strip')`) that the coordinator's option-(c)
+   ruling this same session had already superseded ("an ACTION strip renders only when the item has a
+   real structured action; a group with none is not a failure"). The outer file this was copied from
+   had apparently never actually received that fix (or it did not persist) - a finding worth flagging
+   back, out of this lane's write set to correct upstream. Fixed in this lane's own copy only
+   (`artboard-parity-local.mjs`): removed the always-fail line, kept the tint-only-if-a-strip-exists
+   check. This was a HARNESS defect, not a product defect - every item-group in the live tree was
+   already correctly tinted both before and after this fix; only the false-FAIL disappeared.
+2. **Real product defect, regulations-detail only**: check 2 failed with "2 cards above the section
+   index." `UpcomingObligationsStrip` (`variant="detail"`) was rendering as its own white-bordered block
+   between `DetailMasthead` and `SectionIndex` - exactly the sibling-card shape check 2 forbids. Its own
+   file header already documented the detail variant as "a small optional rail card"; it had simply
+   never been moved there. Artboard 03's rail draws no distinct card for it either. Fixed: moved into
+   `DetailRail`'s `designed` slot alongside `OwnerTeamCard`/`InThisListStat`. Commit `fdca8dce`.
+   Re-verified: `tsc --noEmit` clean, no-npm suite 1588/1588, npm-dep suite 1494/1494, fitness 48
+   functions/0 violations, gate 6 re-run PASS.
+
+Second full harness run after both fixes: **every applicable check PASSes on every one of the 12
+routes** (regulations, regulations-detail, market, market-detail, research, research-detail,
+operations, operations-detail, watchlist, community, admin, dashboard). No route 404'd, no route
+redirected to `/login` (session held for the full run), the Summary\|Full switch sits at the identical
+position (`fromRight:5, dy:11`) on all four detail pages. Proof images and `results.json` written to
+this worktree's `fsi-app/scripts/tmp/proof-local/` (gitignored).
+
 ## Open items / next steps
 
-- Gate 6 (locked pre-push script) needs a clean re-run once this addendum lands (its first run failed
-  only on the memory-gate / UX-compliance-gate step 2b, which this file resolves).
-- The full 12-route harness run (`next build`/`next start` + `artboard-parity.mjs` against
-  `localhost:3000`, operator storageState, visual compare images) had not completed as of this addendum;
-  the rendering-guard's own smoke/fixture layer (above) is a different, already-passing verification
-  layer from the live-server harness compare, which follows this gate.
+- Gate 5 re-checked clean after the later commits (`coverage-report.json` shows no diff against HEAD).
 - PR body staged at the coordinator-specified scratchpad path, not yet opened; no push performed from
   this lane in this session (per explicit coordinator instruction, a separate agent was pushing a
   different lane's branch and this lane's push was deferred to the coordinator's own sequencing).
+- The data finding above (items with "do now" prose but empty `recommended_actions`) remains
+  unquantified (no live DB query run this session) and is still the coordinator's to route, not this
+  lane's to fix.
