@@ -78,6 +78,17 @@ export interface ActionCardProps {
   timeline?: TimelineEntry[] | null;
   onFullSchedule?: () => void;
   fullScheduleHref?: string;
+  /**
+   * Operator check 2 (lane PARITY-PARTS, 2026-09-24): when ActionCard is embedded inside
+   * `Masthead`'s own `actionSlot` (`.cl-masthead`'s SectionCard), it renders its content in a
+   * plain div instead of mounting a SECOND `SectionCard` shell, so the result is one bordered box,
+   * not two nested ones. F42/SectionCard.tsx's own rule ("a card shell assembled by hand outside
+   * this file is a fitness violation") still holds: this is not a hand-rolled card, it is NO card
+   * (no border/radius/shadow of its own), letting the masthead's card be the only one. Default
+   * false: the existing standalone caller (regulations, mounted as its own sibling card today,
+   * check 2 not yet wired) is unaffected.
+   */
+  bare?: boolean;
 }
 
 const CLAMP_3: CSSProperties = {
@@ -182,17 +193,14 @@ export function ActionCard({
   timeline,
   onFullSchedule,
   fullScheduleHref,
+  bare = false,
 }: ActionCardProps) {
   const classified = classifyMilestones(timeline ?? []);
   const nextClause = nextMilestoneClause(classified);
   const hasTags = Boolean(tags && tags.length > 0);
 
-  return (
-    <SectionCard
-      as="section"
-      dataAttributes={{ "data-part": "action-card" }}
-      padding="16px 20px 18px"
-    >
+  const content = (
+    <>
       {/* Pill row: band + kind + tier left, meta right, one row (review item 1c). */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
@@ -251,6 +259,20 @@ export function ActionCard({
       <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "16px 0" }} aria-hidden="true" />
 
       <Timeline entries={timeline} band={band} onFullSchedule={onFullSchedule} fullScheduleHref={fullScheduleHref} />
+    </>
+  );
+
+  if (bare) {
+    return (
+      <div data-part="action-card" style={{ padding: "16px 20px 18px" }}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <SectionCard as="section" dataAttributes={{ "data-part": "action-card" }} padding="16px 20px 18px">
+      {content}
     </SectionCard>
   );
 }

@@ -97,9 +97,16 @@ export interface DetailMastheadProps {
   dek?: React.ReactNode;
   /** Scoped ask placeholder, e.g. "Ask about this regulation — e.g. when does the l...". */
   placeholder: string;
+  /**
+   * Operator check 2 (lane PARITY-PARTS, 2026-09-24): the detail page's ActionCard (band pill +
+   * action row + exposure + timeline), passed through to Masthead's own additive `actionSlot`
+   * (Masthead.tsx) so it renders INSIDE the one masthead card, not as a sibling card below it.
+   * Undefined renders nothing extra here, same as every other additive DetailMasthead prop.
+   */
+  actionSlot?: React.ReactNode;
 }
 
-export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder }: DetailMastheadProps) {
+export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder, actionSlot }: DetailMastheadProps) {
   const [breadcrumb, setBreadcrumb] = useState(() => [surface, jurisdiction].filter(Boolean).join(" / "));
   return (
     <>
@@ -107,7 +114,7 @@ export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeh
         <DetailMastheadBreadcrumb surface={surface} jurisdiction={jurisdiction} band={band} onLabel={setBreadcrumb} />
       </Suspense>
       <div style={{ marginBottom: 16 }}>
-        <Masthead title={title} size="detail" dateLabel={breadcrumb} dek={dek} commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }} />
+        <Masthead title={title} size="detail" dateLabel={breadcrumb} dek={dek} commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }} actionSlot={actionSlot} />
       </div>
     </>
   );

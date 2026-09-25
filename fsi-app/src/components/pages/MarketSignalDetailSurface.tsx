@@ -337,69 +337,75 @@ export function MarketSignalDetailSurface({
     ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
   ];
 
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Signal"
+      extraChips={
+        <>
+          <TagChip>{SEVERITY_LABEL[severity]}</TagChip>
+          {r.topic && <TagChip>{r.topic}</TagChip>}
+          <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>
+        </>
+      }
+      tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      meta={
+        sourceRows.length > 0
+          ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+              independentCiters !== null ? ` · ${independentCiters} corroborating` : ""
+            }`
+          : null
+      }
+      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+      onExport={() =>
+        downloadMarkdownBrief(r, {
+          filenamePrefix: "signal",
+          metaRows: [
+            r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+            r.severity ? `- Severity: ${r.severity}` : null,
+            r.signalBand ? `- Signal band: ${r.signalBand}` : null,
+            r.url ? `- Source: ${r.url}` : null,
+          ],
+        })
+      }
+      onShare={() => shareResource(r)}
+      onTag={() => setTagOpen((v) => !v)}
+      exportDisabled={!(r.fullBrief || r.url)}
+      watch={
+        <WatchButton
+          itemType="signal"
+          itemId={String(r.id)}
+          variant="row"
+          initialWatched={initialWatched}
+          initialTeamWatched={initialTeamWatched}
+          initialTeamAvailable={initialTeamAvailable}
+        />
+      }
+      where={{ value: jurisLabel }}
+      whoPays={{ value: r.costMechanism || null }}
+      yourLanes={{ value: null, absenceReason: "connect data" }}
+      timeline={r.timeline}
+    />
+  );
+
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell).
+            Trajectory has no slot in the merged card (its fourth exposure cell is NEXT MILESTONE,
+            computed internally from timeline); r.conversionTrigger already has its own callout in
+            S2 Drivers & trajectory below, and requirementTrajectory (this surface's distinct
+            field) joins it there too. */}
         <DetailMasthead
           title={r.title}
           band={band}
           surface="Market"
           jurisdiction={jurisLabel}
           dek={meta}
-          placeholder="Ask about this signal — e.g. when does the largest deadline hit"
-        />
-        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's ActionCard port: ONE
-            card replaces DetailHeader + DetailExposure + DetailTimeline. Trajectory has no slot in
-            the merged card (its fourth exposure cell is NEXT MILESTONE, computed internally from
-            timeline); r.conversionTrigger already has its own callout in S2 Drivers & trajectory
-            below, and requirementTrajectory (this surface's distinct field) joins it there too. */}
-        <ActionCard
-          band={band}
-          kindLabel="Signal"
-          extraChips={
-            <>
-              <TagChip>{SEVERITY_LABEL[severity]}</TagChip>
-              {r.topic && <TagChip>{r.topic}</TagChip>}
-              <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>
-            </>
-          }
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          meta={
-            sourceRows.length > 0
-              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
-                  independentCiters !== null ? ` · ${independentCiters} corroborating` : ""
-                }`
-              : null
-          }
-          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          onExport={() =>
-            downloadMarkdownBrief(r, {
-              filenamePrefix: "signal",
-              metaRows: [
-                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                r.severity ? `- Severity: ${r.severity}` : null,
-                r.signalBand ? `- Signal band: ${r.signalBand}` : null,
-                r.url ? `- Source: ${r.url}` : null,
-              ],
-            })
-          }
-          onShare={() => shareResource(r)}
-          onTag={() => setTagOpen((v) => !v)}
-          exportDisabled={!(r.fullBrief || r.url)}
-          watch={
-            <WatchButton
-              itemType="signal"
-              itemId={String(r.id)}
-              variant="row"
-              initialWatched={initialWatched}
-              initialTeamWatched={initialTeamWatched}
-              initialTeamAvailable={initialTeamAvailable}
-            />
-          }
-          where={{ value: jurisLabel }}
-          whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: null, absenceReason: "connect data" }}
-          timeline={r.timeline}
+          placeholder="Ask about this signal, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
         />
 
         <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />

@@ -242,60 +242,64 @@ export function RegulationDetailSurface({
       .filter(Boolean)
       .join(" · ") || null;
 
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Regulation"
+      tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      meta={actionCardMeta}
+      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+      onExport={() =>
+        downloadMarkdownBrief(r, {
+          filenamePrefix: "regulation",
+          metaRows: [
+            r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+            r.priority ? `- Priority: ${r.priority}` : null,
+            r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
+            r.url ? `- Source: ${r.url}` : null,
+          ],
+        })
+      }
+      onShare={() => shareResource(r)}
+      onTag={() => setTagOpen((v) => !v)}
+      exportDisabled={!(r.fullBrief || r.url)}
+      watch={
+        <WatchButton
+          itemType="reg"
+          itemId={String(r.id)}
+          variant="row"
+          initialWatched={initialWatched}
+          initialTeamWatched={initialTeamWatched}
+          initialTeamAvailable={initialTeamAvailable}
+        />
+      }
+      where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
+      whoPays={{ value: r.costMechanism || null }}
+      yourLanes={{ value: null, absenceReason: "connect data" }}
+      timeline={r.timeline}
+    />
+  );
+
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Lane W10-ActionCard-b (2026-09-22) + operator check 2 (lane PARITY-PARTS, 2026-09-24):
+            ActionCard (band pill + action row + exposure + timeline) now renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell), not
+            as a sibling card below it. The per-item priority menu has no slot in the merged card's
+            props, so it renders as a small control immediately above the WHOLE masthead card. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+          <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
+        </div>
         <DetailMasthead
           title={r.title}
           band={band}
           surface="Regulations"
           jurisdiction={jurisLabel}
           dek={meta}
-          placeholder="Ask about this regulation — e.g. when does the largest deadline hit"
-        />
-        {/* Lane W10-ActionCard-b (2026-09-22), build item 1: ONE ActionCard (panel 21b) replaces
-            the three separate cards this surface used to render (DetailHeader + DetailExposure +
-            DetailTimeline): pill row, action row, rule, EXPOSURE, rule, TIMELINE, callout. The
-            per-item priority menu (retag/dismiss/archive) has no slot in the merged card's props;
-            it renders as a small control immediately above the card, functionally unchanged, not
-            inside a second bordered box. */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-          <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
-        </div>
-        <ActionCard
-          band={band}
-          kindLabel="Regulation"
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          meta={actionCardMeta}
-          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          onExport={() =>
-            downloadMarkdownBrief(r, {
-              filenamePrefix: "regulation",
-              metaRows: [
-                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                r.priority ? `- Priority: ${r.priority}` : null,
-                r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
-                r.url ? `- Source: ${r.url}` : null,
-              ],
-            })
-          }
-          onShare={() => shareResource(r)}
-          onTag={() => setTagOpen((v) => !v)}
-          exportDisabled={!(r.fullBrief || r.url)}
-          watch={
-            <WatchButton
-              itemType="reg"
-              itemId={String(r.id)}
-              variant="row"
-              initialWatched={initialWatched}
-              initialTeamWatched={initialTeamWatched}
-              initialTeamAvailable={initialTeamAvailable}
-            />
-          }
-          where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
-          whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: null, absenceReason: "connect data" }}
-          timeline={r.timeline}
+          placeholder="Ask about this regulation, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
         />
 
         {showIntegrityBanner && <IntegrityBanner phrase={r.agentIntegrityPhrase!} />}

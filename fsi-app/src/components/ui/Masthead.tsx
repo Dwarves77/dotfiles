@@ -79,9 +79,22 @@ export interface MastheadProps {
    * treatment as MembersPanel's own inline "Workspace" note.
    */
   notice?: { text: ReactNode; linkLabel?: string; linkHref?: string };
+  /**
+   * Operator check 2 (lane PARITY-PARTS, 2026-09-24, coordinator ruling): "one masthead card
+   * holding the action row, exposure and timeline." The harness measures this as literal DOM
+   * containment inside `.cl-masthead` (this component's own `SectionCard`), not merely inside the
+   * same `<nav>`/page region a sibling card would also satisfy visually. Additive, optional,
+   * rendered last inside this card, below the title/dek/command-bar row and any `notice`: a detail
+   * page's own `DetailMasthead` passes its `ActionCard` (band pill + action row + exposure +
+   * timeline, already ONE merged card from the earlier W10-ActionCard-b lane) here instead of
+   * mounting it as a sibling card below the masthead. Every other Masthead caller (dashboard,
+   * list surfaces, settings, admin, community) passes nothing here, so their own rendered output
+   * is byte-for-byte unchanged.
+   */
+  actionSlot?: ReactNode;
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice }: MastheadProps) {
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice, actionSlot }: MastheadProps) {
   const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
     // Operator item A1 (2026-09-08): the masthead card is one of the eighteen the operator listed;
@@ -251,6 +264,11 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           >
             {notice.text}
           </StateNote>
+        </div>
+      )}
+      {actionSlot && (
+        <div style={{ borderTop: "1px solid rgba(0,0,0,.08)" }}>
+          {actionSlot}
         </div>
       )}
     </SectionCard>

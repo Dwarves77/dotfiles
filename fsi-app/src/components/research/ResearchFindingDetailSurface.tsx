@@ -187,77 +187,81 @@ export function ResearchFindingDetailSurface({
         ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
       ];
 
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Finding"
+      extraChips={
+        <>
+          {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
+          {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
+          {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped,
+              matches the operations detail's own modes chip (OperationsDetailSurface.tsx) for
+              the case where modes IS restricted; a finding with no modes on record applies
+              broadly, so "All modes" is the honest label rather than omitting the chip. */}
+          {r.modes && r.modes.length > 0 ? (
+            r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)
+          ) : (
+            <TagChip>All modes</TagChip>
+          )}
+        </>
+      }
+      tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      meta={
+        sourceRows.length > 0
+          ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+              connections.length > 0 ? ` · ${connections.length} connections` : ""
+            }`
+          : null
+      }
+      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+      onExport={() =>
+        downloadMarkdownBrief(r, {
+          filenamePrefix: "research",
+          metaRows: [
+            r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+            r.type ? `- Type: ${r.type}` : null,
+            r.url ? `- Source: ${r.url}` : null,
+          ],
+        })
+      }
+      onShare={() => shareResource(r)}
+      onTag={() => setTagOpen((v) => !v)}
+      exportDisabled={!(r.fullBrief || r.url)}
+      watch={
+        <WatchButton
+          itemType="research"
+          itemId={String(r.id)}
+          variant="row"
+          initialWatched={initialWatched}
+          initialTeamWatched={initialTeamWatched}
+          initialTeamAvailable={initialTeamAvailable}
+        />
+      }
+      where={{ value: jurisLabel }}
+      whoPays={{ value: r.costMechanism || null }}
+      yourLanes={{ value: null, absenceReason: "connect data" }}
+      timeline={r.timeline}
+    />
+  );
+
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell).
+            The requirement-trajectory sentence has no slot in the merged card (its fourth EXPOSURE
+            cell is NEXT MILESTONE, computed internally from `timeline`); moved into S1 Summary,
+            same as the regulation surface's own `trajectoryNode`. */}
         <DetailMasthead
           title={r.title}
           band={band}
           surface="Research"
           jurisdiction={jurisLabel}
           dek={meta}
-          placeholder="Ask about this finding — e.g. when does the largest deadline hit"
-        />
-        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's own ActionCard port:
-            ONE card replaces the three this surface used to render (DetailHeader + DetailExposure +
-            DetailTimeline), pill row, action row, rule, EXPOSURE, rule, TIMELINE with its callout.
-            The requirement-trajectory sentence has no slot in the merged card (its fourth EXPOSURE
-            cell is NEXT MILESTONE, computed internally from `timeline`); moved into S1 Summary,
-            same as the regulation surface's own `trajectoryNode`. */}
-        <ActionCard
-          band={band}
-          kindLabel="Finding"
-          extraChips={
-            <>
-              {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
-              {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
-              {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped —
-                  matches the operations detail's own modes chip (OperationsDetailSurface.tsx) for
-                  the case where modes IS restricted; a finding with no modes on record applies
-                  broadly, so "All modes" is the honest label rather than omitting the chip. */}
-              {r.modes && r.modes.length > 0 ? (
-                r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)
-              ) : (
-                <TagChip>All modes</TagChip>
-              )}
-            </>
-          }
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          meta={
-            sourceRows.length > 0
-              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
-                  connections.length > 0 ? ` · ${connections.length} connections` : ""
-                }`
-              : null
-          }
-          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          onExport={() =>
-            downloadMarkdownBrief(r, {
-              filenamePrefix: "research",
-              metaRows: [
-                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                r.type ? `- Type: ${r.type}` : null,
-                r.url ? `- Source: ${r.url}` : null,
-              ],
-            })
-          }
-          onShare={() => shareResource(r)}
-          onTag={() => setTagOpen((v) => !v)}
-          exportDisabled={!(r.fullBrief || r.url)}
-          watch={
-            <WatchButton
-              itemType="research"
-              itemId={String(r.id)}
-              variant="row"
-              initialWatched={initialWatched}
-              initialTeamWatched={initialTeamWatched}
-              initialTeamAvailable={initialTeamAvailable}
-            />
-          }
-          where={{ value: jurisLabel }}
-          whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: null, absenceReason: "connect data" }}
-          timeline={r.timeline}
+          placeholder="Ask about this finding, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
         />
 
         <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />

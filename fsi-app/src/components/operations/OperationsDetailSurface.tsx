@@ -230,27 +230,12 @@ export function OperationsDetailSurface({
     ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
   ];
 
-  return (
-    <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
-        <DetailMasthead
-          title={r.title}
-          band={band}
-          surface="Operations"
-          /* Artboard 09 breadcrumb: "Operations / Asia / 2 of 6" — the REGION GROUP, not the
-             country. Falls back to the country label where the code resolves to no group. */
-          jurisdiction={regionGroup || jurisdiction || undefined}
-          dek={meta}
-          placeholder="Ask about this profile — e.g. when does the largest deadline hit"
-        />
-        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's ActionCard port: ONE
-            card replaces DetailHeader + DetailExposure + DetailTimeline. Trajectory has no slot in
-            the merged card (its fourth exposure cell is NEXT MILESTONE, computed internally from
-            timeline); rendered as a plain line under the card instead, same as research/regulations. */}
-        <ActionCard
-          band={band}
-          kindLabel="Regional profile"
-          extraChips={
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Regional profile"
+      extraChips={
             <>
               {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors", the
                   region GROUP chip, not the country (which the At a glance card carries in full). */}
@@ -292,10 +277,30 @@ export function OperationsDetailSurface({
               initialTeamAvailable={initialTeamAvailable}
             />
           }
-          where={{ value: jurisdiction || null }}
-          whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: null, absenceReason: "connect data" }}
-          timeline={r.timeline}
+      where={{ value: jurisdiction || null }}
+      whoPays={{ value: r.costMechanism || null }}
+      yourLanes={{ value: null, absenceReason: "connect data" }}
+      timeline={r.timeline}
+    />
+  );
+
+  return (
+    <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell).
+            Trajectory has no slot in the merged card (its fourth exposure cell is NEXT MILESTONE,
+            computed internally from timeline); rendered as a plain line under the masthead card. */}
+        <DetailMasthead
+          title={r.title}
+          band={band}
+          surface="Operations"
+          /* Artboard 09 breadcrumb: "Operations / Asia / 2 of 6", the REGION GROUP, not the
+             country. Falls back to the country label where the code resolves to no group. */
+          jurisdiction={regionGroup || jurisdiction || undefined}
+          dek={meta}
+          placeholder="Ask about this profile, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
         />
         {trajectoryNode && (
           <p style={{ fontSize: "var(--fs-105)", lineHeight: 1.6, color: "var(--ink-2)", margin: "10px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>
