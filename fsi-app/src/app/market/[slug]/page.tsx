@@ -41,8 +41,8 @@
  */
 
 import { formatDate } from "@/lib/format";
-import { notFound, redirect } from "next/navigation";
-import { loadDetail } from "@/lib/detail/load-detail";
+import { notFound } from "next/navigation";
+import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { getPublicMarketIntelItems, getPublicSurfaceSlugs } from "@/lib/data";
@@ -52,7 +52,6 @@ import {
   resolveItemUuid,
   fetchInstrumentEntityId,
 } from "@/lib/connections/resource-lookup";
-import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   MarketSignalDetailSurface,
   type PriceStat,
@@ -60,9 +59,6 @@ import {
 } from "@/components/pages/MarketSignalDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
@@ -115,26 +111,10 @@ export default async function MarketSignalDetailPage({
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
-  // UUID → slug redirect (mirrors /regulations/[slug] pattern). Must resolve
-  // (or fall through) BEFORE fetchIntelligenceItem — cannot join loadDetail's
-  // parallel bundle.
-  let redirectTo: string | null = null;
-  if (UUID_RE.test(id)) {
-    try {
-      const supabase = getServiceSupabase();
-      const { data: byId } = await supabase
-        .from("intelligence_items")
-        .select("legacy_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (byId?.legacy_id) {
-        redirectTo = `/market/${encodeURIComponent(byId.legacy_id)}`;
-      }
-    } catch {
-      // Soft-fail; fetchIntelligenceItem still tries by uuid.
-    }
-  }
-  if (redirectTo) redirect(redirectTo);
+  // UUID → slug step (lane REG-REDIRECT, 2026-09-24): redirects only to a URL that renders, 404s an
+  // item no surface admits at the uuid URL. See regulations/[slug]/page.tsx and
+  // src/lib/detail/id-redirect.ts. Outside any try/catch (redirect()/notFound() throw).
+  await applyIdRedirect("market", id);
 
   // PERF-10 (2026-09-04): watch membership and the note lookup both used to run here, cookie-
   // dependent, on every server render — see this file's header. Both now resolve client-side

@@ -82,12 +82,11 @@
 
 import { formatDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
-import { notFound, redirect } from "next/navigation";
-import { loadDetail } from "@/lib/detail/load-detail";
+import { notFound } from "next/navigation";
+import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
-import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   buildResourceLookup,
   resolveItemUuid,
@@ -105,9 +104,6 @@ import { NoticesRail } from "@/components/figures/NoticesRail";
 // Market Intel carbon-cost overlay is the first). Self-contained server component, own fetch — see its
 // own header.
 import { CorridorsAppliedStrip } from "@/components/regulations/CorridorsAppliedStrip";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // PERF-13 (2026-09-04, ADR-027 §1, docs/audits/perf-clickthrough-2026-09-04.md §(b)/(c) + this
 // lane's own live measurement): SUPERSEDES the PERF-10 "`[]`, not a full enumeration" decision recorded above (kept
@@ -176,37 +172,15 @@ export default async function RegulationDetailPage({
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
-  // UUID → slug redirect. When the URL is a raw uuid AND the matching
-  // intelligence_items row has a legacy_id, redirect (307) to the
-  // human-readable slug URL. If the row has no legacy_id we fall through
-  // and render at the uuid URL — graceful degradation. Per the audit:
-  // post-migration-045 every active item should have a legacy_id, so
-  // the fallback path is a thin safety net for rows materialized after
-  // 045 but before the orchestrator's slug-generation step runs.
-  //
-  // Note: redirect() throws a Next-internal NEXT_REDIRECT error to
-  // perform the redirect, so it must be called OUTSIDE the try/catch
-  // (otherwise the catch swallows the redirect). This one lookup can't be
-  // folded into loadDetail's item-scoped bundle: it must run and resolve
-  // (or fall through) BEFORE fetchIntelligenceItem, not in parallel with it.
-  let redirectTo: string | null = null;
-  if (UUID_RE.test(id)) {
-    try {
-      const supabase = getServiceSupabase();
-      const { data: byId } = await supabase
-        .from("intelligence_items")
-        .select("legacy_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (byId?.legacy_id) {
-        redirectTo = `/regulations/${encodeURIComponent(byId.legacy_id)}`;
-      }
-      // No legacy_id — fall through to render-by-uuid below.
-    } catch {
-      // Soft-fail; fetchIntelligenceItem still tries by uuid.
-    }
-  }
-  if (redirectTo) redirect(redirectTo);
+  // UUID → slug step (lane REG-REDIRECT, 2026-09-24). A raw-uuid URL redirects (307) only to a URL
+  // that renders: this surface's slug, or the owning surface's slug when the item belongs elsewhere.
+  // An item no surface admits (quarantined, unverified) gets not-found HERE, at the uuid URL: the
+  // hand-rolled lookup this replaces redirected on the mere presence of a legacy_id and bounced a
+  // quarantined regulation into a dead slug. A verified item with no legacy_id renders by uuid. The
+  // rule lives in src/lib/detail/id-redirect.ts; applyIdRedirect (load-detail.ts) binds the lookup and
+  // Next's redirect()/notFound(), which throw, so this call stays outside any try/catch. It cannot
+  // join loadDetail's parallel bundle: it decides whether that load happens at this URL at all.
+  await applyIdRedirect("regulations", id);
 
   // PERF-10 (2026-09-04): watch membership and the owner lookup both used to run here,
   // cookie-dependent, on every server render — see this file's header for the full mechanism.
