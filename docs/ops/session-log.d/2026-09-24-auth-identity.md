@@ -114,6 +114,8 @@ Workspace-owner-only admin sub-pages: none exist. Every `/admin/**` page calls `
 - **Account page masthead dek and "Member since" note**: copy only; "No workspace" is said only after a
   resolved lookup ("Workspace unavailable" after a failure, "Loading workspace" before an answer).
 
+Amendment (PR #796, sha `fb999c6f`): operator ruling "Admin only needs one access point" - removed the UserProfilePage.tsx Admin AccountCard, both CommunityRooms.tsx "Admin pickups" links, and the RegulationDetailSurface.tsx integrity-banner /admin link (a find beyond the original grep, coordinator-ruled in scope), leaving Sidebar.tsx's footer row as the sole entry point, and added the execution-wired class-fix test `src/lib/auth/admin-link-scope.test.mjs`.
+
 ## Next steps
 
 - Coordinator: after merge, run the live after-check (`live-check.mjs /` and `/admin`); expect the nav
