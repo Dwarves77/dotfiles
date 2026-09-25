@@ -371,7 +371,8 @@ This quarter: what SAF premium are you seeing on EU-US air?
    n = 34 respondents, 19 organisations
    <5%: ████ 12%     5-10%: ████████████ 41%     10-20%: ██████ 29%
    >20%: ███ 18%
-   Aggregated, historical, ≥5 contributors, no contributor >25%
+   Aggregated, historical, ≥10 contributors, no contributor >25%
+   Amendment 2026-09-25 (ADR-035): threshold tightened from ≥5 to ≥10 organisations.
 ```
 
 We generate these rather than waiting for organic critical mass, because the empty room kills a

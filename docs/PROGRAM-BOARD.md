@@ -114,7 +114,7 @@ owed and known bugs: [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./
 | Operations matrix shows values (`fetchOperationsCoverage` envelope reader gap) | OPEN | PROGRAM-BOARD:1587 (this file, pre-2026-09-25 line) |
 | Market Intel nav label fix ("Market" → "Market Intel") | OPEN | R12; #604 rename never approved |
 | Structured-action extraction (recommended_actions empty w/ "do now" prose) | OPEN | bug list, close addendum |
-| Profile + applicability (role/size/aggregate mode) | OPEN | R5, ADR-034; population-threshold reconciliation open (N≥10 vs spec-07 ≥5/25%) |
+| Profile + applicability (role/size/aggregate mode) | OPEN | R5, ADR-034; population threshold ruled: ADR-035 (≥10 orgs, ≤25%) |
 | The four-question answer (R3) wired per surface | OPEN | build-plan-2026-09-25.md workstream 1 |
 | Typed connections + chain (masthead connections strip) | OPEN | new-boards change; reverses #800's "renders nothing" |
 | Generalising the five hard-coded examples | OPEN | rule 19; 16-instrument classifier, single corridor, fuel-only market, automate-vs-hire, SAF benchmark |

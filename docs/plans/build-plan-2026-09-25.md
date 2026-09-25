@@ -99,7 +99,7 @@ duplicate tracking).
 | M2 ledger-consume apply | section 6.1 | KEEP | Unaffected; still gated on M1 |
 | M3 turns chained and proven | section 6.1 | KEEP | Unaffected |
 | M4 brief chain wired at mint | section 6.1 | MERGE INTO workstream 6 (structured-action extraction) | The brief chain's `record-briefs` write site is the natural home for extracting structured actions from "do now" prose  -  same chokepoint, same lane family. Coordinate, don't duplicate the write site |
-| M5 market-series edges | section 6.1 | CONFLICTS  -  workstream 11 (ETS-proxy carbon calc) | M5 authors edges from `market_series` producers that may include rate-board series retired by decision 1. Needs a coordinator pass over `scripts/producers/market/*.mjs` to confirm no producer's sole purpose was the retired rate board before M5 proceeds unchanged |
+| M5 market-series edges | section 6.1 | RESOLVED: KEEP (coordinator 2026-09-25) | Read-only pass [CONFIRMED]: the three implemented producers under scripts/producers/market/ (eu-weekly-oil-bulletin, ecb-fx-producer, eia-v2-petroleum-spot-producer) feed the Market Intel headline ribbon, MarketSeriesBoard and published_price_statistics; none served the corridor rate board, which never had a data path (spec 02: not built). eex-eua has a registry entry but no producer file; it is workstream 11's input. M5 proceeds unchanged. |
 | M6 evaluate invokers (Gate A rescan, quarantine disposition) | section 6.1 | MERGE INTO workstream 1 (Supabase audit) | `quarantine-disposition-audit.mjs` and the Gate A rescan are exactly the reuse-first mechanisms the audit lane spec (section 3) is built on; M6's dispatch wiring becomes the audit lane's remediation-phase invoker, not a separate lane |
 | M7 last mile (grade badge, NoticesRail, statutory writer) | section 6.1 | KEEP, sequenced after workstream 15 | The grade-badge parts work depends on the same Masthead/ListRow parts as the #800 look pass; land #800's look pass first so M7 mounts onto the corrected parts, not the old ones |
 | M8 collect completeness (sitemap/feed/research walkers) | section 6.1 | KEEP | Unaffected; runs under build-mode cadence |
@@ -119,9 +119,9 @@ duplicate tracking).
 | /admin/factors rows (carried-over list) | PROGRAM-BOARD carried-over list | KEEP | Unaffected |
 | Corridor rate board (spec 02 row 2, spec 07 Market Intel item 2) | specs 02 + 07 | SUPERSEDED BY decision 1 | Retired outright, not built; see spec 07 Amendment 2026-09-25 (Market Intel) and spec 02 Amendment 2026-09-25 |
 | Community "not your name, not your company" default (spec 07 Community item 1) | spec 07 | SUPERSEDED BY R8.7 | See spec 07 Amendment 2026-09-25 (Community) |
-| Population threshold ≥5/25% (spec 07 Community benchmark) | spec 07 | CONFLICTS with this close's N≥10 (R5 open item) | Not resolved this close  -  flagged as an open item in R5 and in workstream 7. Needs a coordinator ruling on which threshold governs before either surface's benchmark code changes |
+| Population threshold ≥5/25% (spec 07 Community benchmark) | spec 07 | RESOLVED by ADR-035 | One floor governs all aggregates: ≥10 organisations and no contributor >25%. Community benchmark tightens from ≥5 to ≥10. |
 
-**Counts:** KEEP 13 · MERGE INTO 6 · SUPERSEDED BY 2 · CONFLICTS 2 · REDUNDANT 1 (23 rows total).
+**Counts:** KEEP 13 · MERGE INTO 6 · SUPERSEDED BY 2 · RESOLVED 2 · REDUNDANT 1 (24 rows total).
 
 ## 3. Supabase integrity-and-wiring audit lane spec
 
