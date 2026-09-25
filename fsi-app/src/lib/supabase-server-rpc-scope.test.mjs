@@ -215,7 +215,15 @@ test("no org-scoped cursor migration file exists (PERF-12's original 5-arg overl
 
   for (const f of files) {
     if (!f.endsWith(".sql")) continue;
-    const sql = readFileSync(join(migDir, f), "utf8");
+    // Skip the C3 fixture migration that the consistency check writes and deletes in parallel (race)
+    if (f === "999999_c3_test_fixture_never_committed.sql") continue;
+    let sql;
+    try {
+      sql = readFileSync(join(migDir, f), "utf8");
+    } catch (err) {
+      if (err.code === "ENOENT") continue; // File was deleted by C3 test in parallel
+      throw err;
+    }
     if (!/p_after_priority/.test(sql)) continue;
     if (f === "306_public_workspace_intelligence_listings.sql") continue;
     const params = sql.match(SIGNATURE_RE)?.[1]?.trim();
