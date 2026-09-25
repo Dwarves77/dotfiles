@@ -47,11 +47,12 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
@@ -65,14 +66,9 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailExposure,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -81,7 +77,6 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
-  type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
@@ -324,16 +319,20 @@ export function MarketSignalDetailSurface({
 
   const hasDrivers = !!(sectionMap["2"] || sectionMap["3"] || sectionMap["5"] || hasTrajectory || hasCarbonOverlay || r.conversionTrigger);
   const actions = [...(r.recommendedActions || [])].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || null;
 
+  // Operator check 7 (lane PARITY-PARTS, 2026-09-24): <=14-char tab short names, the full section
+  // headings below are unchanged. "Drivers & trajectory" (21 chars) was the one cut tab measured in
+  // the baseline report for this surface.
   const indexEntries: SectionIndexEntry[] = [
-    { id: "summary", label: "Summary" },
-    { id: "drivers", label: "Drivers & trajectory" },
-    { id: "cost", label: "Cost impact" },
-    { id: "donow", label: "Do now" },
-    { id: "talking", label: "Talking points" },
-    { id: "sources", label: "Sources" },
+    { id: "summary", shortName: "Summary" },
+    { id: "drivers", shortName: "Drivers" },
+    { id: "cost", shortName: "Cost impact" },
+    { id: "donow", shortName: "Do now" },
+    { id: "talking", shortName: "Talking points" },
+    { id: "sources", shortName: "Sources" },
   ];
 
   return (
@@ -347,77 +346,61 @@ export function MarketSignalDetailSurface({
           dek={meta}
           placeholder="Ask about this signal — e.g. when does the largest deadline hit"
         />
-        <DetailHeader
+        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's ActionCard port: ONE
+            card replaces DetailHeader + DetailExposure + DetailTimeline. Trajectory has no slot in
+            the merged card (its fourth exposure cell is NEXT MILESTONE, computed internally from
+            timeline); r.conversionTrigger already has its own callout in S2 Drivers & trajectory
+            below, and requirementTrajectory (this surface's distinct field) joins it there too. */}
+        <ActionCard
           band={band}
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          kindLabel="Signal"
           extraChips={
             <>
-              <TagChip>Signal</TagChip>
               <TagChip>{SEVERITY_LABEL[severity]}</TagChip>
               {r.topic && <TagChip>{r.topic}</TagChip>}
               <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>
             </>
           }
-          headerStat={
+          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+          meta={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
                   independentCiters !== null ? ` · ${independentCiters} corroborating` : ""
                 }`
               : null
           }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "signal",
-                  metaRows: [
-                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                    r.severity ? `- Severity: ${r.severity}` : null,
-                    r.signalBand ? `- Signal band: ${r.signalBand}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="signal"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
+          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          onExport={() =>
+            downloadMarkdownBrief(r, {
+              filenamePrefix: "signal",
+              metaRows: [
+                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                r.severity ? `- Severity: ${r.severity}` : null,
+                r.signalBand ? `- Signal band: ${r.signalBand}` : null,
+                r.url ? `- Source: ${r.url}` : null,
+              ],
+            })
+          }
+          onShare={() => shareResource(r)}
+          onTag={() => setTagOpen((v) => !v)}
+          exportDisabled={!(r.fullBrief || r.url)}
+          watch={
+            <WatchButton
+              itemType="signal"
+              itemId={String(r.id)}
+              variant="row"
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
             />
           }
+          where={{ value: jurisLabel }}
+          whoPays={{ value: r.costMechanism || null }}
+          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          timeline={r.timeline}
         />
 
-        <DetailExposure
-          items={[
-            { label: "Where", value: jurisLabel },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            {
-              label: "Your lanes",
-              value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span>,
-            },
-            {
-              label: "Trajectory",
-              value:
-                renderRequirementTrajectory(r.requirementTrajectory) ||
-                r.conversionTrigger ||
-                (priceBoard[0]?.contextLine ?? <Absence reason="pending" />),
-            },
-          ]}
-        />
-
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -447,13 +430,9 @@ export function MarketSignalDetailSurface({
                 </>
               }
               legend={<RailLegend />}
-              /* R7 — artboard 05 draws neither. */
-              undesigned={
-                <>
-                  <AffectedLanesCard resource={r} />
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                </>
-              }
+              /* R7, artboard 05 draws neither. Operator check 8 (lane PARITY-PARTS, 2026-09-24):
+                 Connections is not a rail card, moved into the "Related" section in main content. */
+              undesigned={<AffectedLanesCard resource={r} />}
             />
           }
         >
@@ -481,6 +460,7 @@ export function MarketSignalDetailSurface({
             <DetailSection id="drivers" title="Drivers & trajectory" aside="4 forces · compounding">
               {sectionMap["2"] && <FactBlocks markdown={sectionMap["2"]} />}
               {sectionMap["3"] && <FactBlocks markdown={sectionMap["3"]} />}
+              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {r.conversionTrigger && (
                 <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--card)", border: "1px solid var(--line-1)", borderLeft: "3px solid var(--action)", borderRadius: "var(--radius-control)" }}>
                   <p style={{ fontSize: "var(--fs-10)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--action)", margin: "0 0 4px" }}>
@@ -564,8 +544,14 @@ export function MarketSignalDetailSurface({
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
-          {related.length > 0 && (
+          {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
             <DetailSection id="related" title={`Connected · related ${BAND_LABEL[signalBand].toLowerCase()}`}>
+              {(connections.length > 0 || supersessions.length > 0) && (
+                <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                </div>
+              )}
+              {related.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {related.map((rel) => (
                   <Link
@@ -579,6 +565,7 @@ export function MarketSignalDetailSurface({
                   </Link>
                 ))}
               </div>
+              )}
             </DetailSection>
           )}
         </DetailLayout>

@@ -10,7 +10,7 @@ import { ALL_SECTORS } from "@/lib/constants";
 import { BAND_ORDER, type PlatformPriority } from "@/lib/urgency/bands";
 import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
-import { SectionIndex, type SectionIndexEntry } from "@/components/detail/DetailShell";
+import { SectionIndex, type SectionIndexEntry } from "@/components/ui/SectionIndex";
 import { RailCard } from "@/components/ui/RailCard";
 import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
@@ -70,12 +70,12 @@ interface Props {
 // Addendum item 7 (2026-09-07): notification preferences are their own anchored section, after
 // General — a sixth entry alongside R9's original five.
 const SETTINGS_SECTIONS: SectionIndexEntry[] = [
-  { id: "general", label: "General" },
-  { id: "notifications", label: "Notifications" },
-  { id: "saved", label: "Saved searches" },
-  { id: "data", label: "Data & supersessions" },
-  { id: "archive", label: "Archive" },
-  { id: "help", label: "Help" },
+  { id: "general", shortName: "General" },
+  { id: "notifications", shortName: "Notifications" },
+  { id: "saved", shortName: "Saved searches" },
+  { id: "data", shortName: "Data" },
+  { id: "archive", shortName: "Archive" },
+  { id: "help", shortName: "Help" },
 ];
 
 /** dc.html p15's "Show all N sectors" disclosure draws twelve chips collapsed. The count in the
