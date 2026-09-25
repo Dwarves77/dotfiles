@@ -48,10 +48,13 @@ test("shareResource and downloadMarkdownBrief are exported for reuse by all four
 // Operator check 2 (lane PARITY-PARTS, 2026-09-24) completed what lane W10-ActionCard-b started for
 // regulations only: all four detail surfaces now mount ONE <ActionCard> (band pill + action row +
 // exposure + timeline, rendered inside the masthead card via Masthead's own actionSlot), never a
-// direct ActionRow import or a page-local exportBriefAsMarkdown/shareCurrent reimplementation. The
-// two former tests here (one for regulations via ActionCard, one for the "three unrefactored"
-// surfaces still importing ActionRow directly) are ONE test now, since there is no longer an
-// unrefactored surface to hold to a different rule.
+// direct ActionRow import or a page-local exportBriefAsMarkdown/shareCurrent reimplementation.
+//
+// F45 duplicate-code (same lane, same day): the four surfaces' ActionCard tail
+// (tagPopover/onShare/onTag/exportDisabled/watch) was byte-identical but for `itemType`, retyped
+// four times. Extracted to `commonActionCardProps` (src/lib/detail/action-card-common-props.tsx),
+// which owns the `shareResource` import; a surface now imports only `downloadMarkdownBrief`
+// directly (its own `onExport` still carries real per-surface metaRows).
 test("all four detail surfaces reuse ActionRow indirectly via the shared ActionCard part, never a page-local copy", () => {
   const surfaces = [
     "../regulations/RegulationDetailSurface.tsx",
@@ -63,8 +66,8 @@ test("all four detail surfaces reuse ActionRow indirectly via the shared ActionC
     const src = readFileSync(resolve(DIR, rel), "utf8");
     assert.match(
       src,
-      /import \{ shareResource, downloadMarkdownBrief \} from "@\/components\/ui\/ActionRow"/,
-      `${rel} must import shareResource/downloadMarkdownBrief from the shared ActionRow part`
+      /import \{ downloadMarkdownBrief \} from "@\/components\/ui\/ActionRow"/,
+      `${rel} must import downloadMarkdownBrief from the shared ActionRow part`
     );
     assert.doesNotMatch(
       src,
@@ -75,6 +78,11 @@ test("all four detail surfaces reuse ActionRow indirectly via the shared ActionC
       src,
       /import \{ ActionCard \} from "@\/components\/ui\/ActionCard"/,
       `${rel} must render ActionRow via the shared ActionCard part, not inline`
+    );
+    assert.match(
+      src,
+      /import \{ commonActionCardProps \} from "@\/lib\/detail\/action-card-common-props"/,
+      `${rel} must reuse the shared ActionCard tail, not retype it`
     );
     assert.doesNotMatch(
       src,
@@ -93,5 +101,12 @@ test("all four detail surfaces reuse ActionRow indirectly via the shared ActionC
     actionCardSrc,
     /import \{ ActionRow \} from "@\/components\/ui\/ActionRow"/,
     "ActionCard.tsx must import the shared ActionRow part"
+  );
+
+  const commonPropsSrc = readFileSync(resolve(DIR, "../../lib/detail/action-card-common-props.tsx"), "utf8");
+  assert.match(
+    commonPropsSrc,
+    /import \{ shareResource \} from "@\/components\/ui\/ActionRow"/,
+    "action-card-common-props.tsx must import shareResource from the shared ActionRow part"
   );
 });

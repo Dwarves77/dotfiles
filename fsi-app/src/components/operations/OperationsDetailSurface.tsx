@@ -54,8 +54,8 @@ import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { ItemRelevance } from "@/lib/workspace/profile";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
@@ -63,7 +63,6 @@ import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
   DetailMasthead,
@@ -78,7 +77,7 @@ import {
   topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -253,7 +252,6 @@ export function OperationsDetailSurface({
                 }`
               : null
           }
-          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
           onExport={() =>
             downloadMarkdownBrief(r, {
               filenamePrefix: "operations",
@@ -264,23 +262,8 @@ export function OperationsDetailSurface({
               ],
             })
           }
-          onShare={() => shareResource(r)}
-          onTag={() => setTagOpen((v) => !v)}
-          exportDisabled={!(r.fullBrief || r.url)}
-          watch={
-            <WatchButton
-              itemType="operations"
-              itemId={String(r.id)}
-              variant="row"
-              initialWatched={initialWatched}
-              initialTeamWatched={initialTeamWatched}
-              initialTeamAvailable={initialTeamAvailable}
-            />
-          }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "operations", initialWatched, initialTeamWatched, initialTeamAvailable })}
       where={{ value: jurisdiction || null }}
-      whoPays={{ value: r.costMechanism || null }}
-      yourLanes={{ value: null, absenceReason: "connect data" }}
-      timeline={r.timeline}
     />
   );
 
@@ -385,20 +368,15 @@ export function OperationsDetailSurface({
                   }
                 }
                 return (
-                  <div key={s.section_key}>
-                    {i > 0 && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
-                    <SectionLabel>{heading}</SectionLabel>
-                    <div style={{ marginTop: 12 }}>{body}</div>
-                  </div>
+                  <DetailSubSection key={s.section_key} title={heading} first={i === 0}>
+                    {body}
+                  </DetailSubSection>
                 );
               })}
             {spec09Shown.map((s, i) => (
-              <div key={s.id}>
-                {(knownSections.length > 0 || i > 0) && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
-                <SectionLabel>{s.label}</SectionLabel>
-                {s.aside && <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>{s.aside}</p>}
-                <div style={{ marginTop: s.aside ? 0 : 12 }}>{spec09Nodes[s.key]}</div>
-              </div>
+              <DetailSubSection key={s.id} title={s.label} subtitle={s.aside} first={knownSections.length === 0 && i === 0}>
+                {spec09Nodes[s.key]}
+              </DetailSubSection>
             ))}
             {knownSections.length === 0 && spec09Shown.length === 0 && (
               <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>

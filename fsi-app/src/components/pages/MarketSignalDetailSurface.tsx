@@ -42,13 +42,13 @@
  */
 
 import { SectionCard } from "@/components/ui/SectionCard";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
@@ -66,7 +66,6 @@ import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
   DetailMasthead,
@@ -357,7 +356,6 @@ export function MarketSignalDetailSurface({
             }`
           : null
       }
-      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
       onExport={() =>
         downloadMarkdownBrief(r, {
           filenamePrefix: "signal",
@@ -369,23 +367,8 @@ export function MarketSignalDetailSurface({
           ],
         })
       }
-      onShare={() => shareResource(r)}
-      onTag={() => setTagOpen((v) => !v)}
-      exportDisabled={!(r.fullBrief || r.url)}
-      watch={
-        <WatchButton
-          itemType="signal"
-          itemId={String(r.id)}
-          variant="row"
-          initialWatched={initialWatched}
-          initialTeamWatched={initialTeamWatched}
-          initialTeamAvailable={initialTeamAvailable}
-        />
-      }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "signal", initialWatched, initialTeamWatched, initialTeamAvailable })}
       where={{ value: jurisLabel }}
-      whoPays={{ value: r.costMechanism || null }}
-      yourLanes={{ value: null, absenceReason: "connect data" }}
-      timeline={r.timeline}
     />
   );
 
@@ -474,9 +457,7 @@ export function MarketSignalDetailSurface({
               as sub-headings, content and data paths unchanged. */}
           {!isRecord && (
             <DetailSection id="findings" title="Substantive findings" index={2}>
-            <div>
-              <SectionLabel>Drivers & trajectory</SectionLabel>
-              <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>4 forces · compounding</p>
+            <DetailSubSection title="Drivers & trajectory" subtitle="4 forces · compounding" first>
               {sectionMap["2"] && <FactBlocks markdown={sectionMap["2"]} />}
               {sectionMap["3"] && <FactBlocks markdown={sectionMap["3"]} />}
               {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch" }}>{trajectoryNode}</p>}
@@ -512,25 +493,17 @@ export function MarketSignalDetailSurface({
               )}
               {sectionMap["5"] && <FactBlocks markdown={sectionMap["5"]} />}
               {!hasDrivers && <StateNote>Drivers and trajectory pending — appears once the signal brief is generated.</StateNote>}
-            </div>
+            </DetailSubSection>
 
-            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
-
-            <div>
-              <SectionLabel>Cost impact by mode</SectionLabel>
-              <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>Air · Ocean · Road</p>
+            <DetailSubSection title="Cost impact by mode" subtitle="Air · Ocean · Road">
               {sectionMap["4"] ? (
                 <FactBlocks markdown={sectionMap["4"]} />
               ) : (
                 <StateNote>Operational and cost implications by mode appear here once the signal brief is generated.</StateNote>
               )}
-            </div>
+            </DetailSubSection>
 
-            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
-
-            <div>
-              <SectionLabel>Do now</SectionLabel>
-              {actions.length > 0 && <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>{actions.length} steps</p>}
+            <DetailSubSection title="Do now" subtitle={actions.length > 0 ? `${actions.length} steps` : null}>
               {actions.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {actions.map((a, i) => (
@@ -550,20 +523,15 @@ export function MarketSignalDetailSurface({
               ) : (
                 <StateNote>The actions the workspace should take appear here once the signal brief is generated.</StateNote>
               )}
-            </div>
+            </DetailSubSection>
 
-            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
-
-            <div>
-              <SectionLabel>Client talking points</SectionLabel>
-              <div style={{ marginTop: 12 }}>
-                {sectionMap["6"] ? (
-                  <FactBlocks markdown={sectionMap["6"]} />
-                ) : (
-                  <StateNote>What the workspace can credibly say appears here once the signal brief is generated.</StateNote>
-                )}
-              </div>
-            </div>
+            <DetailSubSection title="Client talking points">
+              {sectionMap["6"] ? (
+                <FactBlocks markdown={sectionMap["6"]} />
+              ) : (
+                <StateNote>What the workspace can credibly say appears here once the signal brief is generated.</StateNote>
+              )}
+            </DetailSubSection>
             </DetailSection>
           )}
 

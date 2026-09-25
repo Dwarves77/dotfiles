@@ -39,11 +39,10 @@ import { useMemo, useState, type ReactNode } from "react";
 import { nowFrom } from "@/lib/render-now";
 import { recentRegenInfo } from "@/lib/dashboard/row-fields";
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { Absence } from "@/components/ui/Absence";
 import { StateNote } from "@/components/ui/StateNote";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { SectionIndex, REGULATION_SECTION_INDEX, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
@@ -249,7 +248,6 @@ export function RegulationDetailSurface({
       kindLabel="Regulation"
       tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
       meta={actionCardMeta}
-      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
       onExport={() =>
         downloadMarkdownBrief(r, {
           filenamePrefix: "regulation",
@@ -261,23 +259,8 @@ export function RegulationDetailSurface({
           ],
         })
       }
-      onShare={() => shareResource(r)}
-      onTag={() => setTagOpen((v) => !v)}
-      exportDisabled={!(r.fullBrief || r.url)}
-      watch={
-        <WatchButton
-          itemType="reg"
-          itemId={String(r.id)}
-          variant="row"
-          initialWatched={initialWatched}
-          initialTeamWatched={initialTeamWatched}
-          initialTeamAvailable={initialTeamAvailable}
-        />
-      }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "reg", initialWatched, initialTeamWatched, initialTeamAvailable })}
       where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
-      whoPays={{ value: r.costMechanism || null }}
-      yourLanes={{ value: null, absenceReason: "connect data" }}
-      timeline={r.timeline}
     />
   );
 

@@ -39,9 +39,9 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { DetailSubSection } from "@/components/ui/DetailSubSection";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
@@ -49,7 +49,6 @@ import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
   DetailMasthead,
@@ -215,7 +214,6 @@ export function ResearchFindingDetailSurface({
             }`
           : null
       }
-      tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
       onExport={() =>
         downloadMarkdownBrief(r, {
           filenamePrefix: "research",
@@ -226,23 +224,8 @@ export function ResearchFindingDetailSurface({
           ],
         })
       }
-      onShare={() => shareResource(r)}
-      onTag={() => setTagOpen((v) => !v)}
-      exportDisabled={!(r.fullBrief || r.url)}
-      watch={
-        <WatchButton
-          itemType="research"
-          itemId={String(r.id)}
-          variant="row"
-          initialWatched={initialWatched}
-          initialTeamWatched={initialTeamWatched}
-          initialTeamAvailable={initialTeamAvailable}
-        />
-      }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "research", initialWatched, initialTeamWatched, initialTeamAvailable })}
       where={{ value: jurisLabel }}
-      whoPays={{ value: r.costMechanism || null }}
-      yourLanes={{ value: null, absenceReason: "connect data" }}
-      timeline={r.timeline}
     />
   );
 
@@ -313,13 +296,9 @@ export function ResearchFindingDetailSurface({
             <DetailSection id="findings" title="Substantive findings" index={2}>
               {knownSections.length > 0 ? (
                 knownSections.map((s, i) => (
-                  <div key={s.section_key}>
-                    {i > 0 && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
-                    <SectionLabel>{RESEARCH_SECTION_HEADINGS[s.section_key]}</SectionLabel>
-                    <div style={{ marginTop: 12 }}>
-                      <FactBlocks markdown={s.content_md} />
-                    </div>
-                  </div>
+                  <DetailSubSection key={s.section_key} title={RESEARCH_SECTION_HEADINGS[s.section_key]} first={i === 0}>
+                    <FactBlocks markdown={s.content_md} />
+                  </DetailSubSection>
                 ))
               ) : (
                 <>
