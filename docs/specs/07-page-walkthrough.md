@@ -169,6 +169,17 @@ than silently stale. Ratios move in percentage points, quantities in percent, en
 level. These are not fussy details; they are the difference between a product someone trades on and a
 newsletter.
 
+**Amendment 2026-09-25 (decision 1, rule 20).** No freight-rate tracking. Operator, verbatim: "people
+already have systems for this and it changes so often without an api from their systems this is too
+much work and not what our system should focus on." Item 2 above ("the corridor rate board", your rate
+plotted inside a market band) is RETIRED as a differentiator; do not build it. Market Intel's
+differentiator is item 3, the carbon overlay, standing on its own: carbon cost per container/tonne,
+computed from the ETS proxy (decision 2  -  carrier-published surcharges, per carrier/period/source,
+never blended without a range; client override labelled client-supplied; EEX licence deferred), joined
+to the Regulations obligation that drives it. Item 1 (the comparative ribbon) and items 4-7 stand
+unchanged. See `docs/plans/build-plan-2026-09-25.md` for the carbon-cost-card workstream and the
+Design Changes Owed entry for artboard 04 (a carbon-cost card with no rate slot).
+
 ---
 
 # RESEARCH
@@ -184,7 +195,7 @@ planning assumption it changes, it does not ship as a card.
 **1. Horizon bands as the primary organisation**, not a reverse-chronological feed:
 
 ```
-NOW (0–2y)    NEAR (2–5y)    MID (5–10y)    FAR (10y+)    UNRESOLVED-DECAY
+NOW (0-2y)    NEAR (2-5y)    MID (5-10y)    FAR (10y+)    UNRESOLVED-DECAY
 ```
 
 That last band is the one nobody ships and the most useful: *obsolete before it arrives, do not build a
@@ -193,12 +204,12 @@ plan on this*. A forwarder needs to be told what to ignore as much as what to wa
 **2. The assessment card.**
 
 ```
-Methanol bunkering crosses routable threshold on Asia–Europe
+Methanol bunkering crosses routable threshold on Asia-Europe
 
 HORIZON    NEAR · trigger 2028 · because FuelEU intensity step + 3 announced
            bunkering nodes. Basis: R1 statute + R3 roadmap.
-MATURITY   TRL 9–11 (technical) · CRI 4 (still policy-driven, subsidised)
-           Binding constraint: BUNKERING INFRASTRUCTURE — high
+MATURITY   TRL 9-11 (technical) · CRI 4 (still policy-driven, subsidised)
+           Binding constraint: BUNKERING INFRASTRUCTURE  -  high
 CONFIDENCE Medium · evidence ROBUST, agreement MEDIUM
            ↓ indirectness: most studies are deep-sea, your lanes are short-sea
 WHO        3 independent institution clusters, 2 jurisdictions
@@ -215,10 +226,10 @@ hedge rather than commit.
 **3. The so-what block**, bound to your own plan:
 
 ```
-ASSUMPTION AT RISK  You assume Asia–Europe stays conventionally bunkered to 2030
+ASSUMPTION AT RISK  You assume Asia-Europe stays conventionally bunkered to 2030
 BECOMES             A methanol-capable option exists on this lane from 2028 and
                     your automotive client's tender will ask for it
-LOAD-BEARING        Yes — sits under 34% of quoted margin on this trade
+LOAD-BEARING        Yes  -  sits under 34% of quoted margin on this trade
 SIGNPOSTS           Rotterdam publishes bunkering tariff (confirms)
                     Third carrier orders dual-fuel for this string (confirms)
                     Node build slips past Q3 2027 (delays)
@@ -264,7 +275,7 @@ Labour       €/prod-hr  38.20      31.40      34.80     14.20     22.60
                         100        82         91        37        59
 Materials               ●●●○○      ●●○○○      ●●●●○     ●○○○○     ●●●○○
 Infrastructure          ●●●●●      ●●●●○      ●●●●○     ●●●○○     ●●●●●
-Recyclate supply        —          —          ●●●○○     ●○○○○     ●●○○○
+Recyclate supply         -            -           ●●●○○     ●○○○○     ●●○○○
 ```
 
 Native value on top, index against **your chosen base region** underneath. You pick the base; a
@@ -296,7 +307,7 @@ prevents that.
 **4. Automate versus hire, with break-even given equal billing to the answer:**
 
 ```
-HVAC monitoring system vs 2 FTE — US-TX
+HVAC monitoring system vs 2 FTE  -  US-TX
 
 NPV (7yr, 8%)         +$184,000 favouring automation
 Discounted payback     3.4 years
@@ -315,9 +326,9 @@ estimate into something you can defend in a meeting.
 **5. Feasibility gates, evaluated *before* cost and rendered as gates, never as points:**
 
 ```
-EU-NL   PPWR recycled content 2030   CONDITIONAL — rPET supply thin
+EU-NL   PPWR recycled content 2030   CONDITIONAL  -  rPET supply thin
 US-TX   Permitting                   CLEAR
-UAE     EPR registration             BLOCKED — no authorised representative
+UAE     EPR registration             BLOCKED  -  no authorised representative
 ```
 
 The 2026 site-selection survey data has feasibility overtaking price as the binding constraint. A
@@ -356,9 +367,9 @@ instrument or a technology, which is how it becomes reachable from the other fou
 **3. The house benchmark**, on a fixed calendar, aggregate-only:
 
 ```
-This quarter: what SAF premium are you seeing on EU–US air?
+This quarter: what SAF premium are you seeing on EU-US air?
    n = 34 respondents, 19 organisations
-   <5%: ████ 12%     5–10%: ████████████ 41%     10–20%: ██████ 29%
+   <5%: ████ 12%     5-10%: ████████████ 41%     10-20%: ██████ 29%
    >20%: ███ 18%
    Aggregated, historical, ≥5 contributors, no contributor >25%
 ```
@@ -377,6 +388,18 @@ instead. It refuses rather than flags, because a re-disaggregable dataset cannot
 states you can watch, and it never renders as verified until an editor has traced it to a primary
 source. The thread gets credited as the lead; the primary source gets cited.
 
+**Amendment 2026-09-25 (R8.7, rule 20  -  SUPERSEDES item 1 above).** Identity is shown by default, not
+withheld. Operator, verbatim: "a room can and should know who you are when you talking. unless you
+choose to be annonymous"; "the point ... is to share where you are and what you're doing, if it doesnt
+have context and you cant trust the sources whats the point, but people can be anonymous if they choose
+in a post or as a user." Item 1's "Not your name, not your company" is retired. The new default: your
+identity (name, company, role, verification badge) is visible in a room unless you opt into anonymity,
+per-post or per-user; an anonymous post keeps the verified-member marker so the room can still trust the
+source without knowing who it is. Items 2-6, the antitrust posting guard (item 4), and the k-anonymity /
+dominance-cap / lag mechanics stay unchanged  -  they gate what can be POSTED, not who is IDENTIFIED. The
+composer's 400-without-`entity_ids` bug is a build defect against this same amendment, tracked in
+`docs/plans/build-plan-2026-09-25.md` (Community identity workstream).
+
 ---
 
 # HOW THE FIVE FIT TOGETHER
@@ -389,7 +412,7 @@ One corridor, Shanghai to Rotterdam, seen from each page:
 | Market Intel | Rate €3,650, 87th percentile of the band; €96/FEU of it is carbon, up 18% |
 | Research | Methanol becomes routable here around 2028; your automotive client is 14 months ahead |
 | Operations | Rotterdam node capacity is strong; EU recyclate supply is thin for PPWR |
-| Community | 41% of peers report a 5–10% SAF premium on the adjacent air lane |
+| Community | 41% of peers report a 5-10% SAF premium on the adjacent air lane |
 
 They agree because they are five lenses on one spine, and the corridor is the same object in all five.
 That is the entire architectural bet, and it is why the spine work comes before the page work.

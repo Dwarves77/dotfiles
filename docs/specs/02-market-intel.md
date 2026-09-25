@@ -18,7 +18,7 @@ briefs wearing market vocabulary.
 
 ## 1. The anatomy of a number
 
-This surface lives or dies on whether its numbers carry the envelope in `00-foundation` §2. The
+This surface lives or dies on whether its numbers carry the envelope in `00-foundation` section 2. The
 envelope is not decoration: it is what converts a number into something a CFO can budget on and a
 lawyer can write into a contract.
 
@@ -46,7 +46,7 @@ per equipment type before anything publishes ([Xeneta methodology](https://www.x
 This is the surface's second contract, alongside comparativeness. The industry separates three
 orthogonal axes and so must we:
 
-1. **Source reliability × information credibility** (Admiralty, `00-foundation` §3.2).
+1. **Source reliability × information credibility** (Admiralty, `00-foundation` section 3.2).
 2. **Likelihood vs analytic confidence** (ICD 203). Never in the same sentence.
 3. **Corroboration count**, counting *independent origins*, not mentions. Three trade-press pickups of
    one press release is corroboration = 1. Weighting: primary or regulatory filing > company direct
@@ -152,9 +152,21 @@ retrofitting an audit trail is impossible.
 | 6 | **Peer cohort benchmark** with visible, editable cohort definition and distribution | Which competitors am I losing tenders to, and on what dimension |
 | 7 | **Capacity and reliability forward panel**: deployed capacity 12 weeks out, blank sailings, schedule reliability, average delay | Do I book early, and what do I tell a time-critical art or live-events client about transit risk |
 | 8 | **Fuel and energy strip**: jet kerosene, marine gasoil/VLSFO proxies, EU diesel by member state, SAF premium where obtainable | Where are BAF and FSC going next quarter |
-| 9 | **Policy timeline** (dated, forward-looking, "days until", filtered by mode and geography) — *not* a text brief, that is Regulations' job | What deadline determines this quarter's investment |
+| 9 | **Policy timeline** (dated, forward-looking, "days until", filtered by mode and geography)  -  *not* a text brief, that is Regulations' job | What deadline determines this quarter's investment |
 | 10 | **Methodology and provenance drawer**, one click from any number | Can I forward this screenshot to my customer's procurement team |
 | 11 | **Freshness panel**: last-updated and next-expected on every series, visibly degraded past cadence | Trust calibration. Cheap to build, disproportionate return |
+
+**Amendment 2026-09-25 (decision 1, rule 20).** Row 2, the corridor rate board (P2.5/average/P97.5
+bands, spot vs. contract, the customer's own rate plotted inside the band) is RETIRED. Operator,
+verbatim: "people already have systems for this and it changes so often without an api from their
+systems this is too much work and not what our system should focus on." Every other reference to the
+rate board in this spec (sections 3-4, the "band is the product" framing, the Xeneta/Drewry comparisons)
+is retained as background on why freight-rate benchmarking is hard to do well with free data  -  it now
+argues FOR not building it, not for building it. Row 3, the carbon cost overlay, stands alone as the
+differentiator and does not need the freight rate as its denominator: express it per container/tonne
+directly, per the ETS-proxy mechanism in decision 2 (carrier-published surcharges, per
+carrier/period/source, never blended without a range; client override labelled client-supplied). Section
+9's "Corridor rate board: Absent" gap row is closed by retirement, not by building it.
 | 12 | **Watchlist and threshold alerting**, alerting on breach with delta and band context, not level | Tell me when my number moves; I will not open this daily |
 
 ## 7. Free data sources for a $0 build
@@ -175,7 +187,7 @@ panel-shaped and timestamped.
 | **Alphaliner TOP 100** | Operator deployed TEU, owned vs chartered, orderbook, share | Daily | Public overview |
 | **IATA Air Cargo Market Analysis** | CTK, ACTK, cargo load factor, yields by region and route area, with jet fuel and PMI context | Monthly | Free PDF, parse tables |
 | **Eurostat transport** | Freight tonne-km by mode, modal split, port and airport freight volumes | Quarterly/annual | Free API |
-| **ECB Data Portal** | Daily EUR reference rates | Daily | Free API, `eurofxref-daily.xml`, [ecb.europa.eu](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html). Needed to normalise multi-currency series. **Producer built** (`scripts/producers/market/ecb-fx-producer.mjs`) and **registered** (`public.data_sources` row `ecb`, migration 281, 2026-09-02 — licence text [UNCONFIRMED] pending a live read, see that migration's header); still kill-switched OFF by default (the runtime env switch) pending an operator-dispatched dry-then-apply run — no live rows yet |
+| **ECB Data Portal** | Daily EUR reference rates | Daily | Free API, `eurofxref-daily.xml`, [ecb.europa.eu](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html). Needed to normalise multi-currency series. **Producer built** (`scripts/producers/market/ecb-fx-producer.mjs`) and **registered** (`public.data_sources` row `ecb`, migration 281, 2026-09-02  -  licence text [UNCONFIRMED] pending a live read, see that migration's header); still kill-switched OFF by default (the runtime env switch) pending an operator-dispatched dry-then-apply run  -  no live rows yet |
 
 **What we cannot get free**: contract rate benchmarks at Xeneta/Drewry granularity. Say so on the
 Coverage surface rather than approximating them.
@@ -212,7 +224,7 @@ Coverage surface rather than approximating them.
 | Capacity/reliability | **Absent** |
 | Methodology drawer | **Absent.** The Methodology card claims convergence scoring the index does not implement |
 | Freshness | **Absent.** PriceBoard prints "Next release: date" against a hand-run script with no scheduler |
-| Market series producers (WO-16, `market_series`) | **Partial, updated 2026-09-02 (Lane PROD).** Of the four registry entries (`src/lib/market/series-registry.mjs`): EU Weekly Oil Bulletin is implemented, registered, kill-switch-armable, and has run live (6 rows). ECB FX is implemented, source-registered (migration 281), and its own `ENABLED` reviewed-code gate is now true — still kill-switched OFF by default (runtime env switch) pending a dispatched dry-then-apply run; a `--since YYYY-MM-DD` history backfill mode also shipped this commit (`fetch-oil-bulletin.mjs`), unrun against the live workbook. EIA v2 is implemented and source-registered but has **no GitHub Actions workflow step** — blocked on `EIA_API_KEY` not being a registered GitHub Actions secret (`.github/workflows/producers.yml`'s own comment on the `eia-v2-petroleum-spot` dispatch choice names the exact blocking check). EEX EUA remains an undocumented stub (no licence found). **No `market_series` row from any of these three sits behind a live comparative UI component yet** — this table's own earlier rows (Key-figure column, Trajectory, Freshness) describe a different, still-orphaned data path (`item.marketData`), not `market_series` |
+| Market series producers (WO-16, `market_series`) | **Partial, updated 2026-09-02 (Lane PROD).** Of the four registry entries (`src/lib/market/series-registry.mjs`): EU Weekly Oil Bulletin is implemented, registered, kill-switch-armable, and has run live (6 rows). ECB FX is implemented, source-registered (migration 281), and its own `ENABLED` reviewed-code gate is now true  -  still kill-switched OFF by default (runtime env switch) pending a dispatched dry-then-apply run; a `--since YYYY-MM-DD` history backfill mode also shipped this commit (`fetch-oil-bulletin.mjs`), unrun against the live workbook. EIA v2 is implemented and source-registered but has **no GitHub Actions workflow step**  -  blocked on `EIA_API_KEY` not being a registered GitHub Actions secret (`.github/workflows/producers.yml`'s own comment on the `eia-v2-petroleum-spot` dispatch choice names the exact blocking check). EEX EUA remains an undocumented stub (no licence found). **No `market_series` row from any of these three sits behind a live comparative UI component yet**  -  this table's own earlier rows (Key-figure column, Trajectory, Freshness) describe a different, still-orphaned data path (`item.marketData`), not `market_series` |
 | Format sections first-class | 1 of 8 (Sources). 7 of 8 are prose through the Regulations renderer |
 | Detail route surface guard | **Fixed** in PR #450 |
 | Customer-visible roadmap language | Present: "band tagging is being backfilled", "once the commodity-price feed is connected", "lands when the workspace-membership backend ships", "pending tier review in the Admin queue" |
