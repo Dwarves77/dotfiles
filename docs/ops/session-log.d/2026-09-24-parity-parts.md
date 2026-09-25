@@ -175,6 +175,61 @@ redirected to `/login` (session held for the full run), the Summary\|Full switch
 position (`fromRight:5, dy:11`) on all four detail pages. Proof images and `results.json` written to
 this worktree's `fsi-app/scripts/tmp/proof-local/` (gitignored).
 
+## Addendum 2026-09-25: operator ruling, priority control into the action row, obligations into TIMELINE
+
+Two shared-part rulings from the operator, binding on every detail page with obligations (today: only
+regulations-detail).
+
+1. HeroPriorityDropdown (a per-user "..." kebab: set priority / dismiss / archive) moves from its own
+   row above the masthead into ActionRow as the LAST control (ActionRow/ActionCard gain a new
+   optional `overflow` prop; market/research/operations pass nothing, unaffected). Height and
+   borderless-glyph chrome were already correct (the 2026-09-08 B2 ruling), so only the mount point
+   moved. Verified: `bandFromPriority(r.priority)` (the BandChip's own source) does not read the
+   override store, so the relocation cannot change the band colour.
+2. UpcomingObligationsStrip's `variant="detail"` mount is retired entirely. Its data
+   (item_forward_events, the SAME GET /api/obligations/upcoming route) now merges into the TIMELINE
+   as ordinary markers (`mergeObligationEvents`, timeline-math.ts: date-collision dedup, short
+   `KIND_LABELS` name, never the long `obligation_text` prose). The collapse bound changed from
+   8/next-3 to 4/next-4; "+N more" is now a real link (`moreMarkersHref`) to the item's own Obligation
+   Register section (`#obligation-register`, an anchor that already existed for the rail's own
+   "Calendar ->" link, reused rather than duplicated).
+
+New static fitness function F58 (no-standalone-obligations-strip, mirrors F57's class for ImpactMeter)
+forbids `<UpcomingObligationsStrip variant="detail">` on any of the four detail surfaces; the list
+strip (`variant="list"`) is unaffected. `parity-checks-smoke.mjs` (RD-84's existing rendering-guard
+spec) gained a TIMELINE measurement (a local 6-entry override, since the shared fixture's own
+3-entry timeline never reaches the collapsed branch): at most 4 visible markers, a real "+N more"
+link exactly when collapsed. RD-84's own text/enforcedBy/residual updated to record both.
+
+F45 duplicate-code (this lane's own regression, Timeline.tsx's link/plain-text "+N more" branches):
+collapsed to one element with a dynamic tag; net -12 lines under base after the fix, not just back to
+zero.
+
+Commits: `f3cd3ee0` (the shared-part behavior change), `c1207613` (F58 + the smoke-spec extension +
+RD-84 update).
+
+Gates re-run clean after both commits: tsc, no-npm suite (6300+1594 across the two blocks the script
+runs, 0 fail), npm-dep suite 1494/1494, fitness 49/0 violations (F58 included), `next build` clean,
+rendering guard PASS (368 UX-smoke checks across 19 specs including the extended parity-checks),
+locked pre-push gate PASS.
+
+Re-ran the dual-site harness (this worktree's own gitignored `artboard-parity-dual.mjs`, both
+production and this branch's `next build`/`next start`, all 12 routes - the harness's own detail-only
+filter turned out to skip the list-page visits the detail routes need to resolve their hrefs from,
+so the full 12-route run was used instead, which also re-confirms the other 8 routes are unaffected).
+Two runs hit a mid-run `ERR_CONNECTION_REFUSED` (the local `next start` process died between requests,
+cause not conclusively isolated - `HeadersOverflowError` warnings appear in the server log around the
+same time but are themselves caught/logged as a graceful Supabase-read fallback, not an uncaught
+crash; [HYPOTHESIS, unconfirmed]: unrelated resource contention on a machine running several other
+lanes concurrently). The third run completed clean, all 12 routes measured on both sites, zero
+AUTH-FAIL, every applicable check PASS. Fresh 3-panel (live | branch | artboard) compare PNGs written
+for all 12 routes, including the 4 detail routes the ruling named.
+
+NOTE for whoever reads this next: this session's `taskkill //F //IM node.exe` calls (used to free the
+port between local-server restarts) kill EVERY node process on the machine, not just this lane's own -
+if another lane's process died unexpectedly around the same wall-clock time, that is likely why. Not
+repeated after this was noticed; flagged rather than silently left for a future session to rediscover.
+
 ## Open items / next steps
 
 - Gate 5 re-checked clean after the later commits (`coverage-report.json` shows no diff against HEAD).
@@ -184,3 +239,5 @@ this worktree's `fsi-app/scripts/tmp/proof-local/` (gitignored).
 - The data finding above (items with "do now" prose but empty `recommended_actions`) remains
   unquantified (no live DB query run this session) and is still the coordinator's to route, not this
   lane's to fix.
+- The `ERR_CONNECTION_REFUSED` mid-run server death (above) is a [HYPOTHESIS]-labeled, unconfirmed
+  finding - worth a follow-up if it recurs outside a multi-lane-contention session.
