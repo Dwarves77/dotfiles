@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { noWorkspaceLabel } from "@/components/shell/bootstrap-seed";
 import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
-import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { Masthead } from "@/components/ui/Masthead";
@@ -115,9 +114,6 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   // Lane AUTH-IDENTITY: an empty orgName is "no workspace" only when the identity lookup RESOLVED;
   // a failed lookup leaves it empty too and must not be told it has none (noWorkspaceLabel).
   const { identityStatus } = useAuth();
-  const isOwner = userRole === "owner";
-  const isAdmin = userRole === "owner" || userRole === "admin";
-  const { total: adminAttentionTotal } = useAdminAttention();
 
   // Cross-page tab restore (README screen 15: Settings' merged tab row links
   // its first seven entries back here as `/profile?tab=<key>`) — read once on
@@ -425,24 +421,9 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
             <StatBlock label="Plan" value={orgPlan ? capitalize(orgPlan) : "—"} note="Billing, owner only" />
           </SectionCard>
 
-          {/* Admin card (dc.html p14 exact copy) — replaces the prior owner banner strip, which
-              sat above the tab content in the main column and had no artboard counterpart. */}
-          {isAdmin && (
-            <AccountCard title="Admin">
-              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: "0 0 10px" }}>
-                You are {isOwner ? "an owner" : "an admin"}. Platform-wide controls, the issues queue and source
-                review live in the admin console.
-              </p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12.5px" }}>
-                <a href="/admin" style={{ fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}>
-                  Open admin →
-                </a>
-                <span style={{ color: "var(--color-text-muted)" }}>
-                  {formatNumber(adminAttentionTotal)} items in queue
-                </span>
-              </div>
-            </AccountCard>
-          )}
+          {/* Admin card removed (lane AUTH-IDENTITY, 2026-09-24, operator ruling: "Admin only needs
+              one access point"; the Sidebar footer Admin row is the sole entry point. This
+              duplicate open-admin link is retired, not relocated). */}
 
           <QuickLinksRail />
         </div>

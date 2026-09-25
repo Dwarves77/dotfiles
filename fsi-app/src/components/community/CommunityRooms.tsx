@@ -1173,12 +1173,14 @@ export function CommunityRooms({
                 </p>
               </div>
               {/* R7: the editorial pickup queue is an app feature artboard 12 does not draw;
-                  it keeps its link at the card foot rather than inside the drawn paragraph. */}
+                  it keeps its status at the card foot rather than inside the drawn paragraph.
+                  No admin link here (lane AUTH-IDENTITY, 2026-09-24, operator ruling: "Admin only
+                  needs one access point"; customers never see an /admin path). */}
               <CardFoot
                 left={
-                  <Link href="/admin" style={{ color: "var(--brand)", fontWeight: 700 }}>
-                    Admin pickups ({formatNumber(pendingPickups)} pending) &rarr;
-                  </Link>
+                  <span style={{ color: "var(--ink-3)", fontWeight: 700 }}>
+                    {formatNumber(pendingPickups)} in editorial review
+                  </span>
                 }
                 right={null}
               />
@@ -1761,10 +1763,7 @@ function NotSeededState({
           <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Why post here</p>
           <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
             The ledger prints what&rsquo;s verified. The room holds what operators know first. High-engagement
-            posts are picked up by editorial: post → engagement →{" "}
-            <Link href="/admin" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-              Admin pickups ({pendingPickups} pending)
-            </Link>{" "}
+            posts are picked up by editorial: post → engagement → editorial review ({pendingPickups} pending)
             → platform brief.
           </p>
         </SectionCard>
