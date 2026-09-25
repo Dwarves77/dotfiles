@@ -75,8 +75,10 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -134,20 +136,10 @@ const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
   "4": "Cross-regional",
   "5": "Competitive positioning",
   "6": "Talking points",
-  "7": "Pending changes",
-  "8": "Sources",
-};
-// Operator check 7 (lane PARITY-PARTS, 2026-09-24): <=14-char tab short names (this surface's own
-// nine cut tabs in the baseline report, the worst of the four), the full heading above is unchanged
-// as the section's own <h2>.
-const OPERATIONS_SECTION_SHORT_NAMES: Record<string, string> = {
-  "1": "Cost baseline",
-  "2": "Feasibility",
-  "3": "Alternatives",
-  "4": "Cross-regional",
-  "5": "Positioning",
-  "6": "Talking points",
-  "7": "Pending",
+  // Operator check 5 (lane PARITY-PARTS, 2026-09-24): no exact-case "PENDING" anywhere rendered.
+  // SectionHeader uppercases every S-title, so "Pending changes" drew as literal "PENDING CHANGES".
+  // Same meaning, no forbidden substring after the transform.
+  "7": "Upcoming changes",
   "8": "Sources",
 };
 const MATRIX_GATED_KEYS = new Set(["3", "4"]);
@@ -228,25 +220,19 @@ export function OperationsDetailSurface({
   const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
   const hasRelated = connections.length > 0 || supersessions.length > 0;
-  const indexEntries: SectionIndexEntry[] = knownSections.length > 0
-    ? [
-        ...knownSections
-          .filter((s) => !MATRIX_GATED_KEYS.has(s.section_key) || (s.section_key === "3" ? matrixEligibility?.s3Eligible : matrixEligibility?.s4Eligible))
-          .map((s) => ({ id: `sec-${s.section_key}`, shortName: OPERATIONS_SECTION_SHORT_NAMES[s.section_key] })),
-        ...spec09Shown.map((s) => ({ id: s.id, shortName: s.shortName })),
-        { id: "sources", shortName: "Sources" },
-        ...(hasRelated ? [{ id: "related", shortName: "Related" }] : []),
-      ]
-    : [
-        { id: "summary", shortName: "Summary" },
-        ...spec09Shown.map((s) => ({ id: s.id, shortName: s.shortName })),
-        { id: "sources", shortName: "Sources" },
-        ...(hasRelated ? [{ id: "related", shortName: "Related" }] : []),
-      ];
+  // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
+  // ActionCard comment below and the "Substantive findings" section comment for why S3/S4 are a
+  // real gap, never renumbered, and why S2 now holds every former top-level content tab).
+  const indexEntries: SectionIndexEntry[] = [
+    { id: "summary", shortName: "Summary", ord: 1 },
+    { id: "findings", shortName: "Findings", ord: 2 },
+    { id: "sources", shortName: "Sources", ord: 5 },
+    ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+  ];
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         <DetailMasthead
           title={r.title}
           band={band}
@@ -308,7 +294,7 @@ export function OperationsDetailSurface({
           }
           where={{ value: jurisdiction || null }}
           whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          yourLanes={{ value: null, absenceReason: "connect data" }}
           timeline={r.timeline}
         />
         {trajectoryNode && (
@@ -352,62 +338,74 @@ export function OperationsDetailSurface({
             />
           }
         >
-          {knownSections.length > 0
-            ? knownSections.map((s) => {
+          {/* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
+              is fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05
+              Sources, 06 Related. Exposure/Timeline live in the masthead ActionCard, never a tab.
+              This surface previously had NO summary section at all (it jumped straight into 8
+              numbered content sections, plus the 3 spec09 panels, as 9-11 separate top-level tabs,
+              the worst overflow of the four surfaces in the baseline report). S1 Summary reuses the
+              same real-field fallback the other three surfaces already use when they have no
+              dedicated summary content; S2 "Substantive findings" now holds every one of those
+              former top-level tabs as sub-headings, content and data paths unchanged. */}
+          <DetailSection id="summary" title="Summary" index={1}>
+            {r.whatIsIt || r.note || r.whyMatters ? (
+              <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+                {r.whatIsIt || r.note || r.whyMatters}
+              </p>
+            ) : (
+              <StateNote>Summary pending for this regional profile; brief generation in progress.</StateNote>
+            )}
+            {depth === "full" && r.fullBrief && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                <GfmSection markdown={r.fullBrief} />
+              </div>
+            )}
+          </DetailSection>
+
+          <DetailSection id="findings" title="Substantive findings" index={2}>
+            {knownSections.length > 0 &&
+              knownSections.map((s, i) => {
                 const heading = OPERATIONS_SECTION_HEADINGS[s.section_key] || `Section ${s.section_key}`;
+                let body: ReactNode;
                 if (MATRIX_GATED_KEYS.has(s.section_key)) {
                   const eligible = s.section_key === "3" ? matrixEligibility?.s3Eligible === true : matrixEligibility?.s4Eligible === true;
-                  if (!eligible) {
-                    return (
-                      <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                        <StateNote>{deriveOmitNote(s.section_key, matrixEligibility)}</StateNote>
-                      </DetailSection>
-                    );
+                  if (!eligible) body = <StateNote>{deriveOmitNote(s.section_key, matrixEligibility)}</StateNote>;
+                }
+                if (body === undefined) {
+                  if (!s.content_md || !s.content_md.trim()) {
+                    if (s.is_conditional) return null;
+                    body = <Absence reason="not in primary source" />;
+                  } else {
+                    body = <FactBlocks markdown={s.content_md} />;
                   }
                 }
-                if (!s.content_md || !s.content_md.trim()) {
-                  if (s.is_conditional) return null;
-                  return (
-                    <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                      <Absence reason="not in primary source" />
-                    </DetailSection>
-                  );
-                }
                 return (
-                  <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                    <FactBlocks markdown={s.content_md} />
-                  </DetailSection>
-                );
-              })
-            : (
-              <DetailSection id="summary" title="Summary">
-                {r.whatIsIt || r.note || r.whyMatters ? (
-                  <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
-                    {r.whatIsIt || r.note || r.whyMatters}
-                  </p>
-                ) : (
-                  <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>
-                )}
-                {depth === "full" && r.fullBrief && (
-                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
-                    <GfmSection markdown={r.fullBrief} />
+                  <div key={s.section_key}>
+                    {i > 0 && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
+                    <SectionLabel>{heading}</SectionLabel>
+                    <div style={{ marginTop: 12 }}>{body}</div>
                   </div>
-                )}
-              </DetailSection>
+                );
+              })}
+            {spec09Shown.map((s, i) => (
+              <div key={s.id}>
+                {(knownSections.length > 0 || i > 0) && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
+                <SectionLabel>{s.label}</SectionLabel>
+                {s.aside && <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>{s.aside}</p>}
+                <div style={{ marginTop: s.aside ? 0 : 12 }}>{spec09Nodes[s.key]}</div>
+              </div>
+            ))}
+            {knownSections.length === 0 && spec09Shown.length === 0 && (
+              <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>
             )}
+          </DetailSection>
 
-          {spec09Shown.map((s) => (
-            <DetailSection key={s.id} id={s.id} title={s.label} aside={s.aside}>
-              {spec09Nodes[s.key]}
-            </DetailSection>
-          ))}
-
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+          <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
           {(connections.length > 0 || supersessions.length > 0) && (
-            <DetailSection id="related" title="Related">
+            <DetailSection id="related" title="Related" index={6}>
               <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
             </DetailSection>
           )}

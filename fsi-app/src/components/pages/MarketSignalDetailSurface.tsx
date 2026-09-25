@@ -42,6 +42,7 @@
  */
 
 import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
@@ -77,6 +78,7 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
@@ -323,21 +325,21 @@ export function MarketSignalDetailSurface({
   const [tagOpen, setTagOpen] = useState(false);
   const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || null;
 
-  // Operator check 7 (lane PARITY-PARTS, 2026-09-24): <=14-char tab short names, the full section
-  // headings below are unchanged. "Drivers & trajectory" (21 chars) was the one cut tab measured in
-  // the baseline report for this surface.
+  // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): the market/research/operations S-order is
+  // fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05 Sources, 06
+  // Related. Exposure/Timeline (03/04) live inside the masthead ActionCard, never a tab, so this
+  // index is S1/S2/S5/S6, a real gap at S3/S4, never renumbered.
+  const hasRelated = connections.length > 0 || supersessions.length > 0 || related.length > 0;
   const indexEntries: SectionIndexEntry[] = [
-    { id: "summary", shortName: "Summary" },
-    { id: "drivers", shortName: "Drivers" },
-    { id: "cost", shortName: "Cost impact" },
-    { id: "donow", shortName: "Do now" },
-    { id: "talking", shortName: "Talking points" },
-    { id: "sources", shortName: "Sources" },
+    { id: "summary", shortName: "Summary", ord: 1 },
+    { id: "findings", shortName: "Findings", ord: 2 },
+    { id: "sources", shortName: "Sources", ord: 5 },
+    ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
   ];
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         <DetailMasthead
           title={r.title}
           band={band}
@@ -396,7 +398,7 @@ export function MarketSignalDetailSurface({
           }
           where={{ value: jurisLabel }}
           whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          yourLanes={{ value: null, absenceReason: "connect data" }}
           timeline={r.timeline}
         />
 
@@ -436,7 +438,7 @@ export function MarketSignalDetailSurface({
             />
           }
         >
-          <DetailSection id="summary" title="Summary" aside="Generated · 30-second read">
+          <DetailSection id="summary" title="Summary" index={1} aside="Generated · 30-second read">
             {isRecord ? (
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (
@@ -456,8 +458,19 @@ export function MarketSignalDetailSurface({
             )}
           </DetailSection>
 
+          {/* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24, docs/ops/session-log.md 2026-09-24
+              "operator rulings" entry): the detail S-order for market/research/operations is 01
+              Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05 Sources, 06
+              Related, numbers fixed, never renumbered. Exposure/Timeline (03/04) render inside the
+              masthead ActionCard (check 2), never a standalone tab, so this surface's real index is
+              S1/S2/S5/S6. S2 "Substantive findings" is ONE section now, holding what used to be four
+              separate top-level tabs (Drivers & trajectory / Cost impact / Do now / Talking points)
+              as sub-headings, content and data paths unchanged. */}
           {!isRecord && (
-            <DetailSection id="drivers" title="Drivers & trajectory" aside="4 forces · compounding">
+            <DetailSection id="findings" title="Substantive findings" index={2}>
+            <div>
+              <SectionLabel>Drivers & trajectory</SectionLabel>
+              <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>4 forces · compounding</p>
               {sectionMap["2"] && <FactBlocks markdown={sectionMap["2"]} />}
               {sectionMap["3"] && <FactBlocks markdown={sectionMap["3"]} />}
               {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch" }}>{trajectoryNode}</p>}
@@ -493,21 +506,25 @@ export function MarketSignalDetailSurface({
               )}
               {sectionMap["5"] && <FactBlocks markdown={sectionMap["5"]} />}
               {!hasDrivers && <StateNote>Drivers and trajectory pending — appears once the signal brief is generated.</StateNote>}
-            </DetailSection>
-          )}
+            </div>
 
-          {!isRecord && (
-            <DetailSection id="cost" title="Cost impact by mode" aside="Air · Ocean · Road">
+            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
+
+            <div>
+              <SectionLabel>Cost impact by mode</SectionLabel>
+              <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>Air · Ocean · Road</p>
               {sectionMap["4"] ? (
                 <FactBlocks markdown={sectionMap["4"]} />
               ) : (
                 <StateNote>Operational and cost implications by mode appear here once the signal brief is generated.</StateNote>
               )}
-            </DetailSection>
-          )}
+            </div>
 
-          {!isRecord && (
-            <DetailSection id="donow" title="Do now" aside={actions.length > 0 ? `${actions.length} steps` : undefined}>
+            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
+
+            <div>
+              <SectionLabel>Do now</SectionLabel>
+              {actions.length > 0 && <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "4px 0 12px" }}>{actions.length} steps</p>}
               {actions.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {actions.map((a, i) => (
@@ -527,25 +544,29 @@ export function MarketSignalDetailSurface({
               ) : (
                 <StateNote>The actions the workspace should take appear here once the signal brief is generated.</StateNote>
               )}
+            </div>
+
+            <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />
+
+            <div>
+              <SectionLabel>Client talking points</SectionLabel>
+              <div style={{ marginTop: 12 }}>
+                {sectionMap["6"] ? (
+                  <FactBlocks markdown={sectionMap["6"]} />
+                ) : (
+                  <StateNote>What the workspace can credibly say appears here once the signal brief is generated.</StateNote>
+                )}
+              </div>
+            </div>
             </DetailSection>
           )}
 
-          {!isRecord && (
-            <DetailSection id="talking" title="Client talking points">
-              {sectionMap["6"] ? (
-                <FactBlocks markdown={sectionMap["6"]} />
-              ) : (
-                <StateNote>What the workspace can credibly say appears here once the signal brief is generated.</StateNote>
-              )}
-            </DetailSection>
-          )}
-
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+          <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
           {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
-            <DetailSection id="related" title={`Connected · related ${BAND_LABEL[signalBand].toLowerCase()}`}>
+            <DetailSection id="related" title={`Connected · related ${BAND_LABEL[signalBand].toLowerCase()}`} index={6}>
               {(connections.length > 0 || supersessions.length > 0) && (
                 <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
                   <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />

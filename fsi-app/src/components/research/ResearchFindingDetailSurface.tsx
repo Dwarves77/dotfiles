@@ -39,6 +39,7 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -60,6 +61,7 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -112,19 +114,6 @@ const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
   "3": "Strategy & claims",
   "4": "Talking points",
   "5": "What does not resolve",
-  "6": "Sources",
-};
-// Operator check 7 (lane PARITY-PARTS, 2026-09-24): the index tab shows a <=14-char short name, the
-// full heading above stays the section's own <h2> (SectionIndexEntry's own `shortName` contract,
-// section-index-data.ts's SECTION_INDEX_SHORT_NAME_MAX), this surface's own callers were still
-// building `{id, label}` entries with the FULL heading text, which is exactly why every research tab
-// but Sources measured CUT in the baseline report.
-const RESEARCH_SECTION_SHORT_NAMES: Record<string, string> = {
-  "1": "Findings",
-  "2": "Why it matters",
-  "3": "Strategy",
-  "4": "Talking points",
-  "5": "Limits",
   "6": "Sources",
 };
 const KNOWN_RESEARCH_KEYS = new Set(["1", "2", "3", "4", "5", "6"]);
@@ -182,17 +171,25 @@ export function ResearchFindingDetailSurface({
   const [tagOpen, setTagOpen] = useState(false);
   const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
+  // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
+  // ActionCard comment below for why S3/S4 are a real gap, never renumbered).
+  const hasRelated = connections.length > 0 || supersessions.length > 0 || related.length > 0;
   const indexEntries: SectionIndexEntry[] = isRecord
-    ? [{ id: "summary", shortName: "Summary" }, { id: "sources", shortName: "Sources" }]
+    ? [
+        { id: "summary", shortName: "Summary", ord: 1 },
+        { id: "sources", shortName: "Sources", ord: 5 },
+        ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+      ]
     : [
-        ...knownSections.map((s) => ({ id: `sec-${s.section_key}`, shortName: RESEARCH_SECTION_SHORT_NAMES[s.section_key] })),
-        ...(knownSections.length === 0 ? [{ id: "summary", shortName: "Summary" }] : []),
-        { id: "sources", shortName: "Sources" },
+        { id: "summary", shortName: "Summary", ord: 1 },
+        { id: "findings", shortName: "Findings", ord: 2 },
+        { id: "sources", shortName: "Sources", ord: 5 },
+        ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
       ];
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         <DetailMasthead
           title={r.title}
           band={band}
@@ -259,7 +256,7 @@ export function ResearchFindingDetailSurface({
           }
           where={{ value: jurisLabel }}
           whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          yourLanes={{ value: null, absenceReason: "connect data" }}
           timeline={r.timeline}
         />
 
@@ -293,7 +290,7 @@ export function ResearchFindingDetailSurface({
           }
         >
           {isRecord ? (
-            <DetailSection id="summary" title="Summary">
+            <DetailSection id="summary" title="Summary" index={1}>
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
               {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
@@ -302,22 +299,36 @@ export function ResearchFindingDetailSurface({
                 </div>
               )}
             </DetailSection>
-          ) : knownSections.length > 0 ? (
-            knownSections.map((s) => (
-              <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={RESEARCH_SECTION_HEADINGS[s.section_key]}>
-                <FactBlocks markdown={s.content_md} />
-              </DetailSection>
-            ))
           ) : (
-            <DetailSection id="summary" title="Summary">
-              {r.whatIsIt || r.note || r.whyMatters ? (
-                <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
-                  {r.whatIsIt || r.note || r.whyMatters}
-                </p>
+            /* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
+               is fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05
+               Sources, 06 Related. Exposure/Timeline live in the masthead ActionCard, never a tab.
+               This surface's former S1-S5 content sections (What the research found / Why it
+               matters / Strategy & claims / Talking points / What does not resolve) are now
+               sub-headings inside ONE S2 "Substantive findings" section, not separate top-level tabs. */
+            <DetailSection id="findings" title="Substantive findings" index={2}>
+              {knownSections.length > 0 ? (
+                knownSections.map((s, i) => (
+                  <div key={s.section_key}>
+                    {i > 0 && <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "18px 0" }} aria-hidden="true" />}
+                    <SectionLabel>{RESEARCH_SECTION_HEADINGS[s.section_key]}</SectionLabel>
+                    <div style={{ marginTop: 12 }}>
+                      <FactBlocks markdown={s.content_md} />
+                    </div>
+                  </div>
+                ))
               ) : (
-                <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
+                <>
+                  {r.whatIsIt || r.note || r.whyMatters ? (
+                    <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+                      {r.whatIsIt || r.note || r.whyMatters}
+                    </p>
+                  ) : (
+                    <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
+                  )}
+                  {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
+                </>
               )}
-              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />
@@ -326,12 +337,12 @@ export function ResearchFindingDetailSurface({
             </DetailSection>
           )}
 
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+          <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
           {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
-            <DetailSection id="related" title="Related" aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
+            <DetailSection id="related" title="Related" index={6} aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
               {/* Ruling 2 S-order (06 Related): connections first (was a rail card, check 8), then
                   the related-findings list this section already rendered. */}
               {(connections.length > 0 || supersessions.length > 0) && (

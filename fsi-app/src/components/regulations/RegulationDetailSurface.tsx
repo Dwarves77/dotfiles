@@ -56,6 +56,7 @@ import {
   DetailRail,
   AtAGlanceCard,
   RailLegend,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { formatDate } from "@/lib/format";
 import { GfmSection } from "@/components/shared/GfmSection";
@@ -213,14 +214,16 @@ export function RegulationDetailSurface({
   };
 
   const hasPenalties = hasPenaltyContent(r);
+  const hasRelated = connections.length > 0 || supersessions.length > 0;
   const indexEntries: SectionIndexEntry[] = useMemo(
     () =>
       REGULATION_SECTION_INDEX.filter((e) => {
         if (e.id === "summary" || e.id === "sources") return true;
         if (e.id === "penalties") return hasPenalties;
+        if (e.id === "related") return hasRelated;
         return dynamicSectionsByIndexId.has(e.id);
       }),
-    [dynamicSectionsByIndexId, hasPenalties]
+    [dynamicSectionsByIndexId, hasPenalties, hasRelated]
   );
 
   // Trajectory sentence moved to S1 Summary (review item 5 / brief item 5); ActionCard's fourth
@@ -241,7 +244,7 @@ export function RegulationDetailSurface({
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         <DetailMasthead
           title={r.title}
           band={band}
@@ -291,7 +294,7 @@ export function RegulationDetailSurface({
           }
           where={{ value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || null }}
           whoPays={{ value: r.costMechanism || null }}
-          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          yourLanes={{ value: null, absenceReason: "connect data" }}
           timeline={r.timeline}
         />
 
@@ -324,13 +327,14 @@ export function RegulationDetailSurface({
               }
               impact={<ImpactRailCard scores={impact} />}
               relevance={<RelevanceBadgeClient itemId={r.id} />}
-              /* Artboard 03's page-specific cards, in its own order:
-                 OWNER & TEAM, IN THIS LIST, CONNECTIONS · 3. */
+              /* Artboard 03's page-specific cards, in its own order: OWNER & TEAM, IN THIS LIST.
+                 Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card,
+                 moved into the trailing "Related" section in main content below (matching the
+                 market/research/operations port). */
               designed={
                 <>
                   <OwnerTeamCard resource={r} initialOwner={initialOwner} />
                   <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
                 </>
               }
               legend={<RailLegend />}
@@ -384,6 +388,12 @@ export function RegulationDetailSurface({
               ) : (
                 <Absence reason="not in primary source" />
               )}
+            </DetailSection>
+          )}
+
+          {depth === "full" && hasRelated && (
+            <DetailSection id="related" title="Related" index={sectionOrdinal("related")}>
+              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
             </DetailSection>
           )}
         </DetailLayout>
