@@ -132,8 +132,25 @@ export const ABSENCE_TEXT_STYLE = {
  * dash a different size in each column (11px in impact and timeline, 12.5px in
  * next-date). Only the colour is fixed here.
  */
+/**
+ * OPERATOR CHECK 5 (lane PARITY-PARTS, 2026-09-24, verbatim in substance): none of "PENDING",
+ * "NOT IN PRIMARY SOURCE", "Connect shipment data" or "UNSCORED" may appear in the rendered DOM;
+ * "a missing value renders NOTHING". This supersedes the README 0.4 small-caps reason convention
+ * and the narrow variant's below-768 word swap. The class fix is here, in the one part every
+ * surface already routes its missing values through, so no call site decides it again:
+ *
+ *   - `reason` renders nothing at all (no element, no text).
+ *   - `narrow` renders the same value-placeholder dash as `dash` at every width (never the word).
+ *   - `dash` is unchanged: an em dash is not one of the four forbidden strings, and README 0.4 draws
+ *     it for an unscored meter ("four dashed outlines and an em dash, never a word").
+ *
+ * The reason still travels on `aria-label`/`title` of the dash, so the closed vocabulary is kept
+ * for assistive technology; it is never painted. Enforced by rendering-guard rule RD-87
+ * (parity-checks-smoke.mjs), proven by attack against the pre-fix part.
+ */
 export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" | "dash" }) {
-  if (variant === "dash") {
+  if (variant === "reason") return null;
+  if (variant === "dash" || variant === "narrow") {
     return (
       <span
         className="cl-absence-dash"
@@ -141,67 +158,12 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         aria-label={reason}
         title={reason}
         data-part="absence"
-        data-part-variant="dash"
+        data-part-variant={variant}
         style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
       >
         {"—"}
       </span>
     );
   }
-  if (variant === "narrow") {
-    return (
-      <span
-        // The rendering guard's placeholder-literal scan reads this attribute and skips the
-        // element (harness.mjs's measureGuard). That is narrower and more honest than the
-        // per-spec "—" allowlists two smoke specs already carry: a dash CARRYING its
-        // closed-vocabulary reason is disclosed structurally, once, by the part that renders it,
-        // while a bare "—" anywhere else in the product stays a placeholder literal and still
-        // fails the guard.
-        className="cl-absence"
-        data-part="absence"
-        data-part-variant="narrow"
-        data-absence="narrow"
-        aria-label={reason}
-        title={reason}
-        style={{ ...ABSENCE_TEXT_STYLE, fontSize: "var(--fs-12)", letterSpacing: "normal" }}
-      >
-        {/* FOLD-61, and this is a RULING the two lanes needed and neither could make alone.
-            opsclip's narrow rule says a cell too small to hold the phrase draws the dash; the
-            mobile 390 spec's operator prose says, in his own words, "Absence keeps its small-caps
-            reason". Both are right, about different widths, and the disagreement is only apparent:
-            "narrow" is a property of the CELL, not of the page. The tier track is a hard 40px
-            above 768, which is where the phrase wrapped over three lines and doubled the row
-            height; below 768 the row reflows to `3px 1fr` and that cell is no longer narrow, so
-            there is room for the words and the operator's own spec asks for them.
-
-            So ONE token, in ONE element, taking the form its cell can hold: the dash above 768,
-            the small-caps reason below it. Two sibling spans inside this one `.cl-absence` would
-            be simpler to read but would not be one element, and the audit counts ELEMENTS
-            (`count: 1` on `.cl-list-row .cl-absence`, lane mobfix61's D-M4 guarantee), so the
-            swap is done with `content` on two pseudo-elements of this single span instead. The
-            aria-label and title carry the closed-vocabulary reason at BOTH widths regardless, so
-            nothing about ruling 2.1's vocabulary depends on the viewport. */}
-        <style>{`
-          .cl-absence[data-absence="narrow"]::after { content: "\\2014"; }
-          .cl-absence[data-absence="narrow"] > .cl-absence-word { display: none; }
-          @media (max-width: 767px) {
-            .cl-absence[data-absence="narrow"]::after { content: none; }
-            .cl-absence[data-absence="narrow"] > .cl-absence-word { display: inline; }
-          }
-        `}</style>
-        <span className="cl-absence-word" style={{ ...ABSENCE_TEXT_STYLE, fontSize: "inherit", letterSpacing: "0.06em" }}>
-          {reason}
-        </span>
-      </span>
-    );
-  }
-  // `cl-absence` (lane mobfix61, 2026-09-08) is what makes "one reason per row" MECHANICALLY
-  // checkable: the audit asserts `count: 1` on `.cl-list-row .cl-absence`, so a part that begins
-  // rendering a second token is a red audit row rather than something the operator finds on his
-  // phone.
-  return (
-    <span className="cl-absence" data-part="absence" data-part-variant="reason" style={ABSENCE_TEXT_STYLE}>
-      {reason}
-    </span>
-  );
+  return null;
 }
