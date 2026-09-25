@@ -287,8 +287,6 @@ export function RegulationDetailSurface({
 
         {showIntegrityBanner && <IntegrityBanner phrase={r.agentIntegrityPhrase!} />}
 
-        {upcomingObligations && <div style={{ marginTop: 16 }}>{upcomingObligations}</div>}
-
         <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
@@ -322,6 +320,15 @@ export function RegulationDetailSurface({
                 <>
                   <OwnerTeamCard resource={r} initialOwner={initialOwner} />
                   <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
+                  {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): UpcomingObligationsStrip was
+                      rendering as a second white-bordered card between the masthead and the section
+                      index (a sibling card the check forbids). Its own file header already documents
+                      the detail variant as "a small optional rail card" - it had simply never been
+                      moved to the rail. Artboard 03's rail does not draw a distinct card for it either
+                      when the item has nothing due beyond what TIMELINE/EXPOSURE already show, so this
+                      keeps the component's own honest empty-render contract (nothing when there is
+                      nothing) rather than fabricating a slot for it. */}
+                  {upcomingObligations}
                 </>
               }
               legend={<RailLegend />}
