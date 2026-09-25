@@ -20,7 +20,8 @@ finding. Master tip at reconstruction: `e3b3a74`.
 > table against the existing build plan, and the Supabase audit lane spec). Next: merge the artboards PR
 > (branch `coord/artboards-2026-09-25`) if green, then the Supabase integrity-and-wiring audit lane FIRST,
 > then the #800 look-only pass against the new boards. See the "Four-questions rebuild" thread section below.
-> R14 (2026-09-25): tools that manage the data are built and complete before any data on the site is updated; see [session-log.d/2026-09-25-operator-ruling-r14.md](./ops/session-log.d/2026-09-25-operator-ruling-r14.md).
+> R14 (2026-09-25), statement 1: tools that manage the data are built and complete before any data on the site is updated; see [session-log.d/2026-09-25-operator-ruling-r14.md](./ops/session-log.d/2026-09-25-operator-ruling-r14.md).
+> R14 (2026-09-25), statement 2: "we are building the sytems that manages the collection and anylsis and production of data for the site, that is the most important thing to do right now". Top priority is M1-M9 loop lanes and audit tool gaps; surface/UI is secondary.
 
 > **Resume from (2026-09-24):** the 2026-09-24 "coordinator (local session, close)" entry of
 > [docs/ops/session-log.md](./ops/session-log.md): seven operator rulings landed (#793), admin access restored, and
