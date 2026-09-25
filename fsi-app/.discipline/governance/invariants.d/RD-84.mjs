@@ -34,17 +34,22 @@ export const invariant = {
     'eight independent axes, each traced to ONE shared part',
   enforcedBy: [
     'fitness:F57',
-    'selftest:fsi-app/.discipline/rendering/smoke/parity-checks-smoke.mjs',
+    'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
   ],
   residual:
     'F57 covers only the one sub-rule that is genuinely a static source-code fact (no live ' +
     '<ImpactMeter variant="full"> mount, check 3\'s static half). The other seven axes (checks ' +
     '1, 2, the render half of 3, 5, 7, 8, and the market/research/operations S-order) are rendered ' +
     'facts, colors, DOM containment, tab overflow, section structure, that no static grep can see; ' +
-    'they are proven by parity-checks-smoke.mjs, which mounts the real shared parts (ActionCard, ' +
-    'Masthead, SectionIndex, ItemGroup/StateNote via band-context, Absence, AtAGlanceCard) inside ' +
-    'the Playwright-driven rendering-guard job and measures the actual DOM/computed-style output, ' +
-    'the same class of enforcement RD-80\'s own rendering-guard smoke specs use. That job requires ' +
-    'playwright, scoped-installed only in the dedicated rendering-guard CI job (same posture as ' +
-    'RD-80\'s residual); it self-skips, diagnosably, wherever playwright is not present locally.',
+    'they are proven by parity-checks-smoke.mjs (registered in ux-smoke-specs.mjs, mounting the real ' +
+    'shared parts, ActionCard, Masthead, SectionIndex, ItemGroup/StateNote via band-context, Absence, ' +
+    'AtAGlanceCard, and measuring the actual DOM/computed-style output), the same class of ' +
+    'enforcement RD-80\'s own rendering-guard smoke specs use. The enforcedBy entry cites the guard ' +
+    'ENTRYPOINT (`run-rendering-guard.mjs`), not the smoke module directly, per the execution-wiring ' +
+    'resolver\'s own surface list (Surface 6, SF-10\'s precedent): the resolver recognizes only the ' +
+    'entrypoint path as execution-wired for a rendering-guard smoke spec, since a per-spec citation ' +
+    'has no matching surface and reads as unwired even though the entrypoint runs it every guard ' +
+    'invocation. That job requires playwright, scoped-installed only in the dedicated rendering-guard ' +
+    'CI job (same posture as RD-80\'s residual); it self-skips, diagnosably, wherever playwright is ' +
+    'not present locally.',
 };
