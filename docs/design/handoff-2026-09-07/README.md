@@ -39,7 +39,7 @@ Red and orange are hot, blue and green cool: the step from Action to Monitor is 
 
 - Frame width `1440`, page background `#FAFAF8`, canvas/desk `#E9E6E0`.
 - **Nav `252px`, always** — one width, so the page never shifts on navigation (the audit found two nav widths).
-- Content grid: `padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start`. At 1440 that is a **780px content column** (measured; ruled 2026-09-25) and a **300px rail**.
+- Content grid: `padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start`. At 1440 that is a **780px content column** (1440 - 252 nav - 80 left/right padding - 300 rail - 28 gap = 780; the prior "778px" here was an arithmetic error in the doc text, not a different CSS value; measured, ruled 2026-09-25) and a **300px rail**.
 - Nav card: white, `border-radius:10px`, `margin:16px 0 16px 16px`, band-gradient 3px cap, sections `Brief / Intelligence / Network / Operator`, counts right-aligned in each row.
 - **Masthead** convention stays: `VOL IV · No. 36 · <date>` line, Anton title (34px list/dashboard, 28px detail), dek or breadcrumb, then the command bar.
 - **Command bar** replaces every per-page ask panel: 40px tall, `⌕` glyph, placeholder "Search or ask across 1,434 items…", `⌘K` hint, dark `Ask` button. Typing searches; Ask sends the same text to the assistant scoped to the current page.
