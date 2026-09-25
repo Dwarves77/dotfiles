@@ -28,12 +28,22 @@ export const invariant = {
     'numbers never renumbered; Exposure/Timeline live in the masthead ActionCard, never their own ' +
     'tab); regulations keeps its own format. [CONFIRMED, lane PARITY-PARTS, 2026-09-24, by a ' +
     'read-only headless-Chromium harness (fsi-app/scripts/tmp/artboard-parity.mjs) against ' +
-    'production, then reproduced locally.]',
+    'production, then reproduced locally.] ' +
+    'EXTENDED (operator ruling, 2026-09-25, same invariant): the regulation-detail priority control ' +
+    '(HeroPriorityDropdown) mounts as the LAST control in ActionCard/ActionRow\'s own action row ' +
+    '(ActionRow\'s new `overflow` prop), never as a sibling row above the masthead; it is a ' +
+    'per-user setting and never changes the item\'s BandChip colour. UpcomingObligationsStrip\'s ' +
+    '`variant="detail"` mount is retired entirely (F58); each of its obligations merges into the ' +
+    'TIMELINE as one marker instead (mergeObligationEvents, timeline-math.ts), which now collapses ' +
+    'at 4 (not 8) markers, showing the next 4 plus a real "+N more" link to the item\'s own ' +
+    'Obligation Register section (`#obligation-register`, ObligationRegisterFilterBar.tsx\'s own ' +
+    'existing anchor) rather than inert text.',
   anchor:
     '### Section 4 - category 52: the four detail surfaces drifted from the approved artboards on ' +
     'eight independent axes, each traced to ONE shared part',
   enforcedBy: [
     'fitness:F57',
+    'fitness:F58',
     'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
   ],
   residual:
@@ -44,7 +54,17 @@ export const invariant = {
     'they are proven by parity-checks-smoke.mjs (registered in ux-smoke-specs.mjs, mounting the real ' +
     'shared parts, ActionCard, Masthead, SectionIndex, ItemGroup/StateNote via band-context, Absence, ' +
     'AtAGlanceCard, and measuring the actual DOM/computed-style output), the same class of ' +
-    'enforcement RD-80\'s own rendering-guard smoke specs use. The enforcedBy entry cites the guard ' +
+    'enforcement RD-80\'s own rendering-guard smoke specs use. F58 covers the 2026-09-25 ruling\'s ' +
+    'other static half (no live <UpcomingObligationsStrip variant="detail"> mount on any of the ' +
+    'four detail surfaces, the same class F57 is for ImpactMeter); the ruling\'s rendered half (at ' +
+    'most 4 visible TIMELINE markers, a real "+N more" link when collapsed) is parity-checks-smoke.mjs\'s ' +
+    'own added measurement, using a local 6-entry timeline override so the collapsed branch is ' +
+    'actually reachable (the shared fixture\'s own timeline is 3 entries, under the 4 bound). The ' +
+    'priority-control relocation (ActionRow\'s new `overflow` prop) has no dedicated static or ' +
+    'rendering check of its own: it is provable only by ABSENCE of the old sibling-row markup, which ' +
+    'both F58\'s scope and the smoke spec\'s existing check-2 (no second card outside the masthead) ' +
+    'already cover incidentally - a distinct guard was judged not to earn its own F-id for one ' +
+    'relocation with no forbidden-pattern shape to grep for. The enforcedBy entry cites the guard ' +
     'ENTRYPOINT (`run-rendering-guard.mjs`), not the smoke module directly, per the execution-wiring ' +
     'resolver\'s own surface list (Surface 6, SF-10\'s precedent): the resolver recognizes only the ' +
     'entrypoint path as execution-wired for a rendering-guard smoke spec, since a per-spec citation ' +

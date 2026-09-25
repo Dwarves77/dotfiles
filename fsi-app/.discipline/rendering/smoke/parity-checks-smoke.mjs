@@ -12,6 +12,15 @@
 // Uses the 'record-grade-facts-and-connections' fixture state: it is the one REGULATION_STATES entry
 // carrying both a real recommendedActions entry (baseResource()'s own default, check 1's ACTION strip)
 // and a real connections row (check 8's Connections-not-a-rail-card).
+//
+// Also covers the 2026-09-25 operator ruling under this SAME invariant (RD-84): "With more than 4,
+// show the next 4 then '+N more'." The strip-removal half of that ruling is F58 (static, this
+// registry's sibling fitness function, mirroring F57's split); THIS spec proves the rendered TIMELINE
+// never shows more than 4 markers at once, and shows the "+N more" chip exactly when it collapsed. A
+// LOCAL 6-entry timeline override (below) is used for this one measurement rather than the shared
+// fixture's own 3-entry timeline (under the 4-collapse threshold, so it would never exercise the
+// collapsed branch) - the override is built here, not written back into detail-surfaces-smoke.mjs, so
+// every other spec reading that fixture is unaffected.
 
 import { bundleEntry, newSmokePage, mountBundle } from './harness.mjs';
 import { REGULATION_ENTRY, REGULATION_STATES, ALIAS } from './detail-surfaces-smoke.mjs';
@@ -70,6 +79,20 @@ const MEASURE_FN = `
       .map((c) => (c.textContent || '').trim().slice(0, 40)) : [];
     out.c8 = { railFound: !!rail, connectionsInRail: railHeadings.some((h) => /connections/i.test(h)) };
 
+    // ── Operator ruling 2026-09-25 (invariant RD-84): TIMELINE shows at most 4 markers, plus a
+    // "+N more" chip when there are more. Requires the caller to have mounted with a >4-entry
+    // timeline (this spec's local override) for the collapsed branch to be reachable at all.
+    const timelinePart = document.querySelector('[data-part="timeline"]');
+    const visibleDots = timelinePart ? timelinePart.querySelectorAll('[role="img"] > span').length : 0;
+    const moreChip = document.querySelector('[data-audit="timeline-more-markers"]');
+    out.cTimeline = {
+      timelineFound: !!timelinePart,
+      visibleDots,
+      moreChipFound: !!moreChip,
+      moreChipIsLink: !!(moreChip && moreChip.tagName === 'A' && moreChip.getAttribute('href')),
+      moreChipText: moreChip ? (moreChip.textContent || '').trim() : null,
+    };
+
     return out;
   }
 `;
@@ -83,11 +106,30 @@ export async function runSmoke(browser) {
     return { checks: 1, failures: ['parity-checks: fixture state "record-grade-facts-and-connections" not found in REGULATION_STATES'] };
   }
 
+  // Local 6-entry timeline override (this spec only - the shared fixture's own 3-entry timeline
+  // stays untouched for every other spec that reads it). 6 > the 4-marker collapse threshold, so
+  // this exercises the "next 4 plus +N more" branch; entry[2] is "current" (the classifier's "next"),
+  // so the visible window is entries 2-5 (4 of them), hiddenCount 2.
+  const timelineOverrideProps = {
+    ...state.props,
+    resource: {
+      ...state.props.resource,
+      timeline: [
+        { date: '2026-01-01', label: 'Entered into force', status: 'past' },
+        { date: '2026-03-01', label: 'First reporting window', status: 'past' },
+        { date: '2026-06-01', label: 'Compliance deadline', status: 'current' },
+        { date: '2026-09-01', label: 'Review checkpoint', status: 'future' },
+        { date: '2026-12-01', label: 'Phase step', status: 'future' },
+        { date: '2027-03-01', label: 'Final surrender', status: 'future' },
+      ],
+    },
+  };
+
   const bundleJs = await bundleEntry(REGULATION_ENTRY, { alias: ALIAS });
   const page = await newSmokePage(browser);
   try {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await mountBundle(page, bundleJs, '__mount', state.props);
+    await mountBundle(page, bundleJs, '__mount', timelineOverrideProps);
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
 
     const m = await page.evaluate(
@@ -140,6 +182,23 @@ export async function runSmoke(browser) {
     if (!m.c8.railFound) failures.push('parity-checks:c8: no [data-audit="detail-rail"] found');
     checks += 1;
     if (m.c8.connectionsInRail) failures.push('parity-checks:c8: a rail card titled "Connections" was found (Connections must render in main content, not the rail)');
+
+    // Operator ruling 2026-09-25 (RD-84): TIMELINE shows at most 4 markers, plus "+N more" (a real
+    // link, per the "which jumps to the obligations section" ruling) when collapsed.
+    checks += 1;
+    if (!m.cTimeline.timelineFound) failures.push('parity-checks:cTimeline: no [data-part="timeline"] found');
+    else {
+      checks += 1;
+      if (m.cTimeline.visibleDots > 4) failures.push(`parity-checks:cTimeline: ${m.cTimeline.visibleDots} markers rendered at once, exceeds the 4-marker collapse bound`);
+      checks += 1;
+      if (!m.cTimeline.moreChipFound) failures.push('parity-checks:cTimeline: 6-entry fixture (> 4) collapsed with no "+N more" chip rendered');
+      else {
+        checks += 1;
+        if (!m.cTimeline.moreChipIsLink) failures.push('parity-checks:cTimeline: "+N more" is not a real link (moreMarkersHref was not threaded through)');
+        checks += 1;
+        if (!/^\+\d+ more$/.test(m.cTimeline.moreChipText || '')) failures.push(`parity-checks:cTimeline: "+N more" chip text is "${m.cTimeline.moreChipText}", expected "+<N> more"`);
+      }
+    }
   } finally {
     await page.close();
   }
