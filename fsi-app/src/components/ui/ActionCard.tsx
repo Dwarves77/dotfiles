@@ -46,6 +46,14 @@ export interface ActionCardProps {
   band: UrgencyBand;
   /** Kind tag text, e.g. "REGULATION". */
   kindLabel: string;
+  /**
+   * Additive extension (lane PARITY-PARTS, 2026-09-24): market/research/operations each carry more
+   * pill-row chips than regulation's band+kind+tier alone (topic/theme/mode chips, the same role
+   * `DetailHeader`'s retired `extraChips` prop played). Rendered between the kind chip and the tier
+   * square, matching that prop's documented order (band, then the item's own type/mode/topic chips,
+   * then tier last). Undefined renders nothing extra, so regulation's own call site is unaffected.
+   */
+  extraChips?: ReactNode;
   tier?: number | null;
   /** "4 sources . T1 primary . regenerated Sep 18". Right-aligned in the pill row. */
   meta?: string | null;
@@ -158,6 +166,7 @@ function ExposureCell({ label, cell }: { label: string; cell: ActionCardExposure
 export function ActionCard({
   band,
   kindLabel,
+  extraChips,
   tier,
   meta,
   tags,
@@ -189,6 +198,7 @@ export function ActionCard({
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
           <BandChip band={band} withWindow />
           <TagChip>{kindLabel}</TagChip>
+          {extraChips}
           {typeof tier === "number" && <TierChip tier={tier} />}
         </div>
         {meta && (

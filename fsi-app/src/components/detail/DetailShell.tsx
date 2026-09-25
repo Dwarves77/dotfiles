@@ -383,6 +383,35 @@ export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
   );
 }
 
+// ── Rail: legend card (Impact / Timeline / Source tier) ─────────────────
+//
+// Operator check 3 (lane PARITY-PARTS, 2026-09-24): the prior copy here described the retired
+// four-dimension impact model ("four scored dimensions, sorted low to high..."), the literal
+// phrase the harness forbids verbatim, and a description of a variant `ImpactRailCard` (above) no
+// longer renders (it now mounts the SAME stepped row meter every list row draws, frozen at its
+// item's own score out of 12, never the four-bar per-dimension block). Reworded to describe what is
+// actually on the page; no other legend row changes.
+
+export function RailLegend() {
+  return (
+    <RailCard title="Legend" dataAudit="detail-legend-rail">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-2)", lineHeight: 1.5 }}>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Impact</strong>, one stepped meter, filled left to
+          right; the number beside it is the score, out of 12.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Timeline</strong>, passed · next · ahead.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Source tier</strong>, T1 binding law through T6
+          commentary.
+        </p>
+      </div>
+    </RailCard>
+  );
+}
+
 // ── Rail: "In this list · N of M" ────────────────────────────────────────
 //
 // AlphaSense behaviour (README §0.5): opening an item from a list keeps

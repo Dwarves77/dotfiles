@@ -40,22 +40,18 @@ import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailExposure,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -64,7 +60,6 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
-  type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -119,6 +114,19 @@ const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
   "5": "What does not resolve",
   "6": "Sources",
 };
+// Operator check 7 (lane PARITY-PARTS, 2026-09-24): the index tab shows a <=14-char short name, the
+// full heading above stays the section's own <h2> (SectionIndexEntry's own `shortName` contract,
+// section-index-data.ts's SECTION_INDEX_SHORT_NAME_MAX), this surface's own callers were still
+// building `{id, label}` entries with the FULL heading text, which is exactly why every research tab
+// but Sources measured CUT in the baseline report.
+const RESEARCH_SECTION_SHORT_NAMES: Record<string, string> = {
+  "1": "Findings",
+  "2": "Why it matters",
+  "3": "Strategy",
+  "4": "Talking points",
+  "5": "Limits",
+  "6": "Sources",
+};
 const KNOWN_RESEARCH_KEYS = new Set(["1", "2", "3", "4", "5", "6"]);
 
 /** "research_finding" -> "Research finding" — the At a glance "Type" row (artboard 07 shows
@@ -170,15 +178,16 @@ export function ResearchFindingDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
   const indexEntries: SectionIndexEntry[] = isRecord
-    ? [{ id: "summary", label: "Summary" }, { id: "sources", label: "Sources" }]
+    ? [{ id: "summary", shortName: "Summary" }, { id: "sources", shortName: "Sources" }]
     : [
-        ...knownSections.map((s) => ({ id: `sec-${s.section_key}`, label: RESEARCH_SECTION_HEADINGS[s.section_key] })),
-        ...(knownSections.length === 0 ? [{ id: "summary", label: "Summary" }] : []),
-        { id: "sources", label: "Sources" },
+        ...knownSections.map((s) => ({ id: `sec-${s.section_key}`, shortName: RESEARCH_SECTION_SHORT_NAMES[s.section_key] })),
+        ...(knownSections.length === 0 ? [{ id: "summary", shortName: "Summary" }] : []),
+        { id: "sources", shortName: "Sources" },
       ];
 
   return (
@@ -192,14 +201,17 @@ export function ResearchFindingDetailSurface({
           dek={meta}
           placeholder="Ask about this finding — e.g. when does the largest deadline hit"
         />
-        <DetailHeader
+        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's own ActionCard port:
+            ONE card replaces the three this surface used to render (DetailHeader + DetailExposure +
+            DetailTimeline), pill row, action row, rule, EXPOSURE, rule, TIMELINE with its callout.
+            The requirement-trajectory sentence has no slot in the merged card (its fourth EXPOSURE
+            cell is NEXT MILESTONE, computed internally from `timeline`); moved into S1 Summary,
+            same as the regulation surface's own `trajectoryNode`. */}
+        <ActionCard
           band={band}
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          kindLabel="Finding"
           extraChips={
             <>
-              <TagChip>Finding</TagChip>
               {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
               {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
               {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped —
@@ -213,57 +225,45 @@ export function ResearchFindingDetailSurface({
               )}
             </>
           }
-          headerStat={
+          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+          meta={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
                   connections.length > 0 ? ` · ${connections.length} connections` : ""
                 }`
               : null
           }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "research",
-                  metaRows: [
-                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                    r.type ? `- Type: ${r.type}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="research"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
+          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          onExport={() =>
+            downloadMarkdownBrief(r, {
+              filenamePrefix: "research",
+              metaRows: [
+                r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                r.type ? `- Type: ${r.type}` : null,
+                r.url ? `- Source: ${r.url}` : null,
+              ],
+            })
+          }
+          onShare={() => shareResource(r)}
+          onTag={() => setTagOpen((v) => !v)}
+          exportDisabled={!(r.fullBrief || r.url)}
+          watch={
+            <WatchButton
+              itemType="research"
+              itemId={String(r.id)}
+              variant="row"
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
             />
           }
+          where={{ value: jurisLabel }}
+          whoPays={{ value: r.costMechanism || null }}
+          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          timeline={r.timeline}
         />
 
-        <DetailExposure
-          items={[
-            { label: "Where", value: jurisLabel },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            {
-              label: "Trajectory",
-              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
-            },
-          ]}
-        />
-
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -282,14 +282,10 @@ export function ResearchFindingDetailSurface({
               }
               impact={<ImpactRailCard scores={impact} />}
               relevance={<RelevanceBadgeClient itemId={r.id} />}
-              /* Artboard 07's page-specific cards, in its own order:
-                 CONNECTIONS · 24, then CLUSTER SYNTHESIS. */
-              designed={
-                <>
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                  {themeBrief && <ThemeBriefCard brief={themeBrief} />}
-                </>
-              }
+              /* Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card,
+                 moved into the "Related" section in main content (ruling 2 S-order, 06 Related),
+                 below. Cluster synthesis (the artboard's other page-specific rail card) is unaffected. */
+              designed={themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
               legend={<RailLegend />}
               /* R7 — artboard 07 draws no place-keeping card. */
               undesigned={<InThisListStat backHref="/research" backLabel="Back to list" band={band} />}
@@ -299,6 +295,7 @@ export function ResearchFindingDetailSurface({
           {isRecord ? (
             <DetailSection id="summary" title="Summary">
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
+              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />
@@ -320,6 +317,7 @@ export function ResearchFindingDetailSurface({
               ) : (
                 <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
               )}
+              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />
@@ -332,8 +330,16 @@ export function ResearchFindingDetailSurface({
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
-          {related.length > 0 && (
-            <DetailSection id="related" title="Related findings" aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
+          {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
+            <DetailSection id="related" title="Related" aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
+              {/* Ruling 2 S-order (06 Related): connections first (was a rail card, check 8), then
+                  the related-findings list this section already rendered. */}
+              {(connections.length > 0 || supersessions.length > 0) && (
+                <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                </div>
+              )}
+              {related.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {related.map((it) => (
                   <Link
@@ -350,6 +356,7 @@ export function ResearchFindingDetailSurface({
                   </Link>
                 ))}
               </div>
+              )}
             </DetailSection>
           )}
         </DetailLayout>
