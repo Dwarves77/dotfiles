@@ -9,6 +9,7 @@
  */
 
 import type { UrgencyBand } from "@/lib/urgency/bands";
+import { useBandContext } from "@/components/ui/band-context";
 
 export interface StateNoteProps {
   band?: UrgencyBand | null;
@@ -46,7 +47,13 @@ const ACTION_TARGET = {
   padding: "8px 0",
 } as const;
 
-export function StateNote({ band, children, action }: StateNoteProps) {
+export function StateNote({ band: bandProp, children, action }: StateNoteProps) {
+  // Lane PARITY-PARTS (2026-09-24, operator check 1): inside a detail page the note takes the item's
+  // band tint from the page's BandProvider when no band is passed; outside one (lists, admin) there
+  // is no provider and the neutral variant below is unchanged. An explicit `band={null}` is treated
+  // the same as absent: the README draws no neutral note on a page that has a band context.
+  const ctx = useBandContext();
+  const band = bandProp ?? ctx.band;
   // Operator audit item 2.6 (2026-09-07, CLOSED ruling): "Neutral variant #5A5552 on #F5F2EE" —
   // the prior neutral edge was --ink-2 (#5A6B67), a shade off the ruled value. --brand is #5A5552.
   const color = band ? band.cssVar : "var(--brand)";

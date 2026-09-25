@@ -24,10 +24,10 @@
  *   2. The ACTION strip's one-sentence content. The artboard's strip text ("Ask each
  *      Belgium-bound client for its registration number...") is not any existing FactCardModel
  *      field, `content_md` field, or derivable transform of one - it reads as separately
- *      authored copy. No call site in this lane passes `actionStrip`; the prop exists so a
- *      FUTURE lane that lands the real field can wire it here without touching this component,
- *      but until then every real group renders with no strip - integrity rule ("omit rather
- *      than invent") over a StateNote reading an invented sentence.
+ *      authored copy. Lane PARITY-PARTS (2026-09-24) wires the one REAL field that says what the
+ *      reader should do: the item's own top `recommendedActions[].action`, read from the detail
+ *      page's BandProvider. An item with no recommended action still renders no strip - integrity
+ *      rule ("omit rather than invent") over a StateNote reading an invented sentence.
  *
  * What IS wired honestly: `band`, when a caller has one, comes straight from
  * `src/lib/urgency/bands.ts`'s `UrgencyBand` (the one platform urgency vocabulary; every detail
@@ -40,6 +40,7 @@
 import type { ReactNode } from "react";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { StateNote } from "@/components/ui/StateNote";
+import { useBandContext } from "@/components/ui/band-context";
 import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 
 export interface ItemGroupActionStrip {
@@ -55,8 +56,8 @@ export interface ItemGroupProps {
   qualifier?: string | null;
   /** Drives the header's tinted band pill (dot + label). Real data only - see header note. */
   band?: UrgencyBand | null;
-  /** See header note: not wired by any call site in this lane; the field exists for a future
-   *  lane that lands the real per-item action-sentence source. */
+  /** Explicit strip. Absent, a detail page's BandProvider supplies the item's top recommended
+   *  action (real data) or nothing; see header note. */
   actionStrip?: ItemGroupActionStrip | null;
   /** The fact cards themselves, already merged (fact-card-model.ts's `mergeAdjacentSameKind`)
    *  by the caller - ItemGroup renders whatever it is given, in order, capped at 4 visible. */
@@ -67,7 +68,15 @@ export interface ItemGroupProps {
  *  a hard ceiling; build item 3's stated ceiling is 4, with overflow behind "N more facts". */
 const VISIBLE_CARD_CAP = 4;
 
-export function ItemGroup({ title, qualifier, band, actionStrip, children }: ItemGroupProps) {
+export function ItemGroup({ title, qualifier, band: bandProp, actionStrip: actionStripProp, children }: ItemGroupProps) {
+  // Lane PARITY-PARTS (2026-09-24, operator check 1, README 0.5 item group header): on a detail page
+  // the group takes the item's band and its one real action sentence from the page's BandProvider
+  // (band-context.tsx) when the caller passes neither, so FactBlocks' groups, which have no
+  // per-group data of their own, are tinted and closed by the ACTION strip without any page threading
+  // a prop. No provider (the /admin parts gallery) keeps the prior behaviour exactly.
+  const ctx = useBandContext();
+  const band = bandProp ?? ctx.band;
+  const actionStrip = actionStripProp ?? (ctx.action ? { text: ctx.action } : null);
   const cards = Array.isArray(children) ? children : [children];
   const visible = cards.slice(0, VISIBLE_CARD_CAP);
   const overflow = cards.slice(VISIBLE_CARD_CAP);
