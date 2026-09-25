@@ -205,7 +205,9 @@ export function ProvisionalReviewTable({
             lineHeight: 1.35,
           }}
         >
-          {formatNumber(pendingTotal ?? rows.length)} pending
+          {/* Operator check 5 (lane PARITY-PARTS, 2026-09-24): no exact-case "PENDING" anywhere
+              rendered. This span's own textTransform:uppercase drew "491 PENDING ...". */}
+          {formatNumber(pendingTotal ?? rows.length)} awaiting review
           {pendingTotal != null && pendingTotal !== rows.length ? ` · showing ${formatNumber(rows.length)}` : ""}
           {" · approve, reject or re-tier on the row"}
         </span>

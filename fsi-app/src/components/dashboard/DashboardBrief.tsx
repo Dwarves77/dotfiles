@@ -385,7 +385,10 @@ export function DashboardBrief({
               <div>
                 <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Impact</dt>
                 <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  Four scored dimensions, sorted low to high: green left, red right. Height is the sum, score 1–3.
+                  {/* Operator check 3 (lane PARITY-PARTS, 2026-09-24): ONE stepped meter out of 12, not
+                      the retired four-bar per-dimension block; same rewording as DetailShell.tsx's
+                      RailLegend. */}
+                  One stepped meter, filled left to right; the number beside it is the score, out of 12.
                 </dd>
               </div>
               <div>

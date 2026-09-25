@@ -448,7 +448,11 @@ export function CarbonCostRailCard({ corridors }: { corridors: CarbonCorridorRow
                         // corridor name is one line, and nothing is truncated.
                       }}
                     >
-                      {c.pending} input{c.pending === 1 ? "" : "s"} pending
+                      {/* Operator check 5 (lane PARITY-PARTS, 2026-09-24): no exact-case "PENDING" anywhere
+                          rendered. This cell's own textTransform:uppercase drew the artboard's literal
+                          "4 inputs pending" as forbidden-substring "PENDING". Same meaning, same two-line
+                          fit (both "MISSING" and "PENDING" are 7 characters). */}
+                      {c.pending} input{c.pending === 1 ? "" : "s"} missing
                     </span>
                   ) : (
                     `${c.currency ?? ""}${formatNumber(Math.round(c.point ?? 0))}`
