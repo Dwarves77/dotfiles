@@ -55,22 +55,18 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailExposure,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -79,7 +75,6 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
-  type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FactBlocks } from "@/components/detail/FactBlocks";
@@ -127,9 +122,9 @@ interface Props {
 /** The three spec-09 sections' index labels and anchors, in the order they render. Declared once so
  *  the sticky index and the sections themselves can never disagree about either. */
 const SPEC09_SECTIONS = [
-  { id: "sec-dqi", label: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
-  { id: "sec-auxiliary-energy", label: "Auxiliary energy load", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
-  { id: "sec-grid-queue", label: "Grid connection queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
+  { id: "sec-dqi", label: "Data quality", shortName: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
+  { id: "sec-auxiliary-energy", label: "Auxiliary energy load", shortName: "Aux. energy", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
+  { id: "sec-grid-queue", label: "Grid connection queue", shortName: "Grid queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
 ] as const;
 
 const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
@@ -140,6 +135,19 @@ const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
   "5": "Competitive positioning",
   "6": "Talking points",
   "7": "Pending changes",
+  "8": "Sources",
+};
+// Operator check 7 (lane PARITY-PARTS, 2026-09-24): <=14-char tab short names (this surface's own
+// nine cut tabs in the baseline report, the worst of the four), the full heading above is unchanged
+// as the section's own <h2>.
+const OPERATIONS_SECTION_SHORT_NAMES: Record<string, string> = {
+  "1": "Cost baseline",
+  "2": "Feasibility",
+  "3": "Alternatives",
+  "4": "Cross-regional",
+  "5": "Positioning",
+  "6": "Talking points",
+  "7": "Pending",
   "8": "Sources",
 };
 const MATRIX_GATED_KEYS = new Set(["3", "4"]);
@@ -215,21 +223,25 @@ export function OperationsDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
+  const hasRelated = connections.length > 0 || supersessions.length > 0;
   const indexEntries: SectionIndexEntry[] = knownSections.length > 0
     ? [
         ...knownSections
           .filter((s) => !MATRIX_GATED_KEYS.has(s.section_key) || (s.section_key === "3" ? matrixEligibility?.s3Eligible : matrixEligibility?.s4Eligible))
-          .map((s) => ({ id: `sec-${s.section_key}`, label: OPERATIONS_SECTION_HEADINGS[s.section_key] })),
-        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
-        { id: "sources", label: "Sources" },
+          .map((s) => ({ id: `sec-${s.section_key}`, shortName: OPERATIONS_SECTION_SHORT_NAMES[s.section_key] })),
+        ...spec09Shown.map((s) => ({ id: s.id, shortName: s.shortName })),
+        { id: "sources", shortName: "Sources" },
+        ...(hasRelated ? [{ id: "related", shortName: "Related" }] : []),
       ]
     : [
-        { id: "summary", label: "Summary" },
-        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
-        { id: "sources", label: "Sources" },
+        { id: "summary", shortName: "Summary" },
+        ...spec09Shown.map((s) => ({ id: s.id, shortName: s.shortName })),
+        { id: "sources", shortName: "Sources" },
+        ...(hasRelated ? [{ id: "related", shortName: "Related" }] : []),
       ];
 
   return (
@@ -245,15 +257,16 @@ export function OperationsDetailSurface({
           dek={meta}
           placeholder="Ask about this profile — e.g. when does the largest deadline hit"
         />
-        <DetailHeader
+        {/* Lane PARITY-PARTS (2026-09-24), matching the regulation surface's ActionCard port: ONE
+            card replaces DetailHeader + DetailExposure + DetailTimeline. Trajectory has no slot in
+            the merged card (its fourth exposure cell is NEXT MILESTONE, computed internally from
+            timeline); rendered as a plain line under the card instead, same as research/regulations. */}
+        <ActionCard
           band={band}
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          kindLabel="Regional profile"
           extraChips={
             <>
-              <TagChip>Regional profile</TagChip>
-              {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors" — the
+              {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors", the
                   region GROUP chip, not the country (which the At a glance card carries in full). */}
               {(regionGroup || jurisdiction) && <TagChip>{regionGroup || jurisdiction}</TagChip>}
               {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)}
@@ -261,57 +274,48 @@ export function OperationsDetailSurface({
               {r.topic && <TagChip>{r.topic}</TagChip>}
             </>
           }
-          headerStat={
+          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+          meta={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
                   connections.length > 0 ? ` · ${connections.length} connections` : ""
                 }`
               : null
           }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "operations",
-                  metaRows: [
-                    r.jurisdiction ? `- Region: ${r.jurisdiction}` : null,
-                    r.modes && r.modes.length > 0 ? `- Modes: ${r.modes.join(", ")}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="operations"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
+          tagPopover={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          onExport={() =>
+            downloadMarkdownBrief(r, {
+              filenamePrefix: "operations",
+              metaRows: [
+                r.jurisdiction ? `- Region: ${r.jurisdiction}` : null,
+                r.modes && r.modes.length > 0 ? `- Modes: ${r.modes.join(", ")}` : null,
+                r.url ? `- Source: ${r.url}` : null,
+              ],
+            })
+          }
+          onShare={() => shareResource(r)}
+          onTag={() => setTagOpen((v) => !v)}
+          exportDisabled={!(r.fullBrief || r.url)}
+          watch={
+            <WatchButton
+              itemType="operations"
+              itemId={String(r.id)}
+              variant="row"
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
             />
           }
+          where={{ value: jurisdiction || null }}
+          whoPays={{ value: r.costMechanism || null }}
+          yourLanes={{ value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> }}
+          timeline={r.timeline}
         />
+        {trajectoryNode && (
+          <p style={{ fontSize: "var(--fs-105)", lineHeight: 1.6, color: "var(--ink-2)", margin: "10px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>
+        )}
 
-        <DetailExposure
-          items={[
-            { label: "Where", value: jurisdiction || <Absence reason="not in primary source" /> },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            {
-              label: "Trajectory",
-              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
-            },
-          ]}
-        />
-
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -342,14 +346,9 @@ export function OperationsDetailSurface({
               /* Artboard 09's only page-specific rail card: RELATED IN ASIA. */
               designed={<RelatedRegionCard related={related} reason={relatedReason} region={regionGroup || jurisdiction} />}
               legend={<RailLegend />}
-              /* R7 — artboard 09 draws neither: place-keeping and connections
-                 go after the last designed region of the column. */
-              undesigned={
-                <>
-                  <InThisListStat backHref="/operations" backLabel="Back to list" band={band} />
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                </>
-              }
+              /* R7, artboard 09 draws neither. Operator check 8 (lane PARITY-PARTS, 2026-09-24):
+                 Connections is not a rail card, moved into the "Related" section in main content. */
+              undesigned={<InThisListStat backHref="/operations" backLabel="Back to list" band={band} />}
             />
           }
         >
@@ -406,6 +405,12 @@ export function OperationsDetailSurface({
           <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
+
+          {(connections.length > 0 || supersessions.length > 0) && (
+            <DetailSection id="related" title="Related">
+              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+            </DetailSection>
+          )}
         </DetailLayout>
       </DetailPageWrapper>
     </div>
