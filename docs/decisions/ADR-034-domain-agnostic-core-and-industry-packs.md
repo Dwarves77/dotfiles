@@ -171,6 +171,7 @@ These are named as questions for a future ADR to resolve. Nothing below is decid
 - Privacy and anonymity minimums: k-anonymity before any aggregate is shown. The operator's example is
   N ≥ 10 unique profiles. Spec 07's Community benchmark already uses ≥5 contributors with no contributor
   above 25%. The future ADR must reconcile the two into one rule; ADR-034 does not pick one.
+- **Resolved 2026-09-25 by ADR-035:** one floor, ≥10 organisations and no contributor >25%.
 
 **Open Item 2 ,  Public sector and government operations framework.** Covers what a public-body
 deployment (illustrated, not scoped, by the UK/US government example in Context) would require:
