@@ -89,6 +89,68 @@ test("buildArtifact: a non-zero rescan exitCode is recorded as a defect naming t
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
+// CRASH DETECTION (GitHub Actions run 36217491293, 2026-09-26). gate-a-rescan.mjs threw a fatal error
+// on every page of a paginated read (the item_gate_a_state order-key bug); its CLI wrapper
+// (scripts/maintenance/lib/cli.mjs's runCli) logs "fatal:" and exits 1 WITHOUT ever calling
+// writeSummary, so summary.json never existed. Before this fix, buildArtifact treated a null
+// rescanSummary exactly like a genuine "zero stale items" no-op: zero defects, proposer_notes claiming
+// "This dispatch was a no-op." The workflow's own steps.rescan.outcome is the missing signal.
+
+test("buildArtifact: rescanSummary null + a non-success step outcome records a CRASH defect, never a silent no-op", () => {
+  const artifact = buildArtifact({
+    ...BASE,
+    rescanSummary: null,
+    attachSummary: null,
+    rescanStepOutcome: "failure",
+  });
+  assert.equal(artifact.defects_found.length, 1);
+  assert.match(artifact.defects_found[0].description, /crashed/i);
+  assert.match(artifact.defects_found[0].description, /"failure"/);
+  assert.match(artifact.proposer_notes, /did NOT complete cleanly/i);
+  assert.deepEqual(artifact.per_item, []);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildArtifact: rescanSummary null + a SUCCESS step outcome is left to the 'unknown' branch (a success outcome implies real work, not a crash) -- still recorded, never silently clean", () => {
+  const artifact = buildArtifact({
+    ...BASE,
+    rescanSummary: null,
+    attachSummary: null,
+    rescanStepOutcome: "success",
+  });
+  // rescanStepOutcome === "success" but rescanSummary is still null is a contradiction gate-a-rescan.mjs
+  // should never produce (a successful run always returns a summary), so this is NOT the confirmed-crash
+  // branch -- but it is also never treated as a clean no-op merely because the step "succeeded".
+  assert.deepEqual(artifact.per_item, []);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildArtifact: rescanSummary present (a real no-op, zero stale items) still reports cleanly even when rescanStepOutcome is supplied as success", () => {
+  const artifact = buildArtifact({
+    ...BASE,
+    rescanSummary: {
+      per_item: [], counts: { candidates: 0, stale: 0, selected: 0, touched: 0 },
+      read_back: { distinct_versions_remaining: null }, config: { scope_source: "no candidates" }, exitCode: 0,
+    },
+    attachSummary: null,
+    rescanStepOutcome: "success",
+  });
+  assert.deepEqual(artifact.defects_found, []);
+  assert.match(artifact.proposer_notes, /no-op/);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildArtifact: rescanSummary null with NO rescanStepOutcome supplied at all (an old caller) is still flagged, never assumed successful", () => {
+  const artifact = buildArtifact({
+    ...BASE,
+    rescanSummary: null,
+    attachSummary: null,
+  });
+  assert.equal(artifact.defects_found.length, 1);
+  assert.match(artifact.defects_found[0].description, /unresolved/i);
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
 test("buildArtifact: trigger is recorded exactly as given, workflow_dispatch included", () => {
   const artifact = buildArtifact({
     ...BASE, trigger: "workflow_dispatch",

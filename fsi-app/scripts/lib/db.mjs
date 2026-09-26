@@ -1,19 +1,18 @@
 // SHARED-WRITER: intelligence_items
 /**
- * Guarded write helper — the PATH OF LEAST RESISTANCE for script row-mutations.
+ * Guarded write helper -- the PATH OF LEAST RESISTANCE for script row-mutations.
  *
  * Discipline rule 015 points here. The raw service-role *write* client is intentionally NOT
- * exported, so reaching for a raw `.update()`/`.delete()` takes more effort than using these —
- * expedience routes INTO the guarded path, not around it (the same expedience that bypassed
+ * exported, so reaching for a raw `.update()`/`.delete()` takes more effort than using these -- * expedience routes INTO the guarded path, not around it (the same expedience that bypassed
  * /api/agent/run will otherwise bypass an opt-in helper).
  *
  * Every write:
- *   1. REQUIRES a governing-skill cite ({ skill, reason }) — refuses to run without it.
- *   2. SNAPSHOTS the prior row state to scripts/_snapshots/ BEFORE mutating (reversibility — the
+ *   1. REQUIRES a governing-skill cite ({ skill, reason }) -- refuses to run without it.
+ *   2. SNAPSHOTS the prior row state to scripts/_snapshots/ BEFORE mutating (reversibility -- the
  *      reason a "restore from change record" was impossible: nothing captured prior values).
  *   3. Then mutates and returns the count + snapshot path.
  *
- * Reads are routine/unguarded — only WRITES are gated. Caller must have loaded env
+ * Reads are routine/unguarded -- only WRITES are gated. Caller must have loaded env
  * (loadLocalEnvFile from ./env-file.mjs, the one loader) with NEXT_PUBLIC_SUPABASE_URL +
  * SUPABASE_SERVICE_ROLE_KEY first.
  *
@@ -29,17 +28,17 @@ import { stderr } from "node:process";
 // Deterministic, dependency-free, name+URL only (no fetch, no LLM, $0). Safe as a STATIC import
 // here despite the no-node_modules invariant above: classify-source-role.ts imports nothing, and
 // CI runs Node 24, which strips TS types natively. Keeps registerSource honest to that module's
-// stated contract — a source is never created with a NULL role.
+// stated contract -- a source is never created with a NULL role.
 import { classifySourceRole } from "../../src/lib/sources/classify-source-role.ts";
 import { hostOf, institutionKey } from "./institution-key.mjs";
 // CAP-1000 (2026-09-05): the ONE paginated-read helper, plain ESM, same relative-import precedent as
-// classify-source-role.ts above — no second copy of the range-walk loop. See that module's own header
+// classify-source-role.ts above -- no second copy of the range-walk loop. See that module's own header
 // for the defect class this closes (a `.limit(N>1000)` truncates regardless of N; readAll below used to
 // hand-roll the identical range(from, from+999) loop this helper already generalizes).
 import { fetchAllRows, fetchAllByIdChunks } from "../../src/lib/db/paginate.mjs";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
-// installed — db.test.mjs injects a fake client and never touches the real one, so the discipline test
+// installed -- db.test.mjs injects a fake client and never touches the real one, so the discipline test
 // job (which runs node --test with no npm ci) resolves cleanly. The real require happens only on a real
 // DB call, where node_modules is present.
 const require = createRequire(import.meta.url);
@@ -70,7 +69,7 @@ export async function withTransientRetry(
     } catch (err) {
       const isLastAttempt = attempt === attempts;
 
-      // Check if it's a PostgREST error (has .error body) — never retry those
+      // Check if it's a PostgREST error (has .error body) -- never retry those
       if (err?.error?.message) {
         // Throw a new error preserving the PostgREST inner message for clarity
         const pgErr = new Error(err.error.message);
@@ -96,7 +95,7 @@ export async function withTransientRetry(
       if (isLastAttempt) {
         // On final attempt, throw with context
         const err2 = new Error(
-          `${label}: gave up after ${attempts} attempts — ${errMsg}`
+          `${label}: gave up after ${attempts} attempts -- ${errMsg}`
         );
         err2.cause = err;
         err2.attempts = attempts;
@@ -121,25 +120,25 @@ function snapDir() {
     : resolve(dirname(fileURLToPath(import.meta.url)), "..", "_snapshots");
 }
 
-// Internal — NOT exported. The only write surface is the guarded functions below.
+// Internal -- NOT exported. The only write surface is the guarded functions below.
 function realWriteClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     throw new Error("db.mjs: load env (NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY) before use.");
   }
-  const { createClient } = require("@supabase/supabase-js"); // lazy — see top-of-file note
+  const { createClient } = require("@supabase/supabase-js"); // lazy -- see top-of-file note
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// Overridable seam — TEST ONLY. Swapping the client does NOT bypass the guard: cite is still required
+// Overridable seam -- TEST ONLY. Swapping the client does NOT bypass the guard: cite is still required
 // and prior-value snapshots still run (the discipline lives in the guarded functions, not the client).
 let _writeClientImpl = realWriteClient;
 function writeClient() { return _writeClientImpl(); }
 export function __setWriteClientForTest(fn) { _writeClientImpl = fn || realWriteClient; }
 
 // The mutating query-builder methods a read client must refuse. `.select()` (+ filters/modifiers)
-// stay open; a caller reaching for a row mutation gets a THROW that names the guarded path — closing
+// stay open; a caller reaching for a row mutation gets a THROW that names the guarded path -- closing
 // the rule-015 bypass where `readClient().from(t).update(...)` mutated prod through the "read" client.
 const READ_CLIENT_WRITE_METHODS = new Set(["insert", "update", "delete", "upsert"]);
 
@@ -150,7 +149,7 @@ function readOnlyBuilder(builder) {
         return () => {
           throw new Error(
             `db.mjs readClient() is READ-ONLY: '.${prop}()' is a write. This is the rule-015 bypass ` +
-            `(mutating through the read client). Use the guarded write path — guardedUpdate / guardedInsert / ` +
+            `(mutating through the read client). Use the guarded write path -- guardedUpdate / guardedInsert / ` +
             `guardedDelete / archiveRows / reclassifyToSource (snapshot + cite + reversibility).`
           );
         };
@@ -163,8 +162,7 @@ function readOnlyBuilder(builder) {
 
 /**
  * Read-only client for diagnostics/selects. Reads are unguarded (routine), but WRITES are refused:
- * the returned client proxies `.from(table)` so `.insert/.update/.delete/.upsert` THROW (rule-015 —
- * the "read" client is no longer a service-role write handle by property access). `.rpc` and other
+ * the returned client proxies `.from(table)` so `.insert/.update/.delete/.upsert` THROW (rule-015 -- * the "read" client is no longer a service-role write handle by property access). `.rpc` and other
  * methods pass through unchanged (read RPCs must keep working); a write RPC remains the caller's
  * responsibility to route through a sanctioned path. Every readAll/select caller is unaffected.
  */
@@ -177,7 +175,7 @@ export function readClient() {
       }
       // `schema()` returns a FRESH builder factory that this proxy never saw, so
       // readClient().schema('public').from(t).delete() reached the real write client with no
-      // cite and no snapshot — verified by execution 2026-08-09 (audit finding 13, CONFIRMED).
+      // cite and no snapshot -- verified by execution 2026-08-09 (audit finding 13, CONFIRMED).
       // Guarding only the literal `from` left the guarantee one method call wide. Wrap the
       // schema handle so its `from` is read-only too.
       if (prop === "schema") {
@@ -200,18 +198,18 @@ export function readClient() {
 
 /**
  * Paginated full-table read. CRITICAL: Supabase/PostgREST caps a single response at ~1000 rows
- * (the `max-rows` setting) REGARDLESS of `.limit(N>1000)` — a silent truncation that made an
+ * (the `max-rows` setting) REGARDLESS of `.limit(N>1000)` -- a silent truncation that made an
  * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
  * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
  * Retries transient network failures.
  *
  * CAP-1000 (2026-09-05): delegates the actual range-walk to `fetchAllRows`
- * (src/lib/db/paginate.mjs) — the SAME helper `.ts` callers under src/ import, so this class of bug
+ * (src/lib/db/paginate.mjs) -- the SAME helper `.ts` callers under src/ import, so this class of bug
  * has exactly one fix location instead of two hand-rolled copies of the identical loop drifting apart.
  * `readClient()`'s write-guard proxy is unaffected: only `.select/.order/.range/.eq/...` are ever
  * called here, none of which the proxy intercepts.
  *
- * `client`, when given, is used INSTEAD of `readClient()` — for a caller that already holds its
+ * `client`, when given, is used INSTEAD of `readClient()` -- for a caller that already holds its
  * own Supabase-shaped client (e.g. `fetchRowsIn` below, which several scripts call with their own
  * `readClient()` result). Optional; every existing caller that omits it gets the same default
  * `readClient()` behavior as before.
@@ -236,15 +234,15 @@ export async function readAll(table, columns = "*", { match, orderBy = "id", cli
 
 /**
  * Paginated read-back over an EXPLICIT id list, chunked, in the sibling shape to
- * guardedUpdateByIds's write-side chunking — same URL-length reason, the read end of it.
+ * guardedUpdateByIds's write-side chunking -- same URL-length reason, the read end of it.
  *
  * WHY (Maintenance run 34045479342, review-apply-provisional-sources, apply, 2026-09-06): the
  * post-apply read-back did `readAll(table, columns, { match: q => q.in("id", allIds) })` with
- * allIds = every row_id named in the ruling — 911 UUIDs, ~35 KB URL-encoded into ONE PostgREST
+ * allIds = every row_id named in the ruling -- 911 UUIDs, ~35 KB URL-encoded into ONE PostgREST
  * GET (`readAll`'s own pagination pages the RESPONSE past 1000 rows; it does nothing about a
- * REQUEST whose `.in()` filter is itself huge — an oversized filter is still one page, and that
+ * REQUEST whose `.in()` filter is itself huge -- an oversized filter is still one page, and that
  * page's request line is what blew the limit). The gateway rejected it: 400 Bad Request,
- * "paginated read failed at offset 0: Bad Request" — thrown from `fetchAllRows` before any row
+ * "paginated read failed at offset 0: Bad Request" -- thrown from `fetchAllRows` before any row
  * came back, AFTER the mutations had already succeeded (349 rows moved provisional -> active as
  * ruled; the write path was fine, only the verification read choked). The identical
  * `.in("id", allIds)` read-back shape lived in three more review-apply-*.mjs wrappers
@@ -252,10 +250,10 @@ export async function readAll(table, columns = "*", { match, orderBy = "id", cli
  * ids, so it was guaranteed to fail the same way the first time it ran for real.
  *
  * `guardedUpdateByIds` above already solved this for WRITES (chunk, one `.in()` per chunk,
- * concatenate) — see its own header and the 1,317-id `integrity_flags` test in db.test.mjs. This
+ * concatenate) -- see its own header and the 1,317-id `integrity_flags` test in db.test.mjs. This
  * is the read-only twin: chunk the id list, page each chunk through the EXISTING `readAll` (so
  * per-page ordering, the 1000-row cap, and transient retry all stay in the one place that already
- * handles them), concatenate, and assert the result can never exceed what was asked for — a
+ * handles them), concatenate, and assert the result can never exceed what was asked for -- a
  * silent over-read at a read-back/verdict site is exactly the class `fetchAllRows`'s own header
  * warns about, just from the opposite direction.
  *
@@ -263,23 +261,43 @@ export async function readAll(table, columns = "*", { match, orderBy = "id", cli
  * scripts/connections/propose-tags.mjs, scripts/maintenance/origin-class-backfill.mjs and
  * scripts/mint/screen-reconcile-records.mjs, so its own `(sb, table, columns, keyColumn, values)`
  * signature stays put) now delegates here via the `client` option below, passing its own
- * caller-supplied `sb` through — so there is exactly one chunked-id-read implementation, not two
+ * caller-supplied `sb` through -- so there is exactly one chunked-id-read implementation, not two
  * drifting copies, while every existing `fetchRowsIn` call site is unchanged.
  *
  * The chunk/concatenate/overread-assert logic itself lives in ONE place: `fetchAllByIdChunks`
- * (src/lib/db/paginate.mjs) — transport-agnostic, so a `.ts` caller (an API route, a `src/lib/`
+ * (src/lib/db/paginate.mjs) -- transport-agnostic, so a `.ts` caller (an API route, a `src/lib/`
  * module) builds on the identical core instead of a second hand-rolled chunking loop (IN-CHUNK,
  * 2026-09-06). This function is that core's `.mjs`/readAll-shaped twin.
+ *
+ * ORDER-KEY BUG (GATE-A-RESCAN, GitHub Actions run 36217491293, 2026-09-26): this function used to
+ * call `readAll` with NO `orderBy`, so `readAll`'s own default (`orderBy = "id"`) applied regardless
+ * of `idColumn` -- every page was ordered by a column literally named "id", even when the caller was
+ * paginating by a DIFFERENT column because the table has no "id" column at all.
+ * `item_gate_a_state` (migration 224) is exactly that table: its PRIMARY KEY is
+ * `intelligence_item_id`, and it has no `id` column, so gate-a-rescan.mjs's
+ * `readAllByIds("item_gate_a_state", ..., { idColumn: "intelligence_item_id" })` failed every single
+ * page with "column item_gate_a_state.id does not exist" (fetchAllRows's own error-message shape),
+ * masked as a SUCCESS by the workflow step's `| tee` with no `pipefail` (see gate-a-rescan.yml fix).
+ * FIX (class-level, not a one-table patch): `readAllByIds` now threads its OWN order key down to
+ * `readAll` instead of relying on that function's blind "id" default -- `orderBy` defaults to
+ * `idColumn` itself, which is guaranteed to exist (it is the exact column the `.in()` filter above
+ * already targets), so no future idColumn can reproduce this "order key does not exist" crash. A
+ * caller with a genuinely different, known-unique order column may still pass `orderBy` explicitly.
+ * `scripts/verify/pagination-order-key-audit.mjs` (wired into run-test-suite.sh) statically checks
+ * every `readAllByIds`/`readAll` call site's resolved order column against the committed schema
+ * snapshot (`scripts/verify/lib/fixtures/duplicate-table-schema-snapshot.json`, the #809 fixture) so
+ * a future call site naming a nonexistent order column is caught before it ever reaches a workflow.
  */
 // manyPerId (lane L27): a filter on any column other than the primary key "id" may return several rows per
 // id (a foreign key such as intelligence_item_id), so the over-read throw in fetchAllByIdChunks is skipped
 // for those by default; pass manyPerId:false to keep it for a non-id column that is unique.
-export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client, manyPerId = idColumn !== "id" } = {}) {
+export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client, manyPerId = idColumn !== "id", orderBy = idColumn } = {}) {
   return fetchAllByIdChunks(
     ids,
     (slice) =>
       readAll(table, columns, {
         client,
+        orderBy,
         match: (q) => {
           const qi = q.in(idColumn, slice);
           return match ? match(qi) : qi;
@@ -292,7 +310,7 @@ export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk
 function requireCite(cite) {
   if (!cite || !cite.skill || !cite.reason) {
     throw new Error(
-      "db.mjs: every write requires { cite: { skill, reason } } — the GOVERNING SKILL and why. " +
+      "db.mjs: every write requires { cite: { skill, reason } } -- the GOVERNING SKILL and why. " +
       "Refusing to write (this is the action-class M check, not ceremony)."
     );
   }
@@ -339,8 +357,8 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
  * WHY (population-turn run #6, 2026-09-02, the first apply): stamp-wo26-archive-reason.mjs updated 491
  * `intelligence_items` rows in one UPDATE and PostgREST cancelled it ("canceling statement due to
  * statement timeout"). `intelligence_items` carries `set_provenance_status_trg` (AFTER INSERT OR UPDATE,
- * every column), which re-runs validate_item_provenance per row — criterion 3 scans each FACT span
- * against the item's full captured source text — measured at ~72 ms/row as postgres with a warm cache
+ * every column), which re-runs validate_item_provenance per row -- criterion 3 scans each FACT span
+ * against the item's full captured source text -- measured at ~72 ms/row as postgres with a warm cache
  * (10 rows: 715 ms) and up to 3.4 s for a single row with a large captured source, against the API's 8 s
  * statement_timeout (authenticator role). The trigger is correct (a provenance flip must be re-derived
  * on every write); the write shape was wrong. Chunks of DEFAULT_UPDATE_CHUNK rows, halved on a timeout
@@ -354,13 +372,13 @@ export async function guardedUpdateByIds(table, ids, patch, { cite, select = "*"
   requireCite(cite);
   const list = [...new Set(ids ?? [])];
   const out = { updated: 0, rows: [], snapshots: [], chunks: 0, halvings: 0 };
-  // Adaptive: a chunk that the API cancels ("canceling statement due to statement timeout" — the
+  // Adaptive: a chunk that the API cancels ("canceling statement due to statement timeout" -- the
   // authenticator role's statement_timeout is 8 s, measured live 2026-09-02) is split in two and each half
-  // retried, down to single rows. Per-row cost on intelligence_items varies 70 ms – 3.4 s (40-row sample:
+  // retried, down to single rows. Per-row cost on intelligence_items varies 70 ms -- 3.4 s (40-row sample:
   // 10.4 s total, max 3.38 s) because validate_item_provenance scans each item's full captured source, so a
   // fixed chunk is either wasteful or a coin flip; population-turn run #7 got two 25-row chunks through and
   // died on the third. The update is idempotent under `applyMatch` (re-applied on every attempt), so a
-  // cancelled statement — which Postgres rolls back whole — leaves nothing half-done to reconcile.
+  // cancelled statement -- which Postgres rolls back whole -- leaves nothing half-done to reconcile.
   const runChunk = async (slice) => {
     const match = (qb) => { const q = qb.in(idColumn, slice); return applyMatch ? applyMatch(q) : q; };
     try {
@@ -385,19 +403,19 @@ export async function guardedUpdateByIds(table, ids, patch, { cite, select = "*"
   return { ...out, snapshot: out.snapshots[out.snapshots.length - 1] ?? null };
 }
 
-/** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
+/** Guarded DELETE -- snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
  *  cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the capped-read
  *  bug). Snapshot is the reinsert record. */
-// Tables that must NEVER be hard-deleted — sources leave the registry by SUSPEND (status) or
+// Tables that must NEVER be hard-deleted -- sources leave the registry by SUSPEND (status) or
 // reclassify, never DELETE (suspend-not-delete; the population-audit finding 2026-07-12). This makes the
 // convention structural: a future refactor cannot quietly add a source hard-delete without tripping here.
-// Extended 2026-08-09 (audit finding 14, CONFIRMED by execution — guardedDelete happily
+// Extended 2026-08-09 (audit finding 14, CONFIRMED by execution -- guardedDelete happily
 // deleted from all three append-only stores with a valid cite). Each is declared append-only
 // by its own invariant or table comment: raw_fetches = RD-46-primary-text-permanent ("no
 // prune/delete path exists"); claim_versions = RD-44/RD-45 + mig 208/210 ("Append-only");
 // disposition_ledger = mig 213 ("Append-only") + the RD-9 audit-terminal allowlist. None has
 // a DB-level DELETE trigger or REVOKE, unlike census_worklist (mig 221) and
-// intelligence_item_versions (mig 053), so this module guard was the ONLY gate — and it was
+// intelligence_item_versions (mig 053), so this module guard was the ONLY gate -- and it was
 // absent. Structural DB triggers are the durable fix and are logged as follow-up; this closes
 // the script-side hole today.
 export const DELETE_PROTECTED_TABLES = new Set([
@@ -407,10 +425,9 @@ export const DELETE_PROTECTED_TABLES = new Set([
   "disposition_ledger",
 ]);
 // Chunk size for guardedDelete's id-list (snapshot read AND delete both build a `.in("id", ids)`
-// PostgREST request — same URL-length reason as readAllByIds/guardedUpdateByIds' chunking). Fixed,
+// PostgREST request -- same URL-length reason as readAllByIds/guardedUpdateByIds' chunking). Fixed,
 // not adaptive: unlike guardedUpdateByIds, a DELETE has no trigger-cost variance to halve against,
-// only the request-line-length ceiling, so a flat chunk is sufficient (IN-CHUNK class, 2026-09-06 —
-// analyze-corpus.mjs's priorThemeIds and forward-events-retext.mjs's collision/duplicate id lists are
+// only the request-line-length ceiling, so a flat chunk is sufficient (IN-CHUNK class, 2026-09-06 -- // analyze-corpus.mjs's priorThemeIds and forward-events-retext.mjs's collision/duplicate id lists are
 // both runtime-scaled with no declared cap and were calling this un-chunked before this fix).
 export const DEFAULT_DELETE_CHUNK = 200;
 // matchColumn (2026-07-18, PR #341): guardedDelete's snapshot/delete key defaulted hardcoded to "id", so a
@@ -423,7 +440,7 @@ export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAUL
   requireCite(cite);
   if (DELETE_PROTECTED_TABLES.has(table)) {
     throw new Error(
-      `db.mjs guardedDelete: '${table}' is delete-protected — never hard-delete it. Suspend (guardedUpdate ` +
+      `db.mjs guardedDelete: '${table}' is delete-protected -- never hard-delete it. Suspend (guardedUpdate ` +
       `status='suspended') or reclassify instead. (suspend-not-delete; sources leave the registry reversibly.)`
     );
   }
@@ -453,7 +470,7 @@ export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAUL
   return { ...out, snapshot: out.snapshots[out.snapshots.length - 1] ?? null };
 }
 
-/** Guarded INSERT — requires a cite + snapshots the inserted row (the reversal record is "delete the
+/** Guarded INSERT -- requires a cite + snapshots the inserted row (the reversal record is "delete the
  *  returned id"). For rows a script legitimately creates outside the domain helpers (e.g. the Layer C
  *  data-audit block flag). Inserts stay on the guarded path so rule 015 holds and the write is reversible. */
 export async function guardedInsert(table, row, { cite, select = "*", stampIso } = {}) {
@@ -466,7 +483,7 @@ export async function guardedInsert(table, row, { cite, select = "*", stampIso }
   return { inserted: res.data, snapshot: snapFile };
 }
 
-/** Guarded batched INSERT — the many-row form of guardedInsert for AUDIT SINK tables (fresh rows, not
+/** Guarded batched INSERT -- the many-row form of guardedInsert for AUDIT SINK tables (fresh rows, not
  *  mutations of existing state). Requires a cite; snapshots the inserted ids (reversal = delete them);
  *  inserts in chunks. Same rule-015 posture as guardedInsert: the write stays on the guarded path and is
  *  reversible. Use for bulk classification/audit writes (e.g. holdings_quality), never to mutate live rows. */
@@ -490,9 +507,9 @@ export async function guardedInsertMany(table, rows, { cite, select = "id", chun
  *  ROOT-CAUSE FIX (operator ruling 2026-07-13, Part A): an ARCHIVED intelligence_item is terminal and
  *  sits OUTSIDE the customer read gate (is_archived=false AND provenance_status='verified'); it must NOT
  *  retain provenance_status='verified'. Leaving it 'verified' minted the stale-verified cache class (168
- *  archived rows read 'verified' while the live validator quarantines them — status-is-a-cache disagreeing
+ *  archived rows read 'verified' while the live validator quarantines them -- status-is-a-cache disagreeing
  *  with the gate). Archiving now resets the status to 'unverified' (honest neutral: an archived row is not
- *  a verified customer brief, and it is not a live quarantine investigation either — quarantine-disposition-
+ *  a verified customer brief, and it is not a live quarantine investigation either -- quarantine-disposition-
  *  audit scopes to is_archived=false, so 'unverified' cannot re-trip it). Only intelligence_items carries
  *  provenance_status. */
 export function archivePatch(table, archive_reason) {
@@ -501,7 +518,7 @@ export function archivePatch(table, archive_reason) {
   return patch;
 }
 
-/** Guarded ARCHIVE — convenience over guardedUpdate (sets is_archived + archive_reason + status reset). */
+/** Guarded ARCHIVE -- convenience over guardedUpdate (sets is_archived + archive_reason + status reset). */
 export async function archiveRows(table, ids, { cite, archive_reason, stampIso } = {}) {
   if (!archive_reason) throw new Error("db.mjs archiveRows: archive_reason required.");
   return guardedUpdate(table, (qb) => qb.in("id", ids), archivePatch(table, archive_reason), { cite, stampIso });
@@ -511,7 +528,7 @@ export async function archiveRows(table, ids, { cite, archive_reason, stampIso }
 // Source-registration invariant (source-credibility-model §1/§5 + remediation-discipline).
 //
 // The invariant: a "source-not-item" (a portal/data-explorer/official site mis-ingested as an
-// intelligence item) becomes a REGISTERED, scannable source — it is NEVER archived-without-register
+// intelligence item) becomes a REGISTERED, scannable source -- it is NEVER archived-without-register
 // (that blinds the scanner from its pages). The 25 orphaned `reclassified_to_source` archives + the
 // 5 I wrongly archived happened because archive and register were two separate, unverified steps.
 //
@@ -548,7 +565,7 @@ export async function registerSource(source, { cite, stampIso } = {}) {
   if (!host) throw new Error(`db.mjs registerSource: cannot parse host from ${source.url}`);
   const key = source.institutionKey || institutionKey(source.url); // path-qualified for shared portals; bare host otherwise
   const sb = writeClient();
-  // PAGINATED — a capped .limit() read made this dedup blind beyond 1000 rows and created duplicates.
+  // PAGINATED -- a capped .limit() read made this dedup blind beyond 1000 rows and created duplicates.
   const existing = await readAll("sources", "id,url,status");
   const match = existing.find((s) => institutionKey(s.url) === key);
   if (match) {
@@ -561,18 +578,18 @@ export async function registerSource(source, { cite, stampIso } = {}) {
     url: source.url,
     name: source.name || host,
     base_tier: source.base_tier ?? 7,
-    // tier_at_creation is NOT NULL — mirror base_tier at insert (the classifier's original judgment). A
+    // tier_at_creation is NOT NULL -- mirror base_tier at insert (the classifier's original judgment). A
     // dropped default made every new-source insert violate the constraint (class fix).
     tier_at_creation: source.base_tier ?? 7,
     status: "active",
     admin_only: false,
     // source_role at BIRTH. classify-source-role.ts's own contract is "a source is never created
     // with a NULL role + placeholder content-type", but it was wired only into the three admin
-    // onboarding routes (promote / decide / bulk-approve) — NOT into this guarded path, which is
+    // onboarding routes (promote / decide / bulk-approve) -- NOT into this guarded path, which is
     // how every script-created source is born. Result measured 2026-08-11: 1,719 of 2,549 registry
     // rows carry source_role IS NULL, and a downstream triage then read "no role" as "inert" and
     // demoted live regulators (SEC, eCFR, China MEE, Australia's Clean Energy Regulator). The
-    // classifier is deterministic, name+URL only, no fetch, no LLM, $0 — there is no reason a row
+    // classifier is deterministic, name+URL only, no fetch, no LLM, $0 -- there is no reason a row
     // was ever born without it. Explicit source.source_role still wins; null stays null when the
     // classifier genuinely cannot determine the entity (flagged, never guessed).
     source_role: source.source_role ?? classifySourceRole(source.name || host, source.url),
@@ -587,7 +604,7 @@ export async function registerSource(source, { cite, stampIso } = {}) {
 /**
  * Reclassify intelligence item(s) to a source: REGISTER the source (read-back verified ACTIVE),
  * THEN archive the item(s) as reclassified_to_source. If the source is not confirmed active after
- * registration, THROWS before archiving — the item is never orphaned. This is the ONLY sanctioned
+ * registration, THROWS before archiving -- the item is never orphaned. This is the ONLY sanctioned
  * way a script may archive a row with a source-y archive_reason (enforced by rule 019 + migration 135).
  */
 export async function reclassifyToSource(itemIds, source, { cite, stampIso } = {}) {
@@ -601,7 +618,7 @@ export async function reclassifyToSource(itemIds, source, { cite, stampIso } = {
   const chk = await sb.from("sources").select("id,status").eq("id", reg.source_id).single();
   if (chk.error || !chk.data || chk.data.status !== "active") {
     throw new Error(
-      `reclassifyToSource: source ${reg.source_id} not confirmed active after registration — ` +
+      `reclassifyToSource: source ${reg.source_id} not confirmed active after registration -- ` +
       `REFUSING to archive item(s) (archiving without a live source orphans the scanner).`
     );
   }
