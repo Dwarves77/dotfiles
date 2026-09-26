@@ -5,15 +5,30 @@
  *  2026-09-25.md, finding PROD-2's own closing note): the prior pass covered only top-level `.github/
  *  workflows/*.yml` `cron:` declarations plus one sampled family; this walks EVERY registered harness
  *  family (family-registry.mjs's loadFamilies(), reused, no second copy of that scan) against its own
- *  run-artifact directory, and reports which families have NEVER left a dispatch artifact.
+ *  run-artifact directory, and reports which families have NO recorded dispatch artifact (see the
+ *  precise-claim note below, this is not the same claim as never dispatched).
  *
  *  RULE 16 (CLAUDE.md): build mode holds the scrape cadence OFF; ADR-023 states every runtime fires by
  *  explicit dispatch, not a standing schedule. A zero-dispatch family is therefore the EXPECTED state for
  *  most families today (data-machine-tool-gaps-2026-09-25.md's own register lists most loop hops as
- *  "built-not-fired"), not a defect this audit is entitled to editorialize about. This script's output is
- *  strictly factual, which families have ever been dispatched, which have not, and each family's last run
- *  (if any), and NEVER recommends flipping the cadence gate. Read-only: filesystem read of committed
- *  family.json descriptors and run artifacts, no DB, no writes.
+ *  "built-not-fired"), not a defect this audit is entitled to editorialize about. Read-only: filesystem
+ *  read of committed family.json descriptors and run artifacts, no DB, no writes.
+ *
+ *  PRECISE CLAIM, CORRECTED 2026-09-25 (coordinator cross-check on PR #810, rule 14/B4): this audit's ONLY
+ *  evidence source is the `<family>-run-NNN.json` / `producers-run-NNN.json` harness-run artifact
+ *  convention. Its finding is "no harness artifact was ever recorded for this family/producer", NOT "this
+ *  family/producer was never dispatched" -- those are different claims. A live cross-check against
+ *  `market_series` (rows under `ecb-fx:*`, `eu-oil-bulletin:*`, `eia-v2:*` prefixes, 8/12/2727 rows
+ *  respectively, timestamps 2026-08-30 through 2026-09-16) and `emission_factors` (desnz/epa rows,
+ *  2026-08-30/09-03) PROVED those producers WERE dispatched, repeatedly, via real `workflow_dispatch` runs
+ *  of `.github/workflows/producers.yml` ("Data producers", `gh run list` shows runs from 2026-08-30
+ *  onward) -- they simply predate the `producers` harness family's own registration (2026-09-20, lane
+ *  M9d) and its `emit-producers-artifact.mjs` step, so no artifact exists for any of them even though the
+ *  workflow ran. GitHub Actions run history is therefore a REAL, separate dispatch-evidence source this
+ *  audit does not read (no `gh` credentials assumed in this SELECT-only, no-network lane; adding it is a
+ *  follow-up, not done here). This audit's output is therefore always phrased "NO HARNESS ARTIFACT
+ *  RECORDED", never "NEVER DISPATCHED", and this header states the distinction so a reader of the code
+ *  gets the same correction the session-log addendum gives a reader of the report.
  *
  *  hard=false (soft/informational): a bare fact list about dispatch history is not itself a defect signal
  *  under build-mode rules; it exists so the coordinator has the "has X ever fired" answer on demand instead
@@ -108,7 +123,7 @@ try {
     if (s.everDispatched) {
       console.log(`  ${s.family}: ${s.runCount} run(s), last ${s.lastRunId} at ${s.lastStartedAt ?? '(no started_at)'} (trigger: ${s.lastTrigger ?? 'unrecorded'})`);
     } else {
-      console.log(`  ${s.family}: 0 runs, NEVER DISPATCHED`);
+      console.log(`  ${s.family}: 0 runs, NO HARNESS ARTIFACT RECORDED (not proof of never-dispatched -- see header note)`);
     }
   }
 
@@ -117,7 +132,7 @@ try {
     if (s.everDispatched) {
       console.log(`  ${s.producer}: ${s.runCount} run(s), last ${s.lastRunId} (outcome: ${s.lastOutcome ?? 'unrecorded'})`);
     } else {
-      console.log(`  ${s.producer}: 0 runs, NEVER DISPATCHED`);
+      console.log(`  ${s.producer}: 0 runs, NO HARNESS ARTIFACT RECORDED (not proof of never-dispatched -- see header note)`);
     }
   }
 
@@ -127,14 +142,14 @@ try {
   }
 
   if (zeroDispatch.length) {
-    console.error(`\nZERO-DISPATCH PRODUCER(S) (informational, rule 16: expected under build-mode/ADR-023, not a defect), ${zeroDispatch.length} family(ies) with NO recorded dispatch artifact ever:`);
+    console.error(`\nNO HARNESS ARTIFACT RECORDED (informational, rule 16: expected under build-mode/ADR-023, and NOT proof of never-dispatched, see header note), ${zeroDispatch.length} family(ies) with zero dispatch artifacts ever:`);
     for (const s of zeroDispatch) console.error(`  ${s.family}`);
     console.error('  This audit does not and will not recommend enabling a schedule, see rule 16. Disposition: track under the build order that names this family\'s proof run, or allowlist with a reason if the family is intentionally retired/pre-registration.');
   }
   if (neverDispatchedProducers.length) {
-    console.error(`\nNEVER-DISPATCHED INDIVIDUAL PRODUCER(S) (informational, rule 16, same posture as above), ${neverDispatchedProducers.length} producer(s) with NO per_item entry in any producers-run-NNN.json ever:`);
+    console.error(`\nNO HARNESS ARTIFACT RECORDED, INDIVIDUAL PRODUCER(S) (informational, rule 16, same posture as above, NOT proof of never-dispatched), ${neverDispatchedProducers.length} producer(s) with NO per_item entry in any producers-run-NNN.json ever:`);
     for (const s of neverDispatchedProducers) console.error(`  ${s.producer}`);
-    console.error('  This audit does not and will not recommend enabling a schedule, see rule 16. A producer can be zero-dispatch even while the producers FAMILY has run (a firing that only ran some of the 11 scripts).');
+    console.error('  This audit does not and will not recommend enabling a schedule, see rule 16. A producer can show no recorded artifact even while it was dispatched via workflow_dispatch before the producers family/artifact convention existed (2026-09-20) -- cross-check the data the producer writes (market_series, emission_factors, regional_data_facts) and `gh run list --workflow=producers.yml` before treating this as never-dispatched.');
   }
   if (stale.length) {
     console.error(`\nSTALE ALLOWLIST, ${stale.length} entry(ies) no longer applicable:`);
