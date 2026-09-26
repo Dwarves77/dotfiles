@@ -19,11 +19,12 @@
  *
  *  Read-only (information_schema + fs read). pg-direct via pooler. Exit 0 = no phantom columns; exit 1 =
  *  at least one; exit 2 = engine/cred error. */
-import { resolve, dirname, join, extname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { connectPg } from "../lib/pg-conn.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { walkFiles } from "../lib/walk-files.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 loadLocalEnvFile();
@@ -31,20 +32,6 @@ loadLocalEnvFile();
 const SCAN_DIRS = ["src", "scripts"];
 const CODE_EXT = new Set([".ts", ".tsx", ".mjs", ".js"]);
 const SKIP_DIR = new Set(["node_modules", ".next", "_snapshots", "tmp", "dist", ".git"]);
-
-function walk(dir, out) {
-  let entries;
-  try { entries = readdirSync(dir); } catch { return out; }
-  for (const name of entries) {
-    if (SKIP_DIR.has(name)) continue;
-    const full = join(dir, name);
-    let st;
-    try { st = statSync(full); } catch { continue; }
-    if (st.isDirectory()) walk(full, out);
-    else if (CODE_EXT.has(extname(name))) out.push(full);
-  }
-  return out;
-}
 
 // Extract (table, method, keys[], unresolved:bool) from write-sites. Bounded window after each `.from("T")`.
 const FROM_RE = /\.from\(\s*['"`]([a-zA-Z0-9_]+)['"`]\s*\)/g;
@@ -120,7 +107,7 @@ function sliceObjectLiteral(text, openIdx) {
 }
 
 const files = [];
-for (const d of SCAN_DIRS) walk(join(ROOT, d), files);
+for (const d of SCAN_DIRS) walkFiles(join(ROOT, d), CODE_EXT, SKIP_DIR, files);
 
 // DEAD-MANIFEST SKIP (lane-diagnosis fix 2026-08-11): files already sentenced by the operator-run deletion
 // sweep (docs/audits/dead-code-manifest-2026-08-11.txt, executed by scripts/dead-code-sweep.sh) are pending

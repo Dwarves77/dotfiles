@@ -1,0 +1,27 @@
+{
+  "_comment": "Table-pair allowlist for duplicate-table-audit.mjs, keyed 'tableA|tableB' with tableA < tableB alphabetically. Every entry cites the ADR/migration-comment/ruling that already disambiguated the pair (docs/audits/supabase-integrity-and-wiring-audit-2026-09-25.md finding DUP-1's own manual review, reused here as the citation each entry needs per the lane brief). A pair not listed here that this checker flags is a NEW finding, not a silent pass.",
+  "intelligence_item_citations|source_citations": {
+    "reason": "DUP-1: source-to-source vs item-to-source citation edges, both documented as intentionally parallel in their own table comments (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "regional_data_facts|state_cost_facts": {
+    "reason": "DUP-1: region-grain vs sub-national-grain, different tables by design per migration 152's own comment (audit DUP-1, reviewed 2026-09-25). Note: state_cost_facts is separately flagged by F14/RW-2/UI-3 as a read-orphan (no producer), that is a producer-coverage finding, not a duplicate-table finding; this allowlist entry only closes the DUP-1 structural-overlap question."
+  },
+  "market_series|published_price_statistics": {
+    "reason": "DUP-1: spine vs refreshed board, one feeds the other per the WO-16.2 ruling cited in the market_series table comment (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "assumption_register|emission_factors": {
+    "reason": "DUP-1: world-published numbers vs this-product's-own modelling constants, explicitly disambiguated in assumption_register's own comment (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "org_watchlist|user_watchlist": {
+    "reason": "DUP-1: personal vs team-shared watchlist, by design (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "coverage_gap_candidates|coverage_gap_census_findings": {
+    "reason": "DUP-1: pricing input vs discovery-lane census artifact, each table's comment cross-references the others' distinct role (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "census_worklist|coverage_gap_candidates": {
+    "reason": "DUP-1: full-corpus enumeration ledger vs pricing input, cross-referenced comments (audit DUP-1, reviewed 2026-09-25)."
+  },
+  "census_worklist|coverage_gap_census_findings": {
+    "reason": "DUP-1: full-corpus enumeration ledger vs discovery-lane census artifact, cross-referenced comments (audit DUP-1, reviewed 2026-09-25)."
+  }
+}
