@@ -16,16 +16,30 @@ test("root element carries data-part=\"item-group\"", () => {
   assert.match(SOURCE, /data-part="item-group"/);
 });
 
-test("header renders only when title or band is given (integrity rule: no invented header row)", () => {
-  assert.match(SOURCE, /const hasHeader = Boolean\(title \|\| band\);/);
+// 2026-09-25 live-render fix: gating on the ambient `band` (tint only) rendered an EMPTY tinted bar
+// on every group on a single-item detail page once the pill stopped auto-inheriting that band.
+// The header must render only when it has something to show: a title, or an explicit pill.
+test("header renders only when title or an explicit pill band is given, never for tint alone (no empty header bar)", () => {
+  assert.match(SOURCE, /const hasHeader = Boolean\(title \|\| pillBand\);/);
   assert.match(SOURCE, /\{hasHeader && \(/);
 });
 
 test("band pill: 6px dot, 9.5px/800 uppercase label, band-coloured", () => {
-  assert.match(SOURCE, /width: 6, height: 6, borderRadius: "50%", background: band\.cssVar/);
+  assert.match(SOURCE, /width: 6, height: 6, borderRadius: "50%", background: pillBand\.cssVar/);
   assert.match(SOURCE, /fontSize: "var\(--fs-95, 9\.5px\)"/);
   assert.match(SOURCE, /fontWeight: 800,/);
   assert.match(SOURCE, /letterSpacing: "0\.08em"/);
+});
+
+// 2026-09-25 operator note (look-only pass against the new artboards): "band tag on every fact
+// card should appear once, in the masthead, not per-card." The masthead's ActionCard already shows
+// the item's band once; a group on the SAME item's own detail page must not repaint it. The pill
+// is therefore gated on an EXPLICITLY passed `band` prop, never on the page's ambient BandProvider
+// context, even though the header's tint/action-strip colour still reads the ambient band.
+test("band pill renders only for an explicitly-passed band, never the ambient page band (band tag once, in the masthead)", () => {
+  assert.match(SOURCE, /const pillBand = bandProp \?\? null;/);
+  assert.match(SOURCE, /\{pillBand && \(/);
+  assert.doesNotMatch(SOURCE, /\{band && \(\s*\n\s*<span data-part-slot="band-pill"/);
 });
 
 test("item title is 13px/600; qualifier is 11px muted", () => {

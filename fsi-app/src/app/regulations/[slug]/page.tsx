@@ -53,10 +53,13 @@
  * WHOLE route dynamic — one call is as fatal as ten.
  *
  * All three are now resolved CLIENT-SIDE after first paint instead:
- *   - obligations: <UpcomingObligationsStrip variant="detail"> and
- *     <ObligationRegister variant="detail"> (both converted to client
- *     components this lane) fetch GET /api/obligations/upcoming and
- *     GET /api/obligations/register — Route Handlers running the SAME
+ *   - obligations: <UpcomingObligationsStrip variant="detail"> (removed from
+ *     this page, lane PARITY-PARTS operator ruling 2026-09-25 - its events
+ *     now merge into RegulationDetailSurface's own TIMELINE via the SAME
+ *     GET /api/obligations/upcoming route, fetched inside that "use client"
+ *     component instead of here) and <ObligationRegister variant="detail">
+ *     (unchanged, still mounted below) fetch GET /api/obligations/upcoming
+ *     and GET /api/obligations/register, Route Handlers running the SAME
  *     request-scoped calls this page used to make inline. A Route
  *     Handler's own Dynamic-API dependency does not propagate to a page
  *     that merely fetch()s it client-side.
@@ -94,7 +97,6 @@ import {
 } from "@/lib/connections/resource-lookup";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
-import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -281,7 +283,6 @@ export default async function RegulationDetailPage({
         claimTiers={claimTiers}
         groupLabel={groupLabel}
         deck={deck}
-        upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
         nowIso={renderNowIso()}
       />
       {/* Lane OBLIG (2026-09-02) / PERF-10 (2026-09-04): this item's own obligation-register rows

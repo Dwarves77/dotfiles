@@ -24,6 +24,7 @@ import { runSmoke as runActionCardSmoke } from './action-card-smoke.mjs';
 import { runSmoke as runSectionIndexSmoke } from './section-index-smoke.mjs';
 import { runSmoke as runRecordGradeSmoke } from './record-grade-smoke.mjs';
 import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smoke.mjs';
+import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -76,4 +77,9 @@ export const UX_SMOKE_SPECS = [
   // full-brief) and asserts every [data-part="fact-card"] has an [data-part="item-group"]
   // ancestor, site-wide, both grades.
   { name: "item-group-coverage", run: runItemGroupCoverageSmoke },
+  // lane PARITY-PARTS, 2026-09-24, invariant RD-84: checks 1/2/5/7/8 of the operator's 8-point
+  // artboard-parity check (fsi-app/scripts/tmp/artboard-parity.mjs), execution-wired here rather
+  // than left as a manual-only harness run. Reuses detail-surfaces-smoke.mjs's own regulation
+  // fixture (rule 13, no duplicated fixture).
+  { name: "parity-checks", run: runParityChecksSmoke },
 ];

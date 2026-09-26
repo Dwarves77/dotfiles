@@ -11,6 +11,7 @@ import {
   timelineHeaderCounts,
   collapseTimeline,
   nextMilestoneClause,
+  mergeObligationEvents,
 } from "./timeline-math.ts";
 
 test("formatDayMonthYear: day-month-year shape, matching the review's own worked example", () => {
@@ -74,40 +75,43 @@ test("timelineHeaderCounts: no next milestone (all passed) -> nextDate is null",
   assert.deepEqual(counts, { total: 2, passed: 2, nextDate: null });
 });
 
-test("collapseTimeline: 7 milestones (at the '1440 one line is fine' bound) -> not collapsed", () => {
-  const list = Array.from({ length: 7 }, (_, i) => entry(`2026-0${i + 1}-01`, `M${i}`, i < 3 ? "past" : i === 3 ? "current" : "future"));
+// Operator ruling (lane PARITY-PARTS, 2026-09-25): "With more than 4, show the next 4 then '+N
+// more'." Supersedes the prior 8/3 bound this test file asserted (timeline-math.ts's own header).
+
+test("collapseTimeline: 3 milestones (under the 4 bound) -> not collapsed", () => {
+  const list = Array.from({ length: 3 }, (_, i) => entry(`2026-0${i + 1}-01`, `M${i}`, i < 1 ? "past" : i === 1 ? "current" : "future"));
   const result = collapseTimeline(classifyMilestones(list));
   assert.equal(result.collapsed, false);
-  assert.equal(result.visible.length, 7);
+  assert.equal(result.visible.length, 3);
   assert.equal(result.hiddenCount, 0);
 });
 
-test("collapseTimeline: 8 milestones (the bound itself) -> not collapsed", () => {
-  const list = Array.from({ length: 8 }, (_, i) => entry(`2026-0${Math.min(i + 1, 9)}-01`, `M${i}`, i < 3 ? "past" : i === 3 ? "current" : "future"));
+test("collapseTimeline: 4 milestones (the bound itself) -> not collapsed", () => {
+  const list = Array.from({ length: 4 }, (_, i) => entry(`2026-0${i + 1}-01`, `M${i}`, i < 1 ? "past" : i === 1 ? "current" : "future"));
   const result = collapseTimeline(classifyMilestones(list));
   assert.equal(result.collapsed, false);
-  assert.equal(result.visible.length, 8);
+  assert.equal(result.visible.length, 4);
 });
 
-test("collapseTimeline: 9 milestones (past the bound) -> next-three plus +N", () => {
+test("collapseTimeline: 9 milestones (past the bound) -> next-4 plus +N", () => {
   const list = Array.from({ length: 9 }, (_, i) =>
     entry(`2026-${String(i + 1).padStart(2, "0")}-01`, `M${i}`, i < 4 ? "past" : i === 4 ? "current" : "future"),
   );
   const result = collapseTimeline(classifyMilestones(list));
   assert.equal(result.collapsed, true);
-  assert.equal(result.visible.length, 3);
-  // "next" is index 4; the visible window is the next milestone plus the two immediately following it.
-  assert.deepEqual(result.visible.map((c) => c.index), [4, 5, 6]);
-  assert.equal(result.hiddenCount, 6);
+  assert.equal(result.visible.length, 4);
+  // "next" is index 4; the visible window is the next milestone plus the three immediately following it.
+  assert.deepEqual(result.visible.map((c) => c.index), [4, 5, 6, 7]);
+  assert.equal(result.hiddenCount, 5);
 });
 
-test("collapseTimeline: 9 milestones, all passed (no 'next') -> trailing three, never a crash", () => {
+test("collapseTimeline: 9 milestones, all passed (no 'next') -> trailing four, never a crash", () => {
   const list = Array.from({ length: 9 }, (_, i) => entry(`2026-${String(i + 1).padStart(2, "0")}-01`, `M${i}`, "past"));
   const result = collapseTimeline(classifyMilestones(list));
   assert.equal(result.collapsed, true);
-  assert.equal(result.visible.length, 3);
-  assert.deepEqual(result.visible.map((c) => c.index), [6, 7, 8]);
-  assert.equal(result.hiddenCount, 6);
+  assert.equal(result.visible.length, 4);
+  assert.deepEqual(result.visible.map((c) => c.index), [5, 6, 7, 8]);
+  assert.equal(result.hiddenCount, 5);
 });
 
 test("collapseTimeline: 1 milestone -> trivially not collapsed", () => {
@@ -129,4 +133,50 @@ test("nextMilestoneClause: null when nothing is classified as next", () => {
 
 test("nextMilestoneClause: empty list -> null, no crash", () => {
   assert.equal(nextMilestoneClause(classifyMilestones([])), null);
+});
+
+// mergeObligationEvents (lane PARITY-PARTS, 2026-09-25): merges item_forward_events rows into the
+// TIMELINE's own marker set, superseding the removed UpcomingObligationsStrip.
+const KIND_LABELS = { compliance_deadline: "Compliance deadline", entry_into_force: "Entry into force" };
+
+test("mergeObligationEvents: adds a marker on a date not already on the timeline", () => {
+  const timeline = [entry("2026-01-01", "Entered into force")];
+  const merged = mergeObligationEvents(timeline, [{ event_date: "2026-06-30", event_kind: "compliance_deadline" }], KIND_LABELS);
+  assert.equal(merged.length, 2);
+  assert.deepEqual(merged[1], { date: "2026-06-30", label: "Compliance deadline" });
+});
+
+test("mergeObligationEvents: drops an event landing on a date already on the timeline", () => {
+  const timeline = [entry("2026-06-30", "Existing milestone")];
+  const merged = mergeObligationEvents(timeline, [{ event_date: "2026-06-30", event_kind: "compliance_deadline" }], KIND_LABELS);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].label, "Existing milestone");
+});
+
+test("mergeObligationEvents: drops a second event on the same date as an already-merged one", () => {
+  const merged = mergeObligationEvents(
+    [],
+    [
+      { event_date: "2026-06-30", event_kind: "compliance_deadline" },
+      { event_date: "2026-06-30", event_kind: "entry_into_force" },
+    ],
+    KIND_LABELS,
+  );
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].label, "Compliance deadline");
+});
+
+test("mergeObligationEvents: unknown event_kind falls back to the raw kind string, never blank", () => {
+  const merged = mergeObligationEvents([], [{ event_date: "2026-06-30", event_kind: "some_new_kind" }], KIND_LABELS);
+  assert.equal(merged[0].label, "some_new_kind");
+});
+
+test("mergeObligationEvents: empty events -> timeline unchanged (same values, not necessarily same array)", () => {
+  const timeline = [entry("2026-01-01", "A")];
+  assert.deepEqual(mergeObligationEvents(timeline, [], KIND_LABELS), timeline);
+});
+
+test("mergeObligationEvents: a malformed event with no event_date is skipped, never crashes", () => {
+  const merged = mergeObligationEvents([], [{ event_date: "", event_kind: "compliance_deadline" }], KIND_LABELS);
+  assert.equal(merged.length, 0);
 });

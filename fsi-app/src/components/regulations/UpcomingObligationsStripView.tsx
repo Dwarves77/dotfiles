@@ -24,15 +24,13 @@ import { Calendar } from "lucide-react";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { itemDetailHref } from "@/lib/item-links";
 import { formatNumber } from "@/lib/format";
+import { KIND_LABELS as KIND_LABELS_SHARED } from "@/lib/forward-events/kind-labels.mjs";
 
-export const KIND_LABELS: Record<string, string> = {
-  entry_into_force: "Entry into force",
-  compliance_deadline: "Compliance deadline",
-  review_or_report: "Review / report",
-  phase_step: "Phase step",
-  consultation_close: "Consultation close",
-  other: "Other",
-};
+// Re-exported under the same name (lane PARITY-PARTS, 2026-09-25): moved to kind-labels.mjs so
+// RegulationDetailSurface's TIMELINE merge can use the SAME map without importing this "use client"
+// view file (see that lane's own header for why this file stays free of anything a bare fetch
+// wouldn't need). Values unchanged; every existing caller of this export keeps working as-is.
+export const KIND_LABELS: Record<string, string> = KIND_LABELS_SHARED;
 
 export interface UpcomingEvent {
   id: string;

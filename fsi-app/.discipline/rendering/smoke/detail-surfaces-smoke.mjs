@@ -249,16 +249,12 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
-// DetailShell is imported below, unused directly, ONLY so F35's text-match coverage scan resolves
-// against it — lane uidetails (2026-09-06) moved the guarded H1 out of RegulationDetailSurface.tsx
-// into DetailShell.tsx's <DetailHeader> (the shared home for the ONE detail architecture, README
-// §0.5), following the same precedent regulations-rows-smoke.mjs documents for ObligationRegister.
-import { DetailHeader as _DetailHeaderCoverageOnly } from '@/components/detail/DetailShell';
-void _DetailHeaderCoverageOnly;
-// GAP G2 (2026-09-07): the guarded H1 moved again, out of DetailShell.tsx's DetailHeader and into
-// the shared ui/Masthead via the new DetailMasthead (DetailShell.tsx) — mounted at the top of all
-// four *DetailSurface.tsx components this spec already mounts. Same coverage-only-import precedent as
-// above, updated to the H1's real current home.
+// GAP G2 (2026-09-07): the guarded H1 lives in the shared ui/Masthead via DetailMasthead
+// (DetailShell.tsx), mounted at the top of all four *DetailSurface.tsx components this spec already
+// mounts. Coverage-only import so F35's text-match coverage scan resolves against it. Check 2 (lane
+// PARITY-PARTS, 2026-09-24) retired DetailShell.tsx's own DetailHeader entirely (superseded by
+// ActionCard, mounted via Masthead's own actionSlot); the older coverage-only import of it was
+// removed in the same lane, since the export it named no longer exists.
 import { Masthead as _MastheadCoverageOnly } from '@/components/ui/Masthead';
 void _MastheadCoverageOnly;
 
@@ -285,7 +281,6 @@ const REGULATION_STATES = [
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · adopted 16 October 2024 · in force',
       initialOwner: null,
-      upcomingObligations: null,
     },
     expectTitles: 1,
   },
@@ -322,7 +317,6 @@ const REGULATION_STATES = [
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · catalogue record',
       initialOwner: null,
-      upcomingObligations: null,
     },
     expectTitles: 1,
   },
@@ -351,7 +345,6 @@ const REGULATION_STATES = [
       groupLabel: 'Regulations · European Union',
       deck: 'EUR-Lex · adopted 2024',
       initialOwner: null,
-      upcomingObligations: null,
     },
     expectTitles: 1,
   },
@@ -393,7 +386,6 @@ const REGULATION_STATES = [
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · adopted 16 October 2024 · in force',
       initialOwner: null,
-      upcomingObligations: null,
     },
     expectTitles: 1,
   },
@@ -422,7 +414,6 @@ const REGULATION_STATES = [
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · adopted 16 October 2024 · in force',
       initialOwner: null,
-      upcomingObligations: null,
     },
     expectTitles: 1,
   },

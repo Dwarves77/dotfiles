@@ -46,6 +46,14 @@ export interface ActionCardProps {
   band: UrgencyBand;
   /** Kind tag text, e.g. "REGULATION". */
   kindLabel: string;
+  /**
+   * Additive extension (lane PARITY-PARTS, 2026-09-24): market/research/operations each carry more
+   * pill-row chips than regulation's band+kind+tier alone (topic/theme/mode chips, the same role
+   * `DetailHeader`'s retired `extraChips` prop played). Rendered between the kind chip and the tier
+   * square, matching that prop's documented order (band, then the item's own type/mode/topic chips,
+   * then tier last). Undefined renders nothing extra, so regulation's own call site is unaffected.
+   */
+  extraChips?: ReactNode;
   tier?: number | null;
   /** "4 sources . T1 primary . regenerated Sep 18". Right-aligned in the pill row. */
   meta?: string | null;
@@ -62,6 +70,10 @@ export interface ActionCardProps {
   watch: ReactNode;
   onTag?: () => void;
   exportDisabled?: boolean;
+  /** Operator ruling (lane PARITY-PARTS, 2026-09-25): the per-item overflow control (today,
+   *  regulations' priority "⋯"), rendered as the last control in ActionRow. See ActionRow's own
+   *  `overflow` prop for the full contract; this only threads it through. */
+  overflow?: ReactNode;
 
   where: ActionCardExposureValue;
   whoPays: ActionCardExposureValue;
@@ -70,6 +82,22 @@ export interface ActionCardProps {
   timeline?: TimelineEntry[] | null;
   onFullSchedule?: () => void;
   fullScheduleHref?: string;
+  /** Operator ruling (lane PARITY-PARTS, 2026-09-25): the TIMELINE's "+N more" chip, when more than
+   *  4 markers exist, jumps to the item's own obligations-register section (the "ObligationRegister"
+   *  block) rather than sitting as inert text. Optional: a page with obligations but no such section
+   *  omits this and "+N more" renders as plain text, same as before this ruling. */
+  moreMarkersHref?: string;
+  /**
+   * Operator check 2 (lane PARITY-PARTS, 2026-09-24): when ActionCard is embedded inside
+   * `Masthead`'s own `actionSlot` (`.cl-masthead`'s SectionCard), it renders its content in a
+   * plain div instead of mounting a SECOND `SectionCard` shell, so the result is one bordered box,
+   * not two nested ones. F42/SectionCard.tsx's own rule ("a card shell assembled by hand outside
+   * this file is a fitness violation") still holds: this is not a hand-rolled card, it is NO card
+   * (no border/radius/shadow of its own), letting the masthead's card be the only one. Default
+   * false: the existing standalone caller (regulations, mounted as its own sibling card today,
+   * check 2 not yet wired) is unaffected.
+   */
+  bare?: boolean;
 }
 
 const CLAMP_3: CSSProperties = {
@@ -158,6 +186,7 @@ function ExposureCell({ label, cell }: { label: string; cell: ActionCardExposure
 export function ActionCard({
   band,
   kindLabel,
+  extraChips,
   tier,
   meta,
   tags,
@@ -173,22 +202,22 @@ export function ActionCard({
   timeline,
   onFullSchedule,
   fullScheduleHref,
+  moreMarkersHref,
+  bare = false,
+  overflow,
 }: ActionCardProps) {
   const classified = classifyMilestones(timeline ?? []);
   const nextClause = nextMilestoneClause(classified);
   const hasTags = Boolean(tags && tags.length > 0);
 
-  return (
-    <SectionCard
-      as="section"
-      dataAttributes={{ "data-part": "action-card" }}
-      padding="16px 20px 18px"
-    >
+  const content = (
+    <>
       {/* Pill row: band + kind + tier left, meta right, one row (review item 1c). */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
           <BandChip band={band} withWindow />
           <TagChip>{kindLabel}</TagChip>
+          {extraChips}
           {typeof tier === "number" && <TierChip tier={tier} />}
         </div>
         {meta && (
@@ -210,7 +239,7 @@ export function ActionCard({
 
       {/* Action row (reused, byte-identical chrome across all four detail surfaces). */}
       <div style={{ marginTop: 14 }}>
-        <ActionRow onExport={onExport} onShare={onShare} watch={watch} onTag={onTag} exportDisabled={exportDisabled} />
+        <ActionRow onExport={onExport} onShare={onShare} watch={watch} onTag={onTag} exportDisabled={exportDisabled} overflow={overflow} />
       </div>
 
       <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "16px 0" }} aria-hidden="true" />
@@ -240,7 +269,21 @@ export function ActionCard({
 
       <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "16px 0" }} aria-hidden="true" />
 
-      <Timeline entries={timeline} band={band} onFullSchedule={onFullSchedule} fullScheduleHref={fullScheduleHref} />
+      <Timeline entries={timeline} band={band} onFullSchedule={onFullSchedule} fullScheduleHref={fullScheduleHref} moreMarkersHref={moreMarkersHref} />
+    </>
+  );
+
+  if (bare) {
+    return (
+      <div data-part="action-card" style={{ padding: "16px 20px 18px" }}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <SectionCard as="section" dataAttributes={{ "data-part": "action-card" }} padding="16px 20px 18px">
+      {content}
     </SectionCard>
   );
 }

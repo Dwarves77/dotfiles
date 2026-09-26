@@ -11,6 +11,17 @@ export interface SectionIndexEntry {
    *  header, never this tab's label (review item 4: "Full name is the section header, not the
    *  tab"). */
   shortName: string;
+  /**
+   * Explicit tab ordinal ("S<ord>"), lane PARITY-PARTS (2026-09-24), operator ruling 2
+   * (docs/ops/session-log.md, 2026-09-24 "operator rulings" entry, item 2): the detail S-order for
+   * market/research/operations is "01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04
+   * Timeline, 05 Sources, 06 Related. Numbers are fixed; a missing section is omitted, never
+   * renumbered." Exposure and Timeline (03/04) render inside the one ActionCard masthead card
+   * (check 2) and are never their own tab, so those three surfaces' real index is S1/S2/S5/S6, a
+   * genuine gap at S3/S4, not a renumbering. Omitted (undefined), a caller keeps the prior
+   * positional S<i+1> numbering (regulations, settings) unchanged.
+   */
+  ord?: number;
 }
 
 export const SECTION_INDEX_SHORT_NAME_MAX = 14;
@@ -27,4 +38,7 @@ export const REGULATION_SECTION_INDEX: SectionIndexEntry[] = [
   { id: "compliance", shortName: "Compliance" },
   { id: "penalties", shortName: "Penalties" },
   { id: "sources", shortName: "Sources" },
+  // Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card, moved into
+  // this trailing "Related" section in main content (matching the market/research/operations port).
+  { id: "related", shortName: "Related" },
 ];

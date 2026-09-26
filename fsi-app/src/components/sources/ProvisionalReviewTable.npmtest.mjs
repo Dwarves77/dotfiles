@@ -70,9 +70,11 @@ test("artboard strings are verbatim", () => {
   assert.match(SOURCE, /Sources · provisional review/);
   // UPDATED AT FOLD-61: the artboard's tail is unchanged and still asserted verbatim; what moved
   // is that the head now names the QUEUE and, when it is holding fewer rows than the queue has,
-  // declares the page between the two ("N pending · showing M · approve, reject or re-tier on the
-  // row"). The clause is optional in the source, so both halves are asserted separately.
-  assert.match(SOURCE, /\{formatNumber\(pendingTotal \?\? rows\.length\)\} pending/);
+  // declares the page between the two ("N awaiting review · showing M · approve, reject or re-tier
+  // on the row"). The clause is optional in the source, so both halves are asserted separately.
+  // Operator check 5 (lane PARITY-PARTS, 2026-09-24): no exact-case "PENDING" anywhere rendered -
+  // this span's own textTransform:uppercase drew "N PENDING ..."; reworded "N awaiting review".
+  assert.match(SOURCE, /\{formatNumber\(pendingTotal \?\? rows\.length\)\} awaiting review/);
   assert.match(SOURCE, /· showing \$\{formatNumber\(rows\.length\)\}/);
   assert.match(SOURCE, /· approve, reject or re-tier on the row/);
   assert.match(

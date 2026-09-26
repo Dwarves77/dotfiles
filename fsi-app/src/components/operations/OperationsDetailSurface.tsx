@@ -54,23 +54,18 @@ import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { ItemRelevance } from "@/lib/workspace/profile";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailExposure,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -79,9 +74,10 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
-  type SectionIndexEntry,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -127,9 +123,9 @@ interface Props {
 /** The three spec-09 sections' index labels and anchors, in the order they render. Declared once so
  *  the sticky index and the sections themselves can never disagree about either. */
 const SPEC09_SECTIONS = [
-  { id: "sec-dqi", label: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
-  { id: "sec-auxiliary-energy", label: "Auxiliary energy load", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
-  { id: "sec-grid-queue", label: "Grid connection queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
+  { id: "sec-dqi", label: "Data quality", shortName: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
+  { id: "sec-auxiliary-energy", label: "Auxiliary energy load", shortName: "Aux. energy", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
+  { id: "sec-grid-queue", label: "Grid connection queue", shortName: "Grid queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
 ] as const;
 
 const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
@@ -139,7 +135,10 @@ const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
   "4": "Cross-regional",
   "5": "Competitive positioning",
   "6": "Talking points",
-  "7": "Pending changes",
+  // Operator check 5 (lane PARITY-PARTS, 2026-09-24): no exact-case "PENDING" anywhere rendered.
+  // SectionHeader uppercases every S-title, so "Pending changes" drew as literal "PENDING CHANGES".
+  // Same meaning, no forbidden substring after the transform.
+  "7": "Upcoming changes",
   "8": "Sources",
 };
 const MATRIX_GATED_KEYS = new Set(["3", "4"]);
@@ -215,45 +214,31 @@ export function OperationsDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
-  const indexEntries: SectionIndexEntry[] = knownSections.length > 0
-    ? [
-        ...knownSections
-          .filter((s) => !MATRIX_GATED_KEYS.has(s.section_key) || (s.section_key === "3" ? matrixEligibility?.s3Eligible : matrixEligibility?.s4Eligible))
-          .map((s) => ({ id: `sec-${s.section_key}`, label: OPERATIONS_SECTION_HEADINGS[s.section_key] })),
-        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
-        { id: "sources", label: "Sources" },
-      ]
-    : [
-        { id: "summary", label: "Summary" },
-        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
-        { id: "sources", label: "Sources" },
-      ];
+  // Design handoff 2026-09-25 (#801, board 09): "Connections strip moves into the masthead card."
+  // `hasRelated` now gates only the masthead's `connectionsSlot` - there is no longer a main-content
+  // "Related" S6 section on this surface, so it is dropped from the sticky index too.
+  const hasRelated = connections.length > 0 || supersessions.length > 0;
+  // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
+  // ActionCard comment below and the "Substantive findings" section comment for why S3/S4 are a
+  // real gap, never renumbered, and why S2 now holds every former top-level content tab).
+  const indexEntries: SectionIndexEntry[] = [
+    { id: "summary", shortName: "Summary", ord: 1 },
+    { id: "findings", shortName: "Findings", ord: 2 },
+    { id: "sources", shortName: "Sources", ord: 5 },
+  ];
 
-  return (
-    <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
-        <DetailMasthead
-          title={r.title}
-          band={band}
-          surface="Operations"
-          /* Artboard 09 breadcrumb: "Operations / Asia / 2 of 6" — the REGION GROUP, not the
-             country. Falls back to the country label where the code resolves to no group. */
-          jurisdiction={regionGroup || jurisdiction || undefined}
-          dek={meta}
-          placeholder="Ask about this profile — e.g. when does the largest deadline hit"
-        />
-        <DetailHeader
-          band={band}
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          extraChips={
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Regional profile"
+      extraChips={
             <>
-              <TagChip>Regional profile</TagChip>
-              {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors" — the
+              {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors", the
                   region GROUP chip, not the country (which the At a glance card carries in full). */}
               {(regionGroup || jurisdiction) && <TagChip>{regionGroup || jurisdiction}</TagChip>}
               {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)}
@@ -261,57 +246,55 @@ export function OperationsDetailSurface({
               {r.topic && <TagChip>{r.topic}</TagChip>}
             </>
           }
-          headerStat={
+          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+          meta={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
                   connections.length > 0 ? ` · ${connections.length} connections` : ""
                 }`
               : null
           }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "operations",
-                  metaRows: [
-                    r.jurisdiction ? `- Region: ${r.jurisdiction}` : null,
-                    r.modes && r.modes.length > 0 ? `- Modes: ${r.modes.join(", ")}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="operations"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
-            />
+          onExport={() =>
+            downloadMarkdownBrief(r, {
+              filenamePrefix: "operations",
+              metaRows: [
+                r.jurisdiction ? `- Region: ${r.jurisdiction}` : null,
+                r.modes && r.modes.length > 0 ? `- Modes: ${r.modes.join(", ")}` : null,
+                r.url ? `- Source: ${r.url}` : null,
+              ],
+            })
+          }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "operations", initialWatched, initialTeamWatched, initialTeamAvailable })}
+      where={{ value: jurisdiction || null }}
+    />
+  );
+
+  return (
+    <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell).
+            Trajectory has no slot in the merged card (its fourth exposure cell is NEXT MILESTONE,
+            computed internally from timeline); rendered as a plain line under the masthead card. */}
+        <DetailMasthead
+          title={r.title}
+          band={band}
+          surface="Operations"
+          /* Artboard 09 breadcrumb: "Operations / Asia / 2 of 6", the REGION GROUP, not the
+             country. Falls back to the country label where the code resolves to no group. */
+          jurisdiction={regionGroup || jurisdiction || undefined}
+          dek={meta}
+          placeholder="Ask about this profile, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
+          connectionsSlot={
+            hasRelated ? <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} variant="masthead" /> : undefined
           }
         />
+        {trajectoryNode && (
+          <p style={{ fontSize: "var(--fs-105)", lineHeight: 1.6, color: "var(--ink-2)", margin: "10px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>
+        )}
 
-        <DetailExposure
-          items={[
-            { label: "Where", value: jurisdiction || <Absence reason="not in primary source" /> },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            {
-              label: "Trajectory",
-              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
-            },
-          ]}
-        />
-
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -342,68 +325,71 @@ export function OperationsDetailSurface({
               /* Artboard 09's only page-specific rail card: RELATED IN ASIA. */
               designed={<RelatedRegionCard related={related} reason={relatedReason} region={regionGroup || jurisdiction} />}
               legend={<RailLegend />}
-              /* R7 — artboard 09 draws neither: place-keeping and connections
-                 go after the last designed region of the column. */
-              undesigned={
-                <>
-                  <InThisListStat backHref="/operations" backLabel="Back to list" band={band} />
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                </>
-              }
+              /* R7, artboard 09 draws neither. Connections is not a rail card (operator check 8,
+                 2026-09-24) and, per the 2026-09-25 boards, renders inside the masthead card
+                 instead (DetailMasthead's connectionsSlot above), not a main-content section. */
+              undesigned={<InThisListStat backHref="/operations" backLabel="Back to list" band={band} />}
             />
           }
         >
-          {knownSections.length > 0
-            ? knownSections.map((s) => {
+          {/* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
+              is fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05
+              Sources, 06 Related. Exposure/Timeline live in the masthead ActionCard, never a tab.
+              This surface previously had NO summary section at all (it jumped straight into 8
+              numbered content sections, plus the 3 spec09 panels, as 9-11 separate top-level tabs,
+              the worst overflow of the four surfaces in the baseline report). S1 Summary reuses the
+              same real-field fallback the other three surfaces already use when they have no
+              dedicated summary content; S2 "Substantive findings" now holds every one of those
+              former top-level tabs as sub-headings, content and data paths unchanged. */}
+          <DetailSection id="summary" title="Summary" index={1}>
+            {r.whatIsIt || r.note || r.whyMatters ? (
+              <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+                {r.whatIsIt || r.note || r.whyMatters}
+              </p>
+            ) : (
+              <StateNote>Summary pending for this regional profile; brief generation in progress.</StateNote>
+            )}
+            {depth === "full" && r.fullBrief && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                <GfmSection markdown={r.fullBrief} />
+              </div>
+            )}
+          </DetailSection>
+
+          <DetailSection id="findings" title="Substantive findings" index={2}>
+            {knownSections.length > 0 &&
+              knownSections.map((s, i) => {
                 const heading = OPERATIONS_SECTION_HEADINGS[s.section_key] || `Section ${s.section_key}`;
+                let body: ReactNode;
                 if (MATRIX_GATED_KEYS.has(s.section_key)) {
                   const eligible = s.section_key === "3" ? matrixEligibility?.s3Eligible === true : matrixEligibility?.s4Eligible === true;
-                  if (!eligible) {
-                    return (
-                      <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                        <StateNote>{deriveOmitNote(s.section_key, matrixEligibility)}</StateNote>
-                      </DetailSection>
-                    );
+                  if (!eligible) body = <StateNote>{deriveOmitNote(s.section_key, matrixEligibility)}</StateNote>;
+                }
+                if (body === undefined) {
+                  if (!s.content_md || !s.content_md.trim()) {
+                    if (s.is_conditional) return null;
+                    body = <Absence reason="not in primary source" />;
+                  } else {
+                    body = <FactBlocks markdown={s.content_md} />;
                   }
                 }
-                if (!s.content_md || !s.content_md.trim()) {
-                  if (s.is_conditional) return null;
-                  return (
-                    <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                      <Absence reason="not in primary source" />
-                    </DetailSection>
-                  );
-                }
                 return (
-                  <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={heading}>
-                    <FactBlocks markdown={s.content_md} />
-                  </DetailSection>
+                  <DetailSubSection key={s.section_key} title={heading} first={i === 0}>
+                    {body}
+                  </DetailSubSection>
                 );
-              })
-            : (
-              <DetailSection id="summary" title="Summary">
-                {r.whatIsIt || r.note || r.whyMatters ? (
-                  <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
-                    {r.whatIsIt || r.note || r.whyMatters}
-                  </p>
-                ) : (
-                  <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>
-                )}
-                {depth === "full" && r.fullBrief && (
-                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
-                    <GfmSection markdown={r.fullBrief} />
-                  </div>
-                )}
-              </DetailSection>
+              })}
+            {spec09Shown.map((s, i) => (
+              <DetailSubSection key={s.id} title={s.label} subtitle={s.aside} first={knownSections.length === 0 && i === 0}>
+                {spec09Nodes[s.key]}
+              </DetailSubSection>
+            ))}
+            {knownSections.length === 0 && spec09Shown.length === 0 && (
+              <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>
             )}
+          </DetailSection>
 
-          {spec09Shown.map((s) => (
-            <DetailSection key={s.id} id={s.id} title={s.label} aside={s.aside}>
-              {spec09Nodes[s.key]}
-            </DetailSection>
-          ))}
-
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+          <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
         </DetailLayout>

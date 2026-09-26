@@ -50,9 +50,13 @@ export interface TimelineProps {
   /** "Full schedule" callout link target. Omitted renders the callout with no link (fixture-safe). */
   onFullSchedule?: () => void;
   fullScheduleHref?: string;
+  /** Operator ruling (lane PARITY-PARTS, 2026-09-25): jump target for the "+N more" chip, when the
+   *  marker set is collapsed. Omitted renders "+N more" as plain (non-interactive) text, unchanged
+   *  from before this ruling. */
+  moreMarkersHref?: string;
 }
 
-export function Timeline({ entries, band, onFullSchedule, fullScheduleHref }: TimelineProps) {
+export function Timeline({ entries, band, onFullSchedule, fullScheduleHref, moreMarkersHref }: TimelineProps) {
   const list = entries ?? [];
   if (list.length === 0) {
     return (
@@ -99,20 +103,28 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref }: Ti
             <TimelineDot key={c.index} classified={c} band={band} segments={visible.length} />
           ))}
         </div>
-        {collapsed && hiddenCount > 0 && (
-          <span
-            style={{
-              display: "block",
-              marginTop: 6,
-              fontSize: "var(--fs-105)",
-              fontWeight: 700,
-              color: "var(--ink-3)",
-              textAlign: "right",
-            }}
-          >
-            +{hiddenCount} more
-          </span>
-        )}
+        {collapsed && hiddenCount > 0 && (() => {
+          // One element, one style object: `as` picks the tag (a link when moreMarkersHref is
+          // supplied, plain text otherwise) rather than two near-identical JSX blocks (F45).
+          const MoreTag = moreMarkersHref ? "a" : "span";
+          return (
+            <MoreTag
+              href={moreMarkersHref}
+              data-audit="timeline-more-markers"
+              style={{
+                display: "block",
+                marginTop: 6,
+                fontSize: "var(--fs-105)",
+                fontWeight: 700,
+                color: "var(--ink-3)",
+                textAlign: "right",
+                ...(moreMarkersHref ? { textDecoration: "underline", cursor: "pointer" } : {}),
+              }}
+            >
+              +{hiddenCount} more
+            </MoreTag>
+          );
+        })()}
       </div>
       {clause && (
         <div style={{ marginTop: 10 }}>

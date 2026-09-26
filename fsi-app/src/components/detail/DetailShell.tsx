@@ -36,112 +36,18 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
-import { BandChip, TierChip } from "@/components/ui/Chips";
-import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/MilestoneTimeline";
-import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { RailCard } from "@/components/ui/RailCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
-import type { ImpactScores, TimelineEntry } from "@/types/resource";
-import { useSectionScrollSpy } from "@/lib/detail/use-section-scroll-spy";
-import { sectionIndexNavStyle, sectionIndexStripStyle } from "@/components/ui/section-index-styles";
-import { SectionIndexLink } from "@/components/ui/SectionIndexLink";
-
-// ── Header ──────────────────────────────────────────────────────────────
-
-export interface DetailHeaderProps {
-  band: UrgencyBand;
-  tier?: number | null;
-  /**
-   * Item title. GAP G2 (2026-09-07, artboard 03 + ruling R4): the visible
-   * title now lives in `DetailMasthead` below, mounted once per detail
-   * page above this header — rendering it a second time here would be
-   * exactly the duplicate-title artboard 03 does not show. Kept as a
-   * required prop (used only for this header's `aria-label`) so a screen
-   * reader landmark still names the header even though no second <h1>
-   * is drawn.
-   */
-  title: string;
-  actions?: React.ReactNode;
-  /**
-   * Extension point (lane uidetails2, 2026-09-07): additional chips
-   * rendered in the same row as the band/tier chips — item-type, topic,
-   * mode chips, etc. Additive prop, never a fork of this component (README
-   * §0.5 "extend the shared part additively" — used by market/research/
-   * operations detail, which each carry more header chips than the
-   * regulation detail's band+tier alone).
-   */
-  extraChips?: React.ReactNode;
-  /**
-   * Extension point (lane uitags, 2026-09-07, README "Workspace tags" /
-   * ruling R6): the detail tag row, rendered directly under the title,
-   * applied WorkspaceTagPills, then the + Tag trigger, then a muted
-   * "workspace tags" label. Built by DetailTagRow (src/components/ui/) and
-   * passed in by each of the four detail surfaces; undefined renders
-   * nothing extra, so this stays additive for any other DetailHeader
-   * caller.
-   */
-  tagRow?: React.ReactNode;
-  /**
-   * Extension point (lane compose-dashboard-details, 2026-09-08, artboards
-   * 03/05/07/09: "7 sources · T1 primary" / "12 sources · 4 corroborating" /
-   * "1 source · 24 connections" / "1 source · 23 connections" — a stat line
-   * every detail artboard renders above the action row, right-aligned).
-   * Additive prop, never a page-local fork of this header. Undefined
-   * renders nothing extra, so this stays additive for any other
-   * DetailHeader caller.
-   */
-  headerStat?: React.ReactNode;
-}
-
-export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, headerStat }: DetailHeaderProps) {
-  return (
-    // Operator item A1 (2026-09-08): the detail header is a card, so it is the shared
-    // `SectionCard`. It owns the border, radius, shadow and the rule, and its `padding` form
-    // positions the rule absolutely so it still spans the full card width rather than being inset
-    // by the card's own padding. Ruling 5.2 (2026-09-07) is unchanged and now structural: the rule
-    // is the dark grey gradation, never the band-coloured rule.
-    <SectionCard
-      as="header"
-      aria-label={title}
-      padding="16px 20px 18px"
-      style={{ marginBottom: 16 }}
-    >
-      {/* All four detail artboards STACK this header: the chip row (ending in the tier square and
-          the stat), then the workspace tag row, then the action row, every one of them left-aligned
-          at the card's own padding. The build laid it out as a two-column space-between row, which
-          floated the action row to the right edge on 03/07/09 and only stacked on 05 when the chips
-          happened to be wide enough to force a wrap. */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ minWidth: 0, maxWidth: "100%" }}>
-          <div data-audit="detail-chips" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {/* Artboard chip order, all four detail artboards (dc.html #p3/#p5/#p7/#p9): band pill,
-                then the item's own type/mode/topic chips, then the TIER square LAST, immediately
-                before the header stat ("Action · <= 6 months" · Regulation · Ocean · Emissions · T1 ·
-                "7 sources · T1 primary"). The build rendered the tier second; fixed here once, in the
-                shared header, rather than four times in the four surfaces. */}
-            <BandChip band={band} />
-            {extraChips}
-            {typeof tier === "number" && <TierChip tier={tier} />}
-            {/* The stat is the LAST child of the chip row on every detail artboard, not a
-                right-aligned line above the action row (which is where the build put it). */}
-            {headerStat && (
-              <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{headerStat}</span>
-            )}
-          </div>
-          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
-        </div>
-        {actions && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", maxWidth: "100%" }}>{actions}</div>
-        )}
-      </div>
-    </SectionCard>
-  );
-}
+import { BandProvider } from "@/components/ui/band-context";
+import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { buildAllConnectionRows } from "@/lib/connections/connection-view-model.mjs";
+import { classifyMilestones } from "@/lib/detail/timeline-math";
+import type { UrgencyBand } from "@/lib/urgency/bands";
+import type { ImpactScores, TimelineEntry, ItemConnection, Supersession, Resource } from "@/types/resource";
 
 // ── Masthead: page-level VOL/breadcrumb/title/dek/CommandBar for detail
 // routes ─────────────────────────────────────────────────────────────────
@@ -191,9 +97,23 @@ export interface DetailMastheadProps {
   dek?: React.ReactNode;
   /** Scoped ask placeholder, e.g. "Ask about this regulation — e.g. when does the l...". */
   placeholder: string;
+  /**
+   * Operator check 2 (lane PARITY-PARTS, 2026-09-24): the detail page's ActionCard (band pill +
+   * action row + exposure + timeline), passed through to Masthead's own additive `actionSlot`
+   * (Masthead.tsx) so it renders INSIDE the one masthead card, not as a sibling card below it.
+   * Undefined renders nothing extra here, same as every other additive DetailMasthead prop.
+   */
+  actionSlot?: React.ReactNode;
+  /**
+   * Design handoff 2026-09-25 (#801, boards 03/07/09): "Connections strip moves into the masthead
+   * card; the rail Connections card is removed." Passed straight through to Masthead's own
+   * `connectionsSlot` (additive, same shape as `actionSlot`). A caller supplies it only when it has
+   * a real connection or supersession row (never an empty card), see each surface's own guard.
+   */
+  connectionsSlot?: React.ReactNode;
 }
 
-export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder }: DetailMastheadProps) {
+export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder, actionSlot, connectionsSlot }: DetailMastheadProps) {
   const [breadcrumb, setBreadcrumb] = useState(() => [surface, jurisdiction].filter(Boolean).join(" / "));
   return (
     <>
@@ -201,338 +121,17 @@ export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeh
         <DetailMastheadBreadcrumb surface={surface} jurisdiction={jurisdiction} band={band} onLabel={setBreadcrumb} />
       </Suspense>
       <div style={{ marginBottom: 16 }}>
-        <Masthead title={title} size="detail" dateLabel={breadcrumb} dek={dek} commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }} />
+        <Masthead
+          title={title}
+          size="detail"
+          dateLabel={breadcrumb}
+          dek={dek}
+          commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }}
+          actionSlot={actionSlot}
+          connectionsSlot={connectionsSlot}
+        />
       </div>
     </>
-  );
-}
-
-// ── Exposure grid (WHERE / WHO PAYS / YOUR LANES / TRAJECTORY) ──────────
-//
-// Extension (lane uidetails2, 2026-09-07, README §0.5 + the 05/07/09
-// artboards' own top label: "identical architecture to the regulation
-// detail: header + exposure + timeline -> index -> sections -> rail").
-// Generic, prop-driven so each of the four detail surfaces supplies its
-// own four columns without a page-local fork of the card chrome. The
-// regulation detail (built by an earlier lane, before this component
-// existed) does not yet call it — logged in DEVIATION-LOG.md as a gap for
-// a future lane, out of this lane's stated scope (market/research/
-// operations only).
-
-export interface ExposureItem {
-  label: string;
-  value: React.ReactNode;
-}
-
-export function DetailExposure({ items }: { items: ExposureItem[] }) {
-  if (items.length === 0) return null;
-  return (
-    <SectionCard style={{ marginBottom: 16 }}>
-      <div style={{ padding: "16px 20px" }}>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
-        Exposure
-      </p>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0,1fr))`,
-          gap: 18,
-        }}
-        className="cl-exposure-grid"
-      >
-        <style>{`
-          @media (max-width: 900px) { .cl-exposure-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
-          @media (max-width: 520px) { .cl-exposure-grid { grid-template-columns: 1fr !important; } }
-        `}</style>
-        {items.map((it, i) => (
-          <div key={i} style={{ minWidth: 0 }}>
-            <p style={{ fontSize: "var(--fs-95)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 6px" }}>
-              {it.label}
-            </p>
-            <div data-audit="exposure-value" style={{ fontSize: "var(--fs-125)", lineHeight: 1.5, color: "var(--ink)", overflowWrap: "anywhere" }}>
-              {it.value}
-            </div>
-          </div>
-        ))}
-      </div>
-      </div>
-    </SectionCard>
-  );
-}
-
-// ── Full timeline + next-obligation callout ────────────────────────────
-
-export interface DetailTimelineProps {
-  entries?: TimelineEntry[] | null;
-  band: UrgencyBand;
-}
-
-export function DetailTimeline({ entries, band }: DetailTimelineProps) {
-  const list = entries ?? [];
-  const next = list.find((e) => e.status === "current") ?? list.find((e) => e.status !== "past") ?? null;
-
-  return (
-    <SectionCard padding="16px 20px" style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
-          Timeline
-        </p>
-        <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{list.length} milestones</span>
-      </div>
-      {list.length === 0 ? (
-        <Absence reason="pending" />
-      ) : (
-        <>
-          {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "TIMELINE (vertical)"): below 768
-              the desktop horizontal dot row + date strip is replaced by a 62/14/1fr vertical grid
-              carrying the date, dot and label per row, with the next-obligation callout inline on
-              the next row. Both blocks render; CSS decides which is visible — no client media-query
-              JS, so this stays correct on first paint (same pattern as this file's own
-              `.cl-detail-layout` / `.cl-exposure-grid` breakpoints). */}
-          <style>{`
-            @media (max-width: 768px) { .cl-timeline-desktop { display: none; } }
-            @media (min-width: 769px) { .cl-timeline-mobile, .cl-timeline-next-note-mobile-hide { display: none; } }
-          `}</style>
-          <div className="cl-timeline-desktop">
-            <MilestoneTimeline entries={list} bandHex={band.cssVar} variant="full" />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: 8,
-                gap: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              {list.slice(0, 5).map((e, i) => (
-                <span key={i} style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere" }}>
-                  {e.date}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="cl-timeline-mobile">
-            <VerticalMilestoneStack list={list} band={band} />
-          </div>
-        </>
-      )}
-      {next && (
-        <div className="cl-timeline-next-note-mobile-hide" style={{ marginTop: 14 }}>
-          <StateNote band={band}>
-            Next: {next.label} · {next.date}
-          </StateNote>
-        </div>
-      )}
-    </SectionCard>
-  );
-}
-
-// ── Mobile vertical timeline stack (below 768) ──────────────────────────
-//
-// Mobile 390 build, lane mobdetail (2026-09-07, spec "TIMELINE (vertical)"):
-// grid 62px date gutter / 14px dot column / 1fr label column. Dot state
-// (passed/next/ahead) reuses MilestoneTimeline's own `classifyTimelineEntries`
-// (CLAUDE.md rule 13 — one classifier, not a second one derived here). The
-// track is a single vertical bar behind the dots, green from the top down
-// to the "next" row and rgba(0,0,0,.12) beyond, per spec. The next row's
-// day count reuses the SAME "Next: <label> · <date>" wording the desktop
-// StateNote callout already renders (README + coordinator note: the design
-// artboard's literal "Next obligation - N days" is not copy this build
-// invents from scratch; keep the desktop phrasing, add the day count),
-// logged in DEVIATION-LOG.md.
-
-function VerticalMilestoneStack({ list, band }: { list: TimelineEntry[]; band: UrgencyBand }) {
-  const rows = classifyTimelineEntries(list.slice(0, 5));
-  const todayIndex = rows.findIndex((r) => r.state === "next");
-  const trackTodayPct = rows.length <= 1 ? 100 : todayIndex < 0 ? 100 : (todayIndex / (rows.length - 1)) * 100;
-
-  return (
-    <div style={{ position: "relative" }}>
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: 69,
-          top: 10,
-          bottom: 10,
-          width: 2,
-          background: `linear-gradient(to bottom, var(--awareness) 0%, var(--awareness) ${trackTodayPct}%, rgba(0,0,0,.12) ${trackTodayPct}%, rgba(0,0,0,.12) 100%)`,
-        }}
-      />
-      {rows.map(({ entry, state }, i) => {
-        const isNext = state === "next";
-        const days = isNext ? daysUntil(entry.date) : null;
-        return (
-          <div
-            key={i}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "62px 14px 1fr",
-              alignItems: "start",
-              paddingBottom: 14,
-            }}
-          >
-            <span
-              style={{
-                textAlign: "right",
-                // MOBILE-60 (2026-09-08), measured at 390 and read off
-                // docs/design/handoff-2026-09-06/built/mobile-03-regulation-detail.png. An ISO
-                // milestone date ("2027-01-01") at 11px needs ~57px in Plus Jakarta Sans and
-                // ~70px in the fallback face a host without that font uses; the spec fixes this
-                // gutter at 62px, which fits the former and not the latter. It is left WRAPPING
-                // rather than held on one line: `white-space: nowrap` was tried and, in the wide
-                // fallback, the date overflowed its own 62px box to the RIGHT and ran under the
-                // dot column (text-align: right does not pull back overflowing content), which is
-                // a collision. A date that wraps at its hyphen in one face is worse-looking than
-                // one that does not; a date lying across the dots is wrong at any width. Tabular
-                // figures so the two lines align when it does wrap. Logged in DEVIATION-LOG.md:
-                // the 390 artboard, when it lands, states what date FORM the design intends here.
-                fontVariantNumeric: "tabular-nums",
-                paddingRight: 8,
-                fontSize: "var(--fs-11)",
-                fontWeight: isNext ? 800 : 600,
-                color: "var(--ink-3)",
-              }}
-            >
-              {entry.date}
-            </span>
-            <span style={{ display: "flex", justifyContent: "center" }}>
-              {state === "passed" && (
-                <span
-                  aria-hidden="true"
-                  style={{ position: "relative", zIndex: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--awareness)" }}
-                />
-              )}
-              {state === "next" && (
-                <span
-                  aria-hidden="true"
-                  style={{
-                    position: "relative",
-                    zIndex: 1,
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    background: band.cssVar,
-                    boxShadow: `0 0 0 3px color-mix(in srgb, ${band.cssVar} 25%, transparent)`,
-                  }}
-                />
-              )}
-              {state === "ahead" && (
-                <span
-                  aria-hidden="true"
-                  style={{ position: "relative", zIndex: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--card)", border: "2px solid var(--ink-3)" }}
-                />
-              )}
-            </span>
-            <span
-              style={{
-                paddingLeft: 8,
-                minWidth: 0,
-                fontSize: "var(--fs-12)",
-                fontWeight: isNext ? 700 : 400,
-                color: "var(--ink)",
-                overflowWrap: "anywhere",
-              }}
-            >
-              {entry.label}
-              {isNext && days !== null && (
-                <span style={{ display: "block", marginTop: 2, fontSize: "var(--fs-11)", fontWeight: 400, color: "var(--ink-3)" }}>
-                  Next: {entry.date} · {days} day{days === 1 ? "" : "s"}
-                </span>
-              )}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Sticky section index (S1 . S2 . S3 …) ──────────────────────────────
-
-export interface SectionIndexEntry {
-  id: string;
-  label: string;
-}
-
-/** Widest a single section tab may be before it truncates (defect 6). Measured against the
- *  artboard's own tab labels ("S1 Cost baseline", "S2 Obligations", "S3 Penalties"), the longest
- *  of which sets ~136px at this row's 12.5px type plus its 12px side padding. */
-const SECTION_TAB_MAX_WIDTH = 150;
-
-export function SectionIndex({
-  sections,
-  trailing,
-}: {
-  sections: SectionIndexEntry[];
-  /**
-   * Right-aligned control rendered in the same sticky row as the S1 S2 S3 …
-   * pill group — additive slot (lane uiactions, 2026-09-07) for the detail
-   * architecture's Summary | Full brief depth switch (see
-   * `SummaryDepthSwitch` below). Optional: omitted, the row renders exactly
-   * as before (index links only).
-   */
-  trailing?: React.ReactNode;
-}) {
-  // Restructured, fix lane fix58-detail (2026-09-07, sectionindex.json): dc.html #p3 "sticky
-  // index" block is a bordered PILL GROUP (white, 1px border, 8px radius, 4px padding), whose
-  // current-section item is a FILLED dark pill ("S1 Summary", no separator dot) and whose other
-  // items are plain 6px-radius links ("S2 Obligations") — not the previous bare flex row of
-  // middot-separated underline-free links. `active` tracks the section currently in view via
-  // IntersectionObserver, so the filled pill is a real scroll-spy state, not a static "first item
-  // always filled" fake. The observer setup itself moved to `useSectionScrollSpy`
-  // (src/lib/detail/use-section-scroll-spy.ts, F45 duplicate-code, lane W10-ActionCard-a,
-  // 2026-09-21) shared with the new `src/components/ui/SectionIndex.tsx` part; this component's own
-  // shape and props are unchanged.
-  const active = useSectionScrollSpy(sections.map((s) => s.id));
-
-  if (sections.length === 0) return null;
-  return (
-    <nav
-      aria-label="Section index"
-      className="cl-section-index"
-      style={{ ...sectionIndexNavStyle(), justifyContent: "space-between", flexWrap: "wrap" }}
-    >
-      {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "SECTION INDEX": "sticky at the top of
-          main.overflow-y-auto, scrolls sideways, chips min-height 36") — the index already sticks
-          and scrolls sideways at every width; below 768 the link's hit target drops from the 44px
-          floor to the spec's explicit 36px. */}
-      <style>{`
-        @media (max-width: 768px) {
-          .cl-section-index-link { min-height: 36px !important; }
-        }
-      `}</style>
-      <div
-        data-guard-strip
-        style={sectionIndexStripStyle({ overflowX: "auto", whiteSpace: "nowrap", maxWidth: "100%" })}
-      >
-        {sections.map((s, i) => {
-          const isActive = i === active;
-          return (
-            // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production rendered "S6 Operational
-            // requirem" and a bare "S7", cut mid-glyph at the card's right edge, and pushed the
-            // Summary/Full brief toggle onto a second row. Root cause [CONFIRMED by comparing
-            // the two markups]: the artboard's index uses SHORT tab labels ("S1 Cost baseline")
-            // and the product passes the section's full title ("S1 Operational cost baseline"),
-            // so seven of them do not fit the row. The artboard's own treatment is a short tab,
-            // so the tab is bounded here, in the shared part, and truncates with a real ellipsis
-            // instead of a mid-glyph cut. The full label stays reachable on `title`, and the
-            // link's own accessible name is the full label, so nothing is lost to a reader or to
-            // assistive technology.
-            <SectionIndexLink
-              key={s.id}
-              id={s.id}
-              isActive={isActive}
-              title={s.label}
-              sizing={{ maxWidth: SECTION_TAB_MAX_WIDTH, overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              S{i + 1} {s.label}
-            </SectionIndexLink>
-          );
-        })}
-      </div>
-      {trailing && <div style={{ flexShrink: 0 }}>{trailing}</div>}
-    </nav>
   );
 }
 
@@ -626,9 +225,34 @@ export function DetailSection({
 // ── Page wrapper: the ONE outer frame (max-width + responsive side padding)
 // shared by header/timeline/index/layout, so a detail surface never re-declares its own copy of the
 // --cl-detail-pad-x breakpoint (globals.css, lane MOBILE-2 precedent). One instance per page.
+//
+// Lane PARITY-PARTS (2026-09-24, operator check 1): the wrapper is also the ONE place a detail page
+// declares its item's band and its one real action sentence (`topRecommendedAction`), provided to
+// every ItemGroup and StateNote below it (band-context.tsx), so no section, group or note on the page
+// can render untinted because a caller forgot to thread the band.
 
-export function DetailPageWrapper({ children }: { children: React.ReactNode }) {
-  return <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 40px" }}>{children}</div>;
+export function DetailPageWrapper({
+  children,
+  band = null,
+  action = null,
+}: {
+  children: React.ReactNode;
+  band?: UrgencyBand | null;
+  action?: string | null;
+}) {
+  return (
+    <BandProvider band={band} action={action}>
+      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 40px" }}>{children}</div>
+    </BandProvider>
+  );
+}
+
+/** The item's single highest-priority recommended action (the pipeline's `recommendedActions`
+ *  field), or null. Real data only: this is what closes an item group's ACTION strip. */
+export function topRecommendedAction(r: Pick<Resource, "recommendedActions">): string | null {
+  const sorted = [...(r.recommendedActions || [])].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+  const text = sorted.find((a) => a.action && a.action.trim())?.action ?? null;
+  return text ? text.trim() : null;
 }
 
 // ── Layout: content column + rail (no padding/max-width of its own — lives inside DetailPageWrapper) ──
@@ -640,7 +264,9 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(0,1fr) 300px",
-        gap: 24,
+        // README 0.3 frame: `gap: 28px` (the list frame's own value, ListSurfaceShell.tsx). With the
+        // 40px --cl-detail-pad-x this yields the 780px content column of ruling 1 (2026-09-24).
+        gap: 28,
         alignItems: "start",
       }}
     >
@@ -727,8 +353,19 @@ export interface AtAGlanceRow {
 // surfaces' rail cards, the dashboard rail, and the admin "Issues queue" rail each retyped
 // separately, now the one shared `RailCard` part. Content (the label/value grid, the Absence
 // convention on an empty set) is unchanged; only the shell moved.
+/**
+ * Operator check 8 (lane PARITY-PARTS, 2026-09-24): "The right rail does not repeat masthead fields
+ * (band, type, jurisdiction, source, published)". The masthead (breadcrumb + dek) and the action
+ * card's pill row already carry these, so the rail card refuses them structurally: a caller passing
+ * one gets nothing rendered for it, and no future caller can reintroduce the repeat. "Kind" is the
+ * market surface's name for the item type; "Region" is the operations surface's jurisdiction.
+ */
+export const MASTHEAD_FIELD_LABELS: ReadonlySet<string> = new Set(["band", "type", "kind", "jurisdiction", "region", "source", "published"]);
+
 export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
-  const present = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
+  const present = rows.filter(
+    (r) => r.value !== null && r.value !== undefined && r.value !== "" && !MASTHEAD_FIELD_LABELS.has(r.label.trim().toLowerCase())
+  );
   if (present.length === 0) return null;
   return (
     <RailCard title="At a glance" dataAudit="at-a-glance-rail">
@@ -750,38 +387,49 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
   );
 }
 
+// ── Rail: impact card, ONE stepped meter out of 12 ──────────────────────
+//
+// Operator check 3 (lane PARITY-PARTS, 2026-09-24): "Impact is ONE stepped meter out of 12; the
+// four-bar Cost/Compliance/Client-facing/Operational block and the legend text 'four scored
+// dimensions' must appear nowhere." The card mounts the SAME row meter every list row draws (README
+// 0.4 row variant, revised 2026-09-18: four rising bars as a stepped fill of the total, N/12 beside
+// it), never the per-dimension full variant. The detail rail's former RailLegend (which described
+// the retired per-dimension model in prose) is deleted; the four detail surfaces mount the list
+// surfaces' own `LegendRailCard`, which carries ruling 5's live meter frozen at 8/12.
+
+export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
+  return (
+    <RailCard title="Impact assessment" dataAudit="impact-assessment-rail">
+      <ImpactMeter scores={scores} />
+    </RailCard>
+  );
+}
+
 // ── Rail: legend card (Impact / Timeline / Source tier) ─────────────────
 //
-// Extension (lane uidetails2, 2026-09-07): static legend text repeated
-// verbatim on every 05/07/09 artboard's rail. One shared copy rather than
-// three page-local strings (CLAUDE.md rule 13, no duplication).
+// Operator check 3 (lane PARITY-PARTS, 2026-09-24): the prior copy here described the retired
+// four-dimension impact model ("four scored dimensions, sorted low to high..."), the literal
+// phrase the harness forbids verbatim, and a description of a variant `ImpactRailCard` (above) no
+// longer renders (it now mounts the SAME stepped row meter every list row draws, frozen at its
+// item's own score out of 12, never the four-bar per-dimension block). Reworded to describe what is
+// actually on the page; no other legend row changes.
 
 export function RailLegend() {
   return (
     <RailCard title="Legend" dataAudit="detail-legend-rail">
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-2)", lineHeight: 1.5 }}>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: "var(--ink)" }}>Impact</strong> — four scored dimensions, sorted low to
-          high: green left, red right. Height is the score, 1-3; the number is the sum, /12.
+          <strong style={{ color: "var(--ink)" }}>Impact</strong>, one stepped meter, filled left to
+          right; the number beside it is the score, out of 12.
         </p>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: "var(--ink)" }}>Timeline</strong> — passed · next · ahead.
+          <strong style={{ color: "var(--ink)" }}>Timeline</strong>, passed · next · ahead.
         </p>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: "var(--ink)" }}>Source tier</strong> — T1 binding law through T6
+          <strong style={{ color: "var(--ink)" }}>Source tier</strong>, T1 binding law through T6
           commentary.
         </p>
       </div>
-    </RailCard>
-  );
-}
-
-// ── Rail: full impact meter card ────────────────────────────────────────
-
-export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
-  return (
-    <RailCard title="Impact assessment" dataAudit="impact-assessment-rail">
-      <ImpactMeter scores={scores} variant="full" />
     </RailCard>
   );
 }

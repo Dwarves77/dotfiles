@@ -20,17 +20,22 @@ const SOURCE = readFileSync(
 // replaces) — the vocabulary checks below care about CODE, not comments describing the change.
 const CODE_ONLY = SOURCE.replace(/\/\*[\s\S]*?\*\//g, "");
 
-test("imports the shared parts rather than reimplementing them (BandChip, TierChip, MilestoneTimeline, StateNote, ImpactMeter, Absence)", () => {
-  assert.match(SOURCE, /from "@\/components\/ui\/Chips"/);
-  assert.match(SOURCE, /from "@\/components\/ui\/MilestoneTimeline"/);
-  assert.match(SOURCE, /from "@\/components\/ui\/StateNote"/);
+// StateNote is no longer imported by this file directly (check 2, lane PARITY-PARTS, 2026-09-24,
+// retired DetailHeader/DetailTimeline, its only direct callers here) - it is still a shared part,
+// consumed via band-context.tsx/ItemGroup.tsx instead. Asserting an import this file genuinely does
+// not carry would be testing against dead code (CLAUDE.md rule 13).
+test("imports the shared parts rather than reimplementing them (ImpactMeter, Absence)", () => {
   assert.match(SOURCE, /from "@\/components\/ui\/ImpactMeter"/);
   assert.match(SOURCE, /from "@\/components\/ui\/Absence"/);
 });
 
-test("MilestoneTimeline and ImpactMeter are mounted with variant=\"full\" (the detail-rail/header variant, not the row variant)", () => {
-  assert.match(SOURCE, /<MilestoneTimeline[^>]*variant="full"/);
-  assert.match(SOURCE, /<ImpactMeter[^>]*variant="full"/);
+// Operator check 3 (lane PARITY-PARTS, 2026-09-24, superseding this test's own prior assertion
+// that ImpactMeter/MilestoneTimeline MUST mount variant="full" here): impact is ONE stepped meter
+// out of 12, the same row variant every list row draws, never the four-bar per-dimension block,
+// see ImpactRailCard's own header comment. BandChip/TierChip/MilestoneTimeline moved into
+// ActionCard.tsx (check 2's masthead-card port) and are no longer imported by this file at all.
+test("ImpactRailCard never mounts ImpactMeter with variant=\"full\" (the retired four-bar block)", () => {
+  assert.doesNotMatch(SOURCE, /<ImpactMeter[^>]*variant="full"/);
 });
 
 test("no tab, tablist, or per-tab ask-bar vocabulary survives in the shell (README §0.5: 'no tabs, no per-tab ask bar')", () => {
@@ -87,16 +92,14 @@ test("InThisListStat's prev/next links are omitted, not rendered empty, when a n
 
 // GAP G2 (2026-09-07, operator audit item 2.3, ruling R4): the breadcrumb's own last segment
 // ("N of M in Band") now renders inside DetailMastheadBreadcrumb, feeding the shared Masthead's
-// own VOL/breadcrumb line (dateLabel) — DetailHeader no longer carries a meta/breadcrumb line at
-// all (see its own doc comment). The old DetailHeader-local BreadcrumbListPosition bridge was
-// removed as dead code once DetailHeader stopped rendering it (CLAUDE.md rule 13).
-test("DetailHeader carries no BreadcrumbListPosition / meta reader — the breadcrumb line moved to DetailMasthead", () => {
+// own VOL/breadcrumb line (dateLabel). The old DetailHeader-local BreadcrumbListPosition bridge was
+// removed as dead code once DetailHeader stopped rendering it (CLAUDE.md rule 13); check 2 (lane
+// PARITY-PARTS, 2026-09-24) later retired DetailHeader itself entirely (superseded by ActionCard,
+// see BandChip/TierChip/MilestoneTimeline's own import line, now gone from this file), the three
+// DetailHeader-body tests this file used to carry are removed with it, not tested against dead
+// code (CLAUDE.md rule 13). `function BreadcrumbListPosition` staying gone is still asserted.
+test("no dead BreadcrumbListPosition bridge survives (superseded by DetailMastheadBreadcrumb)", () => {
   assert.doesNotMatch(CODE_ONLY, /function BreadcrumbListPosition/);
-  const headerBody = SOURCE.slice(
-    SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Masthead:")
-  );
-  assert.doesNotMatch(headerBody, /useSearchParams\(\)/);
 });
 
 test("DetailMastheadBreadcrumb renders the R4 breadcrumb format via the shared searchParams reader, isolated from DetailMasthead's own body", () => {
@@ -123,25 +126,12 @@ test("an unknown list position renders the Absence convention, never a fabricate
   assert.match(SOURCE, /<Absence reason="not in primary source" \/>/);
 });
 
-// F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): the sticky nav's own style object moved
-// into the shared `sectionIndexNavStyle()` helper (section-index-styles.ts), consumed by BOTH this
-// component and the new src/components/ui/SectionIndex.tsx part, so the two can never disagree on
-// stickiness. The call site and the helper's own definition are checked separately.
-const SECTION_INDEX_STYLES_SOURCE = readFileSync(
-  resolve(dirname(fileURLToPath(import.meta.url)), "..", "ui", "section-index-styles.ts"),
-  "utf8",
-);
-
-test("SectionIndex calls the shared sticky-nav style helper, not a hand-typed style object", () => {
-  const start = SOURCE.indexOf("export function SectionIndex");
-  const end = SOURCE.indexOf("export function", start + 1);
-  const body = SOURCE.slice(start, end === -1 ? undefined : end);
-  assert.match(body, /sectionIndexNavStyle\(\)/);
-});
-
-test("sectionIndexNavStyle renders sticky (position: sticky), the README section 0.5 'sticky section index' requirement", () => {
-  assert.match(SECTION_INDEX_STYLES_SOURCE, /position: "sticky"/);
-});
+// F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): SectionIndex itself (the sticky nav, the
+// tab strip, the Summary|Full switch) moved entirely out of this file into
+// src/components/ui/SectionIndex.tsx (lane W10-ActionCard-a's own fixed part). This file's own
+// former "SectionIndex calls sectionIndexNavStyle()" / tab-ellipsis tests tested a function that no
+// longer exists here; that coverage now lives in ui/SectionIndex.npmtest.mjs, alongside it, not
+// re-derived against dead code (CLAUDE.md rule 13).
 
 // Lane uiactions (2026-09-07, design ruling R3): the Summary | Full brief depth switch — TWO
 // states only, never the old three-state control, and never role="tab"/"tablist" (that vocabulary
@@ -163,54 +153,20 @@ test("SummaryDepthSwitch's buttons clear the 44px law-2 hit-target floor (both s
   assert.match(body, /minHeight: 44/);
 });
 
-// DEFECT-FIX item 2.3 (2026-09-07, audit ruling, SUPERSEDES the prior "DetailHeader mounts a
-// scoped CommandBar" test this replaces): "the CommandBar in the Masthead is the only search/ask
-// surface" — a second, item-scoped ask box living inside DetailHeader (the old
-// askPlaceholder/askScope props) was itself a second ask surface on every detail page. DetailHeader
-// must not mount CommandBar (or any ask box) at all — nothing dormant left (no unused
-// askPlaceholder/askScope prop survives either).
-test("DetailHeader mounts no CommandBar and carries no askPlaceholder/askScope prop (item 2.3 — one ask surface, the Masthead, never a second box here)", () => {
-  // CODE_ONLY (block comments stripped) — this file's own header prose is allowed to name the
-  // removed props/import for history; the actual code must carry neither.
+// DEFECT-FIX item 2.3 (2026-09-07) retired DetailHeader's scoped CommandBar; check 2 (lane
+// PARITY-PARTS, 2026-09-24) retired DetailHeader itself, superseded by ActionCard (band pill +
+// action row + exposure + timeline, mounted via Masthead's own `actionSlot`). "One ask surface,
+// the Masthead" is now trivially true (there is no second header component left to carry a second
+// one), asserted at the file level instead of against a function that no longer exists.
+test("no second CommandBar/ask-box surface survives in this file (the Masthead's own is the only one)", () => {
   assert.doesNotMatch(CODE_ONLY, /from "@\/components\/ui\/CommandBar"/);
   assert.doesNotMatch(CODE_ONLY, /askPlaceholder/);
   assert.doesNotMatch(CODE_ONLY, /askScope/);
-  const headerBody = SOURCE.slice(
-    SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Masthead:")
-  );
-  assert.doesNotMatch(headerBody, /<CommandBar/);
-  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form");
+  assert.doesNotMatch(CODE_ONLY, /role="search"/, "no hand-rolled second search form survives");
 });
 
-// GAP G2 (2026-09-07): DetailHeader no longer renders an <h1> at all — the item title moved to the
-// shared ui/Masthead (via DetailMasthead), so the item-1.2 "unconditional Anton title" guarantee is
-// now Masthead.tsx's own contract (see Masthead.npmtest.mjs), not this file's. DetailHeader itself
-// carries no title.length/itemGrade-shaped conditional anywhere.
-test("DetailHeader renders no <h1> (title lives in DetailMasthead's Masthead mount, not duplicated here) and no length-based title-style switch survives in this file", () => {
-  const headerBody = SOURCE.slice(
-    SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Masthead:")
-  );
-  assert.doesNotMatch(headerBody, /<h1/);
-  assert.match(headerBody, /aria-label=\{title\}/);
-  assert.doesNotMatch(SOURCE, /title\.length/, "no length-based title-style switch survives anywhere in this file");
-});
-
-// ── DEFECT 6 (lane opsclip, train 61, 2026-09-08): the section index stops cutting words ─────
-test("section index tabs are bounded and truncate with a real ellipsis, with the full label on title", () => {
-  // Production rendered "S6 Operational requirem" and a bare "S7", cut mid-glyph at the card edge,
-  // and pushed the Summary/Full brief toggle onto a second row. The artboard uses SHORT tab labels
-  // ("S1 Cost baseline"); the product passes the section's full title, so the tab is bounded here
-  // in the shared part and truncates properly instead of being cut by the container.
-  //
-  // F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): the tab `<a>` itself moved into the
-  // shared SectionIndexLink.tsx (consumed by both this component and the new
-  // src/components/ui/SectionIndex.tsx part); this file now only supplies the ellipsis SIZING at
-  // its own call site, not the `<a>` markup.
-  assert.match(SOURCE, /const SECTION_TAB_MAX_WIDTH = \d+;/);
-  assert.match(SOURCE, /maxWidth: SECTION_TAB_MAX_WIDTH/);
-  const link = SOURCE.slice(SOURCE.indexOf("<SectionIndexLink"), SOURCE.indexOf("S{i + 1} {s.label}"));
-  assert.match(link, /textOverflow: "ellipsis"/);
-  assert.match(link, /title=\{s\.label\}/, "the full label stays reachable");
+// GAP G2 (2026-09-07) moved the item title into the shared ui/Masthead; check 2 (2026-09-24)
+// retired DetailHeader entirely, so there is no second title-bearing component left to test.
+test("no length-based title-style switch survives anywhere in this file", () => {
+  assert.doesNotMatch(SOURCE, /title\.length/);
 });

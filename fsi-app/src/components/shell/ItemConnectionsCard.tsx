@@ -21,6 +21,7 @@
  * src/lib/connections/connection-view-model.mjs (execution-wired tests) — this component only renders.
  */
 
+import type { CSSProperties } from "react";
 import type { Supersession, ItemConnection } from "@/types/resource";
 import { buildAllConnectionRows } from "@/lib/connections/connection-view-model.mjs";
 import { formatNumber } from "@/lib/format";
@@ -35,6 +36,18 @@ interface ItemConnectionsCardProps {
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
   /** Card title — defaults to "Connections". */
   title?: string;
+  /**
+   * Design handoff 2026-09-25 (#801, boards 03/07/09): "Connections strip moves into the masthead
+   * card; the rail Connections card is removed." `"masthead"` renders the artboard's own masthead
+   * strip (`Caros Ledge UI System.dc.html`, the "Connections · N linked items" block: Anton 17px
+   * title + a muted count, then a `repeat(3, minmax(0,1fr))` grid of bare link-cards, kind label
+   * over a 2-line title, `border-left:2px solid var(--brand)`) rather than this component's own
+   * bordered/shadowed rail box, since the masthead's `SectionCard` already supplies the one card
+   * shell (Masthead.tsx's `connectionsSlot`, same pattern as its `actionSlot`). Default `"rail"` is
+   * unchanged for the one surface (market, board 05) the new boards do not move: rule 19 - the
+   * boards move only 03/07/09, so market's existing rail placement is not guessed into matching.
+   */
+  variant?: "rail" | "masthead";
 }
 
 function toneFor(row: { label: string; discovered: boolean }): string {
@@ -43,14 +56,116 @@ function toneFor(row: { label: string; discovered: boolean }): string {
   return "var(--muted)";
 }
 
+function MastheadConnections({
+  rows,
+  title,
+}: {
+  rows: ReturnType<typeof buildAllConnectionRows>;
+  title: string;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div style={{ padding: "16px 20px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Live-render fix (Playwright pass, 2026-09-25): the artboard's masthead-strip markup draws
+          this grid as a flat 3-column row at 1440 (its own drawn width) with no mobile treatment of
+          its own (undrawn case, README "Mobile 390" section: only the desktop parts are captured).
+          Measured at 375 [CONFIRMED]: 3 fixed columns left each card ~110px wide, hard-clipping both
+          the kind label and the title mid-word. README's own governing rule for every part this
+          lane touches ("375 must not clip - the row is fluid, not a fixed 390 layout") applies here
+          the same as everywhere else, so the grid collapses to 1 column below 640px, matching the
+          breakpoint the rest of this file's siblings (Masthead.tsx) already use for mobile. */}
+      <style>{`
+        @media (max-width: 640px) {
+          .cl-masthead-connections-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 17,
+            lineHeight: 1,
+            color: "var(--ink)",
+          }}
+        >
+          {title}
+        </span>
+        <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, whiteSpace: "nowrap" }}>
+          {formatNumber(rows.length)} linked {rows.length === 1 ? "item" : "items"}
+        </span>
+      </div>
+      <div className="cl-masthead-connections-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10 }}>
+        {rows.slice(0, 6).map((row) => {
+          const body = (
+            <>
+              <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                {row.label}
+                {row.surface !== "uncategorized" ? ` · ${row.surface}` : ""}
+              </span>
+              <span
+                title={row.title}
+                style={{
+                  fontSize: "var(--fs-125)",
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  color: "var(--ink)",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {row.title}
+              </span>
+            </>
+          );
+          const cardStyle: CSSProperties = {
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            minWidth: 0,
+            padding: "9px 12px",
+            border: "1px solid var(--line-1)",
+            borderLeft: "2px solid var(--brand)",
+            borderRadius: "0 6px 6px 0",
+            background: "var(--card)",
+            textDecoration: "none",
+            color: "inherit",
+          };
+          return row.href ? (
+            <a key={row.id} href={row.href} style={cardStyle}>
+              {body}
+            </a>
+          ) : (
+            <div key={row.id} style={cardStyle}>
+              {body}
+            </div>
+          );
+        })}
+      </div>
+      {rows.length > 6 && (
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", fontStyle: "italic" }}>+ {rows.length - 6} more</div>
+      )}
+    </div>
+  );
+}
+
 export function ItemConnectionsCard({
   connections,
   supersessions,
   selfId,
   resourceLookup,
   title = "Connections",
+  variant = "rail",
 }: ItemConnectionsCardProps) {
   const rows = buildAllConnectionRows(supersessions, selfId, connections, resourceLookup);
+
+  if (variant === "masthead") {
+    return <MastheadConnections rows={rows} title={title} />;
+  }
 
   return (
     <div

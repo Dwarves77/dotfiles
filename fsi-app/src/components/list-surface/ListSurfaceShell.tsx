@@ -327,7 +327,10 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
         padding: "10px 16px",
         borderTop: `3px solid ${band.cssVar}`,
         borderBottom: "1px solid var(--line-2)",
-        background: "var(--card)",
+        // Lane PARITY-PARTS (2026-09-24, operator check 1; README 0.5 "Band tints behind text carry
+        // meaning ... lists (band blocks, state notes)"): the band-block header sits on its band's
+        // tint, never on the card white. One declaration here, every list surface.
+        background: band.tintCssVar,
       }}
     >
       {/* Operator item A2 (2026-09-08), verbatim: "the band-block header text ('IMMEDIATE <= 90

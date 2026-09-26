@@ -26,40 +26,37 @@ test("600 weight, --ink-3 (#7A6E6C), 10.5px — ruling 2.1's exact numbers", () 
   assert.match(SOURCE, /fontSize:\s*"var\(--fs-105\)"/);
 });
 
-// ── variant="narrow" (lane opsclip, train 61, defect 3) ───────────────────────
-// RED-THEN-GREEN: production rendered "NOT IN PRIMARY SOURCE" into the list row's 40px TIER track
-// and into every empty cell of the five-column operations matrix, wrapping over three lines in
-// both and doubling the affected rows' height. The rule decided in Absence.tsx's own header, a
-// narrow cell gets the dash, a wide cell gets the reason, is enforced here at both ends: the
-// variant exists and carries the reason to assistive tech, and the two narrow cells use it.
-test("narrow variant renders the dash and still carries the closed-vocabulary reason", () => {
-  assert.match(SOURCE, /variant\?:\s*"reason"\s*\|\s*"narrow"/);
-  assert.match(SOURCE, /if \(variant === "narrow"\)/);
-  assert.match(SOURCE, /aria-label=\{reason\}/);
-  assert.match(SOURCE, /title=\{reason\}/);
-  // UPDATED AT FOLD-61: the dash is drawn by `content` on this span's ::after rather than as a
-  // JSX text child, because the same ONE element now shows the dash above 768 and the small-caps
-  // reason below it (the mobile 390 spec's "Absence keeps its small-caps reason", against
-  // opsclip's 40px tier track). U+2014 is asserted, in the form the stylesheet writes it.
-  assert.match(SOURCE, /content: "\\\\2014"/);
-  assert.match(SOURCE, /@media \(max-width: 767px\)/);
-  assert.match(SOURCE, /cl-absence-word/);
-  // and the reason itself is still rendered, so it is available to read at the width that has room
-  assert.match(SOURCE, /<span className="cl-absence-word"[\s\S]*?\{reason\}/);
+// ── ABSENCE RULE, REVISED (lane PARITY-PARTS look-only pass, 2026-09-25, against the new
+// artboards): OPERATOR CHECK 5 (2026-09-24, "a missing value renders NOTHING") is reversed one day
+// later by the coordinator close addendum: "a value that exists is shown; one that cannot exist
+// yet names the data it needs" (README 0.4, re-exported 2026-09-25). `reason` (the default) now
+// renders a "needs ..." phrase from the closed `NEEDS_PHRASE` map; "pending", "unscored" and "not
+// scored" must never render as literal words. `narrow`/`dash` keep the 2026-09-24 em-dash
+// treatment for fixed-width cells (this file's own DEFECT 3 note), now carrying the needs-phrase
+// on aria-label/title instead of the closed-vocabulary reason string.
+test("narrow and dash variants render only the value-placeholder em dash, at every width, with the needs-phrase on aria-label/title", () => {
+  assert.match(SOURCE, /variant\?:\s*"reason"\s*\|\s*"narrow"\s*\|\s*"dash"/);
+  assert.match(SOURCE, /if \(variant === "dash" \|\| variant === "narrow"\)/);
+  assert.match(SOURCE, /aria-label=\{NEEDS_PHRASE\[reason\]\}/);
+  assert.match(SOURCE, /title=\{NEEDS_PHRASE\[reason\]\}/);
+  assert.match(SOURCE, /\{"—"\}/, "renders the literal em dash character"); // glyph:verbatim
+  assert.doesNotMatch(SOURCE, /@media \(max-width: 767px\)/);
+  assert.doesNotMatch(SOURCE, /cl-absence-word/);
 });
 
-test("the reason variant is unchanged: no dash, no aria-label, the ruling 2.1 treatment", () => {
-  // UPDATED AT FOLD-61. Lane mobfix61 put `cl-absence` on this variant so the design audit can
-  // assert `count: 1` over `.cl-list-row .cl-absence`, which reformatted the one-line return this
-  // test matched verbatim. The INVARIANT is unchanged and is now asserted on its substance rather
-  // than on its formatting: the wide variant renders the reason itself, on the shared text style,
-  // with no dash and no aria-label (those belong to the narrow variant alone).
-  const wide = SOURCE.slice(SOURCE.indexOf("// `cl-absence` (lane mobfix61"));
-  assert.match(wide, /className="cl-absence"/);
-  assert.match(wide, /style=\{ABSENCE_TEXT_STYLE\}/);
-  assert.match(wide, /\{reason\}/);
-  assert.doesNotMatch(wide, /aria-label/);
-  assert.doesNotMatch(wide, /—/);
+test("the reason variant (default) renders a needs-phrase from the closed vocabulary, never nothing", () => {
+  assert.match(SOURCE, /if \(variant === "reason"\) \{/);
+  assert.match(SOURCE, /\{NEEDS_PHRASE\[reason\]\}/);
+});
+
+test("NEEDS_PHRASE never spells the banned words 'pending', 'unscored' or 'not scored'", () => {
+  const map = SOURCE.slice(SOURCE.indexOf("NEEDS_PHRASE:"), SOURCE.indexOf("};", SOURCE.indexOf("NEEDS_PHRASE:")));
+  assert.doesNotMatch(map, /:\s*"pending"/);
+  assert.doesNotMatch(map, /:\s*"unscored"/);
+  assert.doesNotMatch(map, /:\s*"not scored"/i);
+  assert.match(map, /"not in primary source":\s*"needs primary-source figure"/);
+  assert.match(map, /unscored:\s*"needs scoring inputs"/);
+  assert.match(map, /"connect data":\s*"connect ↗"/);
 });
 
 const LIST_ROW = readFileSync(
@@ -88,12 +85,14 @@ test("the row's ONE spelled-out reason renders on the meta line, and every empty
   assert.match(MATRIX, /<Absence reason="not in primary source" \/>/, "the matrix's mobile summary badge keeps the words");
 });
 
-test("the dash variant is a dash and only a dash, and declares itself to the rendering guard", () => {
-  const dash = SOURCE.slice(SOURCE.indexOf('if (variant === "dash")'), SOURCE.indexOf('if (variant === "narrow")'));
+test("the dash/narrow render is a dash and only a dash, and declares itself to the rendering guard", () => {
+  const start = SOURCE.indexOf('if (variant === "dash" || variant === "narrow")');
+  assert.notEqual(start, -1);
+  const dash = SOURCE.slice(start, SOURCE.indexOf("return null;", start));
   assert.match(dash, /data-absence="dash"/, "the guard's placeholder-literal scan skips a declared dash");
-  assert.match(dash, /aria-label=\{reason\}/);
-  assert.match(dash, /title=\{reason\}/);
+  assert.match(dash, /aria-label=\{NEEDS_PHRASE\[reason\]\}/);
+  assert.match(dash, /title=\{NEEDS_PHRASE\[reason\]\}/);
   assert.match(dash, /className="cl-absence-dash"/);
   assert.doesNotMatch(dash, /className="cl-absence"/, "the dash is a value placeholder, not the countable reason token");
-  assert.doesNotMatch(dash, /\{reason\}\s*<\/span>/, "the dash never renders the word as text");
+  assert.doesNotMatch(dash, /\{reason\}\s*<\/span>/, "the dash never renders the raw reason as text");
 });

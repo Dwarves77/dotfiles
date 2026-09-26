@@ -63,41 +63,74 @@ export function SectionIndex({ sections, depth, onDepthChange }: SectionIndexPro
       className="cl-section-index"
       style={{ ...sectionIndexNavStyle(), minWidth: 0 }}
     >
-      {/* Lane W10-ActionCard-b (2026-09-22), layout guard L9: on the live regulation surface at
-          1024px the strip's off-screen (scrolled-past) tabs still report their true, un-clipped
-          layout position (a browser overflow:auto characteristic, not a rendering bug), which
-          geometrically lands under the depth switch even though nothing is visually or click-wise
-          overlapping. Below the width where that happens, the switch drops to its own row (still a
-          child of this nav, never a second sibling element; the "no standalone row" acceptance
-          reads DOM parentage, proven by section-index-smoke.mjs's own isChildOfNav check), so no
-          two targets can share the same on-screen band. */}
+      {/* Operator check 7 (lane PARITY-PARTS, 2026-09-24): "the Summary|Full switch sits inside the
+          index bar at the same position on every detail page", the harness measures this as literal
+          DOM containment in the SAME bordered pill-group card the tabs render in
+          (`[data-guard-strip]`), not merely inside this <nav>. The switch previously rendered as a
+          sibling of the strip card here (its own separate bordered box, pinned to the nav's own right
+          edge), which is what the baseline measured as "switch outside the index bar (tab strip)" on
+          every detail route. Restructured so `data-guard-strip` now carries the border/background/
+          radius/padding (the ONE visual card, "the index bar"), with the scrolling tab list as an
+          inner flex child and the switch as a second, non-scrolling flex child pinned to the card's
+          trailing edge, so the switch can never scroll away with the tabs and always sits at the
+          same position (the strip card's own right end) on every detail page.
+
+          Layout guard L9 (below, restored after the restructure above briefly dropped it): at a
+          narrow-but-not-mobile width (1024px, this repo's own measured trap) a horizontally
+          scrolling tab row and a non-scrolling switch pinned beside it can overlap, the same real
+          browser overflow:auto quirk this component's own SectionIndexLink.tsx already documents
+          for off-screen tabs' true (un-clipped) layout position. Below `--section-index-wrap-bp`
+          the STRIP itself wraps (`flex-wrap: wrap`), dropping the switch to its own row, still a
+          DOM child of `[data-guard-strip]` (check 7's containment holds: `strip.contains(sw)` is
+          unchanged by which row it wraps to), never a second sibling card. */}
       <style>{`
         @media (max-width: 1100px) {
-          .cl-section-index { flex-wrap: wrap; row-gap: 8px; }
-          .cl-section-index [data-guard-strip] { flex-basis: 100%; }
+          .cl-section-index-strip { flex-wrap: wrap; row-gap: 8px; }
+          .cl-section-index-strip .cl-section-index-tabs { flex-basis: 100%; }
         }
       `}</style>
       <div
         data-guard-strip
-        style={sectionIndexStripStyle({
-          // THE fix (review acceptance "index labels never truncate; at 375 the bar scrolls
-          // horizontally inside itself, the page never does"): this strip is the one scrolling
-          // element, and it holds every tab at its natural width, never an ellipsised max-width.
-          overflowX: "auto",
-          whiteSpace: "nowrap",
-          flex: "1 1 auto",
-        })}
+        className="cl-section-index-strip"
+        style={sectionIndexStripStyle({ flex: "1 1 auto", minWidth: 0 })}
       >
-        {sections.map((s, i) => {
-          const isActive = i === active;
-          return (
-            <SectionIndexLink key={s.id} id={s.id} isActive={isActive} sizing={{}}>
-              S{i + 1} {s.shortName}
-            </SectionIndexLink>
-          );
-        })}
+        <div
+          data-guard-strip
+          className="cl-section-index-tabs"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            // THE fix (review acceptance "index labels never truncate; at 375 the bar scrolls
+            // horizontally inside itself, the page never does"): this inner row is the one scrolling
+            // element, and it holds every tab at its natural width, never an ellipsised max-width.
+            // `data-guard-strip` also lives here (not only on the outer wrapper above): the UX
+            // assert's clipped-overflow detector (ux-assert.mjs) requires `data-guard-strip` AND
+            // `overflow-x: auto` on the SAME ancestor element to recognize a tab as legitimately
+            // scrollable, and this is the element that actually scrolls. The outer wrapper keeps its
+            // own `data-guard-strip` too, for check 7's "switch is inside the SAME bordered card"
+            // containment (querySelector finds the outer one first, which still contains the switch).
+            overflowX: "auto",
+            whiteSpace: "nowrap",
+            flex: "1 1 auto",
+            minWidth: 0,
+          }}
+        >
+          {sections.map((s, i) => {
+            const isActive = i === active;
+            return (
+              <SectionIndexLink key={s.id} id={s.id} isActive={isActive} sizing={{}}>
+                S{s.ord ?? i + 1} {s.shortName}
+              </SectionIndexLink>
+            );
+          })}
+        </div>
+        {depth && onDepthChange && (
+          <div style={{ flexShrink: 0 }}>
+            <SummaryDepthSwitch depth={depth} onChange={onDepthChange} />
+          </div>
+        )}
       </div>
-      {depth && onDepthChange && <SummaryDepthSwitch depth={depth} onChange={onDepthChange} />}
     </nav>
   );
 }

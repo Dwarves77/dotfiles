@@ -39,23 +39,19 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { WatchButton } from "@/components/ui/WatchButton";
-import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { DetailSubSection } from "@/components/ui/DetailSubSection";
+import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
+import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
-import { DetailTagRow } from "@/components/ui/DetailTagRow";
+import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
-  DetailHeader,
   DetailMasthead,
-  DetailExposure,
-  DetailTimeline,
-  SectionIndex,
-  SummaryDepthSwitch,
-  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -64,7 +60,7 @@ import {
   RailLegend,
   InThisListStat,
   DetailRail,
-  type SectionIndexEntry,
+  topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -170,100 +166,98 @@ export function ResearchFindingDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
-  const [depth, setDepth] = useState<SummaryDepth>("summary");
+  const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
+  const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
+  // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
+  // ActionCard comment below for why S3/S4 are a real gap, never renumbered).
+  //
+  // Design handoff 2026-09-25 (#801, board 07): "Connections strip moves into the masthead card."
+  // The board names only Connections, not the by-theme/by-source related-findings list this section
+  // also carries (rule 19 - do not guess the list into the masthead too) - so the two are split:
+  // `hasConnections` gates the masthead's `connectionsSlot`, `hasRelatedFindings` gates the "Related"
+  // S6 section, which now holds only the findings list.
+  const hasConnections = connections.length > 0 || supersessions.length > 0;
+  const hasRelatedFindings = related.length > 0;
   const indexEntries: SectionIndexEntry[] = isRecord
-    ? [{ id: "summary", label: "Summary" }, { id: "sources", label: "Sources" }]
+    ? [
+        { id: "summary", shortName: "Summary", ord: 1 },
+        { id: "sources", shortName: "Sources", ord: 5 },
+        ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+      ]
     : [
-        ...knownSections.map((s) => ({ id: `sec-${s.section_key}`, label: RESEARCH_SECTION_HEADINGS[s.section_key] })),
-        ...(knownSections.length === 0 ? [{ id: "summary", label: "Summary" }] : []),
-        { id: "sources", label: "Sources" },
+        { id: "summary", shortName: "Summary", ord: 1 },
+        { id: "findings", shortName: "Findings", ord: 2 },
+        { id: "sources", shortName: "Sources", ord: 5 },
+        ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
       ];
+
+  const actionCard = (
+    <ActionCard
+      bare
+      band={band}
+      kindLabel="Finding"
+      extraChips={
+        <>
+          {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
+          {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
+          {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped,
+              matches the operations detail's own modes chip (OperationsDetailSurface.tsx) for
+              the case where modes IS restricted; a finding with no modes on record applies
+              broadly, so "All modes" is the honest label rather than omitting the chip. */}
+          {r.modes && r.modes.length > 0 ? (
+            r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)
+          ) : (
+            <TagChip>All modes</TagChip>
+          )}
+        </>
+      }
+      tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      meta={
+        sourceRows.length > 0
+          ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+              connections.length > 0 ? ` · ${connections.length} connections` : ""
+            }`
+          : null
+      }
+      onExport={() =>
+        downloadMarkdownBrief(r, {
+          filenamePrefix: "research",
+          metaRows: [
+            r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+            r.type ? `- Type: ${r.type}` : null,
+            r.url ? `- Source: ${r.url}` : null,
+          ],
+        })
+      }
+      {...commonActionCardProps({ r, tagOpen, setTagOpen, itemType: "research", initialWatched, initialTeamWatched, initialTeamAvailable })}
+      where={{ value: jurisLabel }}
+    />
+  );
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
-      <DetailPageWrapper>
+      <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
+        {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
+            masthead card via DetailMasthead's `actionSlot` (bare, no second SectionCard shell).
+            The requirement-trajectory sentence has no slot in the merged card (its fourth EXPOSURE
+            cell is NEXT MILESTONE, computed internally from `timeline`); moved into S1 Summary,
+            same as the regulation surface's own `trajectoryNode`. */}
         <DetailMasthead
           title={r.title}
           band={band}
           surface="Research"
           jurisdiction={jurisLabel}
           dek={meta}
-          placeholder="Ask about this finding — e.g. when does the largest deadline hit"
-        />
-        <DetailHeader
-          band={band}
-          tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
-          title={r.title}
-          tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          extraChips={
-            <>
-              <TagChip>Finding</TagChip>
-              {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
-              {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
-              {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped —
-                  matches the operations detail's own modes chip (OperationsDetailSurface.tsx) for
-                  the case where modes IS restricted; a finding with no modes on record applies
-                  broadly, so "All modes" is the honest label rather than omitting the chip. */}
-              {r.modes && r.modes.length > 0 ? (
-                r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)
-              ) : (
-                <TagChip>All modes</TagChip>
-              )}
-            </>
-          }
-          headerStat={
-            sourceRows.length > 0
-              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
-                  connections.length > 0 ? ` · ${connections.length} connections` : ""
-                }`
-              : null
-          }
-          actions={
-            <ActionRow
-              onExport={() =>
-                downloadMarkdownBrief(r, {
-                  filenamePrefix: "research",
-                  metaRows: [
-                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                    r.type ? `- Type: ${r.type}` : null,
-                    r.url ? `- Source: ${r.url}` : null,
-                  ],
-                })
-              }
-              onShare={() => shareResource(r)}
-              onTag={() => setTagOpen((v) => !v)}
-              exportDisabled={!(r.fullBrief || r.url)}
-              watch={
-                <WatchButton
-                  itemType="research"
-                  itemId={String(r.id)}
-                  variant="row"
-                  initialWatched={initialWatched}
-                  initialTeamWatched={initialTeamWatched}
-                  initialTeamAvailable={initialTeamAvailable}
-                />
-              }
-            />
+          placeholder="Ask about this finding, e.g. when does the largest deadline hit"
+          actionSlot={actionCard}
+          connectionsSlot={
+            hasConnections ? <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} variant="masthead" /> : undefined
           }
         />
 
-        <DetailExposure
-          items={[
-            { label: "Where", value: jurisLabel },
-            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
-            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
-            {
-              label: "Trajectory",
-              value: renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || <Absence reason="pending" />,
-            },
-          ]}
-        />
-
-        <DetailTimeline entries={r.timeline} band={band} />
-
-        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
+        <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
 
         <DetailLayout
           rail={
@@ -282,14 +276,10 @@ export function ResearchFindingDetailSurface({
               }
               impact={<ImpactRailCard scores={impact} />}
               relevance={<RelevanceBadgeClient itemId={r.id} />}
-              /* Artboard 07's page-specific cards, in its own order:
-                 CONNECTIONS · 24, then CLUSTER SYNTHESIS. */
-              designed={
-                <>
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                  {themeBrief && <ThemeBriefCard brief={themeBrief} />}
-                </>
-              }
+              /* Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card,
+                 moved into the "Related" section in main content (ruling 2 S-order, 06 Related),
+                 below. Cluster synthesis (the artboard's other page-specific rail card) is unaffected. */
+              designed={themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
               legend={<RailLegend />}
               /* R7 — artboard 07 draws no place-keeping card. */
               undesigned={<InThisListStat backHref="/research" backLabel="Back to list" band={band} />}
@@ -297,28 +287,40 @@ export function ResearchFindingDetailSurface({
           }
         >
           {isRecord ? (
-            <DetailSection id="summary" title="Summary">
+            <DetailSection id="summary" title="Summary" index={1}>
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
+              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />
                 </div>
               )}
             </DetailSection>
-          ) : knownSections.length > 0 ? (
-            knownSections.map((s) => (
-              <DetailSection key={s.section_key} id={`sec-${s.section_key}`} title={RESEARCH_SECTION_HEADINGS[s.section_key]}>
-                <FactBlocks markdown={s.content_md} />
-              </DetailSection>
-            ))
           ) : (
-            <DetailSection id="summary" title="Summary">
-              {r.whatIsIt || r.note || r.whyMatters ? (
-                <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
-                  {r.whatIsIt || r.note || r.whyMatters}
-                </p>
+            /* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
+               is fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05
+               Sources, 06 Related. Exposure/Timeline live in the masthead ActionCard, never a tab.
+               This surface's former S1-S5 content sections (What the research found / Why it
+               matters / Strategy & claims / Talking points / What does not resolve) are now
+               sub-headings inside ONE S2 "Substantive findings" section, not separate top-level tabs. */
+            <DetailSection id="findings" title="Substantive findings" index={2}>
+              {knownSections.length > 0 ? (
+                knownSections.map((s, i) => (
+                  <DetailSubSection key={s.section_key} title={RESEARCH_SECTION_HEADINGS[s.section_key]} first={i === 0}>
+                    <FactBlocks markdown={s.content_md} />
+                  </DetailSubSection>
+                ))
               ) : (
-                <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
+                <>
+                  {r.whatIsIt || r.note || r.whyMatters ? (
+                    <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+                      {r.whatIsIt || r.note || r.whyMatters}
+                    </p>
+                  ) : (
+                    <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
+                  )}
+                  {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
+                </>
               )}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
@@ -328,12 +330,15 @@ export function ResearchFindingDetailSurface({
             </DetailSection>
           )}
 
-          <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
+          <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
-          {related.length > 0 && (
-            <DetailSection id="related" title="Related findings" aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
+          {hasRelatedFindings && (
+            <DetailSection id="related" title="Related" index={6} aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
+              {/* Design handoff 2026-09-25 (#801, board 07): Connections moved into the masthead
+                  card (connectionsSlot above); this section now holds only the by-theme/by-source
+                  related-findings list the boards do not name for the masthead move (rule 19). */}
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {related.map((it) => (
                   <Link

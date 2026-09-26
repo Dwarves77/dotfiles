@@ -45,9 +45,19 @@ export interface ActionRowProps {
    */
   onTag?: () => void;
   exportDisabled?: boolean;
+  /**
+   * Operator ruling (lane PARITY-PARTS, 2026-09-25): a per-item, per-user overflow control (today,
+   * regulations' priority/dismiss/archive "⋯" menu) mounts as the LAST control in this row, styled
+   * like the row's own buttons (same 44px height; the control itself already carries no border and
+   * no circle per the 2026-09-08 B2 ruling baked into PriorityDropdown.tsx - this prop only relocates
+   * it, it does not restyle it). Optional: a surface with no such control (market/research/operations
+   * today) passes nothing and the row is unchanged. Never a band chip, never anything that mutates
+   * the item's stored band - a per-user setting only.
+   */
+  overflow?: ReactNode;
 }
 
-export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled }: ActionRowProps) {
+export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled, overflow }: ActionRowProps) {
   return (
     <div className="cl-action-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "DETAIL HEADER": "FOUR ACTIONS as a 2x2
@@ -80,6 +90,7 @@ export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled }: A
           + Tag
         </ActionButton>
       )}
+      {overflow}
     </div>
   );
 }

@@ -45,8 +45,19 @@ test("shareResource and downloadMarkdownBrief are exported for reuse by all four
   assert.match(SOURCE, /export function downloadMarkdownBrief/);
 });
 
-test("the three unrefactored detail surfaces import ActionRow from the shared ui/ part directly, not a page-local copy", () => {
+// Operator check 2 (lane PARITY-PARTS, 2026-09-24) completed what lane W10-ActionCard-b started for
+// regulations only: all four detail surfaces now mount ONE <ActionCard> (band pill + action row +
+// exposure + timeline, rendered inside the masthead card via Masthead's own actionSlot), never a
+// direct ActionRow import or a page-local exportBriefAsMarkdown/shareCurrent reimplementation.
+//
+// F45 duplicate-code (same lane, same day): the four surfaces' ActionCard tail
+// (tagPopover/onShare/onTag/exportDisabled/watch) was byte-identical but for `itemType`, retyped
+// four times. Extracted to `commonActionCardProps` (src/lib/detail/action-card-common-props.tsx),
+// which owns the `shareResource` import; a surface now imports only `downloadMarkdownBrief`
+// directly (its own `onExport` still carries real per-surface metaRows).
+test("all four detail surfaces reuse ActionRow indirectly via the shared ActionCard part, never a page-local copy", () => {
   const surfaces = [
+    "../regulations/RegulationDetailSurface.tsx",
     "../pages/MarketSignalDetailSurface.tsx",
     "../research/ResearchFindingDetailSurface.tsx",
     "../operations/OperationsDetailSurface.tsx",
@@ -55,8 +66,23 @@ test("the three unrefactored detail surfaces import ActionRow from the shared ui
     const src = readFileSync(resolve(DIR, rel), "utf8");
     assert.match(
       src,
-      /import \{ ActionRow, shareResource, downloadMarkdownBrief \} from "@\/components\/ui\/ActionRow"/,
-      `${rel} must import the shared ActionRow part`
+      /import \{ downloadMarkdownBrief \} from "@\/components\/ui\/ActionRow"/,
+      `${rel} must import downloadMarkdownBrief from the shared ActionRow part`
+    );
+    assert.doesNotMatch(
+      src,
+      /import \{ ActionRow[,\s]/,
+      `${rel} must not import ActionRow directly - it renders via ActionCard`
+    );
+    assert.match(
+      src,
+      /import \{ ActionCard \} from "@\/components\/ui\/ActionCard"/,
+      `${rel} must render ActionRow via the shared ActionCard part, not inline`
+    );
+    assert.match(
+      src,
+      /import \{ commonActionCardProps \} from "@\/lib\/detail\/action-card-common-props"/,
+      `${rel} must reuse the shared ActionCard tail, not retype it`
     );
     assert.doesNotMatch(
       src,
@@ -69,33 +95,18 @@ test("the three unrefactored detail surfaces import ActionRow from the shared ui
       `${rel} must not keep its own local shareCurrent copy`
     );
   }
-});
-
-test("RegulationDetailSurface reuses ActionRow indirectly via the shared ActionCard part (lane W10-ActionCard-b, 2026-09-22), never a page-local copy", () => {
-  // build item 1 replaced this surface's direct DetailHeader/DetailExposure/DetailTimeline render
-  // with ONE <ActionCard>, which itself imports and renders the real ActionRow
-  // (src/components/ui/ActionCard.tsx). RegulationDetailSurface.tsx therefore no longer imports
-  // ActionRow directly, but still imports shareResource/downloadMarkdownBrief for its Export/Share
-  // handlers, and carries no local exportBriefAsMarkdown/shareCurrent reimplementation, the SAME
-  // invariant this file's other test enforces by name.
-  const regSrc = readFileSync(resolve(DIR, "../regulations/RegulationDetailSurface.tsx"), "utf8");
-  assert.match(
-    regSrc,
-    /import \{ shareResource, downloadMarkdownBrief \} from "@\/components\/ui\/ActionRow"/,
-    "RegulationDetailSurface.tsx must import shareResource/downloadMarkdownBrief from the shared ActionRow part"
-  );
-  assert.match(
-    regSrc,
-    /import \{ ActionCard \} from "@\/components\/ui\/ActionCard"/,
-    "RegulationDetailSurface.tsx must render ActionRow via the shared ActionCard part, not inline"
-  );
-  assert.doesNotMatch(regSrc, /function exportBriefAsMarkdown/, "RegulationDetailSurface.tsx must not keep its own local exportBriefAsMarkdown copy");
-  assert.doesNotMatch(regSrc, /function shareCurrent/, "RegulationDetailSurface.tsx must not keep its own local shareCurrent copy");
 
   const actionCardSrc = readFileSync(resolve(DIR, "ActionCard.tsx"), "utf8");
   assert.match(
     actionCardSrc,
     /import \{ ActionRow \} from "@\/components\/ui\/ActionRow"/,
     "ActionCard.tsx must import the shared ActionRow part"
+  );
+
+  const commonPropsSrc = readFileSync(resolve(DIR, "../../lib/detail/action-card-common-props.tsx"), "utf8");
+  assert.match(
+    commonPropsSrc,
+    /import \{ shareResource \} from "@\/components\/ui\/ActionRow"/,
+    "action-card-common-props.tsx must import shareResource from the shared ActionRow part"
   );
 });
