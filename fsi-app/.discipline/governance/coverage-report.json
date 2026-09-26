@@ -1640,6 +1640,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/SectionIndex.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/SectionRule.coverage.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -4123,8 +4132,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/src/lib/relative-time.npmtest.mjs",
@@ -7120,8 +7129,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/propagation/seed-derived-values.mjs",
@@ -7813,7 +7822,27 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/verify/lib/harness-family-walk-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/verify/lib/schema-drift.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/ui-orphan-scan.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7872,6 +7901,15 @@
     },
     {
       "path": "fsi-app/scripts/verify/non-destructive-grounding.golden.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/pagination-order-key-audit.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11334,11 +11372,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1059,
-    "covered": 1016,
+    "governed_files": 1063,
+    "covered": 1022,
     "exempt": 41,
-    "gaps": 2,
-    "orphaned_proofs": 2,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

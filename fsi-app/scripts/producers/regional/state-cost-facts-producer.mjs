@@ -25,10 +25,10 @@
 // artifact's defects_found for registry review, matching rule 18's own "find the source and rate it"
 // mandate (a follow-up classification action, not a hand-typed tier here).
 //
-// GROUNDING (ADR-016-class verbatim-span requirement; see state-cost-facts-envelope.mjs's own header for
-// the ADR-NUMBER MISMATCH this lane found and is reporting honestly, not silently working around). A
-// candidate with no span, or a span that is not verbatim in its capture, is refused
-// (`refused_ungrounded`), never written with an invented or paraphrased grounding.
+// GROUNDING (CLAUDE.md rule 18 / ADR-016; see state-cost-facts-envelope.mjs's own header for the exact
+// citation, the same verbatim-span requirement validate_item_provenance criterion 3 applies to a
+// regulatory FACT's source_span). A candidate with no span, or a span that is not verbatim in its
+// capture, is refused (`refused_ungrounded`), never written with an invented or paraphrased grounding.
 //
 // DOWNSTREAM TRIGGER (rule 17: "an analysis is not done until its result is written where the surfaces
 // read it... a runtime that ends without triggering its downstream is a defect in the runtime"). What

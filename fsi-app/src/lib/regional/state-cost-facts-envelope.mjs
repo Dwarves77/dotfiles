@@ -17,14 +17,15 @@
 // the regional_data_facts shape, see run-envelope-producer.mjs for why that table needed
 // buildEnvelopeRow(); this table's `value` is already the display value, nothing derives it.
 //
-// GROUNDING (ADR-016's verbatim-span requirement, general form: "every fact's span must be verbatim in
-// a capture"). NOTE ON ADR NUMBERING: the docs/decisions/ADR-016 file THIS lane's worktree actually
-// carries is "Storage-side uncap" (2026-07-21), not a verbatim-span decision, the dispatch brief's
-// citation does not match the live file. The verbatim-span DISCIPLINE itself is real and enforced
-// elsewhere (validate_item_provenance's claim-ledger grounding, CLAUDE.md rule 18's "any span that is not
-// verbatim in a capture" carve-out) even though the specific ADR number is a mismatch; this module
-// enforces the discipline by name and flags the numbering mismatch in the lane report rather than
-// asserting an ADR-016 content it could not verify.
+// GROUNDING (CLAUDE.md standing rule 18: "any span that is not verbatim in a capture (ADR-016)"). ADR-016
+// ("Storage-side uncap", 2026-07-21) is the correct citation for this rule as a PAIR, not a mismatch: it
+// is what keeps `agent_run_searches.result_content` the FULL captured source text rather than a sliced
+// excerpt, which is the precondition for a verbatim-span check to mean anything (migration 264's own
+// header, renaming `result_content_excerpt` -> `result_content`: "the column is not an excerpt, it is the
+// FULL captured source content and the whole grounding pool -- `validate_item_provenance` criterion 3
+// checks every FACT `source_span` verbatim against it"). This module applies the SAME discipline to
+// state_cost_facts candidates: `span_text` must be a verbatim substring of the candidate's own capture,
+// exactly what criterion 3 checks for a regulatory FACT against its stored capture.
 //
 // SOURCE RATING (CLAUDE.md rule 18: "the source is found and rated, never the figure refused... tier
 // from the institution class table, never hand-typed"). Tier comes from

@@ -59,9 +59,70 @@ registered-method change), not a mechanical reuse this lane makes unilaterally.
 
 ## Blockers / open items for the coordinator
 
-1. State-grain automate-vs-hire DAG authorship (above) - needs a ruling before it can be built.
+1. State-grain automate-vs-hire DAG authorship, decision-ready package below - needs a ruling.
 2. Wiring the producer into a `producers.yml` dry-mode-only schedule (F25 allowlist's own
    `reviewByPhase`) is a separate, later, operator-ruled decision.
+
+### Decision-ready: state-grain automate-vs-hire DAG authorship
+
+Governing docs: spec 08 (`docs/specs/08-flywheel-design.md`) section 2.2 (derivation_edges is the
+invalidation DAG, "derived from the provenance chain, not hand-maintained") and its own section-2.3
+worked example, which names "Operations: 4 automate-vs-hire results that used the factor" as the
+canonical thing a DAG authorship call connects; section 3.3 (the pollution barrier, `admissibleFor`,
+irrelevant to which table feeds the method but confirms every consumer of a derived value goes through
+one gate, not this table). ADR-023 (producer execution model): "store, producer, reader and runner ship
+together, or the work order is not done" - the DAG-authorship question is exactly this bar applied one
+layer further (producer, reader AND downstream-connector, per CLAUDE.md rule 17).
+
+**What the existing regional producers author, and why.** `run-envelope-producer.mjs`'s
+`authorAutomateVsHireForRegions` calls `author-edges.mjs::authorEdges` with
+`{table:"regional_data_facts", id:<wage-or-energy-row-id>, method:{id:"automate_vs_hire",
+version:"1.0.0"}, inputs:[{table:"regional_data_facts",pk:wage.id},{table:"regional_data_facts",
+pk:energy.id}]}` whenever a region's labor_markets (hourly wage) + operational_cost (energy) pair is
+BOTH present. `automate-vs-hire.ts`'s `findFactByDimension` then resolves those inputs, filtering
+`ref.table !== "regional_data_facts"` and requiring `typeof row.value_numeric === "number"`. This is the
+literal spec-08 section-2.3 worked example: "Operations: 4 automate-vs-hire results" are these rows.
+
+**Option A: add `value_numeric` to `state_cost_facts`.**
+```sql
+-- new migration, additive, mirrors migration 267's own origin_class-only step for this table
+ALTER TABLE public.state_cost_facts
+  ADD COLUMN IF NOT EXISTS value_numeric numeric;
+COMMENT ON COLUMN public.state_cost_facts.value_numeric IS
+  'Numeric mirror of value (TEXT). Nullable, additive, no backfill in this migration - lets
+   registered derivation methods (automate_vs_hire) read state-grain facts the same way they
+   read regional_data_facts.value_numeric.';
+```
+Then `buildStateCostFactRow` (state-cost-facts-envelope.mjs) gains one field
+(`value_numeric: Number(candidate.value)` when parseable, else null); no other code changes.
+`findFactByDimension`'s table filter widens to accept `"state_cost_facts"` too (a 1-line change in
+`automate-vs-hire.ts`), AND `derivation_edges_from_table_allowed` (migration 285's CHECK, currently
+`emission_factors, market_series, regional_data_facts, derived_values, statutory_computations,
+estimated_values`, state_cost_facts is NOT a member) needs the SAME widening - so option A is not
+schema-free, it is one small additive migration plus one CHECK widen.
+
+**Option B: widen the registered method's table check without adding a column.** Not viable on inspection:
+`findFactByDimension` requires `typeof row.value_numeric === "number"`, and `state_cost_facts` has no such
+column at all (migration 267 gave it only `origin_class`). Widening the table-name filter with no
+column to read from is a silent no-op (every state_cost_facts input would resolve to
+`row.value_numeric === undefined`, refused as "no resolvable... input"), so option B COLLAPSES INTO
+option A: there is no code-only path, the column has to exist either way.
+
+**Consumers checked (B1, grep across `src`/`scripts`):** `state_cost_facts` readers are
+`src/lib/supabase-server.ts:3507` and `src/app/api/ask/route.ts:245`, BOTH use explicit column lists
+(`state_code, state_label, dimension, fact_label, value, unit, trend, statute_citation, effective_date,
+origin_class, source:sources(name)`), neither `select("*")` - adding `value_numeric` breaks zero
+consumers (additive-only). `automate-vs-hire.ts`/`findFactByDimension` consumers:
+`author-edges.mjs`, `run-envelope-producer.mjs` (region-grain, unaffected by a widen), `seed-derived-
+values.mjs` (region-grain, same), `AutomateVsHireCalculator.tsx` + `EstimatedFigure.tsx` (render
+`derived_values`/`estimated_values` rows post-computation, table-agnostic, unaffected). No consumer
+breaks under either option; the real cost is TWO migrations (state_cost_facts.value_numeric,
+derivation_edges CHECK widen), not a pure code change, for either option.
+
+**Recommendation (one line):** build option A (add `value_numeric`, widen the table filter, widen the
+CHECK) in a follow-up lane once the coordinator rules on it - it is genuinely the only viable path, has a
+tiny migration diff, breaks no consumer, and needs no method-version bump since `automate_vs_hire`'s
+computation itself (wage + energy -> NPV) is grain-agnostic, only its *input resolution* needs widening.
 
 ## Next steps
 
