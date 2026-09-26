@@ -205,7 +205,9 @@ test("unscored renders the same four bars, dashed outline, no fill, no word", ()
 
 test("the unscored score slot is an em dash via Absence's dash variant, carrying the reason only off-text", () => {
   const markup = render({ scores: undefined });
-  assert.match(markup, /class="cl-absence-dash" data-absence="dash" aria-label="unscored" title="unscored"/);
+  // 2026-09-25 (Absence rule reversal, look-only pass against the new artboards): the dash variant's
+  // aria-label/title now carry the closed-vocabulary NEEDS_PHRASE text, not the raw reason string.
+  assert.match(markup, /class="cl-absence-dash" data-absence="dash" aria-label="needs scoring inputs" title="needs scoring inputs"/);
   assert.match(markup, />\u2014<\/span>/);
 });
 

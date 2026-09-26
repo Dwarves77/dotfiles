@@ -241,16 +241,19 @@ export function RegulationDetailSurface({
   };
 
   const hasPenalties = hasPenaltyContent(r);
+  // Design handoff 2026-09-25 (#801, board 03): Connections moves into the masthead card (via
+  // DetailMasthead's connectionsSlot below) and is no longer a jump-to S-section in main content,
+  // so "related" is always excluded from the sticky index now (there is no such section any more).
   const hasRelated = connections.length > 0 || supersessions.length > 0;
   const indexEntries: SectionIndexEntry[] = useMemo(
     () =>
       REGULATION_SECTION_INDEX.filter((e) => {
+        if (e.id === "related") return false;
         if (e.id === "summary" || e.id === "sources") return true;
         if (e.id === "penalties") return hasPenalties;
-        if (e.id === "related") return hasRelated;
         return dynamicSectionsByIndexId.has(e.id);
       }),
-    [dynamicSectionsByIndexId, hasPenalties, hasRelated]
+    [dynamicSectionsByIndexId, hasPenalties]
   );
 
   // Trajectory sentence moved to S1 Summary (review item 5 / brief item 5); ActionCard's fourth
@@ -309,7 +312,11 @@ export function RegulationDetailSurface({
             `actionSlot` (bare, no second SectionCard shell). The per-item priority menu, which used
             to render as a small control immediately above the WHOLE masthead card (its own separate
             row), now mounts as the LAST control in the action row itself (ActionCard's `overflow`
-            prop above) - no longer a sibling element at all. */}
+            prop above) - no longer a sibling element at all.
+            Design handoff 2026-09-25 (#801, board 03): Connections moves into the SAME masthead
+            card, below the action row, via `connectionsSlot` - it is no longer a "Related" section
+            in main content (see indexEntries above) and never rendered when there is nothing to
+            show (hasRelated), matching every other additive masthead slot. */}
         <DetailMasthead
           title={r.title}
           band={band}
@@ -318,6 +325,9 @@ export function RegulationDetailSurface({
           dek={meta}
           placeholder="Ask about this regulation, e.g. when does the largest deadline hit"
           actionSlot={actionCard}
+          connectionsSlot={
+            hasRelated ? <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} variant="masthead" /> : undefined
+          }
         />
 
         {showIntegrityBanner && <IntegrityBanner phrase={r.agentIntegrityPhrase!} />}
@@ -348,9 +358,9 @@ export function RegulationDetailSurface({
               impact={<ImpactRailCard scores={impact} />}
               relevance={<RelevanceBadgeClient itemId={r.id} />}
               /* Artboard 03's page-specific cards, in its own order: OWNER & TEAM, IN THIS LIST.
-                 Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card,
-                 moved into the trailing "Related" section in main content below (matching the
-                 market/research/operations port). */
+                 Connections is not a rail card (operator check 8, 2026-09-24) and, per the 2026-09-25
+                 boards, is no longer a main-content section either - it renders inside the masthead
+                 card (DetailMasthead's `connectionsSlot` above). */
               designed={
                 <>
                   <OwnerTeamCard resource={r} initialOwner={initialOwner} />
@@ -411,11 +421,6 @@ export function RegulationDetailSurface({
             </DetailSection>
           )}
 
-          {depth === "full" && hasRelated && (
-            <DetailSection id="related" title="Related" index={sectionOrdinal("related")}>
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-            </DetailSection>
-          )}
         </DetailLayout>
       </DetailPageWrapper>
     </div>

@@ -172,18 +172,25 @@ export function ResearchFindingDetailSurface({
 
   // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
   // ActionCard comment below for why S3/S4 are a real gap, never renumbered).
-  const hasRelated = connections.length > 0 || supersessions.length > 0 || related.length > 0;
+  //
+  // Design handoff 2026-09-25 (#801, board 07): "Connections strip moves into the masthead card."
+  // The board names only Connections, not the by-theme/by-source related-findings list this section
+  // also carries (rule 19 - do not guess the list into the masthead too) - so the two are split:
+  // `hasConnections` gates the masthead's `connectionsSlot`, `hasRelatedFindings` gates the "Related"
+  // S6 section, which now holds only the findings list.
+  const hasConnections = connections.length > 0 || supersessions.length > 0;
+  const hasRelatedFindings = related.length > 0;
   const indexEntries: SectionIndexEntry[] = isRecord
     ? [
         { id: "summary", shortName: "Summary", ord: 1 },
         { id: "sources", shortName: "Sources", ord: 5 },
-        ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+        ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
       ]
     : [
         { id: "summary", shortName: "Summary", ord: 1 },
         { id: "findings", shortName: "Findings", ord: 2 },
         { id: "sources", shortName: "Sources", ord: 5 },
-        ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+        ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
       ];
 
   const actionCard = (
@@ -245,6 +252,9 @@ export function ResearchFindingDetailSurface({
           dek={meta}
           placeholder="Ask about this finding, e.g. when does the largest deadline hit"
           actionSlot={actionCard}
+          connectionsSlot={
+            hasConnections ? <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} variant="masthead" /> : undefined
+          }
         />
 
         <SectionIndex sections={indexEntries} depth={depth} onDepthChange={setDepth} />
@@ -324,16 +334,11 @@ export function ResearchFindingDetailSurface({
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
 
-          {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
+          {hasRelatedFindings && (
             <DetailSection id="related" title="Related" index={6} aside={relatedReason === "theme" ? "same theme" : relatedReason === "source" ? "same source" : undefined}>
-              {/* Ruling 2 S-order (06 Related): connections first (was a rail card, check 8), then
-                  the related-findings list this section already rendered. */}
-              {(connections.length > 0 || supersessions.length > 0) && (
-                <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
-                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-                </div>
-              )}
-              {related.length > 0 && (
+              {/* Design handoff 2026-09-25 (#801, board 07): Connections moved into the masthead
+                  card (connectionsSlot above); this section now holds only the by-theme/by-source
+                  related-findings list the boards do not name for the masthead move (rule 19). */}
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {related.map((it) => (
                   <Link
@@ -350,7 +355,6 @@ export function ResearchFindingDetailSurface({
                   </Link>
                 ))}
               </div>
-              )}
             </DetailSection>
           )}
         </DetailLayout>

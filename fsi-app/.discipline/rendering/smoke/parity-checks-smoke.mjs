@@ -73,11 +73,18 @@ const MEASURE_FN = `
     const sw = document.querySelector('[aria-label="Summary depth"]');
     out.c7 = { stripFound: !!strip, switchFound: !!sw, switchInsideStrip: !!(strip && sw && strip.contains(sw)) };
 
-    // ── Check 8: Connections is never a rail card ──
+    // ── Check 8: Connections is never a rail card, and (2026-09-25, board 03) renders inside the
+    // masthead card, not a main-content section ──
     const rail = document.querySelector('[data-audit="detail-rail"]');
     const railHeadings = rail ? [...rail.querySelectorAll('[data-part="rail-card"], [data-audit$="-rail"]')]
       .map((c) => (c.textContent || '').trim().slice(0, 40)) : [];
-    out.c8 = { railFound: !!rail, connectionsInRail: railHeadings.some((h) => /connections/i.test(h)) };
+    const connectionsHeading = [...document.querySelectorAll('h1,h2,h3,span')].find((el) => (el.textContent || '').trim() === 'Connections');
+    out.c8 = {
+      railFound: !!rail,
+      connectionsInRail: railHeadings.some((h) => /connections/i.test(h)),
+      connectionsFound: !!connectionsHeading,
+      connectionsInMasthead: !!(connectionsHeading && masthead && masthead.contains(connectionsHeading)),
+    };
 
     // ── Operator ruling 2026-09-25 (invariant RD-84): TIMELINE shows at most 4 markers, plus a
     // "+N more" chip when there are more. Requires the caller to have mounted with a >4-entry
@@ -181,7 +188,13 @@ export async function runSmoke(browser) {
     checks += 1;
     if (!m.c8.railFound) failures.push('parity-checks:c8: no [data-audit="detail-rail"] found');
     checks += 1;
-    if (m.c8.connectionsInRail) failures.push('parity-checks:c8: a rail card titled "Connections" was found (Connections must render in main content, not the rail)');
+    if (m.c8.connectionsInRail) failures.push('parity-checks:c8: a rail card titled "Connections" was found (Connections must never render in the rail)');
+    // 2026-09-25 (board 03): the fixture state carries a real connections row, so a "Connections"
+    // heading MUST be found, and it must be a descendant of the masthead card, not main content.
+    checks += 1;
+    if (!m.c8.connectionsFound) failures.push('parity-checks:c8: no "Connections" heading found (fixture state has a real connections row)');
+    checks += 1;
+    if (m.c8.connectionsFound && !m.c8.connectionsInMasthead) failures.push('parity-checks:c8: "Connections" heading is not a descendant of .cl-masthead (must render inside the masthead card, per board 03)');
 
     // Operator ruling 2026-09-25 (RD-84): TIMELINE shows at most 4 markers, plus "+N more" (a real
     // link, per the "which jumps to the obligations section" ruling) when collapsed.

@@ -104,9 +104,16 @@ export interface DetailMastheadProps {
    * Undefined renders nothing extra here, same as every other additive DetailMasthead prop.
    */
   actionSlot?: React.ReactNode;
+  /**
+   * Design handoff 2026-09-25 (#801, boards 03/07/09): "Connections strip moves into the masthead
+   * card; the rail Connections card is removed." Passed straight through to Masthead's own
+   * `connectionsSlot` (additive, same shape as `actionSlot`). A caller supplies it only when it has
+   * a real connection or supersession row (never an empty card), see each surface's own guard.
+   */
+  connectionsSlot?: React.ReactNode;
 }
 
-export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder, actionSlot }: DetailMastheadProps) {
+export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder, actionSlot, connectionsSlot }: DetailMastheadProps) {
   const [breadcrumb, setBreadcrumb] = useState(() => [surface, jurisdiction].filter(Boolean).join(" / "));
   return (
     <>
@@ -114,7 +121,15 @@ export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeh
         <DetailMastheadBreadcrumb surface={surface} jurisdiction={jurisdiction} band={band} onLabel={setBreadcrumb} />
       </Suspense>
       <div style={{ marginBottom: 16 }}>
-        <Masthead title={title} size="detail" dateLabel={breadcrumb} dek={dek} commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }} actionSlot={actionSlot} />
+        <Masthead
+          title={title}
+          size="detail"
+          dateLabel={breadcrumb}
+          dek={dek}
+          commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }}
+          actionSlot={actionSlot}
+          connectionsSlot={connectionsSlot}
+        />
       </div>
     </>
   );

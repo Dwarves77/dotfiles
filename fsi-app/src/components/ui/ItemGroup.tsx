@@ -35,6 +35,19 @@
  * disclosure (build item 3) reuses the ONE existing overflow control, `MoreBelowDisclosure`
  * (src/components/shared/MoreBelowDisclosure.tsx) - closed by default (F43), no second
  * disclosure implementation.
+ *
+ * BAND TAG, ONCE (lane PARITY-PARTS look-only pass, 2026-09-25, operator note against the new
+ * artboards: "band tag on every fact card should appear once, in the masthead, not per-card").
+ * Every group on a single-item detail page (Key dates, Verbatim facts, ...) inherited the page's
+ * OWN band from BandProvider and repainted it as a second dot+label pill in its own header - the
+ * masthead's ActionCard (Masthead.tsx's `actionSlot`) already renders that same band once, at the
+ * top of the page. The tint (header background, ACTION-strip colour) still reads from the page's
+ * ambient band via BandProvider - that is a grouping/urgency-colour cue, not a text label, and
+ * repeating a colour is not what the operator's note names. Only the PILL (the dot+label the note
+ * calls a "tag") is now gated on an EXPLICITLY passed `band` prop, never the ambient context: a
+ * future caller grouping facts by a DIFFERENT item (e.g. a cross-item cluster/synthesis view) can
+ * still pass its own item's band and get the pill, but the common case - a single item's own
+ * sections on its own detail page - never repeats the masthead's tag.
  */
 
 import type { ReactNode } from "react";
@@ -54,7 +67,12 @@ export interface ItemGroupProps {
   title?: string | null;
   /** 11px muted, right of the title. */
   qualifier?: string | null;
-  /** Drives the header's tinted band pill (dot + label). Real data only - see header note. */
+  /**
+   * Drives the header's TINT (background, ACTION-strip colour). Real data only - see header note.
+   * Does NOT by itself render the dot+label PILL any more (2026-09-25, "band tag once, in the
+   * masthead") - the pill renders only when this prop is passed EXPLICITLY, never when it is the
+   * page's own ambient band inherited from BandProvider (see `pillBand` below).
+   */
   band?: UrgencyBand | null;
   /** Explicit strip. Absent, a detail page's BandProvider supplies the item's top recommended
    *  action (real data) or nothing; see header note. */
@@ -76,6 +94,9 @@ export function ItemGroup({ title, qualifier, band: bandProp, actionStrip: actio
   // a prop. No provider (the /admin parts gallery) keeps the prior behaviour exactly.
   const ctx = useBandContext();
   const band = bandProp ?? ctx.band;
+  // Band tag, once (2026-09-25): the PILL renders only for a band the caller passed explicitly -
+  // never for the page's own ambient band, which the masthead's ActionCard already shows once.
+  const pillBand = bandProp ?? null;
   const actionStrip = actionStripProp ?? (ctx.action ? { text: ctx.action } : null);
   const cards = Array.isArray(children) ? children : [children];
   const visible = cards.slice(0, VISIBLE_CARD_CAP);
@@ -105,19 +126,19 @@ export function ItemGroup({ title, qualifier, band: bandProp, actionStrip: actio
             borderBottom: "1px solid rgba(0,0,0,.08)",
           }}
         >
-          {band && (
+          {pillBand && (
             <span data-part-slot="band-pill" style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: band.cssVar, display: "inline-block" }} />
+              <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: pillBand.cssVar, display: "inline-block" }} />
               <span
                 style={{
                   fontSize: "var(--fs-95, 9.5px)",
                   fontWeight: 800,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: band.cssVar,
+                  color: pillBand.cssVar,
                 }}
               >
-                {band.label}
+                {pillBand.label}
               </span>
             </span>
           )}

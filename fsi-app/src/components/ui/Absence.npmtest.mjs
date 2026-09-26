@@ -26,25 +26,37 @@ test("600 weight, --ink-3 (#7A6E6C), 10.5px — ruling 2.1's exact numbers", () 
   assert.match(SOURCE, /fontSize:\s*"var\(--fs-105\)"/);
 });
 
-// ── OPERATOR CHECK 5 (lane PARITY-PARTS, 2026-09-24) SUPERSEDES ruling 2.1's small-caps word
-// convention: "a missing value renders NOTHING", not a word, anywhere. `narrow` and `dash` still
-// exist and are now IDENTICAL (both render the value-placeholder em dash at every width, never the
-// word); `reason` (the default) renders NOTHING AT ALL. The three tests below replace the old
-// small-caps-word-per-variant assertions this file used to carry (opsclip train 61 / FOLD-61),
-// which tested a treatment the operator's 2026-09-24 ruling retired.
-test("narrow and dash variants are identical: both render only the value-placeholder em dash, at every width, never the word", () => {
+// ── ABSENCE RULE, REVISED (lane PARITY-PARTS look-only pass, 2026-09-25, against the new
+// artboards): OPERATOR CHECK 5 (2026-09-24, "a missing value renders NOTHING") is reversed one day
+// later by the coordinator close addendum: "a value that exists is shown; one that cannot exist
+// yet names the data it needs" (README 0.4, re-exported 2026-09-25). `reason` (the default) now
+// renders a "needs ..." phrase from the closed `NEEDS_PHRASE` map; "pending", "unscored" and "not
+// scored" must never render as literal words. `narrow`/`dash` keep the 2026-09-24 em-dash
+// treatment for fixed-width cells (this file's own DEFECT 3 note), now carrying the needs-phrase
+// on aria-label/title instead of the closed-vocabulary reason string.
+test("narrow and dash variants render only the value-placeholder em dash, at every width, with the needs-phrase on aria-label/title", () => {
   assert.match(SOURCE, /variant\?:\s*"reason"\s*\|\s*"narrow"\s*\|\s*"dash"/);
   assert.match(SOURCE, /if \(variant === "dash" \|\| variant === "narrow"\)/);
-  assert.match(SOURCE, /aria-label=\{reason\}/);
-  assert.match(SOURCE, /title=\{reason\}/);
+  assert.match(SOURCE, /aria-label=\{NEEDS_PHRASE\[reason\]\}/);
+  assert.match(SOURCE, /title=\{NEEDS_PHRASE\[reason\]\}/);
   assert.match(SOURCE, /\{"—"\}/, "renders the literal em dash character"); // glyph:verbatim
-  // Never a word: no below-768 media-query swap to the closed-vocabulary text survives.
   assert.doesNotMatch(SOURCE, /@media \(max-width: 767px\)/);
   assert.doesNotMatch(SOURCE, /cl-absence-word/);
 });
 
-test("the reason variant (default) renders nothing at all, no element and no text", () => {
-  assert.match(SOURCE, /if \(variant === "reason"\) return null;/);
+test("the reason variant (default) renders a needs-phrase from the closed vocabulary, never nothing", () => {
+  assert.match(SOURCE, /if \(variant === "reason"\) \{/);
+  assert.match(SOURCE, /\{NEEDS_PHRASE\[reason\]\}/);
+});
+
+test("NEEDS_PHRASE never spells the banned words 'pending', 'unscored' or 'not scored'", () => {
+  const map = SOURCE.slice(SOURCE.indexOf("NEEDS_PHRASE:"), SOURCE.indexOf("};", SOURCE.indexOf("NEEDS_PHRASE:")));
+  assert.doesNotMatch(map, /:\s*"pending"/);
+  assert.doesNotMatch(map, /:\s*"unscored"/);
+  assert.doesNotMatch(map, /:\s*"not scored"/i);
+  assert.match(map, /"not in primary source":\s*"needs primary-source figure"/);
+  assert.match(map, /unscored:\s*"needs scoring inputs"/);
+  assert.match(map, /"connect data":\s*"connect ↗"/);
 });
 
 const LIST_ROW = readFileSync(
@@ -78,9 +90,9 @@ test("the dash/narrow render is a dash and only a dash, and declares itself to t
   assert.notEqual(start, -1);
   const dash = SOURCE.slice(start, SOURCE.indexOf("return null;", start));
   assert.match(dash, /data-absence="dash"/, "the guard's placeholder-literal scan skips a declared dash");
-  assert.match(dash, /aria-label=\{reason\}/);
-  assert.match(dash, /title=\{reason\}/);
+  assert.match(dash, /aria-label=\{NEEDS_PHRASE\[reason\]\}/);
+  assert.match(dash, /title=\{NEEDS_PHRASE\[reason\]\}/);
   assert.match(dash, /className="cl-absence-dash"/);
   assert.doesNotMatch(dash, /className="cl-absence"/, "the dash is a value placeholder, not the countable reason token");
-  assert.doesNotMatch(dash, /\{reason\}\s*<\/span>/, "the dash never renders the word as text");
+  assert.doesNotMatch(dash, /\{reason\}\s*<\/span>/, "the dash never renders the raw reason as text");
 });

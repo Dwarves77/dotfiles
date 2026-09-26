@@ -37,7 +37,24 @@ export const invariant = {
     'TIMELINE as one marker instead (mergeObligationEvents, timeline-math.ts), which now collapses ' +
     'at 4 (not 8) markers, showing the next 4 plus a real "+N more" link to the item\'s own ' +
     'Obligation Register section (`#obligation-register`, ObligationRegisterFilterBar.tsx\'s own ' +
-    'existing anchor) rather than inert text.',
+    'existing anchor) rather than inert text. ' +
+    'EXTENDED (lane PARITY-PARTS look-only pass, 2026-09-25, against the new artboards merged in ' +
+    '#801): three of the checks above are REVERSED or NARROWED by the new boards, not merely re-' +
+    'skinned. (5) is REVERSED: the absence rule no longer renders nothing for a missing value - a ' +
+    'value that exists is shown, one that cannot exist yet names the data it needs via a closed ' +
+    '"needs ..." phrase map (Absence.tsx NEEDS_PHRASE); "pending", "unscored" and "not scored" ' +
+    'still never render as literal words, so the FORBIDDEN literal list is unchanged even though the ' +
+    'default (reason) variant now renders text again. (8) is NARROWED: Connections is still never a ' +
+    'rail card, but on regulations/research/operations (boards 03/07/09) it is no longer a "Related" ' +
+    'section in main content either - it renders INSIDE the one masthead card via Masthead\'s new ' +
+    '`connectionsSlot` (same additive pattern as `actionSlot`), and each surface\'s sticky section ' +
+    'index drops its former "Related" entry accordingly. Market (board 05) is not named by the new ' +
+    'boards for this move (rule 19: the boards\' own per-surface list is not generalised past what it ' +
+    'states) and keeps Connections as a main-content "Related" section, unchanged. A NEW class rule: ' +
+    'ItemGroup\'s band-tag PILL (dot + label) now renders only for an EXPLICITLY passed `band` prop, ' +
+    'never for the page\'s own ambient BandProvider band, because the masthead\'s ActionCard already ' +
+    'shows that band once (operator note: "band tag on every fact card should appear once, in the ' +
+    'masthead, not per-card") - the header\'s TINT still reads the ambient band unchanged.',
   anchor:
     '### Section 4 - category 52: the four detail surfaces drifted from the approved artboards on ' +
     'eight independent axes, each traced to ONE shared part',

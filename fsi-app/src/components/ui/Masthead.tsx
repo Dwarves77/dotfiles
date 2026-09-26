@@ -92,9 +92,18 @@ export interface MastheadProps {
    * is byte-for-byte unchanged.
    */
   actionSlot?: ReactNode;
+  /**
+   * Design handoff 2026-09-25 (#801, boards 03/07/09): "Connections strip moves into the masthead
+   * card; the rail Connections card is removed." Same additive pattern as `actionSlot` (rendered
+   * last, its own top divider, byte-identical output for every caller that passes nothing): a
+   * detail page passes `<ItemConnectionsCard variant="masthead" .../>` here instead of mounting it
+   * as a rail card or a main-content section. Market (board 05) is not named by the boards for this
+   * move (rule 19) and keeps its existing placement, so it never passes this prop.
+   */
+  connectionsSlot?: ReactNode;
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice, actionSlot }: MastheadProps) {
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice, actionSlot, connectionsSlot }: MastheadProps) {
   const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
     // Operator item A1 (2026-09-08): the masthead card is one of the eighteen the operator listed;
@@ -269,6 +278,11 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
       {actionSlot && (
         <div style={{ borderTop: "1px solid rgba(0,0,0,.08)" }}>
           {actionSlot}
+        </div>
+      )}
+      {connectionsSlot && (
+        <div style={{ borderTop: "1px solid rgba(0,0,0,.08)" }}>
+          {connectionsSlot}
         </div>
       )}
     </SectionCard>

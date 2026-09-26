@@ -218,6 +218,9 @@ export function OperationsDetailSurface({
   const [tagOpen, setTagOpen] = useState(false);
   const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
 
+  // Design handoff 2026-09-25 (#801, board 09): "Connections strip moves into the masthead card."
+  // `hasRelated` now gates only the masthead's `connectionsSlot` - there is no longer a main-content
+  // "Related" S6 section on this surface, so it is dropped from the sticky index too.
   const hasRelated = connections.length > 0 || supersessions.length > 0;
   // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
   // ActionCard comment below and the "Substantive findings" section comment for why S3/S4 are a
@@ -226,7 +229,6 @@ export function OperationsDetailSurface({
     { id: "summary", shortName: "Summary", ord: 1 },
     { id: "findings", shortName: "Findings", ord: 2 },
     { id: "sources", shortName: "Sources", ord: 5 },
-    ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
   ];
 
   const actionCard = (
@@ -284,6 +286,9 @@ export function OperationsDetailSurface({
           dek={meta}
           placeholder="Ask about this profile, e.g. when does the largest deadline hit"
           actionSlot={actionCard}
+          connectionsSlot={
+            hasRelated ? <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} variant="masthead" /> : undefined
+          }
         />
         {trajectoryNode && (
           <p style={{ fontSize: "var(--fs-105)", lineHeight: 1.6, color: "var(--ink-2)", margin: "10px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>
@@ -320,8 +325,9 @@ export function OperationsDetailSurface({
               /* Artboard 09's only page-specific rail card: RELATED IN ASIA. */
               designed={<RelatedRegionCard related={related} reason={relatedReason} region={regionGroup || jurisdiction} />}
               legend={<RailLegend />}
-              /* R7, artboard 09 draws neither. Operator check 8 (lane PARITY-PARTS, 2026-09-24):
-                 Connections is not a rail card, moved into the "Related" section in main content. */
+              /* R7, artboard 09 draws neither. Connections is not a rail card (operator check 8,
+                 2026-09-24) and, per the 2026-09-25 boards, renders inside the masthead card
+                 instead (DetailMasthead's connectionsSlot above), not a main-content section. */
               undesigned={<InThisListStat backHref="/operations" backLabel="Back to list" band={band} />}
             />
           }
@@ -386,12 +392,6 @@ export function OperationsDetailSurface({
           <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
-
-          {(connections.length > 0 || supersessions.length > 0) && (
-            <DetailSection id="related" title="Related" index={6}>
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-            </DetailSection>
-          )}
         </DetailLayout>
       </DetailPageWrapper>
     </div>
