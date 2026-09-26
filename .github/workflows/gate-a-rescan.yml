@@ -90,7 +90,21 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
+      # fetch-depth: 0 (GATE-A-RESCAN-FIX, 2026-09-26, found by the real dry-dispatch test on branch
+      # lane/gate-a-rescan-fix, run 36220173437). actions/checkout@v4 defaults to a depth-1 shallow
+      # clone of the DISPATCHED ref. The "Commit this run's harness artifact and open a PR" step later
+      # does `git fetch --depth=50 origin master; git rebase --autostash origin/master` -- when the
+      # dispatched ref IS master (the common case), that rebase is a trivial no-op since the shallow
+      # tip and the freshly fetched master share the same commit. When workflow_dispatch names a
+      # DIFFERENT ref (a hand-named ticket branch -- exactly what this workflow's own `mode`/`limit`
+      # inputs are for), the depth-1 checkout truncates that branch's own history to a single rootless
+      # commit with no known parent, so the later rebase finds no common ancestor with origin/master and
+      # every touched file conflicts as CONFLICT (add/add) -- confirmed live: run 36220173437's own
+      # "Commit this run's harness artifact and open a PR" step failed exactly this way. Full history
+      # removes the ambiguity regardless of which ref is dispatched.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
