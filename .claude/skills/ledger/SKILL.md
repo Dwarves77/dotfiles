@@ -86,7 +86,7 @@ Known-good paths, verified 2026-08-17: account skills are managed at `claude.ai/
 ## C. Standing corrections (load these, they have been re-derived wrongly before)
 
 - **`fsi-app/STATUS.md` is HISTORICAL.** Retired from Loading Priority 2026-08-14. Use `docs/PROGRAM-BOARD.md`.
-- **"The flywheel" is TWO mechanisms.** (1) Connection discovery — live, pure computation, no LLM. (2) Decision propagation — `docs/specs/08-flywheel-design.md`, DESIGNED ONLY, no `entities` table exists. Do not conflate. There is no human-review loop and no customer-entered data anywhere in it.
+- **"The flywheel" is TWO mechanisms.** (1) Connection discovery (live, pure computation, no LLM). (2) Decision propagation: schema and runtime built and populated by seed-derived-values.mjs (entities=2,880, derived_values=22, propagation_events=2,782, derivation_edges=24 as of 2026-09-25), via manual dispatch. Autonomous loop firing (F50 hops 07/08) NOT yet proven (`enforceFired: false`). Do not conflate. There is no human-review loop and no customer-entered data anywhere in it.
 - **Canonical transport mode is `ocean`** (operator ruling 2026-08-12, migration 263). `sea`/`maritime` are input aliases, never stored.
 - **Community is a co-equal core surface**, not a bolt-on and not a trust-scoring input.
 - **The Intelligence Assistant is a research helper**, never a synthesis or decision engine.
