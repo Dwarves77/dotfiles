@@ -1640,15 +1640,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/ui/SectionIndex.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/components/ui/SectionRule.coverage.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -4125,6 +4116,15 @@
       "skills": [],
       "proofWired": true,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/regional/state-cost-facts-envelope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
     },
     {
       "path": "fsi-app/src/lib/relative-time.npmtest.mjs",
@@ -7115,6 +7115,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/producers/regional/state-cost-facts-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
+    },
+    {
       "path": "fsi-app/scripts/propagation/seed-derived-values.mjs",
       "kinds": [
         "WRITES"
@@ -7804,27 +7813,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/verify/lib/harness-family-walk-scan.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/scripts/verify/lib/schema-drift.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "source-credibility-model"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/verify/lib/ui-orphan-scan.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7889,15 +7878,6 @@
       "skills": [],
       "proofWired": true,
       "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/verify/pagination-order-key-audit.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
     },
     {
       "path": "fsi-app/scripts/verify/population-report.test.mjs",
@@ -11354,11 +11334,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1061,
-    "covered": 1019,
+    "governed_files": 1059,
+    "covered": 1016,
     "exempt": 41,
-    "gaps": 1,
-    "orphaned_proofs": 1,
+    "gaps": 2,
+    "orphaned_proofs": 2,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0
