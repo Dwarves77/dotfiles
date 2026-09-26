@@ -1,0 +1,36 @@
+{
+  "harness_family": "gate-a-rescan",
+  "harness_version": "sha256:90cb4ae47d0453a7",
+  "run_id": "gate-a-rescan-run-001",
+  "started_at": "2026-09-26T04:20:12Z",
+  "config": {
+    "trigger": "workflow_dispatch",
+    "mode": "dry",
+    "limit": 50,
+    "upstream_name": null,
+    "upstream_run_id": null,
+    "loop_run_id": null,
+    "scope_source": null,
+    "attach": {
+      "rows_offered": 0
+    },
+    "github_run_id": "36217491293"
+  },
+  "inputs_ref": [
+    "scripts/maintenance/gate-a-rescan.mjs"
+  ],
+  "per_item": [],
+  "metrics": {
+    "candidates": 0,
+    "stale": 0,
+    "selected": 0,
+    "touched": 0,
+    "distinct_versions_remaining": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "docs/runbooks/MAINTENANCE-RUNBOOK.md"
+  ],
+  "proposer_notes": "This dispatch was a no-op: zero stale item_gate_a_state rows selected this run. Recorded anyway so this family's own history shows every firing, not only the ones with real work (MINT-RUNBOOK.md's \"record it every batch, even when zero,\" applied here).",
+  "trigger": "workflow_dispatch"
+}
