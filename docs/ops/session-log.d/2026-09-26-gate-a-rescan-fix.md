@@ -80,7 +80,58 @@ nothing to reverse.
 - Wiring preflight (`DISCIPLINE_HOOK_TRAMPOLINE=1 sh .discipline/hooks/pre-push`): see next addendum
   in this file for the final green run, appended after the real dry dispatch.
 
-## Next step
+## Real dry dispatch (the actual test, per the operator's "you HAVE to test what you're building")
 
-Push branch `lane/gate-a-rescan-fix`, dispatch `gate-a-rescan.yml` for REAL in `dry` mode on this
-branch, watch it to green, append the run id + summary numbers below, open the PR.
+First attempt, run [36220173437](https://github.com/Dwarves77/dotfiles/actions/runs/36220173437):
+`gate-a-rescan.mjs` step SUCCEEDED for the first time ever (bug 1 confirmed fixed, no more "column
+item_gate_a_state.id does not exist"), but the "Commit this run's harness artifact and open a PR" step
+then failed with `CONFLICT (add/add)` on every touched file during its `git rebase --autostash
+origin/master`. Root-caused live: `actions/checkout@v4`'s default depth-1 shallow clone truncates a
+DISPATCHED-ON-A-BRANCH ref to a single rootless commit with no known parent, so the rebase-onto-master
+step (designed assuming the dispatched ref IS at/near master) finds no common ancestor. Fixed by adding
+`fetch-depth: 0` to the checkout step (commit `afce6364`) -- a genuine class-4 defect this real-dispatch
+test surfaced (any `workflow_dispatch` naming a non-master ref, per the workflow's own documented "a
+hand-named ticket" use, would hit this), not an artifact of testing on a branch.
+
+Second attempt, run **[36221025936](https://github.com/Dwarves77/dotfiles/actions/runs/36221025936)**
+(`.github/workflows/gate-a-rescan.yml`, `workflow_dispatch`, `mode=dry`, `limit=50`, branch
+`lane/gate-a-rescan-fix`): **conclusion: success. Every step passed.**
+
+Landed artifact `fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-001.json`
+(`harness_version sha256:d0e14202b952f5ae`), fast-forward-merged onto this branch from the run's own
+`gate-a-rescan/36221025936` branch (PR auto-creation was refused by a repository setting, the script's
+own documented fallback -- the branch itself is pushed and diffable at
+https://github.com/Dwarves77/dotfiles/compare/master...gate-a-rescan/36221025936?expand=1):
+
+- `metrics`: `candidates: 1518, stale: 916, selected: 50, touched: 0, distinct_versions_remaining: null`
+- `defects_found`: `[]` (empty -- a clean run, honestly recorded, not a false no-op and not a false
+  success on a crash)
+- `per_item`: 50 rows, each `outcome: "rescanned"` with a real `gate_a_version` before/after verdict
+  (e.g. `2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0`) -- `touched: 0` because dry mode never
+  writes, exactly as designed.
+- `proposer_notes`: the honest "auto-emitted ... recorded their outcomes" note (not the crash-path
+  wording, since this run genuinely succeeded).
+
+This is the proof run the F28 pending-run marker was waiting on: fast-forward-merged its commit onto
+this branch, then deleted both the marker this lane added AND a pre-existing stale one
+(`2026-09-21-m6b.md`, lane M6b's own "delete this file the moment that artifact lands" note, which this
+run's `gate-a-rescan-run-001.json` also satisfies) -- F28 now passes GREEN with zero pending files
+remaining for this family.
+
+## Final gate outputs (post real-dispatch, post F28 cleanup)
+
+- `node .discipline/fitness/runner.mjs`: 49 functions checked, 0 violations.
+- `node --test .discipline/fitness/functions/F28-harness-run-integrity.test.mjs`: 32 tests, 32 pass,
+  including "F28 passes GREEN against the live tree."
+- Wiring preflight (`DISCIPLINE_HOOK_TRAMPOLINE=1 sh .discipline/hooks/pre-push`): all 4 steps green
+  (memory gate, canonical test suite, invariant-coverage meta-gate, skill-gate wiring, fitness runner,
+  npm-dependent suites, behavioral goldens, `tsc --noEmit`).
+
+## Open items
+
+- The run's own PR could not auto-open (repository setting refuses PR creation from that automation
+  account/token in this context) -- its branch `gate-a-rescan/36221025936` is pushed and diffable, but
+  nobody opened a PR for it; either open one by hand or let a future coordinator pass do it. Not this
+  lane's write set to change the repository setting itself.
+- `docs/decisions/`: no ADR names `item_gate_a_state`, `readAllByIds`, or `pipefail`; nothing to
+  reconcile.
