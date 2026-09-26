@@ -76,6 +76,61 @@ export function buildContextForExistingCommit({ commit }) {
   return assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commitSha: commit, diffSource: { type: 'commit', sha: commit } });
 }
 
+// Build CheckContext for an ENTIRE commit range as ONE cumulative diff (squash-merge parity).
+//
+// WHY THIS EXISTS (lane MASTER-022, 2026-09-26, [CONFIRMED] by direct reproduction). PR #800's
+// pull_request check ran --range=origin/master..<head> through the ORIGINAL --range code path,
+// which lists every commit in the range (`git log --format=%H`) and runs each commit through
+// buildContextForExistingCommit ALONE, unioning the "added lines" each commit's own isolated diff
+// reports. That check was green. The push-to-master check on the resulting squash commit ran
+// buildContextForExistingCommit on the ONE squash commit (squash vs the real master parent) and
+// failed rule 022 on the added em-dash glyph line in `fsi-app/src/components/ui/Absence.tsx`
+// (spelled out in words here, never as the literal character, per the same rule this comment
+// is about).
+//
+// Root cause is NOT a wrong range or a stale base ref: reproduced with `git diff --no-index` on
+// the three real file snapshots (fork-point, an interior PARITY-PARTS commit, the branch tip) with
+// NO commits and NO range mismatch involved. diff(base, c1) and diff(c1, c2) each report ZERO
+// added lines containing the glyph; diff(base, c2) -- the SAME net change, computed as one pass --
+// reports ONE. This is a general property of text diffing, not a bug specific to this file: when a
+// literal value (here, the em-dash placeholder) occurs MORE THAN ONCE in a file, git's diff/Myers-
+// LCS algorithm is free to pair a "kept" occurrence with a DIFFERENT surviving line depending on
+// how much surrounding text the single diff invocation sees. A per-commit walk sees the small
+// two-line neighbourhood of each individual change; the whole-range diff sees the full accumulated
+// change at once and is free to choose a different, equally minimal pairing -- one that "spends"
+// the first occurrence on an unrelated hunk and reports the second occurrence as newly added. Two
+// isolated correct diffs do not compose into the one true diff of the net change; only computing
+// that one diff directly does. A squash commit IS that one diff (squash tree vs the pre-merge
+// master tip), so it will always agree with a whole-range diff computed the same way and can
+// disagree with a per-commit union computed the other way.
+//
+// THE FIX: for CONTENT rules that read ctx.getAddedLines() (022 today; any future rule with the
+// same shape), the range must ALSO be checked as one cumulative diff -- base..head as a single
+// `git diff`, not `git log` + N invocations of `git show` -- so the PR path sees exactly the diff
+// the squash merge will actually land. This context is ADDITIVE: the existing per-commit walk in
+// runner.mjs is UNCHANGED (commit-message rules, revert/merge-commit trigger gates, and anything
+// that legitimately wants per-commit granularity keep working exactly as before); this is a second,
+// independent pass the range mode also runs.
+//
+// `range` is passed through verbatim to `git diff` (whatever two-dot or three-dot form the caller
+// already resolved, e.g. `origin/master..HEAD`); `git diff A..B` is a direct two-tree comparison
+// (not a merge-base-relative one), so this mirrors `git diff` semantics exactly, with no change to
+// how the caller computes the range string.
+export function buildContextForRange({ range }) {
+  const headRef = range.includes('...') ? range.split('...').pop() : range.split('..').pop();
+  const commitMessage = git(['log', '-1', '--format=%B', headRef]).trimEnd();
+  const stagedFiles = parseNumstat(git(['diff', '--numstat', range]));
+  const branchName = currentBranch();
+  return assemble({
+    commitMessage,
+    stagedFiles,
+    branchName,
+    isMergeCommit: false, // a squash commit always has exactly one parent; mirror that here
+    commitSha: null,
+    diffSource: { type: 'range', range },
+  });
+}
+
 // Build CheckContext from in-memory inputs (test fixtures).
 // Optional `fileContents`: { path: contentString } map. Rules that call
 // ctx.getFileContent(path) return injected content; absent paths return null.
@@ -174,6 +229,11 @@ function assemble({ commitMessage, stagedFiles, branchName, isMergeCommit, commi
         patch = git(['diff', '--cached', '-U0', '--', path]);
       } else if (ctx._diffSource?.type === 'commit') {
         patch = git(['show', '--format=', '-U0', ctx._diffSource.sha, '--', path]);
+      } else if (ctx._diffSource?.type === 'range') {
+        // ONE cumulative diff over the whole range, matching what a squash merge will actually
+        // land -- see buildContextForRange's header for why this must be separate from a
+        // per-commit union.
+        patch = git(['diff', '-U0', ctx._diffSource.range, '--', path]);
       }
     } catch {
       patch = '';

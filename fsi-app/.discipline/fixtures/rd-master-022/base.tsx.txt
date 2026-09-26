@@ -132,76 +132,76 @@ export const ABSENCE_TEXT_STYLE = {
  * dash a different size in each column (11px in impact and timeline, 12.5px in
  * next-date). Only the colour is fixed here.
  */
-/**
- * ABSENCE RULE, REVISED (lane PARITY-PARTS look-only pass, 2026-09-25, against the new artboards
- * merged in #801; coordinator close addendum 2026-09-25 verbatim: "the absence rule is now 'a
- * value that exists is shown; one that cannot exist yet names the data it needs' ... This REVERSES
- * #800's 'renders nothing' behaviour"). README 0.4 (as re-exported 2026-09-25): "If the value
- * exists in the data, show it. If it can't exist yet, a small-caps line names the data it needs,
- * starting with 'needs': `needs primary-source figure . needs one more month of series . needs
- * your shipment data . connect (arrow) . needs scoring inputs`. The words 'pending', 'unscored'
- * and 'not scored' never render."
- *
- * OPERATOR CHECK 5 (2026-09-24, "a missing value renders NOTHING") is SUPERSEDED by this ruling,
- * one day later, for the `reason` variant: it now renders the needs-phrase instead of nothing.
- * `NEEDS_PHRASE` is the generic, closed mapping for the four platform-wide reasons (rule 19: the
- * board's own per-instance examples - "needs 4 price inputs", "needs one more month of series" -
- * are EXAMPLES of the pattern, not additions to the vocabulary a look-only pass may invent per call
- * site; a call site that knows a more specific need can still say so via its own copy, this
- * component only supplies the closed-vocabulary default).
- *
- *   - `reason` (default): renders the needs-phrase as small-caps text where the value would sit.
- *   - `narrow` / `dash`: UNCHANGED from the 2026-09-24 ruling (DEFECT 3, this file's own header
- *     note) - a fixed-width table/row cell too small for the phrase still draws the em dash, with
- *     the needs-phrase carried on `aria-label`/`title` for assistive technology. The new board text
- *     does not name the narrow-cell case, and a numeric column a few characters wide cannot hold
- *     "needs primary-source figure" without breaking the row height DEFECT 3 exists to prevent;
- *     flagged as a Design Change Owed for coordinator confirmation rather than guessed here (rule 20).
- *
- * Enforced by rendering-guard rule RD-84's check 5 (parity-checks-smoke.mjs; the pre-existing
- * reference to "RD-87" here was a stale typo, check 5 is registered under RD-84, same invariant
- * as check 8 below), its FORBIDDEN literal list is unchanged (all lowercase NEEDS_PHRASE values
- * can never collide with the check's uppercase literals), proven by attack against the pre-fix part.
- */
-export const NEEDS_PHRASE: Readonly<Record<AbsenceReason, string>> = {
-  "not in primary source": "needs primary-source figure",
-  pending: "needs more data",
-  unscored: "needs scoring inputs",
-  "connect data": "connect ↗",
-};
-
 export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" | "dash" }) {
-  if (variant === "reason") {
-    return (
-      <span
-        data-absence="needs"
-        data-part="absence"
-        data-part-variant={variant}
-        style={ABSENCE_TEXT_STYLE}
-      >
-        {NEEDS_PHRASE[reason]}
-      </span>
-    );
-  }
-  if (variant === "dash" || variant === "narrow") {
+  if (variant === "dash") {
     return (
       <span
         className="cl-absence-dash"
         data-absence="dash"
-        aria-label={NEEDS_PHRASE[reason]}
-        title={NEEDS_PHRASE[reason]}
+        aria-label={reason}
+        title={reason}
         data-part="absence"
-        data-part-variant={variant}
+        data-part-variant="dash"
         style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
       >
-        {/* The glyph is written as the JS escape, not the literal character, per repo practice for
-            a rendered dash placeholder (MarketComparativeRibbon.tsx's own narrow-absence dash,
-            timeline-parse.mjs's date-range separator): discipline rule 022 bans the literal U+2014
-            in added source text, and the escape renders the identical byte-for-byte glyph without
-            tripping the scan. */}
-        {"\u2014"}
+        {"—"}
       </span>
     );
   }
-  return null;
+  if (variant === "narrow") {
+    return (
+      <span
+        // The rendering guard's placeholder-literal scan reads this attribute and skips the
+        // element (harness.mjs's measureGuard). That is narrower and more honest than the
+        // per-spec "—" allowlists two smoke specs already carry: a dash CARRYING its
+        // closed-vocabulary reason is disclosed structurally, once, by the part that renders it,
+        // while a bare "—" anywhere else in the product stays a placeholder literal and still
+        // fails the guard.
+        className="cl-absence"
+        data-part="absence"
+        data-part-variant="narrow"
+        data-absence="narrow"
+        aria-label={reason}
+        title={reason}
+        style={{ ...ABSENCE_TEXT_STYLE, fontSize: "var(--fs-12)", letterSpacing: "normal" }}
+      >
+        {/* FOLD-61, and this is a RULING the two lanes needed and neither could make alone.
+            opsclip's narrow rule says a cell too small to hold the phrase draws the dash; the
+            mobile 390 spec's operator prose says, in his own words, "Absence keeps its small-caps
+            reason". Both are right, about different widths, and the disagreement is only apparent:
+            "narrow" is a property of the CELL, not of the page. The tier track is a hard 40px
+            above 768, which is where the phrase wrapped over three lines and doubled the row
+            height; below 768 the row reflows to `3px 1fr` and that cell is no longer narrow, so
+            there is room for the words and the operator's own spec asks for them.
+
+            So ONE token, in ONE element, taking the form its cell can hold: the dash above 768,
+            the small-caps reason below it. Two sibling spans inside this one `.cl-absence` would
+            be simpler to read but would not be one element, and the audit counts ELEMENTS
+            (`count: 1` on `.cl-list-row .cl-absence`, lane mobfix61's D-M4 guarantee), so the
+            swap is done with `content` on two pseudo-elements of this single span instead. The
+            aria-label and title carry the closed-vocabulary reason at BOTH widths regardless, so
+            nothing about ruling 2.1's vocabulary depends on the viewport. */}
+        <style>{`
+          .cl-absence[data-absence="narrow"]::after { content: "\\2014"; }
+          .cl-absence[data-absence="narrow"] > .cl-absence-word { display: none; }
+          @media (max-width: 767px) {
+            .cl-absence[data-absence="narrow"]::after { content: none; }
+            .cl-absence[data-absence="narrow"] > .cl-absence-word { display: inline; }
+          }
+        `}</style>
+        <span className="cl-absence-word" style={{ ...ABSENCE_TEXT_STYLE, fontSize: "inherit", letterSpacing: "0.06em" }}>
+          {reason}
+        </span>
+      </span>
+    );
+  }
+  // `cl-absence` (lane mobfix61, 2026-09-08) is what makes "one reason per row" MECHANICALLY
+  // checkable: the audit asserts `count: 1` on `.cl-list-row .cl-absence`, so a part that begins
+  // rendering a second token is a red audit row rather than something the operator finds on his
+  // phone.
+  return (
+    <span className="cl-absence" data-part="absence" data-part-variant="reason" style={ABSENCE_TEXT_STYLE}>
+      {reason}
+    </span>
+  );
 }

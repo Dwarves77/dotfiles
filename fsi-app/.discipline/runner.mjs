@@ -22,6 +22,7 @@ import { rules } from './manifest.mjs';
 import {
   buildContextForProposedCommit,
   buildContextForExistingCommit,
+  buildContextForRange,
   buildContextFromFixture,
   getRepoRoot,
 } from './lib/context.mjs';
@@ -82,6 +83,23 @@ async function main() {
         const code = runOnContext(ctx, args);
         if (code > worstExit) worstExit = code;
       }
+
+      // ONE cumulative diff over the whole range, in addition to the per-commit walk above.
+      // Why both (lane MASTER-022, 2026-09-26): a per-commit union of "added lines" and a single
+      // whole-range diff over the identical net change can disagree on CONTENT rules (022 today)
+      // when a literal value occurs more than once in the file -- git's diff pairing is a
+      // heuristic, not a strict provenance oracle, and a per-commit walk and a single accumulated
+      // diff are free to choose different, equally minimal pairings (see buildContextForRange's
+      // header in lib/context.mjs for the full mechanism and a reproduced example). The push-to-
+      // master check runs exactly ONE diff, the squash commit vs its real parent, so a PR check
+      // that skips this pass can go green on a range whose squash will fail on master. Shas is
+      // already empty-checked implicitly: an empty range makes `git diff` a no-op (no changed
+      // files), so this is safe to run unconditionally, including on a range with zero commits.
+      const rangeCtx = buildContextForRange({ range: args.range });
+      console.log(`\n=== Whole-range diff (${args.range}), squash-merge parity ===`);
+      const rangeCode = runOnContext(rangeCtx, args);
+      if (rangeCode > worstExit) worstExit = rangeCode;
+
       return worstExit;
     }
     console.error('Error: --mode=ci requires --commit=<sha> or --range=<range>');

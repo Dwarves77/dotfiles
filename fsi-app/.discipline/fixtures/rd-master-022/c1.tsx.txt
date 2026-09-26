@@ -133,73 +133,35 @@ export const ABSENCE_TEXT_STYLE = {
  * next-date). Only the colour is fixed here.
  */
 /**
- * ABSENCE RULE, REVISED (lane PARITY-PARTS look-only pass, 2026-09-25, against the new artboards
- * merged in #801; coordinator close addendum 2026-09-25 verbatim: "the absence rule is now 'a
- * value that exists is shown; one that cannot exist yet names the data it needs' ... This REVERSES
- * #800's 'renders nothing' behaviour"). README 0.4 (as re-exported 2026-09-25): "If the value
- * exists in the data, show it. If it can't exist yet, a small-caps line names the data it needs,
- * starting with 'needs': `needs primary-source figure . needs one more month of series . needs
- * your shipment data . connect (arrow) . needs scoring inputs`. The words 'pending', 'unscored'
- * and 'not scored' never render."
+ * OPERATOR CHECK 5 (lane PARITY-PARTS, 2026-09-24, verbatim in substance): none of "PENDING",
+ * "NOT IN PRIMARY SOURCE", "Connect shipment data" or "UNSCORED" may appear in the rendered DOM;
+ * "a missing value renders NOTHING". This supersedes the README 0.4 small-caps reason convention
+ * and the narrow variant's below-768 word swap. The class fix is here, in the one part every
+ * surface already routes its missing values through, so no call site decides it again:
  *
- * OPERATOR CHECK 5 (2026-09-24, "a missing value renders NOTHING") is SUPERSEDED by this ruling,
- * one day later, for the `reason` variant: it now renders the needs-phrase instead of nothing.
- * `NEEDS_PHRASE` is the generic, closed mapping for the four platform-wide reasons (rule 19: the
- * board's own per-instance examples - "needs 4 price inputs", "needs one more month of series" -
- * are EXAMPLES of the pattern, not additions to the vocabulary a look-only pass may invent per call
- * site; a call site that knows a more specific need can still say so via its own copy, this
- * component only supplies the closed-vocabulary default).
+ *   - `reason` renders nothing at all (no element, no text).
+ *   - `narrow` renders the same value-placeholder dash as `dash` at every width (never the word).
+ *   - `dash` is unchanged: an em dash is not one of the four forbidden strings, and README 0.4 draws
+ *     it for an unscored meter ("four dashed outlines and an em dash, never a word").
  *
- *   - `reason` (default): renders the needs-phrase as small-caps text where the value would sit.
- *   - `narrow` / `dash`: UNCHANGED from the 2026-09-24 ruling (DEFECT 3, this file's own header
- *     note) - a fixed-width table/row cell too small for the phrase still draws the em dash, with
- *     the needs-phrase carried on `aria-label`/`title` for assistive technology. The new board text
- *     does not name the narrow-cell case, and a numeric column a few characters wide cannot hold
- *     "needs primary-source figure" without breaking the row height DEFECT 3 exists to prevent;
- *     flagged as a Design Change Owed for coordinator confirmation rather than guessed here (rule 20).
- *
- * Enforced by rendering-guard rule RD-84's check 5 (parity-checks-smoke.mjs; the pre-existing
- * reference to "RD-87" here was a stale typo, check 5 is registered under RD-84, same invariant
- * as check 8 below), its FORBIDDEN literal list is unchanged (all lowercase NEEDS_PHRASE values
- * can never collide with the check's uppercase literals), proven by attack against the pre-fix part.
+ * The reason still travels on `aria-label`/`title` of the dash, so the closed vocabulary is kept
+ * for assistive technology; it is never painted. Enforced by rendering-guard rule RD-87
+ * (parity-checks-smoke.mjs), proven by attack against the pre-fix part.
  */
-export const NEEDS_PHRASE: Readonly<Record<AbsenceReason, string>> = {
-  "not in primary source": "needs primary-source figure",
-  pending: "needs more data",
-  unscored: "needs scoring inputs",
-  "connect data": "connect ↗",
-};
-
 export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" | "dash" }) {
-  if (variant === "reason") {
-    return (
-      <span
-        data-absence="needs"
-        data-part="absence"
-        data-part-variant={variant}
-        style={ABSENCE_TEXT_STYLE}
-      >
-        {NEEDS_PHRASE[reason]}
-      </span>
-    );
-  }
+  if (variant === "reason") return null;
   if (variant === "dash" || variant === "narrow") {
     return (
       <span
         className="cl-absence-dash"
         data-absence="dash"
-        aria-label={NEEDS_PHRASE[reason]}
-        title={NEEDS_PHRASE[reason]}
+        aria-label={reason}
+        title={reason}
         data-part="absence"
         data-part-variant={variant}
         style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
       >
-        {/* The glyph is written as the JS escape, not the literal character, per repo practice for
-            a rendered dash placeholder (MarketComparativeRibbon.tsx's own narrow-absence dash,
-            timeline-parse.mjs's date-range separator): discipline rule 022 bans the literal U+2014
-            in added source text, and the escape renders the identical byte-for-byte glyph without
-            tripping the scan. */}
-        {"\u2014"}
+        {"—"}
       </span>
     );
   }
