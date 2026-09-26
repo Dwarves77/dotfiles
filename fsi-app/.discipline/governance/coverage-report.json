@@ -7,332 +7,9 @@
   ],
   "items": [
     {
-      "path": "fsi-app/src/__tests__/carbon-intensity.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/contracts-envelope.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/contracts-licence-and-tier.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/contracts-vocabularies.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/domain-laundering.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/fueleu-annex-iv.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/jurisdiction-iso-mapping.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/leakage-fix-classifier.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/lineage-backfill.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-carbon-overlay-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-ecb-fx-parser.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-eia-v2-petroleum-spot-parser.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-eu-oil-bulletin-parser.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-producer-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-refresh-published-price-statistics.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-series-board-view-model.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-series-deltas.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-series-freshness.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-series-registry.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-signal-promotion.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/market-write-market-series.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/oil-bulletin-workbook.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/org-ban-check.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/origin-class-mapping.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/prose-renderer-scope.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/regional-bls-oews-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/regional-eurostat-lc-lci-lev-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/regional-eurostat-nrg-pc-205-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/research-surface-candidate.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/select-modal-factor.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/statutory-types.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/surface-admission.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/.well-known/workflow/v1/step/route.js",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "environmental-policy-and-innovation",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/admin/page.tsx",
       "kinds": [
+        "WRITES",
         "ROUTING"
       ],
       "skills": [
@@ -432,18 +109,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/admin/integrity-flags/route.ts",
       "kinds": [
         "WRITES"
@@ -452,6 +117,18 @@
         "caros-ledge-platform-intent",
         "environmental-policy-and-innovation",
         "source-credibility-model"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "environmental-policy-and-innovation"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -499,51 +176,6 @@
       "skills": [
         "caros-ledge-platform-intent",
         "environmental-policy-and-innovation"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/admin/sources/[id]/fetch-now/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/admin/sources/[id]/pause/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/admin/sources/[id]/tier-override/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "source-credibility-model"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/admin/sources/[id]/visibility/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -620,6 +252,51 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/app/api/admin/sources/[id]/fetch-now/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/sources/[id]/pause/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/sources/[id]/tier-override/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "source-credibility-model"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/sources/[id]/visibility/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/app/api/admin/spot-check/recurring/route.ts",
       "kinds": [
         "WRITES",
@@ -630,6 +307,17 @@
         "source-credibility-model"
       ],
       "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/statutory-rows/logic.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -692,6 +380,28 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/app/api/auth/linkedin/start/logic.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/community/benchmarks/current/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/app/api/community/benchmarks/[key]/respond/route.ts",
       "kinds": [
         "WRITES"
@@ -703,12 +413,13 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/benchmarks/current/route.ts",
+      "path": "fsi-app/src/app/api/community/groups/route.ts",
       "kinds": [
         "WRITES"
       ],
       "skills": [
-        "caros-ledge-platform-intent"
+        "caros-ledge-platform-intent",
+        "remediation-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -770,18 +481,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/groups/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/community/invitations/[id]/accept/route.ts",
       "kinds": [
         "WRITES"
@@ -815,6 +514,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/app/api/community/moderation/reports/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/app/api/community/moderation/reports/[id]/route.ts",
       "kinds": [
         "WRITES"
@@ -827,7 +537,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/moderation/reports/route.ts",
+      "path": "fsi-app/src/app/api/community/notifications/route.ts",
       "kinds": [
         "WRITES"
       ],
@@ -849,12 +559,13 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/notifications/route.ts",
+      "path": "fsi-app/src/app/api/community/posts/route.ts",
       "kinds": [
         "WRITES"
       ],
       "skills": [
-        "caros-ledge-platform-intent"
+        "caros-ledge-platform-intent",
+        "remediation-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -901,18 +612,6 @@
       ],
       "skills": [
         "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/community/posts/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "remediation-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -1020,6 +719,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/app/api/listings/rest/logic.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/app/api/listings/rest/route.ts",
       "kinds": [
         "WRITES"
@@ -1054,7 +764,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts",
+      "path": "fsi-app/src/app/api/orgs/route.ts",
       "kinds": [
         "WRITES"
       ],
@@ -1066,6 +776,17 @@
     },
     {
       "path": "fsi-app/src/app/api/orgs/[org_id]/invitations/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts",
       "kinds": [
         "WRITES"
       ],
@@ -1099,14 +820,29 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/orgs/route.ts",
+      "path": "fsi-app/src/app/api/search/logic.ts",
       "kinds": [
         "WRITES"
       ],
       "skills": [
-        "caros-ledge-platform-intent"
+        "caros-ledge-platform-intent",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
       ],
       "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/search/route.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -1219,16 +955,14 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/workspace/tags/[id]/items/route.ts",
+      "path": "fsi-app/src/app/api/workspace/tags/route.npmtest.mjs",
       "kinds": [
-        "WRITES"
+        "PROOF"
       ],
       "skills": [
-        "caros-ledge-platform-intent",
-        "environmental-policy-and-innovation",
-        "remediation-discipline"
+        "caros-ledge-platform-intent"
       ],
-      "proofWired": null,
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -1244,84 +978,31 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/community/[slug]/page.tsx",
+      "path": "fsi-app/src/app/api/workspace/tags/[id]/items/route.ts",
       "kinds": [
         "WRITES"
       ],
       "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/benchmarks/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/browse/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/directory/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/discover/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/moderation/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/community/profile/page.tsx",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
+        "caros-ledge-platform-intent",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
     },
     {
       "path": "fsi-app/src/app/market/page.tsx",
+      "kinds": [
+        "ROUTING"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/market/series/page.tsx",
       "kinds": [
         "ROUTING"
       ],
@@ -1365,34 +1046,25 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/AppShell.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/components/AskAssistant.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/components/Sidebar.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/components/account/AccountPrimitives.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/admin/OrganizationsTable.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/admin/redesign/AdminIssuesRail.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1413,7 +1085,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/admin/redesign/AdminIssuesRail.npmtest.mjs",
+      "path": "fsi-app/src/components/AppShell.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1422,14 +1094,21 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/community/CommunityRooms.tsx",
+      "path": "fsi-app/src/components/AskAssistant.npmtest.mjs",
       "kinds": [
-        "WRITES"
+        "PROOF"
       ],
-      "skills": [
-        "remediation-discipline"
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/auth/identity-loader.npmtest.mjs",
+      "kinds": [
+        "PROOF"
       ],
-      "proofWired": null,
+      "skills": [],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -1451,6 +1130,26 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/community/CommunityRooms.composition.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/community/CommunityRooms.tsx",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/community/identity-format.test.mjs",
       "kinds": [
         "PROOF"
@@ -1460,7 +1159,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/dashboard/DashboardBrief.npmtest.mjs",
+      "path": "fsi-app/src/components/dashboard/band-tile-count-source.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1470,6 +1169,15 @@
     },
     {
       "path": "fsi-app/src/components/dashboard/brief-title.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/dashboard/DashboardBrief.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1514,6 +1222,24 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/list-surface/list-surface-helpers.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/list-surface/ListSurfaceRailCards.facets.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/list-surface/ListSurfaceRailCards.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1541,7 +1267,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/list-surface/list-surface-helpers.npmtest.mjs",
+      "path": "fsi-app/src/components/list-surface/live-facet-counts.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1606,6 +1332,24 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/pages/SettingsPage.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/profile/MembersPanel.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/components/profile/NotificationPreferences.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1651,6 +1395,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/research/credibility-grade-modifiers.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/research/ResearchLedger.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1669,15 +1422,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/research/credibility-grade-modifiers.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/components/settings/BriefingScheduleSection.tsx",
       "kinds": [
         "WRITES"
@@ -1687,7 +1431,34 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/components/shared/GfmSection.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/shell/bootstrap-seed.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/shell/ItemConnectionsCard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/Sidebar.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1701,6 +1472,26 @@
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/sources/SourceStateStrips.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/sources/SourceTierLegend.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -1759,6 +1550,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/commandBarKeyboard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/FactCard.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1777,6 +1577,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/ItemGroup.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/ListRow.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1786,7 +1595,43 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/Masthead.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/MilestoneTimeline.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/RailCard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/RowTable.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/SectionCard.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1849,7 +1694,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/ui/WatchButton.npmtest.mjs",
+      "path": "fsi-app/src/components/ui/tagPopoverKeyboard.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1858,7 +1703,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/ui/tagPopoverKeyboard.npmtest.mjs",
+      "path": "fsi-app/src/components/ui/WatchButton.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1881,6 +1726,44 @@
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/admin/member-display-name.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/admin/parts-registry.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/admin/provisional-review-queue.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/agent-run-searches-322.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -1952,6 +1835,18 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/canonical-pipeline.ts",
       "kinds": [
         "WRITES"
@@ -1962,6 +1857,28 @@
         "remediation-discipline"
       ],
       "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/claim-versions-321.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -2005,6 +1922,18 @@
       ],
       "skills": [
         "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/formats/timeline-section.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "analysis-construction-spec"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -2104,7 +2033,8 @@
         "PROOF"
       ],
       "skills": [
-        "environmental-policy-and-innovation"
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -2144,6 +2074,17 @@
     },
     {
       "path": "fsi-app/src/lib/agent/parse-output-blocklist.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/parse-output.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2265,6 +2206,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/source-pool-hash.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/span-check.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -2287,7 +2239,41 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/timeline-backfill-derive.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/timeline-harvest-unlock.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/timeline-harvest.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/agent/timeline-parse.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2321,6 +2307,15 @@
     },
     {
       "path": "fsi-app/src/lib/api/auth.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/api/authed-fetch.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2367,7 +2362,34 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/api/route-guard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/api/server-bootstrap.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/auth/admin-link-scope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/auth/platform-admin-gate.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2395,6 +2417,15 @@
     },
     {
       "path": "fsi-app/src/lib/auth/safe-return-path.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/cache/fallback-guard.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2567,15 +2598,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/community/promotion.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/lib/community/respond.test.mjs",
       "kinds": [
         "PROOF"
@@ -2591,6 +2613,26 @@
       ],
       "skills": [],
       "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/community/shell-context.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/community/shell-context.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
       "status": "COVERED"
     },
     {
@@ -2651,6 +2693,28 @@
     },
     {
       "path": "fsi-app/src/lib/connections/connection-view-model.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/connections/coverage-reflection.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/connections/decision-note.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2829,6 +2893,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/constants-region-group.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/contracts/corridor-id.mjs",
       "kinds": [
         "WRITES"
@@ -2896,6 +2969,44 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/dashboard/due-next-read.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/dashboard/honest-empty.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/dashboard/recent-changes-window.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/dashboard/row-fields.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/dashboard/surface-coverage.ts",
       "kinds": [
         "WRITES"
@@ -2941,11 +3052,58 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/detail/fact-card-fixtures.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/fact-card-model.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/fact-card-panel21c-fixture.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/fact-paragraphs.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/detail/fact-paragraphs.test.mjs",
       "kinds": [
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/id-redirect.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -2957,6 +3115,44 @@
       "skills": [
         "source-credibility-model"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/meta-line.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/requirement-trajectory-classify.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/section-index-data.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/detail/timeline-math.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -3008,6 +3204,28 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/entities/link-item-entities.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/entities/link-item-entities.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/entities/link-items.ts",
       "kinds": [
         "WRITES"
@@ -3047,6 +3265,37 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/format.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/forward-events/compliance-deadline-sync.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/forward-events/compliance-deadline-sync.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/forward-events/extract-forward-events.test.mjs",
       "kinds": [
         "PROOF"
@@ -3071,7 +3320,9 @@
       "kinds": [
         "PROOF"
       ],
-      "skills": [],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -3172,6 +3423,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/intake/flywheel-steps.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/intake/intake-gates-golden.test.mjs",
       "kinds": [
         "PROOF"
@@ -3218,6 +3480,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/intake/mint-enrichment.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/intake/mint-failclosed.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -3241,6 +3514,17 @@
     },
     {
       "path": "fsi-app/src/lib/intake/mint-idempotency.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/intake/mint-item-entities.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3275,6 +3559,17 @@
     },
     {
       "path": "fsi-app/src/lib/intake/mint-source-link.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/intake/mint-timeline-hook.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3328,6 +3623,17 @@
       "skills": [
         "environmental-policy-and-innovation",
         "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/intake/run-intake-cycle-record-only.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -3470,8 +3776,7 @@
     {
       "path": "fsi-app/src/lib/llm/spend-client.ts",
       "kinds": [
-        "WRITES",
-        "MODEL"
+        "WRITES"
       ],
       "skills": [
         "remediation-discipline"
@@ -3503,7 +3808,25 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/map/jurisdiction-rollup.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/market/carbon-cost-per-feu.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3527,6 +3850,15 @@
       ],
       "skills": [],
       "proofWired": null,
+      "status": "EXEMPT"
+    },
+    {
+      "path": "fsi-app/src/lib/notifications/seed-fallback-trigger.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
       "status": "EXEMPT"
     },
     {
@@ -3598,6 +3930,15 @@
     },
     {
       "path": "fsi-app/src/lib/perf/server-timing.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/perf/static-params-fallback.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3732,6 +4073,15 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/lib/propagation/statutory-rows.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [],
+      "proofWired": null,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/lib/regional/bls-oews-parser.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -3760,6 +4110,15 @@
     },
     {
       "path": "fsi-app/src/lib/regional/regional-facts-envelope.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/relative-time.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -4040,6 +4399,28 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/sources/host-authority-d14-residue-ruling.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/sources/host-authority-gov-label-and-legal-publisher.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/sources/host-authority-ruling-conformance.test.mjs",
       "kinds": [
         "PROOF"
@@ -4107,6 +4488,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/sources/null-tier-host-worklist.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/sources/officialness.test.mjs",
       "kinds": [
         "PROOF"
@@ -4162,6 +4554,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/sources/promote-provisional.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/sources/reconcile-pass.test.mjs",
       "kinds": [
         "PROOF"
@@ -4174,7 +4577,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/sources/reconcile.selftest.mjs",
+      "path": "fsi-app/src/lib/sources/reconcile.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -4336,6 +4739,18 @@
       ],
       "skills": [
         "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/sources/target-match-yearlike.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model",
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -4563,6 +4978,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/supabase-server-brief-backfill.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/supabase-server-category-rpc-paging.test.mjs",
       "kinds": [
         "PROOF"
@@ -4573,6 +4999,15 @@
     },
     {
       "path": "fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/supabase-server-recent-changes-319.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -4802,6 +5237,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/stores/settingsStore.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/stores/settingsStore.ts",
       "kinds": [
         "WRITES"
@@ -4832,18 +5276,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/_reground/executor-ground.mjs",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05.test.mjs",
+      "path": "fsi-app/src/__tests__/carbon-intensity.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -4852,11 +5285,335 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/classification/apply-classifications.test.mjs",
+      "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
       "kinds": [
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/contracts-envelope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/contracts-licence-and-tier.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/contracts-vocabularies.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/domain-laundering.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/fueleu-annex-iv.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/jurisdiction-iso-mapping.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/leakage-fix-classifier.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/lineage-backfill.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-carbon-overlay-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-ecb-fx-parser.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-eia-v2-petroleum-spot-parser.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-eu-oil-bulletin-parser.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-headline-series-select.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-producer-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-refresh-published-price-statistics.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-series-board-view-model.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-series-deltas.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-series-freshness.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-series-registry.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-signal-promotion.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/market-write-market-series.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/oil-bulletin-workbook.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/org-ban-check.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/origin-class-mapping.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/prose-renderer-scope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/regional-bls-oews-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/regional-eurostat-lc-lci-lev-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/regional-eurostat-nrg-pc-205-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/research-surface-candidate.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/select-modal-factor.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/statutory-types.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/surface-admission.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/backfill-item-timelines.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/classification/apply-classifications.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -5059,7 +5816,34 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/scripts/harness-runs/append-dispatch-ledger.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/harness-runs/family-registry.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/harness-runs/governing-files.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/inventories/generate-migrations-inventory.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5086,7 +5870,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/batch-primitives.test.mjs",
+      "path": "fsi-app/scripts/lib/batch-primitives.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5096,6 +5880,26 @@
     },
     {
       "path": "fsi-app/scripts/lib/canonical-key.selftest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/changelog.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/changelog.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5148,7 +5952,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/decision-anchors.selftest.mjs",
+      "path": "fsi-app/scripts/lib/decision-anchors.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5166,7 +5970,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/drift-check.selftest.mjs",
+      "path": "fsi-app/scripts/lib/drift-check.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5186,7 +5990,16 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/exclusion-audit.selftest.mjs",
+      "path": "fsi-app/scripts/lib/env-file.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/exclusion-audit.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5233,7 +6046,16 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/inconclusive-probe.selftest.mjs",
+      "path": "fsi-app/scripts/lib/gate-a-state-writer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/inconclusive-probe.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5253,7 +6075,25 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/is-main.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/liveness.selftest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/loop-run-id.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5273,7 +6113,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/pg-conn.test.mjs",
+      "path": "fsi-app/scripts/lib/pg-conn.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5309,7 +6149,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/lib/surface-registry.selftest.mjs",
+      "path": "fsi-app/scripts/lib/surface-registry.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5336,15 +6176,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/maintenance/acquire-primaries.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/scripts/maintenance/apply-classifications.test.mjs",
       "kinds": [
         "PROOF"
@@ -5356,12 +6187,44 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/apply-deferrals.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/attach-found-sources.test.mjs",
       "kinds": [
         "PROOF"
       ],
       "skills": [
         "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/backfill-format-type.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/backfill-format-type.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -5391,6 +6254,18 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/capture-static-primaries.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/census-off-vertical.test.mjs",
       "kinds": [
         "PROOF"
@@ -5398,6 +6273,65 @@
       "skills": [
         "remediation-discipline"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/close-acquire-primaries-holds.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/close-coverage-reflections.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/close-flags-for-verified-items.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/close-legal-confirmation-rows.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/close-run-logs.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/commit-worklist-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -5414,6 +6348,26 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/enumerate-unclassified-hosts.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/finish-staged-updates.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/forward-events-retext.mjs",
       "kinds": [
         "WRITES"
@@ -5426,6 +6380,26 @@
     },
     {
       "path": "fsi-app/scripts/maintenance/forward-events-retext.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/gate-a-rescan-workflow.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/gate-a-rescan.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5467,6 +6441,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/lib/flag-url-extract.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/lib/origin-class-map.test.mjs",
       "kinds": [
         "PROOF"
@@ -5474,6 +6457,26 @@
       "skills": [
         "environmental-policy-and-innovation"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/lib/vocab-inventory.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/lib/vocab-inventory.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -5564,6 +6567,76 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/resolve-cited-host-gate.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/resolve-error-body-gate.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/resolve-provisional-sources.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/resolve-provisional-sources.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/resolve-refetch-holds.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/resolve-signals.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/retype-eu-decisions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/review-apply-canonical-candidates.test.mjs",
       "kinds": [
         "PROOF"
@@ -5603,6 +6676,15 @@
     },
     {
       "path": "fsi-app/scripts/maintenance/review-digests.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/schema-vocabulary-inventory.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5671,7 +6753,36 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/timeline-backfill.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/uk-series-code-reconcile.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/w1-dispositions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/write-run-artifact.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5883,6 +6994,33 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/producers/lib/emit-producers-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/producers/lib/producer-summary.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/producers/market/author-market-series-delta.test.mjs",
       "kinds": [
         "PROOF"
@@ -5942,6 +7080,15 @@
     },
     {
       "path": "fsi-app/scripts/producers/market/refresh-published-price-statistics.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6251,6 +7398,50 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/turns/apply-record-briefs.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/apply-record-briefs.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/apply-record-briefs.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/commit-brief-apply-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/turns/consume-turn-requests.test.mjs",
       "kinds": [
         "PROOF"
@@ -6258,6 +7449,17 @@
       "skills": [
         "environmental-policy-and-innovation",
         "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/emit-brief-export-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -6274,7 +7476,52 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/turns/emit-downstream-chain-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/emit-gate-a-rescan-artifact.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/turns/export-corpus-for-extraction.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/io-preflight.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/io-preflight.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6286,6 +7533,39 @@
     },
     {
       "path": "fsi-app/scripts/turns/last-turn-date.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/record-briefs/record-briefs.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/record-briefs/section-list-drift.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/record-briefs/timeline-mirror-format-gate.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6315,6 +7595,17 @@
       "skills": [
         "environmental-policy-and-innovation",
         "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/run-fetch-drain.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -6387,7 +7678,34 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/verify/candidate-dwell-audit.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/capture-length-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/verify/cc-executor-submit.golden.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/check-vocabulary-drift.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6446,6 +7764,46 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/verify/injected-no-synthesis-window.golden.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/dead-column-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/duplicate-table-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/harness-family-walk-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
+    },
+    {
       "path": "fsi-app/scripts/verify/lib/schema-drift.test.mjs",
       "kinds": [
         "PROOF"
@@ -6453,6 +7811,26 @@
       "skills": [
         "source-credibility-model"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/ui-orphan-scan.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
+    },
+    {
+      "path": "fsi-app/scripts/verify/lib/vocab-drift.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -6508,7 +7886,10 @@
       "kinds": [
         "PROOF"
       ],
-      "skills": [],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -6529,6 +7910,15 @@
       "skills": [
         "source-credibility-model"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/run-data-audit-lane.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -6581,6 +7971,26 @@
       "skills": [
         "environmental-policy-and-innovation"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/_reground/executor-ground.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -8264,6 +9674,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/supabase/migrations/154_community_signoff_withdraw_policy.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/supabase/migrations/155_community_group_vertical.sql",
       "kinds": [
         "WRITES"
@@ -8711,6 +10132,32 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/supabase/migrations/212_corpus_census.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/213_disposition_ledger.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/supabase/migrations/214_coverage_gap_candidates.sql",
       "kinds": [
         "WRITES"
@@ -8977,6 +10424,29 @@
     },
     {
       "path": "fsi-app/supabase/migrations/239_user_item_state_policies.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/240_layer_c_insert_gate.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/248_security_grants_hardening_2026_08_09.sql",
       "kinds": [
         "WRITES"
       ],
@@ -9676,14 +11146,201 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/314_attention_counts_provisional_queue_population.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/315_workspace_due_next.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/316_regulation_exposure_fields.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/317_provisional_sources_status_promoted.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/318_forward_events_delete_document_date_rows.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/319_recent_changes_include_updates.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/320_changelog_backfill_regenerated_briefs.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/321_claim_versions_record_briefs_supersede.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/322_agent_run_searches_result_chars.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/323_agent_run_searches_result_chars_backfill.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/324_drop_drain_worklist.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/325_drop_snapshot_gapflags_20260831.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/326_regulation_directive_slot_gap_source_says_so.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/328_activate_three_provisional_sources.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "source-credibility-model"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/329_drop_community_promotion_transitions.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/330_derivation_edges_rls.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 897,
-    "covered": 859,
-    "exempt": 38,
-    "gaps": 0,
-    "orphaned_proofs": 0,
+    "governed_files": 1059,
+    "covered": 1016,
+    "exempt": 41,
+    "gaps": 2,
+    "orphaned_proofs": 2,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

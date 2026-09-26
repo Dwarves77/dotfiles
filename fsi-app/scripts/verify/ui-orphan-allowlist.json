@@ -1,0 +1,3 @@
+{
+  "_comment": "Column allowlist for ui-orphan-audit.mjs, keyed 'table.column'. Every entry MUST cite an ADR, spec, or migration comment as its reason (docs/plans/data-machine-tool-gaps-2026-09-25.md, lane TOOL-GAP-3). Empty by design on this first run: the RW-2/UI-3 case (state_cost_facts) is a RULED build item (operator ruling 2026-09-25, build order step 4, build the producer), not an allowlist candidate, so it is left as a live finding for the coordinator/operator to track through to that build rather than silenced here."
+}
