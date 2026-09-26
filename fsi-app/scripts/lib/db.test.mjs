@@ -12,7 +12,7 @@ process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redire
 const { reclassifyToSource, registerSource, readAll, readAllByIds, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
 
 // GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
-// provenance_status off 'verified' (the stale-verified cache class — 168 archived rows read 'verified'
+// provenance_status off 'verified' (the stale-verified cache class -- 168 archived rows read 'verified'
 // while the live validator quarantines them). RED before the fix (patch had only is_archived + reason);
 // GREEN now (intelligence_items archive patch carries provenance_status:'unverified'). Other tables are
 // untouched (only intelligence_items has provenance_status).
@@ -20,10 +20,10 @@ test('archivePatch resets provenance_status off verified for intelligence_items 
   const item = archivePatch('intelligence_items', 'reclassified_to_source');
   assert.equal(item.is_archived, true);
   assert.equal(item.archive_reason, 'reclassified_to_source');
-  assert.equal(item.provenance_status, 'unverified'); // the reset — a verified row cannot survive archive
+  assert.equal(item.provenance_status, 'unverified'); // the reset -- a verified row cannot survive archive
   const src = archivePatch('sources', 'source_not_item');
   assert.equal(src.is_archived, true);
-  assert.equal(src.provenance_status, undefined); // sources carry no provenance_status — no spurious column
+  assert.equal(src.provenance_status, undefined); // sources carry no provenance_status -- no spurious column
 });
 
 // Minimal chainable Supabase mock. handler({table, verb, ops}) -> { data, error }. Records calls.
@@ -40,7 +40,7 @@ function makeClient(handler, calls) {
       in(c, v) { state.ops.push(['in', c, v]); return b; },
       order(c) { state.ops.push(['order', c]); return b; },
       // range() stays CHAINABLE (does not settle) so a caller that adds a filter AFTER .range()
-      // — exactly what readAll's own `match(q)` does — still lands in the ops it settles with.
+      // -- exactly what readAll's own `match(q)` does -- still lands in the ops it settles with.
       // Real supabase-js is lazy the same way (nothing executes until awaited); only .then()
       // below triggers settle(), same as a real thenable query builder.
       range(a, z) { state.ops.push(['range', a, z]); return b; },
@@ -98,7 +98,7 @@ test('reclassifyToSource: THROWS and NEVER archives when registration is not con
     'item must NOT be archived when the source is not confirmed active');
 });
 
-test('registerSource: idempotent — existing active host is reused, no insert', async () => {
+test('registerSource: idempotent -- existing active host is reused, no insert', async () => {
   const calls = [];
   __setWriteClientForTest(() => makeClient((s) => {
     if (s.table === 'sources' && s.verb === 'select') return { data: [{ id: 's9', url: 'https://www.eia.gov/', status: 'active' }], error: null };
@@ -301,7 +301,7 @@ test('readClient: does NOT mutate when a write is attempted (throw happens befor
   __setWriteClientForTest(() => makeClient((s) => { calls.push(s.verb); return { data: null, error: null }; }, []));
   const sb = readClient();
   assert.throws(() => sb.from('sources').update({ status: 'active' }));
-  assert.ok(!calls.includes('update'), 'no update verb should reach the client — the proxy throws first');
+  assert.ok(!calls.includes('update'), 'no update verb should reach the client -- the proxy throws first');
 });
 
 // ---------------------------------------------------------------------------
@@ -446,7 +446,7 @@ test.after(() => __setWriteClientForTest(null)); // restore real client factory
 // review-apply-portal-links, a 57,469-id) ruling.
 // ---------------------------------------------------------------------------
 
-test('readAllByIds: empty id list short-circuits — no client call at all', async () => {
+test('readAllByIds: empty id list short-circuits -- no client call at all', async () => {
   const calls = [];
   __setWriteClientForTest(() => makeClient(() => { throw new Error('must not be called for an empty id list'); }, calls));
   const rows = await readAllByIds('sources', 'id,status', []);
@@ -530,7 +530,38 @@ test('readAllByIds: throws if a chunk somehow returns more rows than ids request
   await assert.rejects(() => readAllByIds('sources', 'id', ['a', 'b']), /more rows.*than ids/);
 });
 
-test('guardedUpdateByIds: IN-CHUNK (2026-09-04) — a 1,317-id integrity_flags list (the live open flywheel-signal count that broke backlog applies #24/#26 as one .in() GET) goes out as 14 requests of ≤100 ids, each URL-sized well under the gateway header limit', async () => {
+// GOLDEN (GATE-A-RESCAN order-key bug, GitHub Actions run 36217491293, 2026-09-26): readAllByIds
+// used to hand `readAll` no `orderBy`, so `readAll`'s own default (`orderBy = "id"`) always ordered
+// every page by a column literally named "id" -- even for a table like item_gate_a_state (migration
+// 224) that has NO "id" column at all, whose primary key is `intelligence_item_id`. That crashed
+// every page with "column item_gate_a_state.id does not exist". RED before the fix (readAllByIds
+// passed no orderBy down); GREEN now (readAllByIds defaults orderBy to idColumn, which is guaranteed
+// to exist because it is the exact column the `.in()` filter already targets).
+test('readAllByIds: orders each page by idColumn, not a hardcoded "id" -- the table need not have an "id" column at all', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((v) => ({ intelligence_item_id: v, gate_a_version: 'v1' })), error: null };
+  }, calls));
+  const rows = await readAllByIds(
+    'item_gate_a_state', 'intelligence_item_id, gate_a_version', ['a', 'b'],
+    { idColumn: 'intelligence_item_id', manyPerId: false },
+  );
+  assert.equal(rows.length, 2);
+  const orderCols = calls.map((c) => c.ops.find((o) => o[0] === 'order')?.[1]);
+  assert.ok(orderCols.every((c) => c === 'intelligence_item_id'), `expected every page ordered by intelligence_item_id, got ${JSON.stringify(orderCols)}`);
+  assert.ok(!orderCols.includes('id'), 'must never order by a hardcoded "id" when the table has no such column');
+});
+
+test('readAllByIds: an explicit orderBy still overrides the idColumn default', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => ({ data: [], error: null }), calls));
+  await readAllByIds('sources', 'id,status', ['a'], { orderBy: 'status' });
+  const orderCols = calls.map((c) => c.ops.find((o) => o[0] === 'order')?.[1]);
+  assert.ok(orderCols.every((c) => c === 'status'));
+});
+
+test('guardedUpdateByIds: IN-CHUNK (2026-09-04) -- a 1,317-id integrity_flags list (the live open flywheel-signal count that broke backlog applies #24/#26 as one .in() GET) goes out as 14 requests of ≤100 ids, each URL-sized well under the gateway header limit', async () => {
   const calls = [];
   const ids = Array.from({ length: 1317 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
   __setWriteClientForTest(() => makeClient((s) => {

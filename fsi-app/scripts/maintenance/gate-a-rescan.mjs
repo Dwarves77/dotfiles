@@ -253,9 +253,12 @@ export async function buildDeps() {
     readCandidateItems: () => readAll("intelligence_items", "id, full_brief, is_archived", {
       match: (q) => q.eq("is_archived", false),
     }),
+    // manyPerId:false -- intelligence_item_id is item_gate_a_state's PRIMARY KEY (migration 224), a
+    // 1:1 relationship, so an id-list read-back that somehow returned more rows than ids requested
+    // is a real bug worth the fail-closed throw, not a legitimate many-rows-per-id shape.
     readGateAStates: (ids) => readAllByIds(
       "item_gate_a_state", "intelligence_item_id, gate_a_version, orphan_count, scanned_hash, scanned_at",
-      ids, { idColumn: "intelligence_item_id" },
+      ids, { idColumn: "intelligence_item_id", manyPerId: false },
     ),
     readFactClaims: (itemId) => readAll("section_claim_provenance", "claim_text, source_span", {
       match: (q) => q.eq("intelligence_item_id", itemId).eq("claim_kind", "FACT"),
@@ -280,8 +283,12 @@ export async function buildDeps() {
       if (!run) return null;
       return (run.per_item ?? []).map((p) => p?.id).filter((id) => typeof id === "string" && id.length > 0);
     },
+    // orderBy: "intelligence_item_id" -- item_gate_a_state (migration 224) has NO "id" column (its
+    // primary key IS intelligence_item_id); readAll's own default orderBy is "id", which would crash
+    // this read the SAME way readGateAStates crashed above (this call is apply-mode-only, so the
+    // 2026-09-26 dry-mode incident never reached it -- same class, same file, same fix).
     countDistinctGateAVersions: async () => {
-      const all = await readAll("item_gate_a_state", "gate_a_version");
+      const all = await readAll("item_gate_a_state", "gate_a_version", { orderBy: "intelligence_item_id" });
       return new Set(all.map((r) => r.gate_a_version)).size;
     },
   };

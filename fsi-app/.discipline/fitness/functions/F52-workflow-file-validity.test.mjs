@@ -300,6 +300,87 @@ test('GREEN (e): a workflow_run trigger naming a real workflow (by its own name:
   );
 });
 
+// ── check (f): a run: step piping into tee must set -o pipefail earlier in the same step ───────────
+// (gate-a-rescan.yml, GitHub Actions run 36217491293, 2026-09-26)
+
+test('RED (f): the gate-a-rescan.yml line itself, verbatim - a run: step pipes a node script into tee with no pipefail', () => {
+  withTempRepo(
+    {
+      'gar.yml':
+        'name: Gate A rescan\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  rescan:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: gate-a-rescan.mjs\n' +
+        '        run: |\n' +
+        '          mkdir -p "$OUT_ROOT/gate-a-rescan"\n' +
+        '          node scripts/maintenance/gate-a-rescan.mjs --mode "$GAR_MODE" | tee /tmp/gate-a-rescan.log\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      const hits = messagesMatching(out, 'F52f');
+      assert.ok(hits.length >= 1, 'expected the un-guarded tee pipe to be caught');
+      assert.ok(hits.some((v) => v.message.includes('pipefail')));
+    },
+  );
+});
+
+test('GREEN (f): the same step with set -o pipefail added first produces no F52f violation', () => {
+  withTempRepo(
+    {
+      'gar.yml':
+        'name: Gate A rescan\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  rescan:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: gate-a-rescan.mjs\n' +
+        '        run: |\n' +
+        '          set -o pipefail\n' +
+        '          mkdir -p "$OUT_ROOT/gate-a-rescan"\n' +
+        '          node scripts/maintenance/gate-a-rescan.mjs --mode "$GAR_MODE" | tee /tmp/gate-a-rescan.log\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52f'), []);
+    },
+  );
+});
+
+test('RED (f): pipefail set in a DIFFERENT step does not protect this step\'s own tee pipe', () => {
+  withTempRepo(
+    {
+      'gar.yml':
+        'name: Gate A rescan\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  rescan:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: one step sets pipefail\n' +
+        '        run: |\n' +
+        '          set -o pipefail\n' +
+        '          echo hi\n' +
+        '      - name: a LATER, separate step pipes into tee unguarded\n' +
+        '        run: |\n' +
+        '          node scripts/x.mjs | tee /tmp/x.log\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.ok(messagesMatching(out, 'F52f').length >= 1, 'pipefail in an earlier, unrelated step must not suppress this one');
+    },
+  );
+});
+
+test('GREEN (f): a run: step with no tee pipe at all produces no F52f violation', () => {
+  withTempRepo(
+    {
+      'plain.yml':
+        'name: Plain\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: node scripts/x.mjs\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52f'), []);
+    },
+  );
+});
+
 // ── pure helpers, direct unit coverage ───────────────────────────────────────────────────────────────
 
 test('extractJobs finds job ids and line ranges', () => {
