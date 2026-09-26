@@ -168,6 +168,118 @@ export function findNeverDispatchedIndividualProducers(summaries) {
   return summaries.filter((s) => !s.everDispatched);
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// WORKFLOW-RUN-HISTORY DISPATCH-EVIDENCE SOURCE (coordinator ruling, 2026-09-25, PR #810: "you already
+// confirmed via gh run list, so the credential exists locally, add it as a source now"). The harness-run
+// artifact convention is not the only proof a workflow fired: GitHub Actions itself keeps run history, and
+// for several families that history PREDATES the harness family's own registration (`producers`: real
+// `workflow_dispatch` runs from 2026-08-30, family registered 2026-09-20; the market_series/emission_factors
+// rows those runs wrote are the corroborating data-side evidence, see this lane's session-log addendum).
+// This section adds that second evidence source, self-skipping (never crashing, never asserting a false
+// "no dispatch") when `gh`/its credential is unavailable, per the coordinator's explicit instruction.
+
+/**
+ * Resolve which `.github/workflows/*.yml` file governs a family's dispatch, so `gh run list --workflow
+ * <file>` has something to query. Two rules, in order: (1) an explicit `.yml` entry in the family's own
+ * `governing_files` (the strongest signal, several families name their workflow there); (2) the
+ * same-basename convention (`scripts/harness-runs/<family>/` <-> `.github/workflows/<family>.yml`), the
+ * same convention this repo already uses for `source-sweep`, `fetch-drain`, `maintenance`, etc. Returns
+ * `null` when neither resolves (a family with no known workflow mapping), never guesses.
+ * @param {{family:string, governing_files:string[]}} descriptor a family.json descriptor (family-registry.mjs shape)
+ * @param {Set<string>} availableWorkflowBasenames every `*.yml` filename actually present under
+ *   `.github/workflows/` (injected, so this stays fs-free and testable)
+ * @returns {string|null} the workflow's basename (e.g. "producers.yml"), suitable for `gh run list --workflow`
+ */
+export function resolveWorkflowFileForFamily(descriptor, availableWorkflowBasenames) {
+  for (const f of descriptor.governing_files ?? []) {
+    const m = /(?:^|\/)([a-zA-Z0-9_-]+\.yml)$/.exec(f);
+    if (m && f.includes('workflows/') && availableWorkflowBasenames.has(m[1])) return m[1];
+  }
+  const conventional = `${descriptor.family}.yml`;
+  if (availableWorkflowBasenames.has(conventional)) return conventional;
+  return null;
+}
+
+/** Thrown for gh run-list output that is not the expected JSON array shape. Named so a caller can log a
+ * precise reason rather than a bare parse error. */
+export class GhRunListParseError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'GhRunListParseError';
+  }
+}
+
+/**
+ * Parse `gh run list --json databaseId,event,conclusion,createdAt` stdout into a plain array. Pure, no
+ * spawn, no fs, only the runner shells out; this function is what the fixture tests exercise directly.
+ * @param {string} stdout
+ * @returns {Array<{databaseId:number, event:string, conclusion:string|null, createdAt:string}>}
+ */
+export function parseGhRunListJson(stdout) {
+  let parsed;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch (e) {
+    throw new GhRunListParseError(`gh run list output is not valid JSON: ${e.message}`);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new GhRunListParseError(`gh run list output is not a JSON array (got ${typeof parsed})`);
+  }
+  return parsed.map((r) => ({
+    databaseId: r?.databaseId ?? null,
+    event: typeof r?.event === 'string' ? r.event : null,
+    conclusion: typeof r?.conclusion === 'string' ? r.conclusion : null,
+    createdAt: typeof r?.createdAt === 'string' ? r.createdAt : null,
+  }));
+}
+
+/**
+ * Summarize a workflow's own GitHub Actions run history (any event: workflow_dispatch, push, schedule --
+ * the workflow FIRING is the evidence, regardless of what triggered it).
+ * @param {string} workflowFile
+ * @param {Array<{createdAt:string|null}>} runs already-parsed (parseGhRunListJson's output)
+ * @returns {{ workflowFile: string, runCount: number, everRun: boolean, lastRunAt: string|null }}
+ */
+export function summarizeWorkflowRunHistory(workflowFile, runs) {
+  const withDates = runs.map((r) => r.createdAt).filter((d) => typeof d === 'string').sort();
+  return {
+    workflowFile,
+    runCount: runs.length,
+    everRun: runs.length > 0,
+    lastRunAt: withDates.length ? withDates[withDates.length - 1] : null,
+  };
+}
+
+/**
+ * The combined verdict this walker's report actually prints, synthesizing the harness-artifact evidence
+ * (this module's own primary source) with the workflow-run-history evidence (this section). PURE,
+ * injectable, the shape the fixture tests exercise directly:
+ *   - `ARTIFACT_RECORDED`: a harness-run artifact exists -- the strongest evidence, workflow history is
+ *     redundant confirmation, not needed to conclude dispatch.
+ *   - `WORKFLOW_RUN_HISTORY_ONLY`: no harness artifact, but the governing workflow HAS real GitHub Actions
+ *     run history -- dispatched, just before/without the artifact convention (the exact `producers` case).
+ *   - `NO_EVIDENCE_FOUND`: no harness artifact, workflow queried successfully, genuinely zero runs.
+ *   - `EVIDENCE_UNAVAILABLE`: no harness artifact, and workflow evidence could not be obtained (no `gh`, no
+ *     credential, no resolvable workflow mapping) -- self-skip, NEVER reported as "no dispatch".
+ * @param {{ artifactEverDispatched: boolean, workflowEvidence: { available: true, everRun: boolean, runCount: number, lastRunAt: string|null } | { available: false, reason: string } }} args
+ * @returns {{ verdict: 'ARTIFACT_RECORDED'|'WORKFLOW_RUN_HISTORY_ONLY'|'NO_EVIDENCE_FOUND'|'EVIDENCE_UNAVAILABLE', detail: string }}
+ */
+export function classifyDispatchEvidence({ artifactEverDispatched, workflowEvidence }) {
+  if (artifactEverDispatched) {
+    return { verdict: 'ARTIFACT_RECORDED', detail: 'a harness-run artifact exists' };
+  }
+  if (!workflowEvidence.available) {
+    return { verdict: 'EVIDENCE_UNAVAILABLE', detail: workflowEvidence.reason };
+  }
+  if (workflowEvidence.everRun) {
+    return {
+      verdict: 'WORKFLOW_RUN_HISTORY_ONLY',
+      detail: `no harness artifact, but ${workflowEvidence.workflowFile ?? 'the governing workflow'} has ${workflowEvidence.runCount} GitHub Actions run(s), last at ${workflowEvidence.lastRunAt ?? 'unknown time'}`,
+    };
+  }
+  return { verdict: 'NO_EVIDENCE_FOUND', detail: 'no harness artifact, and the governing workflow has zero GitHub Actions runs' };
+}
+
 /** Stale allowlist entry: an allowlisted family name that either does not exist among the walked
  * families, or now HAS dispatch history (so keeping it allowlisted would hide a real, since-resolved
  * observation), same self-auditing shape as dead-column-scan.mjs's staleAllowlistEntries. */

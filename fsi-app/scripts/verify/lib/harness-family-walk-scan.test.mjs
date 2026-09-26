@@ -11,6 +11,11 @@ import {
   extractProducerRoster,
   summarizeProducerDispatchHistory,
   findNeverDispatchedIndividualProducers,
+  resolveWorkflowFileForFamily,
+  parseGhRunListJson,
+  GhRunListParseError,
+  summarizeWorkflowRunHistory,
+  classifyDispatchEvidence,
   staleHarnessWalkAllowlistEntries,
 } from './harness-family-walk-scan.mjs';
 
@@ -143,6 +148,80 @@ test('findNeverDispatchedIndividualProducers: flags only producers with everDisp
   ];
   const got = findNeverDispatchedIndividualProducers(summaries).map((s) => s.producer);
   assert.deepEqual(got, ['bls-oews', 'eia-v2-petroleum-spot']);
+});
+
+test('resolveWorkflowFileForFamily: KNOWN POSITIVE (producers shape) -- resolves via an explicit .yml in governing_files', () => {
+  const descriptor = { family: 'producers', governing_files: ['../.github/workflows/producers.yml', 'scripts/producers/emit-producers-artifact.mjs'] };
+  const got = resolveWorkflowFileForFamily(descriptor, new Set(['producers.yml', 'maintenance.yml']));
+  assert.equal(got, 'producers.yml');
+});
+
+test('resolveWorkflowFileForFamily: falls back to the same-basename convention when governing_files names no workflow', () => {
+  const descriptor = { family: 'source-sweep', governing_files: ['scripts/turns/run-source-sweep.mjs'] };
+  const got = resolveWorkflowFileForFamily(descriptor, new Set(['source-sweep.yml']));
+  assert.equal(got, 'source-sweep.yml');
+});
+
+test('resolveWorkflowFileForFamily: LABELLED NEGATIVE -- no workflow mapping resolves to null, never guesses', () => {
+  const descriptor = { family: 'meta-harness', governing_files: ['scripts/harness-runs/meta-harness/run.mjs'] };
+  const got = resolveWorkflowFileForFamily(descriptor, new Set(['producers.yml', 'maintenance.yml']));
+  assert.equal(got, null);
+});
+
+test('parseGhRunListJson: KNOWN POSITIVE (real gh output shape) -- parses the four requested fields', () => {
+  const stdout = '[{"conclusion":"success","createdAt":"2026-09-04T01:45:32Z","databaseId":33826970501,"event":"workflow_dispatch"}]';
+  const got = parseGhRunListJson(stdout);
+  assert.deepEqual(got, [{ databaseId: 33826970501, event: 'workflow_dispatch', conclusion: 'success', createdAt: '2026-09-04T01:45:32Z' }]);
+});
+
+test('parseGhRunListJson: throws GhRunListParseError (named, never a bare parse error) on invalid JSON or a non-array', () => {
+  assert.throws(() => parseGhRunListJson('not json'), GhRunListParseError);
+  assert.throws(() => parseGhRunListJson('{"not":"an array"}'), GhRunListParseError);
+});
+
+test('summarizeWorkflowRunHistory: KNOWN POSITIVE -- zero runs means everRun=false; picks the latest createdAt', () => {
+  assert.equal(summarizeWorkflowRunHistory('producers.yml', []).everRun, false);
+  const s = summarizeWorkflowRunHistory('producers.yml', [
+    { createdAt: '2026-08-30T14:56:03Z' },
+    { createdAt: '2026-09-16T16:59:29Z' },
+    { createdAt: '2026-09-04T01:45:32Z' },
+  ]);
+  assert.equal(s.everRun, true);
+  assert.equal(s.runCount, 3);
+  assert.equal(s.lastRunAt, '2026-09-16T16:59:29Z');
+});
+
+test('classifyDispatchEvidence: ARTIFACT_RECORDED wins outright, workflow evidence is not even consulted', () => {
+  const got = classifyDispatchEvidence({ artifactEverDispatched: true, workflowEvidence: { available: false, reason: 'irrelevant' } });
+  assert.equal(got.verdict, 'ARTIFACT_RECORDED');
+});
+
+test('classifyDispatchEvidence: KNOWN POSITIVE (the producers/market-producer bug this ruling exists to fix) -- ' +
+  'no artifact but real workflow run history is WORKFLOW_RUN_HISTORY_ONLY, not a false "no dispatch"', () => {
+  const got = classifyDispatchEvidence({
+    artifactEverDispatched: false,
+    workflowEvidence: { available: true, everRun: true, runCount: 18, lastRunAt: '2026-09-16T16:59:29Z', workflowFile: 'producers.yml' },
+  });
+  assert.equal(got.verdict, 'WORKFLOW_RUN_HISTORY_ONLY');
+  assert.match(got.detail, /producers\.yml/);
+});
+
+test('classifyDispatchEvidence: no artifact, workflow queried, genuinely zero runs, is NO_EVIDENCE_FOUND', () => {
+  const got = classifyDispatchEvidence({
+    artifactEverDispatched: false,
+    workflowEvidence: { available: true, everRun: false, runCount: 0, lastRunAt: null, workflowFile: 'x.yml' },
+  });
+  assert.equal(got.verdict, 'NO_EVIDENCE_FOUND');
+});
+
+test('classifyDispatchEvidence: LABELLED NEGATIVE (self-skip) -- gh/credential unavailable is EVIDENCE_UNAVAILABLE, ' +
+  'never asserted as "no dispatch"', () => {
+  const got = classifyDispatchEvidence({
+    artifactEverDispatched: false,
+    workflowEvidence: { available: false, reason: 'gh CLI not found on PATH' },
+  });
+  assert.equal(got.verdict, 'EVIDENCE_UNAVAILABLE');
+  assert.match(got.detail, /gh CLI not found/);
 });
 
 test('staleHarnessWalkAllowlistEntries: flags an allowlisted family with no match, and one that now has dispatch history', () => {
