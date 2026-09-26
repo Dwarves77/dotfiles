@@ -1,0 +1,69 @@
+{
+  "harness_family": "state-cost",
+  "harness_version": "sha256:3c2a615dc1b0a9a4",
+  "run_id": "state-cost-run-001",
+  "started_at": "2026-09-26T06:29:49.871Z",
+  "finished_at": "2026-09-26T06:29:49.879Z",
+  "config": {
+    "mode": "dry",
+    "fixtures": "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\state-cost-producer\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs",
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\state-cost-producer\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "US-NY|labor_markets|State minimum wage",
+      "outcome": "refused_ungrounded",
+      "verdict": "span_text is not a verbatim (whitespace-insensitive) substring of the captured source text",
+      "error": null
+    },
+    {
+      "id": "US-WA|operational_cost|Industrial electricity rate",
+      "outcome": "refused_unrated_source",
+      "verdict": "host \"up.codes\" is not classified by the institution class table (classTierForHost returned null), needs registry review before this figure can publish with a rating (rule 18: rate it, do not guess)",
+      "error": null
+    },
+    {
+      "id": "US-CA|labor_markets|State minimum wage",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "US-TX|operational_cost|Industrial electricity rate",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "candidates": 4,
+    "refused_ungrounded": 1,
+    "refused_unrated_source": 1,
+    "to_insert": 2,
+    "to_update": 0,
+    "unchanged": 0,
+    "inserted": 0,
+    "updated": 0,
+    "planned_entities": 2,
+    "planned_identifiers": 2,
+    "planned_refs": 2,
+    "written": false
+  },
+  "defects_found": [
+    {
+      "description": "candidate US-WA|operational_cost|Industrial electricity rate refused: host \"up.codes\" is not classified by the institution class table (classTierForHost returned null), needs registry review before this figure can publish with a rating (rule 18: rate it, do not guess)",
+      "root_cause": "host not present in the institution class table (host-authority.ts)",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\state-cost-producer\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
+  ],
+  "proposer_notes": "state-cost-facts-producer's first run artifact (lane STATE-COST-PRODUCER, 2026-09-25). R14 holds live rows, every run this lane exercised was --fixtures/dry mode; ENABLED stays false until a separate reviewed change lifts it, matching bls-oews-producer.mjs's own ENABLED history.",
+  "trigger": "manual"
+}
