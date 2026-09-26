@@ -16,8 +16,11 @@ test("root element carries data-part=\"item-group\"", () => {
   assert.match(SOURCE, /data-part="item-group"/);
 });
 
-test("header renders only when title or band is given (integrity rule: no invented header row)", () => {
-  assert.match(SOURCE, /const hasHeader = Boolean\(title \|\| band\);/);
+// 2026-09-25 live-render fix: gating on the ambient `band` (tint only) rendered an EMPTY tinted bar
+// on every group on a single-item detail page once the pill stopped auto-inheriting that band.
+// The header must render only when it has something to show: a title, or an explicit pill.
+test("header renders only when title or an explicit pill band is given, never for tint alone (no empty header bar)", () => {
+  assert.match(SOURCE, /const hasHeader = Boolean\(title \|\| pillBand\);/);
   assert.match(SOURCE, /\{hasHeader && \(/);
 });
 

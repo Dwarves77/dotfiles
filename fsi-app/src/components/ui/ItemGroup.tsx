@@ -101,7 +101,12 @@ export function ItemGroup({ title, qualifier, band: bandProp, actionStrip: actio
   const cards = Array.isArray(children) ? children : [children];
   const visible = cards.slice(0, VISIBLE_CARD_CAP);
   const overflow = cards.slice(VISIBLE_CARD_CAP);
-  const hasHeader = Boolean(title || band);
+  // FIX (live-render pass, 2026-09-25, Playwright capture against /regulations/[slug]): gating the
+  // header on the raw `band` (tint) rather than `pillBand` left an EMPTY tinted bar rendering above
+  // every group on a single-item detail page (no title, no pill, a solid colour strip with nothing
+  // in it) once the pill itself stopped inheriting the ambient band - a header with nothing to show
+  // must not render at all.
+  const hasHeader = Boolean(title || pillBand);
 
   return (
     <div

@@ -66,6 +66,19 @@ function MastheadConnections({
   if (rows.length === 0) return null;
   return (
     <div style={{ padding: "16px 20px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Live-render fix (Playwright pass, 2026-09-25): the artboard's masthead-strip markup draws
+          this grid as a flat 3-column row at 1440 (its own drawn width) with no mobile treatment of
+          its own (undrawn case, README "Mobile 390" section: only the desktop parts are captured).
+          Measured at 375 [CONFIRMED]: 3 fixed columns left each card ~110px wide, hard-clipping both
+          the kind label and the title mid-word. README's own governing rule for every part this
+          lane touches ("375 must not clip - the row is fluid, not a fixed 390 layout") applies here
+          the same as everywhere else, so the grid collapses to 1 column below 640px, matching the
+          breakpoint the rest of this file's siblings (Masthead.tsx) already use for mobile. */}
+      <style>{`
+        @media (max-width: 640px) {
+          .cl-masthead-connections-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
         <span
           style={{
@@ -83,7 +96,7 @@ function MastheadConnections({
           {formatNumber(rows.length)} linked {rows.length === 1 ? "item" : "items"}
         </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10 }}>
+      <div className="cl-masthead-connections-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10 }}>
         {rows.slice(0, 6).map((row) => {
           const body = (
             <>

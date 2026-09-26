@@ -122,6 +122,53 @@ Three `.tsx` surfaces changed (`RegulationDetailSurface.tsx`, `ResearchFindingDe
   `parity-checks-smoke.mjs`) runs at 1440 and is unaffected structurally by this change (additive
   props, no new fixed widths); flagged for the coordinator's own 375px pass alongside items 1/4/6.
 
+## Addendum: Playwright verification pass (operator-directed, same day)
+
+The operator directed live rendering rather than code-only verification. Method: `src/proxy.ts`'s
+auth check was temporarily patched with a literal `if (process.env.UI_SCREENSHOT_BYPASS === "1")
+authenticated = true;` branch (same env-only pattern as UI-SYSTEM lane commit `2aa17758`), a local
+`next dev` was run against it with `UI_SCREENSHOT_BYPASS=1` in `.env.local` (gitignored, untracked),
+Playwright captured all three routes at 1440 and 375px, and **both the proxy.ts patch and the env
+var were reverted before this commit** (`git diff src/proxy.ts` is empty; `.env.local` restored from
+its own pre-session backup). Screenshots: `fsi-app/scripts/tmp/{regulations,research,operations}-detail-{1440,375}.png`.
+
+Per-item, re-labeled against live evidence (rule 14):
+
+1. **Connections in masthead**, `[CONFIRMED]`. Live on all three routes: regulations shows
+   "CONNECTIONS · 22 LINKED ITEMS" inside `.cl-masthead`; research "1 LINKED ITEM"; operations
+   "21 LINKED ITEMS". Found and fixed live: the 3-column grid had no mobile breakpoint and hard
+   clipped every card at 375px (measured, roughly 110px per column, both the kind label and title
+   cut mid-word); added a `max-width: 640px` collapse to 1 column
+   (`ItemConnectionsCard.tsx`); re-captured, clean at 375 on all three routes.
+2. **Absence "needs..."**, `[CONFIRMED]`. Live text observed: "WHO PAYS: NEEDS PRIMARY-SOURCE
+   FIGURE", "NEXT MILESTONE: NEEDS MORE DATA", "connect ↗", on regulations, research and
+   operations alike.
+3. **Band tag once**, `[CONFIRMED, and a real regression found and fixed]`. The band PILL itself
+   does not duplicate. But decoupling the pill from the ambient band left `hasHeader` still keyed
+   on the raw (tint-only) `band`, so every `ItemGroup` on a single-item page rendered an EMPTY
+   pink/tinted header bar (no title, no pill) directly above its fact cards, confirmed via DOM
+   query (`data-part-slot="group-header"` present, zero text content, `height: 21px`,
+   `background: var(--immediate-tint)`) on all 5 groups on the regulations item under test. Fixed:
+   `hasHeader = Boolean(title || pillBand)` (was `Boolean(title || band)`); re-verified live, zero
+   empty headers remain. **This empty bar is almost certainly what the operator's note (4) called
+   "a SCOPE wrapper is visibly present"**, see item 4.
+4. **SCOPE wrapper**, `[REFUTED as a separate defect; explained by item 3]`. No literal "SCOPE
+   wrapper" element exists. "SCOPE" is the FactCard `kind` vocabulary value (README 0.4: DEADLINE /
+   BASELINE TARGET / NATIONAL TARGET / SCOPE / PENALTY / DEFINITION), and it renders correctly
+   (ink edge, `--tag` background, per spec) on every route checked. What WAS visibly wrong,
+   directly above a SCOPE-kind card in most groups, was the empty tinted header bar from item 3,
+   fixed there. Flagging this as explained-and-fixed rather than a second, separate removal.
+5. **Section 3px top rule**, `[CONFIRMED]` via DOM query: every `[data-section-card]` on the
+   regulations item (masthead plus all 8 S-sections) has a first child 3px tall (`SectionRule`),
+   `border: 1px solid rgba(0,0,0,.12)`, `border-radius: 10px`, box-shadow present. No section
+   bypasses `SectionCard`.
+6. **Operations Sources squeeze**, `[REFUTED]`. Measured live on `/operations/singapore-regional-
+   operations-profile#sources`: the Sources `DetailSection` renders at 782px (matches the 780px
+   spec exactly), each source row at 740px, identical `SourcesGrid` component every other surface
+   uses. No squeeze found. The 3 sources on this fixture item happen to carry no `tier` value
+   (a data fact, not a layout defect), so their rows show no T-badge, visually different from
+   regulations' T1-badged rows, but not squeezed.
+
 ## Gates run this session
 
 - `node --test` on the three changed unit files (`Absence.npmtest.mjs`, `ItemGroup.npmtest.mjs`,
