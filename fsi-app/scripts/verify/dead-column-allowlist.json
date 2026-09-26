@@ -1,0 +1,3 @@
+{
+  "_comment": "Column allowlist for dead-column-audit.mjs, keyed 'table.column'. Every entry MUST cite an ADR, spec, or migration comment as its reason (docs/plans/data-machine-tool-gaps-2026-09-25.md, lane TOOL-GAP-2 brief: 'seed it only with entries you can justify from an ADR/spec citation; everything else is a finding, not an allowlist entry'). Empty by design: the lane's live run (2026-09-25, kwrsbpiseruzbfwjpvsp) found 26 in-scope dead columns and none of them carried an ADR/spec citation the lane could verify unassisted, so all 26 are reported as findings in docs/ops/session-log.d/2026-09-25-tool-gap-2.md for coordinator/operator triage rather than pre-allowlisted. Add entries here only once a citation is named."
+}
