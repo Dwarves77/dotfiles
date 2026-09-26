@@ -4,8 +4,7 @@
   "consumer": { "file": ".github/workflows/fetch-drain.yml", "name": "Fetch drain" },
   "trigger": "workflow_run",
   "family": "fetch-drain",
-  "enforceEdge": false,
+  "enforceEdge": true,
   "enforceFired": false,
-  "consumerPending": true,
-  "note": "M1 creates fetch-drain.yml and wires this workflow_run edge, replacing the hand pg_net call. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES) with real prior artifacts, so only the workflow file and the edge are pending."
+  "note": "Edge exists and is enforced: fetch-drain.yml carries on.workflow_run.workflows: [\"Source sweep\"]. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES) with real prior artifacts. No trigger field proven yet (M2 closes the apply half and proves it)."
 }
