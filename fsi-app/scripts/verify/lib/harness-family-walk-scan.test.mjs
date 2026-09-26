@@ -8,6 +8,9 @@ import {
   runArtifactNames,
   summarizeFamilyDispatchHistory,
   findZeroDispatchProducers,
+  extractProducerRoster,
+  summarizeProducerDispatchHistory,
+  findNeverDispatchedIndividualProducers,
   staleHarnessWalkAllowlistEntries,
 } from './harness-family-walk-scan.mjs';
 
@@ -66,6 +69,80 @@ test('findZeroDispatchProducers: flags only the families with everDispatched=fal
   ];
   const got = findZeroDispatchProducers(summaries).map((s) => s.family);
   assert.deepEqual(got, ['gate-a-rescan', 'brief-apply']);
+});
+
+test('extractProducerRoster: KNOWN POSITIVE (real repo shape) -- picks up one PRODUCER_NAME per file, ' +
+  'a duplicate name declared twice reports only its first file', () => {
+  const corpus = [
+    { file: 'scripts/producers/market/ecb-fx-producer.mjs', content: 'const PRODUCER_NAME = "ecb-fx";\nrest of file' },
+    { file: 'scripts/producers/regional/bls-oews-producer.mjs', content: '// header\nconst PRODUCER_NAME = "bls-oews";' },
+    { file: 'scripts/producers/lib/producer-summary.mjs', content: 'no producer name constant here' },
+    { file: 'scripts/producers/market/dup-a.mjs', content: 'const PRODUCER_NAME = "dup";' },
+    { file: 'scripts/producers/market/dup-b.mjs', content: 'const PRODUCER_NAME = "dup";' },
+  ];
+  const roster = extractProducerRoster(corpus);
+  assert.deepEqual(
+    roster.map((r) => r.producer).sort(),
+    ['bls-oews', 'dup', 'ecb-fx'],
+  );
+  assert.equal(roster.find((r) => r.producer === 'dup').file, 'scripts/producers/market/dup-a.mjs');
+});
+
+test('summarizeProducerDispatchHistory: KNOWN POSITIVE (live-shape) -- zero producers-run-NNN.json ' +
+  'artifacts means every producer is never-dispatched', () => {
+  const s = summarizeProducerDispatchHistory('ecb-fx', []);
+  assert.equal(s.everDispatched, false);
+  assert.equal(s.runCount, 0);
+});
+
+test('summarizeProducerDispatchHistory: LABELLED NEGATIVE -- a producer whose name appears in a ' +
+  'per_item[] entry of a real firing is dispatched, latest by started_at, records the outcome', () => {
+  const artifacts = [
+    {
+      name: 'producers-run-001.json',
+      parsed: {
+        run_id: 'producers-run-001', started_at: '2026-09-01T00:00:00Z',
+        per_item: [{ id: 'ecb-fx', outcome: 'clean' }, { id: 'bls-oews', outcome: 'clean' }],
+      },
+    },
+    {
+      name: 'producers-run-002.json',
+      parsed: {
+        run_id: 'producers-run-002', started_at: '2026-09-10T00:00:00Z',
+        per_item: [{ id: 'ecb-fx', outcome: 'failed' }],
+      },
+    },
+  ];
+  const ecbFx = summarizeProducerDispatchHistory('ecb-fx', artifacts);
+  assert.equal(ecbFx.everDispatched, true);
+  assert.equal(ecbFx.runCount, 2);
+  assert.equal(ecbFx.lastRunId, 'producers-run-002');
+  assert.equal(ecbFx.lastOutcome, 'failed');
+
+  // a producer NOT run in either firing (present in the roster, absent from every per_item[]) stays
+  // never-dispatched even though the FAMILY itself clearly has dispatch history -- the exact distinction
+  // the coordinator's ruling asked for (family-grain != per-producer-grain).
+  const eiaV2 = summarizeProducerDispatchHistory('eia-v2-petroleum-spot', artifacts);
+  assert.equal(eiaV2.everDispatched, false);
+});
+
+test('summarizeProducerDispatchHistory: an artifact with no per_item array (or a malformed one) is skipped, never throws', () => {
+  const artifacts = [
+    { name: 'producers-run-001.json', parsed: { run_id: 'producers-run-001' } }, // no per_item at all
+    { name: 'producers-run-002.json', parsed: null }, // unparseable
+  ];
+  const s = summarizeProducerDispatchHistory('ecb-fx', artifacts);
+  assert.equal(s.everDispatched, false);
+});
+
+test('findNeverDispatchedIndividualProducers: flags only producers with everDispatched=false', () => {
+  const summaries = [
+    { producer: 'ecb-fx', everDispatched: true },
+    { producer: 'bls-oews', everDispatched: false },
+    { producer: 'eia-v2-petroleum-spot', everDispatched: false },
+  ];
+  const got = findNeverDispatchedIndividualProducers(summaries).map((s) => s.producer);
+  assert.deepEqual(got, ['bls-oews', 'eia-v2-petroleum-spot']);
 });
 
 test('staleHarnessWalkAllowlistEntries: flags an allowlisted family with no match, and one that now has dispatch history', () => {

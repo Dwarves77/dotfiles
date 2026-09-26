@@ -86,6 +86,88 @@ export function findZeroDispatchProducers(summaries) {
   return summaries.filter((s) => !s.everDispatched);
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// PER-PRODUCER SUB-WALK (coordinator ruling, 2026-09-25, on PR #810: "producers: walk each producer script
+// as its own unit, each is a distinct producer with its own dispatch history, rule 17"). The "producers"
+// harness family is ONE workflow firing (producers.yml) that runs up to 11 independent producer scripts,
+// each one calling writeProducerSummary({ producer: "<name>", ... }) on its own exit path
+// (scripts/producers/lib/producer-summary.mjs); emit-producers-artifact.mjs folds every summary written in
+// one firing into that firing's single producers-run-NNN.json, at `per_item[].id === "<name>"`. A firing
+// that runs 3 of 11 producers still leaves an artifact, so the family-grain walk above (any artifact at
+// all = "family dispatched") is not the same claim as "this ONE producer has ever fired" -- rule 17's
+// "everything works in tandem" reading is that each producer is its own dispatch unit, not a single
+// firing's line item, since a coordinator asking "has ecb-fx ever run" needs the per-producer answer, not
+// the family's.
+
+/**
+ * Extract the producer roster: every `const PRODUCER_NAME = "<name>";` declaration in the corpus (each
+ * producer script's own self-identifying constant, the literal writeProducerSummary's `producer:` argument
+ * resolves to at every call site -- see ecb-fx-producer.mjs, bls-oews-producer.mjs, etc.). Mechanically
+ * derived, not a hand-kept list, so a twelfth producer script added later is picked up automatically the
+ * next time this scan runs, the same "discovery by construction, not a hand-kept list" reasoning
+ * run-test-suite.sh's own header already uses for test discovery.
+ * @param {Array<{file:string, content:string}>} corpusFiles
+ * @returns {Array<{producer:string, file:string}>}
+ */
+export function extractProducerRoster(corpusFiles) {
+  const re = /\bconst\s+PRODUCER_NAME\s*=\s*["']([a-zA-Z0-9_-]+)["']/;
+  const roster = [];
+  const seen = new Set();
+  for (const { file, content } of corpusFiles) {
+    const m = re.exec(content ?? '');
+    if (!m) continue;
+    const producer = m[1];
+    if (seen.has(producer)) continue; // a name declared in two files is reported once, at its first file
+    seen.add(producer);
+    roster.push({ producer, file });
+  }
+  return roster;
+}
+
+/**
+ * Summarize one producer's dispatch history across every parsed `producers-run-NNN.json` artifact: does
+ * ANY artifact's `per_item[]` carry an entry whose `id` equals this producer's name. Mirrors
+ * summarizeFamilyDispatchHistory's shape (runCount/everDispatched/lastRunId/lastStartedAt) at the
+ * per-producer grain instead of the per-family grain.
+ * @param {string} producer
+ * @param {Array<{name:string, parsed:any}>} producersArtifacts every producers-run-NNN.json (already parsed)
+ * @returns {{
+ *   producer: string, runCount: number, everDispatched: boolean,
+ *   lastRunId: string|null, lastStartedAt: string|null, lastOutcome: string|null,
+ * }}
+ */
+export function summarizeProducerDispatchHistory(producer, producersArtifacts) {
+  let runCount = 0;
+  let lastRunId = null;
+  let lastStartedAt = null;
+  let lastOutcome = null;
+
+  for (const { name, parsed } of producersArtifacts) {
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.per_item)) continue;
+    const entry = parsed.per_item.find((it) => it && it.id === producer);
+    if (!entry) continue;
+    runCount++;
+    const startedAt = typeof parsed.started_at === 'string' ? parsed.started_at : null;
+    if (lastStartedAt === null || (startedAt && startedAt > lastStartedAt)) {
+      lastStartedAt = startedAt ?? lastStartedAt;
+      lastRunId = parsed.run_id ?? name.replace(/\.json$/, '');
+      lastOutcome = typeof entry.outcome === 'string' ? entry.outcome : null;
+    }
+  }
+
+  return { producer, runCount, everDispatched: runCount > 0, lastRunId, lastStartedAt, lastOutcome };
+}
+
+/**
+ * Across every producer's summary, which have NEVER appeared in any producers-run-NNN.json artifact.
+ * Same rule-16 framing as findZeroDispatchProducers: a factual observation, not a cadence recommendation.
+ * @param {Array<ReturnType<typeof summarizeProducerDispatchHistory>>} summaries
+ * @returns {Array<ReturnType<typeof summarizeProducerDispatchHistory>>}
+ */
+export function findNeverDispatchedIndividualProducers(summaries) {
+  return summaries.filter((s) => !s.everDispatched);
+}
+
 /** Stale allowlist entry: an allowlisted family name that either does not exist among the walked
  * families, or now HAS dispatch history (so keeping it allowlisted would hide a real, since-resolved
  * observation), same self-auditing shape as dead-column-scan.mjs's staleAllowlistEntries. */

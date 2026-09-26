@@ -19,15 +19,35 @@
  *  under build-mode rules; it exists so the coordinator has the "has X ever fired" answer on demand instead
  *  of a fresh manual grep every time (the exact gap PROD-2 named).
  *
- *  Exit 0 = every registered family has at least one dispatch artifact (net of allowlist) and the
- *  allowlist has no stale entries; exit 1 = at least one zero-dispatch family or stale entry (soft,
- *  reported, informational per rule 16, not gating while hard=false). This audit has no exit-2 case: it
- *  reads only committed files, no DB connection is needed. */
+ *  PER-PRODUCER SUB-WALK (coordinator ruling, 2026-09-25, PR #810): the "producers" family is one workflow
+ *  firing that runs up to 11 independent producer scripts, each a distinct dispatch unit with its own
+ *  history (rule 17). This audit additionally walks the producer roster (every `const PRODUCER_NAME = "..."`
+ *  declaration under src/+scripts/, extractProducerRoster) against every `producers-run-NNN.json`
+ *  artifact's `per_item[].id`, and reports which INDIVIDUAL producers have never fired, distinct from the
+ *  family-grain "has producers.yml ever run at all" question above.
+ *
+ *  Exit 0 = every registered family has at least one dispatch artifact (net of allowlist), every
+ *  individual producer has fired at least once, and the allowlist has no stale entries; exit 1 = at least
+ *  one zero-dispatch family, never-dispatched producer, or stale entry (soft, reported, informational per
+ *  rule 16, not gating while hard=false). This audit has no exit-2 case: it reads only committed files, no
+ *  DB connection is needed. */
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync } from 'node:fs';
 import { loadFamilies, HARNESS_RUNS_DIR } from '../harness-runs/family-registry.mjs';
-import { runArtifactNames, summarizeFamilyDispatchHistory, findZeroDispatchProducers, staleHarnessWalkAllowlistEntries } from './lib/harness-family-walk-scan.mjs';
+import { walkFiles } from '../lib/walk-files.mjs';
+import {
+  runArtifactNames,
+  summarizeFamilyDispatchHistory,
+  findZeroDispatchProducers,
+  extractProducerRoster,
+  summarizeProducerDispatchHistory,
+  findNeverDispatchedIndividualProducers,
+  staleHarnessWalkAllowlistEntries,
+} from './lib/harness-family-walk-scan.mjs';
+
+const CODE_EXT = new Set(['.ts', '.tsx', '.mjs', '.js']);
+const SKIP_DIR = new Set(['node_modules', '.next', '_snapshots', 'tmp', 'dist', '.git', 'harness-runs']);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -63,6 +83,20 @@ try {
   const zeroDispatch = findZeroDispatchProducers(summaries).filter((s) => !Object.prototype.hasOwnProperty.call(allowlist, s.family));
   const stale = staleHarnessWalkAllowlistEntries({ summaries, allowlist });
 
+  // PER-PRODUCER SUB-WALK (producers family only, coordinator ruling above).
+  const codeFiles = [];
+  for (const d of ['src', 'scripts']) walkFiles(join(ROOT, d), CODE_EXT, SKIP_DIR, codeFiles);
+  const corpusFiles = codeFiles.map((f) => {
+    let content = '';
+    try { content = readFileSync(f, 'utf8'); } catch { /* skip */ }
+    return { file: f.slice(ROOT.length + 1), content };
+  });
+  const roster = extractProducerRoster(corpusFiles);
+  const producersArtifacts = readFamilyArtifacts('producers');
+  const producerSummaries = roster.map((r) => summarizeProducerDispatchHistory(r.producer, producersArtifacts));
+  const neverDispatchedProducers = findNeverDispatchedIndividualProducers(producerSummaries)
+    .filter((s) => !Object.prototype.hasOwnProperty.call(allowlist, `producers:${s.producer}`));
+
   console.log(
     `harness-family-schedule-walker-audit: ${summaries.length} registered harness families walked ` +
     `(scripts/harness-runs/*/family.json), ${summaries.filter((s) => s.everDispatched).length} with dispatch history, ` +
@@ -78,8 +112,17 @@ try {
     }
   }
 
-  if (zeroDispatch.length === 0 && stale.length === 0) {
-    console.log('\nPASS, every registered harness family has at least one recorded dispatch artifact (or is reasonably allowlisted); no stale allowlist entries.');
+  console.log(`\n--- producers family: per-producer sub-walk (${roster.length} producer(s) in roster, mechanically derived from PRODUCER_NAME declarations) ---`);
+  for (const s of producerSummaries) {
+    if (s.everDispatched) {
+      console.log(`  ${s.producer}: ${s.runCount} run(s), last ${s.lastRunId} (outcome: ${s.lastOutcome ?? 'unrecorded'})`);
+    } else {
+      console.log(`  ${s.producer}: 0 runs, NEVER DISPATCHED`);
+    }
+  }
+
+  if (zeroDispatch.length === 0 && neverDispatchedProducers.length === 0 && stale.length === 0) {
+    console.log('\nPASS, every registered harness family and every individual producer has at least one recorded dispatch artifact (or is reasonably allowlisted); no stale allowlist entries.');
     process.exit(0);
   }
 
@@ -87,6 +130,11 @@ try {
     console.error(`\nZERO-DISPATCH PRODUCER(S) (informational, rule 16: expected under build-mode/ADR-023, not a defect), ${zeroDispatch.length} family(ies) with NO recorded dispatch artifact ever:`);
     for (const s of zeroDispatch) console.error(`  ${s.family}`);
     console.error('  This audit does not and will not recommend enabling a schedule, see rule 16. Disposition: track under the build order that names this family\'s proof run, or allowlist with a reason if the family is intentionally retired/pre-registration.');
+  }
+  if (neverDispatchedProducers.length) {
+    console.error(`\nNEVER-DISPATCHED INDIVIDUAL PRODUCER(S) (informational, rule 16, same posture as above), ${neverDispatchedProducers.length} producer(s) with NO per_item entry in any producers-run-NNN.json ever:`);
+    for (const s of neverDispatchedProducers) console.error(`  ${s.producer}`);
+    console.error('  This audit does not and will not recommend enabling a schedule, see rule 16. A producer can be zero-dispatch even while the producers FAMILY has run (a firing that only ran some of the 11 scripts).');
   }
   if (stale.length) {
     console.error(`\nSTALE ALLOWLIST, ${stale.length} entry(ies) no longer applicable:`);
