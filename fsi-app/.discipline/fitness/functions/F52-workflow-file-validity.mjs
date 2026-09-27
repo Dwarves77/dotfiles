@@ -381,6 +381,67 @@ function checkD(file, kind, lines, jobs, out) {
   }
 }
 
+/**
+ * Every `run: |` (or `run: >`) step block inside a job's own line range: { headerLine, startLine,
+ * endLine } where startLine..endLine is the block-scalar BODY (headerLine itself is the `run:` line).
+ * Assumes the step-property indent convention every workflow file in this repo uses (STEP_PROP_INDENT).
+ * @param {{startLine: number, endLine: number}} job
+ * @param {string[]} lines
+ * @returns {{headerLine: number, startLine: number, endLine: number}[]}
+ */
+export function stepRunBlocks(job, lines) {
+  const blocks = [];
+  const re = new RegExp(`^ {${STEP_PROP_INDENT}}run:\\s*[|>][-+]?\\s*$`);
+  for (let i = job.startLine; i <= job.endLine; i++) {
+    if (indentOf(lines[i]) !== STEP_PROP_INDENT || !re.test(lines[i])) continue;
+    const bodyIndent = STEP_PROP_INDENT + 2;
+    let end = i;
+    for (let j = i + 1; j <= job.endLine; j++) {
+      if (lines[j].trim() === '') { end = j; continue; }
+      if (indentOf(lines[j]) < bodyIndent) break;
+      end = j;
+    }
+    blocks.push({ headerLine: i, startLine: i + 1, endLine: end });
+  }
+  return blocks;
+}
+
+/**
+ * F52f (GATE-A-RESCAN, GitHub Actions run 36217491293, 2026-09-26): a `run:` step that pipes a script
+ * into `tee` masks that script's own exit code -- the STEP reports success even when the piped command
+ * fails, because a bash pipeline's exit status is its LAST command's (`tee`) by default. That is
+ * exactly what happened: `node scripts/maintenance/gate-a-rescan.mjs ... | tee /tmp/gate-a-rescan.log`
+ * failed fatally on every page, and the step still went green. `set -o pipefail` (or `-eo pipefail` /
+ * `-euo pipefail`) makes the pipeline's exit status the FIRST non-zero command's, closing the hole.
+ * This check fails any `run:` block containing `| tee` (or `|tee`) with no `set ... pipefail` line
+ * earlier in that SAME block.
+ */
+function checkF(file, kind, lines, jobs, out) {
+  if (kind !== 'workflow') return;
+  const teeRe = /\|\s*tee\b/;
+  const pipefailRe = /^\s*set\s+[+-][a-zA-Z]*\s*-?o?\s*pipefail\b|^\s*set\s+.*\bpipefail\b/;
+  for (const job of jobs) {
+    for (const block of stepRunBlocks(job, lines)) {
+      let pipefailSeen = false;
+      for (let i = block.startLine; i <= block.endLine; i++) {
+        const line = lines[i];
+        if (/^\s*#/.test(line)) continue; // a shell comment mentioning tee/pipefail is not code (e.g. a defect-history note)
+        if (pipefailRe.test(line)) pipefailSeen = true;
+        if (teeRe.test(line) && !pipefailSeen) {
+          out.push(
+            violation(
+              1,
+              `${file}:${i + 1}: F52f this run: step pipes into 'tee' with no 'set -o pipefail' ` +
+                `earlier in the same step -- the piped command's own failure is masked and the step ` +
+                `reports success regardless (the gate-a-rescan.yml class, GitHub run 36217491293).`,
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
 function checkE(file, kind, text, allWorkflowNames, out) {
   if (kind !== 'workflow') return;
   const names = extractWorkflowRunNames(text);
@@ -429,11 +490,15 @@ export const fitnessFunction = {
     'job / an action has runs.using; (b) a workflow- or job-level env: value never references runner., ' +
     'env., steps. or job. (the M9d class); (c) a job-level if: never references steps. or runner.; ' +
     '(d) every needs: names a real job and every steps.<id>.outputs reference names a real step id in ' +
-    'the same job; (e) a workflow_run trigger names a real workflow. Also runs actionlint locally when ' +
-    'it is on PATH (CI runs it as its own pinned step - see .github/workflows/discipline.yml).',
+    'the same job; (e) a workflow_run trigger names a real workflow; (f) a run: step piping into tee ' +
+    'has set -o pipefail earlier in the same step (a bash pipeline masks every command but the last). ' +
+    'Also runs actionlint locally when it is on PATH (CI runs it as its own pinned step - see ' +
+    '.github/workflows/discipline.yml).',
   source:
     'brief-f52.md (lane F52, 2026-09-20), after lane M9d\'s ${{ runner.temp }} job-level env: broke ' +
-    '.github/workflows/producers.yml (GitHub run 35533637184) and every existing gate passed it anyway.',
+    '.github/workflows/producers.yml (GitHub run 35533637184) and every existing gate passed it anyway. ' +
+    'Check (f) added lane GATE-A-RESCAN-FIX (2026-09-26) after GitHub run 36217491293: gate-a-rescan.yml ' +
+    "piped gate-a-rescan.mjs's fatal failure into `tee` with no pipefail, so the step reported SUCCESS.",
 
   enumerate() {
     return ['fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs'];
@@ -466,6 +531,7 @@ export const fitnessFunction = {
       checkC(f.path, f.kind, lines, jobs, out);
       checkD(f.path, f.kind, lines, jobs, out);
       checkE(f.path, f.kind, text, allWorkflowNames, out);
+      checkF(f.path, f.kind, lines, jobs, out);
     }
 
     runActionlintIfAvailable(repoRoot, out);

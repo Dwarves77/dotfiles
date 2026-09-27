@@ -1,0 +1,387 @@
+{
+  "harness_family": "gate-a-rescan",
+  "harness_version": "sha256:d0e14202b952f5ae",
+  "run_id": "gate-a-rescan-run-001",
+  "started_at": "2026-09-26T05:31:31Z",
+  "config": {
+    "trigger": "workflow_dispatch",
+    "mode": "dry",
+    "limit": 50,
+    "upstream_name": null,
+    "upstream_run_id": null,
+    "loop_run_id": null,
+    "scope_source": "scanned_at ascending only -- no upstream artifact on the tree this run checked out",
+    "attach": {
+      "rows_offered": 0
+    },
+    "github_run_id": "36221025936"
+  },
+  "inputs_ref": [
+    "scripts/maintenance/gate-a-rescan.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "45dab7a6-ac61-48b2-a9af-24be8568ba02",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6304a9f0-6340-4c6d-90b6-a7321190bb42",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6af04bf0-bebd-4dd5-a900-72974c87fa69",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9118aab6-bafe-43d8-9944-baf8dc698aab",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a1fd9574-3be2-48f2-ab3a-4c8b92ca6cc0",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b4710002-d626-429b-9796-e7c9ea43c43e",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "bf54dc59-ad47-4e2e-9984-cc4cd0206435",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "cec7d711-13b2-41f0-8016-76c988f116ab",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "db8577c6-96e3-4cfa-8bd6-daf538ac3dc5",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "de7f09fc-b66e-41d2-a3a9-876aeda6a7e1",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f3cee01b-77bf-4770-badb-c8020186e63c",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "cd1083c9-fd05-47f7-bfed-8354b70a31ac",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "adbf2587-535e-4c7e-9e77-433a24d250d5",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0c9b2364-468e-48fe-8360-fc5338f24598",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2b3c4c9b-0d85-433f-b7c3-44c6d15ca52f",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "51b2c91e-776f-42f5-a799-a957312d4e56",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c509a0cd-263d-48fc-8d0b-160f786bdbb0",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0b6537ea-1c85-41b9-81ed-1486fd72ea18",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6cdc920f-6110-412a-b4f8-7b6c7fabdda5",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5561231f-3e3d-4e6a-90a2-1f3f4baf2f1b",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ece93c54-871b-4cf3-9f39-a4a2e9691574",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "652b39e1-cb71-4465-af8a-4ceecf8679a1",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "af277afd-b925-4583-852a-eaa6db310888",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed63f522-96bd-4aac-b828-a216f34b90a9",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a8cdaa93-b0c9-4b07-be60-1836581a42e8",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "09f8d920-068e-49ff-8973-b1344c0d9701",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "44906e93-07a5-4b4c-8b3d-508b39ae605b",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5c75e081-0757-42a8-8b35-bf67125d3522",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5803219e-fe9e-4199-801c-ee2d31bdfcf4",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "167b05b4-08db-427b-b3a9-19dc93feee39",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "64e9d38d-75bf-4fc3-b946-eebff05a0d6a",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "68af8b45-fbbf-4ba1-add8-2c1761d2d120",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7ae06612-5467-40ca-a9b3-e6dc14601b44",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "67434312-05ce-4e90-b8ca-5aec18ea2ed9",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8c0049b4-7f91-4fcd-90ff-99de2cbf8df5",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "956bad5c-80b0-411b-8fd5-726cc0d4a333",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "candidates": 1518,
+    "stale": 916,
+    "selected": 50,
+    "touched": 0,
+    "distinct_versions_remaining": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "docs/runbooks/MAINTENANCE-RUNBOOK.md"
+  ],
+  "proposer_notes": "Auto-emitted by emit-gate-a-rescan-artifact.mjs after gate-a-rescan.mjs's own run (and, when any orphaned items remained, attach-found-sources.mjs's chained worklist pass) recorded their outcomes.",
+  "trigger": "workflow_dispatch"
+}

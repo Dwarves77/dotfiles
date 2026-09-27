@@ -222,6 +222,7 @@ jobs:
         id: select
         if: env.RUN_IDS == ''
         run: |
+          set -o pipefail
           mkdir -p scripts/tmp
           cat > scripts/tmp/select-record-stub-ids.mjs <<'EOF'
           // select-record-stub-ids.mjs: brief-export.yml's own inline selection (Part 3 task 3.1).
@@ -295,6 +296,7 @@ jobs:
       - name: export-corpus-for-extraction.mjs --with-pool-text
         if: steps.resolve.outputs.ids != ''
         run: |
+          set -o pipefail
           node scripts/turns/export-corpus-for-extraction.mjs \
             --out "${{ steps.resolve.outputs.out_base }}" \
             --ids "${{ steps.resolve.outputs.ids }}" \

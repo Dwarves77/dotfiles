@@ -1,0 +1,11 @@
+{
+  "family": "state-cost",
+  "registered": "2026-09-25",
+  "registered_by": "lane STATE-COST-PRODUCER",
+  "governing_files": [
+    "scripts/producers/regional/state-cost-facts-producer.mjs",
+    "src/lib/regional/state-cost-facts-envelope.mjs",
+    "src/lib/sources/host-authority.ts"
+  ],
+  "rationale": "state-cost (registered by lane STATE-COST-PRODUCER, 2026-09-25 operator ruling 'build the producer' on state_cost_facts, docs/plans/data-machine-tool-gaps-2026-09-25.md): a single-pass producer harness, one run resolves a set of candidate state-level cost facts through the source registry, grounds each against a captured span, upserts the (state_code, dimension, fact_label) row, and mints jurisdiction entity-spine links for the states it touched. R14 holds this family to fixture/dry runs only until the operator lifts the tools-before-data hold; ENABLED stays false in the producer script itself, a second, independent gate."
+}

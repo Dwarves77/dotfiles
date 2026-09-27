@@ -90,7 +90,21 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
+      # fetch-depth: 0 (GATE-A-RESCAN-FIX, 2026-09-26, found by the real dry-dispatch test on branch
+      # lane/gate-a-rescan-fix, run 36220173437). actions/checkout@v4 defaults to a depth-1 shallow
+      # clone of the DISPATCHED ref. The "Commit this run's harness artifact and open a PR" step later
+      # does `git fetch --depth=50 origin master; git rebase --autostash origin/master` -- when the
+      # dispatched ref IS master (the common case), that rebase is a trivial no-op since the shallow
+      # tip and the freshly fetched master share the same commit. When workflow_dispatch names a
+      # DIFFERENT ref (a hand-named ticket branch -- exactly what this workflow's own `mode`/`limit`
+      # inputs are for), the depth-1 checkout truncates that branch's own history to a single rootless
+      # commit with no known parent, so the later rebase finds no common ancestor with origin/master and
+      # every touched file conflicts as CONFLICT (add/add) -- confirmed live: run 36220173437's own
+      # "Commit this run's harness artifact and open a PR" step failed exactly this way. Full history
+      # removes the ambiguity regardless of which ref is dispatched.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -145,7 +159,9 @@ jobs:
           echo "upstream = $GAR_UPSTREAM_NAME (run $GAR_UPSTREAM_RUN_ID)"
 
       - name: gate-a-rescan.mjs
+        id: rescan
         run: |
+          set -o pipefail
           mkdir -p "$OUT_ROOT/gate-a-rescan"
           node scripts/maintenance/gate-a-rescan.mjs --mode "$GAR_MODE" --out "$OUT_ROOT/gate-a-rescan" | tee /tmp/gate-a-rescan.log
 
@@ -176,6 +192,7 @@ jobs:
       - name: attach-found-sources.mjs (chained, scoped to this run's own orphans)
         if: steps.orphans.outputs.count != '0'
         run: |
+          set -o pipefail
           mkdir -p "$OUT_ROOT/attach-found-sources"
           shopt -s nullglob
           worklists=(scripts/_worklists/attach-found-sources-*.json)
@@ -215,6 +232,10 @@ jobs:
           GAR_EVENT_TRIGGER: ${{ env.GAR_TRIGGER }}
           GAR_RESCAN_SUMMARY_PATH: ${{ env.OUT_ROOT }}/gate-a-rescan/summary.json
           GAR_ATTACH_SUMMARY_PATH: ${{ env.OUT_ROOT }}/attach-found-sources/summary.json
+          # steps.rescan.outcome (GitHub run 36217491293, 2026-09-26): lets buildArtifact tell a real
+          # no-op (summary.json present) apart from a CRASH that left no summary.json at all -- see
+          # emit-gate-a-rescan-artifact.mjs's own header for the incident this closes.
+          GAR_RESCAN_STEP_OUTCOME: ${{ steps.rescan.outcome }}
         run: node scripts/turns/emit-gate-a-rescan-artifact.mjs
 
       # ONE commit/PR for this run's own harness artifact, same shape every sibling family workflow

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // SHARED-WRITER: theme_briefs
-// generate-theme-brief.mjs — theme_briefs (migration 266, flywheel U6) has NO WRITER anywhere in the
+// generate-theme-brief.mjs -- theme_briefs (migration 266, flywheel U6) has NO WRITER anywhere in the
 // repo (verified: `grep -rl "from(\"theme_briefs\")"` before this file existed matched only
 // api/admin/themes/route.ts's READ). This is that writer, in two steps matching migration 266's own
-// $0/session-executed posture (no LLM call inside this script — a human or an in-session agent
+// $0/session-executed posture (no LLM call inside this script -- a human or an in-session agent
 // authors the actual brief prose; this script assembles the input and validates/persists the output):
 //
 //   --theme <id>   assembles the BRIEF INPUT BUNDLE (theme row, member items, their intra-theme edges,
@@ -11,21 +11,21 @@
 //                  carries member_hash (computeMemberHash over the theme's CURRENT member_ids, see
 //                  brief-staleness.mjs) so the author's payload can later prove it was written against
 //                  THIS exact membership.
-//   --write <file> validates an authored brief payload (JSON or Markdown-with-frontmatter — see
+//   --write <file> validates an authored brief payload (JSON or Markdown-with-frontmatter -- see
 //                  parseBriefPayload below) and upserts the theme_briefs row via the guarded path.
 //                  Refuses if the payload's member_hash no longer matches the theme's LIVE
-//                  member_ids (membership drifted between --theme and --write — the same
+//                  member_ids (membership drifted between --theme and --write -- the same
 //                  staleness-is-detected-never-silent posture migration 266's own header states,
 //                  applied here at WRITE time instead of read time).
 //
-// THE ONE computeMemberHash SoT: src/lib/connections/brief-staleness.mjs — "sort member_ids
+// THE ONE computeMemberHash SoT: src/lib/connections/brief-staleness.mjs -- "sort member_ids
 // lexicographically, join empty string, md5 hex". This script imports it, never re-implements it (a
 // second implementation would silently diverge from the read path's staleness check).
 //
 // UPSERT VIA THE GUARDED PATH: db.mjs has no guardedUpsert (only guardedInsert/guardedUpdate/
 // guardedDelete/guardedInsertMany). theme_briefs.theme_id is PRIMARY KEY, so "upsert" here is
 // check-then-branch: read the existing row by theme_id; guardedInsert if absent, guardedUpdate if
-// present. This is not a workaround — an update via guardedUpdate SNAPSHOTS the prior brief before
+// present. This is not a workaround -- an update via guardedUpdate SNAPSHOTS the prior brief before
 // overwriting it (R1's own reversibility posture), which a raw .upsert() would not give for free.
 //
 // Usage:
@@ -48,7 +48,7 @@ import { runCli } from "../maintenance/lib/cli.mjs";
 import { computeMemberHash } from "../../src/lib/connections/brief-staleness.mjs";
 
 /**
- * Assemble the brief input bundle from already-loaded rows. PURE — no DB, the caller supplies
+ * Assemble the brief input bundle from already-loaded rows. PURE -- no DB, the caller supplies
  * everything already read.
  * @param {{id:string, member_ids:string[], dominant_signals?:any, surfaces?:string[], convergence?:number, pivots?:any}} theme
  * @param {Array<object>} memberItems - intelligence_items rows for theme.member_ids
@@ -106,7 +106,7 @@ export function parseBriefPayload(filePath, fileContent) {
     parsed = parseFrontmatterMd(fileContent);
     if (!parsed.ok) return parsed;
   } else {
-    return { ok: false, error: `unsupported payload extension '${ext}' — use .json or .md.` };
+    return { ok: false, error: `unsupported payload extension '${ext}' -- use .json or .md.` };
   }
 
   const missing = ["theme_id", "title", "brief_md", "member_hash"].filter((k) => !parsed[k]);
@@ -115,7 +115,7 @@ export function parseBriefPayload(filePath, fileContent) {
 }
 
 /**
- * Validate a parsed payload against the theme's LIVE member_ids — refuses on member_hash mismatch
+ * Validate a parsed payload against the theme's LIVE member_ids -- refuses on member_hash mismatch
  * (membership drifted since the payload's author looked at the bundle). PURE.
  * @param {{theme_id:string, title:string, brief_md:string, member_hash:string}} payload
  * @param {string[]} liveMemberIds - connection_themes.member_ids, read fresh at write time
@@ -182,7 +182,7 @@ if (themeId) {
     process.exit(1);
   }
   // theme.member_ids is a runtime, corpus-scaled list (analyze-corpus.mjs's clustering output) with no
-  // declared cap — chunked via readAllByIds (db.mjs), not readAll's own match-in, so a large theme can
+  // declared cap -- chunked via readAllByIds (db.mjs), not readAll's own match-in, so a large theme can
   // never blow a single PostgREST .in() request line (IN-CHUNK class, 2026-09-06).
   const allMembers = await readAllByIds("intelligence_items", "id, title, legacy_id, item_type, jurisdiction_iso, added_date, priority", theme.member_ids);
   const allEdges = await readAllByIds("item_cross_references", "source_item_id, target_item_id, relationship, origin, basis, score", theme.member_ids, { idColumn: "source_item_id" });
@@ -209,7 +209,7 @@ try {
 }
 const payload = parseBriefPayload(writePath, fileContent);
 if (!payload.ok) {
-  console.error(`generate-theme-brief: payload invalid — ${payload.error}`);
+  console.error(`generate-theme-brief: payload invalid -- ${payload.error}`);
   process.exit(1);
 }
 
@@ -232,11 +232,15 @@ console.log(
 );
 
 if (!EXECUTE) {
-  console.log("DRY RUN — nothing written. Re-run with --execute to apply.");
+  console.log("DRY RUN -- nothing written. Re-run with --execute to apply.");
   process.exit(0);
 }
 
-const existing = await readAll("theme_briefs", "theme_id", { match: (q) => q.eq("theme_id", payload.theme_id) });
+// orderBy: "theme_id" -- theme_briefs (migration 266) has NO "id" column; its PRIMARY KEY is
+// theme_id. readAll's own default orderBy is "id", which would crash this read the same way
+// gate-a-rescan.mjs's item_gate_a_state read crashed (GitHub Actions run 36217491293, 2026-09-26) --
+// found by the class-level pagination-order-key-audit that fix added, fixed alongside it.
+const existing = await readAll("theme_briefs", "theme_id", { orderBy: "theme_id", match: (q) => q.eq("theme_id", payload.theme_id) });
 if (existing.length) {
   const res = await guardedUpdate("theme_briefs", (qb) => qb.eq("theme_id", payload.theme_id), validated.row, { cite: CITE });
   console.log(`WROTE (update): theme_briefs row for theme ${payload.theme_id} updated (${res.updated} row, prior snapshot: ${res.snapshot}).`);

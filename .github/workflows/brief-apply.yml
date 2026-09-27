@@ -180,6 +180,7 @@ jobs:
 
       - name: apply-record-briefs
         run: |
+          set -o pipefail
           node scripts/turns/apply-record-briefs.mjs $DRIVER_FLAGS | tee /tmp/brief-apply.log
           echo "### brief-apply" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -219,6 +220,7 @@ jobs:
       - name: Population report (always, end of run)
         if: always()
         run: |
+          set -o pipefail
           node scripts/verify/population-report.mjs | tee /tmp/population-report.log
           echo "### population report (end of run)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -143,6 +143,7 @@ jobs:
       - name: forward-events backfill (dispatch-extraction.mjs)
         if: env.RUN_COMMAND == 'forward-events' || env.RUN_COMMAND == 'both'
         run: |
+          set -o pipefail
           node scripts/forward-events/dispatch-extraction.mjs $SCRIPT_FLAGS | tee /tmp/forward-events.log
           echo "### forward-events backfill" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -153,6 +154,7 @@ jobs:
       - name: timeline harvest (backfill-item-timelines.mjs)
         if: env.RUN_COMMAND == 'timeline-harvest' || env.RUN_COMMAND == 'both'
         run: |
+          set -o pipefail
           node scripts/backfill-item-timelines.mjs $SCRIPT_FLAGS | tee /tmp/timeline-harvest.log
           echo "### timeline harvest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -166,6 +168,7 @@ jobs:
       - name: Population report (always, end of run)
         if: always()
         run: |
+          set -o pipefail
           node scripts/verify/population-report.mjs | tee /tmp/population-report.log
           echo "### population report (end of run)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

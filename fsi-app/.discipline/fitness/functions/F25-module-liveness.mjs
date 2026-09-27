@@ -1019,6 +1019,29 @@ export const LEGACY_ALLOWLIST = [
   // REMOVED here (lane w10-actioncard-b, 2026-09-22, build item 6): both specs are now registered
   // permanently in ux-smoke-specs.mjs, which is itself a production importer under F25's own
   // fixture-page convention.
+
+  // Lane STATE-COST-PRODUCER (2026-09-25/26, operator ruling 2026-09-25 "build the producer" on
+  // state_cost_facts, R14: "we are NOT updating the data on the site, we are building the tools that
+  // manage that data first"). This producer is deliberately NOT wired into any .github/workflows/*.yml
+  // dispatch root yet: its own kill switch (ENABLED=false) and its CLI's `--apply` refusal are the R14
+  // enforcement, and wiring it into producers.yml would be exactly the kind of scheduled dispatch R14
+  // holds. It has a real callable proof: `node scripts/producers/regional/state-cost-facts-producer.mjs`
+  // runs the fixture/dry path end to end and writes a real harness artifact
+  // (scripts/harness-runs/state-cost/state-cost-run-001.json), see this file's own header note on
+  // isMainModule CLI entry points not counting as a "production importer" for F25's import-graph sense.
+  // Wiring a dry-mode-only schedule into producers.yml (never --apply) is the natural next step once the
+  // coordinator authorizes scheduling it; the reason this is not done in the same lane is R14 itself
+  // ("tools before data": this lane's job was proving the tool works, not deciding when it runs).
+  {
+    file: 'fsi-app/scripts/producers/regional/state-cost-facts-producer.mjs',
+    reason:
+      'R14 hold (operator ruling 2026-09-25): state_cost_facts producer, built and proven on fixtures ' +
+      '(state-cost-facts-producer.test.mjs, 9 tests; a real CLI run wrote ' +
+      'scripts/harness-runs/state-cost/state-cost-run-001.json), deliberately not wired into any ' +
+      'workflow dispatch root while the tools-before-data hold is in force, wiring it would itself be ' +
+      'a live-data-adjacent scheduling decision this lane is not authorized to make.',
+    reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

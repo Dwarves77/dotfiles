@@ -66,11 +66,17 @@ function readJsonIfExists(path) {
  * @param {object|null} opts.rescanSummary -- gate-a-rescan.mjs's own returned summary object.
  * @param {object|null} opts.attachSummary -- attach-found-sources.mjs's own returned summary object, or null when the chained attach step never ran.
  * @param {string|null} [opts.loopRunId]
+ * @param {string|null} [opts.rescanStepOutcome] -- the gate-a-rescan.yml workflow's own "gate-a-rescan.mjs"
+ *   step outcome (steps.rescan.outcome: "success" | "failure" | "cancelled" | "skipped"), passed through
+ *   so this function can tell "the script ran and genuinely selected zero items" (rescanSummary present,
+ *   an honest no-op) apart from "the script CRASHED before it could write summary.json at all"
+ *   (rescanSummary null AND the step's own outcome was not "success"). Optional/null for backward
+ *   compatibility with a caller that does not supply it (treated as unknown, never assumed successful).
  * @returns {object}
  */
 export function buildArtifact({
   runId, harnessVersion, startedAt, trigger, mode, limit, upstreamName, upstreamRunId,
-  rescanSummary, attachSummary, loopRunId = null,
+  rescanSummary, attachSummary, loopRunId = null, rescanStepOutcome = null,
 }) {
   const rescanPerItem = Array.isArray(rescanSummary?.per_item) ? rescanSummary.per_item : [];
   const perItem = rescanPerItem.map((p) => ({
@@ -83,10 +89,42 @@ export function buildArtifact({
   }));
 
   const defectsFound = [];
-  if (rescanSummary && typeof rescanSummary.exitCode === "number" && rescanSummary.exitCode !== 0) {
+  // CRASH DETECTION (GitHub Actions run 36217491293, 2026-09-26). Before this fix, a missing
+  // rescanSummary (the gate-a-rescan.mjs CLI wrapper throws BEFORE it ever calls writeSummary --
+  // see scripts/maintenance/lib/cli.mjs's runCli -- so summary.json is never written on a crash) was
+  // indistinguishable from "the script ran and genuinely selected zero stale items," and this
+  // function recorded the latter: zero defects, "This dispatch was a no-op" in proposer_notes. That is
+  // exactly backwards for a run whose gate-a-rescan.mjs step actually failed. rescanStepOutcome (the
+  // workflow's own steps.rescan.outcome) is the ground truth this function did not have before:
+  // rescanSummary null with a NON-"success" step outcome means the script crashed, never a real no-op.
+  const rescanStepFailed = rescanStepOutcome != null && rescanStepOutcome !== "success";
+  const rescanCrashedSilently = rescanSummary == null && rescanStepFailed;
+  if (rescanCrashedSilently) {
+    defectsFound.push({
+      description:
+        `gate-a-rescan.mjs's own step outcome was "${rescanStepOutcome}" and it never wrote a ` +
+        "summary.json -- the script crashed (an uncaught exception) before the CLI wrapper's " +
+        "success path could run. See this run's own uploaded /tmp/gate-a-rescan.log artifact for " +
+        "the stack trace.",
+      root_cause: "gate-a-rescan.mjs threw before completing; no summary.json was produced this run.",
+      fix_ref: null,
+    });
+  } else if (rescanSummary && typeof rescanSummary.exitCode === "number" && rescanSummary.exitCode !== 0) {
     defectsFound.push({
       description: rescanSummary.note || "gate-a-rescan run halted non-zero",
       root_cause: rescanSummary.note || "",
+      fix_ref: null,
+    });
+  } else if (rescanSummary == null && rescanStepOutcome == null) {
+    // rescanStepOutcome was not supplied at all (an older caller, or a test) -- an ABSENT summary is
+    // still worth flagging honestly rather than silently treated as a clean no-op, since this function
+    // has no positive evidence either way. Named separately from the confirmed-crash case above so a
+    // caller that DOES supply the outcome gets the more specific message.
+    defectsFound.push({
+      description:
+        "gate-a-rescan.mjs produced no summary.json and no step-outcome signal was supplied to this " +
+        "artifact emitter -- recorded as unresolved rather than assumed successful.",
+      root_cause: "rescanSummary was null with rescanStepOutcome unknown.",
       fix_ref: null,
     });
   }
@@ -118,12 +156,16 @@ export function buildArtifact({
 
   const fullTraceRefs = ["docs/runbooks/MAINTENANCE-RUNBOOK.md"];
 
-  const proposerNotes = perItem.length === 0
-    ? "This dispatch was a no-op: zero stale item_gate_a_state rows selected this run. Recorded anyway " +
-      "so this family's own history shows every firing, not only the ones with real work " +
-      "(MINT-RUNBOOK.md's \"record it every batch, even when zero,\" applied here)."
-    : "Auto-emitted by emit-gate-a-rescan-artifact.mjs after gate-a-rescan.mjs's own run (and, when any " +
-      "orphaned items remained, attach-found-sources.mjs's chained worklist pass) recorded their outcomes.";
+  const proposerNotes = defectsFound.length > 0
+    ? `This run did NOT complete cleanly (${defectsFound.length} defect(s) recorded above) -- see ` +
+      "defects_found for the cause. Recorded anyway so this family's own history shows every firing, " +
+      "including failed ones, never only the ones with real work."
+    : perItem.length === 0
+      ? "This dispatch was a no-op: zero stale item_gate_a_state rows selected this run. Recorded anyway " +
+        "so this family's own history shows every firing, not only the ones with real work " +
+        "(MINT-RUNBOOK.md's \"record it every batch, even when zero,\" applied here)."
+      : "Auto-emitted by emit-gate-a-rescan-artifact.mjs after gate-a-rescan.mjs's own run (and, when any " +
+        "orphaned items remained, attach-found-sources.mjs's chained worklist pass) recorded their outcomes.";
 
   return buildRunArtifactEnvelope({
     family: FAMILY, harnessVersion, runId, startedAt, config,
@@ -146,6 +188,10 @@ function main() {
   const startedAt = process.env.GAR_STARTED_AT || new Date().toISOString();
   const rescanSummary = readJsonIfExists(process.env.GAR_RESCAN_SUMMARY_PATH);
   const attachSummary = readJsonIfExists(process.env.GAR_ATTACH_SUMMARY_PATH);
+  // GAR_RESCAN_STEP_OUTCOME (GitHub Actions run 36217491293, 2026-09-26): gate-a-rescan.yml's own
+  // "gate-a-rescan.mjs" step's steps.rescan.outcome, so buildArtifact can tell a genuine no-op apart
+  // from a crash that left no summary.json -- see buildArtifact's own header for the incident.
+  const rescanStepOutcome = process.env.GAR_RESCAN_STEP_OUTCOME || null;
 
   const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
     family: FAMILY, familyDir: FAMILY_DIR, governingFiles: GOVERNING_FILES[FAMILY], fsiRoot: FSI_ROOT,
@@ -154,7 +200,7 @@ function main() {
 
   const artifact = buildArtifact({
     runId, harnessVersion, startedAt, trigger, mode, limit, upstreamName, upstreamRunId,
-    rescanSummary, attachSummary, loopRunId,
+    rescanSummary, attachSummary, loopRunId, rescanStepOutcome,
   });
 
   const outPath = writeRunArtifact(FAMILY_DIR, artifact);

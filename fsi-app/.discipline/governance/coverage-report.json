@@ -1640,6 +1640,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/SectionIndex.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/SectionRule.coverage.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -4110,6 +4119,15 @@
     },
     {
       "path": "fsi-app/src/lib/regional/regional-facts-envelope.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/regional/state-cost-facts-envelope.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7106,6 +7124,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/producers/regional/state-cost-facts-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/propagation/seed-derived-values.mjs",
       "kinds": [
         "WRITES"
@@ -7800,8 +7827,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/verify/lib/schema-drift.test.mjs",
@@ -7822,8 +7849,8 @@
       "skills": [
         "source-credibility-model"
       ],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/verify/lib/vocab-drift.test.mjs",
@@ -7874,6 +7901,15 @@
     },
     {
       "path": "fsi-app/scripts/verify/non-destructive-grounding.golden.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/pagination-order-key-audit.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11336,11 +11372,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1059,
-    "covered": 1016,
+    "governed_files": 1063,
+    "covered": 1022,
     "exempt": 41,
-    "gaps": 2,
-    "orphaned_proofs": 2,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0
