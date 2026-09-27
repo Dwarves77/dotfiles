@@ -1,34 +1,40 @@
 #!/bin/sh
-# worktree-node-modules.sh, the ONE home for "does this checkout have fsi-app/node_modules, and if it is
-# a linked worktree, link it to the main checkout's shared install". Sourced by
-# fsi-app/.discipline/hooks/post-checkout (auto-link on `git worktree add`) and by
-# fsi-app/.discipline/hooks/pre-push (step 0b, fail fast). Also runnable directly, from any checkout:
-#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --link        link THIS worktree now
-#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --check       exit 1 + the fix if unusable
-#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --audit       list every worktree's link kind
-#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --repair-all  junction -> symlink, all worktrees
+# worktree-node-modules.sh, the ONE home for "can fsi-app's npm dependencies be resolved in this
+# checkout, and if it is a linked worktree, make them resolvable from the main checkout's shared
+# install, safely and with no special OS rights" (invariant RD-85). Sourced by
+# fsi-app/.discipline/hooks/post-checkout (on `git worktree add`) and fsi-app/.discipline/hooks/pre-push
+# (step 0b, self-heal then fail fast). Also runnable directly, from any checkout:
+#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --link        make THIS worktree resolve
+#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --check       exit 1 + the fix if not
+#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --audit       one line per worktree
+#   sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --repair-all  --link in every worktree
 #
-# DEFECT 1 [CONFIRMED 2026-09-25]: a new linked worktree has no fsi-app/node_modules (gitignored, so
-# `git worktree add` never materialises it) and the lane contract forbids `npm install` in a lane. The
-# pre-push fitness runner then reported F9 build-compiles, F10, F11 trust-tier-weights and F12
-# moat-base-tier as violations (their selftests import npm deps), or hung. Four lanes hit it in one
-# session; the coordinator linked each by hand with `mklink /J`.
+# DEFECT 1 [CONFIRMED 2026-09-25]: a new linked worktree has no fsi-app/node_modules (gitignored) and
+# the lane contract forbids `npm install` in a lane, so the pre-push fitness runner reported F9, F10,
+# F11 and F12 as violations (their selftests import npm deps), or hung. The coordinator hand-linked
+# four lanes with `mklink /J <wt>\fsi-app\node_modules`.
+# DEFECT 2 [CONFIRMED 2026-09-27, git 2.53.0.windows.1, pinned by worktree-node-modules.test.mjs]: that
+# junction is destructive. Git for Windows treats a junction as a plain directory, so
+# `git worktree remove` (forced or not) empties the MAIN checkout's install through it, the same class
+# that destroyed it on 2026-05-20 (OBS-53). A real symlink is safe from git, but on Windows creating one
+# needs Developer Mode or an admin-granted right, which a build must never depend on.
 #
-# DEFECT 2 [CONFIRMED 2026-09-27, git 2.53.0.windows.1, reproduced in a throwaway repo and pinned by
-# worktree-node-modules.test.mjs]: that hand fix, a directory JUNCTION, is destructive. Git for Windows
-# reports a junction as a plain directory, so `git worktree remove` (with or without --force, with
-# core.symlinks either way) recurses THROUGH it and empties the main checkout's shared install. `rm -rf`
-# and Node's fs.rmSync unlink a junction safely; git does not.
+# THE DESIGN (no hazardous state, no special rights, one resolver):
+# - NOTHING is created inside a worktree. The shared install is reached through ONE link BESIDE the
+#   worktrees, `<main>/.claude/worktrees/node_modules` (the parent directory of the worktree, which must
+#   sit inside the main checkout and be gitignored there). Node resolves packages by walking up parent
+#   directories, so every worktree under that directory finds the install. `git worktree remove`
+#   deletes only the worktree's own directory, so no remover can ever reach the shared install through
+#   a worktree, whatever git, Windows or the app's cleanup does. Because the link is outside every
+#   worktree, a plain junction is safe there, and a junction needs no Developer Mode and no admin.
+# - Success is judged by what matters: does `next` resolve from <worktree>/fsi-app, asked of Node, never
+#   by testing a literal path. Every consumer finds deps the same way (lib/resolve-dep.mjs; F59 fails CI
+#   on a hard-coded fsi-app/node_modules path).
+# - A junction found INSIDE a worktree (the old hand fix) is removed with `rmdir`, which deletes the
+#   link and never its target; a real symlink inside a worktree is left alone (git unlinks it safely).
 #
-# THE FIX: the link is a real directory SYMLINK on every platform, which is what
-# docs/dispatches/lane-common-contract.md already says it is. Git lstat()s a symlink as a link and
-# unlinks it; it never recurses into one. On Windows a symlink needs Developer Mode (or the
-# SeCreateSymbolicLink privilege); without it this script FAILS CLOSED, naming that setting, and never
-# falls back to a junction. Existing junctions are reported by --check/--audit and converted by
-# --link/--repair-all (`rmdir` on a junction removes only the link, never its target).
-#
-# Every function returns a status and prints to stderr; none calls `exit`, so the post-checkout caller
-# can treat a failed link as a warning (a checkout is never wedged by this) while pre-push is fatal.
+# Every function returns a status and prints to stderr; none calls `exit`, so post-checkout can treat
+# a failure as a warning (a checkout is never wedged by this) while pre-push treats it as fatal.
 
 WT_NM_SCRIPT="fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
 
@@ -43,7 +49,7 @@ wt_nm_winpath() {
   cygpath -w "$1" 2>/dev/null || printf '%s' "$1" | sed 's#/#\\#g'
 }
 
-# Windows cmd.exe with MSYS path rewriting disabled (so /J, /D, /AL stay switches).
+# Windows cmd.exe with MSYS path rewriting disabled (so /J, /AL stay switches).
 wt_nm_cmd() {
   MSYS2_ARG_CONV_EXCL='*' cmd /c "$@"
 }
@@ -53,12 +59,33 @@ wt_nm_main_checkout() {
   git worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p'
 }
 
+# Every linked worktree's path, one per line (main excluded).
+wt_nm_linked_worktrees() {
+  git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p' | sed '1d'
+}
+
 # 0 inside a LINKED worktree (git-dir differs from git-common-dir), the zero-false-positive WHERE signal
 # RD-19 worktree-isolation also uses.
 wt_nm_is_linked_worktree() {
   gd="$(git rev-parse --path-format=absolute --git-dir 2>/dev/null)" || return 1
   gcd="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 1
   [ -n "$gd" ] && [ "$gd" != "$gcd" ]
+}
+
+# 0 when path $1 is $2 itself or inside it (case-insensitive on Windows, where paths are).
+wt_nm_is_within() {
+  p="$1"; d="$2"
+  if wt_nm_is_windows; then
+    p="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"; d="$(printf '%s' "$d" | tr 'A-Z' 'a-z')"
+  fi
+  case "$p/" in "$d/"*) return 0 ;; esac
+  return 1
+}
+
+# 0 when fsi-app's dependencies resolve from <appdir>, asked of Node itself.
+wt_nm_resolves() {
+  command -v node >/dev/null 2>&1 || return 1
+  node -e "require.resolve('next/package.json', { paths: [process.argv[1]] })" "$1" >/dev/null 2>&1
 }
 
 # 0 when <dir> is a directory with at least one entry (following a link).
@@ -97,54 +124,77 @@ wt_nm_unlink() {
   [ ! -e "$1" ] && [ ! -L "$1" ]
 }
 
-# Create the directory symlink <link> -> <target>. Never a junction.
-wt_nm_symlink() {
+# Create the directory link <link> -> <target> OUTSIDE every worktree: a junction on Windows (no
+# special rights), a symlink on POSIX.
+wt_nm_make_link() {
   if wt_nm_is_windows; then
-    wt_nm_cmd mklink /D "$(wt_nm_winpath "$1")" "$(wt_nm_winpath "$2")" >/dev/null 2>&1
+    wt_nm_cmd mklink /J "$(wt_nm_winpath "$1")" "$(wt_nm_winpath "$2")" >/dev/null 2>&1
   else
     ln -s "$2" "$1"
   fi
 }
 
-wt_nm_symlink_denied_message() {
-  echo "[worktree-node-modules] Windows refused to create a symlink. Enable Developer Mode (Settings > System > For developers), then run: sh $WT_NM_SCRIPT --link" >&2
-  echo "[worktree-node-modules] A directory junction is NOT used as a fallback: git worktree remove recurses through a junction and empties the main checkout's fsi-app/node_modules." >&2
+# Where the shared link for worktree <top> lives, printed; returns 1 (with the reason on stderr) when
+# the worktree's parent directory is not a safe home for it: it must be inside the main checkout,
+# gitignored there, and not inside any linked worktree.
+wt_nm_shared_link_path() {
+  top="$1"; main="$2"
+  parent="$(dirname "$top")"
+  if ! wt_nm_is_within "$parent" "$main" || [ "$parent" = "$main" ]; then
+    echo "[worktree-node-modules] $top is outside $main/.claude/worktrees; create worktrees there (the repo convention) so they share the install." >&2
+    return 1
+  fi
+  for wt in $(wt_nm_linked_worktrees | tr ' ' '\001'); do
+    wt="$(printf '%s' "$wt" | tr '\001' ' ')"
+    if wt_nm_is_within "$parent" "$wt"; then
+      echo "[worktree-node-modules] $parent is inside another worktree ($wt); refusing to place the shared link there." >&2
+      return 1
+    fi
+  done
+  rel="${parent#"$main"/}/node_modules"
+  if ! git -C "$main" check-ignore -q --no-index "$rel" 2>/dev/null; then
+    echo "[worktree-node-modules] $main/$rel is not gitignored in the main checkout; refusing to create it." >&2
+    return 1
+  fi
+  printf '%s/node_modules\n' "$parent"
 }
 
-# In a linked worktree, make <top>/fsi-app/node_modules a symlink to the main checkout's install,
-# replacing a junction or a dangling link. No-op (0) in the main checkout, when there is no fsi-app/,
-# or when a symlink or a real per-worktree install is already there. Returns 1 when it should link but
-# cannot (main has no install, or the OS refused the symlink); on a refused conversion the junction is
-# put back, so this never leaves a worktree with less than it had.
+# Make fsi-app's dependencies resolve in this linked worktree. No-op (0) in the main checkout, when
+# there is no fsi-app/, or when they already resolve. Removes a junction inside the worktree. Returns 1
+# when it cannot (the main checkout has no install, or the worktree is outside the main checkout).
 wt_nm_ensure_link() {
   top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
   [ -d "$top/fsi-app" ] || return 0
   wt_nm_is_linked_worktree || return 0
-  link="$top/fsi-app/node_modules"
-  kind="$(wt_nm_link_kind "$link")"
-  case "$kind" in
-    symlink|dir) return 0 ;;
+  intree="$top/fsi-app/node_modules"
+  case "$(wt_nm_link_kind "$intree")" in
+    junction|dangling)
+      wt_nm_unlink "$intree" || { echo "[worktree-node-modules] could not remove the link at $intree" >&2; return 1; }
+      echo "[worktree-node-modules] removed the junction at $intree (its target is untouched)" >&2
+      ;;
   esac
+  wt_nm_resolves "$top/fsi-app" && return 0
   main="$(wt_nm_main_checkout)"
   target="$main/fsi-app/node_modules"
   if [ -z "$main" ] || ! wt_nm_populated "$target"; then
-    echo "[worktree-node-modules] cannot link: main checkout has no fsi-app/node_modules ($target); run 'npm ci' in the main checkout's fsi-app first." >&2
+    echo "[worktree-node-modules] the main checkout has no fsi-app/node_modules ($target); run 'npm ci' in the main checkout's fsi-app first." >&2
     return 1
   fi
-  if [ "$kind" != absent ]; then
-    wt_nm_unlink "$link" || { echo "[worktree-node-modules] could not remove the existing $kind at $link" >&2; return 1; }
-  fi
-  if wt_nm_symlink "$link" "$target" && wt_nm_populated "$link"; then
-    echo "[worktree-node-modules] linked fsi-app/node_modules -> $target (symlink)" >&2
+  shared="$(wt_nm_shared_link_path "$top" "$main")" || return 1
+  case "$(wt_nm_link_kind "$shared")" in
+    absent) ;;
+    dir)
+      echo "[worktree-node-modules] $shared is a real directory, not the shared link; it shadows the main install. Remove or rename it." >&2
+      return 1 ;;
+    *)
+      # A link that exists but does not make deps resolve is stale (the main install moved): replace it.
+      wt_nm_unlink "$shared" || { echo "[worktree-node-modules] could not replace the stale link at $shared" >&2; return 1; } ;;
+  esac
+  if wt_nm_make_link "$shared" "$target" && wt_nm_resolves "$top/fsi-app"; then
+    echo "[worktree-node-modules] fsi-app dependencies now resolve through $shared -> $target" >&2
     return 0
   fi
-  if [ "$kind" = junction ]; then
-    # Restore what the worktree had so its push still works; the hazard stays reported by --check.
-    wt_nm_cmd mklink /J "$(wt_nm_winpath "$link")" "$(wt_nm_winpath "$target")" >/dev/null 2>&1
-  fi
-  if wt_nm_is_windows; then wt_nm_symlink_denied_message; else
-    echo "[worktree-node-modules] failed to create symlink $link -> $target" >&2
-  fi
+  echo "[worktree-node-modules] failed to make dependencies resolve through $shared -> $target" >&2
   return 1
 }
 
@@ -152,44 +202,42 @@ wt_nm_fix_command() {
   if wt_nm_is_linked_worktree; then echo "sh $WT_NM_SCRIPT --link"; else echo "(cd fsi-app && npm ci)"; fi
 }
 
-# 0 when this checkout's fsi-app/node_modules is usable AND safe to delete with its worktree. Otherwise
-# prints the one-line fix and returns 1. pre-push step 0b calls this so a missing install is reported as
-# itself, not as F9/F10/F11/F12 fitness violations.
+# 0 when fsi-app's dependencies resolve in this checkout AND no junction sits inside it (git worktree
+# remove would empty the shared install through one). Otherwise prints the one-line fix, returns 1.
 wt_nm_require() {
   top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
   [ -d "$top/fsi-app" ] || return 0
-  kind="$(wt_nm_link_kind "$top/fsi-app/node_modules")"
-  if [ "$kind" = junction ]; then
+  if [ "$(wt_nm_link_kind "$top/fsi-app/node_modules")" = junction ]; then
     echo "fsi-app/node_modules in this worktree is a junction, which git worktree remove would empty the shared install through: run sh $WT_NM_SCRIPT --link" >&2
     return 1
   fi
-  if wt_nm_populated "$top/fsi-app/node_modules"; then return 0; fi
-  echo "fsi-app/node_modules missing in this worktree: run $(wt_nm_fix_command)" >&2
+  wt_nm_resolves "$top/fsi-app" && return 0
+  echo "fsi-app dependencies do not resolve in this worktree: run $(wt_nm_fix_command)" >&2
   return 1
 }
 
-# One line per worktree: "<kind> <path>". Read-only.
+# One line per checkout: "<resolves|UNRESOLVED> <in-tree kind> <path>". Read-only.
 wt_nm_audit() {
   git worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r wt; do
     [ -d "$wt/fsi-app" ] || continue
-    echo "$(wt_nm_link_kind "$wt/fsi-app/node_modules") $wt"
+    if wt_nm_resolves "$wt/fsi-app"; then r=resolves; else r=UNRESOLVED; fi
+    echo "$r $(wt_nm_link_kind "$wt/fsi-app/node_modules") $wt"
   done
 }
 
-# Convert every linked worktree's junction to a symlink. Stops at the first refusal (a refusal on one
-# means the OS setting is off for all of them).
+# --link in every linked worktree that is unresolved or holds a junction. Reports what remains.
 wt_nm_repair_all() {
   rc=0
-  junctions="$(wt_nm_audit | sed -n 's/^junction //p')"
+  todo="$(wt_nm_audit | sed -n -e 's/^UNRESOLVED [a-z]* //p' -e 's/^resolves junction //p')"
   old_ifs="$IFS"; IFS='
 '
-  for wt in $junctions; do
-    (cd "$wt" && wt_nm_ensure_link) || { rc=1; break; }
+  for wt in $todo; do
+    (cd "$wt" && wt_nm_ensure_link) || rc=1
   done
   IFS="$old_ifs"
-  remaining="$(wt_nm_audit | grep -c '^junction ')"
-  echo "[worktree-node-modules] junctions remaining: $remaining" >&2
-  [ "$rc" -eq 0 ] && [ "$remaining" -eq 0 ]
+  bad="$(wt_nm_audit | grep -cE '^UNRESOLVED |^resolves junction ')"
+  echo "[worktree-node-modules] checkouts still unresolved or holding a junction: $bad" >&2
+  [ "$rc" -eq 0 ] && [ "$bad" -eq 0 ]
 }
 
 # Direct invocation only. When sourced, $0 is the sourcing hook and $1 is git's hook argument, so the

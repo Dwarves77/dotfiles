@@ -78,6 +78,13 @@ session-scoped and does not fire inside subagents/workflows (verified 2026-06-07
 
 The two statements above that PreToolUse is session-scoped and does not fire inside sub-agents were true when verified on 2026-06-07 and are false now. [CONFIRMED 2026-09-19] the main checkout's gate audit log recorded eleven denials of a sub-agent's own Edit and Write calls (lane M3). Since lane G1 (PR #754) the skill gate judges the acting agent's own transcript. [HYPOTHESIS, not re-verified] the branching-git ASK described above therefore also fires inside sub-agents; the git hooks remain the backstop that does not depend on it either way.
 
-## Addendum, 2026-09-27: a worktree's shared node_modules is a symlink, never a junction
+## Addendum, 2026-09-27: a worktree reaches the shared install through one link beside the worktrees (RD-85)
 
-A linked worktree has no `fsi-app/node_modules` (gitignored). `fsi-app/.discipline/hooks/post-checkout` now links it to the main checkout's install on `git worktree add`, through `fsi-app/.discipline/hooks/lib/worktree-node-modules.sh` (one home, also sourced by pre-push step 0b). The link is a directory **symlink**. [CONFIRMED 2026-09-27] `git worktree remove` recurses through a Windows junction and empties the shared install, forced or not. `rm -rf` and Node's `fs.rmSync` unlink a junction safely. Without Developer Mode, Windows refuses the symlink, and the lib then fails closed with that fix named. It never falls back to a junction. [CONFIRMED 2026-09-27, with Developer Mode on] Git for Windows unlinks a real symlink rather than recursing, and the shared install survives `git worktree remove`. The same holds on POSIX. `hooks/worktree-node-modules.test.mjs` proves both.
+A linked worktree has no `fsi-app/node_modules` (gitignored). Nothing is linked inside the worktree. Every worktree under `.claude/worktrees/` resolves fsi-app's npm dependencies from the main checkout's install through ONE gitignored link beside them, `.claude/worktrees/node_modules`, which Node's parent-directory lookup finds.
+
+- The one home is `fsi-app/.discipline/hooks/lib/worktree-node-modules.sh`. `post-checkout` creates the link on `git worktree add`; pre-push step 0b repairs it and fails fast only when it cannot.
+- [CONFIRMED 2026-09-27] `git worktree remove` (forced or not) recurses through a junction INSIDE a worktree and empties the shared install. `rm -rf` and Node's `fs.rmSync` unlink a junction safely.
+- A link beside the worktrees is outside every worktree, so no remover can reach the install through it. A plain junction is safe there and needs no Developer Mode or admin rights.
+- A worktree created outside `.claude/worktrees/` is refused with the convention named.
+- Tooling resolves dependencies the way Node does (`fsi-app/.discipline/lib/resolve-dep.mjs`); F59 fails CI on a hard-coded `fsi-app/node_modules` path.
+- Proof: `hooks/worktree-node-modules.test.mjs` (end-to-end, real git), plus a throwaway worktree in this layout that passed `next build` (Turbopack), `tsc`, F10, F11 and F12, 1529 npm-dependent tests and every golden.

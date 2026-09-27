@@ -86,16 +86,18 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 0b: fsi-app/node_modules present in THIS checkout (2026-09-27)
+# Step 0b: fsi-app's npm dependencies resolve in THIS checkout (2026-09-27, RD-85)
 # ---------------------------------------------------------------------------
 # A linked worktree without the shared install used to reach step 3d and report F9 build-compiles,
 # F10, F11 trust-tier-weights and F12 moat-base-tier as violations (their selftests import npm deps),
-# or hang, when the real cause is one missing link [CONFIRMED 2026-09-25, four lanes]. Refuse here,
-# naming the cause and the fix, before any step runs. post-checkout creates the link (a symlink) on
-# `git worktree add`; this is the fail-fast leg for worktrees made before that or with --no-checkout.
-# It also refuses a JUNCTION: `git worktree remove` recurses through one and empties the main
-# checkout's shared install [CONFIRMED 2026-09-27, pinned by hooks/worktree-node-modules.test.mjs].
+# or hang, when the real cause is one missing link [CONFIRMED 2026-09-25, four lanes]. SELF-HEAL
+# first (wt_nm_ensure_link: the one shared link beside the worktrees, no special OS rights, and any
+# junction inside the worktree removed, since `git worktree remove` empties the shared install
+# through one [CONFIRMED 2026-09-27]), then refuse, naming the cause and the fix, only if the
+# dependencies still do not resolve (the main checkout has no install, or the worktree sits outside
+# it). post-checkout runs the same repair on `git worktree add`.
 . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
+wt_nm_ensure_link || true
 if ! wt_nm_require; then
   echo "[discipline pre-push] STEP 0b FAIL: the missing install above, not a fitness violation; no step ran." >&2
   exit 1

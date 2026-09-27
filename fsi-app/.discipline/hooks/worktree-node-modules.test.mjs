@@ -1,22 +1,20 @@
-// Tests for lib/worktree-node-modules.sh (2026-09-27): a new linked worktree gets fsi-app/node_modules as
-// a SYMLINK to the main checkout's shared install (post-checkout), a junction is never created and is
-// reported as the data-loss hazard it is, and pre-push fails fast (step 0b) naming the fix instead of
+// Tests for lib/worktree-node-modules.sh (RD-85, 2026-09-27): a linked worktree resolves fsi-app's npm
+// dependencies from the main checkout's shared install through ONE link beside the worktrees, with no
+// special OS rights; nothing is created inside a worktree, so no way of removing a worktree can reach
+// the shared install; a junction inside a worktree (the old hand fix, which git empties the install
+// through) is removed; and pre-push step 0b self-heals, then fails fast naming the fix instead of
 // reporting F9/F10/F11/F12 fitness violations.
 //
-// End-to-end against throwaway git repos, node builtins only: each fixture commits the REAL tracked
-// post-checkout / pre-push / lib fragment, installs the REAL installer trampoline, and runs a real
-// `git worktree add` / `git worktree remove`, so the proof is the hook firing under git.
-//
-// Platform split, stated rather than skipped silently: where the OS permits symlinks (POSIX CI, Windows
-// with Developer Mode) the link + removal-safety path runs; where Windows refuses them, the fail-closed
-// path runs instead (no junction fallback, the Developer Mode fix named). The junction-hazard tests run
-// on Windows only, because junctions exist only there.
+// End-to-end against throwaway git repos, node builtins only. Each fixture commits the REAL tracked
+// post-checkout / pre-push / lib fragment and the REAL root and fsi-app .gitignore files, installs the
+// REAL installer trampoline, and runs real `git worktree add` / `git worktree remove`, so the proof is
+// the hook firing under git against the repo's own ignore rules, not a function called by hand.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, lstatSync, renameSync,
-  rmSync, chmodSync, symlinkSync,
+  rmSync, chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -24,24 +22,11 @@ import { fileURLToPath } from "node:url";
 import { buildTrampoline } from "../install-hooks.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(HERE, "..", "..", "..");
 const HOOK_REL = "fsi-app/.discipline/hooks";
 const LIB_SH = `${HOOK_REL}/lib/worktree-node-modules.sh`;
-const FIX_LINK = `fsi-app/node_modules missing in this worktree: run sh ${LIB_SH} --link`;
+const FIX_LINK = `fsi-app dependencies do not resolve in this worktree: run sh ${LIB_SH} --link`;
 const IS_WINDOWS = process.platform === "win32";
-const REPO_ROOT = join(HERE, "..", "..", "..");
-
-const CAN_SYMLINK = (() => {
-  const d = mkdtempSync(join(tmpdir(), "wt-nm-probe-"));
-  try {
-    mkdirSync(join(d, "t"));
-    symlinkSync(join(d, "t"), join(d, "l"), "dir");
-    return lstatSync(join(d, "l")).isSymbolicLink();
-  } catch {
-    return false;
-  } finally {
-    rmSync(d, { recursive: true, force: true });
-  }
-})();
 
 // Hook-inherited git variables (pre-push step 3 runs this suite from inside a hook) would point every
 // fixture git command at the REAL repo; strip them all.
@@ -63,9 +48,18 @@ function git(cwd, ...args) {
   return r.stdout.trim();
 }
 
-// Runs one lib function in <cwd> via `sh -c`, sourcing the fixture's committed copy of the lib.
+// Runs one lib function in <cwd> via `sh -c`, sourcing the checkout's committed copy of the lib.
 function lib(cwd, snippet) {
   return run("sh", ["-c", `. ./${LIB_SH} && ${snippet}`], cwd);
+}
+
+// What every consumer asks (lib/resolve-dep.mjs, run-npmtest-suites.sh, next.config.ts): does `next`
+// resolve from <checkout>/fsi-app? Returns the resolved file, or null.
+function resolveNext(checkout) {
+  const r = run(process.execPath, ["-e",
+    "try { process.stdout.write(require.resolve('next/package.json', { paths: [process.argv[1]] })) } catch {}",
+    join(checkout, "fsi-app")], checkout);
+  return r.stdout || null;
 }
 
 function winJunction(link, target) {
@@ -73,8 +67,8 @@ function winJunction(link, target) {
   assert.equal(r.status, 0, `mklink /J failed: ${r.stdout}${r.stderr}`);
 }
 
-// Main checkout: real hook sources committed, node_modules gitignored and populated, the installer's
-// trampoline in .git/hooks. Caller removes `base`.
+// Main checkout: real hook sources and real ignore files committed, a stand-in install (a `next`
+// package plus a marker) untracked and gitignored, the installer's trampoline in .git/hooks.
 function makeFixture() {
   const base = mkdtempSync(join(tmpdir(), "wt-nm-fixture-"));
   const main = join(base, "main");
@@ -86,11 +80,12 @@ function makeFixture() {
   for (const f of ["post-checkout", "pre-push", "lib/worktree-node-modules.sh"]) {
     copyFileSync(join(HERE, f), join(main, HOOK_REL, f));
   }
-  // The REAL ignore rule, not a stand-in: a symlink is not a directory to git, so only a pattern
-  // without a trailing slash ignores it (see the IGNORE RULE test below).
+  copyFileSync(join(REPO_ROOT, ".gitignore"), join(main, ".gitignore"));
   copyFileSync(join(REPO_ROOT, "fsi-app/.gitignore"), join(main, "fsi-app/.gitignore"));
   git(main, "add", "-A");
   git(main, "commit", "-q", "-m", "fixture");
+  mkdirSync(join(main, "fsi-app/node_modules/next"), { recursive: true });
+  writeFileSync(join(main, "fsi-app/node_modules/next/package.json"), '{"name":"next","version":"0.0.0"}');
   mkdirSync(join(main, "fsi-app/node_modules/pkg"), { recursive: true });
   writeFileSync(join(main, "fsi-app/node_modules/pkg/marker.txt"), "shared-install");
   const hooksDir = join(main, ".git", "hooks");
@@ -99,64 +94,71 @@ function makeFixture() {
   try { chmodSync(join(hooksDir, "post-checkout"), 0o755); } catch { /* no-op on Windows */ }
   const noHooks = join(base, "no-hooks");
   mkdirSync(noHooks);
-  return { base, main, hooksDir, noHooks };
+  const worktrees = join(main, ".claude", "worktrees");
+  mkdirSync(worktrees, { recursive: true });
+  return { base, main, hooksDir, noHooks, worktrees, shared: join(worktrees, "node_modules") };
 }
 
 // `git worktree add` with an explicit hooks dir, so a global core.hooksPath on the test machine can
-// neither add nor suppress hooks.
-function addWorktree(fx, name, hooksDir) {
-  const wt = join(fx.base, name);
+// neither add nor suppress hooks. Default location is the repo convention, <main>/.claude/worktrees.
+function addWorktree(fx, name, hooksDir, parent = fx.worktrees) {
+  const wt = join(parent, name);
   const r = run("git", ["-c", `core.hooksPath=${hooksDir}`, "worktree", "add", "-q", "-b", name, wt], fx.main);
   assert.equal(r.status, 0, `worktree add failed: ${r.stderr}`);
   return { wt, stderr: r.stderr };
 }
 
 const mainMarker = (fx) => join(fx.main, "fsi-app/node_modules/pkg/marker.txt");
+const installIntact = (fx) => readFileSync(mainMarker(fx), "utf8") === "shared-install";
 
 function withFixture(fn) {
   const fx = makeFixture();
   try { fn(fx); } finally { rmSync(fx.base, { recursive: true, force: true }); }
 }
 
-test("post-checkout on `git worktree add`: a symlink to the main install, or fail closed with no junction", () => {
+test("post-checkout on `git worktree add`: deps resolve through the one shared link; nothing inside the worktree", () => {
   withFixture((fx) => {
-    const { wt, stderr } = addWorktree(fx, "lane-a", fx.hooksDir);
-    const link = join(wt, "fsi-app/node_modules");
-    if (CAN_SYMLINK) {
-      assert.equal(readFileSync(join(link, "pkg/marker.txt"), "utf8"), "shared-install");
-      assert.equal(lib(wt, `wt_nm_link_kind fsi-app/node_modules`).stdout.trim(), "symlink");
-      assert.equal(git(wt, "status", "--porcelain"), "", "the link must not dirty the worktree");
-    } else {
-      assert.ok(IS_WINDOWS, "only Windows is expected to refuse symlinks");
-      assert.ok(!existsSync(link), "a refused symlink must never fall back to a junction");
-      assert.match(stderr, /Developer Mode/);
-    }
+    const { wt } = addWorktree(fx, "lane-a", fx.hooksDir);
+    assert.ok(resolveNext(wt), "next must resolve from the new worktree's fsi-app/");
+    assert.ok(!existsSync(join(wt, "fsi-app/node_modules")), "no link is created inside the worktree");
+    assert.ok(lstatSync(fx.shared).isSymbolicLink(), "the shared link sits beside the worktrees");
+    assert.equal(git(wt, "status", "--porcelain"), "", "the worktree stays clean");
+    assert.equal(git(fx.main, "status", "--porcelain"), "", "the shared link is gitignored in the main checkout");
+    // A second worktree reuses the same link; nothing new is created.
+    const { wt: wt2 } = addWorktree(fx, "lane-a2", fx.hooksDir);
+    assert.ok(resolveNext(wt2));
+    assert.ok(!existsSync(join(wt2, "fsi-app/node_modules")));
   });
 });
 
-test("git worktree remove deletes the symlink only; the shared install survives", { skip: !CAN_SYMLINK && "OS refuses symlinks (fail-closed path covered above)" }, () => {
+test("every way of removing a worktree leaves the shared install and the shared link intact", () => {
   withFixture((fx) => {
-    const { wt } = addWorktree(fx, "lane-b", fx.hooksDir);
-    assert.ok(existsSync(join(wt, "fsi-app/node_modules/pkg/marker.txt")));
-    git(fx.main, "worktree", "remove", wt);
-    assert.ok(!existsSync(wt));
-    assert.equal(readFileSync(mainMarker(fx), "utf8"), "shared-install");
+    const { wt: forced } = addWorktree(fx, "lane-b1", fx.hooksDir);
+    const { wt: plain } = addWorktree(fx, "lane-b2", fx.hooksDir);
+    const { wt: rmrf } = addWorktree(fx, "lane-b3", fx.hooksDir);
+    const { wt: survivor } = addWorktree(fx, "lane-b4", fx.hooksDir);
+    git(fx.main, "worktree", "remove", "--force", forced);
+    git(fx.main, "worktree", "remove", plain);
+    rmSync(rmrf, { recursive: true, force: true });
+    git(fx.main, "worktree", "prune");
+    assert.ok(installIntact(fx), "the main install survives git worktree remove (forced and not) and rm -rf");
+    assert.ok(resolveNext(survivor), "a remaining worktree still resolves through the shared link");
   });
 });
 
-test("HAZARD PIN (Windows): git worktree remove empties the shared install through a junction", { skip: !IS_WINDOWS && "junctions are Windows-only" }, () => {
-  // Pins DEFECT 2 as observed on git 2.53.0.windows.1. If this ever fails, git stopped following
-  // junctions and the lib's refusal to create them can be revisited, not before.
+test("HAZARD PIN (Windows): git worktree remove empties the shared install through a junction INSIDE a worktree", { skip: !IS_WINDOWS && "junctions are Windows-only" }, () => {
+  // Pins DEFECT 2 as observed on git 2.53.0.windows.1: the reason nothing is ever linked INSIDE a
+  // worktree. If this ever fails, git stopped following junctions; the design stays correct either way.
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-h", fx.noHooks);
     winJunction(join(wt, "fsi-app", "node_modules"), join(fx.main, "fsi-app", "node_modules"));
-    assert.ok(existsSync(mainMarker(fx)));
+    assert.ok(installIntact(fx));
     git(fx.main, "worktree", "remove", "--force", wt);
-    assert.ok(!existsSync(mainMarker(fx)), "git followed the junction (the reason junctions are refused)");
+    assert.ok(!existsSync(mainMarker(fx)), "git followed the junction");
   });
 });
 
-test("a junction is reported by --check, classified by --audit, and converted (or kept intact) by --link", { skip: !IS_WINDOWS && "junctions are Windows-only" }, () => {
+test("a junction inside a worktree: --check refuses it, --link removes it (target untouched) and deps still resolve", { skip: !IS_WINDOWS && "junctions are Windows-only" }, () => {
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-j", fx.noHooks);
     winJunction(join(wt, "fsi-app", "node_modules"), join(fx.main, "fsi-app", "node_modules"));
@@ -164,19 +166,15 @@ test("a junction is reported by --check, classified by --audit, and converted (o
     const check = run("sh", [LIB_SH, "--check"], wt);
     assert.equal(check.status, 1);
     assert.match(check.stderr, /is a junction, which git worktree remove would empty the shared install through/);
-    assert.match(run("sh", [LIB_SH, "--audit"], fx.main).stdout, /^junction .*lane-j$/m);
+    assert.match(run("sh", [LIB_SH, "--audit"], fx.main).stdout, /^resolves junction .*lane-j$/m);
 
     const link = run("sh", [LIB_SH, "--link"], wt);
-    const kind = lib(wt, "wt_nm_link_kind fsi-app/node_modules").stdout.trim();
-    if (CAN_SYMLINK) {
-      assert.equal(link.status, 0, link.stderr);
-      assert.equal(kind, "symlink");
-    } else {
-      assert.equal(link.status, 1);
-      assert.match(link.stderr, /Developer Mode/);
-      assert.equal(kind, "junction", "a refused conversion restores the junction, never leaves nothing");
-    }
-    assert.equal(readFileSync(mainMarker(fx), "utf8"), "shared-install", "conversion never touches the target");
+    assert.equal(link.status, 0, link.stderr);
+    assert.ok(!existsSync(join(wt, "fsi-app/node_modules")), "the junction is gone");
+    assert.ok(resolveNext(wt), "deps resolve through the shared link instead");
+    assert.ok(installIntact(fx), "removing the junction never touches its target");
+    git(fx.main, "worktree", "remove", "--force", wt);
+    assert.ok(installIntact(fx), "and the worktree is now safe to remove");
   });
 });
 
@@ -184,30 +182,53 @@ test("wt_nm_unlink never empties a real directory", () => {
   withFixture((fx) => {
     const r = lib(fx.main, "wt_nm_unlink fsi-app/node_modules");
     assert.notEqual(r.status, 0, "unlinking a real directory must report failure");
-    assert.equal(readFileSync(mainMarker(fx), "utf8"), "shared-install");
+    assert.ok(installIntact(fx));
   });
 });
 
-test("--check names the exact fix; --link repairs a worktree created without the hook", () => {
+test("a worktree made without the hook: --check names the fix, --link repairs it; a deleted or stale shared link self-heals", () => {
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-d", fx.noHooks);
+    assert.equal(resolveNext(wt), null, "precondition: nothing resolves before the link exists");
     const check = run("sh", [LIB_SH, "--check"], wt);
     assert.equal(check.status, 1);
     assert.ok(check.stderr.includes(FIX_LINK), check.stderr);
 
-    const link = run("sh", [LIB_SH, "--link"], wt);
-    if (CAN_SYMLINK) {
-      assert.equal(link.status, 0, link.stderr);
-      assert.equal(run("sh", [LIB_SH, "--check"], wt).status, 0);
-    } else {
-      assert.equal(link.status, 1);
-      assert.match(link.stderr, /Developer Mode/);
-      assert.ok(!existsSync(join(wt, "fsi-app/node_modules")));
-    }
+    assert.equal(run("sh", [LIB_SH, "--link"], wt).status, 0);
+    assert.ok(resolveNext(wt));
+
+    rmSync(fx.shared, { recursive: true, force: true }); // rm -rf of a link removes the link only
+    assert.ok(installIntact(fx));
+    assert.equal(resolveNext(wt), null);
+    assert.equal(run("sh", [LIB_SH, "--link"], wt).status, 0, "a deleted shared link is recreated");
+    assert.ok(resolveNext(wt));
+
+    // Stale: the shared link exists but points somewhere that does not hold the install (a moved or
+    // wrong target). --link must replace it, not trust its existence.
+    const wrong = join(fx.base, "wrong-target");
+    mkdirSync(join(wrong, "unrelated"), { recursive: true });
+    lib(fx.main, `wt_nm_unlink '${fx.shared.replaceAll("\\", "/")}'`);
+    assert.equal(lib(fx.main, `wt_nm_make_link '${fx.shared.replaceAll("\\", "/")}' '${wrong.replaceAll("\\", "/")}'`).status, 0);
+    assert.equal(resolveNext(wt), null, "precondition: the stale link does not resolve");
+    assert.equal(run("sh", [LIB_SH, "--link"], wt).status, 0);
+    assert.ok(resolveNext(wt), "the stale link was replaced");
+    assert.ok(existsSync(join(wrong, "unrelated")), "replacing a stale link never touches its old target");
+    assert.equal(run("sh", [LIB_SH, "--check"], wt).status, 0);
   });
 });
 
-test("main checkout: never linked; without an install --check names npm ci and a worktree cannot link", () => {
+test("a worktree outside <main>/.claude/worktrees is refused with the convention named, and nothing is created", () => {
+  withFixture((fx) => {
+    const { wt } = addWorktree(fx, "lane-o", fx.noHooks, fx.base);
+    const r = run("sh", [LIB_SH, "--link"], wt);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /outside .*\.claude\/worktrees; create worktrees there/);
+    assert.ok(!existsSync(join(fx.base, "node_modules")), "never a link in an arbitrary parent directory");
+    assert.ok(!existsSync(join(wt, "fsi-app/node_modules")));
+  });
+});
+
+test("main checkout: never touched; without an install --check names npm ci and a worktree reports it cannot resolve", () => {
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-e", fx.noHooks);
     assert.equal(lib(fx.main, "wt_nm_ensure_link").status, 0);
@@ -216,20 +237,26 @@ test("main checkout: never linked; without an install --check names npm ci and a
     renameSync(join(fx.main, "fsi-app/node_modules"), join(fx.base, "moved-away"));
     const mainCheck = run("sh", [LIB_SH, "--check"], fx.main);
     assert.equal(mainCheck.status, 1);
-    assert.match(mainCheck.stderr, /missing in this worktree: run \(cd fsi-app && npm ci\)/);
+    assert.match(mainCheck.stderr, /do not resolve in this worktree: run \(cd fsi-app && npm ci\)/);
     const link = run("sh", [LIB_SH, "--link"], wt);
     assert.equal(link.status, 1);
-    assert.match(link.stderr, /cannot link: main checkout has no fsi-app\/node_modules/);
-    assert.ok(!existsSync(join(wt, "fsi-app/node_modules")), "nothing left behind");
+    assert.match(link.stderr, /the main checkout has no fsi-app\/node_modules/);
+    assert.ok(!existsSync(fx.shared), "nothing left behind");
   });
 });
 
-test("pre-push step 0b: the real hook refuses before any step runs, with the fix line, not F9-F12", () => {
+test("pre-push step 0b self-heals a worktree without the link, and fails fast naming the fix when it cannot", () => {
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-f", fx.noHooks);
-    const r = run("sh", [`${HOOK_REL}/pre-push`, "origin", "unused"], wt, {
-      env: { DISCIPLINE_HOOK_TRAMPOLINE: "1" },
-    });
+    const prePush = () => run("sh", [`${HOOK_REL}/pre-push`, "origin", "unused"], wt, { env: { DISCIPLINE_HOOK_TRAMPOLINE: "1" } });
+
+    const healed = prePush();
+    assert.doesNotMatch(healed.stderr, /STEP 0b FAIL/, "a missing link is repaired, not reported");
+    assert.ok(resolveNext(wt), "and the worktree now resolves");
+
+    rmSync(fx.shared, { recursive: true, force: true });
+    renameSync(join(fx.main, "fsi-app/node_modules"), join(fx.base, "moved-away"));
+    const r = prePush();
     assert.equal(r.status, 1, `expected fail-fast exit 1, got ${r.status}: ${r.stderr}`);
     assert.ok(r.stderr.includes(FIX_LINK), `stderr must carry the fix line; got: ${r.stderr}`);
     assert.match(r.stderr, /STEP 0b FAIL/);
@@ -237,19 +264,20 @@ test("pre-push step 0b: the real hook refuses before any step runs, with the fix
   });
 });
 
-test("WIRING: post-checkout links before exec'ing the isolation runner; pre-push checks before step 1", () => {
+test("WIRING: post-checkout repairs before exec'ing the isolation runner; pre-push self-heals then checks before step 1", () => {
   const post = readFileSync(join(HERE, "post-checkout"), "utf8");
   const ensure = post.indexOf("wt_nm_ensure_link");
-  assert.ok(ensure > 0 && ensure < post.indexOf("exec node"), "link must run before exec replaces the shell");
+  assert.ok(ensure > 0 && ensure < post.indexOf("exec node"), "repair must run before exec replaces the shell");
   const pre = readFileSync(join(HERE, "pre-push"), "utf8");
+  const heal = pre.indexOf("wt_nm_ensure_link || true");
   const req = pre.indexOf("if ! wt_nm_require");
-  assert.ok(req > 0 && req < pre.indexOf("# Step 1:"), "step 0b must precede every CI-parity step");
+  assert.ok(heal > 0 && heal < req && req < pre.indexOf("# Step 1:"), "step 0b must heal, then check, before every CI-parity step");
 });
 
-test("IGNORE RULE: the repo's own gitignore ignores fsi-app/node_modules as a symlink, not only as a directory", () => {
-  // check-ignore evaluates a path without a trailing slash as a non-directory, which is how git sees the
-  // symlink. A `node_modules/` rule passes for a real install but leaves every worktree's symlink
-  // untracked, one `git add -A` away from being committed.
-  const r = run("git", ["check-ignore", "--no-index", "-q", "fsi-app/node_modules"], REPO_ROOT);
-  assert.equal(r.status, 0, "fsi-app/node_modules must be ignored as a non-directory path (use /node_modules, no trailing slash)");
+test("IGNORE RULES: the repo's own gitignores cover the shared link and an in-tree link", () => {
+  // --no-index + a path without a trailing slash is evaluated as a non-directory: how git sees a link.
+  for (const p of [".claude/worktrees/node_modules", "fsi-app/node_modules"]) {
+    const r = run("git", ["check-ignore", "--no-index", "-q", p], REPO_ROOT);
+    assert.equal(r.status, 0, `${p} must be gitignored as a link, not only as a directory`);
+  }
 });

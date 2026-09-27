@@ -26,6 +26,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fullAppCss } from '../smoke/smoke-fixtures.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
+import { resolveAppDep } from '../../lib/resolve-dep.mjs';
 
 const SMOKE = fileURLToPath(new URL('../smoke/', import.meta.url));
 
@@ -34,7 +35,9 @@ const SMOKE = fileURLToPath(new URL('../smoke/', import.meta.url));
  * cannot carry. A bare `.css` import has no output path in this harness's `write:false` bundle, so
  * such imports are aliased away in `alias` (see compose-map's `leaflet/dist/leaflet.css`) and the
  * stylesheet is read off disk and injected with `page.addStyleTag` instead, the exact technique
- * ../smoke/map-smoke.mjs has used since lane uimapcomm. Repo-relative paths, read at call time.
+ * ../smoke/map-smoke.mjs has used since lane uimapcomm. An entry starting `fsi-app/` is a
+ * repo-relative path; any other entry is an npm package specifier resolved from fsi-app/ the way
+ * Node resolves it (lib/resolve-dep.mjs, RD-85), never a literal node_modules path. Read at call time.
  *
  * WHY IT MATTERS, measured (lane map60, 2026-09-08): with leaflet's stylesheet aliased to an empty
  * module and nothing injected in its place, Leaflet still BUILDS its panes and markers, the four
@@ -45,7 +48,9 @@ const SMOKE = fileURLToPath(new URL('../smoke/', import.meta.url));
  */
 export function mountExtraCss(mount) {
   const files = mount && Array.isArray(mount.styleFiles) ? mount.styleFiles : [];
-  return files.map((rel) => readFileSync(join(getRepoRoot(), rel), 'utf8')).join('\n');
+  return files
+    .map((f) => readFileSync(f.startsWith('fsi-app/') ? join(getRepoRoot(), f) : resolveAppDep(f), 'utf8'))
+    .join('\n');
 }
 
 const STYLE_INJECT = `
@@ -3410,7 +3415,7 @@ export const AUDIT_MOUNTS = {
     // The alias above keeps esbuild from needing an output path for leaflet's stylesheet; this
     // puts the REAL stylesheet back at runtime (see mountExtraCss above). leaflet is already an
     // app dependency, so this adds no new one and reaches no network.
-    styleFiles: ['fsi-app/node_modules/leaflet/dist/leaflet.css'],
+    styleFiles: ['leaflet/dist/leaflet.css'],
     apiRoutes: EMPTY_API,
   },
   'compose-community': {

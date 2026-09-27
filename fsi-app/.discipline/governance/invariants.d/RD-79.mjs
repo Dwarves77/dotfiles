@@ -23,7 +23,7 @@ export const invariant = {
     'fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh, holds the npmtest discovery + command that ' +
     'used to be inline in discipline.yml; both the workflow step and a new pre-push step (3e) call it, ' +
     'so the two surfaces cannot drift again, and it fails loud (never silently skips, never installs) ' +
-    'when fsi-app/node_modules is absent or empty; a new pre-push step (3f) likewise runs the behavioral ' +
+    'when the fsi-app npm deps do not resolve from fsi-app/ (asked of Node since RD-85, 2026-09-27); a new pre-push step (3f) likewise runs the behavioral ' +
     'goldens (fsi-app/scripts/verify/run-goldens.mjs), the job\'s other npm-dependent test step that was ' +
     'equally unwired locally. (b) F54 (push-gate-npm-parity) is the mechanical, by-attack proof that ' +
     'this stays true: it reads every test-running step of discipline.yml\'s "Fitness functions" job ' +

@@ -30,7 +30,7 @@ import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { getRepoRoot } from '../../lib/context.mjs';
+import { resolveAppDep } from '../../lib/resolve-dep.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const CSS_ALIAS_TARGET = join(HERE, 'stub-next-link.mjs');
@@ -40,7 +40,7 @@ const CSS_ALIAS_TARGET = join(HERE, 'stub-next-link.mjs');
 // rules, so its internally-panned tiles read as a real page overflow and the (unstyled) zoom
 // buttons read as a law-2 target-floor violation, neither a real defect. Loaded via
 // `page.addStyleTag` instead (a real browser `<style>` tag, not part of the JS bundle).
-const LEAFLET_CSS = readFileSync(join(getRepoRoot(), 'fsi-app/node_modules/leaflet/dist/leaflet.css'), 'utf8');
+const LEAFLET_CSS = readFileSync(resolveAppDep('leaflet/dist/leaflet.css'), 'utf8');
 
 // Same false-positive class regulations-rows-smoke.mjs's own KNOWN_SAFE_PLACEHOLDER_LITERALS
 // documents for "Action" (the urgency band's real label, coincidentally also a §3 "action headers"
