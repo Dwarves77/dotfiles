@@ -4127,6 +4127,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/regional/state-cost-facts-envelope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/relative-time.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -7115,6 +7124,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/producers/regional/state-cost-facts-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/propagation/seed-derived-values.mjs",
       "kinds": [
         "WRITES"
@@ -7896,8 +7914,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/verify/population-report.test.mjs",
@@ -11354,11 +11372,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1061,
-    "covered": 1019,
+    "governed_files": 1063,
+    "covered": 1022,
     "exempt": 41,
-    "gaps": 1,
-    "orphaned_proofs": 1,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0
