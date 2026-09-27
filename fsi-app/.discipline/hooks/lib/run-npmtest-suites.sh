@@ -13,18 +13,20 @@
 #   files=$(git ls-files 'fsi-app/**/*.npmtest.mjs' | tr -s ' \n' ' ')
 #   if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 #
-# Requires: fsi-app/node_modules present (npm ci already run in THIS worktree's fsi-app). This
-# script does NOT install deps itself and does NOT skip silently when they're missing, brief-g2.md
-# item 1: "it never skips silently and never installs by itself", it fails loud, naming the fix.
+# Requires: fsi-app's npm deps RESOLVABLE from fsi-app/ (npm ci in CI; in a linked worktree, the
+# shared install reached through the link beside the worktrees, RD-85). The check asks Node, never
+# the literal fsi-app/node_modules path. This script does NOT install deps itself and does NOT skip
+# silently when they're missing, brief-g2.md item 1: "it never skips silently and never installs by
+# itself", it fails loud, naming the fix.
 #
 # Usage: run from the repo root (both callers already cd there before invoking this):
 #   sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh
 
 set -u
 
-if [ ! -d fsi-app/node_modules ] || [ -z "$(ls -A fsi-app/node_modules 2>/dev/null)" ]; then
-  echo "[run-npmtest-suites] fsi-app/node_modules is absent or empty in this worktree." >&2
-  echo "[run-npmtest-suites] fix: run 'npm ci' inside fsi-app in THIS worktree, then re-push." >&2
+if ! node -e "require.resolve('next/package.json', { paths: [process.argv[1]] })" "$(pwd)/fsi-app" >/dev/null 2>&1; then
+  echo "[run-npmtest-suites] fsi-app's npm dependencies do not resolve from fsi-app/ in this checkout." >&2
+  echo "[run-npmtest-suites] fix: in a linked worktree run 'sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --link'; in CI or the main checkout run 'npm ci' inside fsi-app." >&2
   exit 1
 fi
 

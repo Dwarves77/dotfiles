@@ -27,7 +27,7 @@ import { withWorkflow } from "workflow/next";
 // restores parity with `next build`'s Turbopack default there.
 //
 // The widening is COMPUTED, never hardcoded to a container path: resolve the real
-// (symlink-following) target of fsi-app/node_modules and, only when that target
+// (symlink-following) node_modules that `next` resolves from and, only when that target
 // falls outside the normal REPO_ROOT (the worktree case), raise APP_ROOT to the
 // nearest common ancestor of REPO_ROOT and the target. On Vercel and on a normal
 // clone, node_modules is a real directory inside the repo (`npm ci`), the target
@@ -37,7 +37,13 @@ function computeAppRoot(): string {
   const repoRoot = path.resolve(__dirname, "..");
   let target: string;
   try {
-    target = fs.realpathSync(path.join(__dirname, "node_modules"));
+    // The node_modules Node actually resolves `next` from: fsi-app/node_modules on a normal
+    // install, or, in a linked worktree, the shared install reached through the ONE link beside
+    // the worktrees (.claude/worktrees/node_modules, RD-85). Never the literal
+    // fsi-app/node_modules path, which does not exist in that layout; with it Turbopack was
+    // confined to the worktree and refused to build [CONFIRMED 2026-09-27].
+    const nextPkg = require.resolve("next/package.json", { paths: [__dirname] });
+    target = fs.realpathSync(path.resolve(path.dirname(nextPkg), ".."));
   } catch {
     return repoRoot; // node_modules absent (not yet installed): normal repo root
   }

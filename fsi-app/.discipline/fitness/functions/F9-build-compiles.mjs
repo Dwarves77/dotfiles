@@ -20,22 +20,20 @@
 // by default (would slow every commit); future pre-push hook can include it.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
+import { tryResolveAppDep } from '../../lib/resolve-dep.mjs';
 
 // Sentinel filepath: the runner enumerates this single "file" and calls check()
 // on it. The check then runs tsc against the whole fsi-app project.
 const SENTINEL = 'fsi-app/tsconfig.json';
 
 function findTsc() {
-  // Prefer the npx-resolved local tsc; fall back to a system tsc if npx fails.
-  const localTsc = join(getRepoRoot(), 'fsi-app', 'node_modules', '.bin', 'tsc');
-  const localTscWindows = localTsc + '.cmd';
-  if (existsSync(localTsc)) return localTsc;
-  if (existsSync(localTscWindows)) return localTscWindows;
-  return null;
+  // The compiler's own entry script, found the way Node resolves it from fsi-app/ (in-tree install,
+  // or the shared install a linked worktree reaches through its parent directory), and run with the
+  // same node binary. Never the literal fsi-app/node_modules/.bin path (RD-85).
+  return tryResolveAppDep('typescript/bin/tsc');
 }
 
 function runTypecheck() {
@@ -46,15 +44,13 @@ function runTypecheck() {
   if (!tsc) {
     return {
       ok: false,
-      output: `tsc not found at ${join(fsiAppDir, 'node_modules/.bin/tsc')} (or .cmd). Install fsi-app dev dependencies first: cd fsi-app && npm ci`,
+      output: 'typescript does not resolve from fsi-app/. In a linked worktree run: sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --link ; in the main checkout: cd fsi-app && npm ci',
       errCode: 'TSC_NOT_FOUND',
     };
   }
 
-  // spawnSync with shell:true handles both POSIX `tsc` and Windows `tsc.cmd` shims.
-  const cmd = `"${tsc}" --noEmit -p "${fsiAppDir}"`;
-  const result = spawnSync(cmd, {
-    shell: true,
+  // No shell: node runs the resolved entry script directly, identically on POSIX and Windows.
+  const result = spawnSync(process.execPath, [tsc, '--noEmit', '-p', fsiAppDir], {
     encoding: 'utf-8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });

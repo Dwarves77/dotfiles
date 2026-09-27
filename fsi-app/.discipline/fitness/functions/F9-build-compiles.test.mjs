@@ -34,11 +34,11 @@ test('F9: check on non-sentinel filepath returns empty (PASS)', () => {
 });
 
 test('F9: _findTsc returns a path or null', () => {
-  // Either fsi-app/node_modules/.bin/tsc(.cmd) exists, or null.
+  // typescript's own bin/tsc entry script as Node resolves it from fsi-app/, or null (RD-85).
   const tsc = _findTsc();
   if (tsc !== null) {
     assert.ok(typeof tsc === 'string');
-    assert.ok(tsc.endsWith('tsc') || tsc.endsWith('tsc.cmd'));
+    assert.match(tsc.replaceAll('\\', '/'), /\/typescript\/bin\/tsc$/);
   }
 });
 

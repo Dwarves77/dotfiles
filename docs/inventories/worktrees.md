@@ -82,6 +82,7 @@ Any dispatch that creates or removes a worktree MUST update this inventory. C4 c
 
 ## Known gaps
 
+- **node_modules junctions (2026-09-27, closed by RD-85)**: `git worktree remove`, with or without `--force`, empties the main checkout's `fsi-app/node_modules` through a junction inside a worktree [CONFIRMED on git 2.53.0.windows.1; pinned by `fsi-app/.discipline/hooks/worktree-node-modules.test.mjs`]. This is the 2026-05-20 incident's class. That time it was fixed at the remover (`cleanup-merged-worktrees.mjs`, later deleted in #459); now it is fixed at the source: nothing is linked inside a worktree, and every worktree under `.claude/worktrees/` resolves the shared install through ONE gitignored link beside them, `.claude/worktrees/node_modules`. That link is created by post-checkout and repaired by pre-push step 0b, and it needs no Developer Mode or admin rights. The 16 hand-made junctions were converted on 2026-09-27; `sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --audit` lists every checkout's state.
 - **OBS-58**: Step 3 of the worktree-cleanup 3-step pattern (config-registry sweep against `~/.claude/settings.json` additionalDirectories) is currently manual. Automating in `cleanup-merged-worktrees.mjs` is queued for next cleanup-script touch.
 
 ## Related
