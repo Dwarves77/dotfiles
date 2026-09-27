@@ -28,6 +28,7 @@ const HOOK_REL = "fsi-app/.discipline/hooks";
 const LIB_SH = `${HOOK_REL}/lib/worktree-node-modules.sh`;
 const FIX_LINK = `fsi-app/node_modules missing in this worktree: run sh ${LIB_SH} --link`;
 const IS_WINDOWS = process.platform === "win32";
+const REPO_ROOT = join(HERE, "..", "..", "..");
 
 const CAN_SYMLINK = (() => {
   const d = mkdtempSync(join(tmpdir(), "wt-nm-probe-"));
@@ -85,7 +86,9 @@ function makeFixture() {
   for (const f of ["post-checkout", "pre-push", "lib/worktree-node-modules.sh"]) {
     copyFileSync(join(HERE, f), join(main, HOOK_REL, f));
   }
-  writeFileSync(join(main, ".gitignore"), "node_modules/\n");
+  // The REAL ignore rule, not a stand-in: a symlink is not a directory to git, so only a pattern
+  // without a trailing slash ignores it (see the IGNORE RULE test below).
+  copyFileSync(join(REPO_ROOT, "fsi-app/.gitignore"), join(main, "fsi-app/.gitignore"));
   git(main, "add", "-A");
   git(main, "commit", "-q", "-m", "fixture");
   mkdirSync(join(main, "fsi-app/node_modules/pkg"), { recursive: true });
@@ -241,4 +244,12 @@ test("WIRING: post-checkout links before exec'ing the isolation runner; pre-push
   const pre = readFileSync(join(HERE, "pre-push"), "utf8");
   const req = pre.indexOf("if ! wt_nm_require");
   assert.ok(req > 0 && req < pre.indexOf("# Step 1:"), "step 0b must precede every CI-parity step");
+});
+
+test("IGNORE RULE: the repo's own gitignore ignores fsi-app/node_modules as a symlink, not only as a directory", () => {
+  // check-ignore evaluates a path without a trailing slash as a non-directory, which is how git sees the
+  // symlink. A `node_modules/` rule passes for a real install but leaves every worktree's symlink
+  // untracked, one `git add -A` away from being committed.
+  const r = run("git", ["check-ignore", "--no-index", "-q", "fsi-app/node_modules"], REPO_ROOT);
+  assert.equal(r.status, 0, "fsi-app/node_modules must be ignored as a non-directory path (use /node_modules, no trailing slash)");
 });
