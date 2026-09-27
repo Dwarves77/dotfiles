@@ -19,6 +19,17 @@ FLAG="$3"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 [ -n "$REPO_ROOT" ] || exit 0
 
+# WORKTREE NODE_MODULES LINK (2026-09-27): `git worktree add` fires this hook (flag=1) in the NEW
+# worktree, which has no fsi-app/node_modules (gitignored). Symlink it to the main checkout's shared
+# install so the pre-push fitness selftests can import npm deps. Never a junction (git worktree remove
+# empties the shared install through one). Warn-only: a checkout is never wedged by a failed link;
+# pre-push step 0b is the fail-fast leg. See lib/worktree-node-modules.sh.
+WT_NM_LIB="$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
+if [ -f "$WT_NM_LIB" ]; then
+  . "$WT_NM_LIB"
+  wt_nm_ensure_link || echo "[post-checkout] fsi-app/node_modules not linked; pre-push will name the fix." >&2
+fi
+
 RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
 [ -f "$RUNNER" ] || exit 0
 

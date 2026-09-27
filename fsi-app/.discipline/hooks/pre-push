@@ -86,6 +86,22 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
+# Step 0b: fsi-app/node_modules present in THIS checkout (2026-09-27)
+# ---------------------------------------------------------------------------
+# A linked worktree without the shared install used to reach step 3d and report F9 build-compiles,
+# F10, F11 trust-tier-weights and F12 moat-base-tier as violations (their selftests import npm deps),
+# or hang, when the real cause is one missing link [CONFIRMED 2026-09-25, four lanes]. Refuse here,
+# naming the cause and the fix, before any step runs. post-checkout creates the link (a symlink) on
+# `git worktree add`; this is the fail-fast leg for worktrees made before that or with --no-checkout.
+# It also refuses a JUNCTION: `git worktree remove` recurses through one and empties the main
+# checkout's shared install [CONFIRMED 2026-09-27, pinned by hooks/worktree-node-modules.test.mjs].
+. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
+if ! wt_nm_require; then
+  echo "[discipline pre-push] STEP 0b FAIL: the missing install above, not a fitness violation; no step ran." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # Per-run log directory (D11 fix, docs/plans/defect-fix-plan-2026-09-12.md): every step below used to
 # redirect to a FIXED path under /tmp and rm -f it when the step finished. This hook runs concurrently by
 # design (one push per lane, lane preflights, the coordinator's own gate runs), so two runs sharing a

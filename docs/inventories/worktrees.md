@@ -82,6 +82,7 @@ Any dispatch that creates or removes a worktree MUST update this inventory. C4 c
 
 ## Known gaps
 
+- **node_modules junctions (2026-09-27)**: `git worktree remove`, with or without `--force`, empties the main checkout's `fsi-app/node_modules` through a directory junction [CONFIRMED on git 2.53.0.windows.1; pinned by `fsi-app/.discipline/hooks/worktree-node-modules.test.mjs`]. This is the 2026-05-20 incident's class. That time it was fixed at the remover (`cleanup-merged-worktrees.mjs`, later deleted in #459); now it is fixed at the source: post-checkout creates a directory **symlink** and never a junction, and pre-push step 0b refuses a junction. 16 live worktrees still carry hand-made junctions. The fix is `sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --audit`, then `--repair-all`, which needs Windows Developer Mode (operator setting). Until then, remove a junctioned worktree only after `cmd /c rmdir <wt>\fsi-app\node_modules`.
 - **OBS-58**: Step 3 of the worktree-cleanup 3-step pattern (config-registry sweep against `~/.claude/settings.json` additionalDirectories) is currently manual. Automating in `cleanup-merged-worktrees.mjs` is queued for next cleanup-script touch.
 
 ## Related
