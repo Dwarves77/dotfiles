@@ -110,12 +110,37 @@ Total: 22 row(s) across 4 family(ies). No writes performed (dry mode).
 `scripts/harness-runs/**/*-run-NNN.json` artifact in their diff against `origin/master`. All 14
 `brief-export/*` branches and 3 of 10 `ledger-consume/*` branches add only export-snapshot or other
 non-harness-run files (e.g. `brief-export/34686595044` adds six `scripts/_snapshots/brief-export/
-export-*-partN.json` files, no `harness-runs/` path at all) - those branches predate, or fall outside,
-brief-export's own harness-run-artifact step (that workflow's own header notes it "wrote NO harness
-artifact before this lane"). The import script's counts are the real, verified number: **22 importable
-rows**, not 39. Those 3 non-matching ledger-consume branches and all 14 brief-export branches still need
-a human decision (land their export/ledger content some other way, or close them) separate from the
-harness_runs migration - out of this lane's scope, flagged here rather than silently dropped.
+export-*-partN.json` files, no `harness-runs/` path at all).
+
+**Coordinator flag investigated, [REFUTED] as a CURRENT emit-step defect** (rule 14: a finding is a
+hypothesis until verified, labeled either way; rule 13 corollary: a flag that dissolves under evidence
+gets a same-session correction in place). The coordinator's framing was "those runs weren't recorded,
+which is a defect in those families' emit steps." Checked both families' current workflow files and the
+git history of the harness-run-artifact step itself, not just the branch content:
+
+- All 14 stranded `brief-export/*` branches date 2026-09-12 through 2026-09-18 [CONFIRMED, `git log -1`
+  on each branch tip]. brief-export.yml's "Record this run's own harness-run artifact" step was added by
+  commit `8c5d1616`/PR **#759** ("Lane M4: brief-export fires after the population turn and leaves its
+  own artifact with the loop id"), **2026-09-20** [CONFIRMED, `git log -S "Record this run's own
+  harness-run artifact" -- .github/workflows/brief-export.yml`]. Every stranded branch predates the step
+  that would have written it by 2 to 8 days. The CURRENT workflow (present on this branch, unmodified)
+  does write the artifact on every run since #759.
+- All 3 stranded `ledger-consume/*` branches (`33902755838`, `33908401816`, `33929076810`) date
+  2026-09-04 [CONFIRMED]. ledger-consume.yml's own header states the export-mode harness-run-artifact
+  self-emission ("this mode DOES now self-emit its own `ledger-consume` family harness-run artifact...")
+  landed as **Lane LEDGER-CHAIN-2, 2026-09-05** [CONFIRMED, comment cites the lane and date inline at
+  `.github/workflows/ledger-consume.yml` next to the `run-ledger-consume.mjs --export-candidates` step].
+  These 3 runs predate that lane by exactly one day. The CURRENT workflow does self-emit the artifact
+  for export-mode runs.
+
+**Conclusion:** there is no live defect to fix in either family's current emit step - both already write
+their harness-run artifact unconditionally (verified by reading the present-day workflow files, not just
+inferring from the gap). The 17 orphan branches are pre-feature runs from before each family's
+artifact-writing step existed; they are stranded content (real export-candidate / brief-export data with
+no matching harness-run record, ever, because none was written), not evidence of an ongoing bug. No code
+change is included in this lane for this reason - there is nothing broken to change. Disposition of the
+17 orphan branches' actual content (land it some other way, or close the branches) is a separate human
+decision, flagged here rather than silently dropped, out of this lane's scope.
 
 ## Step 4: TEST FOR REAL - stopped
 
