@@ -18,3 +18,19 @@ coordinator-run collector script, or Actions artifacts (the built-in upload/down
 PR) paired with a separate landing step a person or a non-Actions process runs. See the companion note
 `2026-09-26-harness-landing.md` in this directory for the current real landing path, the branches
 stranded by this ruling, and options going forward.
+
+## Follow-on ruling, 2026-09-27 (verbatim)
+
+"Yes supabase but do not reinvent processes, look at what has already been built". Confirms the
+direction: land harness-run records in Supabase (option B from the companion note), not by inventing a
+new mechanism from scratch, by extending the ALREADY-WORKING guarded-writer pattern `brief_apply_runs`
+uses (`scripts/turns/io-preflight.mjs`'s `recordApplyRunStart`/`recordApplyRunFinish`, routed through
+`scripts/lib/db.mjs`'s `guardedInsert`/`guardedUpdate`, rule 015). See
+`2026-09-27-harness-runs-db-design.md` for the existing-mechanism inventory, the migration sketch (DDL
+only, not applied), and the dry-run one-time import of the 39 stranded branches.
+
+## Operator hold, 2026-09-27
+
+No push and no merge on this branch until a separate session lands a worktree `node_modules` fix.
+Work continues locally (commits only); no `git push`, no workflow dispatch (which needs a push), until
+the hold lifts.
