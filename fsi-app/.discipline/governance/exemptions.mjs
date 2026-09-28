@@ -9,6 +9,21 @@
 
 export const EXEMPTIONS = [
   {
+    match: 'fsi-app/scripts/lib/record-harness-run.mjs',
+    kinds: ['writes'],
+    reason:
+      'Lands harness-run artifacts (fsi-app/scripts/harness-runs/CONVENTION.md) into harness_runs ' +
+      '(migration 331, lane HARNESS-LANDING, 2026-09-27), the operational/infra record of a CI harness ' +
+      'run, not customer-facing intelligence content any of the domain skills (environmental-policy-' +
+      'and-innovation, source-credibility-model, caros-ledge-platform-intent) govern. Same posture as ' +
+      'the existing, unmapped brief_apply_runs writer (scripts/turns/io-preflight.mjs\'s ' +
+      'recordApplyRunStart/recordApplyRunFinish) this module generalizes: a run-record table has no ' +
+      'content-governance skill to map to, only the mechanical guarded-write discipline (rule 015), ' +
+      'which db.mjs\'s guardedInsert/guardedUpdate and this file\'s own best-effort-insert posture already ' +
+      'carry.',
+    by: 'lane HARNESS-LANDING, 2026-09-27',
+  },
+  {
     match: '-behaviour.sql',
     kinds: ['writes'],
     reason:

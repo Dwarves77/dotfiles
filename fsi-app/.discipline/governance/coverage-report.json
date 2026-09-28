@@ -6149,6 +6149,24 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/record-harness-run.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [],
+      "proofWired": null,
+      "status": "EXEMPT"
+    },
+    {
+      "path": "fsi-app/scripts/lib/record-harness-run.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/revalidate.test.mjs",
       "kinds": [
         "PROOF"
@@ -7534,6 +7552,17 @@
         "remediation-discipline"
       ],
       "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/import-stranded-harness-branches.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
       "status": "COVERED"
     },
     {
@@ -11369,12 +11398,45 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/331_harness_runs.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/332_state_cost_facts_value_numeric.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/333_derivation_edges_allow_state_cost_facts.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1063,
-    "covered": 1022,
-    "exempt": 41,
+    "governed_files": 1069,
+    "covered": 1027,
+    "exempt": 42,
     "gaps": 0,
     "orphaned_proofs": 0,
     "unmapped_writes": 0,
