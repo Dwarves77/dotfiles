@@ -18,6 +18,8 @@ export const CAPTURES = {
     "Texas industrial electricity rates averaged 8.4 cents per kWh in the most recent reporting period.",
   "https://up.codes/wa-energy-notes":
     "Washington industrial electricity averaged 6.9 cents per kWh in the most recent reporting period.",
+  "https://www.energy.ca.gov/data-reports/energy-almanac (fixture)":
+    "California industrial electricity averaged 19.3 cents per kWh in the most recent reporting period.",
   // No capture registered for the New York candidate's OWN claimed span, it reuses the CA capture
   // deliberately, so grounding is exercised against text that is real but does not contain the NY span.
 };
@@ -54,6 +56,24 @@ export const FIXTURE_CANDIDATES = [
     source_url: "https://www.tceq.texas.gov/permitting/air/testing (fixture)",
     source_name: "Texas Commission on Environmental Quality",
     span_text: "Texas industrial electricity rates averaged 8.4 cents per kWh in the most recent reporting period",
+  },
+  {
+    // A SECOND California dimension (operational_cost), pairing with the labor_markets candidate above
+    // for the SAME state, so this fixture set proves the DAG-authorship pair-completion path
+    // (lane STATE-COST-DAG 2026-09-27) as well as the two per-dimension producer paths above.
+    state_code: "US-CA",
+    state_label: "California",
+    region_code: "US",
+    dimension: "operational_cost",
+    fact_label: "Industrial electricity rate",
+    value: "19.3",
+    unit: "cents/kWh",
+    trend: "up",
+    effective_date: "2026-06-01",
+    statute_citation: null,
+    source_url: "https://www.energy.ca.gov/data-reports/energy-almanac (fixture)",
+    source_name: "California Energy Commission",
+    span_text: "California industrial electricity averaged 19.3 cents per kWh in the most recent reporting period",
   },
   {
     // UNGROUNDED: span_text does not appear (paraphrased) in its own capture, proves the refusal path.

@@ -49,12 +49,15 @@
 import { readAll, guardedInsert, guardedUpdate, guardedInsertMany, registerSource } from "../../lib/db.mjs";
 import { hostOf } from "../../../src/lib/sources/institution.ts";
 import { classTierForHost } from "../../../src/lib/sources/host-authority.ts";
-import { groundCandidate, buildStateCostFactRow, planUpsert } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";
+import { groundCandidate, buildStateCostFactRow, planUpsert, naturalKey } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs } from "../../../src/lib/entities/entity-plan.mjs";
 import { existingEntityIdSet, existingIdentifierKeySet, existingRefKeySet } from "../../entities/backfill-entities.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../../harness-runs/governing-files.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
+import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
+import { getMethod } from "../../../src/lib/propagation/methods/index.ts";
+import { isHourlyWageUnit } from "../../../src/lib/operations/automate-vs-hire.mjs";
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { mkdirSync } from "node:fs";
@@ -144,7 +147,7 @@ async function resolveSource(candidate, { mode, registerSourceFn }) {
  */
 async function authorJurisdictionEntitiesForStates(writtenRows, mode, deps) {
   const counts = { planned_entities: 0, planned_identifiers: 0, planned_refs: 0, written: false };
-  if (!writtenRows.length) return counts;
+  if (!writtenRows.length) return { ...counts, byCode: new Map() };
 
   const existingEntityIds = mode === "apply" ? await deps.existingEntityIdSetFn() : new Set();
   const existingIdentifierKeys = mode === "apply" ? await deps.existingIdentifierKeySetFn() : new Set();
@@ -165,7 +168,137 @@ async function authorJurisdictionEntitiesForStates(writtenRows, mode, deps) {
     if (refs.length) await deps.guardedInsertManyFn("entity_refs", refs, { cite: REGION_ENTITY_CITE });
     counts.written = true;
   }
-  return counts;
+  // byCode (state_code -> jurisdiction entity_id) is returned so the DAG-authorship step below can stamp
+  // the same jurisdiction entity onto a derived_values row it authors for that state, never a second,
+  // independently-computed entity id.
+  return { ...counts, byCode };
+}
+
+const AUTOMATE_VS_HIRE_METHOD = { id: "automate_vs_hire", version: "1.0.0" };
+
+/** A fake PostgREST-shaped query builder that always resolves to an empty, error-free result, the safe
+ *  "nothing has been authored yet" default a PREVIEW uses in place of a real derivation_edges/
+ *  derived_values read (see authorAutomateVsHireForStates's own header for why this is honest, not a
+ *  guess: a dry run over fixtures has no live rows to check by construction, R14). Chainable on every
+ *  method hasBeenAuthored (author-edges.mjs) calls (.select/.eq/.in/.limit), and awaitable (implements
+ *  `.then` so `await` resolves it directly without a real network round trip). */
+function fakePreviewQuery() {
+  const q = {
+    select: () => q,
+    eq: () => q,
+    in: () => q,
+    limit: () => q,
+    then: (resolve) => resolve({ data: [], error: null }),
+  };
+  return q;
+}
+
+/**
+ * State-grain automate_vs_hire DAG authorship (migration 332/333, lane STATE-COST-DAG 2026-09-27; rule 17
+ * downstream trigger, upgraded from the entity-spine-only connection lane STATE-COST-PRODUCER shipped).
+ * Groups `builtRows` (this run's own candidate rows, in memory, never a DB re-read) by state_code; for
+ * every state whose rows complete an hourly labor_markets + operational_cost pair, authors (apply) or
+ * PREVIEWS (dry) one automate_vs_hire derived_values row through the EXISTING register_derived_value path
+ * (author-edges.mjs::authorEdges -> methods/index.ts::getMethod -> register-derivation.ts, never a second
+ * write mechanism).
+ *
+ * DRY MODE IS A TRUE PREVIEW, not a no-op (unlike run-envelope-producer.mjs's region-grain twin
+ * authorAutomateVsHireForRegions, which returns zeroed counts for dry, see that function's own header).
+ * `resolveInputs` and `registerDerivedValue` are injected FAKES that read the wage/energy rows straight
+ * out of `builtRows` and never touch a database; `getMethod` is the REAL registered method
+ * (methods/index.ts's side-effect-registered METHODS map), so the actual NPV computation
+ * (automateVsHire, wage + energy -> NPV) runs for real and the preview is not a guess. `hasBeenAuthored`'s
+ * own derivation_edges/derived_values reads go through `fakePreviewQuery()` (see its own header), the
+ * honest "nothing authored yet" default for a fixture-only preview.
+ *
+ * APPLY mode (unreachable while R14 holds; ENABLED stays false, see file header) would instead pass the
+ * real `deps.sb`, the real `resolveInputs` (drain.ts), and the real `registerDerivedValue`
+ * (register-derivation.ts) so the write goes through the actual guarded RPC path, not this preview's fakes.
+ *
+ * @param {Array<object>} builtRows rows shaped like buildStateCostFactRow() output, each carrying an `id`
+ *   (a real row id in apply mode, a synthetic preview id in dry mode, see the caller)
+ * @param {"dry"|"apply"} mode
+ * @param {Map<string,string>} byCode state_code -> jurisdiction entity_id (from
+ *   authorJurisdictionEntitiesForStates's own return), so the SAME entity stamps this derived value
+ * @param {{getMethodFn?: typeof getMethod, authorEdgesFn?: typeof authorEdges, sb?: object}} [deps]
+ * @returns {Promise<{pairs_found: number, authored: number, previewed: number, skipped_incomplete: number, edges: Array<object>}>}
+ */
+export async function authorAutomateVsHireForStates(builtRows, mode, byCode, deps = {}) {
+  const counts = { pairs_found: 0, authored: 0, previewed: 0, skipped_incomplete: 0 };
+  const edges = [];
+  if (!builtRows.length) return { ...counts, edges };
+
+  const getMethodFn = deps.getMethodFn ?? getMethod;
+  const authorEdgesFn = deps.authorEdgesFn ?? authorEdges;
+
+  const byState = new Map();
+  for (const row of builtRows) {
+    if (!byState.has(row.state_code)) byState.set(row.state_code, []);
+    byState.get(row.state_code).push(row);
+  }
+
+  for (const [stateCode, rows] of byState) {
+    const wage = rows.find(
+      (r) => r.dimension === "labor_markets" && isHourlyWageUnit(r.unit) && typeof r.value_numeric === "number" && Number.isFinite(r.value_numeric),
+    );
+    const energy = rows.find(
+      (r) => r.dimension === "operational_cost" && typeof r.value_numeric === "number" && Number.isFinite(r.value_numeric),
+    );
+    if (!wage || !energy) {
+      counts.skipped_incomplete += 1;
+      continue;
+    }
+    counts.pairs_found += 1;
+    const entityId = byCode.get(stateCode) ?? null;
+    const figure = {
+      table: "state_cost_facts",
+      id: wage.id,
+      entity: entityId,
+      method: AUTOMATE_VS_HIRE_METHOD,
+      inputs: [
+        { table: "state_cost_facts", pk: wage.id },
+        { table: "state_cost_facts", pk: energy.id },
+      ],
+    };
+
+    if (mode === "apply") {
+      const result = await authorEdgesFn(deps.sb, figure, { getMethod: getMethodFn });
+      if (result.ok && result.action === "authored") counts.authored += 1;
+      edges.push({ state_code: stateCode, wage_id: wage.id, energy_id: energy.id, entity: entityId, ...result });
+    } else {
+      // TRUE PREVIEW, see this function's own header for why the fakes below are honest, not a guess.
+      const rowsById = new Map([wage, energy].map((r) => [r.id, r]));
+      const fakeResolveInputs = async (_sb, inputs) =>
+        inputs.map((ref) => {
+          const row = rowsById.get(ref.pk);
+          return { table: ref.table, pk: ref.pk, version: null, row: row ? { dimension: row.dimension, value_numeric: row.value_numeric, unit: row.unit } : null };
+        });
+      let previewComputed = null;
+      const fakeRegisterDerivedValue = async (_sb, args) => {
+        previewComputed = args;
+        return `preview:${AUTOMATE_VS_HIRE_METHOD.id}:${stateCode}`;
+      };
+      const fakeSb = { from: () => fakePreviewQuery() };
+      const result = await authorEdgesFn(fakeSb, figure, {
+        getMethod: getMethodFn,
+        resolveInputs: fakeResolveInputs,
+        registerDerivedValue: fakeRegisterDerivedValue,
+      });
+      if (result.ok && result.action === "authored") counts.previewed += 1;
+      edges.push({
+        state_code: stateCode,
+        wage_id: wage.id,
+        energy_id: energy.id,
+        entity: entityId,
+        ...result,
+        preview_value: previewComputed
+          ? { value: previewComputed.value, unit: previewComputed.unit, derivation: previewComputed.derivation, confidence: previewComputed.confidence }
+          : null,
+      });
+    }
+  }
+
+  return { ...counts, edges };
 }
 
 /**
@@ -229,6 +362,7 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
   let updated = 0;
   let writtenRows = [];
   let entityCounts = { planned_entities: 0, planned_identifiers: 0, planned_refs: 0, written: false };
+  let dagCounts = { pairs_found: 0, authored: 0, previewed: 0, skipped_incomplete: 0, edges: [] };
 
   if (candidateRows.length) {
     const regionCodes = [...new Set(candidateRows.map((c) => c.candidate.region_code))];
@@ -238,7 +372,7 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
     );
 
     const stateCodes = [...new Set(built.map((r) => r.state_code))];
-    const existing = await readAllFn("state_cost_facts", "id,state_code,dimension,fact_label,value,unit,trend,source_id,statute_citation,effective_date,origin_class", {
+    const existing = await readAllFn("state_cost_facts", "id,state_code,dimension,fact_label,value,value_numeric,unit,trend,source_id,statute_citation,effective_date,origin_class", {
       // fitness-allow: F39 (bounded, stateCodes is this run's own distinct ISO 3166-2 codes, from the CLI's named --fixtures set, real-world cardinality ~60)
       match: (qb) => qb.in("state_code", stateCodes),
     });
@@ -249,14 +383,24 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
       void i;
     }
 
+    // builtRowsWithIds: every candidate row this run touched, each carrying an `id` (real once written in
+    // apply mode, a synthetic preview id in dry mode) plus its FULL shape (dimension/value_numeric/unit),
+    // the one list BOTH downstream steps (entity-spine, DAG authorship) read, rather than two
+    // differently-shaped lists that would have to agree by construction.
+    let builtRowsWithIds = [];
+
     if (mode === "apply") {
+      const idByNaturalKey = new Map(existing.map((e) => [naturalKey(e), e.id]));
       for (const row of plan.toInsert) {
         // guardedInsert (rule-015 path) returns { inserted: <the row read back via .single()>, snapshot }
         //, `inserted` IS the row object here, never a boolean/count (see scripts/lib/db.mjs).
         const res = await guardedInsertFn("state_cost_facts", row, { cite: CITE });
         if (res.inserted) {
           inserted += 1;
-          if (res.inserted.id) writtenRows.push({ id: res.inserted.id, state_code: row.state_code });
+          if (res.inserted.id) {
+            writtenRows.push({ id: res.inserted.id, state_code: row.state_code });
+            idByNaturalKey.set(naturalKey(row), res.inserted.id);
+          }
         }
       }
       for (const { id, patch } of plan.toUpdate) {
@@ -265,13 +409,29 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
         const existingRow = existing.find((e) => e.id === id);
         if (existingRow) writtenRows.push({ id, state_code: existingRow.state_code });
       }
+      builtRowsWithIds = built
+        .map((row) => ({ ...row, id: idByNaturalKey.get(naturalKey(row)) }))
+        .filter((row) => row.id);
       entityCounts = await authorJurisdictionEntitiesForStates(writtenRows, "apply", entityDeps);
     } else {
-      // Dry preview of the downstream trigger too, over what WOULD be written.
-      const previewRows = [...plan.toInsert, ...plan.toUpdate.map((u) => ({ id: u.id, state_code: existing.find((e) => e.id === u.id)?.state_code }))];
-      entityCounts = await authorJurisdictionEntitiesForStates(previewRows.filter((r) => r.state_code), "dry", entityDeps);
+      // Dry preview of BOTH downstream triggers, over what WOULD be written, a synthetic, readable
+      // preview id (never a real DB id, nothing is written) so the DAG-authorship preview below has
+      // something to key derivation_edges' from_pk on.
+      builtRowsWithIds = built.map((row) => ({ ...row, id: `preview:${naturalKey(row)}` }));
+      const previewRows = builtRowsWithIds.map((r) => ({ id: r.id, state_code: r.state_code }));
+      entityCounts = await authorJurisdictionEntitiesForStates(previewRows, "dry", entityDeps);
     }
+
+    dagCounts = await authorAutomateVsHireForStates(builtRowsWithIds, mode, entityCounts.byCode ?? new Map(), {
+      sb: mode === "apply" ? deps.sb : undefined,
+    });
   }
+
+  // entityCounts.byCode is a Map (state_code -> jurisdiction entity_id), kept off the JSON-serialized
+  // metrics object (a Map stringifies as "{}"), it is consumed directly above by
+  // authorAutomateVsHireForStates, never surfaced in the artifact.
+  const { byCode: _byCode, ...entityMetrics } = entityCounts;
+  const { edges: dagEdges, ...dagMetrics } = dagCounts;
 
   return {
     perItem,
@@ -284,9 +444,14 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
       unchanged: plan.unchanged,
       inserted,
       updated,
-      ...entityCounts,
+      ...entityMetrics,
+      dag_pairs_found: dagMetrics.pairs_found,
+      dag_authored: dagMetrics.authored,
+      dag_previewed: dagMetrics.previewed,
+      dag_skipped_incomplete: dagMetrics.skipped_incomplete,
     },
     plan,
+    dagEdges,
   };
 }
 
@@ -315,7 +480,10 @@ function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config
     config,
     inputs_ref: inputsRef,
     per_item: result?.perItem ?? [],
-    metrics: result?.metrics ?? {},
+    // dag_edges rides inside metrics (a free-form object per the harness-run schema) rather than as a new
+    // top-level key: the edges (or edge previews) this run's automate_vs_hire DAG-authorship step
+    // produced, per state, so a reader can see exactly what would be authored without opening the source.
+    metrics: { ...(result?.metrics ?? {}), dag_edges: result?.dagEdges ?? [] },
     defects_found: defectsFound,
     full_trace_refs: [fixturesPath],
     proposer_notes:
@@ -396,6 +564,7 @@ async function main() {
   console.log(`${PRODUCER_NAME}: wrote harness artifact ${artifactPath}`);
   console.log(`${PRODUCER_NAME}: metrics ${JSON.stringify(result?.metrics ?? {}, null, 2)}`);
   console.log(`${PRODUCER_NAME}: per_item ${JSON.stringify(result?.perItem ?? [], null, 2)}`);
+  console.log(`${PRODUCER_NAME}: dag_edges (automate_vs_hire, state grain) ${JSON.stringify(result?.dagEdges ?? [], null, 2)}`);
 
   if (runError) {
     console.error(`${PRODUCER_NAME}: FAILED, ${runError.message}`);

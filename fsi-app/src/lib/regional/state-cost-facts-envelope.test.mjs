@@ -7,6 +7,7 @@ import {
   buildStateCostFactRow,
   naturalKey,
   planUpsert,
+  parseNumericValue,
 } from "./state-cost-facts-envelope.mjs";
 
 test("isVerbatimSpan: exact substring matches", () => {
@@ -90,6 +91,7 @@ test("buildStateCostFactRow: shapes a full row with source + rating, no envelope
     dimension: "labor_markets",
     fact_label: "State minimum wage",
     value: "16.00",
+    value_numeric: 16,
     unit: "USD/hour",
     trend: "up",
     source_id: "src-1",
@@ -97,6 +99,17 @@ test("buildStateCostFactRow: shapes a full row with source + rating, no envelope
     effective_date: "2026-01-01",
     origin_class: "official",
   });
+});
+
+test("parseNumericValue: a plain number string parses; a non-numeric or empty value never guesses (null, never NaN)", () => {
+  assert.equal(parseNumericValue("16.00"), 16);
+  assert.equal(parseNumericValue("16"), 16);
+  assert.equal(parseNumericValue("-3.5"), -3.5);
+  assert.equal(parseNumericValue(""), null);
+  assert.equal(parseNumericValue(null), null);
+  assert.equal(parseNumericValue(undefined), null);
+  assert.equal(parseNumericValue("16.00 per hour"), null);
+  assert.equal(parseNumericValue("$16.00"), null);
 });
 
 test("naturalKey: matches the live UNIQUE(state_code, dimension, fact_label) constraint", () => {
