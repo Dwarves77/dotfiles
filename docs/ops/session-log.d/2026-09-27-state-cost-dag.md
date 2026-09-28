@@ -1,9 +1,20 @@
 # 2026-09-27, Lane STATE-COST-DAG
 
 Coordinator decision (per the app's existing pattern, migration 285 + the regional producers): build
-option A for the state-grain automate_vs_hire DAG-authorship question PR #811 left open. R14 still holds
-("we are NOT updating the data on the site"): migrations drafted, NOT applied; producer wired dry-mode
-only.
+option A for the state-grain automate_vs_hire DAG-authorship question PR #811 left open.
+
+**CORRECTION (rule 13 corollary, 2026-09-28):** the line below originally read "migrations drafted, NOT
+applied." That was accurate at PR-open time but is stale now: migrations 332/333 applied 2026-09-28
+(coordinator-approved), confirmed in schema_migrations; producer still dry-mode, zero rows written
+(R14). Live verification evidence: `list_migrations` (project kwrsbpiseruzbfwjpvsp) shows version
+`20260928022001` name `332_state_cost_facts_value_numeric` and version `20260928022009` name
+`333_derivation_edges_allow_state_cost_facts`; `information_schema.columns` shows
+`state_cost_facts.value_numeric` (`numeric`, nullable); `pg_get_constraintdef` on
+`derivation_edges_from_table_allowed` shows `state_cost_facts` in the allowlist. Re-ran the CLI's dry run
+against the live schema post-apply: identical result, one preview edge for California (labor_markets +
+operational_cost pair), real computed NPV of approximately -1,696,069 USD, entity
+`cl:jurisdiction:776cec61a9f36def`, zero rows written anywhere (`ENABLED` stays `false`, no `--apply`
+path exists). R14 held throughout.
 
 ## Accomplished
 
@@ -13,8 +24,8 @@ only.
     NUMERIC, nullable, additive, zero backfill.
   - `supabase/migrations/333_derivation_edges_allow_state_cost_facts.sql`: widens migration 285's
     `derivation_edges_from_table_allowed` CHECK to add `state_cost_facts`.
-  - Both carry rollback files under `supabase/rollbacks/`, both explicitly marked DO NOT APPLY pending
-    sign-off.
+  - Both carry rollback files under `supabase/rollbacks/`. Originally marked DO NOT APPLY pending
+    sign-off; both were coordinator-approved and applied 2026-09-28 (see the correction note above).
 - `src/lib/regional/state-cost-facts-envelope.mjs`: `buildStateCostFactRow` now emits `value_numeric`
   (mechanical parse of `candidate.value` via new `parseNumericValue`, never a second authored figure).
 - `src/lib/propagation/methods/automate-vs-hire.ts`: widened `findFactByDimension`'s table allowlist to
@@ -42,9 +53,10 @@ only.
 
 ## Blockers / open items for the coordinator
 
-None beyond the standing one: migrations 332/333 await operator/coordinator sign-off before apply.
+None. (CORRECTION 2026-09-28: this previously said migrations 332/333 awaited sign-off before apply;
+sign-off was given and both are applied, see the correction note above.)
 
 ## Next steps
 
-Sign-off -> apply 332 then 333 (schema-first, per the two-track migration policy) -> flip `ENABLED` in a
-reviewed change -> the CLI's `--apply` path (still unauthored) starts writing for real.
+Flip `ENABLED` in a reviewed change -> author the CLI's `--apply` path (still unauthored) so it starts
+writing for real, gated by that flag.
