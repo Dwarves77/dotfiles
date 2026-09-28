@@ -1,0 +1,15 @@
+{
+  "family": "quarantine-disposition",
+  "registered": "2026-09-28",
+  "registered_by": "lane QUARANTINE-DISPOSITION",
+  "governing_files": [
+    "scripts/plan-quarantine-disposition.mjs",
+    "scripts/regen-quarantined.mjs",
+    "scripts/verify/quarantine-disposition-audit.mjs",
+    "scripts/lib/quarantine-dwell.mjs",
+    "scripts/lib/deferral.mjs",
+    "scripts/maintenance/apply-deferrals.mjs",
+    "scripts/maintenance/plan-quarantine-disposition.mjs"
+  ],
+  "rationale": "quarantine-disposition (lane QUARANTINE-DISPOSITION, 2026-09-28, docs/plans/data-machine-tool-gaps-2026-09-25.md build order step 5, audit finding RW-3: 66/78 live-quarantined items past the 14-day DWELL bound with no recorded disposition). No harness family existed for the research-or-erase resolver before this lane -- scripts/regen-quarantined.mjs (the RECOVER half, cheap-verify only) ran only through scripts/maintenance/regen-quarantined.mjs as an undifferentiated maintenance.yml step and never wrote a run artifact of its own; scripts/verify/quarantine-disposition-audit.mjs (the invariant check) and scripts/maintenance/apply-deferrals.mjs (the deferral-write applier, built lane M6 2026-09-21) both existed but nothing PLANNED which past-bound item gets which disposition. scripts/plan-quarantine-disposition.mjs (this lane) is the new planner: it reuses regen-quarantined.mjs's cheap-verify decision loop unmodified, reuses quarantine-dwell.mjs's (also new this lane, extracted from the audit script) DWELL/ENQUEUE classification, and produces per-item disposition plans -- recovered / within-bound / already-deferred / deferral-candidate (with a reason class: needs-acquire, stale-snapshot, held-type-q2-gate, provenance-gate-insufficient, or verify-error) / enqueue-missing -- writing this family's own run artifact every time it runs, dry or apply. Apply mode dispatches the deferral candidates to apply-deferrals.mjs's own guarded write path (reuse, not a second writer) -- a live data write, held under R14 until the operator lifts the build-mode hold; this lane's own apply-mode proof runs only against fixtures/fake deps, never against the live database. Governing files: the planner itself, the two resolvers it reuses unmodified (regen-quarantined.mjs for RECOVER, apply-deferrals.mjs for the DEFER write), the audit whose invariant this family exists to drive to zero, and the two shared libs (quarantine-dwell.mjs, deferral.mjs) both the audit and the planner read from -- an edit to any of these changes what a quarantine-disposition run actually does or decides."
+}

@@ -6140,6 +6140,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/quarantine-dwell.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/reachability.selftest.mjs",
       "kinds": [
         "PROOF"
@@ -7025,6 +7036,17 @@
       "skills": [
         "environmental-policy-and-innovation",
         "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/plan-quarantine-disposition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -11434,8 +11456,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1069,
-    "covered": 1027,
+    "governed_files": 1071,
+    "covered": 1029,
     "exempt": 42,
     "gaps": 0,
     "orphaned_proofs": 0,

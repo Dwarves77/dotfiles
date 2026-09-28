@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -512,6 +512,21 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/apply-deferrals"
           node scripts/maintenance/apply-deferrals.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/apply-deferrals" || true
+
+      - name: plan-quarantine-disposition
+        # Lane QUARANTINE-DISPOSITION (2026-09-28, docs/plans/data-machine-tool-gaps-2026-09-25.md build
+        # order step 5, audit finding RW-3): dispatch runtime for scripts/plan-quarantine-disposition.mjs
+        # -- plans a disposition (recover-attempted / within-bound / already-deferred / a reason-classed
+        # deferral-candidate / enqueue-missing) for every live-quarantined item and writes this family's
+        # own harness-run artifact every firing, dry or apply (rule 17's harness-record half). `arg` ==
+        # "dispatch-apply-deferrals" additionally exercises the hand-off to apply-deferrals.mjs -- in ITS
+        # OWN dry mode only; this step never writes an integrity_flags row (that write stays a live data
+        # write, held under R14 until the operator lifts the build-mode hold). Apply mode here writes
+        # ONLY plan.json and the harness-run artifact.
+        if: env.RUN_STEP == 'plan-quarantine-disposition' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/plan-quarantine-disposition"
+          node scripts/maintenance/plan-quarantine-disposition.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/plan-quarantine-disposition"
 
       - name: record-hollow-sweep
         # Lane HOLLOW-SWEEP (2026-09-04): archives live verified record-grade intelligence_items whose

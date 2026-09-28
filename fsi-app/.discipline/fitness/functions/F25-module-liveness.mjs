@@ -420,17 +420,12 @@ const PROVEN_BUT_UNWIRED = [
 // entries are removed rather than kept as now-stale allowlist rows.
 
 export const LEGACY_ALLOWLIST = [
-  {
-    file: 'fsi-app/scripts/lib/record-harness-run.mjs',
-    reason:
-      'Wired, not dormant, but by a shape this gate\'s dispatch-root sources do not see: every family ' +
-      'workflow calls scripts/turns/deliver-artifact-branch.sh (a Source-1 dispatch root, literal in ' +
-      'every .github/workflows/*.yml), which shells out `node scripts/lib/record-harness-run.mjs --file ' +
-      '<path>` as a bash command, not an ES import and not a Source-8 spawnSync/execFileSync call from ' +
-      'another .mjs (Source 8\'s own scope). A real, always-run reachability path this gate\'s import-' +
-      'graph and workflow-literal sources cannot express.',
-    reviewByPhase: 'lane HARNESS-LANDING, 2026-09-27',
-  },
+  // record-harness-run.mjs's allowlist entry (lane HARNESS-LANDING, 2026-09-27) is REMOVED here (lane
+  // QUARANTINE-DISPOSITION, 2026-09-28): it now HAS a direct ES import this gate's import-graph sources
+  // see -- scripts/plan-quarantine-disposition.mjs's runPlanner() imports recordHarnessRun to land this
+  // family's own runs. The shell-invocation reachability path the removed reason described is unchanged
+  // and still real; it is just no longer the ONLY path, so the allowlist entry is stale per this gate's
+  // own "keeps shrinking" contract.
   {
     file: 'fsi-app/scripts/turns/import-stranded-harness-branches.mjs',
     reason:
