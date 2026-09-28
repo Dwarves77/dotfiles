@@ -201,7 +201,10 @@ export function planDispositions({ items, flags, cheapDecisionByItemId, now = ne
  * @returns {Promise<number>}
  */
 export async function nextRunNumberFromHarnessRuns(readAllFn, family) {
-  const rows = await readAllFn("harness_runs", "run_id", { match: (q) => q.eq("harness_family", family) });
+  // orderBy: "run_id" -- readAll's own default ("id") does not exist on harness_runs (its PK is run_id),
+  // confirmed live (run 36461564054): "column harness_runs.id does not exist". The fake readAllFn every
+  // test in this file uses ignores orderBy entirely, so this was invisible until the real DB rejected it.
+  const rows = await readAllFn("harness_runs", "run_id", { match: (q) => q.eq("harness_family", family), orderBy: "run_id" });
   const re = new RegExp(`^${family}-run-(\\d+)$`);
   let max = 0;
   for (const r of rows || []) {
