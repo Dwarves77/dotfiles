@@ -1,0 +1,25 @@
+{
+  "harness_family": "maintenance",
+  "harness_version": "sha256:d9bf83859ff76e46",
+  "run_id": "maintenance-run-004",
+  "started_at": "2026-09-28T17:58:33.665Z",
+  "config": {
+    "step": "plan-quarantine-disposition",
+    "mode": "dry",
+    "arg": "",
+    "github_run_id": "36461564054"
+  },
+  "inputs_ref": [],
+  "per_item": [],
+  "metrics": {
+    "steps_dispatched": 1,
+    "steps_with_summary": 0,
+    "steps_nonzero_exit": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/harness-runs/maintenance/traces/maintenance-run-004.summaries.json"
+  ],
+  "proposer_notes": "No step wrote a summary.json this run (a read-only or --arg-gated step that skipped cleanly before reaching its own --out contract, or a step with no --out contract at all).",
+  "trigger": "workflow_dispatch"
+}
