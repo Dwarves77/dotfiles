@@ -187,12 +187,37 @@ change is included in this lane for this reason - there is nothing broken to cha
 17 orphan branches' actual content (land it some other way, or close the branches) is a separate human
 decision, flagged here rather than silently dropped, out of this lane's scope.
 
-## Step 4: TEST FOR REAL
+## Step 4: TEST FOR REAL - two real bugs found and fixed by actually running it
 
-(Placeholder note at the time this was first written: dispatching before the migration/writer landed
-would have hit the OLD path. Both are now built and applied; see the session-log entry / PR update for
-the actual `gate-a-rescan.yml --ref coord/harness-landing -f mode=dry -f limit=5` dispatch result and the
-`harness_runs` row it wrote.)
+`gh workflow run gate-a-rescan.yml --ref coord/harness-landing -f mode=dry -f limit=5`, dispatched
+against the pushed branch. First dispatch (run 36435442672) went GREEN end to end but
+`deliver-artifact-branch: landed=0 failed=0` - the artifact file existed
+(`fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-002.json`, confirmed via `git diff`
+against that run's own pushed branch) but the script's own file-matching glob found nothing.
+
+**Bug 1 [CONFIRMED, found by actually running it]:** the git pathspec `'**/scripts/harness-runs/*/*-run-
+*.json'` matched zero files against that real diff, with or without `:(glob)` magic, tested directly.
+Fixed by dropping the leading `**/` (the script always runs from `fsi-app/`, so no extra nesting exists
+to match).
+
+Re-dispatched (run 36436680044): now reported `landed=1 failed=0`. Queried `harness_runs` immediately
+after - **zero rows**. The "landed" counter was lying: `record-harness-run.mjs` is deliberately
+best-effort and exits 0 even when it cannot read/parse the file (so a DB hiccup never fails the calling
+workflow), and the bash wrapper was trusting exit code alone as its success signal.
+
+**Bug 2 [CONFIRMED, found by actually running it]:** `git diff --name-only` reports paths relative to
+the REPO ROOT by default regardless of the pathspec's own cwd-relative matching, so the path handed to
+`node ... --file` was `fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-002.json` while node
+ran from cwd `fsi-app/` - an ENOENT the best-effort CLI swallowed silently (exit 0, no row). Fixed two
+ways: (1) added `--relative` to the `git diff` call, giving the correct cwd-relative path; (2) stopped
+trusting bare exit-code success - the bash wrapper now greps the CLI's own stdout for the
+`record-harness-run: landed <id>` marker line before counting a row as landed, so a swallowed failure
+inside the best-effort CLI can no longer read as a false green at the shell-script level either.
+
+Both fixes are exactly what "proof by execution, not presence" (rule 15) means in practice: the
+migration existing, the writer's unit tests passing, and the first "green" CI run all looked like proof
+and were not - the row simply was not there. Recorded here per rule 14 (a finding is a hypothesis until
+verified) rather than reporting the first green run as done.
 
 ## Step 6: stranded-branch import, real
 

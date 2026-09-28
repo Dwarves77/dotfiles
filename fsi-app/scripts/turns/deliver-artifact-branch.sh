@@ -42,13 +42,21 @@ failed=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
   echo "deliver-artifact-branch: recording $path"
-  if node scripts/lib/record-harness-run.mjs --file "$path"; then
+  # record-harness-run.mjs is best-effort BY DESIGN and always exits 0, even on a read/parse/insert
+  # failure (so a DB hiccup never fails the calling workflow step -- see that file's own header). A
+  # nonzero exit here means the node PROCESS itself could not run at all (missing node, syntax error),
+  # not that the row landed. The real success signal is the "record-harness-run: landed <id>" line it
+  # prints on an actual successful insert; capture stdout and grep for that marker rather than trusting
+  # the exit code (verified live, lane HARNESS-LANDING: exit 0 was reported for a run whose file could
+  # not even be opened -- the exit-code-only counter silently reported landed=1 for zero real inserts).
+  out="$(node scripts/lib/record-harness-run.mjs --file "$path" 2>&1)"
+  status=$?
+  echo "$out"
+  if [ $status -eq 0 ] && printf '%s' "$out" | grep -q '^record-harness-run: landed '; then
     landed=$((landed + 1))
   else
-    # record-harness-run.mjs itself is best-effort and exits 0 even on failure; a nonzero exit here
-    # means the node process itself couldn't run (missing node, syntax error) -- log, never fail the run.
     failed=$((failed + 1))
-    echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not run cleanly for $path (best-effort, continuing)"
+    echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not confirm a landed row for $path (best-effort, continuing)"
   fi
 # Pathspec is relative to CWD (this script always runs from fsi-app/, matching every caller workflow's
 # working-directory) -- a leading '**/' here does NOT match a zero-depth path even under glob pathspec
@@ -56,7 +64,16 @@ while IFS= read -r path; do
 # landed=0 with the '**/'-prefixed form even though the artifact file existed in the diff -- confirmed by
 # testing both forms against that run's own pushed branch). No leading '**/' needed since the path is
 # never nested under an extra nonexistent nesting level from here.
-done < <(git diff --name-only origin/master...HEAD -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
+#
+# --relative is REQUIRED: git diff --name-only reports paths relative to the REPO ROOT by default
+# regardless of cwd or the pathspec used to filter (confirmed live, second dispatch of the same run:
+# without --relative the pathspec matched correctly but the printed/used path was
+# "fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-002.json", which record-harness-run.mjs
+# then failed to open from cwd=fsi-app/ with ENOENT -- landed=1 was reported, the row was never written,
+# because node process.exit(0) on a read/parse failure is deliberately best-effort/never-fails-the-run,
+# so the "landed" counter here only means "node ran without crashing", not "the row landed". Fixed by
+# --relative, which makes the printed path cwd-relative (matching where node actually runs).
+done < <(git diff --name-only --relative origin/master...HEAD -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
 
 echo "deliver-artifact-branch: landed=$landed failed=$failed"
 {
