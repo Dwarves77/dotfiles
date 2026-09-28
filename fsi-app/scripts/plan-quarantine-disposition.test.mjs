@@ -134,11 +134,13 @@ test("nextRunNumberFromHarnessRuns: ignores rows from a DIFFERENT family's run_i
   assert.equal(n, 3);
 });
 
-test("nextRunNumberFromHarnessRuns: queries scoped to the named family (match filter honored)", async () => {
+test("nextRunNumberFromHarnessRuns: queries scoped to the named family with an explicit orderBy (match filter honored)", async () => {
   let capturedMatch = null;
+  let capturedOpts = null;
   const readAllFn = async (table, columns, opts) => {
     if (table === "harness_runs") {
       capturedMatch = opts?.match;
+      capturedOpts = opts;
       return [{ run_id: "quarantine-disposition-run-005" }];
     }
     throw new Error("unexpected table");
@@ -146,6 +148,11 @@ test("nextRunNumberFromHarnessRuns: queries scoped to the named family (match fi
   const n = await nextRunNumberFromHarnessRuns(readAllFn, "quarantine-disposition");
   assert.equal(n, 6);
   assert.equal(typeof capturedMatch, "function", "must pass a match filter scoping to harness_family");
+  // Regression (run 36461564054, live): readAll's own default orderBy ("id") does not exist on
+  // harness_runs (its PK is run_id) and the real DB rejects it -- "column harness_runs.id does not
+  // exist". The fake readAllFn in every OTHER test here ignores orderBy, so only an explicit assertion
+  // on the passed opts catches this; a passing test suite without this line shipped the live failure.
+  assert.equal(capturedOpts.orderBy, "run_id", "must pass orderBy: 'run_id' -- readAll's default 'id' does not exist on harness_runs");
 });
 
 test("runPlanner (dry): reads, plans, writes a harness-run artifact, records harness_runs (fake), writes NO plan.json", async (t) => {
