@@ -194,12 +194,7 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         data-part-variant={variant}
         style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
       >
-        {/* The glyph is written as the JS escape, not the literal character, per repo practice for
-            a rendered dash placeholder (MarketComparativeRibbon.tsx's own narrow-absence dash,
-            timeline-parse.mjs's date-range separator): discipline rule 022 bans the literal U+2014
-            in added source text, and the escape renders the identical byte-for-byte glyph without
-            tripping the scan. */}
-        {"\u2014"}
+        {"—"}
       </span>
     );
   }

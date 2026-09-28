@@ -39,7 +39,11 @@ test("narrow and dash variants render only the value-placeholder em dash, at eve
   assert.match(SOURCE, /if \(variant === "dash" \|\| variant === "narrow"\)/);
   assert.match(SOURCE, /aria-label=\{NEEDS_PHRASE\[reason\]\}/);
   assert.match(SOURCE, /title=\{NEEDS_PHRASE\[reason\]\}/);
-  assert.match(SOURCE, /\{"—"\}/, "renders the literal em dash character"); // glyph:verbatim
+  // Rendered output is byte-identical either way (both forms are U+2014); the SOURCE form changed
+  // 2026-09-26 (lane MASTER-022) from the literal character to the JS escape, per discipline rule
+  // 022 (no raw em/en dash or section-sign glyph in added source text) and matching existing repo
+  // convention for a rendered dash placeholder (MarketComparativeRibbon.tsx, timeline-parse.mjs).
+  assert.match(SOURCE, /\{"\\u2014"\}/, "renders the dash placeholder via the JS escape, not the literal character");
   assert.doesNotMatch(SOURCE, /@media \(max-width: 767px\)/);
   assert.doesNotMatch(SOURCE, /cl-absence-word/);
 });
