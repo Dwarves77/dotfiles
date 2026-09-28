@@ -55,16 +55,39 @@ that name or any name found by `git grep -il redirect` across `fsi-app/scripts` 
   the sub-national cost-fact producer) or, if intentionally deferred, coordinator ratifies an F14
   allowlist entry with a reason - this lane does not choose, per the brief's stop-and-ask rule on
   allowlist-reason ambiguity.
-- **RW-3** `[CONFIRMED - reproduced quarantine-disposition-audit.mjs's DWELL invariant via
-  `execute_sql`, corrected for a join-fanout bug in an earlier pass of this same query (re-run with
-  `COUNT(DISTINCT id)`)]` P1. 78 live-quarantined `intelligence_items` rows total. ENQUEUE holds fully: 0
-  of the 78 lack an open `integrity_flags` row (`category='data_quality'`, `status='open'`). DWELL is
-  violated: 66 of the 78 (85%) have `updated_at` older than `DWELL_BOUND_DAYS = 14` (the constant read
-  directly from the script) with no recorded disposition. This is exactly the invariant
-  `quarantine-disposition-audit.mjs` is registered `hard=true` in the data-audit lane to catch - if that
-  lane ran today with live credentials it would be RED on this count. Disposition: wire (dispatch
-  `scripts/regen-quarantined.mjs`, the script's own named resolver) - a remediation lane, coordinator-
-  scoped, not this discovery pass.
+- **RW-3** `[REFUTED - corrected 2026-09-28, lane QUARANTINE-DISPOSITION, on the coordinator's direct
+  challenge]`. The count below ("66 of the 78... have `updated_at` older than `DWELL_BOUND_DAYS = 14`
+  with no recorded disposition") is wrong on two counts, both confirmed against the real invariant this
+  entry claims to reproduce.
+  **Root cause 1, wrong clock (`[CONFIRMED]`, this entry's own text).** `quarantine-disposition-audit.mjs`
+  never uses `intelligence_items.updated_at` as the dwell clock. Read directly from the script (and its
+  extracted twin, `scripts/lib/quarantine-dwell.mjs`, added 2026-09-28): the clock is the EARLIEST OPEN
+  `integrity_flags.created_at` row for that item (the enqueue timestamp), a column this entry's own SQL
+  evidently never touched, since its prose names `updated_at` explicitly and the real script's dwell
+  computation contains no reference to that column at all.
+  **Root cause 2, no deferral-validity check (`[CONFIRMED]`, absence in this entry's own text).** The
+  real invariant has a second population the audit's own governing skill (remediation-discipline Section
+  2.2) names explicitly: a past-bound item carrying a VALID time-bounded deferral (`created_by =
+  'disposition_deferred'` with a `reason`/`deferred_until`/`owner`/`resolution_event` payload passing
+  `scripts/lib/deferral.mjs`'s `isValidDeferral`) is NOT undispositioned. This entry's prose never
+  mentions a deferral, a `disposition_deferred` flag, or `recommended_actions` anywhere, despite
+  correctly describing the ENQUEUE check one line earlier in the same query pass. The absence, in an
+  otherwise precise paragraph, is itself evidence the query never implemented that half of the invariant.
+  **Corrected count (`[CONFIRMED]`, execute_sql against project `kwrsbpiseruzbfwjpvsp`, 2026-09-28,
+  reproducing `quarantine-disposition-audit.mjs`'s ACTUAL dwell/enqueue/deferral-validity logic, the same
+  query `scripts/lib/quarantine-dwell.mjs` and its own test suite formalize).** 78 live-quarantined rows
+  (unchanged from this entry's own count). ENQUEUE holds fully: 0 of 78 lack an open flag (unchanged,
+  this half of RW-3's original reproduction was correct). DWELL: 73 of 78 carry a VALID deferral
+  (`deferred_until` of 2026-10-15/2026-10-31/2026-12-31, all still future), 4 of 78 are genuinely
+  undispositioned past-bound, 1 of 78 is within-bound. The 73 valid-deferral `integrity_flags` rows were
+  ALL created between 2026-06-19 and 2026-09-13, before this audit ran (2026-09-25) and 12+ days before
+  R14 (2026-09-25) - they did not appear after this audit; this entry's own reproduction simply never
+  counted them. Full working, both queries, and the live counts: `docs/ops/session-log.d/
+  2026-09-28-quarantine-disposition.md` and PR #819's session-log addendum.
+  Disposition: CLOSED for the 73 (already dispositioned-as-deferred, correctly, before this audit ran).
+  The 4 genuinely undispositioned items are `scripts/plan-quarantine-disposition.mjs`'s live output
+  (PR #819) - wire (dispatch that planner, then `scripts/maintenance/apply-deferrals.mjs`) - a
+  remediation lane, coordinator-scoped, not this discovery pass.
 - **RW-4** `[HYPOTHESIS - approximated orphan-source-audit.mjs's invariant via a `source_id` FK
   join (archived + source-y `archive_reason` + no active `sources` row for that `source_id`), NOT the
   script's own per-row URL-host-extraction method; the two methods can disagree on edge cases]` P2. 6
@@ -206,7 +229,7 @@ that name or any name found by `git grep -il redirect` across `fsi-app/scripts` 
 
 - RW-1 [CONFIRMED]
 - RW-2 [CONFIRMED]
-- RW-3 [CONFIRMED]
+- RW-3 [REFUTED, corrected 2026-09-28]
 - RW-4 [HYPOTHESIS]
 - RW-5 [CONFIRMED]
 - RW-6 [CONFIRMED]
