@@ -16,24 +16,26 @@
  *
  *  This is the live-data enforcement of audit #1 (research-or-erase) — the half that was documented but
  *  never wired (docs/FULL-CODEBASE-AUDIT-2026-06-06.md §2). The resolver is scripts/regen-quarantined.mjs
- *  (research -> re-ground -> recover, else honest archive/register). This audit is the truth-teller that
- *  the resolver must drive to zero; it CANNOT be skipped because it is a registered invariant
- *  (governance/invariants.mjs) the meta-gate requires to stay wired.
+ *  (research -> re-ground -> recover, else honest archive/register) PLUS, for items the resolver cannot
+ *  cheaply recover, scripts/plan-quarantine-disposition.mjs (lane QUARANTINE-DISPOSITION, 2026-09-28),
+ *  which plans and (via scripts/maintenance/apply-deferrals.mjs) writes the deferral-as-disposition path.
+ *  This audit is the truth-teller both must drive to zero; it CANNOT be skipped because it is a
+ *  registered invariant (governance/invariants.mjs) the meta-gate requires to stay wired.
  *
  *  Exit 0 = invariant holds (no item enqueued-missing or past-bound). Exit 1 = violations (gates in
  *  CI-with-secrets / ops run; pre-push has no DB secrets so it validates wiring via the meta-gate, not
  *  this live run). Reads only. Env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
  *
  *  TUNABLE (operator policy): DWELL_BOUND_DAYS — the research-or-erase SLA. Tighten/loosen as the
- *  disposition throughput is known. Default 14 (two weeks to research-or-dispose an item). */
+ *  disposition throughput is known. Default 14 (two weeks to research-or-dispose an item). Now owned by
+ *  scripts/lib/quarantine-dwell.mjs (lane QUARANTINE-DISPOSITION, 2026-09-28) so the planner reads the
+ *  SAME constant, never a second copy that can drift. */
 import { readClient, readAll } from "../lib/db.mjs";
-import { isValidDeferral } from "../lib/deferral.mjs";
+import { computeQuarantineDwell, DWELL_BOUND_DAYS } from "../lib/quarantine-dwell.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 loadLocalEnvFile();
 
-const DWELL_BOUND_DAYS = 14;
-const BOUND_MS = DWELL_BOUND_DAYS * 24 * 60 * 60 * 1000;
 const nowMs = () => new globalThis.Date().getTime();
 
 let items, flags;
@@ -50,65 +52,13 @@ try {
   });
 } catch (e) { console.error(`quarantine-disposition-audit: read failed: ${e.message}`); process.exit(2); }
 
-// earliest open flag per item = dwell clock
-const enqueuedAt = new Map();
-for (const f of flags || []) {
-  const t = new globalThis.Date(f.created_at).getTime();
-  const ex = enqueuedAt.get(f.subject_ref);
-  if (ex === undefined || t < ex) enqueuedAt.set(f.subject_ref, t);
-}
-
-// VALID-deferral map: item id -> { reason, deferred_until, owner, resolution_event } when the item has an
-// OPEN disposition_deferred flag whose payload passes isValidDeferral AND whose deferred_until is in the
-// FUTURE. Expired deferrals do NOT count (self-resurrection: the item falls back to undispositioned).
-const now = new globalThis.Date();
-const validDeferral = new Map();
-for (const f of flags || []) {
-  if (f.created_by !== "disposition_deferred") continue;
-  // recommended_actions holds the payload as [{ deferral: {...} }] (jsonb). Tolerate either that wrapper
-  // shape or a bare payload object/array element.
-  let payload = null;
-  const ra = f.recommended_actions;
-  if (Array.isArray(ra)) {
-    for (const entry of ra) {
-      if (entry && typeof entry === "object" && entry.deferral) { payload = entry.deferral; break; }
-    }
-    if (!payload && ra.length && ra[0] && typeof ra[0] === "object" && ("reason" in ra[0])) payload = ra[0];
-  } else if (ra && typeof ra === "object") {
-    payload = ra.deferral || (("reason" in ra) ? ra : null);
-  }
-  const verdict = isValidDeferral(payload, now); // also re-checks deferred_until is in the FUTURE
-  if (verdict.ok) {
-    const existing = validDeferral.get(f.subject_ref);
-    // keep the latest deferred_until if multiple valid deferrals exist for one item
-    if (!existing || new globalThis.Date(payload.deferred_until).getTime() > new globalThis.Date(existing.deferred_until).getTime()) {
-      validDeferral.set(f.subject_ref, payload);
-    }
-  }
-}
-
-// Items that EVER carried a disposition_deferred flag — for RESURRECTION detection. An undispositioned
-// item that previously had a deferral = its clock fired and it self-resurrected (the anti-silence
-// property), which reads DIFFERENTLY from a never-deferred FRESH crossing. Naming the two apart is the
-// Lane-#4 legibility contract: a re-fired deferral is not a new break.
-const everDeferred = new Set((flags || []).filter((f) => f.created_by === "disposition_deferred").map((f) => f.subject_ref));
+// DWELL/ENQUEUE classification -- shared with scripts/plan-quarantine-disposition.mjs via
+// scripts/lib/quarantine-dwell.mjs (lane QUARANTINE-DISPOSITION, 2026-09-28), extracted verbatim from
+// this file so both tools agree on exactly what "past-bound, undispositioned" means (F45 duplicate-code;
+// prior-art rule). Behavior unchanged.
+const { enqueueMissing, undispositioned, deferred, withinBound } = computeQuarantineDwell({ items, flags });
 
 const SOON_MS = 7 * 24 * 60 * 60 * 1000; // deferrals re-firing within ~7 days = heads-up
-
-const enqueueMissing = [];
-const undispositioned = []; // past-bound with NO valid deferral — the HARD tripwire
-const deferred = [];        // past-bound WITH a valid deferral — standing, does NOT hard-fail
-const withinBound = [];
-for (const it of items || []) {
-  const at = enqueuedAt.get(it.id);
-  if (at === undefined) { enqueueMissing.push(it); continue; }
-  const ageDays = Math.floor((nowMs() - at) / (24 * 60 * 60 * 1000));
-  if (nowMs() - at > BOUND_MS) {
-    const d = validDeferral.get(it.id);
-    if (d) deferred.push({ ...it, ageDays, deferral: d });
-    else undispositioned.push({ ...it, ageDays, resurrected: everDeferred.has(it.id) });
-  } else withinBound.push({ ...it, ageDays });
-}
 
 console.log(`\n===== RESEARCH-OR-ERASE / QUARANTINE-DISPOSITION INVARIANT (read-only) =====`);
 console.log(`live-quarantined: ${(items || []).length}  |  within-bound (≤${DWELL_BOUND_DAYS}d, being worked): ${withinBound.length}  |  ENQUEUE-MISSING: ${enqueueMissing.length}`);
@@ -156,8 +106,9 @@ if (enqueueMissing.length || undispositioned.length) {
   console.log(`\nLANE-FAIL REASON: ${kinds.join("; ")}.  Deferred standing (NOT a failure): ${deferred.length}.`);
   console.log(`\nDISPOSITION (research-or-erase, never leave sitting): run scripts/regen-quarantined.mjs to`);
   console.log(`research -> re-ground (RECOVER), else honest ARCHIVE / REGISTER-as-source, OR record a VALID`);
-  console.log(`time-bounded deferral (reason names blocker + disposition path, future resolution event, owner).`);
-  console.log(`Drive the UNDISPOSITIONED count to 0.`);
+  console.log(`time-bounded deferral (reason names blocker + disposition path, future resolution event, owner) --`);
+  console.log(`scripts/plan-quarantine-disposition.mjs plans this per item and hands the candidate rows to`);
+  console.log(`scripts/maintenance/apply-deferrals.mjs. Drive the UNDISPOSITIONED count to 0.`);
   process.exit(1);
 }
 console.log(`invariant holds: every quarantined item is enqueued and either within the bound or carries a valid deferral.`);
