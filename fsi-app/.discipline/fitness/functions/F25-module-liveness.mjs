@@ -420,6 +420,27 @@ const PROVEN_BUT_UNWIRED = [
 // entries are removed rather than kept as now-stale allowlist rows.
 
 export const LEGACY_ALLOWLIST = [
+  {
+    file: 'fsi-app/scripts/lib/record-harness-run.mjs',
+    reason:
+      'Wired, not dormant, but by a shape this gate\'s dispatch-root sources do not see: every family ' +
+      'workflow calls scripts/turns/deliver-artifact-branch.sh (a Source-1 dispatch root, literal in ' +
+      'every .github/workflows/*.yml), which shells out `node scripts/lib/record-harness-run.mjs --file ' +
+      '<path>` as a bash command, not an ES import and not a Source-8 spawnSync/execFileSync call from ' +
+      'another .mjs (Source 8\'s own scope). A real, always-run reachability path this gate\'s import-' +
+      'graph and workflow-literal sources cannot express.',
+    reviewByPhase: 'lane HARNESS-LANDING, 2026-09-27',
+  },
+  {
+    file: 'fsi-app/scripts/turns/import-stranded-harness-branches.mjs',
+    reason:
+      'Genuinely operator-invoked, out-of-workflow, one-time CLI (the same "hand-run, per-item, no ' +
+      'schedule, no workflow line" shape OUT-OF-REPO-BOUNDARY.md\'s Operator-CLI register already ' +
+      'recognizes for the _reground/*.mjs toolkit) -- imports the branches stranded by the OLD harness-' +
+      'artifact-landing path into harness_runs (migration 331) exactly once. --dry is safe to re-run; ' +
+      '--apply is a one-shot the operator dispatches by hand, never from a workflow or another script.',
+    reviewByPhase: 'lane HARNESS-LANDING, 2026-09-27',
+  },
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,

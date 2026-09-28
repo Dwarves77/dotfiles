@@ -40,65 +40,15 @@
  *  Exit 0 = every unauthorized probe denied and the service-role fixture read succeeded; exit 1 = a probe
  *  behaved wrongly (a leak, or the legitimate path also broke); exit 2 = cannot verify (no creds).
  *
- *  TESTABILITY (no-npm job, mirrors prov-guard-adversarial-audit.mjs's own scope, no paired test file
- *  exists for it to copy from either [CONFIRMED, this lane: grep found no
- *  prov-guard-adversarial-audit.test.mjs git-tracked]; follows spec09-org-rls-adversarial-audit.mjs's
- *  established pattern instead, pure functions above the DB line, a real `pg` import ONLY inside the
- *  CLI-invocation guard at the bottom, so `derivation-edges-rls-adversarial-audit.test.mjs` can import
- *  `classifyOutcome`/`isMissingValueId` with zero npm dependency). */
+ *  SHARED PRIMITIVES (lane HARNESS-LANDING, 2026-09-27, F45 duplicate-code ratchet): the transactional
+ *  probe/classify/CLI-bootstrap primitives below were extracted to `scripts/verify/lib/
+ *  rls-adversarial-probe.mjs` once a second per-table audit (harness-runs-rls-adversarial-audit.mjs)
+ *  copied this file's `probe`/`classifyProbe` bodies near-verbatim and F45's live ratchet caught the
+ *  duplication. This file keeps its own table-specific fixture setup (the derived_values FK dance) and
+ *  its own probe call list; only the mechanical "run inside BEGIN..ROLLBACK and classify" pieces moved. */
 
 import { isMainModule } from "../lib/is-main.mjs";
-
-// ── Pure helpers, no pg, no supabase-js, no I/O. Directly unit-testable. ──────────────────────────────
-
-/** The binding assertion for a single probe: 'deny' expects SQLSTATE 42501 (insufficient_privilege);
- *  'allow' expects no error. Returns {ok, note}. Pure, takes the already-classified {errored, code}
- *  shape rather than a real error object, so it is testable with zero pg dependency. */
-export function classifyProbe(expect, { errored, code }) {
-  const DENY = "42501";
-  if (expect === "deny") {
-    if (errored && code === DENY) return { ok: true, note: "" };
-    if (errored) return { ok: false, note: `denied for the wrong reason (SQLSTATE ${code || "?"}), expected 42501` };
-    return { ok: false, note: "expected denial, write was allowed" };
-  }
-  // expect === 'allow'
-  if (!errored) return { ok: true, note: "" };
-  return { ok: false, note: `unexpected denial: ${code || "?"}` };
-}
-
-/** The both-directions read assertion for probe F: service_role must see the fixture row it inserted
- *  (count === 1); anything else means the legitimate path is also broken, not merely the attack denied. */
-export function classifyServiceRoleRead(count) {
-  if (count === 1) return { ok: true, note: "" };
-  return { ok: false, note: `service_role fixture read returned ${count} row(s), expected 1, legitimate path broken` };
-}
-
-// ── Orchestration, takes an injected client (a real pg.Client, or a fake one in tests). No top-level pg
-// import: exercised by the unit test with a fake client, and by the CLI guard below with a real one. ─────
-
-const DENY = "42501";
-
-/** Runs one probe inside BEGIN..ROLLBACK against `client`. `expect` is 'deny' | 'allow'. `pre` are
- *  statements (role/GUC setup) run inside the same transaction before `sql`. Always rolls back, no
- *  probe write persists regardless of verdict. */
-async function probe(client, label, expect, sql, params, pre, results) {
-  await client.query("BEGIN");
-  try {
-    for (const p of pre) await client.query(p);
-    await client.query(sql, params);
-    const verdict = classifyProbe(expect, { errored: false, code: null });
-    results.push({ label, verdict: verdict.ok ? "PASS" : "FAIL", note: verdict.note });
-  } catch (e) {
-    if (e.code === DENY) {
-      const verdict = classifyProbe(expect, { errored: true, code: e.code });
-      results.push({ label, verdict: verdict.ok ? "PASS" : "FAIL", note: verdict.note });
-    } else {
-      results.push({ label, verdict: "ERROR", note: `${e.code || "?"}: ${(e.message || "").split("\n")[0]}` });
-    }
-  } finally {
-    await client.query("ROLLBACK");
-  }
-}
+import { probe, classifyServiceRoleRead, runAdversarialCli } from "./lib/rls-adversarial-probe.mjs";
 
 /** Runs the full adversarial proof against `client` (must expose `.query(sql, params)`). Returns
  *  { skip: true, reason } or { results: [...], allPass: boolean }. Throws only on an unexpected engine
@@ -183,8 +133,8 @@ export async function runAudit(client) {
       await client.query("ROLLBACK TO SAVEPOINT probe_e");
       results.push({
         label: "E authenticated SELECT sees zero derivation_edges rows",
-        verdict: e.code === DENY ? "PASS" : "ERROR",
-        note: e.code === DENY ? "denied at the SELECT itself (also acceptable)" : `${e.code || "?"}: ${(e.message || "").split("\n")[0]}`,
+        verdict: e.code === "42501" ? "PASS" : "ERROR",
+        note: e.code === "42501" ? "denied at the SELECT itself (also acceptable)" : `${e.code || "?"}: ${(e.message || "").split("\n")[0]}`,
       });
     }
   } finally {
@@ -196,36 +146,6 @@ export async function runAudit(client) {
 }
 
 // ── CLI invocation guard. Real `pg` connection lives ONLY behind this check. ───────────────────────────
-const isMain = isMainModule(import.meta.url);
-
-if (isMain) {
-  const { connectPg } = await import("../lib/pg-conn.mjs");
-  const client = await connectPg();
-  if (!client) {
-    console.error(
-      "derivation-edges-rls-adversarial-audit: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler). Cannot verify, exit 2.",
-    );
-    process.exit(2);
-  }
-  try {
-    const outcome = await runAudit(client);
-    console.log("──────── SEC-1 derivation_edges RLS, adversarial proof ────────");
-    if (outcome.skip) {
-      console.log(`SKIP  ${outcome.reason}`);
-      process.exit(2);
-    }
-    for (const r of outcome.results) console.log(`  ${r.verdict.padEnd(5)} ${r.label}${r.note ? "  -- " + r.note : ""}`);
-    if (!outcome.allPass) {
-      const failed = outcome.results.filter((r) => r.verdict !== "PASS").map((r) => r.label);
-      console.log(`\nDERIVATION-EDGES RLS ADVERSARIAL FAIL: ${failed.join("; ")}`);
-      process.exit(1);
-    }
-    console.log("\nDERIVATION-EDGES RLS ADVERSARIAL GREEN: every unauthorized attack denied, service_role path intact.");
-    process.exit(0);
-  } catch (e) {
-    console.error(`derivation-edges-rls-adversarial-audit: engine error, ${e.message}`);
-    process.exit(2);
-  } finally {
-    await client.end();
-  }
+if (isMainModule(import.meta.url)) {
+  await runAdversarialCli({ title: "SEC-1 derivation_edges RLS, adversarial proof", runAudit });
 }

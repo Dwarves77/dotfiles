@@ -1,74 +1,85 @@
 #!/usr/bin/env bash
-# deliver-artifact-branch.sh — the ONE delivery step both runtime workflows (corpus-turn.yml,
-# source-sweep.yml) end with: open a PR from the just-pushed artifact branch to master, and when the
-# repository refuses ("GitHub Actions is not permitted to create or approve pull requests" — the
-# Settings → Actions → General → Workflow permissions checkbox is off), record the branch on ONE tracked
-# issue instead of failing the run.
+# deliver-artifact-branch.sh -- the ONE delivery step every harness-family workflow calls after
+# committing its own run artifact(s). REWRITTEN (lane HARNESS-LANDING, 2026-09-27, operator ruling: "yes
+# supabase but do not reinvent processes, look at what has already been built"). The OLD behavior (push
+# a branch, try `gh pr create`, fall back to commenting on tracking issue #520 when Actions is refused
+# PR creation -- see docs/ops/session-log.d/2026-09-26-harness-landing.md) is REMOVED: it left 39
+# branches stranded across 5 families with no automated landing path, because GitHub Actions on this
+# repository cannot create or approve PRs, permanently, by operator ruling (2026-09-26: "I've been
+# building this for six months and not once that I need a pull request from GitHub").
 #
-# WHY NOT FAIL. Every runtime run on 2026-09-01 (corpus-turn #3, source-sweep #1–#5) did its real work —
-# database writes through the guarded path, the harness artifact committed and pushed — and then went
-# red on this one step, which cannot succeed on this repository until the operator flips the setting.
-# A run that reports FAILED for a delivery it was never permitted to do is a gate that cries wolf: the
-# operator received a failure email per run and could not tell a broken walk from a refused PR. The
-# outcome is now honest: green run, a ::warning:: annotation, the step summary, and the branch + compare
-# URL appended to a single issue that stays open until the branches are landed by hand. If the operator
-# enables the setting, the PR opens and none of the fallback runs.
+# NEW behavior: land each harness-run artifact this commit added straight into the `harness_runs` table
+# (migration 331) via the guarded writer `scripts/lib/record-harness-run.mjs`, the SAME best-effort
+# posture `brief_apply_runs`'s writer already uses (recordApplyRunStart: a plain insert, exempt from
+# rule 015 because it is additive, never a mutation). No branch, no PR, no issue.
 #
-# Usage: deliver-artifact-branch.sh <branch> <pr-title> <pr-body-file>
-# Requires: GH_TOKEN with contents:write, pull-requests:write, issues:write; GITHUB_REPOSITORY; gh CLI.
+# Call signature is UNCHANGED (`<branch> <title> <body_file>`) so no `.github/workflows/*.yml` file
+# needs editing for this lane: every caller still runs `git push origin HEAD:"$branch"` immediately
+# before this script (a residual from the old design -- the branch push is now REDUNDANT since landing
+# is a DB write, not a branch merge; removing that push step is a follow-up lane's workflow-file edit,
+# out of this lane's scope). `title`/`body_file` are accepted for logging continuity only; no PR is ever
+# opened from them.
+#
+# Usage: deliver-artifact-branch.sh <branch> <title> <body-file>
+# Requires: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (best-effort: missing creds log and
+# exit 0, never fail the run -- see record-harness-run.mjs's own header).
 set -u
 
 branch="$1"
 title="$2"
-body_file="$3"
-repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
-compare_url="https://github.com/${repo}/compare/master...${branch}?expand=1"
-ISSUE_TITLE="Runtime artifact branches awaiting a hand-opened PR"
+body_file="${3:-}"
 
-existing="$(gh pr list --repo "$repo" --base master --head "$branch" --json number --jq '.[0].number' 2>/dev/null || true)"
-if [ -n "$existing" ]; then
-  echo "PR #$existing already open for $branch — nothing to do."
-  exit 0
+echo "deliver-artifact-branch: landing this run's harness-run artifact(s) into harness_runs (branch ${branch:-?} pushed by the caller is now a redundant residual, see this script's header)."
+if [ -n "$body_file" ] && [ -f "$body_file" ]; then
+  echo "--- run context ($title) ---"
+  cat "$body_file"
 fi
 
-if pr_out="$(gh pr create --repo "$repo" --base master --head "$branch" --title "$title" --body-file "$body_file" 2>&1)"; then
-  echo "$pr_out"
-  echo "Opened a PR for $branch" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
-  exit 0
-fi
+git fetch --no-tags --depth=50 origin master >/dev/null 2>&1 || true
 
-echo "$pr_out"
-if ! printf '%s' "$pr_out" | grep -qi "not permitted to create or approve pull requests"; then
-  # A DIFFERENT failure (network, auth, bad base) — that one IS a run failure; say so and stop.
-  echo "::error::gh pr create failed for a reason other than the repository's PR-permission setting; see the output above."
-  exit 1
-fi
+landed=0
+failed=0
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  echo "deliver-artifact-branch: recording $path"
+  # record-harness-run.mjs is best-effort BY DESIGN and always exits 0, even on a read/parse/insert
+  # failure (so a DB hiccup never fails the calling workflow step -- see that file's own header). A
+  # nonzero exit here means the node PROCESS itself could not run at all (missing node, syntax error),
+  # not that the row landed. The real success signal is the "record-harness-run: landed <id>" line it
+  # prints on an actual successful insert; capture stdout and grep for that marker rather than trusting
+  # the exit code (verified live, lane HARNESS-LANDING: exit 0 was reported for a run whose file could
+  # not even be opened -- the exit-code-only counter silently reported landed=1 for zero real inserts).
+  out="$(node scripts/lib/record-harness-run.mjs --file "$path" 2>&1)"
+  status=$?
+  echo "$out"
+  if [ $status -eq 0 ] && printf '%s' "$out" | grep -q '^record-harness-run: landed '; then
+    landed=$((landed + 1))
+  else
+    failed=$((failed + 1))
+    echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not confirm a landed row for $path (best-effort, continuing)"
+  fi
+# Pathspec is relative to CWD (this script always runs from fsi-app/, matching every caller workflow's
+# working-directory) -- a leading '**/' here does NOT match a zero-depth path even under glob pathspec
+# magic (verified live, lane HARNESS-LANDING: the first real dispatch, gate-a-rescan run 36435442672,
+# landed=0 with the '**/'-prefixed form even though the artifact file existed in the diff -- confirmed by
+# testing both forms against that run's own pushed branch). No leading '**/' needed since the path is
+# never nested under an extra nonexistent nesting level from here.
+#
+# --relative is REQUIRED: git diff --name-only reports paths relative to the REPO ROOT by default
+# regardless of cwd or the pathspec used to filter (confirmed live, second dispatch of the same run:
+# without --relative the pathspec matched correctly but the printed/used path was
+# "fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-002.json", which record-harness-run.mjs
+# then failed to open from cwd=fsi-app/ with ENOENT -- landed=1 was reported, the row was never written,
+# because node process.exit(0) on a read/parse failure is deliberately best-effort/never-fails-the-run,
+# so the "landed" counter here only means "node ran without crashing", not "the row landed". Fixed by
+# --relative, which makes the printed path cwd-relative (matching where node actually runs).
+done < <(git diff --name-only --relative origin/master...HEAD -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
 
-# The known, operator-side refusal. File the branch on the tracked issue and finish green.
-issue="$(gh issue list --repo "$repo" --state open --search "\"$ISSUE_TITLE\" in:title" --json number,title \
-  --jq "map(select(.title == \"$ISSUE_TITLE\")) | .[0].number" 2>/dev/null || true)"
-comment="$(printf '**%s** — pushed by run %s (%s). Open the PR: %s\n\nLands once merged: the run artifact(s) under `scripts/harness-runs/`. Enable *Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests* and future runs open their own PR.' \
-  "$branch" "${GITHUB_RUN_ID:-?}" "${GITHUB_WORKFLOW:-?}" "$compare_url")"
-if [ -z "$issue" ]; then
-  issue_body="$(printf 'Runtime workflows (corpus-turn, source-sweep) push their harness-run artifact to a branch and try to open a PR. This repository refuses PR creation by GitHub Actions (Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests" is off), so each such branch is listed here instead, one comment per run, until a person opens and merges its PR.\n\nEnable the setting and this issue stops growing; close it once every listed branch is merged or deleted.\n\nFirst entry:\n\n%s' "$comment")"
-  issue_url="$(gh issue create --repo "$repo" --title "$ISSUE_TITLE" --body "$issue_body" 2>&1)" || {
-    echo "$issue_url"
-    echo "::error::Could not create the tracking issue either (does the workflow grant issues: write?). The branch IS pushed: $compare_url"
-    exit 1
-  }
-  echo "Tracking issue created: $issue_url"
-else
-  gh issue comment "$issue" --repo "$repo" --body "$comment" >/dev/null 2>&1 || {
-    echo "::error::Could not comment on tracking issue #$issue. The branch IS pushed: $compare_url"
-    exit 1
-  }
-  echo "Recorded on tracking issue #$issue"
-fi
-
-echo "::warning::PR creation refused by the repository setting; $branch is pushed and recorded on the tracking issue. Open it by hand: $compare_url"
+echo "deliver-artifact-branch: landed=$landed failed=$failed"
 {
-  echo "### Artifact branch awaiting a PR"
+  echo "### Harness-run artifact landing"
   echo ""
-  echo "PR creation is refused on this repository (Actions setting). The branch is pushed: [$branch]($compare_url)."
+  echo "Landed $landed artifact row(s) into \`harness_runs\` (migration 331). $failed row(s) could not be recorded (best-effort, logged above)."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
 exit 0
