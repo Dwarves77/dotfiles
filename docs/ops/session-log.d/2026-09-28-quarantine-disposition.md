@@ -49,11 +49,42 @@ quarantine from the lane-authored-brief path).
 `[CONFIRMED, execute_sql against project kwrsbpiseruzbfwjpvsp, 2026-09-28]`: reproduced
 `quarantine-disposition-audit.mjs`'s exact DWELL/ENQUEUE/deferral-validity SQL. Live-quarantined: 78
 (RW-3, 2026-09-25, measured 78, matches). Of those: **73 already carry a valid deferral** (age 21 to 113
-days), **4 remain undispositioned past-bound** (down from RW-3's 66/78; most of the backlog was
-dispositioned via `apply-deferrals.mjs` between 2026-09-25 and today), **1 within-bound**, **0
-enqueue-missing**. The 4 undispositioned: `eu-net-zero-industry-act-2024-1735` (regulation, 112d),
-Clark County Environment and Sustainability Dept (`regional_data`, 57d), `SAFA` (`initiative`, 21d),
+days), **4 remain undispositioned past-bound**, **1 within-bound**, **0 enqueue-missing**. The 4
+undispositioned: `eu-net-zero-industry-act-2024-1735` (regulation, 112d), Clark County Environment and
+Sustainability Dept (`regional_data`, 57d), `SAFA` (`initiative`, 21d),
 `eu-alternative-fuels-infrastructure-regulation-afir` (regulation, 15d).
+
+### Correction: "dispositioned since 2026-09-25" is `[REFUTED]`
+
+The original version of this entry said "most of the backlog was dispositioned via `apply-deferrals.mjs`
+between 2026-09-25 and today." That claim is **`[REFUTED]`**, investigated on the coordinator's direct
+challenge before merge.
+
+`[CONFIRMED, execute_sql]`: every one of the 73 `disposition_deferred` `integrity_flags` rows behind the
+valid-deferral count was created between **2026-06-19 and 2026-09-13** (grouped by minute: 4 at 06-19
+15:14, 7 at 15:41, 3 at 15:42, 2 at 07-03 20:18, 16+4 at 07-11 04:58/05:14, 3 at 07-11 14:26, 38+87+1 at
+07-30 17:30-17:31, 37 at 08-11 13:39, 58 at 09-13 02:59). Every one carries `created_by =
+'disposition_deferred'` and a `deferred_until` of `2026-10-15`, `2026-10-31`, or `2026-12-31`, all still
+in the future today, which is why they still count as valid. Nothing was written after 2026-09-13 03:00
+UTC, twelve days before R14 was even ruled (2026-09-25).
+
+`[CONFIRMED, gh run list --workflow maintenance.yml]`: the last `maintenance.yml` dispatch of any kind
+was `35312773365` at 2026-09-18T05:56:14Z. No `maintenance.yml` run exists between then and this lane's
+own dispatch (2026-09-28). `apply-deferrals` (the only workflow step anywhere in the repo that writes a
+`disposition_deferred` flag; confirmed by `grep -rl apply-deferrals .github/workflows/`) cannot have run
+in that window because the workflow itself did not run.
+
+**So no live data writes happened during or near R14. The finding is fully refuted, not partially.**
+The real explanation `[HYPOTHESIS]`: RW-3's 2026-09-25 reproduction (`docs/audits/
+supabase-integrity-and-wiring-audit-2026-09-25.md`) undercounted valid deferrals, most likely because its
+ad hoc SQL did not unwrap the `recommended_actions -> 0 -> 'deferral'` nested-array payload shape
+`apply-deferrals.mjs` actually writes (this lane's `quarantine-dwell.mjs` handles three payload shapes
+for exactly this reason, see its own comments). RW-3 already carries one self-disclosed correction ("a
+join-fanout bug in an earlier pass of this same query"); a second undercount in the same ad hoc
+reproduction is plausible and would fully explain 66-vs-4 with a data population that never moved. Not
+independently re-verified against RW-3's original query text (it was not preserved), so this explanation
+stays `[HYPOTHESIS]`, the REFUTED status above is the load-bearing, `[CONFIRMED]` part of this
+correction; the WHY is the unverified part.
 
 ## Real run (harness record, checked)
 

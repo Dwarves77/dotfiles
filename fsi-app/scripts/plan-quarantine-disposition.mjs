@@ -60,6 +60,23 @@ import { GOVERNING_FILES } from "./harness-runs/governing-files.mjs";
 
 export const FAMILY = "quarantine-disposition";
 
+/** A genuine write-capable Supabase client for the harness_runs insert ONLY -- never used for reads or
+ *  for anything else. `readClient()` (scripts/lib/db.mjs) deliberately returns a guard PROXY whose
+ *  `.from(table).insert/update/delete/upsert` THROW (rule 015: "the only write surface is the guarded
+ *  functions below"), so passing it to recordHarnessRun made every insert throw synchronously, caught by
+ *  recordHarnessRun's own try/catch as a silent { ok:false } (found live, run 36446625925, 2026-09-28:
+ *  harness_runs_landed:false with no error surfaced because this module also forgot to wire a `log`
+ *  callback through -- both fixed here). harness_runs is explicitly EXEMPT from rule 015 (an INSERT is
+ *  additive, never a mutation -- see scripts/lib/record-harness-run.mjs's own header), so this mirrors
+ *  EXACTLY what that module's own CLI section does: a fresh `createClient`, not db.mjs's guarded path. */
+async function buildHarnessRunsClient() {
+  const { createClient } = await import("@supabase/supabase-js");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("plan-quarantine-disposition: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set; cannot record to harness_runs.");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
 // Deferral policy (operator-tunable; see remediation-discipline Section 2.2 for the vocabulary this must
 // satisfy -- scripts/lib/deferral.mjs's isValidDeferral is the mechanical gate every candidate below is
 // built to pass, verified by this file's own test suite against that exact function).
@@ -298,9 +315,19 @@ export async function runPlanner({ mode = "dry", out = null, dispatchApplyDeferr
   let harnessRunRow = null;
   try {
     const recordFn = recordHarnessRunFn || (await import("./lib/record-harness-run.mjs")).recordHarnessRun;
-    harnessRunRow = await recordFn(sb, artifact, { log });
+    // NEVER `sb` here: `sb` is (or wraps) scripts/lib/db.mjs's readClient() guard proxy, whose
+    // .from(table).insert THROWS by design (rule 015). harness_runs is exempt from that rule (an
+    // INSERT is additive, never a mutation -- record-harness-run.mjs's own header), so this call gets
+    // its OWN genuine write-capable client, built fresh, matching that module's own CLI section exactly.
+    // `recordHarnessRunFn` (test override) bypasses this entirely and is called with `sb` unchanged, so
+    // fixture tests never need real credentials.
+    const harnessRunsClient = recordHarnessRunFn ? sb : await buildHarnessRunsClient();
+    harnessRunRow = await recordFn(harnessRunsClient, artifact, { log });
+    if (!harnessRunRow?.ok) log(`record-harness-run: insert did not land (${harnessRunRow?.error ?? "unknown reason"}) -- see harnessRunRow in this run's own return value.`);
   } catch (e) {
-    log(`record-harness-run: not recorded this run (best-effort): ${e instanceof Error ? e.message : String(e)}`);
+    const msg = e instanceof Error ? e.message : String(e);
+    log(`record-harness-run: not recorded this run (best-effort): ${msg}`);
+    harnessRunRow = { ok: false, error: msg };
   }
 
   return { runId, artifactPath, plan, counts, deferralCandidates, harnessRunRow, applyDeferralsDryResult, outPlanPath };

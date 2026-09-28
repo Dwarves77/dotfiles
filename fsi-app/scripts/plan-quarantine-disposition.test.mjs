@@ -178,3 +178,45 @@ test("runPlanner (apply, dispatchApplyDeferrals): writes plan.json and exercises
   assert.equal(r.applyDeferralsDryResult.applied, 0, "dry mode never writes a row");
   assert.equal(r.applyDeferralsDryResult.counts.valid, 1);
 });
+
+// Regression: live run 36446625925 (2026-09-28) passed the READ-GUARDED `sb` (scripts/lib/db.mjs's
+// readClient() proxy, whose .from(table).insert THROWS by design, rule 015) straight into
+// recordHarnessRun, so the harness_runs insert threw every time and was swallowed silently (no
+// recordHarnessRunFn override in real dispatches -- only tests supply one). This proves `sb` is NEVER
+// touched for the insert when no override is given: a throwing `sb` must not be the thing that fails.
+test("runPlanner (no recordHarnessRunFn override): never calls .insert on the guarded `sb` -- fails only on missing creds for the SEPARATE write client, never on sb.from(...).insert throwing", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "qd-plan-test-"));
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const items = [{ id: "a", legacy_id: "it-a", item_type: "regulation" }];
+  const flags = [{ subject_ref: "a", created_at: iso(-20 * DAY), created_by: "trigger", status: "open" }];
+
+  // Mimics scripts/lib/db.mjs's readClient() guard proxy: .from(table).insert throws synchronously.
+  const guardedSb = {
+    from() {
+      return {
+        insert() { throw new Error("db.mjs: write refused -- use a guarded function (rule 015)"); },
+        select() { return this; }, eq() { return this; }, single() { return Promise.resolve({ data: null }); },
+      };
+    },
+  };
+
+  const savedUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const savedKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  t.after(() => {
+    if (savedUrl !== undefined) process.env.NEXT_PUBLIC_SUPABASE_URL = savedUrl;
+    if (savedKey !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = savedKey;
+  });
+
+  const r = await runPlanner(
+    { mode: "dry", out: null, dispatchApplyDeferrals: false },
+    { sb: guardedSb, readAllFn: fakeDb({ items, flags }), log: () => {}, now: NOW, familyDir }
+    // no recordHarnessRunFn override -- exercises the real buildHarnessRunsClient() branch.
+  );
+
+  assert.equal(r.harnessRunRow.ok, false);
+  assert.match(r.harnessRunRow.error, /NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY/, "must fail on missing credentials for the dedicated write client, never on guardedSb.from(...).insert throwing (rule 015)");
+  assert.doesNotMatch(r.harnessRunRow.error, /write refused|rule 015/, "guardedSb's own throw text must never appear -- proves guardedSb.insert was never called");
+});
