@@ -1,0 +1,21 @@
+{
+  "plan-quarantine-disposition": {
+    "step": "plan-quarantine-disposition",
+    "mode": "dry",
+    "counts": {
+      "within_bound": 1,
+      "already_deferred": 73,
+      "deferral_candidate:needs_acquire": 3,
+      "deferral_candidate:stale_snapshot": 1
+    },
+    "applied": 0,
+    "read_back": {
+      "run_id": "quarantine-disposition-run-003",
+      "artifact_path": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/quarantine-disposition/quarantine-disposition-run-003.json",
+      "harness_runs_landed": true,
+      "harness_runs_error": null,
+      "plan_path": null,
+      "apply_deferrals_dry_result": null
+    }
+  }
+}

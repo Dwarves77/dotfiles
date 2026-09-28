@@ -1,0 +1,34 @@
+{
+  "harness_family": "maintenance",
+  "harness_version": "sha256:c4188de53369566c",
+  "run_id": "maintenance-run-003",
+  "started_at": "2026-09-28T17:37:47.329Z",
+  "config": {
+    "step": "plan-quarantine-disposition",
+    "mode": "dry",
+    "arg": "",
+    "github_run_id": "36459138916"
+  },
+  "inputs_ref": [],
+  "per_item": [
+    {
+      "id": "plan-quarantine-disposition",
+      "outcome": "ran",
+      "evidence_refs": [
+        "scripts/harness-runs/maintenance/traces/maintenance-run-003.summaries.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "steps_dispatched": 1,
+    "steps_with_summary": 1,
+    "steps_nonzero_exit": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/harness-runs/maintenance/traces/maintenance-run-003.summaries.json"
+  ],
+  "proposer_notes": "",
+  "trigger": "workflow_dispatch"
+}
