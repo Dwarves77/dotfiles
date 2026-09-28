@@ -306,6 +306,7 @@
 | 330 | 330_derivation_edges_rls.sql | Migration 330 (fix lane SEC-1, Supabase integrity-and-wiring audit, 2026-09-25). Closes SEC-1 |
 | 332 | 332_state_cost_facts_value_numeric.sql | Migration 332 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A"). Adds |
 | 333 | 333_derivation_edges_allow_state_cost_facts.sql | Migration 333 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A", second |
+| 331 | 331_harness_runs.sql | Migration 331 (lane HARNESS-LANDING, 2026-09-27). DRAFT / NOT APPLIED -- sketch approved by |
 
 ## Maintenance trigger
 
