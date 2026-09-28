@@ -32,7 +32,9 @@ import { cheapVerifyClaims } from "../src/lib/sources/cheap-verify.mjs";
 import { loadLocalEnvFile } from "./lib/env-file.mjs";
 
 
-const HOLD_TYPES = new Set(["research_finding", "technology", "tool", "innovation"]);
+// Exported (lane QUARANTINE-DISPOSITION, 2026-09-28) so scripts/plan-quarantine-disposition.mjs reuses
+// the SAME held-type set rather than a second hand-copied list (F45 duplicate-code).
+export const HOLD_TYPES = new Set(["research_finding", "technology", "tool", "innovation"]);
 
 /**
  * Drive the quarantined -> verified_cheap resolution loop. Pure over injected deps (no direct DB/env access).

@@ -1,0 +1,588 @@
+{
+  "harness_family": "quarantine-disposition",
+  "harness_version": "sha256:07e2153f564f9aef",
+  "run_id": "quarantine-disposition-run-001",
+  "started_at": "2026-09-28T15:27:00.242Z",
+  "config": {
+    "mode": "dry",
+    "trigger": "manual",
+    "dwell_bound_days": 14,
+    "deferral_window_days": 30,
+    "r14_live_write_held": true,
+    "methodology": "Live counts reproduced via Supabase MCP execute_sql (project kwrsbpiseruzbfwjpvsp) against the SAME dwell/enqueue/deferral-validity logic scripts/lib/quarantine-dwell.mjs implements, because this worktree carries no DB credentials to run the Node CLI directly (lane-common-contract.md). The cheap-verify (RECOVER) sub-step could not run live for the same reason; deferral-candidate items are conservatively labeled needs_acquire rather than a guessed class.",
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "scripts/lib/quarantine-dwell.mjs",
+    "scripts/regen-quarantined.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "a5",
+      "outcome": "deferral_candidate",
+      "verdict": "reason_class=needs_acquire (cheap-verify sub-step not run live this session -- no DB credentials in this worktree; conservative default per plan-quarantine-disposition.mjs's documented no-decision fallback)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "o12",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "crude-oil-jet-fuel-price-intelligence",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "11794ed7-7a03-4819-a1c6-85125e8eff90",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "13af7040-0f00-4ea1-8c2e-40acaf646635",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eu_ets_directive_2023_959",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1bb72c94-a196-4182-ad75-0f368b781841",
+      "outcome": "within_bound",
+      "verdict": null,
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "australia-national-electric-vehicle-strategy",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2943632e-cca4-412c-8e89-487b301692ce",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "r15",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c5",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c8",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "g15",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "46914062-4bb6-4e5e-89ae-fb794787f8b3",
+      "outcome": "deferral_candidate",
+      "verdict": "reason_class=needs_acquire (cheap-verify sub-step not run live this session -- no DB credentials in this worktree; conservative default per plan-quarantine-disposition.mjs's documented no-decision fallback)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "576554b3-7e69-431c-aa4f-474131458b14",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "canada-clean-fuel-regulations-phase-2",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "r28",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "g18",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6a857887-8f3d-4812-886d-a30a396baea5",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6b55b53d-f383-453a-a029-707b86b80013",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6f1e6615-2394-440b-bd4c-88b7bf711c72",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "solar-battery-energy-storage-for-warehouses",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "782878c0-757f-4a73-998f-48f52bbfa585",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "78b711f5-5109-458e-8ed7-375f67e22664",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c4",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eu-net-zero-industry-act-2024-1735",
+      "outcome": "deferral_candidate",
+      "verdict": "reason_class=needs_acquire (cheap-verify sub-step not run live this session -- no DB credentials in this worktree; conservative default per plan-quarantine-disposition.mjs's documented no-decision fallback)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eu_clean_trucking_2024_1610",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "g13",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8fb37a9e-6c7c-4252-9cd6-7ffaf6de45bc",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "947e08f3-0136-423d-8f62-03bb071bad49",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "japan-s-updated-top-runner-program-for-heavy-duty-vehicles",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "green-building-certification-standards-for-logistics",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "uae-national-hydrogen-strategy-transport-sector-requirements",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ae628786-ad32-4dd4-bd43-64a812029966",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c6",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "bced4406-2371-4dcb-8981-062d6f192eca",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "china-prc-regional-operations-profile",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a1",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "la-eweo-existing-buildings-energy-water-efficiency",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "india-green-credit-programme-for-transport",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "r27",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "nashville-building-energy-programs",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "r31",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "japan-green-transformation-gx-freight-transport-standards",
+      "outcome": "already_deferred",
+      "verdict": "deferred_until=2026-10-31",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eu-alternative-fuels-infrastructure-regulation-afir",
+      "outcome": "deferral_candidate",
+      "verdict": "reason_class=needs_acquire (cheap-verify sub-step not run live this session -- no DB credentials in this worktree; conservative default per plan-quarantine-disposition.mjs's documented no-decision fallback)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "live_quarantined": 78,
+    "open_flags": null,
+    "deferral_candidate": 4,
+    "already_deferred": 73,
+    "within_bound": 1,
+    "deferral_candidates": 4
+  },
+  "defects_found": [
+    {
+      "description": "4 live-quarantined item(s) were past-bound (>14d) with no recorded disposition as of 2026-09-28 (down from RW-3's 66/78 on 2026-09-25 -- most of the backlog has since been dispositioned via apply-deferrals.mjs).",
+      "root_cause": "No prior run had planned a disposition for these 4 remaining items; this run's cheap-verify sub-step could not execute live in this credential-less worktree, so reason classes default to needs_acquire pending a run with DB credentials.",
+      "fix_ref": "scripts/plan-quarantine-disposition.mjs's own plan (see full_trace_refs) -- apply-deferrals.mjs dispatch is the next step, held under R14 for the actual write"
+    }
+  ],
+  "full_trace_refs": [
+    "docs/audits/supabase-integrity-and-wiring-audit-2026-09-25.md",
+    "docs/plans/data-machine-tool-gaps-2026-09-25.md"
+  ],
+  "proposer_notes": "REAL dry dispatch (lane QUARANTINE-DISPOSITION, 2026-09-28), reproduced via Supabase MCP execute_sql in place of the Node CLI (no DB credentials in this worktree, consistent with lane-common-contract.md and the identical constraint the 2026-09-25 audit lane hit for the same three verifier scripts). scripts/plan-quarantine-disposition.mjs itself is unit/integration-tested end to end against fixtures (scripts/plan-quarantine-disposition.test.mjs, scripts/lib/quarantine-dwell.test.mjs) -- this artifact grounds ITS dwell/enqueue classification in live data rather than only fixtures.",
+  "trigger": "manual"
+}
