@@ -120,10 +120,22 @@ test("collapseTimeline: 1 milestone -> trivially not collapsed", () => {
   assert.equal(result.visible.length, 1);
 });
 
-test("nextMilestoneClause: the EXPOSURE cell's compact clause, matching the review's worked example", () => {
+test("nextMilestoneClause: the EXPOSURE cell's compact clause, matching the review's worked example (pinned 'now', immune to the wall clock)", () => {
   const list = [entry("2026-09-29", "Transition deadline", "current")];
-  const clause = nextMilestoneClause(classifyMilestones(list));
-  assert.equal(clause, "Transition deadline · 29 Sep 2026 · in " + daysBetween("2026-09-29") + " days");
+  const clause = nextMilestoneClause(classifyMilestones(list), "2026-09-21");
+  assert.equal(clause, "Transition deadline · 29 Sep 2026 · in 8 days");
+});
+
+test("nextMilestoneClause: singular 'day' at exactly 1 day out (pinned 'now')", () => {
+  const list = [entry("2026-09-29", "Transition deadline", "current")];
+  const clause = nextMilestoneClause(classifyMilestones(list), "2026-09-28");
+  assert.equal(clause, "Transition deadline · 29 Sep 2026 · in 1 day");
+});
+
+test("nextMilestoneClause: 'today' at 0 days out (pinned 'now')", () => {
+  const list = [entry("2026-09-29", "Transition deadline", "current")];
+  const clause = nextMilestoneClause(classifyMilestones(list), "2026-09-29");
+  assert.equal(clause, "Transition deadline · 29 Sep 2026 · today");
 });
 
 test("nextMilestoneClause: null when nothing is classified as next", () => {

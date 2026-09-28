@@ -125,11 +125,14 @@ export function collapseTimeline(classified: ClassifiedMilestone[]): CollapsedTi
 
 /** The NEXT MILESTONE exposure cell's compact clause: "Transition deadline . 29 Sep 2026 . in 8
  *  days" (review item 2). Null when no "next" milestone is classified (nothing upcoming, the
- *  EXPOSURE cell then renders the Absence convention, decided by the caller). */
-export function nextMilestoneClause(classified: ClassifiedMilestone[]): string | null {
+ *  EXPOSURE cell then renders the Absence convention, decided by the caller). `nowIso` is an
+ *  optional `YYYY-MM-DD` reference date, forwarded to `daysBetween`'s `fromIso`; omitted, it
+ *  defaults to the real wall clock (same convention as `daysBetween` itself) so callers get
+ *  "today" behavior in production while tests can pin a deterministic "now". */
+export function nextMilestoneClause(classified: ClassifiedMilestone[], nowIso?: string): string | null {
   const next = classified.find((c) => c.state === "next");
   if (!next) return null;
-  const days = daysBetween(next.entry.date);
+  const days = daysBetween(next.entry.date, nowIso);
   return `${next.entry.label} · ${formatDayMonthYear(next.entry.date)} · ${daysPhrase(days)}`;
 }
 
