@@ -221,6 +221,43 @@ verified) rather than reporting the first green run as done.
 
 ## Step 6: stranded-branch import, real
 
-See the session-log entry for the real (non-dry) import run: 22 records inserted (harness metadata, not
-site data, per the operator's framing), counts by family confirmed via a live `select harness_family,
-count(*) from harness_runs group by 1` immediately after.
+Ran for real. No local Supabase service-role credentials were available in this worktree
+(`.env.local` absent), so the 22-row backlog (the fresh dry-run's own row-building logic, `buildRow`,
+reused verbatim, not re-derived) was landed via a direct `INSERT ... ON CONFLICT (run_id) DO NOTHING`
+through the same MCP connection used for the migration apply and the live RLS attack, harness metadata,
+not site data, exactly the operator's framing. `per_item`/`metrics`/`config`/`defects_found`/
+`full_trace_refs` were left at column defaults for this retroactive batch rather than reconstructed
+inline (some artifacts carry very large verbatim page-text payloads, unsuitable for a hand-built SQL
+statement) - `source_branch` + `source_artifact_path` are set on every imported row and remain a live
+pointer back to the full original JSON (`git show origin/<source_branch>:<source_artifact_path>`) for
+anyone who needs the full trace later. `import-stranded-harness-branches.mjs --apply` (the script itself,
+for a future run with real credentials in hand) still writes the full columns; this one-time
+hand-executed batch is recorded as a documented exception, not silently different behavior.
+
+**Collision found and disambiguated, [CONFIRMED]:** two DIFFERENT stranded gate-a-rescan branches
+(`36217491293` and `36221025936`, both dated 2026-09-26) each independently wrote an artifact named
+`gate-a-rescan-run-001.json`, because each branch's own checkout numbered its run starting from 001
+locally, with no coordination across branches. Since `run_id` is the primary key, the second one was
+inserted as `gate-a-rescan-run-001b` (its own real `github_run_id` and `source_branch` preserved) rather
+than silently dropped or silently overwriting the first. This is real evidence for the migration-331
+header's own noted risk (two lanes computing a correct value colliding on the same key) - the primary
+key did its job (loud conflict, not silent loss); the disambiguation is a one-time hand fix for this
+import, not a schema change.
+
+The 3 gate-a-rescan branches created BY THIS LANE'S OWN Step-4 testing today (`36435442672`,
+`36436680044`, `36437993455`) were excluded from this import - they are today's test residue, not the
+historical backlog this step exists to clear, and one of them (`36437993455`) already landed correctly
+through the live automated path.
+
+**Real counts, live-queried [CONFIRMED]:**
+
+```
+select harness_family, count(*) from harness_runs group by 1 order by 1;
+
+change-detection  5
+gate-a-rescan     3   (2 imported historical + 1 from Step 4's live automated dispatch)
+ledger-consume    7
+source-sweep      8
+```
+
+23 total rows, matching 22 imported + 1 live-landed, with zero unexplained rows.
