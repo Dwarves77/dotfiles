@@ -1211,14 +1211,22 @@ jobs:
         run: |
           git fetch --no-tags origin '+refs/heads/maintenance-artifact/*:refs/remotes/origin/maintenance-artifact/*' || true
           : > /tmp/hydrated-maintenance-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/maintenance/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
-              fi
+          # Hydrates BOTH scripts/harness-runs/maintenance/ (the original family this guard was built for)
+          # AND scripts/harness-runs/quarantine-disposition/ (lane QUARANTINE-DISPOSITION, 2026-09-28,
+          # found live: run 36452938188 re-claimed "run-002" and collided on harness_runs' primary key,
+          # because run-001's own maintenance-artifact/<id> branch had not merged yet, so claimRunId's
+          # local-checkout scan never saw it -- the SAME gap this guard already closes for "maintenance",
+          # just not extended past that one family). Same loop, same guard, one more path per family.
+          for family in fsi-app/scripts/harness-runs/maintenance/ fsi-app/scripts/harness-runs/quarantine-disposition/; do
+            for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
+              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "$family"); do
+                rel="${f#fsi-app/}"
+                if [ ! -e "$rel" ]; then
+                  mkdir -p "$(dirname "$rel")"
+                  git show "$b:$f" > "$rel"
+                  echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
+                fi
+              done
             done
           done
           echo "hydrated $(wc -l < /tmp/hydrated-maintenance-artifacts.txt) unmerged maintenance-artifact file(s) from sibling branches"
@@ -1271,6 +1279,7 @@ jobs:
         run: |
           if [ -s /tmp/hydrated-maintenance-artifacts.txt ]; then xargs -a /tmp/hydrated-maintenance-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/maintenance/.claims
+          rm -rf scripts/harness-runs/quarantine-disposition/.claims
 
       - name: Commit the maintenance harness-run artifact and dispatch-ledger row, and open a PR
         if: always()
@@ -1279,7 +1288,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/maintenance ../docs/ops/dispatch-ledger.jsonl
+          # scripts/harness-runs/quarantine-disposition (lane QUARANTINE-DISPOSITION, 2026-09-28, found
+          # by a real dry dispatch, run 36452938188): plan-quarantine-disposition.mjs's own committed
+          # family artifact was never added here, so claimRunId always saw the same committed run-001.json
+          # on every fresh checkout and re-claimed "run-002" every dispatch, colliding on harness_runs'
+          # primary key after the first successful insert (harness_runs_landed:false, "duplicate key value
+          # violates unique constraint" -- confirmed live). Committing this family's own directory here,
+          # the SAME mechanism the "maintenance" family already uses, closes the gap: once a run's
+          # artifact lands (via this step's own PR, merged), the next dispatch's claimRunId sees it and
+          # increments past it.
+          git add scripts/harness-runs/maintenance scripts/harness-runs/quarantine-disposition ../docs/ops/dispatch-ledger.jsonl
           if git diff --cached --quiet; then
             echo "No new maintenance harness-run artifact or dispatch-ledger row to commit."
             exit 0
