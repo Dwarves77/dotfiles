@@ -28,7 +28,10 @@ import { runPlanner } from "../plan-quarantine-disposition.mjs";
  */
 export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   const dispatchApplyDeferrals = String(arg || "").trim() === "dispatch-apply-deferrals";
-  const r = await runPlanner({ mode, out, dispatchApplyDeferrals }, { sb: deps.sb, readAllFn: deps.readAll });
+  // `log` is wired through to console.error (not console.log) so it lands in the step's own log output
+  // without disturbing runCli's `console.log(JSON.stringify(summary))` contract -- a silent
+  // harness_runs_landed:false with no printed reason (run 36446625925, 2026-09-28) is the defect this fixes.
+  const r = await runPlanner({ mode, out, dispatchApplyDeferrals }, { sb: deps.sb, readAllFn: deps.readAll, log: (msg) => console.error(msg) });
   const summary = {
     step: "plan-quarantine-disposition", mode,
     counts: r.counts,
@@ -37,6 +40,7 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
       run_id: r.runId,
       artifact_path: r.artifactPath,
       harness_runs_landed: r.harnessRunRow?.ok === true,
+      harness_runs_error: r.harnessRunRow?.ok === true ? null : (r.harnessRunRow?.error ?? null),
       plan_path: r.outPlanPath,
       apply_deferrals_dry_result: r.applyDeferralsDryResult,
     },
