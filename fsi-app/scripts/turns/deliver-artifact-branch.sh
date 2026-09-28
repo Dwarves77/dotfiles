@@ -50,7 +50,13 @@ while IFS= read -r path; do
     failed=$((failed + 1))
     echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not run cleanly for $path (best-effort, continuing)"
   fi
-done < <(git diff --name-only origin/master...HEAD -- '**/scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
+# Pathspec is relative to CWD (this script always runs from fsi-app/, matching every caller workflow's
+# working-directory) -- a leading '**/' here does NOT match a zero-depth path even under glob pathspec
+# magic (verified live, lane HARNESS-LANDING: the first real dispatch, gate-a-rescan run 36435442672,
+# landed=0 with the '**/'-prefixed form even though the artifact file existed in the diff -- confirmed by
+# testing both forms against that run's own pushed branch). No leading '**/' needed since the path is
+# never nested under an extra nonexistent nesting level from here.
+done < <(git diff --name-only origin/master...HEAD -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
 
 echo "deliver-artifact-branch: landed=$landed failed=$failed"
 {
