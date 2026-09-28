@@ -25,6 +25,13 @@
 // caller that declared them in either order still resolves correctly. Missing/unresolvable rows ->
 // `{ok:false, reason}` (spec §2.2 Part 3's explicit "no method registered yet"-shaped outcome for a
 // self-refusing method — the drain counts this and leaves the value stale, never throws).
+//
+// STATE GRAIN TOO (migration 332/333, lane STATE-COST-DAG 2026-09-27). `ctx.inputs` may instead be two
+// `state_cost_facts` rows: that migration pair added state_cost_facts.value_numeric and widened
+// derivation_edges_from_table_allowed so a state-grain edge is legal. The computation itself, wage plus
+// energy to NPV, is grain-agnostic, only the input-resolution allowlist below needed widening. Every
+// caller in this codebase declares BOTH inputs from the SAME table, never one from each
+// (run-envelope-producer.mjs is region-grain only; state-cost-facts-producer.mjs is state-grain only).
 
 // NOTE: this file does NOT import registerMethod/anything from "./index.ts" — index.ts imports THIS file's
 // named exports and calls registerMethod itself (see index.ts's bottom section). A circular
@@ -42,7 +49,13 @@ import { automateVsHire, DEFAULT_SCENARIO, isHourlyWageUnit } from "../../operat
 export const METHOD_ID = "automate_vs_hire";
 export const METHOD_VERSION = "1.0.0";
 
-/** A regional_data_facts row's shape this method actually reads, per migration 267's envelope columns. */
+// The two grains this method accepts an input FROM (migration 332/333 added the second entry; see the
+// INPUT RESOLUTION header note above for why widening the allowlist, not the computation, is the whole
+// change).
+const ACCEPTED_INPUT_TABLES = ["regional_data_facts", "state_cost_facts"];
+
+/** A regional_data_facts (migration 267) or state_cost_facts (migration 332) row's shape this method
+ *  actually reads: both tables carry dimension/value_numeric/unit in the same shape. */
 interface RegionalFactRow {
   dimension: string;
   value_numeric: number | null;
@@ -51,7 +64,7 @@ interface RegionalFactRow {
 
 function findFactByDimension(inputs: MethodContext["inputs"], dimension: string): RegionalFactRow | null {
   for (const ref of inputs) {
-    if (ref.table !== "regional_data_facts" || !ref.row) continue;
+    if (!ACCEPTED_INPUT_TABLES.includes(ref.table) || !ref.row) continue;
     const row = ref.row as RegionalFactRow;
     if (row.dimension === dimension && typeof row.value_numeric === "number" && Number.isFinite(row.value_numeric)) {
       return row;
@@ -72,7 +85,7 @@ function findFactByDimension(inputs: MethodContext["inputs"], dimension: string)
  */
 function findHourlyWageFact(inputs: MethodContext["inputs"]): { ok: true; row: RegionalFactRow } | { ok: false; reason: string } {
   const wage = findFactByDimension(inputs, "labor_markets");
-  if (!wage) return { ok: false, reason: "no resolvable labor_markets (wage) regional_data_facts input" };
+  if (!wage) return { ok: false, reason: "no resolvable labor_markets (wage) input" };
   if (!isHourlyWageUnit(wage.unit)) {
     return {
       ok: false,
@@ -86,7 +99,7 @@ export const computeAutomateVsHire: MethodFn = (ctx: MethodContext): MethodResul
   const wageResult = findHourlyWageFact(ctx.inputs);
   const energy = findFactByDimension(ctx.inputs, "operational_cost");
   if (!wageResult.ok) return { ok: false, reason: wageResult.reason };
-  if (!energy) return { ok: false, reason: "no resolvable operational_cost (energy) regional_data_facts input" };
+  if (!energy) return { ok: false, reason: "no resolvable operational_cost (energy) input" };
   const wage = wageResult.row;
 
   const r = automateVsHire({

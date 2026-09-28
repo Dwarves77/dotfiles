@@ -114,6 +114,7 @@ export function buildStateCostFactRow(candidate, source, regionId) {
     dimension: candidate.dimension,
     fact_label: candidate.fact_label,
     value: String(candidate.value),
+    value_numeric: parseNumericValue(candidate.value),
     unit: candidate.unit ?? null,
     trend: candidate.trend ?? null,
     source_id: source.source_id,
@@ -123,13 +124,30 @@ export function buildStateCostFactRow(candidate, source, regionId) {
   };
 }
 
+/**
+ * Mechanical numeric mirror of `candidate.value` for the `value_numeric` column (migration 332). NEVER a
+ * second authored figure: this is a parse of the same string every row's `value` TEXT column already
+ * carries, nothing more. Returns null (never NaN, never a guess) when the value is not a plain number,
+ * e.g. a value string that already carries a unit or a range, so a downstream reader (automate_vs_hire's
+ * findFactByDimension) can tell "not numeric" apart from "zero" cleanly.
+ * @param {unknown} value
+ * @returns {number|null}
+ */
+export function parseNumericValue(value) {
+  const s = String(value ?? "").trim();
+  if (!s) return null;
+  if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** The live UNIQUE constraint key: (state_code, dimension, fact_label), migration 152's own
  * `UNIQUE (state_code, dimension, fact_label)`. */
 export function naturalKey(row) {
   return `${row.state_code}|${row.dimension}|${row.fact_label}`;
 }
 
-const UPDATE_FIELDS = ["value", "unit", "trend", "source_id", "statute_citation", "effective_date", "origin_class"];
+const UPDATE_FIELDS = ["value", "value_numeric", "unit", "trend", "source_id", "statute_citation", "effective_date", "origin_class"];
 
 function rowsDiffer(existing, candidate) {
   return UPDATE_FIELDS.some((f) => (existing[f] ?? null) !== (candidate[f] ?? null));

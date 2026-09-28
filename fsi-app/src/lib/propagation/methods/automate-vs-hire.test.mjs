@@ -61,3 +61,22 @@ test("accepts a hourly wage fact regardless of currency, so long as the unit end
   const r = await computeAutomateVsHire(ctx);
   assert.equal(r.ok, true);
 });
+
+// Migration 331/332, lane STATE-COST-DAG 2026-09-27: state_cost_facts is now an accepted input table too
+// (the allowlist widened, the computation stayed grain-agnostic).
+test("state grain: resolves wage + energy inputs from state_cost_facts the same as regional_data_facts", async () => {
+  const stateWageRef = { table: "state_cost_facts", pk: "state-wage-1", version: null, row: { dimension: "labor_markets", value_numeric: 16.0, unit: "USD/hour" } };
+  const stateEnergyRef = { table: "state_cost_facts", pk: "state-energy-1", version: null, row: { dimension: "operational_cost", value_numeric: 0.084, unit: "USD/kWh" } };
+  const ctx = { entityId: "cl:jurisdiction:0000000000000002", inputs: [stateWageRef, stateEnergyRef], priorValue: null, now: new Date("2026-09-27T00:00:00Z") };
+  const r = await computeAutomateVsHire(ctx);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(typeof r.value, "number");
+});
+
+test("a table outside the accepted allowlist (neither regional_data_facts nor state_cost_facts) never resolves", async () => {
+  const bogusRef = { table: "emission_factors", pk: "bogus-1", version: null, row: { dimension: "labor_markets", value_numeric: 20, unit: "USD/hour" } };
+  const ctx = { entityId: null, inputs: [bogusRef, energyRef], priorValue: null, now: new Date() };
+  const r = await computeAutomateVsHire(ctx);
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.match(r.reason, /labor_markets/);
+});
