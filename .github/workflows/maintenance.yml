@@ -1273,39 +1273,23 @@ jobs:
           rm -rf scripts/harness-runs/maintenance/.claims
           rm -rf scripts/harness-runs/quarantine-disposition/.claims
 
-      - name: Commit the maintenance harness-run artifact and dispatch-ledger row, and open a PR
+      - name: Land the maintenance harness-run artifact into harness_runs
+        # NO git add/commit/branch/rebase/push/PR (lane MAINTENANCE-HARNESS, 2026-09-29, rebased onto
+        # PR #824's class fix, coordinator ruling / operator ruling 2026-09-26 "not once that I need a
+        # pull request from GitHub"). This "maintenance" family step was the one caller
+        # deliver-artifact-branch.sh's own header once named as still carrying the old branch-push
+        # residual; #824 rewrote deliver-artifact-branch.sh itself to discover this run's own artifact
+        # file(s) via `git status --porcelain` (no git history needed at all, matches
+        # propagation-drain.yml/source-sweep.yml's own post-#824 call), so the old checkout-a-branch /
+        # commit / fetch --depth=50 / rebase / push dance this step used to run is gone outright, not
+        # just its push. claimRunId's own run_id-collision guard now reads harness_runs directly
+        # (scripts/lib/harness-run-number.mjs's nextRunNumberFromHarnessRuns), not a branch scan, so
+        # the "Hydrate unmerged ... sibling artifacts" step above is retained only for any artifacts a
+        # still-unmerged branch from before this rewrite may carry, same posture the other families
+        # already landed.
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # scripts/harness-runs/quarantine-disposition (lane QUARANTINE-DISPOSITION, 2026-09-28, found
-          # by a real dry dispatch, run 36452938188): plan-quarantine-disposition.mjs's own committed
-          # family artifact was never added here, so claimRunId always saw the same committed run-001.json
-          # on every fresh checkout and re-claimed "run-002" every dispatch, colliding on harness_runs'
-          # primary key after the first successful insert (harness_runs_landed:false, "duplicate key value
-          # violates unique constraint" -- confirmed live). Committing this family's own directory here,
-          # the SAME mechanism the "maintenance" family already uses, closes the gap: once a run's
-          # artifact lands (via this step's own PR, merged), the next dispatch's claimRunId sees it and
-          # increments past it.
-          git add scripts/harness-runs/maintenance scripts/harness-runs/quarantine-disposition ../docs/ops/dispatch-ledger.jsonl
-          if git diff --cached --quiet; then
-            echo "No new maintenance harness-run artifact or dispatch-ledger row to commit."
-            exit 0
-          fi
-          branch="maintenance-artifact/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "maintenance ${RUN_MODE}: ${RUN_STEP} run ${{ github.run_id }}"
-          # BRANCH-BASE (2026-09-04 pattern, copied from source-sweep.yml/population-turn.yml): re-base the
-          # artifact commit onto the current master tip before the push, so a workflow-file change that
-          # landed on master mid-run cannot make GitHub refuse the branch.
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::maintenance artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated maintenance run (run %s).\n\nStep: %s\nMode: %s\nArg: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/maintenance/ and its dispatch-ledger row.\n' \
-            "${{ github.run_id }}" "$RUN_STEP" "$RUN_MODE" "${RUN_ARG:-(none)}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Maintenance: ${RUN_STEP} (mode=${RUN_MODE}, run ${{ github.run_id }})" /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "Maintenance: ${RUN_STEP} (mode=${RUN_MODE}, run ${{ github.run_id }})"
 
       - name: Upload this run's step artifact(s)
         if: always()

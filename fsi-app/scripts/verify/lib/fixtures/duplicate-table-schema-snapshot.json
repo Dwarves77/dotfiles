@@ -1,5 +1,5 @@
 {
-  "_comment": "Live public-schema snapshot (columns+types, table comments), kwrsbpiseruzbfwjpvsp, captured 2026-09-25 by lane TOOL-GAP-2 for calibrating duplicate-table-scan.mjs against real DUP-1 ground truth. Read-only capture (information_schema.columns + pg_class comments); no row data. Regenerate via scripts/verify/duplicate-table-audit.mjs if the schema drifts enough to need a re-calibration.",
+  "_comment": "Live public-schema snapshot (columns+types, table comments), kwrsbpiseruzbfwjpvsp, captured 2026-09-25 by lane TOOL-GAP-2 for calibrating duplicate-table-scan.mjs against real DUP-1 ground truth, REFRESHED 2026-09-28 by lane MAINTENANCE-HARNESS (coordinator ruling, PR #819 CI failure follow-up) to include harness_runs (migration 331, landed after the 2026-09-25 capture) and pick up any other schema drift since. Read-only capture (information_schema.columns + pg_class comments, base tables and views); no row data. Regenerate via scripts/verify/duplicate-table-audit.mjs if the schema drifts enough to need a re-calibration.",
   "columns": [
     {
       "table": "acquisition_backlog_v",
@@ -3233,6 +3233,91 @@
     },
     {
       "table": "grid_connection_queues",
+      "column": "created_at",
+      "udtName": "timestamptz"
+    },
+    {
+      "table": "harness_runs",
+      "column": "run_id",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "harness_family",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "harness_version",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "started_at",
+      "udtName": "timestamptz"
+    },
+    {
+      "table": "harness_runs",
+      "column": "finished_at",
+      "udtName": "timestamptz"
+    },
+    {
+      "table": "harness_runs",
+      "column": "trigger",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "github_run_id",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "upstream_run_id",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "config",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "inputs_ref",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "per_item",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "metrics",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "defects_found",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "full_trace_refs",
+      "udtName": "jsonb"
+    },
+    {
+      "table": "harness_runs",
+      "column": "source_branch",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
+      "column": "source_artifact_path",
+      "udtName": "text"
+    },
+    {
+      "table": "harness_runs",
       "column": "created_at",
       "udtName": "timestamptz"
     },
@@ -7092,6 +7177,11 @@
       "udtName": "text"
     },
     {
+      "table": "state_cost_facts",
+      "column": "value_numeric",
+      "udtName": "numeric"
+    },
+    {
       "table": "statutory_computations",
       "column": "computation_id",
       "udtName": "uuid"
@@ -7885,6 +7975,10 @@
     {
       "table": "grid_connection_queues",
       "comment": "Spec 09 §1.6: the DSO transformer-connection queue — \"commonly 24 to 36 months... the binding constraint on electrification\". src/lib/spec09/grid-queue.mjs treats this as a GATE (BLOCKED/CLEAR against a decision horizon), never folds it into a €/kWh cost line."
+    },
+    {
+      "table": "harness_runs",
+      "comment": "One row per harness-run artifact (fsi-app/scripts/harness-runs/CONVENTION.md), landed by the service-role writer scripts/lib/record-harness-run.mjs (SHARED-WRITER: harness_runs) in place of the old branch-push + gh-pr-create + tracking-issue-520 path (migration 331, lane HARNESS-LANDING, 2026-09-27). RLS ENABLED, no anon/authenticated policy (deny-all): every reader/writer is the service-role client."
     },
     {
       "table": "holdings_quality",

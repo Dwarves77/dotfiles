@@ -36,6 +36,9 @@ import { hostOf, institutionKey } from "./institution-key.mjs";
 // for the defect class this closes (a `.limit(N>1000)` truncates regardless of N; readAll below used to
 // hand-roll the identical range(from, from+999) loop this helper already generalizes).
 import { fetchAllRows, fetchAllByIdChunks } from "../../src/lib/db/paginate.mjs";
+// TABLE_PRIMARY_KEY: readAll()'s own default-orderBy source (see that map's own header for the three
+// live incidents -- entity_refs, item_gate_a_state, harness_runs -- this closes the class of).
+import { TABLE_PRIMARY_KEY } from "./table-primary-keys.mjs";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
 // installed -- db.test.mjs injects a fake client and never touches the real one, so the discipline test
@@ -213,16 +216,29 @@ export function readClient() {
  * own Supabase-shaped client (e.g. `fetchRowsIn` below, which several scripts call with their own
  * `readClient()` result). Optional; every existing caller that omits it gets the same default
  * `readClient()` behavior as before.
+ *
+ * `orderBy` DEFAULT (lane MAINTENANCE-HARNESS, 2026-09-28, coordinator ruling after PR #819's CI
+ * failure): no longer a hardcoded "id". readAll() looks up TABLE_PRIMARY_KEY[table]
+ * (scripts/lib/table-primary-keys.mjs, generated from a live information_schema query) and orders by
+ * the table's REAL primary key -- one column, or every column of a composite key (entity_refs has no
+ * `id` at all; its PK is ref_table, ref_id, entity_id, role -- offset pagination over a non-unique
+ * order can skip or repeat rows between pages). A table absent from that map (a view, or a table
+ * created after the map's own snapshot) has no safe default and readAll() THROWS naming the table and
+ * the fix, rather than silently guessing "id" again -- the exact bug class that broke entity_refs
+ * (2026-09-12), item_gate_a_state (2026-09-26, #812), and harness_runs (2026-09-28, #819), each a
+ * table with no "id" column that inherited the old hardcoded default.
  */
-export async function readAll(table, columns = "*", { match, orderBy = "id", client } = {}) {
+export async function readAll(table, columns = "*", { match, orderBy, client } = {}) {
   const sb = client || readClient();
-  // orderBy: one column, or an ARRAY of columns for tables whose key is composite (entity_refs has
-  // no `id`; its primary key is ref_table, ref_id, entity_id, role). Offset pagination over a
-  // non-unique order can skip or repeat rows between pages, so a composite key orders every column
-  // of the key. Hotfix 2026-09-12 after Maintenance run 34670770742 failed at "Population BEFORE":
-  // the entity_refs report entry inherited the default `id` and PostgREST answered
-  // "column entity_refs.id does not exist".
-  const orderColumns = Array.isArray(orderBy) ? orderBy : [orderBy];
+  const resolvedOrderBy = orderBy ?? TABLE_PRIMARY_KEY[table];
+  if (resolvedOrderBy === undefined) {
+    throw new Error(
+      `readAll("${table}"): no orderBy given and "${table}" is not in scripts/lib/table-primary-keys.mjs's ` +
+      `TABLE_PRIMARY_KEY map (it may be a view, or a table added since that map's snapshot). Pass ` +
+      `{ orderBy: "<column>" } explicitly -- readAll never guesses a default order column.`
+    );
+  }
+  const orderColumns = Array.isArray(resolvedOrderBy) ? resolvedOrderBy : [resolvedOrderBy];
   return fetchAllRows((from, to) => {
     let q = sb.from(table).select(columns);
     for (const col of orderColumns) q = q.order(col);
