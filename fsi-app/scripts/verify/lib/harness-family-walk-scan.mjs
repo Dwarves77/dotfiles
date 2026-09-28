@@ -296,3 +296,28 @@ export function staleHarnessWalkAllowlistEntries({ summaries, allowlist }) {
   }
   return stale;
 }
+
+/** Adapts a `harness_runs` DB row (migration 331, lane HARNESS-LANDING 2026-09-27) into the same
+ * {name, parsed} shape `readFamilyArtifacts` builds from the local filesystem, so
+ * `summarizeFamilyDispatchHistory` (unchanged) can consume DB-landed rows and locally-committed
+ * artifact files identically. Pure -- no I/O. `name` mirrors the filename convention
+ * (`<run_id>.json`) purely for display/dedup purposes; nothing re-reads it from disk. */
+export function dbRowToArtifactEntry(row) {
+  return {
+    name: `${row.run_id}.json`,
+    parsed: {
+      harness_family: row.harness_family,
+      harness_version: row.harness_version ?? null,
+      run_id: row.run_id,
+      started_at: row.started_at,
+      trigger: row.trigger ?? null,
+      config: row.config ?? {},
+      inputs_ref: row.inputs_ref ?? [],
+      per_item: row.per_item ?? [],
+      metrics: row.metrics ?? {},
+      defects_found: row.defects_found ?? [],
+      full_trace_refs: row.full_trace_refs ?? [],
+      upstream_run_id: row.upstream_run_id ?? null,
+    },
+  };
+}

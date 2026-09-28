@@ -36,7 +36,30 @@ table below): `harness_family`, `harness_version`, `run_id`, `started_at`, `conf
 matching `brief_apply_runs`'s own two-phase start/finish shape, and a family's writer can leave it null
 if a family never needs a finish-time update.
 
-## Step 2: the table is missing. Migration sketch (DDL only, NOT applied)
+## Step 2 (UPDATE, later same day): coordinator-approved amendment, applied, live RLS attack green
+
+Coordinator review approved the sketch below on reuse grounds, WITH one required amendment: per SEC-1
+(migration 330, `derivation_edges`), every new table ships locked down AT CREATION (RLS enabled,
+anon/authenticated revoked, no policies, service-role only) rather than closing the gap in a later fix
+lane. `fsi-app/supabase/migrations/331_harness_runs.sql` was amended accordingly (revoke + enable RLS +
+post-check DO block, migration 330's own template). Operator then lifted the push/merge hold (worktree
+node_modules fix landed, PR #815) and authorized: apply the migration, run the live adversarial attack,
+build the writer, wire the walker, push, and test for real. All of that is now DONE, in order:
+
+- **[CONFIRMED, `apply_migration` via MCP]** Migration `331_harness_runs` applied to project
+  `kwrsbpiseruzbfwjpvsp`, confirmed in `supabase_migrations.schema_migrations`
+  (`version=20260928014509`, `name=331_harness_runs`).
+- **[CONFIRMED, live `execute_sql` attack, one transaction, always rolled back]** Six probes, all PASS:
+  anon INSERT denied, anon UPDATE denied, anon DELETE denied, authenticated INSERT denied, authenticated
+  SELECT sees 0 rows, service_role (BYPASSRLS) sees its own fixture row (the both-directions proof: the
+  guard denies unauthorized roles without bricking the legitimate path). Fixture and results scratch
+  table both cleaned up; `select count(*) from harness_runs where run_id like 'rls-attack%'` returned 0
+  afterward.
+- **[CONFIRMED]** `fsi-app/scripts/verify/harness-runs-rls-adversarial-audit.mjs` written, modeled on
+  `derivation-edges-rls-adversarial-audit.mjs`, auto-discovered by the data-audit lane's marker scan
+  (`// data-audit: label=harness-runs-rls-adversarial hard=true`), execution-wired per rule 15.
+
+## Step 2 (original sketch, DDL only, at the time NOT applied)
 
 ```sql
 -- DRAFT, NOT APPLIED. Sketch only per operator instruction: "if the existing table lacks a column you
@@ -79,12 +102,34 @@ pairs (`summarizeFamilyDispatchHistory`, pure) - each needs one new call site th
 and adapts rows to that same shape (`name: run_id + ".json"`, `parsed: <the row's own jsonb columns
 reassembled into the artifact shape>`), no change to the pure summarizer functions themselves.
 
-Per the operator's own fallback instruction, this lane STOPS here rather than writing code against a
-table that does not exist yet: writing `record-harness-run.mjs` or wiring the walker/F50 to a query
-against `harness_runs` now would (a) fail the repo's own schema-drift audit
-(`fsi-app/scripts/verify/schema-drift-audit.mjs`) on the very next pre-push, and (b) be unverifiable
-without the table to test against. Step 4 (dispatch a real workflow and show the row land) is deferred
-to the lane that applies this migration.
+(At the time this was written the lane stopped here per the operator's own fallback instruction, since
+the table did not exist yet. See the Step 2 UPDATE above and Step 4 below for what happened once the
+migration applied.)
+
+The writer and wiring described above are now BUILT (not just sketched):
+- `fsi-app/scripts/lib/record-harness-run.mjs` (`recordHarnessRun`, `// SHARED-WRITER: harness_runs`,
+  a plain best-effort insert, same posture as `recordApplyRunStart`), plus a CLI (`--file <artifact.json>`)
+  for `deliver-artifact-branch.sh` to call. Unit-tested (`record-harness-run.test.mjs`, 4 cases: happy
+  path, insert error, client throw, missing-optional-fields defaulting).
+- `deliver-artifact-branch.sh` REWRITTEN: the branch-push/`gh pr create`/issue-520 body is gone; it now
+  diffs `origin/master...HEAD` for this run's own `scripts/harness-runs/**/*-run-*.json` file(s) and
+  calls `record-harness-run.mjs --file <path>` for each. Call signature unchanged
+  (`<branch> <title> <body_file>`), so NO `.github/workflows/*.yml` file needed editing. Named residual:
+  every calling workflow still runs `git push origin HEAD:"$branch"` immediately before this script,
+  which is now a REDUNDANT step (landing is a DB write, not a branch merge); removing that push is a
+  follow-up lane's workflow-file edit, out of this lane's scope (this lane was told not to reinvent, and
+  keeping the call signature stable was the way to land the DB write with zero workflow diffs).
+- The harness-family schedule walker (`harness-family-schedule-walker-audit.mjs`, PR #810) now merges
+  `harness_runs` DB rows with local-filesystem artifacts via a new pure adapter `dbRowToArtifactEntry`
+  (`harness-family-walk-scan.mjs`), deduped by name. Self-skips to filesystem-only behavior when no DB
+  creds are present, preserving the walker's long-standing "no DB" contract for that case. Unit-tested
+  (2 new cases in `harness-family-walk-scan.test.mjs`). Ran locally with no creds loaded in this shell:
+  completed cleanly (self-skip confirmed), same output shape as before this lane.
+- **F50 (`.discipline/fitness/functions/F50-loop-wiring.mjs`) is deliberately NOT wired to the DB in this
+  lane.** F50 is a synchronous fitness function that gates every push on every machine (no creds
+  guaranteed, no self-skip-on-network-error precedent the way the CI-with-secrets data-audit lane has);
+  adding a live network dependency there is a different risk profile than the walker's own DB read and
+  deserves its own scoped follow-up, not a bundled add here. Flagged, not silently dropped (rule 13).
 
 ## Step 3: one-time import of the 39 stranded branches (dry-run only, drafted and run)
 
@@ -142,12 +187,15 @@ change is included in this lane for this reason - there is nothing broken to cha
 17 orphan branches' actual content (land it some other way, or close the branches) is a separate human
 decision, flagged here rather than silently dropped, out of this lane's scope.
 
-## Step 4: TEST FOR REAL - stopped
+## Step 4: TEST FOR REAL
 
-Per the operator's own instruction ("if that needs the migration first, stop at step 2's sketch"): this
-lane stops here. Dispatching `gate-a-rescan.yml` in dry mode now would still hit the OLD
-`deliver-artifact-branch.sh` path (branch push + refused PR + issue-520 comment), because the new
-writer and the migration are, correctly, not yet built or applied. A real test of the new path needs, in
-order: (1) apply the `harness_runs` migration above, (2) land `record-harness-run.mjs` and the
-`deliver-artifact-branch.sh` replacement, (3) then dispatch `gate-a-rescan.yml --ref coord/harness-landing
--f mode=dry -f limit=5` and confirm a row lands in `harness_runs` with that run's `github_run_id`.
+(Placeholder note at the time this was first written: dispatching before the migration/writer landed
+would have hit the OLD path. Both are now built and applied; see the session-log entry / PR update for
+the actual `gate-a-rescan.yml --ref coord/harness-landing -f mode=dry -f limit=5` dispatch result and the
+`harness_runs` row it wrote.)
+
+## Step 6: stranded-branch import, real
+
+See the session-log entry for the real (non-dry) import run: 22 records inserted (harness metadata, not
+site data, per the operator's framing), counts by family confirmed via a live `select harness_family,
+count(*) from harness_runs group by 1` immediately after.

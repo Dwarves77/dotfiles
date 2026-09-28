@@ -17,6 +17,7 @@ import {
   summarizeWorkflowRunHistory,
   classifyDispatchEvidence,
   staleHarnessWalkAllowlistEntries,
+  dbRowToArtifactEntry,
 } from './harness-family-walk-scan.mjs';
 
 test('runArtifactNames: matches only this family\'s own <family>-run-NNN.json entries', () => {
@@ -243,4 +244,55 @@ test('staleHarnessWalkAllowlistEntries: a still-zero-dispatch allowlisted family
     allowlist: { 'gate-a-rescan': { reason: 'still zero-dispatch, tracked under build order step 6' } },
   });
   assert.deepEqual(stale, []);
+});
+
+test('dbRowToArtifactEntry: adapts a harness_runs row (migration 331) into the {name, parsed} shape ' +
+  'summarizeFamilyDispatchHistory already consumes from the filesystem, name mirrors <run_id>.json', () => {
+  const row = {
+    run_id: 'brief-export-run-014',
+    harness_family: 'brief-export',
+    harness_version: 'sha256:abc123',
+    started_at: '2026-09-27T12:00:00Z',
+    trigger: 'workflow_run',
+    config: { mode: 'apply' },
+    inputs_ref: ['scripts/_snapshots/x.json'],
+    per_item: [{ id: 'x', outcome: 'exported' }],
+    metrics: { exported: 1 },
+    defects_found: [],
+    full_trace_refs: ['scripts/harness-runs/brief-export/traces/x.json'],
+    upstream_run_id: '999',
+    source_branch: null,
+    source_artifact_path: null,
+  };
+  const entry = dbRowToArtifactEntry(row);
+  assert.equal(entry.name, 'brief-export-run-014.json');
+  assert.equal(entry.parsed.harness_family, 'brief-export');
+  assert.equal(entry.parsed.run_id, 'brief-export-run-014');
+  assert.equal(entry.parsed.started_at, '2026-09-27T12:00:00Z');
+  assert.equal(entry.parsed.trigger, 'workflow_run');
+  assert.deepEqual(entry.parsed.per_item, [{ id: 'x', outcome: 'exported' }]);
+});
+
+test('dbRowToArtifactEntry: a row landed by the one-time import (source_branch/source_artifact_path set) ' +
+  'still adapts cleanly, and summarizeFamilyDispatchHistory picks it up as a real dispatched run', () => {
+  const row = {
+    run_id: 'change-detection-run-001',
+    harness_family: 'change-detection',
+    harness_version: null,
+    started_at: '2026-09-02T12:43:21.484Z',
+    trigger: null,
+    config: {},
+    inputs_ref: [],
+    per_item: [],
+    metrics: {},
+    defects_found: [],
+    full_trace_refs: [],
+    upstream_run_id: null,
+    source_branch: 'change-detection/33631450443',
+    source_artifact_path: 'fsi-app/scripts/harness-runs/change-detection/change-detection-run-001.json',
+  };
+  const entry = dbRowToArtifactEntry(row);
+  const summary = summarizeFamilyDispatchHistory('change-detection', [entry]);
+  assert.equal(summary.everDispatched, true);
+  assert.equal(summary.lastRunId, 'change-detection-run-001');
 });

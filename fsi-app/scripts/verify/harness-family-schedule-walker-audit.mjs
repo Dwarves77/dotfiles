@@ -55,6 +55,7 @@ import { loadFamilies, HARNESS_RUNS_DIR } from '../harness-runs/family-registry.
 import { walkFiles } from '../lib/walk-files.mjs';
 import {
   runArtifactNames,
+  dbRowToArtifactEntry,
   summarizeFamilyDispatchHistory,
   findZeroDispatchProducers,
   extractProducerRoster,
@@ -138,7 +139,7 @@ function loadAllowlist() {
   }
 }
 
-function readFamilyArtifacts(family) {
+function readLocalFamilyArtifacts(family) {
   const dir = join(HARNESS_RUNS_DIR, family);
   let entries = [];
   try { entries = readdirSync(dir); } catch { return []; }
@@ -150,9 +151,62 @@ function readFamilyArtifacts(family) {
   });
 }
 
+// harness_runs (migration 331, lane HARNESS-LANDING 2026-09-27) is the NEW landing path for every
+// family's own run artifacts (replacing deliver-artifact-branch.sh's old branch/PR/#520 path). This
+// walker's own contract stays "no DB, self-skip on anything unavailable" (its header's long-standing
+// "no DB" note): a missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY, an import failure, or any
+// query error silently returns [] rather than affecting exit code, so a no-cred run keeps its existing
+// filesystem-only behavior exactly.
+let dbClientPromise;
+async function getDbClient() {
+  if (dbClientPromise !== undefined) return dbClientPromise;
+  dbClientPromise = (async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return null;
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      return createClient(url, key, { auth: { persistSession: false } });
+    } catch {
+      return null;
+    }
+  })();
+  return dbClientPromise;
+}
+
+async function readDbFamilyArtifacts(family) {
+  const sb = await getDbClient();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb.from('harness_runs').select('*').eq('harness_family', family);
+    if (error || !Array.isArray(data)) return [];
+    return data.map(dbRowToArtifactEntry);
+  } catch {
+    return [];
+  }
+}
+
+/** Merges local-filesystem artifacts (the pre-existing evidence source) with harness_runs DB rows (the
+ * new landing path), deduped by name (a run landed both ways -- e.g. during the migration window, or a
+ * family whose workflow was not yet updated to stop committing the file -- counts once). */
+async function readFamilyArtifacts(family) {
+  const local = readLocalFamilyArtifacts(family);
+  const seen = new Set(local.map((a) => a.name));
+  const merged = [...local];
+  for (const entry of await readDbFamilyArtifacts(family)) {
+    if (!seen.has(entry.name)) {
+      merged.push(entry);
+      seen.add(entry.name);
+    }
+  }
+  return merged;
+}
+
 try {
   const families = loadFamilies();
-  const summaries = families.map((f) => summarizeFamilyDispatchHistory(f.family, readFamilyArtifacts(f.family)));
+  const summaries = await Promise.all(
+    families.map(async (f) => summarizeFamilyDispatchHistory(f.family, await readFamilyArtifacts(f.family))),
+  );
   const allowlist = loadAllowlist();
   const availableWorkflowBasenames = loadAvailableWorkflowBasenames();
 
@@ -185,7 +239,7 @@ try {
     return { file: f.slice(ROOT.length + 1), content };
   });
   const roster = extractProducerRoster(corpusFiles);
-  const producersArtifacts = readFamilyArtifacts('producers');
+  const producersArtifacts = await readFamilyArtifacts('producers');
   const producerSummaries = roster.map((r) => summarizeProducerDispatchHistory(r.producer, producersArtifacts));
   const producersWorkflowFile = workflowFileByFamily.get('producers') ?? null;
   const producersWorkflowEvidence = producersWorkflowFile

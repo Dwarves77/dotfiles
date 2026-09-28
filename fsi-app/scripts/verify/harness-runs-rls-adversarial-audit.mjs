@@ -1,4 +1,5 @@
 // data-audit: label=harness-runs-rls-adversarial hard=true
+// SHARED-WRITER: harness_runs
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline (rule 15, a guard is
  *  proven by attack, not presence).
  *

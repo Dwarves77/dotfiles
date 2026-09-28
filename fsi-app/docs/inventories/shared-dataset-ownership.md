@@ -907,6 +907,32 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
 Named here for completeness, not because the registry requires it — mirroring the disposition already
 established at line 180 for the migration-282/283 entity tables.
 
+- **`harness_runs`** (migration 331, lane HARNESS-LANDING, 2026-09-27), one row per harness-run artifact
+  (`fsi-app/scripts/harness-runs/CONVENTION.md`), replacing `deliver-artifact-branch.sh`'s old
+  branch-push + `gh pr create` + tracking-issue-520 landing path (impossible on this repository, Actions
+  cannot create or approve PRs, permanently, by operator ruling 2026-09-26) with a direct DB write,
+  generalizing `brief_apply_runs`'s own already-working guarded-writer pattern (migration 322,
+  `recordApplyRunStart`) to every harness family instead of inventing a new mechanism. RLS enabled,
+  anon/authenticated revoked at creation (SEC-1 posture, migration 330's template), service-role only.
+  Writers:
+  - `fsi-app/scripts/lib/record-harness-run.mjs` (`recordHarnessRun`, a plain best-effort insert, exempt
+    from rule 015 the same way `recordApplyRunStart` is: additive, never a mutation of existing state),
+    the shared function `deliver-artifact-branch.sh` now calls per landed artifact file, in place of the
+    removed branch/PR/issue steps.
+  - `fsi-app/scripts/turns/import-stranded-harness-branches.mjs`, the one-time import of the branches
+    stranded by the old path (`--dry` only in this lane; `--apply` is intentionally unimplemented until
+    the migration is confirmed live and the operator authorizes the real import).
+  - `fsi-app/scripts/verify/harness-runs-rls-adversarial-audit.mjs`, the RD-15 adversarial proof (anon/
+    authenticated INSERT/UPDATE/DELETE/SELECT denied, rolled back), a fixture writer only, self-skips
+    when the table does not exist yet.
+  Readers: the harness-family schedule walker (`fsi-app/scripts/verify/harness-family-schedule-walker-
+  audit.mjs`, PR #810) merges DB rows with local-filesystem artifacts via `dbRowToArtifactEntry`,
+  self-skipping to filesystem-only behavior when no DB creds are present (preserving its long-standing
+  "no DB" contract for the no-cred case). F50 (`.discipline/fitness/functions/F50-loop-wiring.mjs`) is
+  NOT yet wired to this table, deliberately deferred (a synchronous fitness function gating every push
+  is a different risk profile than a CI-with-secrets data-audit lane; adding a live network dependency
+  there needs its own scoped follow-up, not bundled into this lane).
+
 ## Open leaks summary
 
 1. **`integrity_flags` / `created_by ∈ {intake-seek-study, intake-relevance}`** — producer
