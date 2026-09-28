@@ -1,0 +1,72 @@
+{
+  "harness_family": "gate-a-rescan",
+  "harness_version": "sha256:d0e14202b952f5ae",
+  "run_id": "gate-a-rescan-run-002",
+  "started_at": "2026-09-28T14:43:07Z",
+  "config": {
+    "trigger": "workflow_dispatch",
+    "mode": "dry",
+    "limit": 5,
+    "upstream_name": null,
+    "upstream_run_id": null,
+    "loop_run_id": null,
+    "scope_source": "scanned_at ascending only -- no upstream artifact on the tree this run checked out",
+    "attach": {
+      "rows_offered": 0
+    },
+    "github_run_id": "36437993455"
+  },
+  "inputs_ref": [
+    "scripts/maintenance/gate-a-rescan.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "45dab7a6-ac61-48b2-a9af-24be8568ba02",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6304a9f0-6340-4c6d-90b6-a7321190bb42",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+      "outcome": "rescanned",
+      "verdict": "gate_a_version 2026-07-30.1 -> 2026-09-04.1; orphan_count 0 -> 0",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "candidates": 1518,
+    "stale": 916,
+    "selected": 5,
+    "touched": 0,
+    "distinct_versions_remaining": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "docs/runbooks/MAINTENANCE-RUNBOOK.md"
+  ],
+  "proposer_notes": "Auto-emitted by emit-gate-a-rescan-artifact.mjs after gate-a-rescan.mjs's own run (and, when any orphaned items remained, attach-found-sources.mjs's chained worklist pass) recorded their outcomes.",
+  "trigger": "workflow_dispatch"
+}
