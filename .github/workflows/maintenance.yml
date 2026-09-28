@@ -162,28 +162,6 @@ jobs:
           fi
           echo "OUT_ROOT=$RUNNER_TEMP/maintenance-${{ github.run_id }}" >> "$GITHUB_ENV"
 
-      - name: Hydrate quarantine-disposition sibling artifacts (run_id collision guard, pre-step)
-        # Lane QUARANTINE-DISPOSITION, 2026-09-28, found live: run 36457240971 still collided on
-        # "quarantine-disposition-run-002" after the end-of-job hydration guard was extended to this
-        # family (see "Hydrate unmerged maintenance-artifact sibling artifacts" below), because that
-        # guard runs AFTER every per-step tool has already executed -- it was purpose-built for the
-        # "maintenance" family's own end-of-job artifact, not a per-step tool's earlier claimRunId call.
-        # This is the SAME hydration, positioned before any step (including plan-quarantine-disposition)
-        # runs, so claimRunId sees every unmerged sibling run BEFORE it picks a number.
-        run: |
-          git fetch --no-tags origin '+refs/heads/maintenance-artifact/*:refs/remotes/origin/maintenance-artifact/*' || true
-          : > /tmp/hydrated-prestep-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/quarantine-disposition/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-prestep-artifacts.txt
-              fi
-            done
-          done
-
       - name: Population BEFORE
         run: node scripts/verify/population-report.mjs
 
@@ -1233,22 +1211,14 @@ jobs:
         run: |
           git fetch --no-tags origin '+refs/heads/maintenance-artifact/*:refs/remotes/origin/maintenance-artifact/*' || true
           : > /tmp/hydrated-maintenance-artifacts.txt
-          # Hydrates BOTH scripts/harness-runs/maintenance/ (the original family this guard was built for)
-          # AND scripts/harness-runs/quarantine-disposition/ (lane QUARANTINE-DISPOSITION, 2026-09-28,
-          # found live: run 36452938188 re-claimed "run-002" and collided on harness_runs' primary key,
-          # because run-001's own maintenance-artifact/<id> branch had not merged yet, so claimRunId's
-          # local-checkout scan never saw it -- the SAME gap this guard already closes for "maintenance",
-          # just not extended past that one family). Same loop, same guard, one more path per family.
-          for family in fsi-app/scripts/harness-runs/maintenance/ fsi-app/scripts/harness-runs/quarantine-disposition/; do
-            for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
-              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "$family"); do
-                rel="${f#fsi-app/}"
-                if [ ! -e "$rel" ]; then
-                  mkdir -p "$(dirname "$rel")"
-                  git show "$b:$f" > "$rel"
-                  echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
-                fi
-              done
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
+            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/maintenance/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
+              fi
             done
           done
           echo "hydrated $(wc -l < /tmp/hydrated-maintenance-artifacts.txt) unmerged maintenance-artifact file(s) from sibling branches"
@@ -1300,10 +1270,6 @@ jobs:
         if: always()
         run: |
           if [ -s /tmp/hydrated-maintenance-artifacts.txt ]; then xargs -a /tmp/hydrated-maintenance-artifacts.txt rm -f; fi
-          # /tmp/hydrated-prestep-artifacts.txt: the pre-step quarantine-disposition hydration above (a
-          # SEPARATE tracking file, written before any per-step tool runs, so claimRunId sees siblings
-          # before picking a number) -- same "belongs to its own branch" removal, run at the same point.
-          if [ -s /tmp/hydrated-prestep-artifacts.txt ]; then xargs -a /tmp/hydrated-prestep-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/maintenance/.claims
           rm -rf scripts/harness-runs/quarantine-disposition/.claims
 

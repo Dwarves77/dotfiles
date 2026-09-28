@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isValidDeferral } from "./lib/deferral.mjs";
-import { planDispositions, buildDeferralCandidate, runPlanner } from "./plan-quarantine-disposition.mjs";
+import { planDispositions, buildDeferralCandidate, runPlanner, nextRunNumberFromHarnessRuns } from "./plan-quarantine-disposition.mjs";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-09-28T00:00:00Z");
@@ -100,13 +100,53 @@ test("planDispositions: past-bound item with NO cheap-verify decision recorded f
 
 // ── runPlanner integration (fake sb/readAllFn/familyDir -- no real DB, no real repo writes) ────────────
 
-function fakeDb({ items, flags }) {
+function fakeDb({ items, flags, harnessRuns = [] }) {
   return async (table) => {
     if (table === "intelligence_items") return items;
     if (table === "integrity_flags") return flags;
+    if (table === "harness_runs") return harnessRuns;
     throw new Error(`fakeDb: unexpected table ${table}`);
   };
 }
+
+// ── nextRunNumberFromHarnessRuns (coordinator ruling, 2026-09-28: harness_runs is the durable record
+//    since #813, not a maintenance-artifact/* branch scan -- see this function's own header) ───────────
+
+test("nextRunNumberFromHarnessRuns: no prior rows -> 1", async () => {
+  const n = await nextRunNumberFromHarnessRuns(fakeDb({ items: [], flags: [], harnessRuns: [] }), "quarantine-disposition");
+  assert.equal(n, 1);
+});
+
+test("nextRunNumberFromHarnessRuns: picks max+1, not count+1 (a gap in numbers must not be filled)", async () => {
+  const rows = [{ run_id: "quarantine-disposition-run-001" }, { run_id: "quarantine-disposition-run-003" }];
+  const n = await nextRunNumberFromHarnessRuns(fakeDb({ items: [], flags: [], harnessRuns: rows }), "quarantine-disposition");
+  assert.equal(n, 4);
+});
+
+test("nextRunNumberFromHarnessRuns: ignores rows from a DIFFERENT family's run_id shape and malformed ids", async () => {
+  const rows = [
+    { run_id: "quarantine-disposition-run-002" },
+    { run_id: "maintenance-run-099" },       // different family, must not leak in
+    { run_id: "not-a-run-id-at-all" },       // malformed, must not throw
+    { run_id: null },                         // null, must not throw
+  ];
+  const n = await nextRunNumberFromHarnessRuns(fakeDb({ items: [], flags: [], harnessRuns: rows }), "quarantine-disposition");
+  assert.equal(n, 3);
+});
+
+test("nextRunNumberFromHarnessRuns: queries scoped to the named family (match filter honored)", async () => {
+  let capturedMatch = null;
+  const readAllFn = async (table, columns, opts) => {
+    if (table === "harness_runs") {
+      capturedMatch = opts?.match;
+      return [{ run_id: "quarantine-disposition-run-005" }];
+    }
+    throw new Error("unexpected table");
+  };
+  const n = await nextRunNumberFromHarnessRuns(readAllFn, "quarantine-disposition");
+  assert.equal(n, 6);
+  assert.equal(typeof capturedMatch, "function", "must pass a match filter scoping to harness_family");
+});
 
 test("runPlanner (dry): reads, plans, writes a harness-run artifact, records harness_runs (fake), writes NO plan.json", async (t) => {
   const familyDir = mkdtempSync(join(tmpdir(), "qd-plan-test-"));
@@ -219,4 +259,40 @@ test("runPlanner (no recordHarnessRunFn override): never calls .insert on the gu
   assert.equal(r.harnessRunRow.ok, false);
   assert.match(r.harnessRunRow.error, /NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY/, "must fail on missing credentials for the dedicated write client, never on guardedSb.from(...).insert throwing (rule 015)");
   assert.doesNotMatch(r.harnessRunRow.error, /write refused|rule 015/, "guardedSb's own throw text must never appear -- proves guardedSb.insert was never called");
+});
+
+// Collision case (coordinator ruling, 2026-09-28): the OLD behavior claimed the run_id from the LOCAL
+// git checkout alone (scanning the family dir for existing run-NNN.json files), which is empty on every
+// fresh CI checkout unless a prior run's own git branch happened to have merged -- confirmed live to
+// collide on harness_runs' primary key four dispatches in a row (runs 36446625925, 36450334869,
+// 36452938188, 36457240971) before this fix. This proves the NEW behavior: with an EMPTY local family
+// dir (the CI-checkout condition that caused every collision) but harness_runs already holding
+// run-001..003, runPlanner claims run-004, never re-claiming a number harness_runs already has.
+test("runPlanner: claims the run_id from harness_runs, not the (possibly empty) local checkout -- the collision case", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "qd-plan-test-")); // EMPTY -- no run-NNN.json committed here, exactly like a fresh CI checkout
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const items = [{ id: "a", legacy_id: "it-a", item_type: "regulation" }];
+  const flags = [{ subject_ref: "a", created_at: iso(-3 * DAY), created_by: "trigger", status: "open" }];
+  const harnessRuns = [
+    { run_id: "quarantine-disposition-run-001" },
+    { run_id: "quarantine-disposition-run-002" },
+    { run_id: "quarantine-disposition-run-003" },
+  ];
+
+  const recorded = [];
+  const r = await runPlanner(
+    { mode: "dry", out: null, dispatchApplyDeferrals: false },
+    {
+      sb: {},
+      readAllFn: fakeDb({ items, flags, harnessRuns }),
+      log: () => {},
+      now: NOW,
+      familyDir,
+      recordHarnessRunFn: async (sb, artifact) => { recorded.push(artifact); return { ok: true, run_id: artifact.run_id }; },
+    }
+  );
+
+  assert.equal(r.runId, "quarantine-disposition-run-004", "must claim run-004 (harness_runs' own next number), never re-claim run-001 from the empty local checkout");
+  assert.equal(recorded[0].run_id, "quarantine-disposition-run-004");
 });

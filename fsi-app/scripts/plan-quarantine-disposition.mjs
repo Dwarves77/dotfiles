@@ -190,6 +190,27 @@ export function planDispositions({ items, flags, cheapDecisionByItemId, now = ne
   return { plan, counts, deferralCandidates };
 }
 
+/**
+ * The next run_id NUMBER for `family`, derived from `harness_runs` (the durable record since #813),
+ * never from scanning git branches. Pure over the rows `readAllFn` returns -- parses the trailing
+ * `-run-NNN` integer off every `run_id` for this family and returns max+1, or 1 when none exist yet.
+ * A malformed/foreign-shaped run_id (should not happen; this family's own writer always uses the
+ * `<family>-run-NNN` pattern) is skipped rather than thrown on, so one bad row can't crash planning.
+ * @param {Function} readAllFn
+ * @param {string} family
+ * @returns {Promise<number>}
+ */
+export async function nextRunNumberFromHarnessRuns(readAllFn, family) {
+  const rows = await readAllFn("harness_runs", "run_id", { match: (q) => q.eq("harness_family", family) });
+  const re = new RegExp(`^${family}-run-(\\d+)$`);
+  let max = 0;
+  for (const r of rows || []) {
+    const m = re.exec(String(r?.run_id ?? ""));
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
+  }
+  return max + 1;
+}
+
 // ── Live-DB orchestration (dry: reads only + a harness-run write; apply: also writes plan.json and, with
 //    --dispatch-apply-deferrals, exercises the hand-off to apply-deferrals.mjs in ITS OWN dry mode) ──────
 
@@ -241,7 +262,17 @@ export async function runPlanner({ mode = "dry", out = null, dispatchApplyDeferr
   const fsiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const familyDir = familyDirOverride || resolve(fsiRoot, "scripts/harness-runs", FAMILY);
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], fsiRoot);
-  const runId = claimRunId(familyDir, FAMILY);
+  // Coordinator ruling, 2026-09-28 (after #813 made harness_runs the durable record of every run):
+  // the run_id number comes from harness_runs, not from scanning maintenance-artifact/* branches (a
+  // second, soon-retired source of truth this git-scan-only claimRunId can't see -- confirmed live,
+  // runs 36446625925/36450334869/36452938188/36457240971 each re-claimed a stale number and collided
+  // on harness_runs' own primary key until the branch got hydrated in). readAllFn already reads
+  // harness_runs elsewhere in this repo's convention (a plain SELECT, not a write -- readClient()'s
+  // guard only blocks .insert/.update/.delete/.upsert, never .select); startAt is claimRunId's own
+  // documented override point, so no change to that shared primitive (scripts/lib/run-artifact.mjs,
+  // used by every OTHER family) is needed.
+  const nextNumber = await nextRunNumberFromHarnessRuns(readAllFn, FAMILY);
+  const runId = claimRunId(familyDir, FAMILY, { startAt: nextNumber });
 
   const perItem = plan.map((p) => ({
     id: p.legacy_id || p.item_id,
