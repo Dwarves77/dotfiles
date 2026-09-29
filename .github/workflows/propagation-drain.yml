@@ -121,6 +121,16 @@ on:
         required: false
         default: ''
         type: string
+      chain_upstream_name:
+        description: 'INTERNAL, never set by hand (lane LOOP-B-FIRING, 2026-09-28, F60): downstream-chain.yml''s own explicit `gh workflow run` dispatch fallback passes "Downstream chain" here, since a native workflow_run event off it would be depth 4 (past GitHub''s documented 3-level workflow_run chain limit) and never actually fire. Non-empty only on that fallback path.'
+        required: false
+        default: ''
+        type: string
+      chain_upstream_run_id:
+        description: 'INTERNAL, paired with chain_upstream_name (see that input): the dispatching downstream-chain run''s own github.run_id, so this run can rebuild an equivalent trigger_context and loop_run_id resolution as if a native workflow_run event had fired.'
+        required: false
+        default: ''
+        type: string
   # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule — see this
   # file's own header "CHAINING" section and population-turn.yml's identical rule-16 reading. Fires once
   # per "Data producers" run, any conclusion; the first job step decides whether it earns a drain.
@@ -197,6 +207,22 @@ jobs:
             # through it, whatever the run's own mode input says.
             if [ -n "$RUN_STATUTORY_ROWS_FILE" ]; then RUN_STATUTORY_FORCE_DRY=true; else RUN_STATUTORY_FORCE_DRY=false; fi
 
+            # chain_upstream_name/chain_upstream_run_id (lane LOOP-B-FIRING, 2026-09-28, F60): set ONLY by
+            # downstream-chain.yml's own explicit `gh workflow run` dispatch fallback (see that file's own
+            # "Explicitly dispatch propagation-drain.yml" step); never by a hand dispatch. GitHub's
+            # documented workflow_run chain-depth limit means a native workflow_run event off "Downstream
+            # chain" would be depth 4 and never fire, so this is a real (GITHUB_TOKEN-driven, automated)
+            # workflow_dispatch standing in for the workflow_run event that the platform would otherwise
+            # silently drop. Rebuilding RUN_TRIGGER_CONTEXT here, in the SAME shape the workflow_run branch
+            # below builds it, keeps loop_run_id resolution (resolveLoopRunIdFromUpstream keys on the
+            # upstream NAME) and the drain's downstream logic completely unchanged either way.
+            CHAIN_UPSTREAM_NAME="${{ inputs.chain_upstream_name }}"
+            CHAIN_UPSTREAM_RUN_ID="${{ inputs.chain_upstream_run_id }}"
+            if [ -n "$CHAIN_UPSTREAM_NAME" ]; then
+              RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$CHAIN_UPSTREAM_NAME" --argjson run_id "$CHAIN_UPSTREAM_RUN_ID" --arg conclusion "success" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
+              echo "chain-dispatched by $CHAIN_UPSTREAM_NAME (run $CHAIN_UPSTREAM_RUN_ID) via the F60 explicit-dispatch fallback; trigger_context = $RUN_TRIGGER_CONTEXT"
+            fi
+
           elif [ "$EVENT" = "workflow_run" ]; then
             UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
             UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
@@ -242,6 +268,12 @@ jobs:
             echo "RUN_STATUTORY_ROWS_FILE=$RUN_STATUTORY_ROWS_FILE"
             echo "RUN_STATUTORY_FORCE_DRY=$RUN_STATUTORY_FORCE_DRY"
             echo "RUN_SKIP=$RUN_SKIP"
+            # RUN_EVENT (lane LOOP-B-FIRING, 2026-09-28, F50/F60): the REAL github.event_name, recorded
+            # honestly regardless of RUN_TRIGGER_CONTEXT's presence: a chain_upstream_name-driven
+            # dispatch (F60's explicit-dispatch fallback) is a genuine workflow_dispatch event even though
+            # it carries a rebuilt trigger_context, and run-propagation-drain.mjs's own `trigger` artifact
+            # field must say so, not claim a workflow_run event that never actually happened.
+            echo "RUN_EVENT=$EVENT"
           } >> "$GITHUB_ENV"
           {
             echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
@@ -371,11 +403,14 @@ jobs:
       # --trigger-context (lane CHAIN, 2026-09-04) passes this dispatch's own RUN_TRIGGER_CONTEXT through
       # unchanged — {name, run_id, conclusion} of the upstream "Data producers" run for a chained dispatch,
       # or nothing (null) for a hand dispatch — so it lands in config.trigger_context on this run's own
-      # scripts/harness-runs/propagation/propagation-run-NNN.json artifact.
+      # scripts/harness-runs/propagation/propagation-run-NNN.json artifact. --trigger (lane LOOP-B-FIRING,
+      # 2026-09-28, F50/F60) passes the REAL $RUN_EVENT (github.event_name) so the artifact's top-level
+      # `trigger` field reads honestly even on an F60 explicit-dispatch fallback run, whose event is a
+      # genuine workflow_dispatch despite carrying a rebuilt trigger_context.
       - name: run-propagation-drain.mjs
         if: ${{ env.RUN_SKIP != 'true' }}
         run: |
-          args=(--mode "$RUN_MODE" --batch "$RUN_BATCH")
+          args=(--mode "$RUN_MODE" --batch "$RUN_BATCH" --trigger "$RUN_EVENT")
           if [ -n "$RUN_TRIGGER_CONTEXT" ]; then args+=(--trigger-context "$RUN_TRIGGER_CONTEXT"); fi
           node scripts/turns/run-propagation-drain.mjs "${args[@]}"
 

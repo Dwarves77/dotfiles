@@ -112,6 +112,12 @@ concurrency:
 permissions:
   contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
   # (deliver-artifact-branch.sh lands this family's artifact straight into harness_runs via a DB write).
+  # actions: write (lane LOOP-B-FIRING, 2026-09-28, F60): this workflow's own workflow_run chain depth is
+  # 3 (source-sweep -> ledger-consume -> population-turn/corpus-turn -> downstream-chain), so a
+  # workflow_run-chained downstream-chain run is exactly the case GitHub's documented "no more than three
+  # levels" workflow_run limit forbids for its own downstream edge into propagation-drain.yml (depth 4).
+  # The "Explicitly dispatch propagation-drain.yml" step below needs this scope to call `gh workflow run`.
+  actions: write
 
 jobs:
   chain:
@@ -367,3 +373,38 @@ jobs:
           path: ${{ runner.temp }}/downstream-chain-${{ github.run_id }}/
           if-no-files-found: warn
           retention-days: 90
+
+      # EXPLICIT DISPATCH (lane LOOP-B-FIRING, 2026-09-28, F60): the workflow_run depth-limit workaround.
+      # This job's own workflow_run chain depth is 3 when a `workflow_run` event fired it (see the
+      # `permissions.actions` comment above) -- one more `workflow_run` hop into propagation-drain.yml
+      # would be depth 4, past GitHub's documented "no more than three levels" limit
+      # (docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/
+      # events-that-trigger-workflows, workflow_run section: "if you attempt to trigger five workflows
+      # (named B to F) to run sequentially after an initial workflow A has run ... workflows E and F will
+      # not be run"). propagation-drain.yml's own `on.workflow_run.workflows` listener for "Downstream
+      # chain" is therefore DEAD CODE for exactly the case that matters most (a fully autonomous chain) --
+      # [CONFIRMED, gh run history, docs/ops/session-log.d/2026-09-28-loop-b-firing.md] it has only ever
+      # fired when downstream-chain was itself hand-dispatched (depth 0), never when reached by chaining.
+      # This step calls the SAME workflow directly instead, with the SAME inputs the chained dispatch
+      # would have used (mode=apply, batch=500 -- propagation-drain.yml's own resolve step's
+      # `workflow_run` branch defaults, per that file's own header), passing this run's own name/id so
+      # propagation-drain.yml can rebuild an equivalent trigger_context and keep loop_run_id resolution
+      # intact (resolveLoopRunIdFromUpstream keys on the upstream NAME, "Downstream chain", unchanged).
+      # ONLY fires on a genuine `workflow_run` trigger (a hand `workflow_dispatch` of THIS workflow is
+      # already depth 0, so its own natural `workflow_run` edge into propagation-drain lands at depth 1 --
+      # fine, no workaround needed, and firing both would double-dispatch a hand-triggered run). Runs
+      # regardless of RUN_SKIP (this file's own header: "a green run ... including a 'no real chain work,
+      # skip' no-op green run ... always gives propagation_events a chance to drain") -- gated only on
+      # `success()` so a genuinely failed chain run never drains anything, matching propagation-drain.yml's
+      # own "conclusion == success is the complete gate" posture for this family.
+      - name: Explicitly dispatch propagation-drain.yml (workflow_run chain-depth workaround, F60)
+        if: ${{ success() && github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run propagation-drain.yml \
+            --ref "${{ github.ref_name }}" \
+            -f mode=apply \
+            -f batch=500 \
+            -f chain_upstream_name="Downstream chain" \
+            -f chain_upstream_run_id="${{ github.run_id }}"

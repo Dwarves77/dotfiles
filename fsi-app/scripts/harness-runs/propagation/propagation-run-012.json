@@ -1,0 +1,46 @@
+{
+  "harness_family": "propagation",
+  "harness_version": "sha256:73628b7e49e9527a",
+  "run_id": "propagation-run-012",
+  "started_at": "2026-09-29T04:49:26.391Z",
+  "finished_at": "2026-09-29T04:49:34.311Z",
+  "trigger": "workflow_dispatch",
+  "config": {
+    "mode": "dry",
+    "batch": 50,
+    "trigger_context": null,
+    "loop_run_id": null,
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "mode=dry",
+    "batch=50"
+  ],
+  "per_item": [
+    {
+      "id": "queue-depth-776",
+      "outcome": "drained",
+      "verdict": "50 event(s) considered, 0 value(s) would be invalidated (dry, nothing written)",
+      "evidence_refs": [
+        "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "queue_depth_before": 776,
+    "events_considered": 50,
+    "events_drained": 0,
+    "invalidated": 0,
+    "recomputed": 0,
+    "skipped_unknown_method": 0,
+    "skipped_method_refused": 0,
+    "errors": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train). Drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285)."
+}

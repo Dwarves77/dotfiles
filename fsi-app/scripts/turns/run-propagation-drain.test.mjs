@@ -6,8 +6,65 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parseArgs, shapeRunOutput, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
+import { parseArgs, shapeRunOutput, resolveArtifactTrigger, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
+
+// ── resolveArtifactTrigger (lane LOOP-B-FIRING, 2026-09-28, F50) ────────────────────────────────────
+
+test("resolveArtifactTrigger: null triggerContext (a plain hand dispatch) resolves workflow_dispatch", () => {
+  assert.equal(resolveArtifactTrigger(null), "workflow_dispatch");
+});
+
+test("resolveArtifactTrigger: a populated triggerContext (chained off Data producers/Downstream chain) resolves workflow_run", () => {
+  assert.equal(
+    resolveArtifactTrigger({ name: "Data producers", run_id: 123, conclusion: "success" }),
+    "workflow_run",
+  );
+});
+
+// ── resolveArtifactTrigger: explicit trigger override (lane LOOP-B-FIRING, F60 explicit-dispatch fallback) ──
+
+test("resolveArtifactTrigger: an explicit trigger wins even when triggerContext is populated (the F60 fallback case: real event is workflow_dispatch, but a rebuilt triggerContext exists for loop_run_id resolution)", () => {
+  assert.equal(
+    resolveArtifactTrigger({ name: "Downstream chain", run_id: 5005, conclusion: "success" }, "workflow_dispatch"),
+    "workflow_dispatch",
+  );
+});
+
+test("resolveArtifactTrigger: an explicit trigger of workflow_run wins over a null triggerContext too", () => {
+  assert.equal(resolveArtifactTrigger(null, "workflow_run"), "workflow_run");
+});
+
+test("resolveArtifactTrigger: an invalid/absent explicit trigger falls back to the triggerContext-presence rule", () => {
+  assert.equal(resolveArtifactTrigger(null, null), "workflow_dispatch");
+  assert.equal(resolveArtifactTrigger({ name: "X", run_id: 1, conclusion: "success" }, undefined), "workflow_run");
+});
+
+// ── parseArgs: --trigger (lane LOOP-B-FIRING, F50/F60) ───────────────────────────────────────────────
+
+test("parseArgs: --trigger is null by default", () => {
+  const r = parseArgs(["--mode", "dry"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, null);
+});
+
+test("parseArgs: --trigger accepts workflow_run", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "workflow_run"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, "workflow_run");
+});
+
+test("parseArgs: --trigger accepts workflow_dispatch", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "workflow_dispatch"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, "workflow_dispatch");
+});
+
+test("parseArgs: --trigger rejects an unrecognized value", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "push"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger must be/);
+});
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
@@ -101,7 +158,7 @@ test("shapeRunOutput dry: names the counted-not-written outcome, no per_item ent
   const { perItem, metrics } = shapeRunOutput(baseResult(), "/tmp/report.json");
   assert.equal(perItem.length, 1);
   assert.equal(perItem[0].outcome, "drained");
-  assert.match(perItem[0].verdict, /dry — nothing written/);
+  assert.match(perItem[0].verdict, /dry, nothing written/);
   assert.equal(metrics.mode, "dry");
   assert.equal(metrics.queue_depth_before, 4);
   assert.equal(metrics.invalidated, 7);

@@ -57,7 +57,8 @@ export const PROPAGATION_GOVERNING_FILES = GOVERNING_FILES.propagation;
 function usage() {
   return (
     "Usage: node scripts/turns/run-propagation-drain.mjs --mode <dry|apply> [--batch N]\n" +
-    "         [--harness-runs-dir dir] [--out-dir dir] [--trigger-context '<json>']"
+    "         [--harness-runs-dir dir] [--out-dir dir] [--trigger-context '<json>']\n" +
+    "         [--trigger <workflow_run|workflow_dispatch>]"
   );
 }
 
@@ -73,6 +74,7 @@ export function parseArgs(argv) {
         "harness-runs-dir": { type: "string" },
         "out-dir": { type: "string" },
         "trigger-context": { type: "string" },
+        trigger: { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -101,6 +103,21 @@ export function parseArgs(argv) {
     }
   }
 
+  // --trigger (lane LOOP-B-FIRING, 2026-09-28, F50/F60): the REAL GitHub event name (github.event_name),
+  // passed explicitly rather than inferred from --trigger-context's presence -- an F60 explicit-dispatch
+  // fallback run (downstream-chain.yml calling `gh workflow run propagation-drain.yml` directly) carries
+  // a rebuilt --trigger-context for loop_run_id resolution even though its OWN event is a genuine
+  // workflow_dispatch, so triggerContext presence alone can no longer stand in for the event kind. Only
+  // "workflow_run" and "workflow_dispatch" are ever passed by this repo's own workflow; anything else is
+  // refused rather than silently recorded.
+  let trigger = null;
+  if (values.trigger !== undefined) {
+    if (values.trigger !== "workflow_run" && values.trigger !== "workflow_dispatch") {
+      return { ok: false, error: `--trigger must be "workflow_run" or "workflow_dispatch" (got ${JSON.stringify(values.trigger)}).` };
+    }
+    trigger = values.trigger;
+  }
+
   return {
     ok: true,
     mode: values.mode,
@@ -108,7 +125,24 @@ export function parseArgs(argv) {
     harnessRunsDir: values["harness-runs-dir"] || null,
     outDir: values["out-dir"] || null,
     triggerContext,
+    trigger,
   };
+}
+
+/** Resolve this run's top-level artifact `trigger` field (F50). PURE (no I/O), independently testable.
+ *  An explicit `trigger` (the real github.event_name propagation-drain.yml's own resolve step captured)
+ *  always wins when given: it is the only honest source once the F60 explicit-dispatch fallback exists
+ *  (lane LOOP-B-FIRING, 2026-09-28): that fallback's own run carries a non-null triggerContext (for
+ *  loop_run_id resolution) despite its REAL event being a plain workflow_dispatch, so triggerContext's
+ *  mere presence can no longer stand in for the event kind on its own. Falling back to triggerContext's
+ *  presence when no explicit trigger is given keeps every pre-F60 caller (including a local hand run with
+ *  no --trigger flag at all) working exactly as before.
+ *  @param {object|null} triggerContext
+ *  @param {"workflow_run"|"workflow_dispatch"|null} [explicitTrigger]
+ *  @returns {"workflow_run"|"workflow_dispatch"} */
+export function resolveArtifactTrigger(triggerContext, explicitTrigger = null) {
+  if (explicitTrigger === "workflow_run" || explicitTrigger === "workflow_dispatch") return explicitTrigger;
+  return triggerContext ? "workflow_run" : "workflow_dispatch";
 }
 
 /** Build this run's per_item / metrics from a DrainResult. PURE (no I/O) so the shaping is independently
@@ -121,7 +155,7 @@ export function shapeRunOutput(result, reportPath) {
       outcome: result.errors.length ? "error" : "drained",
       verdict:
         result.mode === "dry"
-          ? `${result.eventsConsidered} event(s) considered, ${result.invalidated} value(s) would be invalidated (dry — nothing written)`
+          ? `${result.eventsConsidered} event(s) considered, ${result.invalidated} value(s) would be invalidated (dry, nothing written)`
           : `${result.eventsDrained} event(s) drained, ${result.invalidated} value(s) invalidated, ${result.recomputed} recomputed, ${result.skippedUnknownMethod} skipped (unknown method), ${result.skippedMethodRefused} skipped (method refused)`,
       evidence_refs: [reportPath],
       error: result.errors.length ? result.errors.map((e) => `event ${e.eventId}: ${e.message}`).join("; ") : null,
@@ -168,7 +202,7 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  const { mode, batch, triggerContext } = parsed;
+  const { mode, batch, triggerContext, trigger: explicitTrigger } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   const outDir = resolve(parsed.outDir || join(harnessRunsDir, "traces"));
 
@@ -217,6 +251,15 @@ async function main() {
         run_id: runId,
         started_at: startedAt,
         finished_at: new Date().toISOString(),
+        // trigger (lane LOOP-B-FIRING, 2026-09-28, F50): OPTIONAL top-level field the loop-wiring gate
+        // (.discipline/fitness/functions/F50-loop-wiring.mjs) reads to tell "a workflow fired this run
+        // automatically" apart from "a person dispatched it", see run-artifact.mjs's own TRIGGER_VALUES
+        // comment and emit-gate-a-rescan-artifact.mjs's identical field for the gate-a-rescan family.
+        // Derived from triggerContext rather than a new CLI flag: propagation-drain.yml's own "Resolve run
+        // parameters and the chaining gate" step already only ever passes --trigger-context on a
+        // workflow_run dispatch (never on workflow_dispatch, see that file's own `args+=(--trigger-context
+        // ...)` line), so triggerContext's presence already IS the trigger kind; no second source of truth.
+        trigger: resolveArtifactTrigger(triggerContext, explicitTrigger),
         // trigger_context (lane CHAIN, 2026-09-04): {name, run_id, conclusion} of the upstream "Data
         // producers" run when this drain was fired by propagation-drain.yml's own workflow_run chaining,
         // or null for a plain hand dispatch — recorded every run, even null (same "record it every batch"
@@ -244,7 +287,7 @@ async function main() {
         full_trace_refs: reportPath ? [reportPath] : [harnessRunsDir],
         proposer_notes: runError
           ? "This run threw before completing — see defects_found for the error. Re-run after fixing the root cause."
-          : "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train) — drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285).",
+          : "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train). Drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285).",
       };
       const artifactPath = writeRunArtifact(harnessRunsDir, artifact);
       console.log(`Wrote ${artifactPath}`);
