@@ -400,8 +400,12 @@ async function safeJson<T>(res: Response): Promise<T | null> {
 
 export const fixtures = {
   guardRefusal: {
+    // The antitrust WRITE-TIME posting guard (evaluateAntitrustGuard, antitrust.mjs), unchanged by
+    // ADR-035 (coordinator ruling 4: it answers a different question than the benchmark DISPLAY
+    // floor). Its own hardcoded reason text still reads "five" because antitrust.mjs's
+    // minContributors/capRatio defaults were deliberately left at 5/0.25.
     error:
-      "This field is commercially sensitive and has fewer than ten contributors this quarter. Refused at write time.",
+      "This field is commercially sensitive and has fewer than five contributors this quarter. Refused at write time.",
     aggregate_route: { instrumentKey: "saf-premium-eu-us-air-2026q3", pending: true },
   } satisfies { error: string; aggregate_route: GuardAggregateRoute },
 
