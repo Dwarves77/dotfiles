@@ -1576,14 +1576,20 @@ test("runExportCandidates: never touches a database — selectPage (a read) and 
 
 const LEDGER_CONSUME_YML_PATH = resolve(HERE, "..", "..", "..", ".github", "workflows", "ledger-consume.yml");
 
-test("ledger-consume.yml: a dedicated step invokes run-ledger-consume.mjs with --mode apply, gated on run_apply_chain", () => {
+test("ledger-consume.yml: a dedicated step invokes run-ledger-consume.mjs with a mode that DEFAULTS to apply, gated on run_apply_chain", () => {
   const yml = readFileSync(LEDGER_CONSUME_YML_PATH, "utf8");
+  // Lane CHAINED-DRY-GUARD (2026-09-29, rule 16) inserted a CHAINED_FORCED_DRY check between the step's
+  // `if:` gate and the run-ledger-consume.mjs call: chained_apply_mode defaults to "apply" (the property
+  // S2 finding 1 needs to stay reachable) and is downgraded to "plan" only when build mode forces it --
+  // the regex now tolerates that intermediate assignment instead of requiring --mode apply as a literal
+  // immediately after `run: |`.
   assert.match(
     yml,
-    /if: steps\.params\.outputs\.run_apply_chain == 'true'\s*\n\s*run: \|\s*\n\s*node scripts\/turns\/run-ledger-consume\.mjs --mode apply/,
-    "expected a step gated on run_apply_chain=='true' that invokes run-ledger-consume.mjs --mode apply " +
-      "immediately after. If this step or its gate is removed, the workflow_run chain can never reach " +
-      "apply mode again (S2 finding 1's regression)."
+    /if: steps\.params\.outputs\.run_apply_chain == 'true'\s*\n\s*run: \|\s*\n\s*#[^\n]*\n(?:\s*#[^\n]*\n)*\s*chained_apply_mode="apply"\s*\n\s*if \[ "\$\{CHAINED_FORCED_DRY:-false\}" = "true" \]; then chained_apply_mode="plan"; fi\s*\n\s*node scripts\/turns\/run-ledger-consume\.mjs --mode "\$chained_apply_mode"/,
+    "expected a step gated on run_apply_chain=='true' that invokes run-ledger-consume.mjs with a mode " +
+      "variable defaulting to apply (downgraded to plan only when CHAINED_FORCED_DRY=true). If this " +
+      "step, its gate, or its apply default is removed, the workflow_run chain can never reach apply " +
+      "mode again (S2 finding 1's regression)."
   );
   assert.match(yml, /--max-promote 50/, "the chained apply pass must be capped (Lane M2's own guard)");
 });
