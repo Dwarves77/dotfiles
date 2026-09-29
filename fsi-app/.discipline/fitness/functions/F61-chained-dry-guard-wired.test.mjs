@@ -1,0 +1,117 @@
+// F61-chained-dry-guard-wired.test.mjs, lane CHAINED-DRY-GUARD, 2026-09-29. ATTACK tests: a
+// workflow_run-triggered workflow that can set "apply" but never calls the shared gate (or calls it but
+// never reads its output) is caught. Plus a live proof that today's real tree (all 8 wired workflows)
+// reports zero violations.
+//
+// node:test + node:assert/strict, no npm deps.
+// Run: node --test .discipline/fitness/functions/F61-chained-dry-guard-wired.test.mjs
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { fitnessFunction } from './F61-chained-dry-guard-wired.mjs';
+import { readFile } from '../lib/file-content.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
+
+const WORKFLOW_RUN_YML = `
+on:
+  workflow_run:
+    workflows: ["Source sweep"]
+    types: [completed]
+jobs:
+  x:
+    steps:
+      - run: |
+          mode="apply"
+`;
+
+// ── ATTACK: an apply-capable workflow_run workflow with no gate call at all ─────────────────────────
+
+test('ATTACK: workflow_run + "apply" literal + no chained-dry-guard.mjs call = 2 violations (script AND output both missing)', () => {
+  const out = fitnessFunction.check('.github/workflows/fixture.yml', WORKFLOW_RUN_YML);
+  assert.equal(out.length, 2);
+  assert.match(out[0].message, /never calls chained-dry-guard\.mjs/);
+  assert.match(out[1].message, /never reads CHAINED_FORCED_DRY/);
+});
+
+test('ATTACK: the gate script is called but its output is never consulted (called-and-ignored)', () => {
+  const yml = WORKFLOW_RUN_YML.replace(
+    'mode="apply"',
+    'node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"\n          mode="apply"',
+  );
+  const out = fitnessFunction.check('.github/workflows/fixture.yml', yml);
+  assert.equal(out.length, 1);
+  assert.match(out[0].message, /never reads CHAINED_FORCED_DRY/);
+});
+
+// ── CONTROL: fully wired workflow reports zero violations ──────────────────────────────────────────
+
+test('CONTROL: gate called AND its output consulted -- zero violations', () => {
+  const yml = WORKFLOW_RUN_YML.replace(
+    'mode="apply"',
+    'node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"\n' +
+      '          mode="apply"\n' +
+      '          if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi',
+  );
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: no workflow_run trigger at all -- not this gate's concern ──────────────────────────────
+
+test('CONTROL: a workflow with no workflow_run trigger is skipped entirely, even with a bare "apply" literal', () => {
+  const yml = `
+on:
+  workflow_dispatch:
+jobs:
+  x:
+    steps:
+      - run: mode="apply"
+`;
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: workflow_run trigger but no "apply" literal at all (a read-only export) ────────────────
+
+test('CONTROL: workflow_run trigger with no "apply" literal anywhere is skipped (nothing to guard)', () => {
+  const yml = `
+on:
+  workflow_run:
+    workflows: ["Population turn"]
+    types: [completed]
+jobs:
+  x:
+    steps:
+      - run: echo "read only, no write path"
+`;
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: null/undefined content (file vanished) never throws ───────────────────────────────────
+
+test('CONTROL: null content is skipped, not thrown on', () => {
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', null), []);
+});
+
+// ── LIVE: the real tree, today, reports zero violations (this lane's own fix) ───────────────────────
+
+test('LIVE: every real .github/workflows/*.yml file reports zero violations', () => {
+  const files = fitnessFunction.enumerate();
+  assert.ok(files.length > 0, 'enumerate() found no workflow files -- check getRepoRoot()/.github/workflows path');
+  let violations = [];
+  for (const f of files) {
+    const content = readFile(f);
+    violations = violations.concat(fitnessFunction.check(f, content));
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `expected 0 violations, got: ${JSON.stringify(violations, null, 2)}`,
+  );
+});
+
+test('enumerate() finds every .yml file directly under .github/workflows/', () => {
+  const dir = join(getRepoRoot(), '.github', 'workflows');
+  const expectedCount = readdirSync(dir).filter((f) => f.endsWith('.yml')).length;
+  assert.equal(fitnessFunction.enumerate().length, expectedCount);
+});

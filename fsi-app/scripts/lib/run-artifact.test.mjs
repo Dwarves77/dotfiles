@@ -312,8 +312,8 @@ test("validateRunArtifact: trigger absent entirely is valid (optional field, pre
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
-test("validateRunArtifact: each of the four trigger values is valid", () => {
-  for (const value of ["workflow_run", "workflow_dispatch", "push", "manual"]) {
+test("validateRunArtifact: each of the five trigger values is valid", () => {
+  for (const value of ["workflow_run", "workflow_run_forced_dry", "workflow_dispatch", "push", "manual"]) {
     assert.deepEqual(validateRunArtifact(makeValidArtifact({ trigger: value })), []);
   }
 });
@@ -387,6 +387,70 @@ test("writeRunArtifact: never overwrites a caller-supplied trigger with the envi
     else process.env.GITHUB_EVENT_NAME = prevEvent;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── CHAINED_FORCED_DRY override (lane CHAINED-DRY-GUARD, 2026-09-29) ───────────────────────────────
+
+function withEnv(vars, fn) {
+  const prev = {};
+  for (const k of Object.keys(vars)) prev[k] = process.env[k];
+  try {
+    for (const [k, v] of Object.entries(vars)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    return fn();
+  } finally {
+    for (const [k, v] of Object.entries(prev)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
+test("writeRunArtifact: CHAINED_FORCED_DRY=true narrows an auto-stamped workflow_run trigger to workflow_run_forced_dry", () => {
+  const dir = tmpDir();
+  withEnv({ GITHUB_EVENT_NAME: "workflow_run", CHAINED_FORCED_DRY: "true" }, () => {
+    const artifact = makeValidArtifact();
+    delete artifact.trigger;
+    const path = writeRunArtifact(dir, artifact);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "workflow_run_forced_dry");
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("writeRunArtifact: CHAINED_FORCED_DRY=true also narrows a caller-supplied workflow_run trigger (not only the auto-stamped one)", () => {
+  const dir = tmpDir();
+  withEnv({ GITHUB_EVENT_NAME: undefined, CHAINED_FORCED_DRY: "true" }, () => {
+    const path = writeRunArtifact(dir, makeValidArtifact({ trigger: "workflow_run" }));
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "workflow_run_forced_dry");
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("writeRunArtifact: CHAINED_FORCED_DRY=true never touches a non-workflow_run trigger (workflow_dispatch stays workflow_dispatch)", () => {
+  const dir = tmpDir();
+  withEnv({ GITHUB_EVENT_NAME: undefined, CHAINED_FORCED_DRY: "true" }, () => {
+    const path = writeRunArtifact(dir, makeValidArtifact({ trigger: "workflow_dispatch" }));
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "workflow_dispatch");
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("writeRunArtifact: CHAINED_FORCED_DRY unset or false leaves workflow_run unchanged", () => {
+  const dir1 = tmpDir();
+  withEnv({ GITHUB_EVENT_NAME: undefined, CHAINED_FORCED_DRY: undefined }, () => {
+    const path = writeRunArtifact(dir1, makeValidArtifact({ trigger: "workflow_run" }));
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "workflow_run");
+  });
+  rmSync(dir1, { recursive: true, force: true });
+
+  const dir2 = tmpDir();
+  withEnv({ GITHUB_EVENT_NAME: undefined, CHAINED_FORCED_DRY: "false" }, () => {
+    const path = writeRunArtifact(dir2, makeValidArtifact({ trigger: "workflow_run" }));
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).trigger, "workflow_run");
+  });
+  rmSync(dir2, { recursive: true, force: true });
 });
 
 test("writeRunArtifact: stamps upstream_run_id from GITHUB_EVENT_WORKFLOW_RUN_ID when set and absent from the artifact", () => {

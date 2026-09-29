@@ -219,6 +219,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ── CHAINED DRY-RUN GUARD (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) ─────────────────────────
+      # Build mode (system_state.scrape_cadence='off') means every runtime fires by explicit dispatch;
+      # a workflow_run-chained firing is not one, so it MUST run dry regardless of whatever hardcoded
+      # apply/plan default this workflow's own resolve step below would otherwise pick. Runs BEFORE
+      # npm ci (chained-dry-guard.mjs is a zero-npm-dependency raw fetch) so nothing downstream can
+      # reach an apply path before this gate has spoken. Exports CHAINED_FORCED_DRY (true/false) and
+      # CHAINED_TRIGGER_LABEL, consumed below wherever this file currently hardcodes an apply/plan
+      # default for a workflow_run firing. See scripts/lib/chained-dry-guard.mjs's own header.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -424,7 +440,13 @@ jobs:
       - name: run-ledger-consume.mjs (chained apply after source-sweep, capped)
         if: steps.params.outputs.run_apply_chain == 'true'
         run: |
-          node scripts/turns/run-ledger-consume.mjs --mode apply --limit "${{ steps.params.outputs.limit }}" \
+          # chained_apply_mode forced to "plan" (this family's dry equivalent) by the CHAINED_FORCED_DRY
+          # guard step above whenever build mode is live (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) --
+          # this step only ever runs on a workflow_run firing, never an explicit dispatch (see the
+          # step's own `if:` above), so it is never itself the "explicit" half rule 16 exempts.
+          chained_apply_mode="apply"
+          if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then chained_apply_mode="plan"; fi
+          node scripts/turns/run-ledger-consume.mjs --mode "$chained_apply_mode" --limit "${{ steps.params.outputs.limit }}" \
             --max-promote 50 --record-only "${{ steps.params.outputs.record_only }}"
 
       # ── run_export: the export half (see this file's header) ─────────────────────────────────────────

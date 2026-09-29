@@ -126,13 +126,21 @@ Two further top-level keys are **optional** (Wave M9a, 2026-09-18, the loop mani
 artifact written before this addition, or by a caller with no CI event context, stays valid exactly as it
 is without them.
 
-- `"trigger"`: one of `"workflow_run"`, `"workflow_dispatch"`, `"push"`, `"manual"`. Tells a reader
-  whether this run fired automatically off another workflow's completion, off an explicit dispatch, off a
-  push, or was run some other way (the `"manual"` default: a local run, a test, anything with no matching
-  CI event). Stamped in exactly ONE place, `writeRunArtifact` (`scripts/lib/run-artifact.mjs`), from
-  `process.env.GITHUB_EVENT_NAME` when the artifact object does not already carry a `trigger` field, the
-  standard GitHub Actions runner environment variable, present without any workflow-file change. This is
-  what lets F50 tell "the edge exists in the yml" apart from "something has actually fired through it from
+- `"trigger"`: one of `"workflow_run"`, `"workflow_run_forced_dry"`, `"workflow_dispatch"`, `"push"`,
+  `"manual"`. Tells a reader whether this run fired automatically off another workflow's completion, off
+  an explicit dispatch, off a push, or was run some other way (the `"manual"` default: a local run, a
+  test, anything with no matching CI event). Stamped in exactly ONE place, `writeRunArtifact`
+  (`scripts/lib/run-artifact.mjs`), from `process.env.GITHUB_EVENT_NAME` when the artifact object does
+  not already carry a `trigger` field, the standard GitHub Actions runner environment variable, present
+  without any workflow-file change.
+  `"workflow_run_forced_dry"` (lane CHAINED-DRY-GUARD, 2026-09-29): the real GitHub event WAS
+  `workflow_run`, but the shared build-mode gate (`scripts/lib/chained-dry-guard.mjs`) forced the run's
+  own mode to dry because `system_state.scrape_cadence='off'` (rule 16: a `workflow_run` firing is not an
+  explicit dispatch). Stamped by the SAME `writeRunArtifact` call, immediately after the block above,
+  by checking `process.env.CHAINED_FORCED_DRY === "true"` and narrowing a resolved (or caller-supplied)
+  `"workflow_run"` down to `"workflow_run_forced_dry"` -- every family that wires the guard step gets
+  this for free, no per-family artifact-emission code needed.
+  This is what lets F50 tell "the edge exists in the yml" apart from "something has actually fired through it from
   its upstream, not from a person," the exact gap the 2026-09-18 stage audit named invisible.
 - `"upstream_run_id"`: the GitHub Actions run id of the workflow that triggered this one, when known.
   Stamped the same way from `process.env.GITHUB_EVENT_WORKFLOW_RUN_ID`, but that variable is NOT one of

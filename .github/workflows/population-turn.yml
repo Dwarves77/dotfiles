@@ -268,6 +268,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ── CHAINED DRY-RUN GUARD (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) ─────────────────────────
+      # Build mode (system_state.scrape_cadence='off') means every runtime fires by explicit dispatch;
+      # a workflow_run-chained firing is not one, so it MUST run dry regardless of whatever hardcoded
+      # apply/plan default this workflow's own resolve step below would otherwise pick. Runs BEFORE
+      # npm ci (chained-dry-guard.mjs is a zero-npm-dependency raw fetch) so nothing downstream can
+      # reach an apply path before this gate has spoken. Exports CHAINED_FORCED_DRY (true/false) and
+      # CHAINED_TRIGGER_LABEL, consumed below wherever this file currently hardcodes an apply/plan
+      # default for a workflow_run firing. See scripts/lib/chained-dry-guard.mjs's own header.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults +
       # promoted/pause gate (workflow_run) into a single RUN_* vocabulary every step below reads —
       # see this file's own header "CHAINING" section for the full contract. Runs BEFORE setup-node/
@@ -309,7 +325,10 @@ jobs:
             # the "Gate: refuse a new slice..." step below already document why: `inputs.*` is a
             # workflow_dispatch-only context, and a workflow_run event reading it is exactly the class of
             # silent-wrong-default bug this workflow was already burned by once.
+            # RUN_MODE forced to "dry" by the CHAINED_FORCED_DRY guard step above whenever build mode
+            # (system_state.scrape_cadence='off') is live (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29).
             RUN_MODE="apply"
+            if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then RUN_MODE="dry"; fi
             RUN_LIMIT="25"
             # --max-items, NOT --limit: export-census-rows.mjs enforces the hard ceiling of 100 only on
             # --max-items (resolveExportLimit, that script's own header)  --  the chained path must always

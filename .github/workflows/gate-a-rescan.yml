@@ -104,6 +104,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ── CHAINED DRY-RUN GUARD (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) ─────────────────────────
+      # Build mode (system_state.scrape_cadence='off') means every runtime fires by explicit dispatch;
+      # a workflow_run-chained firing is not one, so it MUST run dry regardless of whatever hardcoded
+      # apply/plan default this workflow's own resolve step below would otherwise pick. Runs BEFORE
+      # npm ci (chained-dry-guard.mjs is a zero-npm-dependency raw fetch) so nothing downstream can
+      # reach an apply path before this gate has spoken. Exports CHAINED_FORCED_DRY (true/false) and
+      # CHAINED_TRIGGER_LABEL, consumed below wherever this file currently hardcodes an apply/plan
+      # default for a workflow_run firing. See scripts/lib/chained-dry-guard.mjs's own header.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -138,7 +154,11 @@ jobs:
             echo "GAR_UPSTREAM_RUN_ID=" >> "$GITHUB_ENV"
           else
             echo "GAR_TRIGGER=workflow_run" >> "$GITHUB_ENV"
-            echo "GAR_MODE=apply" >> "$GITHUB_ENV"
+            # GAR_MODE forced to "dry" by the CHAINED_FORCED_DRY guard step above whenever build mode
+            # is live (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29).
+            gar_mode="apply"
+            if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then gar_mode="dry"; fi
+            echo "GAR_MODE=$gar_mode" >> "$GITHUB_ENV"
             echo "GAR_LIMIT=" >> "$GITHUB_ENV"
             echo "GAR_LOOP_RUN_ID=" >> "$GITHUB_ENV"
             echo "GAR_UPSTREAM_NAME=${{ github.event.workflow_run.name }}" >> "$GITHUB_ENV"
