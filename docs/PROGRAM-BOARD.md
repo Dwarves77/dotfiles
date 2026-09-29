@@ -14,7 +14,11 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-09-25):** [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./ops/session-log.d/2026-09-25-coordinator-close.md)
+> **Resume from (2026-09-28):** [docs/ops/session-log.d/2026-09-28-coordinator-close.md](./ops/session-log.d/2026-09-28-coordinator-close.md)
+> (rulings, merged work, wave-1 lanes in flight, push hold until CI-parity is proven), then
+> [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) (waves of 6-8 disjoint lanes, run rules).
+>
+> **Earlier resume point (2026-09-25):** [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./ops/session-log.d/2026-09-25-coordinator-close.md)
 > (rulings R1-R13 verbatim, "How the build is run", design changes owed, known bugs), then
 > [docs/plans/build-plan-2026-09-25.md](./plans/build-plan-2026-09-25.md) (the forward plan, the integration
 > table against the existing build plan, and the Supabase audit lane spec). Next: merge the artboards PR

@@ -38,9 +38,12 @@ The coordinator (a separate session) designs lanes, gates output, lands PRs thro
 
 - Your worktree and branch are named in your lane brief. Work ONLY there. Never touch the main checkout, any other worktree under `/root/work/lanes/`, or `origin/*`. Never push (the container cannot; do not try). Never `git checkout`/`switch`/`rebase`/`merge`.
 - fsi-app's npm dependencies resolve from the main checkout's shared install through ONE link beside the worktrees (`.claude/worktrees/node_modules`); do not `npm install` anything. Nothing is linked inside a worktree: the post-checkout hook creates the shared link on `git worktree add`, and pre-push step 0b repairs it. If dependencies do not resolve, run `sh fsi-app/.discipline/hooks/lib/worktree-node-modules.sh --link`. Never hand-make a link inside a worktree (`mklink /J <wt>si-app
-ode_modules`): `git worktree remove` empties the shared install through a junction (RD-85). If a dependency is missing from the install itself, report it.
+ode_modules ...``): `git worktree remove` empties the shared install through a junction (RD-85). If a dependency is missing from the install itself, report it.
 - No DB credentials exist in your worktree. You cannot and must not write to the live database. Every script you build is DRY BY DEFAULT and takes `--apply`; DB access is injected via a `deps` object so tests run without a database (pattern: `fsi-app/scripts/mint/screen-reconcile-records.mjs`, `apply-mint-batch.mjs`). Row mutations go only through the guarded path in `fsi-app/scripts/lib/db.mjs` (`guardedUpdateByIds`, `guardedInsert`, `archivePatch`, snapshots) — discipline rule 015 fails a commit that mutates rows any other way.
 - $0: no LLM calls, no paid services, no Anthropic SDK use. Free public HTTP fetches are allowed where the brief says so.
+- Do the work yourself. Never use the Agent tool or hand the task to another agent (operator, 2026-09-28: a three-deep relay was "a complete waste of time and tokens"). One lane, one agent, one writer in its worktree.
+- Before any push, run every test file you touched the way CI does (no-npm resolver for `*.test.mjs`, `SUPABASE_*` unset). Push once. If CI is red, stop and report the local-vs-CI difference; never iterate by pushing (operator, 2026-09-28: "STOP pushing them until you fix the issues").
+- Test what you build: a tool is not done until it has run for real (dry dispatch or dry CLI) and its `harness_runs` row has been read back (operator, 2026-09-26: "You HAVE to test what you're building").
 
 ## Read before you write
 1. `CLAUDE.md` at repo root, in full.
