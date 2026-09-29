@@ -1,0 +1,11 @@
+{
+  "family": "statutory",
+  "registered": "2026-09-28",
+  "registered_by": "lane STATUTORY-WRITER",
+  "governing_files": [
+    "scripts/propagation/write-statutory.mjs",
+    "src/lib/propagation/statutory-rows.ts",
+    "scripts/propagation/validate-statutory-rows-file.mjs"
+  ],
+  "rationale": "statutory (lane STATUTORY-WRITER, 2026-09-28, docs/plans/data-machine-tool-gaps-2026-09-25.md M7 row: 'the statutory writer's input path'). write-statutory.mjs (the FuelEU Annex IV penalty writer, lane DAG-AUTHOR 2026-09-04, product-reachable via /api/admin/statutory-rows since lane M7a 2026-09-20) had NO harness family before this lane -- it wrote statutory_computations rows (or previewed them in dry mode) with no run artifact and no harness_runs record, the exact rule-17 gap this register's M7 row and the coordinator dispatch both name. This lane wires the CLI path (the ops/dispatch producer named in the dispatch, as opposed to the admin-route path, which stays fs-free by design -- see statutory-rows.ts's own header on why a fs-backed harness-run write must never enter the Next.js route's trace) to write a run artifact and best-effort record it to harness_runs on every run, dry or apply. Governing files: the CLI writer itself, the one pure home its row-parsing/write/validation logic lives in (statutory-rows.ts, shared with the admin route), and the rows-file pre-flight validator the propagation-drain workflow gate runs. A change to any of these changes what a statutory run actually decides or writes."
+}

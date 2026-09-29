@@ -57,25 +57,18 @@ import { cheapVerifyClaims } from "../src/lib/sources/cheap-verify.mjs";
 import { loadLocalEnvFile } from "./lib/env-file.mjs";
 import { writeRunArtifact, buildRunArtifactEnvelope, claimRunId, hashHarnessVersion } from "./lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "./harness-runs/governing-files.mjs";
+// nextRunNumberFromHarnessRuns / buildHarnessRunsClient: extracted (lane STATUTORY-WRITER, 2026-09-28) to
+// scripts/lib/harness-run-number.mjs, shared with write-statutory.mjs's identical need -- F45
+// (duplicate-code) flagged the two near-identical copies as a regression the moment a second
+// harness-record-writing script copied this module's own shape. See that module's own header for the
+// full "why a shared home, not a second copy" reasoning (originally written here 2026-09-28, run
+// 36446625925, on the `readClient()` guard-proxy-vs-genuine-write-client distinction).
+import { nextRunNumberFromHarnessRuns, buildHarnessRunsClient as buildHarnessRunsClientShared } from "./lib/harness-run-number.mjs";
+export { nextRunNumberFromHarnessRuns };
 
 export const FAMILY = "quarantine-disposition";
 
-/** A genuine write-capable Supabase client for the harness_runs insert ONLY -- never used for reads or
- *  for anything else. `readClient()` (scripts/lib/db.mjs) deliberately returns a guard PROXY whose
- *  `.from(table).insert/update/delete/upsert` THROW (rule 015: "the only write surface is the guarded
- *  functions below"), so passing it to recordHarnessRun made every insert throw synchronously, caught by
- *  recordHarnessRun's own try/catch as a silent { ok:false } (found live, run 36446625925, 2026-09-28:
- *  harness_runs_landed:false with no error surfaced because this module also forgot to wire a `log`
- *  callback through -- both fixed here). harness_runs is explicitly EXEMPT from rule 015 (an INSERT is
- *  additive, never a mutation -- see scripts/lib/record-harness-run.mjs's own header), so this mirrors
- *  EXACTLY what that module's own CLI section does: a fresh `createClient`, not db.mjs's guarded path. */
-async function buildHarnessRunsClient() {
-  const { createClient } = await import("@supabase/supabase-js");
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("plan-quarantine-disposition: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set; cannot record to harness_runs.");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
+const buildHarnessRunsClient = () => buildHarnessRunsClientShared("plan-quarantine-disposition");
 
 // Deferral policy (operator-tunable; see remediation-discipline Section 2.2 for the vocabulary this must
 // satisfy -- scripts/lib/deferral.mjs's isValidDeferral is the mechanical gate every candidate below is
@@ -188,30 +181,6 @@ export function planDispositions({ items, flags, cheapDecisionByItemId, now = ne
   }
 
   return { plan, counts, deferralCandidates };
-}
-
-/**
- * The next run_id NUMBER for `family`, derived from `harness_runs` (the durable record since #813),
- * never from scanning git branches. Pure over the rows `readAllFn` returns -- parses the trailing
- * `-run-NNN` integer off every `run_id` for this family and returns max+1, or 1 when none exist yet.
- * A malformed/foreign-shaped run_id (should not happen; this family's own writer always uses the
- * `<family>-run-NNN` pattern) is skipped rather than thrown on, so one bad row can't crash planning.
- * @param {Function} readAllFn
- * @param {string} family
- * @returns {Promise<number>}
- */
-export async function nextRunNumberFromHarnessRuns(readAllFn, family) {
-  // orderBy: "run_id" -- readAll's own default ("id") does not exist on harness_runs (its PK is run_id),
-  // confirmed live (run 36461564054): "column harness_runs.id does not exist". The fake readAllFn every
-  // test in this file uses ignores orderBy entirely, so this was invisible until the real DB rejected it.
-  const rows = await readAllFn("harness_runs", "run_id", { match: (q) => q.eq("harness_family", family), orderBy: "run_id" });
-  const re = new RegExp(`^${family}-run-(\\d+)$`);
-  let max = 0;
-  for (const r of rows || []) {
-    const m = re.exec(String(r?.run_id ?? ""));
-    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
-  }
-  return max + 1;
 }
 
 // ── Live-DB orchestration (dry: reads only + a harness-run write; apply: also writes plan.json and, with
