@@ -126,6 +126,48 @@ export function validateProfileInput(input = {}) {
   return { valid: errors.length === 0, errors };
 }
 
+// ── compliance_object_tags to ORG_ROLES mapping (coordinator ruling 2026-09-29: wire the
+// applicability gate from whatever scope field an item already carries) ─────────────────────────
+//
+// `compliance_object_tags` is intelligence_items' existing locked 18-value vocabulary naming "the
+// supply-chain roles or operational entities the regulation imposes obligations on"
+// (src/lib/agent/system-prompt.ts). It is the only role-scope-shaped field any item or obligations
+// row carries today (checked: src/lib/obligations/read-register.mjs's REGISTER_SELECT has no role
+// or size column; migration 290's obligations table has none either). This maps that vocabulary
+// onto ADR-034's 8-role ORG_ROLES vocabulary where a clear correspondence exists. Tags with no
+// ORG_ROLES counterpart (manufacturer-producer, distributor, port-operator, airport-operator,
+// terminal-operator) are left unmapped, not force-fitted, per CLAUDE.md rule 2 (never fabricate).
+export const COMPLIANCE_OBJECT_TO_ORG_ROLE = Object.freeze({
+  "carrier-ocean": "carrier",
+  "carrier-air": "carrier",
+  "carrier-road": "carrier",
+  "carrier-rail": "carrier",
+  "vessel-operator": "carrier",
+  "aircraft-operator": "carrier",
+  "road-fleet-operator": "carrier",
+  "freight-forwarder": "forwarder",
+  "customs-broker": "importer_of_record",
+  nvocc: "forwarder",
+  shipper: "shipper",
+  importer: "importer_of_record",
+  exporter: "exporter",
+  "warehouse-operator": "warehouse_operator",
+});
+
+/**
+ * Derive an ORG_ROLES-vocabulary roleScope from an item's `compliance_object_tags` (the only
+ * role-shaped field intelligence_items already carries). Pure, no DB. Unmapped/unknown tags are
+ * dropped (not fabricated into a nearest role); a tag list with no mapped entries returns [], which
+ * compute-applicability.mjs's evaluateRoleScope treats as "no role scope named" (applies to every
+ * role) when used as an obligation's roleScope, so this function should only feed an obligation
+ * when at least one mapped role exists, per the caller (relevance.mjs).
+ */
+export function deriveRoleScopeFromComplianceObjectTags(tags) {
+  const arr = Array.isArray(tags) ? tags : [];
+  const mapped = arr.map((t) => COMPLIANCE_OBJECT_TO_ORG_ROLE[t]).filter(Boolean);
+  return [...new Set(mapped)];
+}
+
 /**
  * Parse the raw `workspace_settings.profile` jsonb value into the {orgRoles, orgSize} shape this
  * module and the applicability engine consume. Never fails closed on malformed input, falls back
