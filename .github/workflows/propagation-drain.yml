@@ -182,7 +182,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── CHAINED DRY-RUN GUARD (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) ─────────────────────────
+      # -- CHAINED DRY-RUN GUARD (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29) -------------------------
       # Build mode (system_state.scrape_cadence='off') means every runtime fires by explicit dispatch;
       # a workflow_run-chained firing is not one, so it MUST run dry regardless of whatever hardcoded
       # apply/plan default this workflow's own resolve step below would otherwise pick. Runs BEFORE
@@ -190,13 +190,25 @@ jobs:
       # reach an apply path before this gate has spoken. Exports CHAINED_FORCED_DRY (true/false) and
       # CHAINED_TRIGGER_LABEL, consumed below wherever this file currently hardcodes an apply/plan
       # default for a workflow_run firing. See scripts/lib/chained-dry-guard.mjs's own header.
+      #
+      # --chained (lane CHAINED-DRY-GUARD-2, 2026-09-29, coordinator finding from the live proof run):
+      # this workflow is ALSO reachable by a genuine `workflow_dispatch` event that downstream-chain.yml
+      # fired BY MACHINE (its own F60 explicit-dispatch fallback, `gh workflow run propagation-drain.yml
+      # -f chain_upstream_run_id=...`) rather than an operator's own hand dispatch. `inputs.*` is always
+      # populated on a workflow_dispatch event (empty/undefined on any other event, including
+      # workflow_run, so this expression is safe to evaluate unconditionally on every trigger). Passing
+      # that as --chained lets this gate treat a machine-fired workflow_dispatch exactly like a raw
+      # workflow_run for the force-dry decision, instead of trusting the passed -f mode input alone
+      # (confirmed live, 2026-09-29, runs 36612225468/36612325034: the guard logged forcedDry=false on
+      # both, and they ran dry only because the caller's own input said so -- no defense-in-depth here
+      # before this fix).
       - name: Chained dry-run guard (build mode, rule 16)
         working-directory: fsi-app
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --chained "${{ inputs.chain_upstream_run_id != '' }}" >> "$GITHUB_ENV"
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults (workflow_run)
       # into a single RUN_* vocabulary every step below reads — see this file's own header "CHAINING"
@@ -212,7 +224,13 @@ jobs:
           RUN_TRIGGER_CONTEXT=""
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
+            # RUN_MODE honours the operator's own input verbatim UNLESS this dispatch was itself
+            # machine-fired (CHAINED_FORCED_DRY, set by the --chained guard call above whenever
+            # inputs.chain_upstream_run_id is non-empty and build mode is live): defense-in-depth so a
+            # bug in the CALLER's own dry-forcing (downstream-chain.yml) cannot silently reach apply
+            # here too (lane CHAINED-DRY-GUARD-2, 2026-09-29, coordinator finding).
             RUN_MODE="${{ inputs.mode }}"
+            if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then RUN_MODE="dry"; fi
             RUN_BATCH="${{ inputs.batch }}"
             RUN_BACKFILL_ENTITIES="${{ inputs.backfill_entities }}"
             RUN_SEED_DERIVED_VALUES="${{ inputs.seed_derived_values }}"

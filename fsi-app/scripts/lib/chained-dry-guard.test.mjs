@@ -40,6 +40,41 @@ test("RED: workflow_run + cadence off must never resolve to apply, no matter wha
   }
 });
 
+// ── --chained: a machine-fired workflow_dispatch (lane CHAINED-DRY-GUARD-2, 2026-09-29) ────────────
+// [CONFIRMED live, runs 36612225468/36612325034]: downstream-chain.yml's own F60 explicit-dispatch
+// fallback delivers a genuine workflow_dispatch event, not workflow_run, to propagation-drain.yml. The
+// original (eventName === "workflow_run") test alone let this slip past the force-dry branch entirely.
+
+test("a PLAIN workflow_dispatch (chained not passed, i.e. an operator's own hand dispatch) is UNCHANGED: never forced, regardless of cadence", () => {
+  const r = resolveChainedRunMode({ eventName: "workflow_dispatch", requestedMode: "apply", cadence: "off" });
+  assert.deepEqual(r, { mode: "apply", forcedDry: false, triggerLabel: "workflow_dispatch" });
+});
+
+test("ATTACK: a machine-fired workflow_dispatch (chained: true) requesting apply under cadence off MUST resolve dry", () => {
+  const r = resolveChainedRunMode({ eventName: "workflow_dispatch", requestedMode: "apply", cadence: "off", chained: true });
+  assert.equal(r.mode, "dry");
+  assert.equal(r.forcedDry, true);
+  assert.equal(r.triggerLabel, "workflow_dispatch (forced dry: build mode, chained)");
+});
+
+test("a machine-fired workflow_dispatch (chained: true) under a LIVE cadence passes its requested mode through, labelled as chained", () => {
+  const r = resolveChainedRunMode({ eventName: "workflow_dispatch", requestedMode: "apply", cadence: "daily", chained: true });
+  assert.deepEqual(r, { mode: "apply", forcedDry: false, triggerLabel: "workflow_dispatch (chained)" });
+});
+
+test("chained: true has NO effect on a non-workflow_dispatch event (workflow_run's own force-dry logic is unchanged)", () => {
+  const r = resolveChainedRunMode({ eventName: "workflow_run", requestedMode: "apply", cadence: "off", chained: true });
+  assert.deepEqual(r, { mode: "dry", forcedDry: true, triggerLabel: "workflow_run (forced dry: build mode)" });
+});
+
+test("RED: a machine-fired workflow_dispatch under cadence off must never resolve to apply, whatever chained_apply_mode-style requested value was passed", () => {
+  for (const requested of ["apply", "dry", "plan"]) {
+    const r = resolveChainedRunMode({ eventName: "workflow_dispatch", requestedMode: requested, cadence: "off", chained: true });
+    assert.notEqual(r.mode, "apply");
+    assert.equal(r.forcedDry, true);
+  }
+});
+
 // ── readScrapeCadence (dependency-injected fetch, fail-closed) ──────────────────────────────────────
 
 test("readScrapeCadence: reads scrape_cadence from a successful response", async () => {
@@ -88,9 +123,24 @@ test("parseArgs: --event and --requested-mode are both required", () => {
   assert.equal(parseArgs(["--requested-mode", "apply"]).ok, false);
 });
 
-test("parseArgs: a valid pair parses", () => {
+test("parseArgs: a valid pair parses; chained defaults false when --chained is omitted", () => {
   const r = parseArgs(["--event", "workflow_run", "--requested-mode", "apply"]);
   assert.equal(r.ok, true);
   assert.equal(r.eventName, "workflow_run");
   assert.equal(r.requestedMode, "apply");
+  assert.equal(r.chained, false);
+});
+
+test("parseArgs: --chained true parses as boolean true", () => {
+  const r = parseArgs(["--event", "workflow_dispatch", "--requested-mode", "apply", "--chained", "true"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.chained, true);
+});
+
+test("parseArgs: --chained with any non-'true' string (including the empty-string GitHub Actions renders for a falsy expression) parses as false", () => {
+  for (const value of ["false", "", "TRUE", "1"]) {
+    const r = parseArgs(["--event", "workflow_dispatch", "--requested-mode", "apply", "--chained", value]);
+    assert.equal(r.ok, true);
+    assert.equal(r.chained, false);
+  }
 });
