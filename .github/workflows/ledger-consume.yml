@@ -210,7 +210,14 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
+      # fetch-depth: 0 (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, propagation-
+      # drain run 36534640498: the rebase below fails outright on a shallow checkout, the same class
+      # #812/gate-a-rescan and #819/maintenance each independently fixed in their own workflow). This
+      # workflow's commit step also carries real ledger-consume deliverable content alongside the harness
+      # artifact, so the branch/push/rebase itself is intentionally NOT removed here.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

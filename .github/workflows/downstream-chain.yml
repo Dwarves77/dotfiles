@@ -110,14 +110,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  # contents: write (lane M3, 2026-09-19, widened from read-only): this workflow now commits its own
-  # scripts/harness-runs/downstream-chain/downstream-chain-run-NNN.json artifact, the same posture every
-  # other harness-family workflow (corpus-turn.yml, ledger-consume.yml, source-sweep.yml, fetch-drain.yml,
-  # population-turn.yml) already has -- see this file's own header, "ARTIFACT" section, for why this
-  # family previously had none.
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
+  # (deliver-artifact-branch.sh lands this family's artifact straight into harness_runs via a DB write).
 
 jobs:
   chain:
@@ -130,6 +124,8 @@ jobs:
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained gate (workflow_run)
       # into a single RUN_* vocabulary every later step reads — see this file's own header. ALWAYS runs
@@ -358,34 +354,10 @@ jobs:
           fi
           DC_UPSTREAM_NAME="$UPSTREAM_NAME" DC_UPSTREAM_RUN_ID="$UPSTREAM_RUN_ID" node scripts/turns/emit-downstream-chain-artifact.mjs
 
-      # Commit the family's own harness-run artifact (scripts/harness-runs/downstream-chain/**), same
-      # posture every sibling family workflow already has. A run normally executes against master, which
-      # is typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
-      # straight to whatever ref triggered the run.
-      - name: Commit the downstream-chain harness-run artifact and open a PR
+      - name: Land the downstream-chain harness-run artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fsi-app/scripts/harness-runs/downstream-chain
-          if git diff --cached --quiet; then
-            echo "No new downstream-chain artifact to commit."
-            exit 0
-          fi
-          branch="downstream-chain/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "downstream-chain ${{ env.RUN_MODE }}: run ${{ github.run_id }} (${{ github.event_name }}, skip=${{ env.RUN_SKIP }})"
-          # BRANCH-BASE (matches every sibling family's own identical step): re-base the artifact commit
-          # onto the current master tip before the push, so a workflow-file change that landed on master
-          # mid-run cannot make GitHub refuse the branch.
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated downstream chain (run %s, trigger %s).\n\nMode: %s\nSkip: %s (%s)\n\nLands the harness-run artifact for this chain under fsi-app/scripts/harness-runs/downstream-chain/.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "${{ env.RUN_MODE }}" "${{ env.RUN_SKIP }}" "${{ env.RUN_SKIP_REASON }}" > /tmp/pr-body.md
-          bash fsi-app/scripts/turns/deliver-artifact-branch.sh "$branch" "Downstream chain: $branch (mode=${{ env.RUN_MODE }})" /tmp/pr-body.md
+        working-directory: fsi-app
+        run: bash scripts/turns/deliver-artifact-branch.sh "Downstream chain (mode=${{ env.RUN_MODE }}, run ${{ github.run_id }})"
 
       - name: Upload this run's step artifact(s)
         if: ${{ always() && env.RUN_SKIP != 'true' }}

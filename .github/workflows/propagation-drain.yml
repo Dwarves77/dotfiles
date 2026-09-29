@@ -141,9 +141,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR happens in this
+  # workflow any more (deliver-artifact-branch.sh lands artifacts straight into harness_runs via a DB
+  # write); the prior write/pull-requests/issues grants were for that removed path.
 
 jobs:
   drain:
@@ -161,7 +161,16 @@ jobs:
       APP_URL: ${{ secrets.APP_URL }}
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
+      # fetch-depth: 0 (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, run
+      # 36534640498: the OLD artifact-commit step's rebase failed outright on a shallow checkout, the same
+      # class #812/gate-a-rescan and #819/maintenance each independently fixed in their own workflow).
+      # That step is removed below (deliver-artifact-branch.sh no longer needs any git history at all),
+      # so this is no longer strictly required for artifact landing -- kept anyway as the repo-wide
+      # baseline every harness-family workflow now carries, so a future git operation in this job never
+      # rediscovers the same shallow-checkout class.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults (workflow_run)
       # into a single RUN_* vocabulary every step below reads — see this file's own header "CHAINING"
@@ -394,31 +403,9 @@ jobs:
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Commit the propagation harness-run artifact and open a PR
+      - name: Land the propagation harness-run artifact into harness_runs
+        # No git add/commit/branch/rebase/push/PR (coordinator ruling on PR #824, operator ruling
+        # 2026-09-26 "not once that I need a pull request from GitHub"): deliver-artifact-branch.sh
+        # discovers this run's own artifact file(s) via `git status`, no git history needed.
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/propagation
-          if git diff --cached --quiet; then
-            echo "No new propagation artifact to commit."
-            exit 0
-          fi
-          branch="propagation/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "propagation drain $RUN_MODE: run ${{ github.run_id }}"
-          # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
-          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
-          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          trigger_line="Trigger: workflow_dispatch (hand)"
-          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then
-            trigger_line="Trigger: workflow_run — $(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '"\(.name) run \(.run_id), conclusion=\(.conclusion)"')"
-          fi
-          printf 'Automated propagation drain (run %s).\n\n%s\nMode: %s\nBatch: %s\n\nLands the harness-run artifact for this drain under scripts/harness-runs/propagation/.\n' \
-            "${{ github.run_id }}" "$trigger_line" "$RUN_MODE" "$RUN_BATCH" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Propagation drain (mode=${RUN_MODE}, run ${{ github.run_id }})" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Propagation drain (mode=${RUN_MODE}, run ${{ github.run_id }})"

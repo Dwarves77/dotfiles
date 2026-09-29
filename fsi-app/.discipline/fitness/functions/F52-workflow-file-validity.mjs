@@ -442,6 +442,98 @@ function checkF(file, kind, lines, jobs, out) {
   }
 }
 
+/**
+ * F52g (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, propagation-drain run
+ * 36534640498: "artifact commit does not rebase onto origin/master"). A `run:` step that runs `git
+ * rebase` needs real git history to rebase against; `actions/checkout@v4`'s default `fetch-depth: 1`
+ * (a shallow, single-commit checkout) has none, so the rebase fails outright every time. #812
+ * (gate-a-rescan.yml) and #819 (maintenance.yml) each independently hit and fixed this in their own
+ * workflow file (`fetch-depth: 0` on the job's `actions/checkout@v4` step); this check makes the class
+ * mechanically unrepeatable: a job with a `git rebase` anywhere in its run steps MUST have `fetch-depth:
+ * 0` on some `actions/checkout` step in that same job.
+ */
+function checkG(file, kind, lines, jobs, out) {
+  if (kind !== 'workflow') return;
+  const rebaseRe = /\bgit\s+rebase\b/;
+  const checkoutRe = /^\s*-?\s*uses:\s*actions\/checkout@/;
+  const fetchDepthZeroRe = /^\s*fetch-depth:\s*0\s*$/;
+  for (const job of jobs) {
+    let hasRebase = false;
+    let rebaseLine = -1;
+    for (const block of stepRunBlocks(job, lines)) {
+      for (let i = block.startLine; i <= block.endLine; i++) {
+        const line = lines[i];
+        if (/^\s*#/.test(line)) continue;
+        if (rebaseRe.test(line)) { hasRebase = true; rebaseLine = i; break; }
+      }
+      if (hasRebase) break;
+    }
+    if (!hasRebase) continue;
+    let hasFetchDepthZero = false;
+    for (let i = job.startLine; i <= job.endLine; i++) {
+      if (checkoutRe.test(lines[i])) {
+        for (let j = i + 1; j <= Math.min(i + 4, job.endLine); j++) {
+          if (fetchDepthZeroRe.test(lines[j])) { hasFetchDepthZero = true; break; }
+          if (/^\s*-\s*(uses|run|name):/.test(lines[j])) break; // next step began, stop scanning
+        }
+      }
+    }
+    if (!hasFetchDepthZero) {
+      out.push(
+        violation(
+          1,
+          `${file}:${rebaseLine + 1}: F52g job '${job.id}' runs 'git rebase' but its ` +
+            `actions/checkout step has no 'fetch-depth: 0' -- a shallow (depth-1) checkout has no ` +
+            `history to rebase onto and this WILL fail at runtime (the propagation-drain run ` +
+            `36534640498 class; see #812/gate-a-rescan.yml and #819/maintenance.yml for the fix shape).`,
+        ),
+      );
+    }
+  }
+}
+
+/**
+ * F52h (lane STATUTORY-WRITER, 2026-09-29, coordinator ruling: "operator ruling: no Actions PRs"). A
+ * `run:` step that stages ONLY a `scripts/harness-runs/**` path (never any other `git add` target in
+ * the same step) and then `git push origin HEAD:`s it is the "artifact branch" anti-pattern this lane
+ * removed from every pure-harness-artifact workflow: `deliver-artifact-branch.sh` lands the SAME
+ * artifact into `harness_runs` via a DB write with no git branch, no commit, no push, no PR needed at
+ * all (see that script's own header). A step matching this shape is a regression back to the removed
+ * pattern, not a legitimate new use -- a step that ALSO stages other real deliverable content (e.g.
+ * brief-export.yml's export part files, ledger-consume.yml's ledger artifacts) is NOT flagged, because
+ * git add there targets more than just the harness-runs path.
+ */
+function checkH(file, kind, lines, jobs, out) {
+  if (kind !== 'workflow') return;
+  const gitAddRe = /^\s*git add(?:\s+-f)?\s+(.+)$/;
+  const pushRe = /^\s*git push origin HEAD:/;
+  for (const job of jobs) {
+    for (const block of stepRunBlocks(job, lines)) {
+      const addedPaths = [];
+      let pushLine = -1;
+      for (let i = block.startLine; i <= block.endLine; i++) {
+        const line = lines[i];
+        if (/^\s*#/.test(line)) continue;
+        const addM = line.match(gitAddRe);
+        if (addM) addedPaths.push(...addM[1].trim().split(/\s+/));
+        if (pushRe.test(line)) pushLine = i;
+      }
+      if (pushLine === -1 || addedPaths.length === 0) continue;
+      const onlyHarnessRuns = addedPaths.every((p) => p.startsWith('scripts/harness-runs') || p.startsWith('fsi-app/scripts/harness-runs'));
+      if (onlyHarnessRuns) {
+        out.push(
+          violation(
+            1,
+            `${file}:${pushLine + 1}: F52h job '${job.id}' stages only a scripts/harness-runs path ` +
+              `then pushes a branch -- this is the removed "artifact branch" anti-pattern; call ` +
+              `scripts/turns/deliver-artifact-branch.sh (git-status based, no branch/commit/push) instead.`,
+          ),
+        );
+      }
+    }
+  }
+}
+
 function checkE(file, kind, text, allWorkflowNames, out) {
   if (kind !== 'workflow') return;
   const names = extractWorkflowRunNames(text);
@@ -491,14 +583,21 @@ export const fitnessFunction = {
     'env., steps. or job. (the M9d class); (c) a job-level if: never references steps. or runner.; ' +
     '(d) every needs: names a real job and every steps.<id>.outputs reference names a real step id in ' +
     'the same job; (e) a workflow_run trigger names a real workflow; (f) a run: step piping into tee ' +
-    'has set -o pipefail earlier in the same step (a bash pipeline masks every command but the last). ' +
+    'has set -o pipefail earlier in the same step (a bash pipeline masks every command but the last); ' +
+    '(g) a job that runs git rebase has fetch-depth: 0 on its checkout step (a shallow checkout has no ' +
+    'history to rebase onto); (h) no run: step stages only a scripts/harness-runs path and pushes it as ' +
+    'a branch (the removed artifact-branch anti-pattern - land via deliver-artifact-branch.sh instead). ' +
     'Also runs actionlint locally when it is on PATH (CI runs it as its own pinned step - see ' +
     '.github/workflows/discipline.yml).',
   source:
     'brief-f52.md (lane F52, 2026-09-20), after lane M9d\'s ${{ runner.temp }} job-level env: broke ' +
     '.github/workflows/producers.yml (GitHub run 35533637184) and every existing gate passed it anyway. ' +
     'Check (f) added lane GATE-A-RESCAN-FIX (2026-09-26) after GitHub run 36217491293: gate-a-rescan.yml ' +
-    "piped gate-a-rescan.mjs's fatal failure into `tee` with no pipefail, so the step reported SUCCESS.",
+    "piped gate-a-rescan.mjs's fatal failure into `tee` with no pipefail, so the step reported SUCCESS. " +
+    'Checks (g)/(h) added lane STATUTORY-WRITER (2026-09-29) after PR #824, propagation-drain run ' +
+    '36534640498: the artifact-commit step rebased on a shallow checkout and failed outright, the same ' +
+    'class #812/#819 each independently fixed in their own workflow only; coordinator ruling: fix the ' +
+    'class repo-wide and gate it so it cannot silently come back.',
 
   enumerate() {
     return ['fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs'];
@@ -532,6 +631,8 @@ export const fitnessFunction = {
       checkD(f.path, f.kind, lines, jobs, out);
       checkE(f.path, f.kind, text, allWorkflowNames, out);
       checkF(f.path, f.kind, lines, jobs, out);
+      checkG(f.path, f.kind, lines, jobs, out);
+      checkH(f.path, f.kind, lines, jobs, out);
     }
 
     runActionlintIfAvailable(repoRoot, out);

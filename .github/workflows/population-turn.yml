@@ -259,7 +259,14 @@ jobs:
       APP_URL: ${{ secrets.APP_URL }}
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
+      # fetch-depth: 0 (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, propagation-
+      # drain run 36534640498: the rebase below fails outright on a shallow checkout, the same class
+      # #812/gate-a-rescan and #819/maintenance each independently fixed in their own workflow). This
+      # workflow's commit step also carries the mint + forward-events snapshot dir alongside the harness
+      # artifact, so the branch/push/rebase itself is intentionally NOT removed here.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults +
       # promoted/pause gate (workflow_run) into a single RUN_* vocabulary every step below reads —

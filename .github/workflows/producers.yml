@@ -141,6 +141,8 @@ jobs:
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -469,38 +471,10 @@ jobs:
           PR_RUN_PRODUCER: ${{ env.RUN_PRODUCER }}
         run: node scripts/producers/emit-producers-artifact.mjs
 
-      # Commit the family's own harness-run artifact (scripts/harness-runs/producers/**), same posture
-      # every sibling family workflow already has (copied from downstream-chain.yml's identical step). A
-      # run normally executes against master, typically branch-protected, so this lands on its own branch
-      # and opens a PR rather than pushing straight to whatever ref triggered the run.
-      - name: Commit the producers harness-run artifact and open a PR
+      - name: Land the producers harness-run artifact into harness_runs
         if: always()
-        # Overrides this job's own `defaults.run.working-directory: fsi-app` (unlike downstream-chain.yml,
-        # which sets working-directory per step and has no job-level default) -- git add/commit/push below
-        # are repo-root-relative, matching every path this step writes.
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fsi-app/scripts/harness-runs/producers
-          if git diff --cached --quiet; then
-            echo "No new producers artifact to commit."
-            exit 0
-          fi
-          branch="producers-artifact/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "producers ${{ env.RUN_MODE }}: run ${{ github.run_id }} (${{ github.event_name }}, producer=${{ env.RUN_PRODUCER }})"
-          # BRANCH-BASE (matches every sibling family's own identical step): re-base the artifact commit
-          # onto the current master tip before the push, so a workflow-file change that landed on master
-          # mid-run cannot make GitHub refuse the branch.
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated producers run (run %s, trigger %s).\n\nMode: %s\nProducer: %s\n\nLands the harness-run artifact for this run under fsi-app/scripts/harness-runs/producers/.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "${{ env.RUN_MODE }}" "${{ env.RUN_PRODUCER }}" > /tmp/producers-pr-body.md
-          bash fsi-app/scripts/turns/deliver-artifact-branch.sh "$branch" "Producers: $branch (mode=${{ env.RUN_MODE }})" /tmp/producers-pr-body.md
+        working-directory: fsi-app
+        run: bash scripts/turns/deliver-artifact-branch.sh "Producers (mode=${{ env.RUN_MODE }}, producer=${{ env.RUN_PRODUCER }}, run ${{ github.run_id }})"
 
       # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). A producer
       # apply writes market_series (oil bulletin, ecb-fx, EIA v2), regional_data_facts (Eurostat/BLS —
