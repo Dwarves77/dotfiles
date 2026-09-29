@@ -29,6 +29,21 @@
 //   derivation.ts), `supersedes` pointing at the stale row, in the SAME atomic RPC call (migration 285's
 //   register_derived_value, `p_supersedes`). A `{ok:false,...}` result (the method itself refuses to
 //   compute) leaves the row stale and is counted alongside skippedUnknownMethod under a distinct reason.
+//
+// METHODS['infer-from-question'] (ADR-036, learning-loop-design-2026-09-25.md section 6, lane W2-G,
+// wave2b, 2026-09-29), registered in ./methods/infer-from-question.ts's OWN small INFERENCE_METHODS
+// registry, NOT in ./methods/index.ts's numeric METHODS/REGISTRY that Pass 2 above reads. Two reasons,
+// both stated in that file's header: (1) inference_records (migration 338) is a narrative table
+// (claim_text/status_token/cited_item_ids), and forcing it through MethodResult's numeric value/
+// derivation/lifecycle shape would manufacture fields a claim does not have; (2) Pass 2 above walks
+// `derived_values` rows with `admissibility='stale'` EXCLUSIVELY, there is no equivalent stale-queue
+// on `inference_records` in migration 338, so this drain's existing two-pass contract has no place to
+// call an inference method from without a Pass-2-shaped rearchitecture this lane's write set does not
+// license. OPEN QUESTION, named honestly (CLAUDE.md rule 13/14), not silently built: a future Pass 3,
+// or a dedicated inference-drain entry point, is what would make an `infer-from-question` write ride
+// this file the way a numeric method's write does today. `methods/infer-from-question.ts`'s
+// `runInferFromQuestion` is the narrow, already-usable write path a script or route can call directly
+// in the meantime.
 
 import { registerDerivedValue } from "./register-derivation.ts";
 import { getMethod } from "./methods/index.ts";

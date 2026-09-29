@@ -175,6 +175,87 @@ export async function persistExhaustionRecord(sb, itemId, exhaustionRecord, verd
   return row;
 }
 
+// ── S2: answer-seeking for a trigger_question (learning-loop-design-2026-09-25.md section 6, ADR-036 ─────────
+// decision 1). GENERALISES this file's own deterministic-identifier-first / spend-gated-fallback shape
+// (above) beyond a source-URL miss: the input is now a `trigger_question` row (S1, src/lib/learning/
+// trigger-questions.mjs), and the residual, when retrieval against held pools finds nothing, produces a
+// PRICED ACQUISITION REQUEST RECORD ONLY, never a fetch, unless the caller already holds an operator-priced
+// SpendTicket (RD-31: operator-priced line, no machine-proposed cost; RD-32: no fetch without a cited
+// inventory-miss). spend-client.ts is UNCHANGED and NOT imported here, this module only inspects the SHAPE
+// of a ticket the caller already obtained through that chokepoint (`pricedLine: {operatorCostUsd,
+// inventoryMiss}`, the exact fields spend-client.ts's `guardPricedLine` reads), it never authorizes spend
+// itself. Retrieval-first (RD-8) by construction: `queryHeldPools` runs BEFORE any residual/acquisition
+// logic is even considered.
+
+/** PURE builder for the priced-acquisition REQUEST record a residual produces, never a fetch, never an
+ *  auto-price. Mirrors exhaustionFlagRow's shape (an integrity_flags-compatible row) so this rides the
+ *  SAME operator-inbox pattern as the rest of this file, not a new review surface.
+ *  @param {{itemId:string, surface:string, productQuestion:string, questionText:string, subjectRef:string}} triggerQuestion
+ *  @param {{inventoryMiss?:string|null}} [ctx]
+ *  @returns {object} */
+export function acquisitionRequestRecord(triggerQuestion, { inventoryMiss = null } = {}) {
+  return {
+    category: "coverage_gap",
+    subject_type: "item",
+    subject_ref: triggerQuestion.subjectRef,
+    status: "open",
+    created_by: "seek-more:acquisition-request",
+    description:
+      `Priced acquisition REQUEST for "${triggerQuestion.questionText}" (surface=${triggerQuestion.surface}, ` +
+      `product_question=${triggerQuestion.productQuestion}) - held pools carried no answer; this REQUESTS an ` +
+      "operator-priced line, it does not fetch anything (ADR-036 decision 1, QUESTION_ACQUISITION=operator-priced-only).".slice(0, 480),
+    recommended_actions: [
+      {
+        action: "operator-price-this-request",
+        rationale: inventoryMiss
+          ? `named inventory-miss: ${inventoryMiss}`
+          : "no held-pool hit for this question; an operator-priced line (RD-31) plus a cited inventory-miss (RD-32) is required before any fetch.",
+      },
+    ],
+  };
+}
+
+/**
+ * Answer-seeking for one trigger_question: retrieval-first against held pools (RD-8); a residual with
+ * no operator-priced ticket returns a REQUEST record only (never fetches); a residual WITH a
+ * caller-supplied, well-formed priced ticket escalates to this file's own deterministic-identifier
+ * candidate generation (generateCandidates, still no fetch unless the caller ALSO injects
+ * `deps.webSearch`, the same gate generateCandidates already applies to a source-URL miss).
+ * @param {{itemId:string, surface:string, productQuestion:string, questionText:string, subjectRef:string}} triggerQuestion
+ * @param {{
+ *   queryHeldPools?: (q:object) => Promise<Array<object>>|Array<object>,
+ *   spendTicket?: { pricedLine?: { operatorCostUsd:number, inventoryMiss:string, toleranceUsd?:number } } | null,
+ *   identity?: { title?:string|null, identifier?:string|null, jurisdiction?:(string[]|string|null), sourceUrl?:string|null },
+ *   webSearch?: (query:string)=>Promise<string[]>|string[],
+ * }} [deps]
+ * @returns {Promise<{resolved:boolean, source:"held-pool"|"none"|"priced-candidates", candidates:Array<object>|string[], requestRecord:object|null}>}
+ */
+export async function seekAnswerForQuestion(triggerQuestion, deps = {}) {
+  const { queryHeldPools, spendTicket, identity } = deps;
+
+  // RD-8: retrieval against held pools FIRST, before any residual/acquisition logic runs at all.
+  const hits = queryHeldPools ? (await queryHeldPools(triggerQuestion)) || [] : [];
+  if (hits.length > 0) {
+    return { resolved: true, source: "held-pool", candidates: hits, requestRecord: null };
+  }
+
+  const line = spendTicket && spendTicket.pricedLine;
+  const hasPricedLine = !!(line && typeof line.operatorCostUsd === "number" && line.operatorCostUsd >= 0 && line.inventoryMiss);
+  const requestRecord = acquisitionRequestRecord(triggerQuestion, { inventoryMiss: line?.inventoryMiss ?? null });
+
+  if (!hasPricedLine) {
+    // ADR-036 decision 1: QUESTION_ACQUISITION="operator-priced-only" - a residual with no operator-
+    // priced ticket NEVER fetches. The REQUEST record is the whole outcome.
+    return { resolved: false, source: "none", candidates: [], requestRecord };
+  }
+
+  // A priced ticket already exists (obtained by the caller through the real spend chokepoint, not this
+  // module): escalate to deterministic-identifier candidate generation. Still no fetch unless the
+  // caller separately injects `deps.webSearch`, identical gate to a source-URL miss above.
+  const candidates = identity ? await generateCandidates(identity, deps) : [];
+  return { resolved: false, source: "priced-candidates", candidates, requestRecord };
+}
+
 // ── ORCHESTRATOR RETIRED (no-shadow, 2026-07-14) ──────────────────────────────────────────────────────────────
 // The former runSeekMore orchestrator (generateCandidates → escalateFetch → captureForStorage → persistExhaustion
 // in one call) had ZERO live callers: the live one home is fetchPrimaryWithFallback / fetchPrimaryDeep, which

@@ -1,16 +1,17 @@
 // @ts-check
 // RED-THEN-GREEN fixtures for the SEEK-MORE unit (paired with the RD-14 ladder). Transports + webSearch +
-// exhaustion persister are DEP-INJECTED fakes — NO real fetch, NO db write (scrape hold honored). Run:
+// exhaustion persister are DEP-INJECTED fakes, NO real fetch, NO db write (scrape hold honored). Run:
 // node --test (exit-code + file-redirect; Windows libuv eats node --test stdout). Registered in run-test-suite.sh.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   generateCandidates, eurlexCandidates, ukCandidates, lovdataCandidates, gazetteCandidates, apiCandidates,
   exhaustionFlagRow, persistExhaustionRecord,
+  seekAnswerForQuestion, acquisitionRequestRecord,
 } from "./seek-more.mjs";
 
 // NOTE (no-shadow, 2026-07-14): the runSeekMore orchestrator was retired (zero live callers; the live one home is
-// fetchPrimaryWithFallback). Its end-to-end behavior — discovery→candidate→win and total-exhaustion→record — is
+// fetchPrimaryWithFallback). Its end-to-end behavior, discovery→candidate→win and total-exhaustion→record, is
 // proven on the WIRED path by reground-ladder.golden.test.mjs. This file keeps the candidate-generation +
 // exhaustion-record-shape fixtures for the live exports.
 
@@ -34,12 +35,12 @@ test("gazette: Ireland S.I. → irishstatutebook.ie ELI; API host passthrough", 
   assert.deepEqual(apiCandidates({ sourceUrl: "https://example.com/x" }), []);
 });
 
-// ── THE LOVDATA DESIGN FIXTURE — machine-derived, never hand-fed ──────────────────────────────────────────────
+// ── THE LOVDATA DESIGN FIXTURE, machine-derived, never hand-fed ──────────────────────────────────────────────
 test("LOVDATA DESIGN FIXTURE: Norway fjord ZEV forskrift identity → lovdata.no canonical URL BY MACHINE", () => {
   // The instrument IDENTITY (its legal citation), not a hand-fed URL. The machine transforms the forskrift
-  // citation "FOR-2018-05-04-680" → the lovdata.no canonical forskrift URL — exactly how lovdata.no would have
+  // citation "FOR-2018-05-04-680" → the lovdata.no canonical forskrift URL, exactly how lovdata.no would have
   // been found mechanically. (Fixture identity: the World Heritage fjords zero-emission forskrift; the citation
-  // value is illustrative test data, not asserted as a real-world legal fact — the proof is the deterministic
+  // value is illustrative test data, not asserted as a real-world legal fact, the proof is the deterministic
   // TRANSFORM from identity to canonical URL.)
   const norwayIdentity = { title: "Zero-emission requirements for ships in the World Heritage fjords", jurisdiction: "Norway", identifier: "FOR-2018-05-04-680" };
   assert.deepEqual(lovdataCandidates(norwayIdentity), ["https://lovdata.no/dokument/SF/forskrift/2018-05-04-680"]);
@@ -62,7 +63,7 @@ test("generateCandidates: order is identifier-resolved → API → gazette → w
 // reground-ladder.golden.test.mjs when the runSeekMore orchestrator was retired (no-shadow, 2026-07-14). The
 // unused fixtures REAL_LAW / EURLEX_404 / SFC_403 were removed with them.
 
-// ── PERSISTENCE SHAPE — the interim FLAG PATTERN (superseded by migration 147 fetch_status) ──────────────────
+// ── PERSISTENCE SHAPE, the interim FLAG PATTERN (superseded by migration 147 fetch_status) ──────────────────
 test("exhaustionFlagRow: the interim flag-pattern shape (created_by='exhaustion_record', attempts in recommended_actions)", () => {
   const record = [
     { url: "https://a/x", transport: "direct", verdict: "not_found", status: 404, bytes: 10, reason: "http_404" },
@@ -87,4 +88,78 @@ test("persistExhaustionRecord: dep-injected writer inserts ONE integrity_flags r
   assert.equal(inserts[0].table, "integrity_flags");
   assert.equal(inserts[0].row.created_by, "exhaustion_record");
   assert.equal(row.subject_ref, "item-9");
+});
+
+// ── S2: seekAnswerForQuestion, retrieval-first, priced-only residual (ADR-036 decision 1) ────────────────────
+
+const TQ = {
+  itemId: "item-42", surface: "regulations", productQuestion: "what",
+  questionText: 'What changed: "Bonded-warehouse amendment"?', subjectRef: "item-42:regulations:what",
+};
+
+test("acquisitionRequestRecord: PURE, coverage_gap category, cites the inventory-miss when given", () => {
+  const row = acquisitionRequestRecord(TQ, { inventoryMiss: "no comparable retrofit-cost benchmark" });
+  assert.equal(row.category, "coverage_gap");
+  assert.equal(row.subject_type, "item");
+  assert.equal(row.subject_ref, TQ.subjectRef);
+  assert.equal(row.status, "open");
+  assert.equal(row.created_by, "seek-more:acquisition-request");
+  assert.match(row.recommended_actions[0].rationale, /no comparable retrofit-cost benchmark/);
+});
+
+test("seekAnswerForQuestion: a held-pool hit resolves WITHOUT ever inspecting a spend ticket", async () => {
+  const res = await seekAnswerForQuestion(TQ, {
+    queryHeldPools: async () => [{ source: "obligations", value: "existing retrofit case" }],
+    spendTicket: null,
+  });
+  assert.equal(res.resolved, true);
+  assert.equal(res.source, "held-pool");
+  assert.equal(res.candidates.length, 1);
+  assert.equal(res.requestRecord, null);
+});
+
+test("seekAnswerForQuestion: a residual with NO priced ticket returns a REQUEST record only, never a fetch", async () => {
+  let webSearchCalled = false;
+  const res = await seekAnswerForQuestion(TQ, {
+    queryHeldPools: async () => [],
+    spendTicket: null,
+    identity: { title: "x" },
+    webSearch: async () => { webSearchCalled = true; return ["https://should-not-be-called"]; },
+  });
+  assert.equal(res.resolved, false);
+  assert.equal(res.source, "none");
+  assert.deepEqual(res.candidates, []);
+  assert.ok(res.requestRecord, "a REQUEST record is always produced for a residual");
+  assert.equal(res.requestRecord.category, "coverage_gap");
+  assert.equal(webSearchCalled, false, "no fetch/search happens without an operator-priced ticket");
+});
+
+test("seekAnswerForQuestion: a residual with an ill-formed ticket (no inventoryMiss, no operatorCostUsd) is still treated as unpriced", async () => {
+  const res1 = await seekAnswerForQuestion(TQ, { queryHeldPools: async () => [], spendTicket: { pricedLine: { operatorCostUsd: 5 } } });
+  assert.equal(res1.source, "none");
+  const res2 = await seekAnswerForQuestion(TQ, { queryHeldPools: async () => [], spendTicket: { pricedLine: { inventoryMiss: "x" } } });
+  assert.equal(res2.source, "none");
+  const res3 = await seekAnswerForQuestion(TQ, { queryHeldPools: async () => [], spendTicket: {} });
+  assert.equal(res3.source, "none");
+});
+
+test("seekAnswerForQuestion: a residual WITH a well-formed operator-priced ticket escalates to deterministic candidate generation (still no fetch without a separately-injected webSearch)", async () => {
+  const res = await seekAnswerForQuestion(TQ, {
+    queryHeldPools: async () => [],
+    spendTicket: { pricedLine: { operatorCostUsd: 2.5, inventoryMiss: "no EUR-Lex candidate resolvable" } },
+    identity: { identifier: "CELEX:32022L2464" },
+  });
+  assert.equal(res.resolved, false);
+  assert.equal(res.source, "priced-candidates");
+  assert.ok(res.candidates.includes("https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022L2464"));
+  assert.match(res.requestRecord.recommended_actions[0].rationale, /no EUR-Lex candidate resolvable/);
+});
+
+test("seekAnswerForQuestion: no identity injected, priced ticket still never crashes, candidates empty", async () => {
+  const res = await seekAnswerForQuestion(TQ, {
+    queryHeldPools: async () => [],
+    spendTicket: { pricedLine: { operatorCostUsd: 1, inventoryMiss: "x" } },
+  });
+  assert.equal(res.source, "priced-candidates");
+  assert.deepEqual(res.candidates, []);
 });
