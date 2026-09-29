@@ -11,28 +11,26 @@
 -- rule and the design doc's own "never empty" statement), `origin_class` CHECK'd to
 -- ('derived','modelled'), narrower than derived_values' 7-value vocabulary because ADR-036 decision 2
 -- states a machine-written inference is never 'verified', `supersedes` self-FK (same append-mostly,
--- never-overwritten-in-place posture derived_values uses for a recompute), `derived_from jsonb` (see
--- DOCUMENTED DEVIATION below).
+-- never-overwritten-in-place posture derived_values uses for a recompute), `method_id`/`method_version`
+-- (the SAME dispatch key drain.ts's Pass 2 already uses for `derived_values`, now generalised across
+-- record kind; migration 339 is what makes Pass 2 actually reach a stale row of THIS table), and
+-- `admissibility`/`invalidated_at`/`invalidated_by_event` (the SAME three-column staleness marker
+-- `derived_values` carries, so `invalidate_dependents()` can mark an inference stale the identical way
+-- it marks a derived value stale, once migration 339 widens the DAG to reach it).
 --
--- DOCUMENTED DEVIATION (mirrors migration 285's own header convention of naming its deliberate
--- deviations from the spec's literal DDL, so this migration stays honest about where it diverges from
--- the dispatch's literal wording rather than silently reinterpreting it). The dispatch and ADR-036 both
--- say inference_records' `derived_from` goes "into derivation_edges... so it inherits the existing
--- invalidation DAG." Migration 285's `derivation_edges.to_value_id` is `uuid NOT NULL REFERENCES
--- derived_values(value_id)`, it can ONLY point at a derived_values row, and its `from_table` CHECK
--- (`derivation_edges_from_table_allowed`) is a closed 6-table allowlist that does not include
--- `inference_records` on either side. Widening that allowlist and FK is a migration-285-touching change
--- outside this lane's write set (wave2b-lanes-2026-09-29.md names migration 338/339 as W2-G's own
--- numbers; 285 belongs to no lane in this wave). So `inference_records.derived_from` is instead a
--- `jsonb` DECLARED-INPUT list, the SAME PATTERN `derived_values.inputs` already uses (285's own
--- comment: "the DECLARED input list a caller supplies... derivation_edges is the SAME information,
--- normalised into queryable rows"), here WITHOUT the normalised-rows half, since derivation_edges
--- cannot take this table as a participant yet. This is flagged, not silently dropped (CLAUDE.md rule
--- 13): a follow-on migration that widens derivation_edges' allowlist to admit inference_records as a
--- first-class DAG participant is the honest next step, not built here. `cited_item_ids` (this table's
--- own citation array, checked non-empty below) is the load-bearing provenance link today; `derived_from`
--- is the SAME declared-input shape derived_values.inputs uses, for any additional non-item input
--- (a derived_values row, an obligation, another inference_record) an inference cites.
+-- AMENDED IN PLACE, 2026-09-29 (coordinator ruling, same day, unapplied at the time of the ruling so no
+-- live-row migration was needed, the exact posture ADR-024's 2026-09-02 amendment sets as precedent
+-- for amending an unapplied migration rather than layering a patch on top): the original `derived_from
+-- jsonb` declared-input column is REMOVED. Migration 339 (companion, same lane) widens
+-- `derivation_edges` to admit `inference_records` as a real DAG participant (both a `from_table` leaf
+-- and, via a new `to_table` column, a `to_...` target), so the declared-input list this table's own
+-- `register_inference_record()` RPC writes lives in `derivation_edges` for real, never a jsonb
+-- shadow-copy of it (no reader needs the jsonb form; migration 339 supersedes the DOCUMENTED DEVIATION
+-- this header used to carry). `method_id`/`method_version`/`admissibility`/`invalidated_at`/
+-- `invalidated_by_event` are added in this same amendment because they are this table's half of the
+-- SAME staleness-and-dispatch mechanism migration 339 completes on the `derivation_edges`/
+-- `invalidate_dependents()` side; splitting the two halves across 338 and 339 would leave either
+-- migration unable to self-check.
 --
 -- RLS: raw table denied (ENABLE ROW LEVEL SECURITY, no SELECT/INSERT policy for anon/authenticated), -- same posture migration 285 documents for derived_values ("RLS is enabled with NO SELECT policy and NO
 -- GRANT for anon/authenticated... a service-role-only write path"). No admissible view is created in
@@ -54,12 +52,18 @@ CREATE TABLE IF NOT EXISTS public.inference_records (
   confidence    numeric NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
   cited_item_ids uuid[] NOT NULL CHECK (cardinality(cited_item_ids) > 0),
   origin_class  text NOT NULL CHECK (origin_class IN ('derived', 'modelled')),
-  derived_from  jsonb NOT NULL DEFAULT '[]'::jsonb, -- declared-input list; see DOCUMENTED DEVIATION above
   supersedes    uuid REFERENCES public.inference_records(inference_id),
   trigger_question_ref text, -- the S1 trigger_question.subjectRef this inference answers (buildSubjectRef
                               -- shape from src/lib/connections/flag-namespaces.mjs); best-effort provenance
                               -- back to the question that produced this row, nullable (an inference minted
                               -- by a future non-question path, e.g. directly off the drain, has none).
+  method_id     text NOT NULL, -- dispatch key drain.ts Pass 2 looks up in methods/infer-from-question.ts's
+                                -- own INFERENCE_METHODS registry, the narrative-table twin of the numeric
+                                -- METHODS registry derived_values.method_id already dispatches through.
+  method_version text NOT NULL,
+  admissibility text NOT NULL DEFAULT 'current' CHECK (admissibility IN ('current', 'stale')),
+  invalidated_at timestamptz,
+  invalidated_by_event bigint REFERENCES public.propagation_events(event_id),
   computed_at   timestamptz NOT NULL DEFAULT now(),
   computed_by   text NOT NULL, -- method_id@method_version of the computing run (drain.ts convention), or a
                                 -- caller identity
@@ -87,23 +91,31 @@ COMMENT ON COLUMN public.inference_records.origin_class IS
   'Narrower than derived_values.origin_class (7 values): an inference_records row is either derived '
   '(a template-question answer) or modelled (a narrative conclusion), NEVER verified for a '
   'machine-written inference (ADR-036 decision 2, verbatim).';
-COMMENT ON COLUMN public.inference_records.derived_from IS
-  'jsonb array of declared, non-item inputs (the derived_values.inputs InputRef shape: {table, pk, '
-  'version}) this inference cites beyond cited_item_ids. See this migration''s header, DOCUMENTED '
-  'DEVIATION, for why this is NOT a derivation_edges row today (that table''s to_value_id FK and '
-  'from_table allowlist do not yet admit inference_records as a participant).';
+COMMENT ON COLUMN public.inference_records.method_id IS
+  'The (method_id, method_version) pair drain.ts Pass 2 looks up in INFERENCE_METHODS '
+  '(methods/infer-from-question.ts), the narrative-table twin of the numeric METHODS registry '
+  'derived_values.method_id already dispatches through. Migration 339 widens invalidate_dependents() so '
+  'a stale row of THIS table is reached by the same governed drain, never a second scheduler.';
+COMMENT ON COLUMN public.inference_records.admissibility IS
+  'The SAME two-state staleness marker derived_values carries (a narrower vocabulary here: this table '
+  'has no display_only/analysis_ok/calculation_ok/filing_ok distinction, only current vs stale). Set to '
+  '''stale'' ONLY by the governed drain (invalidate_dependents(), migration 339), never a trigger, never '
+  'hand-set by application code.';
 
 CREATE INDEX IF NOT EXISTS inference_records_subject_idx ON public.inference_records (subject_id) WHERE subject_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS inference_records_status_idx ON public.inference_records (status_token);
 CREATE INDEX IF NOT EXISTS inference_records_supersedes_idx ON public.inference_records (supersedes) WHERE supersedes IS NOT NULL;
 CREATE INDEX IF NOT EXISTS inference_records_trigger_question_idx ON public.inference_records (trigger_question_ref) WHERE trigger_question_ref IS NOT NULL;
 CREATE INDEX IF NOT EXISTS inference_records_current_idx ON public.inference_records (inference_id) WHERE supersedes IS NULL;
+CREATE INDEX IF NOT EXISTS inference_records_stale_idx ON public.inference_records (admissibility) WHERE admissibility = 'stale';
+CREATE INDEX IF NOT EXISTS inference_records_method_idx ON public.inference_records (method_id, method_version);
 
 -- ── RLS: raw table denied, service-role only (same posture as derived_values, migration 285) ──────────
 ALTER TABLE public.inference_records ENABLE ROW LEVEL SECURITY;
 -- No SELECT/INSERT policy on inference_records for anon/authenticated: deliberate. service_role bypasses
 -- RLS by default (Postgres/Supabase convention); every write rides src/lib/propagation/drain.ts's Pass 2
--- (via the infer-from-question method, when wired) or a guarded script, never a direct client write.
+-- (via register_inference_record(), migration 339's RPC, the same INFERENCE_METHODS-dispatched path
+-- drain.ts's Pass 2 uses) or a guarded script, never a direct client write.
 
 -- ── self-check (empirically verified against a local scratch schema before this migration is applied;
 -- the coordinator re-runs an equivalent check against the live project per the migration two-track
@@ -115,28 +127,36 @@ DECLARE
   v_id2 uuid;
   v_failed boolean := false;
 BEGIN
-  INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, computed_by)
-  VALUES ('probe claim', 'HYPOTHESIS', 0.6, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question@v1')
+  INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, method_id, method_version, computed_by)
+  VALUES ('probe claim', 'HYPOTHESIS', 0.6, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question', 'v1', 'infer-from-question@v1')
   RETURNING inference_id INTO v_id;
 
   BEGIN
-    INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, computed_by)
-    VALUES ('bad status', 'MAYBE', 0.5, ARRAY[gen_random_uuid()], 'derived', 'x');
+    INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, method_id, method_version, computed_by)
+    VALUES ('bad status', 'MAYBE', 0.5, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question', 'v1', 'x');
     v_failed := true; -- should never reach here
   EXCEPTION WHEN check_violation THEN
     NULL; -- expected
   END;
 
   BEGIN
-    INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, computed_by)
-    VALUES ('empty cites', 'HYPOTHESIS', 0.5, ARRAY[]::uuid[], 'derived', 'x');
+    INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, method_id, method_version, computed_by)
+    VALUES ('empty cites', 'HYPOTHESIS', 0.5, ARRAY[]::uuid[], 'derived', 'infer-from-question', 'v1', 'x');
     v_failed := true; -- should never reach here
   EXCEPTION WHEN check_violation THEN
     NULL; -- expected
   END;
 
-  INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, computed_by, supersedes)
-  VALUES ('probe claim, revised', 'HYPOTHESIS', 0.65, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question@v1', v_id)
+  BEGIN
+    INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, method_id, method_version, admissibility, computed_by)
+    VALUES ('bad admissibility', 'HYPOTHESIS', 0.5, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question', 'v1', 'archived', 'x');
+    v_failed := true; -- should never reach here
+  EXCEPTION WHEN check_violation THEN
+    NULL; -- expected
+  END;
+
+  INSERT INTO public.inference_records (claim_text, status_token, confidence, cited_item_ids, origin_class, method_id, method_version, computed_by, supersedes)
+  VALUES ('probe claim, revised', 'HYPOTHESIS', 0.65, ARRAY[gen_random_uuid()], 'derived', 'infer-from-question', 'v1', 'infer-from-question@v1', v_id)
   RETURNING inference_id INTO v_id2;
 
   IF v_failed THEN

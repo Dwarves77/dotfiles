@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runPropagationDrain, resolveInputs } from "./drain.ts";
 import { registerMethod, __clearRegistryForTests } from "./methods/index.ts";
+import { METHOD_ID as INFER_METHOD_ID, METHOD_VERSION as INFER_METHOD_VERSION } from "./methods/infer-from-question.ts";
 
 test.beforeEach(() => {
   __clearRegistryForTests();
@@ -308,6 +309,147 @@ test("runPropagationDrain: an invalidate_dependents error for one event is recor
   assert.equal(result.errors.length, 1);
   assert.equal(result.errors[0].eventId, 1);
   assert.equal(result.invalidated, 1); // event 2 still counted despite event 1's error
+});
+
+// ── Pass 2 dispatch on record kind (ADR-036, lane W2-G, coordinator ruling 2026-09-29) ──────────────────
+
+test("runPropagationDrain apply mode: a stale inference_records row triggers INFERENCE_METHODS and register_inference_record, and NEVER touches derived_values", async () => {
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "derived_values", row_pk: "dv-src-1", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+      ],
+      derived_values: [],
+      inference_records: [
+        {
+          inference_id: "inf-1",
+          subject_id: null,
+          claim_text: "What changed: amendment?",
+          cited_item_ids: ["item-a"],
+          trigger_question_ref: "item-1:regulations:what",
+          method_id: INFER_METHOD_ID,
+          method_version: INFER_METHOD_VERSION,
+          admissibility: "stale",
+          invalidated_by_event: 1,
+        },
+      ],
+      derivation_edges: [],
+    },
+    rpcHandlers: {
+      invalidate_dependents: invalidateHandler({ "dv-src-1": 1 }),
+      register_inference_record: () => ({ data: "inf-2", error: null }),
+    },
+  });
+
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+
+  assert.equal(result.recomputed, 1);
+  assert.equal(result.skippedUnknownMethod, 0);
+  assert.deepEqual(result.superseded, [{ from: "inf-1", to: "inf-2" }]);
+
+  // dispatched to register_inference_record, NEVER register_derived_value
+  assert.ok(sb.rpcCalls.some((c) => c.fn === "register_inference_record"));
+  assert.equal(sb.rpcCalls.some((c) => c.fn === "register_derived_value"), false);
+  const call = sb.rpcCalls.find((c) => c.fn === "register_inference_record");
+  assert.equal(call.args.p_supersedes, "inf-1");
+  assert.equal(call.args.p_status_token, "HYPOTHESIS");
+  assert.deepEqual(call.args.p_cited_item_ids, ["item-a"]);
+
+  // derived_values table is untouched (still empty, no row ever inserted or read as a target)
+  assert.deepEqual(sb.state.derived_values, []);
+});
+
+test("runPropagationDrain apply mode: a stale derived_values row NEVER dispatches through INFERENCE_METHODS and never touches inference_records", async () => {
+  registerMethod("blend", "1", () => ({
+    ok: true, value: 99, unit: "unit", derivation: "calculated", originClass: "derived",
+    lifecycle: "verified", admissibility: "analysis_ok", confidence: 0.85,
+  }));
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "emission_factors", row_pk: "ef-1", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+      ],
+      derived_values: [
+        {
+          value_id: "aaaaaaaa-0000-0000-0000-000000000001", entity_id: null, method_id: "blend", method_version: "1",
+          inputs: [{ table: "emission_factors", pk: "ef-1" }], unit: "unit", currency: null,
+          admissibility: "stale", invalidated_by_event: 1,
+        },
+      ],
+      emission_factors: [{ factor_id: "ef-1", value: 10 }],
+      inference_records: [], // present but empty, proves the numeric path never reads/writes it
+    },
+    rpcHandlers: {
+      invalidate_dependents: invalidateHandler({ "ef-1": 1 }),
+      register_derived_value: () => ({ data: "bbbbbbbb-0000-0000-0000-000000000002", error: null }),
+    },
+  });
+
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+
+  assert.equal(result.recomputed, 1);
+  assert.deepEqual(result.superseded, [{ from: "aaaaaaaa-0000-0000-0000-000000000001", to: "bbbbbbbb-0000-0000-0000-000000000002" }]);
+  assert.ok(sb.rpcCalls.some((c) => c.fn === "register_derived_value"));
+  assert.equal(sb.rpcCalls.some((c) => c.fn === "register_inference_record"), false);
+  // inference_records table is untouched (still empty)
+  assert.deepEqual(sb.state.inference_records, []);
+});
+
+test("runPropagationDrain apply mode: BOTH a stale derived_values row and a stale inference_records row dispatch independently in the same run", async () => {
+  registerMethod("blend", "1", () => ({
+    ok: true, value: 99, unit: "unit", derivation: "calculated", originClass: "derived",
+    lifecycle: "verified", admissibility: "analysis_ok", confidence: 0.85,
+  }));
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "emission_factors", row_pk: "ef-1", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+      ],
+      derived_values: [
+        {
+          value_id: "aaaaaaaa-0000-0000-0000-000000000001", entity_id: null, method_id: "blend", method_version: "1",
+          inputs: [], unit: "unit", currency: null, admissibility: "stale", invalidated_by_event: 1,
+        },
+      ],
+      inference_records: [
+        {
+          inference_id: "inf-1", subject_id: null, claim_text: "claim", cited_item_ids: ["item-a"],
+          trigger_question_ref: null, method_id: INFER_METHOD_ID, method_version: INFER_METHOD_VERSION,
+          admissibility: "stale", invalidated_by_event: 1,
+        },
+      ],
+      derivation_edges: [],
+    },
+    rpcHandlers: {
+      invalidate_dependents: invalidateHandler({ "ef-1": 1 }),
+      register_derived_value: () => ({ data: "new-dv", error: null }),
+      register_inference_record: () => ({ data: "new-inf", error: null }),
+    },
+  });
+
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+
+  assert.equal(result.recomputed, 2);
+  assert.deepEqual(result.superseded.sort((a, b) => a.from.localeCompare(b.from)), [
+    { from: "aaaaaaaa-0000-0000-0000-000000000001", to: "new-dv" },
+    { from: "inf-1", to: "new-inf" },
+  ]);
+  assert.ok(sb.rpcCalls.some((c) => c.fn === "register_derived_value"));
+  assert.ok(sb.rpcCalls.some((c) => c.fn === "register_inference_record"));
+});
+
+test("resolveInferenceDeclaredInputs: reads derivation_edges filtered to to_table='inference_records', maps to InputRef shape", async () => {
+  const { resolveInferenceDeclaredInputs } = await import("./drain.ts");
+  const sb = fakeClient({
+    tables: {
+      derivation_edges: [
+        { from_table: "derived_values", from_pk: "dv-1", to_table: "inference_records", to_value_id: "inf-1", edge_kind: "input" },
+        { from_table: "derived_values", from_pk: "dv-2", to_table: "derived_values", to_value_id: "dv-3", edge_kind: "input" },
+      ],
+    },
+  });
+  const refs = await resolveInferenceDeclaredInputs(sb, "inf-1");
+  assert.deepEqual(refs, [{ table: "derived_values", pk: "dv-1", version: null }]);
 });
 
 test("runPropagationDrain: batch caps how many undrained events one call considers", async () => {

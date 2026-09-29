@@ -30,23 +30,22 @@
 //   register_derived_value, `p_supersedes`). A `{ok:false,...}` result (the method itself refuses to
 //   compute) leaves the row stale and is counted alongside skippedUnknownMethod under a distinct reason.
 //
-// METHODS['infer-from-question'] (ADR-036, learning-loop-design-2026-09-25.md section 6, lane W2-G,
-// wave2b, 2026-09-29), registered in ./methods/infer-from-question.ts's OWN small INFERENCE_METHODS
-// registry, NOT in ./methods/index.ts's numeric METHODS/REGISTRY that Pass 2 above reads. Two reasons,
-// both stated in that file's header: (1) inference_records (migration 338) is a narrative table
-// (claim_text/status_token/cited_item_ids), and forcing it through MethodResult's numeric value/
-// derivation/lifecycle shape would manufacture fields a claim does not have; (2) Pass 2 above walks
-// `derived_values` rows with `admissibility='stale'` EXCLUSIVELY, there is no equivalent stale-queue
-// on `inference_records` in migration 338, so this drain's existing two-pass contract has no place to
-// call an inference method from without a Pass-2-shaped rearchitecture this lane's write set does not
-// license. OPEN QUESTION, named honestly (CLAUDE.md rule 13/14), not silently built: a future Pass 3,
-// or a dedicated inference-drain entry point, is what would make an `infer-from-question` write ride
-// this file the way a numeric method's write does today. `methods/infer-from-question.ts`'s
-// `runInferFromQuestion` is the narrow, already-usable write path a script or route can call directly
-// in the meantime.
+// PASS 2 DISPATCHES ON RECORD KIND (ADR-036, learning-loop-design-2026-09-25.md section 6, lane W2-G,
+// wave2b, 2026-09-29, coordinator ruling 2026-09-29). Migration 339 widened `derivation_edges` to admit
+// `inference_records` (migration 338) as a real DAG participant on both sides, so `invalidate_dependents`
+// now marks a stale `inference_records` row the SAME way it marks a stale `derived_values` row (the
+// closure walk is polymorphic across both tables). Pass 2 below therefore runs its stale-row read and
+// method-dispatch TWICE: once for `derived_values` against `methods/index.ts`'s numeric `METHODS`
+// registry (BYTE-IDENTICAL to before this change, proven by drain.test.mjs's 11 pre-existing tests plus
+// this file's own new tests), and once for `inference_records` against `methods/infer-from-question.ts`'s
+// own `INFERENCE_METHODS` registry, kept separate because a narrative result (claim_text/status_token/
+// cited_item_ids) is not a numeric `MethodResult` (that file's own header states the full reasoning). The
+// two dispatches never cross: a stale `derived_values` row is never looked up in `INFERENCE_METHODS` and
+// a stale `inference_records` row is never looked up in `METHODS`.
 
 import { registerDerivedValue } from "./register-derivation.ts";
 import { getMethod } from "./methods/index.ts";
+import { INFERENCE_METHODS, registerInferenceRecord } from "./methods/infer-from-question.ts";
 import type { InputRef } from "./types.ts";
 import type { ResolvedMethodInput } from "./methods/index.ts";
 import { exactCount } from "../db/paginate.mjs";
@@ -94,6 +93,12 @@ const PK_COLUMN: Readonly<Record<string, string>> = Object.freeze({
   derived_values: "value_id",
   statutory_computations: "computation_id",
   estimated_values: "estimate_id",
+  // inference_records (migration 338/339, lane W2-G): the second DAG-node table derivation_edges' own
+  // to_table column can now name. No live InputRef cites this as a TARGET-resolution table today (an
+  // inference's declared inputs are always something ELSE feeding INTO it, never the other way around
+  // in this lane's own writer), but the map stays exhaustive over every table derivation_edges knows
+  // about, matching this constant's own doc comment.
+  inference_records: "inference_id",
 });
 
 /** Resolve a `derived_values.inputs` array (InputRef[]) into real rows for a method to read. Never throws
@@ -120,6 +125,29 @@ export async function resolveInputs(sb: DrainClient, inputs: InputRef[]): Promis
     }
   }
   return resolved;
+}
+
+/** Read an `inference_records` row's declared inputs FROM `derivation_edges` directly (migration 339:
+ *  `to_table='inference_records', to_value_id=<inferenceId>`), `inference_records` carries no `inputs`
+ *  jsonb mirror column (unlike `derived_values.inputs`; migration 338's amendment deliberately dropped
+ *  the jsonb shadow-copy once derivation_edges could hold the real rows). Never throws, a read error
+ *  yields `[]` (the method then sees zero declared inputs, not a crash).
+ * @param {DrainClient} sb
+ * @param {string} inferenceId
+ * @returns {Promise<InputRef[]>}
+ */
+export async function resolveInferenceDeclaredInputs(sb: DrainClient, inferenceId: string): Promise<InputRef[]> {
+  try {
+    const { data, error } = await sb
+      .from("derivation_edges")
+      .select("from_table,from_pk")
+      .eq("to_table", "inference_records")
+      .eq("to_value_id", inferenceId);
+    if (error || !Array.isArray(data)) return [];
+    return (data as Array<{ from_table: string; from_pk: string }>).map((e) => ({ table: e.from_table, pk: e.from_pk, version: null }));
+  } catch {
+    return [];
+  }
 }
 
 export interface RunPropagationDrainOptions {
@@ -313,6 +341,75 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
       result.errors.push({
         eventId: "n/a",
         message: `recompute ${row.value_id} (${row.method_id}@${row.method_version}) failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
+  // ── Pass 2b: recompute stale inference_records (apply mode only, same batch's events) ────────────────
+  // Mirrors the derived_values loop above exactly, dispatched against INFERENCE_METHODS instead of
+  // METHODS and writing through registerInferenceRecord instead of registerDerivedValue. A stale
+  // derived_values row is NEVER read here (separate query, separate table); a stale inference_records
+  // row is NEVER read in the loop above (separate query, separate table), the two dispatches do not
+  // cross, proven by drain.test.mjs's "a stale inference triggers the method and a stale derived value
+  // does not touch it" pair.
+  const { data: staleInferences, error: staleInfErr } = await sb
+    .from("inference_records")
+    .select("inference_id,subject_id,claim_text,cited_item_ids,trigger_question_ref,method_id,method_version")
+    .eq("admissibility", "stale")
+    // fitness-allow: F39 (eventIds.length <= batch, DEFAULT_BATCH=500, via .limit(batch) above)
+    .in("invalidated_by_event", eventIds);
+  if (staleInfErr) {
+    result.errors.push({ eventId: "n/a", message: `reading stale inference_records failed: ${staleInfErr.message}` });
+    return result;
+  }
+
+  for (const row of (Array.isArray(staleInferences) ? staleInferences : []) as Array<{
+    inference_id: string;
+    subject_id: string | null;
+    claim_text: string;
+    cited_item_ids: string[];
+    trigger_question_ref: string | null;
+    method_id: string;
+    method_version: string;
+  }>) {
+    const fn = INFERENCE_METHODS.get(row.method_id, row.method_version);
+    if (!fn) {
+      result.skippedUnknownMethod += 1;
+      continue;
+    }
+    try {
+      const declaredInputs = await resolveInferenceDeclaredInputs(sb, row.inference_id);
+      const resolvedInputs = await resolveInputs(sb, declaredInputs);
+      const output = await fn({
+        entityId: row.subject_id,
+        inputs: resolvedInputs,
+        priorValue: { inference_id: row.inference_id, claim_text: row.claim_text, cited_item_ids: row.cited_item_ids, trigger_question_ref: row.trigger_question_ref },
+        now: new Date(),
+      });
+      if (!output.ok) {
+        result.skippedMethodRefused += 1;
+        continue;
+      }
+      const newInferenceId = await registerInferenceRecord(sb as unknown as Parameters<typeof registerInferenceRecord>[0], {
+        subjectId: row.subject_id,
+        claimText: output.claimText,
+        statusToken: output.statusToken,
+        confidence: output.confidence,
+        citedItemIds: output.citedItemIds,
+        originClass: output.originClass,
+        methodId: row.method_id,
+        methodVersion: row.method_version,
+        computedBy: `${row.method_id}@${row.method_version}`,
+        triggerQuestionRef: row.trigger_question_ref,
+        inputs: declaredInputs,
+        supersedes: row.inference_id,
+      });
+      result.recomputed += 1;
+      result.superseded.push({ from: row.inference_id, to: newInferenceId });
+    } catch (err) {
+      result.errors.push({
+        eventId: "n/a",
+        message: `recompute inference ${row.inference_id} (${row.method_id}@${row.method_version}) failed: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
   }
