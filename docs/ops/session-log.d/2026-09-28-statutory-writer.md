@@ -93,11 +93,33 @@ write-statutory.mjs --rows-file scripts/propagation/fixtures/fueleu-annex-i-iv-s
 No live `statutory_computations` row was written or attempted against any real database this session
 (R14, SELECT-only, and no credentials exist in this worktree regardless).
 
-## Gates run
+## F45/F28 corrections found by the gates themselves
 
-- `bash .discipline/run-test-suite.sh`: 1805 tests, 1801 pass, 4 skip (no-cred self-skip), 0 fail.
+The first fitness-runner pass caught two things this report's earlier draft missed:
+
+- **F45 (duplicate-code) regression, +16 lines**: `nextRunNumberFromHarnessRuns`/`buildHarnessRunsClient`
+  duplicated `plan-quarantine-disposition.mjs`'s own same-day functions almost verbatim. Fixed by
+  extracting both to `fsi-app/scripts/lib/harness-run-number.mjs`; both scripts now import the one home.
+  `plan-quarantine-disposition.test.mjs`'s existing 15 tests still pass unmodified (behavior-preserving).
+- **F28 (harness-run integrity) RED**: registering `scripts/harness-runs/statutory/family.json` touches
+  `meta-harness`'s own governing files (every family descriptor is one), and editing
+  `plan-quarantine-disposition.mjs` touches `quarantine-disposition`'s governing files -- both needed a
+  `pending/<date>-<lane>.md` marker for this commit range, per F28's own range rule. Added both.
+
+## Gates run (final, after both corrections)
+
+- `bash .discipline/run-test-suite.sh` (both globs): 6296/6297 pass (1 skip) + 1801/1805 pass (4 skip,
+  no-cred self-skip), 0 fail.
+- `node --test scripts/propagation/write-statutory.test.mjs scripts/plan-quarantine-disposition.test.mjs`:
+  34/34 pass (the two files most affected by this lane's edits, isolated).
 - `npx tsc --noEmit`: clean.
-- `node .discipline/fitness/runner.mjs`: PENDING/see below.
+- `node .discipline/fitness/runner.mjs`: 50 functions checked, 0 violations.
+- `DISCIPLINE_HOOK_TRAMPOLINE=1 sh .discipline/hooks/pre-push` (full wiring preflight, no push): all 4
+  steps + sub-steps (untracked-files, consistency runner, memory gate, discipline+fitness canonical suite,
+  invariant-coverage meta-gate, skill-gate wiring, fitness runner live-tree, npm-dependent suites,
+  behavioral goldens, tsc) pass. "push proceeding" in the hook's own output is its standard message; per
+  the hard rule for this lane, nothing was actually pushed (confirmed: `git log origin/master..HEAD` shows
+  2 local commits, working tree clean, no `git push` run).
 - No `.tsx`/`.css` touched; UX contract and rendering guard not applicable.
 
 ## Open items
