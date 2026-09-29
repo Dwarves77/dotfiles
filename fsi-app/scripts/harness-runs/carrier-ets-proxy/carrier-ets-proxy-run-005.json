@@ -1,0 +1,96 @@
+{
+  "harness_family": "carrier-ets-proxy",
+  "harness_version": "sha256:04c850cfa4825ecf",
+  "run_id": "carrier-ets-proxy-run-005",
+  "started_at": "2026-09-29T04:28:10.835Z",
+  "finished_at": "2026-09-29T04:28:10.974Z",
+  "config": {
+    "mode": "dry",
+    "fixtures": "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs",
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "Maersk|Asia-North Europe|2026-10-01",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [
+        "carrier-ets:maersk-asia-north-europe"
+      ],
+      "error": null
+    },
+    {
+      "id": "MSC|Asia-North Europe|2026-10-01",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [
+        "carrier-ets:msc-asia-north-europe"
+      ],
+      "error": null
+    },
+    {
+      "id": "CMA CGM|Asia-North Europe|2026-10-01",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [
+        "carrier-ets:cma-cgm-asia-north-europe"
+      ],
+      "error": null
+    },
+    {
+      "id": "Hapag-Lloyd|Transpacific|2026-10-01",
+      "outcome": "candidate_built",
+      "verdict": null,
+      "evidence_refs": [
+        "carrier-ets:hapag-lloyd-transpacific"
+      ],
+      "error": null
+    },
+    {
+      "id": "Evergreen|Asia-North Europe|2026-10-01",
+      "outcome": "refused_ungrounded",
+      "verdict": "span_text is not a verbatim (whitespace-insensitive) substring of the captured source text",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "candidates": 5,
+    "refused_ungrounded": 1,
+    "refused_unrated_source": 0,
+    "to_create": 4,
+    "to_update": 0,
+    "skipped_no_reference_period": 0,
+    "proxy_bands_built": 1,
+    "authored": 1,
+    "skippedAlready": 3,
+    "insufficientHistory": 0,
+    "unitMismatch": 0,
+    "refused": 0,
+    "unknownMethod": 0,
+    "errored": 0,
+    "trace": [
+      "keys received: [carrier-ets:maersk-asia-north-europe, carrier-ets:msc-asia-north-europe, carrier-ets:cma-cgm-asia-north-europe, carrier-ets:hapag-lloyd-transpacific] mode=apply",
+      "carrier-ets:maersk-asia-north-europe: candidates computed, 2 row(s) in the 21-day lookback window (cutoff 2026-09-08)",
+      "carrier-ets:maersk-asia-north-europe: rows attempted, latest=fixture-row-2@2026-10-01 prior=fixture-row-1@2026-09-24",
+      "carrier-ets:maersk-asia-north-europe: rows inserted, valueId=fixture-value:market_series:fixture-row-2:market_series_delta",
+      "carrier-ets:msc-asia-north-europe: candidates computed, 2 row(s) in the 21-day lookback window (cutoff 2026-09-08)",
+      "carrier-ets:msc-asia-north-europe: rows attempted, latest=fixture-row-2@2026-10-01 prior=fixture-row-1@2026-09-24",
+      "carrier-ets:msc-asia-north-europe: authorEdges result, already authored, skipped",
+      "carrier-ets:cma-cgm-asia-north-europe: candidates computed, 2 row(s) in the 21-day lookback window (cutoff 2026-09-08)",
+      "carrier-ets:cma-cgm-asia-north-europe: rows attempted, latest=fixture-row-2@2026-10-01 prior=fixture-row-1@2026-09-24",
+      "carrier-ets:cma-cgm-asia-north-europe: authorEdges result, already authored, skipped",
+      "carrier-ets:hapag-lloyd-transpacific: candidates computed, 2 row(s) in the 21-day lookback window (cutoff 2026-09-08)",
+      "carrier-ets:hapag-lloyd-transpacific: rows attempted, latest=fixture-row-2@2026-10-01 prior=fixture-row-1@2026-09-24",
+      "carrier-ets:hapag-lloyd-transpacific: authorEdges result, already authored, skipped"
+    ]
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
+  ],
+  "proposer_notes": "carrier-ets-surcharge-producer's first run artifact (lane ETS-PROXY, 2026-09-28). R14 holds live rows; this run is fixtures/dry, downstream DAG authorship exercised against injected offline deps (never a live DB). ENABLED stays false until a separate reviewed change lifts it, matching state-cost-facts-producer.mjs's own ENABLED history.",
+  "trigger": "manual"
+}

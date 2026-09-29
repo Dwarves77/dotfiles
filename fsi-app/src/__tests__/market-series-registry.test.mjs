@@ -8,18 +8,30 @@ import {
   MARKET_SERIES_PRODUCERS, producerFor, isImplementedSeriesKey, implementedProducers,
 } from "../lib/market/series-registry.mjs";
 
-test("exactly the 4 series the master plan names, in WO-16 order: EU Weekly Oil Bulletin, EEX EUA, ECB FX, EIA v2", () => {
+// Updated 2026-09-28 (lane ETS-PROXY): the WO-16 four plus the decision-1/2 ETS-proxy entry
+// (carrier-ets), the ruled licence-clear alternative to the eex-eua stub. carrier-ets has no single
+// sourceUrl (per-carrier, resolved at run time), named as the one documented exception below.
+test("the WO-16 four plus the ETS-proxy entry (carrier-ets), in registry order", () => {
   assert.deepEqual(
     MARKET_SERIES_PRODUCERS.map((p) => p.keyPrefix),
-    ["eu-oil-bulletin", "eex-eua", "ecb-fx", "eia-v2"],
+    ["eu-oil-bulletin", "eex-eua", "carrier-ets", "ecb-fx", "eia-v2"],
   );
 });
+
+// carrier-ets is the one documented exception to "every entry names a single sourceUrl": it resolves a
+// source PER CARRIER at run time (classTierForHost, never a single shared URL), see its own registry
+// comment.
+const NO_SINGLE_SOURCE_URL = new Set(["carrier-ets"]);
 
 test("every entry names series_key prefix, source and cadence (WO-16 step 5's registry-entry contract)", () => {
   for (const p of MARKET_SERIES_PRODUCERS) {
     assert.ok(p.keyPrefix, `${p.name}: missing keyPrefix`);
     assert.ok(p.sourceName, `${p.name}: missing sourceName`);
-    assert.ok(p.sourceUrl, `${p.name}: missing sourceUrl`);
+    if (!NO_SINGLE_SOURCE_URL.has(p.keyPrefix)) {
+      assert.ok(p.sourceUrl, `${p.name}: missing sourceUrl`);
+    } else {
+      assert.equal(p.sourceUrl, null, `${p.name}: documented no-single-source-url entry must be explicit null, not missing`);
+    }
     assert.ok(p.cadence, `${p.name}: missing cadence`);
     assert.ok("cadenceDays" in p, `${p.name}: missing cadenceDays (null is fine; the key must be present)`);
     assert.ok(typeof p.implemented === "boolean", `${p.name}: implemented must be boolean`);
@@ -35,8 +47,8 @@ test("the implemented producer's cadenceDays is a positive integer; every stub's
 });
 
 // Updated 2026-09-02 (Lane PROD, system-completion train): series-registry.mjs's eia-v2 entry flipped
-// implemented:true, correcting the stale flag docs/plans/system-completion-plan-2026-09-02.md §0 row 4
-// named live ("series-registry.mjs says eia-v2 implemented:false (stale)") — the producer script itself
+// implemented:true, correcting the stale flag docs/plans/system-completion-plan-2026-09-02.md section 0 row 4
+// named live ("series-registry.mjs says eia-v2 implemented:false (stale)"), the producer script itself
 // (eia-v2-petroleum-spot-producer.mjs) already shipped 2026-09-01 with its own fixture proof
 // (src/__tests__/market-eia-v2-petroleum-spot-parser.test.mjs); only the registry flag was wrong. Updated
 // 2026-08-31 before that (lane P2, build/wave-p2): ecb-fx-producer.mjs shipped, flipping ecb-fx to
@@ -46,11 +58,25 @@ test("exactly THREE producers are implemented: EU Weekly Oil Bulletin, ECB FX, E
   assert.deepEqual(impl.map((p) => p.keyPrefix), ["eu-oil-bulletin", "ecb-fx", "eia-v2"]);
 });
 
-test("the one remaining stub (eex-eua) carries NO producerScript/parserModule — documented, not half-built", () => {
-  for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented)) {
+// Updated 2026-09-28 (lane ETS-PROXY): eex-eua stays the one true "no code at all" stub. carrier-ets is
+// a DIFFERENT kind of not-implemented: its producer script and envelope module exist and are
+// fixture-tested (R14 hold gates the LIVE-WRITE path only, via its own ENABLED=false, not this registry
+// flag), so it is named as a documented exception here, never silently lumped with eex-eua's "nothing
+// built yet" case.
+const HELD_NOT_UNBUILT = new Set(["carrier-ets"]);
+
+test("the one true no-code stub (eex-eua) carries NO producerScript/parserModule, documented, not half-built", () => {
+  for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented && !HELD_NOT_UNBUILT.has(p.keyPrefix))) {
     assert.equal(p.producerScript, null, `${p.name}: a stub must not name a producer script`);
     assert.equal(p.parserModule, null, `${p.name}: a stub must not name a parser module`);
   }
+});
+
+test("carrier-ets is R14-held, not unbuilt: it names real producer/parser paths while implemented stays false", () => {
+  const carrierEts = producerFor("carrier-ets");
+  assert.equal(carrierEts.implemented, false);
+  assert.equal(carrierEts.producerScript, "scripts/producers/market/carrier-ets-surcharge-producer.mjs");
+  assert.equal(carrierEts.parserModule, "src/lib/market/carrier-ets-surcharge-envelope.mjs");
 });
 
 test("every implemented producer names its real producer script and parser module paths", () => {

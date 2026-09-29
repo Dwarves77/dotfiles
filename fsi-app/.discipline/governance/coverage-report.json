@@ -3835,6 +3835,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/market/carrier-ets-surcharge-envelope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
+    },
+    {
       "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -5301,6 +5310,15 @@
       "skills": [],
       "proofWired": true,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/carrier-ets-surcharge-composition.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
     },
     {
       "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
@@ -7041,6 +7059,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/plan-quarantine-disposition-write-client.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/plan-quarantine-disposition.test.mjs",
       "kinds": [
         "PROOF"
@@ -7097,6 +7126,15 @@
       ],
       "proofWired": true,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/producers/market/carrier-ets-surcharge-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
     },
     {
       "path": "fsi-app/scripts/producers/market/ecb-fx-producer.test.mjs",
@@ -11456,11 +11494,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1071,
-    "covered": 1029,
+    "governed_files": 1075,
+    "covered": 1030,
     "exempt": 42,
-    "gaps": 0,
-    "orphaned_proofs": 0,
+    "gaps": 3,
+    "orphaned_proofs": 3,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

@@ -32,49 +32,11 @@
 // src/lib/sources/host-authority.ts's classTierForHost, THE deterministic register-at-grounding class
 // table (SC-13), via the orchestrator's registerSource call, never guessed or hand-typed here.
 
-/** Collapse whitespace runs to a single space and trim, for a tolerant-but-honest verbatim match (the
- * same normalisation class every capture/grounding path in this repo applies before a substring check, * never a fuzzy/semantic match, only whitespace-insensitive). */
-function normaliseWhitespace(s) {
-  return String(s ?? "").replace(/\s+/g, " ").trim();
-}
-
-/**
- * Is `span` verbatim (whitespace-insensitive, case-sensitive) inside `captureText`? Pure. This is the
- * ADR-016-class check: a fact's supporting span must be a real substring of what was actually captured
- * from the source, never inferred or paraphrased.
- * @param {string} captureText
- * @param {string} span
- * @returns {boolean}
- */
-export function isVerbatimSpan(captureText, span) {
-  const normSpan = normaliseWhitespace(span);
-  if (!normSpan) return false;
-  const normCapture = normaliseWhitespace(captureText);
-  return normCapture.includes(normSpan);
-}
-
-/**
- * Ground one candidate fact against its capture text. Refuses (never silently drops) a candidate whose
- * `span_text` is not verbatim in the capture, or whose `span_text` is absent, a figure with no
- * supporting span is exactly the "ungrounded" case CLAUDE.md rule 18 still refuses (the source may be
- * fine; the SPAN is what is missing).
- * @param {{span_text?: string|null}} candidate
- * @param {string|null|undefined} captureText
- * @returns {{ok: true} | {ok: false, reason: string}}
- */
-export function groundCandidate(candidate, captureText) {
-  const span = candidate?.span_text;
-  if (!span || !String(span).trim()) {
-    return { ok: false, reason: "no span_text supplied, a figure with no supporting span is ungrounded, refused per ADR-016 / rule 18" };
-  }
-  if (!captureText || !String(captureText).trim()) {
-    return { ok: false, reason: "no capture text available for this candidate's source_url, cannot verify verbatim span" };
-  }
-  if (!isVerbatimSpan(captureText, span)) {
-    return { ok: false, reason: "span_text is not a verbatim (whitespace-insensitive) substring of the captured source text" };
-  }
-  return { ok: true };
-}
+// isVerbatimSpan / groundCandidate: the shared ADR-016 / rule 18 verbatim-span grounding check, extracted
+// to src/lib/contracts/verbatim-grounding.mjs (lane ETS-PROXY, 2026-09-28, F45 duplicate-code gate);
+// carrier-ets-surcharge-envelope.mjs carried an identical pair. Re-exported here so every existing
+// importer of THIS module keeps working unchanged.
+export { isVerbatimSpan, groundCandidate } from "../contracts/verbatim-grounding.mjs";
 
 /**
  * Deterministic origin_class from a resolved source tier, by DIRECT ANALOGY to

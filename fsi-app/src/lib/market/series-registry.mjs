@@ -85,7 +85,46 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
     notes:
       "EU Allowance (EUA) auction clearing price, per EU ETS Auctioning Regulation. STUB ONLY (WO-16 " +
       "step 5): not built in this lane. A future producer keys series under eex-eua:* (e.g. " +
-      "eex-eua:eua-primary), reference_period = the auction date.",
+      "eex-eua:eua-primary), reference_period = the auction date. DEFERRED (decisions 1/2, 2026-09-24/25, " +
+      "lane ETS-PROXY 2026-09-28): EEX stays a licensed venue with no producer; the ruled ETS-proxy " +
+      "source is the 'carrier-ets' entry above (carrier-published surcharge notices), not this one.",
+  },
+  {
+    keyPrefix: "carrier-ets",
+    familyClass: "carbon",
+    name: "Carrier-published ETS/FuelEU surcharge notices (EEX-proxy)",
+    // Lane ETS-PROXY, 2026-09-28: decisions 1/2 (2026-09-24/25, build-plan-2026-09-25 workstream 11)
+    // rule this as the licence-clear alternative to the eex-eua stub below: "no freight-rate tracking;
+    // carbon cost per container/tonne from carrier-published ETS surcharges, per carrier/period/source,
+    // never blended without a range, client override labelled client-supplied, EEX licence deferred."
+    // R14 hold: producer built and fixture-tested (scripts/producers/market/
+    // carrier-ets-surcharge-producer.mjs), ENABLED=false, no --apply path exists yet, same posture as
+    // state-cost-facts-producer.mjs. implemented:false until a reviewed change adds a live fetch/apply
+    // path; the producer script and its parser/envelope module already exist (unlike eex-eua's null
+    // producerScript), so this entry's "implemented" flag tracks the LIVE-WRITE gate specifically, not
+    // "does a producer file exist."
+    implemented: false,
+    cadence: "per carrier notice (carriers publish surcharge revisions on their own schedule, typically monthly/quarterly)",
+    cadenceDays: null, // no fixed cadence, a carrier revises its own surcharge on its own timetable
+    sourceKey: null, // per-carrier: each carrier host registers its OWN data_sources row at run time,
+                      // tier from classTierForHost (the institution class table), never one shared key
+    sourceName: "Ocean carriers' own published ETS/FuelEU/UKA surcharge notices (per carrier)",
+    sourceUrl: null, // no single URL, see producerScript for the per-candidate sourceUrl shape
+    licenceStatus:
+      "no registry licence question: each carrier's own corporate site publishing its own surcharge " +
+      "notice is a `company`-class source (SC-13/D14, T7): rated, not licensed/unlicensed the way a " +
+      "third-party data vendor (EEX) is. R14 hold: fixture-tested, no live fetch/apply path yet.",
+    derivation: "observed",
+    originClass: "official",
+    producerScript: "scripts/producers/market/carrier-ets-surcharge-producer.mjs",
+    parserModule: "src/lib/market/carrier-ets-surcharge-envelope.mjs",
+    notes:
+      "One market_series row PER CARRIER PER TRADE LANE PER PERIOD (series_key `carrier-ets:<carrier>" +
+      "[-<lane>]`), never blended into a single averaged row (decision 1/2). " +
+      "carrier-ets-surcharge-envelope.mjs's buildEtsProxyBand is the separate, explicit cross-carrier " +
+      "band (real observed low/point/high, never an invented uncertainty range) a caller uses to feed " +
+      "carbon-cost-per-feu.mjs's `carbonPrice` input, closing that module's GAP.NO_CARBON_PRICE. " +
+      "See docs/ops/session-log.d/2026-09-28-ets-proxy.md for the worked fixture example.",
   },
   {
     keyPrefix: "ecb-fx",

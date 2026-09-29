@@ -1,0 +1,16 @@
+{
+  "family": "carrier-ets-proxy",
+  "registered": "2026-09-28",
+  "registered_by": "lane ETS-PROXY",
+  "governing_files": [
+    "scripts/producers/market/carrier-ets-surcharge-producer.mjs",
+    "src/lib/market/carrier-ets-surcharge-envelope.mjs",
+    "src/lib/market/series-registry.mjs",
+    "src/lib/sources/host-authority.ts",
+    "scripts/producers/market/author-market-series-delta.mjs",
+    "scripts/lib/rate-source-by-class.mjs",
+    "scripts/lib/r14-held-producer-cli.mjs",
+    "src/lib/contracts/verbatim-grounding.mjs"
+  ],
+  "rationale": "carrier-ets-proxy (registered by lane ETS-PROXY, 2026-09-28, decisions 1/2 of 2026-09-24/25, build-plan-2026-09-25 workstream 11): the ETS-proxy carbon-price producer carbon-cost-per-feu.mjs's own header names as its missing GAP.NO_CARBON_PRICE input. EEX stays a licensed venue with no producer (series-registry.mjs's eex-eua stub, licence deferred); this family's one run resolves a set of candidate carrier-published ETS/FuelEU surcharge notices through the source registry (tier from classTierForHost, the institution class table), grounds each against a captured span, plans an idempotent per-carrier-per-period market_series upsert (never blended into one averaged row), and triggers the same market_series_delta DAG authorship every other market_series producer calls after its own write. R14 holds this family to fixture/dry runs only until the operator lifts the tools-before-data hold; ENABLED stays false in the producer script itself, a second, independent gate, and no --apply write path exists in this lane at all."
+}
