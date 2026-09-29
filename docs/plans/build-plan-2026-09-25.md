@@ -37,9 +37,14 @@ instance.
 3. **Placeholders → absence wording.** The new artboards' rule: "a value that exists is shown; one that
    cannot exist yet names the data it needs" (e.g. "needs 4 price inputs →"). Applies everywhere a
    card currently renders nothing or a generic placeholder, not only on #800's parts.
-4. **Operations matrix shows values.** `fetchOperationsCoverage` has an envelope-reader gap
-   (`docs/PROGRAM-BOARD.md:1587`, pre-existing line, re-cited here)  -  the matrix has a value to show and
-   isn't reading it. Fix the reader, not the schema.
+4. **Operations matrix shows values  -  CLOSED (confirmed 2026-09-29, lane W2-H).** The
+   `fetchOperationsCoverage` envelope-reader gap this item described (`docs/PROGRAM-BOARD.md:1587`,
+   pre-2026-09-25 line) is fixed on this tree: `supabase-server.ts:3376-3396` selects all 11 envelope
+   columns and `RegionDimensionMatrix.tsx` reads them via `region-grid.mjs`. Matches
+   `docs/PROGRAM-BOARD.md`'s own WO-9 layer 2 entry (~line 1640) and audit
+   `supabase-integrity-and-wiring-audit-2026-09-25.md` finding UI-1 `[REFUTED]`. Live `/operations`
+   could not be re-checked directly: the route requires sign-in, and no credentials were entered per
+   lane rules.
 5. **Market Intel label.** Nav label must read "Market Intel" (R12); the #604 rename to "Market" was
    never approved and reverts.
 6. **Structured-action extraction.** Items with "do now" prose but empty `recommended_actions` need the
@@ -191,7 +196,7 @@ branch, formatting a findings register from tool output). No Opus sub-agents. An
 | 3 | #800 look-only pass against the merged artboards | Sonnet (visual judgment against artboards) | Any structural/functional gap found mid-pass is NOT fixed inline  -  it is logged as a Design Change Owed or, if it's a system question, sent to the coordinator per rule 20 |
 | 4 | Community identity-by-default (workstream 2) | Sonnet | The population-threshold conflict (section 2, last integration-table row) is NOT this lane's call  -  coordinator decides which threshold governs first |
 | 5 | Market Intel label fix (workstream 5) | Haiku (mechanical rename + verify no other reference) | None expected; if the label appears in a generated/cached artifact the lane can't safely touch, stop and ask |
-| 6 | Operations matrix envelope-reader fix (workstream 4) | Sonnet | If the envelope shape has changed since PROGRAM-BOARD:1587 was written, confirm with the coordinator before assuming the old gap description still applies |
+| 6 | Operations matrix envelope-reader fix (workstream 4)  -  CLOSED 2026-09-29, lane W2-H: reader already selects all 11 envelope columns; see workstream 4 item above | Sonnet | n/a  -  confirmed closed, no fix needed |
 | 7 | Structured-action extraction + brief-chain Part 3 merge (workstreams 6, M4) | Sonnet | Any change to the single write site (`record-briefs`) needs coordinator sign-off before merge, per the one-writer-per-file discipline |
 | 8 | Market detail raw-dump bug repro (workstream 16) | Sonnet (investigation), Haiku (mechanical repro capture) | Repro only this lane; the fix is a separate, later lane once the cause is `[CONFIRMED]` |
 | 9 | ETS-proxy carbon calc + M5 conflict resolution (workstream 11) | Sonnet | The M5 conflict (section 2) must be resolved by the coordinator before this lane touches `scripts/producers/market/*.mjs` |

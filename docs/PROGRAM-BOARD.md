@@ -119,7 +119,7 @@ owed and known bugs: [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./
 | Supabase integrity-and-wiring audit (FIRST) | OPEN | build-plan-2026-09-25.md section 3; SELECT-only, findings register with [CONFIRMED]/[HYPOTHESIS] labels |
 | Community identity-by-default + composer 400 fix | OPEN | R8.7; spec 07 Amendment 2026-09-25 (Community) |
 | Placeholders → absence wording ("needs 4 price inputs →") | OPEN | new-boards change; #800 look pass |
-| Operations matrix shows values (`fetchOperationsCoverage` envelope reader gap) | OPEN | PROGRAM-BOARD:1587 (this file, pre-2026-09-25 line) |
+| Operations matrix shows values (`fetchOperationsCoverage` envelope reader gap) | CLOSED | `[CONFIRMED - code read]` `supabase-server.ts:3376-3396` selects all 11 envelope columns (`value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period`); `RegionDimensionMatrix.tsx` consumes them through `region-grid.mjs`'s `buildRegionGrid`/`isEnvelopedFact`. Matches this file's own WO-9 layer 2 entry (line ~1640, "fetchOperationsCoverage selects all 11 columns") and audit `supabase-integrity-and-wiring-audit-2026-09-25.md` finding UI-1 `[REFUTED]`. Live `/operations` view could not be checked directly: the route redirects to `/login`, auth blocked per lane rules (no credential entry) |
 | Market Intel nav label fix ("Market" → "Market Intel") | OPEN | R12; #604 rename never approved |
 | Structured-action extraction (recommended_actions empty w/ "do now" prose) | OPEN | bug list, close addendum |
 | Profile + applicability (role/size/aggregate mode) | OPEN | R5, ADR-034; population threshold ruled: ADR-035 (≥10 orgs, ≤25%) |
