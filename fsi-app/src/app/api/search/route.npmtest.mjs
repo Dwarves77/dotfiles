@@ -132,7 +132,7 @@ const LIVE_INTELLIGENCE_ITEMS_COLUMNS = new Set([
   "does_not_resolve", "domain", "entry_into_force", "format_type", "full_brief", "hidden_reason",
   "id", "instrument_entity_id", "instrument_identifier", "instrument_type", "intersection_summary",
   "is_archived", "item_grade", "item_type", "jurisdiction_iso", "jurisdictions", "key_data",
-  "last_regenerated_at", "last_verified", "legacy_id", "linked_case_study_ids",
+  "last_regenerated_at", "last_verified", "legacy_id",
   "linked_forum_thread_ids", "linked_regulation_ids", "linked_vendor_ids", "next_review_date",
   "open_questions", "operational_impact", "operational_scenario_tags", "origin_class",
   "pipeline_stage", "priority", "provenance_status", "provenance_verified_at", "reasoning",
