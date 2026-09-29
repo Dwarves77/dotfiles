@@ -14,7 +14,9 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-09-28):** [docs/ops/session-log.d/2026-09-28-coordinator-close.md](./ops/session-log.d/2026-09-28-coordinator-close.md)
+> **Resume from (2026-09-29):** [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) section "State at 2026-09-29" (lanes in flight, run rules 8-12), then [docs/ops/session-log.d/2026-09-29-chained-apply-incident.md](./ops/session-log.d/2026-09-29-chained-apply-incident.md) (R14 violation, ruling, system edits). Merged since the 09-28 close: #821-#826.
+>
+> **Earlier resume point (2026-09-28):** [docs/ops/session-log.d/2026-09-28-coordinator-close.md](./ops/session-log.d/2026-09-28-coordinator-close.md)
 > (rulings, merged work, wave-1 lanes in flight, push hold until CI-parity is proven), then
 > [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) (waves of 6-8 disjoint lanes, run rules).
 >
