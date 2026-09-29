@@ -1,4 +1,4 @@
--- subject: Migration 334 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides
+-- subject: Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides
 -- coordinator/operator DDL approval. RULING (verbatim, 2026-09-29): "There has never been anyone in
 -- community so my guess is they are fake place holders. Remove them completely and ease them" [erase].
 --
@@ -107,13 +107,13 @@ ALTER TABLE public.intelligence_items DROP COLUMN IF EXISTS linked_case_study_id
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('case_studies','case_study_endorsements','taxonomy_nodes')) THEN
-    RAISE EXCEPTION 'migration 334 post-check failed: a target table still exists';
+    RAISE EXCEPTION 'migration 335 post-check failed: a target table still exists';
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='intelligence_items' AND column_name='linked_case_study_ids') THEN
-    RAISE EXCEPTION 'migration 334 post-check failed: intelligence_items.linked_case_study_ids still exists';
+    RAISE EXCEPTION 'migration 335 post-check failed: intelligence_items.linked_case_study_ids still exists';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE proname='update_case_study_validation_count' AND pronamespace='public'::regnamespace) THEN
-    RAISE EXCEPTION 'migration 334 post-check failed: update_case_study_validation_count() still exists';
+    RAISE EXCEPTION 'migration 335 post-check failed: update_case_study_validation_count() still exists';
   END IF;
 END $$;
 

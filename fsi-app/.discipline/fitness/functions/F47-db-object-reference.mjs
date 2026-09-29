@@ -41,10 +41,6 @@ export const ALLOWLIST = {
       reason: 'Append-only audit trail of pause-flag writes (trigger guard_pause_flag_writer, migration 201); read by the operator through SQL when a pause is investigated, never by the app. Terminal sink by design.',
       decidedOn: '2026-09-17',
     },
-    case_study_endorsements: {
-      reason: 'Unbuilt half of the Community surface (a core surface per caros-ledge-platform-intent): case studies have 6 rows and a trigger, endorsements 0 rows and no writer. The community rebuild dispatch either ships case studies or drops case_studies and this table together; review there.',
-      decidedOn: '2026-09-17',
-    },
   },
   functions: {
     gate_a_health_refresh: {
