@@ -213,12 +213,13 @@ test("resolveBriefsInput: CLI end-to-end - a zero-entry --briefs file exits 1 an
 
 // ── APPLY_STEP_ORDER - the per-item outcome vocabulary's own step namespace ─────────────────────────────
 
-test("APPLY_STEP_ORDER: the exact 8-step order the module header documents", () => {
+test("APPLY_STEP_ORDER: the exact 9-step order the module header documents (structured-actions added lane STRUCTURED-ACTIONS, 2026-09-28)", () => {
   assert.deepEqual(APPLY_STEP_ORDER, [
     "generate",
     "section",
     "ground",
     "grow",
+    "structured-actions",
     "discovery",
     "forward-events",
     "compliance-deadline",
@@ -607,7 +608,7 @@ function successfulDeps(overrides = {}) {
   };
 }
 
-test("applyOneEntry: step order and outcome vocabulary, all 8 steps + provenance-status, all succeeding", async () => {
+test("applyOneEntry: step order and outcome vocabulary, all 9 steps + provenance-status, all succeeding", async () => {
   const itemId = "item-1";
   const result = await applyOneEntry(
     { itemId, entry: baseEntry(itemId) },
@@ -625,12 +626,32 @@ test("applyOneEntry: step order and outcome vocabulary, all 8 steps + provenance
       { id: "item-1#provenance-status", outcome: "verified" },
       { id: "item-1#changelog", outcome: "changelog:written" },
       { id: "item-1#grow", outcome: "grown" },
+      // fakeSb's single() always returns { provenance_status } regardless of the columns selected, so
+      // this step's own re-read sees item_type/full_brief as undefined and extracts zero actions -- the
+      // dedicated structured-actions tests below exercise real extraction with a schema-shaped fake.
+      { id: "item-1#structured-actions", outcome: "structured-actions:0 (dry, no write -- recommended_actions column not yet applied)" },
       { id: "item-1#discovery", outcome: "discovery:2" },
       { id: "item-1#forward-events", outcome: "forward-events:1" },
       { id: "item-1#compliance-deadline", outcome: "compliance-deadline:2026-01-01" },
       { id: "item-1#entities", outcome: "entities:1+instrument" },
     ],
   );
+});
+
+test("applyOneEntry: structured-actions step extracts real counts from the re-read item_type/full_brief", async () => {
+  const itemId = "item-1";
+  const briefWithAction = "# 3. Issues Requiring Immediate Action\n\nVerify the workspace's current process against the new requirement.\n\n# 15. Sources\n\nSource list.\n";
+  const chain = {
+    select() { return chain; },
+    eq() { return chain; },
+    async single() {
+      return { data: { provenance_status: "verified", item_type: "regulation", full_brief: briefWithAction }, error: null };
+    },
+  };
+  const sb = { from: () => chain };
+  const result = await applyOneEntry({ itemId, entry: baseEntry(itemId) }, { sb, allowBriefOverwrite: false, deps: successfulDeps() });
+  const step = result.steps.find((s) => s.id === "item-1#structured-actions");
+  assert.equal(step.outcome, "structured-actions:1 (dry, no write -- recommended_actions column not yet applied)");
 });
 
 // Fix round 1, finding 1 (review-6.2b.md): record-briefs claims now carry an explicit `.section` field

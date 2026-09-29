@@ -11486,11 +11486,24 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/334_intelligence_items_recommended_actions.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1074,
-    "covered": 1032,
+    "governed_files": 1075,
+    "covered": 1033,
     "exempt": 42,
     "gaps": 0,
     "orphaned_proofs": 0,
