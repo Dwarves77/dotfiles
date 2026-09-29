@@ -48,8 +48,8 @@
 
 import { readAll, guardedInsert, guardedUpdate, guardedInsertMany, registerSource } from "../../lib/db.mjs";
 import { groundCandidate, buildStateCostFactRow, planUpsert, naturalKey } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";
-import { rateSourceByInstitutionClass } from "../../lib/rate-source-by-class.mjs";
-import { r14ApplyRefusalMessage, buildDefectsFromRefusals, buildR14HeldRunArtifact, runR14HeldFixtureCli } from "../../lib/r14-held-producer-cli.mjs";
+import { makeResolveSource } from "../../lib/rate-source-by-class.mjs";
+import { r14ApplyRefusalMessage, buildR14HeldRunArtifact, runR14HeldFixtureCli } from "../../lib/r14-held-producer-cli.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs } from "../../../src/lib/entities/entity-plan.mjs";
 import { existingEntityIdSet, existingIdentifierKeySet, existingRefKeySet } from "../../entities/backfill-entities.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../../lib/run-artifact.mjs";
@@ -59,8 +59,7 @@ import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
 import { getMethod } from "../../../src/lib/propagation/methods/index.ts";
 import { isHourlyWageUnit } from "../../../src/lib/operations/automate-vs-hire.mjs";
 import { resolve as resolvePath, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // KILL SWITCH, default OFF (R14 hold). See file header point 1. Flipping this is a reviewed, dated
 // change, same discipline as bls-oews-producer.mjs's ENABLED history, it is NOT flipped by this lane.
@@ -111,22 +110,17 @@ async function resolveRegionIds(regionCodes, readAllFn) {
   return byCode;
 }
 
-/**
- * Resolve one candidate's source: tier from classTierForHost (the institution class table), THEN
- * register (real DB) or preview (dry). Never falls back to a hand-typed tier, an unclassifiable host
- * is reported as `unrated`, not guessed.
- * @returns {Promise<{ok: true, source_id: string, tier: number} | {ok: false, reason: string}>}
- */
-async function resolveSource(candidate, { mode, registerSourceFn }) {
-  // Thin wrapper over the shared rateSourceByInstitutionClass (scripts/lib/rate-source-by-class.mjs,
-  // extracted from this function and carrier-ets-surcharge-producer.mjs's identical shape, lane ETS-PROXY
-  // 2026-09-28, F45 duplicate-code gate); this producer's own contribution is just mapping ITS candidate
-  // field names (source_url/source_name).
-  return rateSourceByInstitutionClass(
-    { url: candidate.source_url, name: candidate.source_name },
-    { mode, registerSourceFn, cite: CITE },
-  );
-}
+// Resolve one candidate's source: tier from classTierForHost (the institution class table), THEN
+// register (real DB) or preview (dry). Never falls back to a hand-typed tier, an unclassifiable host is
+// reported as unrated, not guessed. Built by the shared makeResolveSource factory
+// (scripts/lib/rate-source-by-class.mjs, coordinator directive 2026-09-28, F45 duplicate-code follow-up):
+// this producer's own contribution is only its config (candidate field names, cite), never a
+// hand-written wrapper body.
+const resolveSource = makeResolveSource({
+  urlField: "source_url",
+  nameField: "source_name",
+  cite: CITE,
+});
 
 /**
  * Mint/link jurisdiction entities for every state_code touched by this run's WRITTEN rows (downstream
@@ -446,11 +440,6 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
 // ── CLI orchestration (harness artifact + kill switch) ────────────────────────────────────────────────
 
 function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config, inputsRef, result, runError, fixturesPath }) {
-  const defectsFound = buildDefectsFromRefusals(
-    result?.perItem,
-    { unratedOutcome: "refused_unrated_source", unratedRootCause: "host not present in the institution class table (host-authority.ts)" },
-    runError,
-  );
   return buildR14HeldRunArtifact({
     harnessFamily: HARNESS_FAMILY,
     harnessVersion,
@@ -464,7 +453,7 @@ function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config
     // top-level key: the edges (or edge previews) this run's automate_vs_hire DAG-authorship step
     // produced, per state, so a reader can see exactly what would be authored without opening the source.
     metrics: { ...(result?.metrics ?? {}), dag_edges: result?.dagEdges ?? [] },
-    defectsFound,
+    runError,
     fullTraceRefs: [fixturesPath],
     proposerNotes:
       "state-cost-facts-producer's first run artifact (lane STATE-COST-PRODUCER, 2026-09-25). R14 holds " +
@@ -496,12 +485,6 @@ async function main() {
     harnessFamily: HARNESS_FAMILY,
     fsiRoot: FSI_ROOT,
     governingFiles: GOVERNING_FILES,
-    resolvePathFn: resolvePath,
-    pathToFileURLFn: pathToFileURL,
-    mkdirSyncFn: mkdirSync,
-    claimRunIdFn: claimRunId,
-    hashHarnessVersionFn: hashHarnessVersion,
-    writeRunArtifactFn: writeRunArtifact,
     runFn: (fixtures) =>
       // Fully offline deps: the ONLY external read a dry run needs is `regions` (to resolve region_code ->
       // id for the row shape), answered from the fixture module's own FIXTURE_REGIONS, never the live DB.

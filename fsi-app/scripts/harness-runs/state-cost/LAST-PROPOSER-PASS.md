@@ -1,18 +1,18 @@
 # Last proposer pass, state-cost
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `state-cost` now has artifacts through
-`state-cost-run-007` on this branch (`-001` lane STATE-COST-PRODUCER/PR #811, `-003` lane
+`state-cost-run-011` on this branch (`-001` lane STATE-COST-PRODUCER/PR #811, `-003` lane
 STATE-COST-DAG, `-004`/`-006` lane ETS-PROXY reusing this producer's shared modules, two re-stamps as the
 shared modules themselves were extended); F28's rule (d) requires this file to name the latest verbatim:
-**state-cost-run-007**.
+**state-cost-run-011**.
 
 ## Pass of 2026-09-28 (lane ETS-PROXY, refactor-only re-stamp)
 
 **Artifacts read:** state-cost-run-003 (prior latest, see the 2026-09-27 pass below) and
-state-cost-run-007 (this lane's own regeneration, the second of two re-stamps as
+state-cost-run-011 (this lane's own regeneration, the second of two re-stamps as
 `scripts/lib/r14-held-producer-cli.mjs` grew a second shared helper).
 
-**What changed [CONFIRMED, `diff` of the two artifacts' `metrics` blocks]:** NOTHING semantic, `state-cost-run-007`'s `metrics` (including `dag_edges`, the real computed NPV `-1696069.283949278` for
+**What changed [CONFIRMED, `diff` of the two artifacts' `metrics` blocks]:** NOTHING semantic, `state-cost-run-011`'s `metrics` (including `dag_edges`, the real computed NPV `-1696069.283949278` for
 US-CA) is byte-identical to `state-cost-run-004`'s (itself byte-identical to `-003`'s). Only
 `harness_version` moved (`sha256:...fda58763f9b19fca` → `sha256:...651c75ffcd2da14c`), because lane
 ETS-PROXY extracted this producer's `resolveSource()` (near-duplicate of the sibling
@@ -64,3 +64,5 @@ these two artifacts alone; the next genuine proposer pass belongs after the migr
 (if approved) applied, so a live run can be compared against this dry preview's numbers.
 
 **Re-stamp note (same pass):** run-007 is a further re-stamp, identical metrics to run-006, after fixing house-style dash glyphs (rule 022); not a new finding.
+
+**Re-stamp note (same pass):** run-011 is a further re-stamp, identical metrics, after the coordinator-directed makeResolveSource factory follow-up (F45 to 0); not a new finding.

@@ -2,17 +2,17 @@
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `carrier-ets-proxy` has three artifacts on this
 branch (`-004`, `-005`, `-007`, all lane ETS-PROXY, 2026-09-28); F28's rule (d) requires this file to name
-the latest verbatim: **carrier-ets-proxy-run-008**.
+the latest verbatim: **carrier-ets-proxy-run-012**.
 
 ## Pass of 2026-09-28 (lane ETS-PROXY, first family + two refactor re-stamps)
 
 **Artifacts read:** carrier-ets-proxy-run-004 (first real run, before a Maersk fixture-span bug fix),
 carrier-ets-proxy-run-005 (after fixing the Maersk fixture's `span_text` to be a genuine verbatim
 substring of its capture, this is the run the F45 duplicate-code extraction below is compared against),
-carrier-ets-proxy-run-008 (after extracting the shared `rate-source-by-class.mjs` /
+carrier-ets-proxy-run-012 (after extracting the shared `rate-source-by-class.mjs` /
 `r14-held-producer-cli.mjs` / `verbatim-grounding.mjs` modules into this family's own governing-file set).
 
-**Metrics [CONFIRMED, read from carrier-ets-proxy-run-008.json]:** `candidates: 5, refused_ungrounded: 1
+**Metrics [CONFIRMED, read from carrier-ets-proxy-run-012.json]:** `candidates: 5, refused_ungrounded: 1
 (Evergreen, paraphrased span), refused_unrated_source: 0, to_create: 4, to_update: 0,
 skipped_no_reference_period: 0, proxy_bands_built: 1, authored: 1, skippedAlready: 3, insufficientHistory:
 0, unitMismatch: 0, refused: 0, unknownMethod: 0, errored: 0`. `-005` and `-007` carry byte-identical
@@ -37,3 +37,5 @@ carrier-notice fetch/apply path is authored and reviewed, no hypothesis is warra
 alone about live carrier pricing.
 
 **Re-stamp note (same pass):** run-008 is a further re-stamp, identical metrics to run-007, after fixing house-style dash glyphs (rule 022) introduced in this lane's own prose comments; not a new finding.
+
+**Re-stamp note (same pass):** run-012 is a further re-stamp, identical metrics, after the coordinator-directed makeResolveSource factory follow-up (F45 to 0); not a new finding.

@@ -10,8 +10,19 @@
 // requires a producer-specific composition proof. This module only owns the CLI SHELL every R14-held
 // producer wraps that logic in.
 //
-// PLAIN ESM. Filesystem-only (via the injected writeRunArtifact/claimRunId/hashHarnessVersion), no
-// network, no DB, this module never touches either.
+// PLAIN ESM. Filesystem-only (writeRunArtifact/claimRunId/hashHarnessVersion, imported directly below,
+// same real implementation every producer used to pass in by hand), no network, no DB.
+//
+// Coordinator follow-up (2026-09-28, F45): the two producers' own `runR14HeldFixtureCli` CALL SITES were
+// STILL duplicating six identical plumbing-function keys (resolvePathFn/pathToFileURLFn/mkdirSyncFn/
+// claimRunIdFn/hashHarnessVersionFn/writeRunArtifactFn), because every real caller always passes the SAME
+// node-builtin/run-artifact.mjs implementations, never a different one. This module now imports and
+// defaults them itself; a caller only overrides via `deps` when it genuinely needs to (a test).
+
+import { resolve as resolvePath } from "node:path";
+import { pathToFileURL } from "node:url";
+import { mkdirSync } from "node:fs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId } from "./run-artifact.mjs";
 
 /**
  * The standard R14 `--apply` refusal: recognises the flag only to refuse it explicitly, never silently
@@ -30,17 +41,26 @@ export function r14ApplyRefusalMessage(args, producerName, enabled) {
   );
 }
 
+// The default rated-source refusal vocabulary: BOTH existing R14-held producers refuse an unrated
+// candidate for the SAME reason, because both rate through the SAME shared classTierForHost step
+// (rate-source-by-class.mjs). This is not two producers coincidentally choosing the same words, it is
+// one shared mechanism's one refusal outcome, so it is the DEFAULT here rather than a value each caller
+// repeats. A future producer with a genuinely different refusal vocabulary overrides it explicitly.
+const DEFAULT_UNRATED_OUTCOME = "refused_unrated_source";
+const DEFAULT_UNRATED_ROOT_CAUSE = "host not present in the institution class table (host-authority.ts)";
+
 /**
  * The shared defects-from-refusals reducer: every `perItem` entry whose outcome names a refusal (rated
- * or grounded) becomes one `defects_found` row, plus one more if the run itself threw. Both existing
- * producers had an identical loop shape differing only in which outcome string they matched and the
- * root_cause text, this takes both as parameters instead of hard-coding either producer's vocabulary.
+ * or grounded) becomes one `defects_found` row, plus one more if the run itself threw.
  * @param {Array<{outcome:string, id:string, verdict:string|null}>} perItem
- * @param {{unratedOutcome: string, unratedRootCause: string}} config
  * @param {Error|null} runError
+ * @param {{unratedOutcome?: string, unratedRootCause?: string}} [config] override the default rated-source
+ *   refusal vocabulary; every current caller uses the shared default.
  * @returns {Array<{description:string, root_cause:string, fix_ref:string|null}>}
  */
-export function buildDefectsFromRefusals(perItem, { unratedOutcome, unratedRootCause }, runError) {
+export function buildDefectsFromRefusals(perItem, runError, config = {}) {
+  const unratedOutcome = config.unratedOutcome ?? DEFAULT_UNRATED_OUTCOME;
+  const unratedRootCause = config.unratedRootCause ?? DEFAULT_UNRATED_ROOT_CAUSE;
   const defectsFound = [];
   for (const item of perItem ?? []) {
     if (item.outcome === unratedOutcome) {
@@ -73,12 +93,20 @@ export function buildDefectsFromRefusals(perItem, { unratedOutcome, unratedRootC
  * @param {(fixtures: object, trace: boolean) => Promise<object|null>} config.runFn runs the producer's own
  *   logic against the imported fixtures module, returns the `result` (or throws, caught here as `runError`)
  * @param {(ctx: {runId:string, harnessVersion:string, startedAt:string, finishedAt:string, result:object|null, runError:Error|null, fixturesPath:string}) => object} config.buildArtifactFn
+ * @param {object} [config.deps] test-only overrides for the plumbing fns (resolvePathFn/pathToFileURLFn/
+ *   mkdirSyncFn/claimRunIdFn/hashHarnessVersionFn/writeRunArtifactFn); every real caller omits this.
  * @returns {Promise<{result: object|null, runError: Error|null, artifactPath: string, fixturesPath: string, trace: boolean}>}
  */
 export async function runR14HeldFixtureCli({
   args, here, defaultFixturesRelPath, defaultHarnessRunsDir, harnessFamily, fsiRoot, governingFiles, runFn, buildArtifactFn,
-  resolvePathFn, pathToFileURLFn, mkdirSyncFn, claimRunIdFn, hashHarnessVersionFn, writeRunArtifactFn,
+  deps = {},
 }) {
+  const resolvePathFn = deps.resolvePathFn ?? resolvePath;
+  const pathToFileURLFn = deps.pathToFileURLFn ?? pathToFileURL;
+  const mkdirSyncFn = deps.mkdirSyncFn ?? mkdirSync;
+  const claimRunIdFn = deps.claimRunIdFn ?? claimRunId;
+  const hashHarnessVersionFn = deps.hashHarnessVersionFn ?? hashHarnessVersion;
+  const writeRunArtifactFn = deps.writeRunArtifactFn ?? writeRunArtifact;
   const fixturesFlagIdx = args.indexOf("--fixtures");
   const fixturesPath = resolvePathFn(
     fixturesFlagIdx !== -1 && args[fixturesFlagIdx + 1] ? args[fixturesFlagIdx + 1] : resolvePathFn(here, defaultFixturesRelPath),
@@ -108,15 +136,22 @@ export async function runR14HeldFixtureCli({
 }
 
 /**
- * Assemble the standard run-artifact shape every R14-held fixture producer writes. Callers still call
- * `writeRunArtifact` themselves (this returns the plain object, no I/O here), keeps this module
- * filesystem-free and independently testable.
+ * Assemble the standard run-artifact shape every R14-held fixture producer writes, INCLUDING the
+ * defects-from-refusals reduction (folded in here, coordinator directive 2026-09-28, F45 follow-up: both
+ * producers were separately calling `buildDefectsFromRefusals` then passing its result in, an identical
+ * two-step shape). Callers still call `writeRunArtifact` themselves (this returns the plain object, no
+ * I/O here), keeps this module filesystem-free and independently testable.
  * @param {object} args
+ * @param {Error|null} [args.runError] threaded through to buildDefectsFromRefusals
+ * @param {{unratedOutcome?: string, unratedRootCause?: string}} [args.refusalVocab] override, see
+ *   buildDefectsFromRefusals; every current caller uses the shared default.
+ * @param {Array} [args.defectsFound] an explicit override, skips the automatic reduction entirely (rare;
+ *   no current caller needs it, kept for a future producer with a genuinely different defects shape).
  * @returns {object} a CONVENTION.md-shaped run artifact
  */
 export function buildR14HeldRunArtifact({
   harnessFamily, harnessVersion, runId, startedAt, finishedAt, config, inputsRef, perItem, metrics,
-  defectsFound, fullTraceRefs, proposerNotes,
+  runError = null, refusalVocab, defectsFound, fullTraceRefs, proposerNotes,
 }) {
   return {
     harness_family: harnessFamily,
@@ -128,7 +163,7 @@ export function buildR14HeldRunArtifact({
     inputs_ref: inputsRef,
     per_item: perItem ?? [],
     metrics: metrics ?? {},
-    defects_found: defectsFound ?? [],
+    defects_found: defectsFound ?? buildDefectsFromRefusals(perItem, runError, refusalVocab),
     full_trace_refs: fullTraceRefs,
     proposer_notes: proposerNotes,
   };

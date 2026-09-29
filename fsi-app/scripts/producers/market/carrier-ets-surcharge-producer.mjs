@@ -55,14 +55,12 @@ import {
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { authorMarketSeriesDeltaEdges } from "./author-market-series-delta.mjs";
-import { rateSourceByInstitutionClass } from "../../lib/rate-source-by-class.mjs";
-import { r14ApplyRefusalMessage, buildDefectsFromRefusals, buildR14HeldRunArtifact, runR14HeldFixtureCli } from "../../lib/r14-held-producer-cli.mjs";
-import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../../lib/run-artifact.mjs";
+import { makeResolveSource } from "../../lib/rate-source-by-class.mjs";
+import { r14ApplyRefusalMessage, buildR14HeldRunArtifact, runR14HeldFixtureCli } from "../../lib/r14-held-producer-cli.mjs";
 import { GOVERNING_FILES } from "../../harness-runs/governing-files.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { resolve as resolvePath, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // KILL SWITCH, default OFF (R14 hold). Flipping this is a reviewed, dated change, matching
 // state-cost-facts-producer.mjs's ENABLED history exactly; it is NOT flipped by this lane.
@@ -88,20 +86,17 @@ const CITE = {
     "blended without a range).",
 };
 
-/**
- * Resolve one candidate's source: tier from classTierForHost (the institution class table) FIRST, then
- * register (apply) or preview (dry/fixture) the source. Never falls back to a hand-typed tier. Thin
- * wrapper over the shared `rateSourceByInstitutionClass` (scripts/lib/rate-source-by-class.mjs, extracted
- * from this function and state-cost-facts-producer.mjs's identical shape, F45 duplicate-code gate), * this producer's own contribution is just mapping ITS candidate field names (`sourceUrl`/`carrierName`)
- * and its own carrier-slug `sourceKeyFor`.
- * @returns {Promise<{ok: true, source_id: string, source_key: string|null, tier: number} | {ok: false, reason: string}>}
- */
-async function resolveSource(candidate, { mode, registerSourceFn }) {
-  return rateSourceByInstitutionClass(
-    { url: candidate.sourceUrl, name: candidate.carrierName },
-    { mode, registerSourceFn, cite: CITE, sourceKeyFor: (host) => `${host.replace(/\./g, "_")}_ets_notice` },
-  );
-}
+// Resolve one candidate's source: tier from classTierForHost (the institution class table) FIRST, then
+// register (apply) or preview (dry/fixture) the source. Never falls back to a hand-typed tier. Built by
+// the shared makeResolveSource factory (scripts/lib/rate-source-by-class.mjs, coordinator directive
+// 2026-09-28, F45 duplicate-code follow-up): this producer's own contribution is only its config
+// (candidate field names, cite, carrier-slug sourceKeyFor), never a hand-written wrapper body.
+const resolveSource = makeResolveSource({
+  urlField: "sourceUrl",
+  nameField: "carrierName",
+  cite: CITE,
+  sourceKeyFor: (host) => `${host.replace(/\./g, "_")}_ets_notice`,
+});
 
 /**
  * Run the producer over an explicit set of candidate surcharge notices (never a hidden corpus scan,
@@ -187,11 +182,6 @@ export async function runEtsProxyProducer({ candidates, fetchCapture, existingRo
 // ── CLI orchestration (harness artifact + kill switch) ────────────────────────────────────────────────
 
 function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, result, runError, fixturesPath }) {
-  const defectsFound = buildDefectsFromRefusals(
-    result?.perItem,
-    { unratedOutcome: "refused_unrated_source", unratedRootCause: "host not present in the institution class table (host-authority.ts)" },
-    runError,
-  );
   return buildR14HeldRunArtifact({
     harnessFamily: HARNESS_FAMILY,
     harnessVersion,
@@ -202,7 +192,7 @@ function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, result
     inputsRef: [fixturesPath],
     perItem: result?.perItem,
     metrics: result?.metrics,
-    defectsFound,
+    runError,
     fullTraceRefs: [fixturesPath],
     proposerNotes:
       "carrier-ets-surcharge-producer's first run artifact (lane ETS-PROXY, 2026-09-28). R14 holds live " +
@@ -269,12 +259,6 @@ async function main() {
     harnessFamily: HARNESS_FAMILY,
     fsiRoot: FSI_ROOT,
     governingFiles: GOVERNING_FILES,
-    resolvePathFn: resolvePath,
-    pathToFileURLFn: pathToFileURL,
-    mkdirSyncFn: mkdirSync,
-    claimRunIdFn: claimRunId,
-    hashHarnessVersionFn: hashHarnessVersion,
-    writeRunArtifactFn: writeRunArtifact,
     runFn: (fixtures, trace) =>
       runEtsProxyProducer({
         candidates: fixtures.FIXTURE_CANDIDATES,

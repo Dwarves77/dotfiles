@@ -46,3 +46,24 @@ export async function rateSourceByInstitutionClass({ url, name }, { mode, regist
   const reg = await registerSourceFn({ url, name: name ?? host, base_tier: tier }, { cite });
   return { ok: true, source_id: reg.source_id, source_key: reg.source_key ?? (sourceKeyFor ? sourceKeyFor(host) : null), tier };
 }
+
+/**
+ * Factory: builds a producer's own `resolveSource(candidate, { mode, registerSourceFn })` function,
+ * closing over that producer's field-name mapping and cite/sourceKeyFor config. Coordinator directive
+ * (2026-09-28, F45 follow-up): the two callers' own `resolveSource` bodies were themselves an
+ * identical-shape wrapper (signature, one delegate call, closing brace), this factory removes that last
+ * duplication by making config, not a hand-written function body, the only per-producer artifact.
+ *
+ * @param {{
+ *   urlField: string, nameField: string, cite: object, sourceKeyFor?: (host: string) => string,
+ * }} config
+ * @returns {(candidate: object, opts: {mode: "dry"|"apply", registerSourceFn: Function}) => Promise<object>}
+ */
+export function makeResolveSource({ urlField, nameField, cite, sourceKeyFor }) {
+  return function resolveSource(candidate, { mode, registerSourceFn }) {
+    return rateSourceByInstitutionClass(
+      { url: candidate[urlField], name: candidate[nameField] },
+      { mode, registerSourceFn, cite, sourceKeyFor },
+    );
+  };
+}
