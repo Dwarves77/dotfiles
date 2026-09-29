@@ -1,8 +1,8 @@
 {
   "harness_family": "structured-actions",
-  "harness_version": "sha256:e673b7a49b7172cf",
-  "run_id": "structured-actions-run-001",
-  "started_at": "2026-09-29T02:11:37.604Z",
+  "harness_version": "sha256:622784f74f0d0dd9",
+  "run_id": "structured-actions-run-002",
+  "started_at": "2026-09-29T02:37:41.097Z",
   "config": {
     "mode": "dry",
     "write_status": "no destination column exists on intelligence_items for a structured action; this run extracts and reports only, it writes nothing to any customer-data table under any flag",
