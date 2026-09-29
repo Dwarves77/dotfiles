@@ -22,6 +22,50 @@ test("resolveArtifactTrigger: a populated triggerContext (chained off Data produ
   );
 });
 
+// ── resolveArtifactTrigger: explicit trigger override (lane LOOP-B-FIRING, F60 explicit-dispatch fallback) ──
+
+test("resolveArtifactTrigger: an explicit trigger wins even when triggerContext is populated (the F60 fallback case: real event is workflow_dispatch, but a rebuilt triggerContext exists for loop_run_id resolution)", () => {
+  assert.equal(
+    resolveArtifactTrigger({ name: "Downstream chain", run_id: 5005, conclusion: "success" }, "workflow_dispatch"),
+    "workflow_dispatch",
+  );
+});
+
+test("resolveArtifactTrigger: an explicit trigger of workflow_run wins over a null triggerContext too", () => {
+  assert.equal(resolveArtifactTrigger(null, "workflow_run"), "workflow_run");
+});
+
+test("resolveArtifactTrigger: an invalid/absent explicit trigger falls back to the triggerContext-presence rule", () => {
+  assert.equal(resolveArtifactTrigger(null, null), "workflow_dispatch");
+  assert.equal(resolveArtifactTrigger({ name: "X", run_id: 1, conclusion: "success" }, undefined), "workflow_run");
+});
+
+// ── parseArgs: --trigger (lane LOOP-B-FIRING, F50/F60) ───────────────────────────────────────────────
+
+test("parseArgs: --trigger is null by default", () => {
+  const r = parseArgs(["--mode", "dry"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, null);
+});
+
+test("parseArgs: --trigger accepts workflow_run", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "workflow_run"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, "workflow_run");
+});
+
+test("parseArgs: --trigger accepts workflow_dispatch", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "workflow_dispatch"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.trigger, "workflow_dispatch");
+});
+
+test("parseArgs: --trigger rejects an unrecognized value", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger", "push"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger must be/);
+});
+
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
 test("parseArgs: --mode is required", () => {

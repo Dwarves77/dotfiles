@@ -1,9 +1,9 @@
 {
   "harness_family": "propagation",
-  "harness_version": "sha256:6020ba9050585113",
-  "run_id": "propagation-run-010",
-  "started_at": "2026-09-29T02:08:12.521Z",
-  "finished_at": "2026-09-29T02:08:21.718Z",
+  "harness_version": "sha256:73628b7e49e9527a",
+  "run_id": "propagation-run-012",
+  "started_at": "2026-09-29T04:49:26.391Z",
+  "finished_at": "2026-09-29T04:49:34.311Z",
   "trigger": "workflow_dispatch",
   "config": {
     "mode": "dry",
@@ -22,7 +22,7 @@
       "outcome": "drained",
       "verdict": "50 event(s) considered, 0 value(s) would be invalidated (dry, nothing written)",
       "evidence_refs": [
-        "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-010.report.json"
+        "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
       ],
       "error": null
     }
@@ -40,7 +40,7 @@
   },
   "defects_found": [],
   "full_trace_refs": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-010.report.json"
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
   ],
   "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train). Drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285)."
 }

@@ -1,8 +1,64 @@
 # Last proposer pass — propagation
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `propagation` now has **ten** artifacts
-(`propagation-run-001` through `-010`); F28's rule (d) requires this file to name the latest verbatim:
-**propagation-run-010**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `propagation` now has **twelve** artifacts
+(`propagation-run-001` through `-012`); F28's rule (d) requires this file to name the latest verbatim:
+**propagation-run-012**.
+
+## Proposer pass for propagation-run-012 (2026-09-29, lane LOOP-B-FIRING, coordinator follow-up)
+
+**Artifacts read:** propagation-run-010 (this file's own immediately-prior pass, below), plus
+propagation-run-012.json and traces/propagation-run-012.report.json in full.
+
+**Why this run superseded run-010.** The coordinator confirmed the depth-4 finding below against
+GitHub's own docs (quoted in loop-hops 07's note) and directed a class fix, landed in this same lane:
+`run-propagation-drain.mjs` gained a `--trigger <workflow_run|workflow_dispatch>` CLI flag (the real
+`github.event_name`, now passed explicitly by `propagation-drain.yml` rather than inferred from
+`--trigger-context`'s presence, since the new F60 explicit-dispatch fallback needs `--trigger-context`
+populated on a run whose real event is still `workflow_dispatch`). Changing a governing file changed
+`harness_version`, so this run's artifact is the first at the new hash, superseding run-010 (removed;
+its content is unchanged in substance from run-011 below, only the `trigger` derivation logic moved).
+
+**What changed since run-010, mechanically.** `downstream-chain.yml` now carries an explicit
+`gh workflow run propagation-drain.yml --ref ... -f mode=apply -f batch=500 -f
+chain_upstream_name="Downstream chain" -f chain_upstream_run_id="${{ github.run_id }}"` step, gated on
+`success() && github.event_name == 'workflow_run'`, with `permissions.actions: write` added.
+`propagation-drain.yml` gained two paired `workflow_dispatch` inputs (`chain_upstream_name`,
+`chain_upstream_run_id`) that let its resolve step rebuild an equivalent `trigger_context` (so
+`loop_run_id` resolution is unaffected) while still recording `trigger: "workflow_dispatch"` honestly
+(the real event). New fitness function F60 (`workflow-run-chain-depth`) computes every workflow_run
+hop's real depth from the `.github/workflows/*.yml` graph and fails when a hop past GitHub's documented
+3-level limit has no explicit-dispatch fallback in its producer's yml; it passes clean (0 violations)
+against this lane's own fix. Run against the real Supabase project (SELECT/RPC-only, R14-compliant,
+`--mode dry`): identical envelope to run-010 (queue depth 776, 50 considered, 0 writes); this run
+changed CODE, not DATA, so the drain's own numbers are unchanged; `trigger: "workflow_dispatch"`
+(correct, a local hand run with the explicit flag). F28/F50/F60 all clean against it.
+
+**Standing hypothesis promoted to CONFIRMED.** The prior pass's `[HYPOTHESIS]` (an undocumented
+GitHub Actions chain-depth reliability gap) is now `[CONFIRMED]` by direct citation of GitHub's own
+docs (docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/
+events-that-trigger-workflows, workflow_run section): "You can't use workflow_run to chain together
+more than three levels of workflows... if you attempt to trigger five workflows (named B to F) to run
+sequentially after an initial workflow A has run... workflows E and F will not be run." This repo's own
+chain (source-sweep(0) -> ledger-consume(1) -> population-turn/corpus-turn(2) -> downstream-chain(3) ->
+propagation-drain(4)) matches the doc's own shape exactly: downstream-chain sits at the LAST level that
+fires (depth 3, matching "D" in the doc's example); propagation-drain via that edge sits at depth 4,
+matching "E": "will not be run." No other hop in the loop manifest is past depth 3 (F60's own live
+check over all 11 registered hops confirms exactly one).
+
+**Proposal:** the explicit-dispatch fallback is landed and locally proven wired (F60 clean); it has NOT
+been proven to fire on GitHub (no dispatch, per the coordinator's hold pending the CI-parity fix). Next
+cycle, once dispatch is authorized: hand-dispatch `population-turn.yml` (or wait for a natural
+`ledger-consume` chain) to produce a genuine `workflow_run`-chained `downstream-chain` run, and confirm
+its new "Explicitly dispatch propagation-drain.yml" step fires and a resulting `propagation-run-01X`
+artifact records `trigger: "workflow_dispatch"` with a non-null `config.trigger_context` naming
+"Downstream chain": the actual proof this fix works end to end on the real platform, not just locally.
+
+**Family gates status:** `node --test scripts/turns/run-propagation-drain.test.mjs` (27/27 pass,
+including 6 new `--trigger`/`resolveArtifactTrigger` override tests), `node --test
+.discipline/fitness/lib/workflow-run-depth.test.mjs .discipline/fitness/functions/
+F60-workflow-run-chain-depth.test.mjs` (15/15 pass), F28/F50/F60 clean against propagation-run-012.
+
+---
 
 ## Proposer pass for propagation-run-010 (2026-09-28, lane LOOP-B-FIRING, local dry run)
 
