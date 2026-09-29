@@ -7,6 +7,19 @@
 // duplication of an existing module" rule and F45's own remediation ("wire or remove"): one shared home,
 // both callers import it.
 //
+// THIRD CALLER (lane HARNESS-RUN-NUMBER, 2026-09-29, coordinator finding from GitHub run 36610847827):
+// record-harness-run.mjs -- the single chokepoint every family's landing now funnels through since PR
+// #824 removed artifact-branch commits -- imports `nextRunNumberFromHarnessRuns`/`formatRunId` to
+// RENUMBER an artifact's `run_id` at land time against harness_runs' own max, rather than trusting
+// whatever number the family's own runner claimed locally (`claimRunId` in run-artifact.mjs, a
+// filesystem scan of the family's own `scripts/harness-runs/<family>/*.json` directory -- correct only
+// when every prior artifact for that family is still on disk at claim time, which stopped being true the
+// moment artifacts stopped being committed back to the tree). harness_runs is the durable record (rule
+// 15); the local scan is now only ever a fallback for when the DB itself is unreachable at land time.
+// This keeps F28's family-sequence semantics (`<family>-run-NNN`, monotonic per family, one row per
+// number) intact -- the AUTHORITY for "what number is next" simply moves from a stale local directory
+// listing to the table that is the actual gate that will reject a duplicate.
+//
 // $0, no I/O side effects on import -- same discipline as every other scripts/lib/*.mjs module.
 
 /**
@@ -34,6 +47,20 @@ export async function nextRunNumberFromHarnessRuns(readAllFn, family) {
     if (m) max = Math.max(max, Number.parseInt(m[1], 10));
   }
   return max + 1;
+}
+
+/**
+ * Formats a family + number into the CONVENTION.md `run_id` shape (`<family>-run-NNN`, zero-padded 3
+ * digits) -- the one place that padding rule is written, so `nextRunNumberFromHarnessRuns`'s callers
+ * never hand-roll `String(n).padStart(3, "0")` themselves (record-harness-run.mjs and
+ * plan-quarantine-disposition.mjs/write-statutory.mjs all need this exact shape; F28's own
+ * `runIdRegExpFor`-style pattern is what this must match).
+ * @param {string} family
+ * @param {number} n
+ * @returns {string}
+ */
+export function formatRunId(family, n) {
+  return `${family}-run-${String(n).padStart(3, "0")}`;
 }
 
 /**

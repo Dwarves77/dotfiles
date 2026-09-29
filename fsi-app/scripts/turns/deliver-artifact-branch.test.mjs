@@ -1,14 +1,18 @@
-// deliver-artifact-branch.test.mjs -- exercises the REAL bash script (lane STATUTORY-WRITER, 2026-09-29)
-// against a scratch git repo, no real DB (a stub scripts/lib/record-harness-run.mjs on the scratch repo's
-// own path stands in for the real one). Proves: (1) untracked artifact files under
-// scripts/harness-runs/*/*-run-*.json are discovered and landed with NO git commit, branch, or push ever
-// created; (2) files outside the pathspec are ignored; (3) an empty run (nothing written) still exits 0.
+// deliver-artifact-branch.test.mjs -- exercises the REAL bash script (lane STATUTORY-WRITER, 2026-09-29;
+// exit-code contract rewritten lane HARNESS-RUN-NUMBER, 2026-09-29) against a scratch git repo, no real
+// DB (a stub scripts/lib/record-harness-run.mjs on the scratch repo's own path stands in for the real
+// one). Proves: (1) untracked artifact files under scripts/harness-runs/*/*-run-*.json are discovered
+// and landed with NO git commit, branch, or push ever created; (2) files outside the pathspec are
+// ignored; (3) an empty run (nothing written) still exits 0; (4) a real landing failure (record-harness-
+// run.mjs exit 1) now FAILS this script's own exit code -- the fix for the defect this rewrite closes
+// (GitHub run 36610847827: a failed landing was logged "best-effort, continuing" and the step reported
+// SUCCESS); (5) a self-skip (record-harness-run.mjs exit 2, no credentials) does NOT fail this script.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 
 const SCRIPT = join(import.meta.dirname, "deliver-artifact-branch.sh");
 
@@ -30,12 +34,16 @@ function makeScratchRepo(t) {
   mkdirSync(join(root, "scripts/lib"), { recursive: true });
   mkdirSync(join(root, "scripts/turns"), { recursive: true });
   // Stub record-harness-run.mjs: always "lands" (echoes the marker line this script's own success-detect
-  // grep looks for) unless the file is named to force a failure, so tests can prove BOTH outcomes.
+  // grep looks for and exits 0) unless the file is named to force a failure (exit 1, the real file's own
+  // exit code for a genuine insert failure -- see that file's own header) or a skip (exit 2, the real
+  // file's no-credential self-skip code), so tests can prove all three outcomes against the real exit
+  // codes the production record-harness-run.mjs now returns (lane HARNESS-RUN-NUMBER, 2026-09-29).
   writeFileSync(
     join(root, "scripts/lib/record-harness-run.mjs"),
     `#!/usr/bin/env node
 const path = process.argv[process.argv.indexOf("--file") + 1];
-if (path.includes("force-fail")) { console.error("record-harness-run: simulated insert failure"); process.exit(0); }
+if (path.includes("force-fail")) { console.error("record-harness-run: simulated insert failure"); process.exit(1); }
+if (path.includes("force-skip")) { console.error("record-harness-run: simulated no-credential self-skip"); process.exit(2); }
 console.log("record-harness-run: landed " + path);
 process.exit(0);
 `
@@ -50,11 +58,14 @@ process.exit(0);
   return root;
 }
 
+/** Runs the script via spawnSync (never throws on a nonzero exit, unlike execFileSync) and returns
+ *  { stdout, status } so tests can assert on the exit code as well as the printed lines. */
 function runScript(root, label) {
-  return execFileSync("bash", ["scripts/turns/deliver-artifact-branch.sh", label], {
+  const { stdout, stderr, status } = spawnSync("bash", ["scripts/turns/deliver-artifact-branch.sh", label], {
     cwd: root,
     encoding: "utf8",
   });
+  return { stdout: (stdout ?? "") + (stderr ?? ""), status };
 }
 
 test("deliver-artifact-branch.sh: discovers and lands an untracked artifact file, with NO git commit/branch created", (t) => {
@@ -62,8 +73,9 @@ test("deliver-artifact-branch.sh: discovers and lands an untracked artifact file
   mkdirSync(join(root, "scripts/harness-runs/propagation"), { recursive: true });
   writeFileSync(join(root, "scripts/harness-runs/propagation/propagation-run-001.json"), "{}\n");
 
-  const out = runScript(root, "propagation run 12345");
+  const { stdout: out, status: exitStatus } = runScript(root, "propagation run 12345");
 
+  assert.equal(exitStatus, 0, "a clean land exits 0");
   assert.match(out, /recording scripts\/harness-runs\/propagation\/propagation-run-001\.json/);
   assert.match(out, /record-harness-run: landed scripts\/harness-runs\/propagation\/propagation-run-001\.json/);
   assert.match(out, /landed=1 failed=0/);
@@ -74,14 +86,15 @@ test("deliver-artifact-branch.sh: discovers and lands an untracked artifact file
   const branch = git(root, "branch", "--show-current").trim();
   assert.equal(branch, "master", "never checked out a new branch");
   // The artifact file is still untracked (never git-added/committed by this script).
-  const status = git(root, "status", "--porcelain", "--untracked-files=all");
-  assert.match(status, /\?\? scripts\/harness-runs\/propagation\/propagation-run-001\.json/);
+  const gitStatus = git(root, "status", "--porcelain", "--untracked-files=all");
+  assert.match(gitStatus, /\?\? scripts\/harness-runs\/propagation\/propagation-run-001\.json/);
 });
 
 test("deliver-artifact-branch.sh: a run that wrote no artifact is a clean no-op, exit 0", (t) => {
   const root = makeScratchRepo(t);
-  const out = runScript(root, "no-op run");
+  const { stdout: out, status } = runScript(root, "no-op run");
   assert.match(out, /landed=0 failed=0/);
+  assert.equal(status, 0);
 });
 
 test("deliver-artifact-branch.sh: files outside the harness-runs/*/*-run-*.json pathspec are ignored", (t) => {
@@ -90,21 +103,34 @@ test("deliver-artifact-branch.sh: files outside the harness-runs/*/*-run-*.json 
   writeFileSync(join(root, "scripts/harness-runs/propagation/family.json"), "{}\n"); // a descriptor, not a run artifact
   writeFileSync(join(root, "scratch-notes.txt"), "irrelevant\n");
 
-  const out = runScript(root, "descriptor-only run");
+  const { stdout: out, status } = runScript(root, "descriptor-only run");
   assert.match(out, /landed=0 failed=0/);
+  assert.equal(status, 0);
   assert.doesNotMatch(out, /family\.json/);
   assert.doesNotMatch(out, /scratch-notes\.txt/);
 });
 
-test("deliver-artifact-branch.sh: a record-harness-run.mjs failure for one file is counted, never thrown, and does not stop other files", (t) => {
+test("deliver-artifact-branch.sh: a record-harness-run.mjs failure for one file is counted, never thrown, does not stop other files, AND now fails this script's own exit code (the GitHub run 36610847827 fix)", (t) => {
   const root = makeScratchRepo(t);
   mkdirSync(join(root, "scripts/harness-runs/quarantine-disposition"), { recursive: true });
   writeFileSync(join(root, "scripts/harness-runs/quarantine-disposition/quarantine-disposition-run-force-fail.json"), "{}\n");
   writeFileSync(join(root, "scripts/harness-runs/quarantine-disposition/quarantine-disposition-run-002.json"), "{}\n");
 
-  const out = runScript(root, "mixed outcome run");
+  const { stdout: out, status } = runScript(root, "mixed outcome run");
   assert.match(out, /landed=1 failed=1/);
-  assert.match(out, /::warning::deliver-artifact-branch: record-harness-run\.mjs did not confirm a landed row for scripts\/harness-runs\/quarantine-disposition\/quarantine-disposition-run-force-fail\.json/);
+  assert.match(out, /::error::deliver-artifact-branch: record-harness-run\.mjs failed to land scripts\/harness-runs\/quarantine-disposition\/quarantine-disposition-run-force-fail\.json \(exit 1\)/);
+  assert.notEqual(status, 0, "a real landing failure must fail this script's own exit code, not report SUCCESS");
+});
+
+test("deliver-artifact-branch.sh: a no-credential self-skip (exit 2) is counted separately and does NOT fail this script's own exit code", (t) => {
+  const root = makeScratchRepo(t);
+  mkdirSync(join(root, "scripts/harness-runs/quarantine-disposition"), { recursive: true });
+  writeFileSync(join(root, "scripts/harness-runs/quarantine-disposition/quarantine-disposition-run-force-skip.json"), "{}\n");
+
+  const { stdout: out, status } = runScript(root, "skip-only run");
+  assert.match(out, /landed=0 failed=0 skipped=1/);
+  assert.match(out, /::warning::deliver-artifact-branch: record-harness-run\.mjs self-skipped scripts\/harness-runs\/quarantine-disposition\/quarantine-disposition-run-force-skip\.json \(no credentials\)/);
+  assert.equal(status, 0, "a self-skip is not a failure");
 });
 
 // ── regression: repo-root-relative git status output when running from a NESTED subdirectory ──────────
@@ -198,6 +224,7 @@ test("deliver-artifact-branch.sh: multiple families in one run are all discovere
   writeFileSync(join(root, "scripts/harness-runs/maintenance/maintenance-run-005.json"), "{}\n");
   writeFileSync(join(root, "scripts/harness-runs/quarantine-disposition/quarantine-disposition-run-003.json"), "{}\n");
 
-  const out = runScript(root, "maintenance run");
+  const { stdout: out, status } = runScript(root, "maintenance run");
   assert.match(out, /landed=2 failed=0/);
+  assert.equal(status, 0);
 });
