@@ -125,9 +125,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
 
 jobs:
   turn:
@@ -400,29 +398,6 @@ jobs:
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Commit harness-run artifacts
-        id: commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs
-          if git diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            git commit -m "corpus-turn ${{ steps.turn.outputs.mode }}: run ${{ github.run_id }} (selection ${{ steps.scope.outputs.selection }}, limit ${{ steps.turn.outputs.limit }})"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Push turn branch
-        if: steps.commit.outputs.changed == 'true'
-        # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push,
-        # so a workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
-        # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
-        run: |
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"${{ steps.turn.outputs.branch }}"
-
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -432,12 +407,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
 
-      - name: Deliver the turn branch (PR, or the tracking issue when the repository refuses PRs)
-        if: steps.commit.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          branch="${{ steps.turn.outputs.branch }}"
-          printf 'Automated corpus turn (run %s, trigger %s).\n\nMode: %s\nSelection: %s (limit %s)\nSince (override): %s\nTickets selected: %s\nSignals flag: "%s"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/**. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.turn.outputs.mode }}" "${{ steps.scope.outputs.selection }}" "${{ steps.turn.outputs.limit }}" "${{ steps.scope.outputs.since }}" "${{ steps.scope.outputs.ticket_count }}" "${{ steps.signals.outputs.flag }}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Corpus turn: $branch (mode=${{ steps.turn.outputs.mode }})" /tmp/pr-body.md
+      - name: Land this turn's harness-run artifact(s) into harness_runs
+        if: always()
+        run: bash scripts/turns/deliver-artifact-branch.sh "Corpus turn (mode=${{ steps.turn.outputs.mode }}, run ${{ github.run_id }})"

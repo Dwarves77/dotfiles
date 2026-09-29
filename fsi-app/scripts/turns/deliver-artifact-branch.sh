@@ -1,46 +1,67 @@
 #!/usr/bin/env bash
-# deliver-artifact-branch.sh -- the ONE delivery step every harness-family workflow calls after
-# committing its own run artifact(s). REWRITTEN (lane HARNESS-LANDING, 2026-09-27, operator ruling: "yes
-# supabase but do not reinvent processes, look at what has already been built"). The OLD behavior (push
-# a branch, try `gh pr create`, fall back to commenting on tracking issue #520 when Actions is refused
-# PR creation -- see docs/ops/session-log.d/2026-09-26-harness-landing.md) is REMOVED: it left 39
-# branches stranded across 5 families with no automated landing path, because GitHub Actions on this
-# repository cannot create or approve PRs, permanently, by operator ruling (2026-09-26: "I've been
-# building this for six months and not once that I need a pull request from GitHub").
+# deliver-artifact-branch.sh -- lands every harness-run artifact this job's own runner just wrote to disk
+# straight into the `harness_runs` table (migration 331) via `scripts/lib/record-harness-run.mjs`.
 #
-# NEW behavior: land each harness-run artifact this commit added straight into the `harness_runs` table
-# (migration 331) via the guarded writer `scripts/lib/record-harness-run.mjs`, the SAME best-effort
-# posture `brief_apply_runs`'s writer already uses (recordApplyRunStart: a plain insert, exempt from
-# rule 015 because it is additive, never a mutation). No branch, no PR, no issue.
+# REWRITTEN AGAIN (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, propagation-drain
+# run 36534640498, "artifact commit does not rebase onto origin/master"). The PRIOR rewrite (lane
+# HARNESS-LANDING, 2026-09-27) already removed the PR-open path, but every calling workflow still ran a
+# full checkout-a-branch / git commit / `git fetch --depth=50 origin master` / `git rebase` / `git push`
+# dance BEFORE calling this script, and discovered the artifact via `git diff --name-only --relative
+# origin/master...HEAD` -- a rebase against origin/master that FAILS outright on a shallow checkout
+# (`actions/checkout@v4`'s default `fetch-depth: 1`, no real history to rebase onto). #812 (gate-a-rescan)
+# and #819 (maintenance) each independently found and fixed the shallow-checkout half of this in their OWN
+# workflow file (`fetch-depth: 0`) -- but the branch/commit/rebase/push dance ITSELF was never the point
+# once artifact landing became a DB write, not a branch merge: this file's own 2026-09-27 header already
+# called the branch push "now REDUNDANT." Removed for real this time, in every calling workflow: no git
+# add, no branch, no commit, no fetch, no rebase, no push, no PR, anywhere in this pipeline. Operator
+# ruling, 2026-09-26, restated here because it is the reason none of this exists any more: "I've been
+# building this for six months and not once that I need a pull request from GitHub."
 #
-# Call signature is UNCHANGED (`<branch> <title> <body_file>`) so no `.github/workflows/*.yml` file
-# needs editing for this lane: every caller still runs `git push origin HEAD:"$branch"` immediately
-# before this script (a residual from the old design -- the branch push is now REDUNDANT since landing
-# is a DB write, not a branch merge; removing that push step is a follow-up lane's workflow-file edit,
-# out of this lane's scope). `title`/`body_file` are accepted for logging continuity only; no PR is ever
-# opened from them.
+# NEW DISCOVERY, no git history needed at all: `git status --porcelain` over
+# `scripts/harness-runs/*/*-run-*.json` finds every artifact file THIS JOB's own harness-family runner(s)
+# wrote to disk (always untracked -- nothing is ever committed), across every family a single job step may
+# have produced one for (maintenance.yml runs several families per job; this scan is family-agnostic by
+# design, matching the pathspec every caller already scoped its old `git diff`/`git add` to). Works
+# identically on a depth-1 shallow checkout, because it never reads git history at all.
 #
-# Usage: deliver-artifact-branch.sh <branch> <title> <body-file>
-# Requires: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (best-effort: missing creds log and
-# exit 0, never fail the run -- see record-harness-run.mjs's own header).
+# Usage: deliver-artifact-branch.sh <label>
+#   <label> is used for logging only (the run's own artifact JSON already carries harness_family/run_id/
+#   trigger; nothing here needs to re-derive them).
+# Requires: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (best-effort via record-harness-run.mjs:
+# missing creds log and exit 0, never fail the run).
 set -u
 
-branch="$1"
-title="$2"
-body_file="${3:-}"
+label="${1:-artifact}"
 
-echo "deliver-artifact-branch: landing this run's harness-run artifact(s) into harness_runs (branch ${branch:-?} pushed by the caller is now a redundant residual, see this script's header)."
-if [ -n "$body_file" ] && [ -f "$body_file" ]; then
-  echo "--- run context ($title) ---"
-  cat "$body_file"
-fi
+echo "deliver-artifact-branch: landing this run's harness-run artifact(s) ($label) into harness_runs, no git commit/branch/push (see this script's header)."
 
-git fetch --no-tags --depth=50 origin master >/dev/null 2>&1 || true
+# REPO-ROOT-RELATIVE OUTPUT, CONFIRMED LIVE (lane STATUTORY-WRITER, 2026-09-29, propagation-drain run
+# 36538491130): `git status --porcelain` output was assumed cwd-relative when this script always runs
+# from fsi-app/ (git's own documented default, "relative to the current directory unless
+# status.relativePaths is false"). That assumption was WRONG in this repo's actual CI runners: the real
+# dispatch printed "fsi-app/scripts/harness-runs/statutory/statutory-run-001.json" while running FROM
+# fsi-app/, so record-harness-run.mjs's own `--file` open failed with ENOENT (fsi-app/fsi-app/...) --
+# harmless there only because write-statutory.mjs's own runWriter() had ALREADY landed that exact row
+# directly (see that file's own harness-record wiring), but this SAME bug meant the propagation family's
+# own artifact (propagation-run-009.json) never landed at all that run -- a real miss, not a redundant
+# retry. This is the identical repo-root-vs-cwd asymmetry this script's PRIOR version already worked
+# around for `git diff --name-only` (that one needed an explicit `--relative` flag; apparently this repo's
+# git/CI environment applies the same repo-root-relative default to `git status --porcelain` too, contrary
+# to git's own documented default -- an environment quirk, not documented git behavior, so this fix
+# computes and strips the ACTUAL prefix rather than hardcoding "fsi-app/"). `git rev-parse --show-prefix`
+# always reports cwd's own path relative to the repo root (empty string when cwd IS the root), which is
+# the correct thing to strip regardless of which of the two relative conventions git's `status` output
+# happens to be using in a given environment.
+CWD_PREFIX="$(git rev-parse --show-prefix 2>/dev/null || true)"
 
 landed=0
 failed=0
-while IFS= read -r path; do
-  [ -z "$path" ] && continue
+while IFS= read -r raw_path; do
+  [ -z "$raw_path" ] && continue
+  path="$raw_path"
+  if [ -n "$CWD_PREFIX" ] && [ "${path#"$CWD_PREFIX"}" != "$path" ]; then
+    path="${path#"$CWD_PREFIX"}"
+  fi
   echo "deliver-artifact-branch: recording $path"
   # record-harness-run.mjs is best-effort BY DESIGN and always exits 0, even on a read/parse/insert
   # failure (so a DB hiccup never fails the calling workflow step -- see that file's own header). A
@@ -58,22 +79,22 @@ while IFS= read -r path; do
     failed=$((failed + 1))
     echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not confirm a landed row for $path (best-effort, continuing)"
   fi
-# Pathspec is relative to CWD (this script always runs from fsi-app/, matching every caller workflow's
-# working-directory) -- a leading '**/' here does NOT match a zero-depth path even under glob pathspec
-# magic (verified live, lane HARNESS-LANDING: the first real dispatch, gate-a-rescan run 36435442672,
-# landed=0 with the '**/'-prefixed form even though the artifact file existed in the diff -- confirmed by
-# testing both forms against that run's own pushed branch). No leading '**/' needed since the path is
-# never nested under an extra nonexistent nesting level from here.
-#
-# --relative is REQUIRED: git diff --name-only reports paths relative to the REPO ROOT by default
-# regardless of cwd or the pathspec used to filter (confirmed live, second dispatch of the same run:
-# without --relative the pathspec matched correctly but the printed/used path was
-# "fsi-app/scripts/harness-runs/gate-a-rescan/gate-a-rescan-run-002.json", which record-harness-run.mjs
-# then failed to open from cwd=fsi-app/ with ENOENT -- landed=1 was reported, the row was never written,
-# because node process.exit(0) on a read/parse failure is deliberately best-effort/never-fails-the-run,
-# so the "landed" counter here only means "node ran without crashing", not "the row landed". Fixed by
-# --relative, which makes the printed path cwd-relative (matching where node actually runs).
-done < <(git diff --name-only --relative origin/master...HEAD -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null)
+# `git status --porcelain --untracked-files=all -- <pathspec>` runs from CWD (this script always runs
+# from fsi-app/, matching every caller workflow's working-directory) and reports paths RELATIVE TO CWD,
+# not the repo root, unlike `git diff --name-only`, which needed `--relative` to get the same shape (see
+# this file's own prior header for the live incident that taught that lesson; porcelain status has always
+# reported cwd-relative paths, so no equivalent flag is needed here). Porcelain v1 format is exactly
+# `XY<space>PATH` (two status characters, one space, then the path); `cut -c4-` takes everything from the
+# 4th character on, which is the path, for both an untracked ("??") and a modified (" M") entry alike,
+# this repo's own harness-run convention never modifies an existing artifact file in place
+# (`writeRunArtifact` refuses to overwrite one without an explicit opt-in), so every real hit here is "??".
+# `:(glob)` pathspec magic (lane STATUTORY-WRITER, 2026-09-29, same live dispatch as the CWD_PREFIX fix
+# above): a PLAIN git pathspec's `*` matches ACROSS `/` (unlike a shell glob), so the un-magic'd pattern
+# also matched e.g. "propagation/traces/propagation-run-009.report.json" -- a nested trace file, not a
+# top-level run artifact -- and this script tried (and, correctly, failed) to land it as one. `:(glob)`
+# makes `*` behave like a normal shell glob (never crosses `/`), restricting the match to exactly one
+# directory level under scripts/harness-runs/, the shape every real run artifact actually has.
+done < <(git status --porcelain --untracked-files=all -- ':(glob)scripts/harness-runs/*/*-run-*.json' 2>/dev/null | cut -c4-)
 
 echo "deliver-artifact-branch: landed=$landed failed=$failed"
 {

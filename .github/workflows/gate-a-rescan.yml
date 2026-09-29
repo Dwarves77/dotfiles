@@ -74,9 +74,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
 
 jobs:
   rescan:
@@ -238,29 +236,9 @@ jobs:
           GAR_RESCAN_STEP_OUTCOME: ${{ steps.rescan.outcome }}
         run: node scripts/turns/emit-gate-a-rescan-artifact.mjs
 
-      # ONE commit/PR for this run's own harness artifact, same shape every sibling family workflow
-      # already has (see brief-export.yml / downstream-chain.yml's own identical step).
-      - name: Commit this run's harness artifact and open a PR
+      - name: Land this run's harness artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/gate-a-rescan
-          if git diff --cached --quiet; then
-            echo "No new gate-a-rescan artifact to commit."
-            exit 0
-          fi
-          branch="gate-a-rescan/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "gate-a-rescan $GAR_MODE: run ${{ github.run_id }} (${{ github.event_name }})"
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated Gate A rescan (run %s, trigger %s).\n\nMode: %s\nUpstream: %s (%s)\n\nLands this run'"'"'s own harness-run artifact under fsi-app/scripts/harness-runs/gate-a-rescan/.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "$GAR_MODE" "$GAR_UPSTREAM_NAME" "$GAR_UPSTREAM_RUN_ID" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Gate A rescan: run ${{ github.run_id }} (mode=$GAR_MODE)" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Gate A rescan (mode=$GAR_MODE, run ${{ github.run_id }})"
 
       - name: Upload this run's step artifacts and logs
         if: always()

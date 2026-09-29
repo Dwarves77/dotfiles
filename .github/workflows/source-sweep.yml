@@ -101,9 +101,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
 
 jobs:
   sweep:
@@ -117,6 +115,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -259,30 +259,9 @@ jobs:
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Commit the source-sweep harness-run artifact and open a PR
+      - name: Land the source-sweep harness-run artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/source-sweep
-          if git diff --cached --quiet; then
-            echo "No new source-sweep artifact to commit."
-            exit 0
-          fi
-          branch="source-sweep/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "source-sweep ${{ inputs.mode }}: ${{ inputs.walker }} run ${{ github.run_id }}"
-          # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
-          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
-          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nAll hosts: %s (max_hosts=%s, time_budget_seconds=%s)\nCheck coverage: %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
-            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.all_hosts }}" "${{ inputs.max_hosts }}" "${{ inputs.time_budget_seconds }}" "${{ inputs.check_coverage }}" "${{ inputs.limit }}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Source sweep (walker=${{ inputs.walker }}, mode=${{ inputs.mode }}, run ${{ github.run_id }})"
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

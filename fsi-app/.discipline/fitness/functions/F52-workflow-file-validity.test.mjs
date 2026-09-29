@@ -381,6 +381,152 @@ test('GREEN (f): a run: step with no tee pipe at all produces no F52f violation'
   );
 });
 
+// ── check (g): a job that runs git rebase must have fetch-depth: 0 on its checkout step ────────────
+// (lane STATUTORY-WRITER, 2026-09-29, coordinator finding on PR #824, propagation-drain run 36534640498)
+
+test('RED (g): the propagation-drain.yml class, verbatim shape - git rebase with no fetch-depth: 0', () => {
+  withTempRepo(
+    {
+      'pd.yml':
+        'name: Propagation drain\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  drain:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - uses: actions/checkout@v4\n' +
+        '      - name: commit\n' +
+        '        run: |\n' +
+        '          git fetch --no-tags --depth=50 origin master\n' +
+        '          git rebase --autostash origin/master || { git rebase --abort; exit 1; }\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      const hits = messagesMatching(out, 'F52g');
+      assert.ok(hits.length >= 1, 'expected the shallow-checkout rebase to be caught');
+      assert.ok(hits.some((v) => v.message.includes('fetch-depth')));
+    },
+  );
+});
+
+test('GREEN (g): the same job with fetch-depth: 0 on its checkout step produces no F52g violation', () => {
+  withTempRepo(
+    {
+      'pd.yml':
+        'name: Propagation drain\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  drain:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - uses: actions/checkout@v4\n' +
+        '        with:\n' +
+        '          fetch-depth: 0\n' +
+        '      - name: commit\n' +
+        '        run: |\n' +
+        '          git fetch --no-tags --depth=50 origin master\n' +
+        '          git rebase --autostash origin/master || { git rebase --abort; exit 1; }\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52g'), []);
+    },
+  );
+});
+
+test('GREEN (g): a job with no git rebase at all produces no F52g violation regardless of checkout depth', () => {
+  withTempRepo(
+    {
+      'plain.yml':
+        'name: Plain\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - uses: actions/checkout@v4\n' +
+        '      - run: node scripts/x.mjs\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52g'), []);
+    },
+  );
+});
+
+// ── check (h): no run: step may stage only a scripts/harness-runs path and push it as a branch ─────
+// (the removed "artifact branch" anti-pattern - land via deliver-artifact-branch.sh instead)
+
+test('RED (h): a step that git-adds only scripts/harness-runs/<family> then pushes a branch', () => {
+  withTempRepo(
+    {
+      'wf.yml':
+        'name: WF\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: commit\n' +
+        '        run: |\n' +
+        '          git add scripts/harness-runs/foo\n' +
+        '          git commit -m x\n' +
+        '          git push origin HEAD:foo-branch\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      const hits = messagesMatching(out, 'F52h');
+      assert.ok(hits.length >= 1, 'expected the artifact-branch push to be caught');
+      assert.ok(hits.some((v) => v.message.includes('artifact branch')));
+    },
+  );
+});
+
+test('GREEN (h): a step that ALSO stages other real content alongside the harness-runs path is not flagged (the maintenance.yml / brief-export.yml shape)', () => {
+  withTempRepo(
+    {
+      'wf.yml':
+        'name: WF\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: commit\n' +
+        '        run: |\n' +
+        '          git add scripts/harness-runs/foo docs/ops/dispatch-ledger.jsonl\n' +
+        '          git commit -m x\n' +
+        '          git push origin HEAD:foo-branch\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52h'), []);
+    },
+  );
+});
+
+test('GREEN (h): a step that pushes with no git add of a harness-runs path at all is not flagged', () => {
+  withTempRepo(
+    {
+      'wf.yml':
+        'name: WF\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: commit\n' +
+        '        run: |\n' +
+        '          git add docs/ops/dispatch-ledger.jsonl\n' +
+        '          git commit -m x\n' +
+        '          git push origin HEAD:foo-branch\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52h'), []);
+    },
+  );
+});
+
+test('GREEN (h): deliver-artifact-branch.sh with no git add/push at all is not flagged (the fixed shape)', () => {
+  withTempRepo(
+    {
+      'wf.yml':
+        'name: WF\non:\n  workflow_dispatch: {}\n' +
+        'jobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n' +
+        '      - name: land\n' +
+        '        run: bash scripts/turns/deliver-artifact-branch.sh "label"\n',
+    },
+    null,
+    () => {
+      const out = fitnessFunction.check();
+      assert.deepEqual(messagesMatching(out, 'F52h'), []);
+    },
+  );
+});
+
 // ── pure helpers, direct unit coverage ───────────────────────────────────────────────────────────────
 
 test('extractJobs finds job ids and line ranges', () => {

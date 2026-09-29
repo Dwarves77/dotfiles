@@ -68,9 +68,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
 
 jobs:
   drain:
@@ -87,6 +85,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -171,31 +171,9 @@ jobs:
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Commit the fetch-drain harness-run artifact and open a PR
+      - name: Land the fetch-drain harness-run artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/fetch-drain
-          if git diff --cached --quiet; then
-            echo "No new fetch-drain artifact to commit."
-            exit 0
-          fi
-          branch="fetch-drain/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "fetch-drain ${{ steps.params.outputs.mode }}: run ${{ github.run_id }} (${{ github.event_name }})"
-          # BRANCH-BASE: re-base the artifact commit onto the current master tip before the push, so a
-          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
-          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated fetch drain (run %s, trigger %s).\n\nMode: %s\nLimit: %s\n%s\nLands the harness-run artifact for this drain under scripts/harness-runs/fetch-drain/.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" \
-            "$([ "${{ github.event_name }}" = "workflow_run" ] && echo "Upstream Source sweep run: ${{ github.event.workflow_run.id }} (${{ github.event.workflow_run.conclusion }})")" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Fetch drain: ${{ steps.params.outputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Fetch drain (mode=${{ steps.params.outputs.mode }}, run ${{ github.run_id }})"
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

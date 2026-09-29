@@ -64,9 +64,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read # lane STATUTORY-WRITER, 2026-09-29: no git commit/branch/push/PR any more
 
 jobs:
   detect:
@@ -81,7 +79,11 @@ jobs:
       APP_URL: ${{ secrets.APP_URL }}
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
+      # fetch-depth: 0 -- kept as the repo-wide baseline (lane STATUTORY-WRITER, 2026-09-29) even though
+      # the rebase this used to guard against is removed below.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -149,30 +151,9 @@ jobs:
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Commit the change-detection harness-run artifact and open a PR
+      - name: Land the change-detection harness-run artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/change-detection
-          if git diff --cached --quiet; then
-            echo "No new change-detection artifact to commit."
-            exit 0
-          fi
-          branch="change-detection/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "change-detection ${{ inputs.mode }}: run ${{ github.run_id }}"
-          # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
-          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
-          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          printf 'Automated change-detection run (run %s).\n\nMode: %s\nCheck limit: %s\nSkip check: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/change-detection/.\n' \
-            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.check_limit }}" "${{ inputs.skip_check }}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Change detection: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Change detection (mode=${{ inputs.mode }}, run ${{ github.run_id }})"
 
       - name: Upload traces as a workflow artifact
         if: always()

@@ -1,0 +1,61 @@
+{
+  "_purpose": "DRY-ONLY HARNESS TEST ROW (lane STATUTORY-WRITER, 2026-09-29, coordinator ruling on PR #824). Exists solely to exercise write-statutory.mjs's harness-record wiring (scripts/harness-runs/statutory/) end to end via a real workflow_dispatch of propagation-drain.yml's opt-in, test-only `statutory_rows_file` input (which forces --dry regardless of the run's own mode). This file is NEVER read at the live default path (scripts/propagation/fixtures/fueleu-annex-iv-rows.json, which stays absent -- see write-statutory.mjs's own header for why no reviewed real rows-file exists yet).",
+  "_why_it_cannot_write": "Every row's ghgIntensityActual carries originClass='community' (self-declared, non-official), which admissibleFor() refuses for 'filing' use (see src/lib/propagation/statutory-rows.ts's writeOneRow, the SAME gate write-statutory.test.mjs's own unit tests exercise with the identical originClass value). The row is refused whole, before any statutory_computations INSERT is attempted, in EITHER --dry or --apply mode. This is not real ship-year MRV data -- no genuine ship reported these figures; the shipKey and citation strings say so plainly.",
+  "rows": [
+    {
+      "shipKey": "TEST-HARNESS-DRY-ONLY-001",
+      "targetYear": 2025,
+      "ghgIntensityActual": {
+        "value": 95.0,
+        "unit": "gCO2eq/MJ",
+        "citation": "Deliberately non-filing-grade harness test value (lane STATUTORY-WRITER, 2026-09-29); not a real MRV report, not a real ship.",
+        "asOf": { "eventDate": "2026-09-29" },
+        "derivation": "reported",
+        "originClass": "community",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.5,
+        "source": {
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1805",
+          "article": "Article 4(2)",
+          "quote": "The limit referred to in paragraph 1 shall be calculated by reducing the reference value of 91,16 grams of CO2 equivalent per MJ by the following percentage:",
+          "verified_at": "2026-09-29"
+        }
+      },
+      "energyUsedMJ": {
+        "value": 500000000,
+        "unit": "MJ",
+        "citation": "Harness test value paired with the refused ghgIntensityActual input above; never reached independently since the row is refused on the first non-admissible input.",
+        "asOf": { "eventDate": "2026-09-29" },
+        "derivation": "reported",
+        "originClass": "official",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.95,
+        "source": {
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1805",
+          "article": "Article 4(2)",
+          "quote": "The limit referred to in paragraph 1 shall be calculated by reducing the reference value of 91,16 grams of CO2 equivalent per MJ by the following percentage:",
+          "verified_at": "2026-09-29"
+        }
+      },
+      "consecutiveDeficitYears": {
+        "value": 1,
+        "unit": "count",
+        "citation": "Harness test value paired with the refused ghgIntensityActual input above; never reached independently since the row is refused on the first non-admissible input.",
+        "asOf": { "eventDate": "2026-09-29" },
+        "derivation": "reported",
+        "originClass": "official",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.95,
+        "source": {
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1805",
+          "article": "Article 4(2)",
+          "quote": "The limit referred to in paragraph 1 shall be calculated by reducing the reference value of 91,16 grams of CO2 equivalent per MJ by the following percentage:",
+          "verified_at": "2026-09-29"
+        }
+      }
+    }
+  ]
+}

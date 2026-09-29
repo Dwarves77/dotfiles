@@ -2,10 +2,20 @@
 // entity mint-on-demand, and the actual FuelEU penalty arithmetic, all with injected fakes. No DB, no
 // network. Importing write-statutory.mjs must not touch the environment (creds check lives in main(),
 // gated by IS_MAIN — proved by this file importing cleanly with no DB creds present).
+//
+// runWriter integration tests (added lane STATUTORY-WRITER, 2026-09-28): prove the FULL row-write-then-
+// harness-record flow end to end with injected fakes (fake sb, fake readAllFn, tmp familyDir,
+// recordHarnessRunFn override), no real DB, no real repo writes, no network. Mirrors
+// scripts/plan-quarantine-disposition.test.mjs's own runPlanner integration tests exactly (same shape,
+// same fakes convention), the "real local end-to-end dry run" a worktree with no DB credentials can prove.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   parseRow, writeOneRow, resolveOrMintEntity, SUPPORTED_TARGET_YEARS, FORMULA_ID,
+  runWriter, nextRunNumberFromHarnessRuns,
 } from "./write-statutory.mjs";
 
 const ADMISSIBLE_INPUT = {
@@ -191,4 +201,137 @@ test("resolveOrMintEntity: apply mode mints a NEW entity when absent, via the gu
   assert.equal(seenRow.kind, "obligation");
   assert.equal(seenRow.canonical_name, "FuelEU obligation");
   assert.equal(got, seenRow.entity_id);
+});
+
+// -- runWriter integration (fake sb/readAllFn/familyDir, no real DB, no real repo writes) --------------
+
+function fakeSbForRun({ entities = [], statutory = [] } = {}) {
+  return {
+    from(table) {
+      if (table === "entities") {
+        return {
+          select() { return this; },
+          eq(_col, val) { this._id = val; return this; },
+          async maybeSingle() {
+            const row = entities.find((e) => e.entity_id === this._id);
+            return { data: row ?? null, error: null };
+          },
+        };
+      }
+      throw new Error(`fakeSbForRun: unexpected table ${table}`);
+    },
+  };
+}
+
+// writeOneRow's OWN default readAllFn (write-statutory.mjs's CLI-flavored wrapper) reaches db.mjs's real
+// readAll, which needs live DB creds; these runWriter tests inject this fake instead (readAllFn: async
+// () => [], i.e. "never already computed"), the same convention writeOneRow's own unit tests above use.
+function fakeWriteOneRow(sb, parsed, mode) {
+  return writeOneRow(sb, parsed, mode, { readAllFn: async () => [] });
+}
+
+test("runWriter (dry): writes a run artifact and best-effort records it to harness_runs, with NO statutory_computations write", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "statutory-writer-test-"));
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const recorded = [];
+  const r = await runWriter(
+    { mode: "dry", rawRows: [goodRow()] },
+    {
+      sb: fakeSbForRun(),
+      now: new Date("2026-09-28"),
+      trigger: "manual",
+      familyDir,
+      readAllFn: async () => [], // no prior harness_runs rows for this family
+      writeOneRowFn: fakeWriteOneRow,
+      recordHarnessRunFn: async (_sb, artifact) => { recorded.push(artifact); return { ok: true, run_id: artifact.run_id }; },
+    }
+  );
+
+  assert.equal(r.runId, "statutory-run-001");
+  assert.equal(r.counts.wouldWrite, 1);
+  assert.equal(r.counts.written, 0);
+  assert.ok(existsSync(r.artifactPath), "run artifact file must exist on disk");
+  const onDisk = JSON.parse(readFileSync(r.artifactPath, "utf8"));
+  assert.equal(onDisk.harness_family, "statutory");
+  assert.equal(onDisk.config.mode, "dry");
+  assert.equal(onDisk.config.r14_live_write_held, false);
+  assert.equal(onDisk.per_item.length, 1);
+  assert.equal(onDisk.per_item[0].outcome, "would-write");
+
+  assert.equal(recorded.length, 1, "recordHarnessRunFn must be called exactly once");
+  assert.equal(recorded[0].run_id, "statutory-run-001");
+  assert.equal(r.harnessRunRow.ok, true);
+});
+
+test("runWriter (apply): a structural row refusal is counted and named in the artifact's per_item, harness record still lands", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "statutory-writer-test-"));
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const recorded = [];
+  const r = await runWriter(
+    { mode: "apply", rawRows: [{ targetYear: 2025 }] }, // missing shipKey etc, structural refusal
+    {
+      sb: fakeSbForRun(),
+      now: new Date("2026-09-28"),
+      familyDir,
+      readAllFn: async () => [],
+      recordHarnessRunFn: async (_sb, artifact) => { recorded.push(artifact); return { ok: true, run_id: artifact.run_id }; },
+    }
+  );
+
+  assert.equal(r.counts.refused, 1);
+  assert.equal(r.perItem[0].outcome, "refused-structural");
+  assert.match(r.perItem[0].verdict, /shipKey/);
+  assert.equal(recorded.length, 1, "a structural-refusal-only run still gets a harness record");
+  const onDisk = JSON.parse(readFileSync(r.artifactPath, "utf8"));
+  assert.equal(onDisk.config.r14_live_write_held, true); // apply mode: the (not-attempted, here) live write would be R14-held
+});
+
+test("runWriter: the run_id NUMBER is read from harness_runs (not always -001), matching plan-quarantine-disposition's own convention", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "statutory-writer-test-"));
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const r = await runWriter(
+    { mode: "dry", rawRows: [goodRow()] },
+    {
+      sb: fakeSbForRun(),
+      now: new Date("2026-09-28"),
+      familyDir,
+      readAllFn: async () => [{ run_id: "statutory-run-001" }, { run_id: "statutory-run-002" }],
+      writeOneRowFn: fakeWriteOneRow,
+      recordHarnessRunFn: async () => ({ ok: true, run_id: "n/a" }),
+    }
+  );
+  assert.equal(r.runId, "statutory-run-003");
+});
+
+test("nextRunNumberFromHarnessRuns: no prior rows for this family returns 1; a malformed foreign-shaped row is skipped, not thrown on", async () => {
+  const n1 = await nextRunNumberFromHarnessRuns(async () => [], "statutory");
+  assert.equal(n1, 1);
+  const n2 = await nextRunNumberFromHarnessRuns(
+    async () => [{ run_id: "statutory-run-005" }, { run_id: "some-other-family-run-099" }, { run_id: null }],
+    "statutory"
+  );
+  assert.equal(n2, 6);
+});
+
+test("runWriter (dry): record-harness-run failure is caught, never thrown; the run's own outcome is still returned", async (t) => {
+  const familyDir = mkdtempSync(join(tmpdir(), "statutory-writer-test-"));
+  t.after(() => rmSync(familyDir, { recursive: true, force: true }));
+
+  const r = await runWriter(
+    { mode: "dry", rawRows: [goodRow()] },
+    {
+      sb: fakeSbForRun(),
+      now: new Date("2026-09-28"),
+      familyDir,
+      readAllFn: async () => [],
+      writeOneRowFn: fakeWriteOneRow,
+      recordHarnessRunFn: async () => { throw new Error("simulated harness_runs insert failure"); },
+    }
+  );
+  assert.equal(r.harnessRunRow.ok, false);
+  assert.match(r.harnessRunRow.error, /simulated harness_runs insert failure/);
+  assert.ok(existsSync(r.artifactPath), "the artifact on disk survives a harness_runs insert failure (best-effort)");
 });
