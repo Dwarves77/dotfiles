@@ -47,9 +47,9 @@
 // (see report), not invented here.
 
 import { readAll, guardedInsert, guardedUpdate, guardedInsertMany, registerSource } from "../../lib/db.mjs";
-import { hostOf } from "../../../src/lib/sources/institution.ts";
-import { classTierForHost } from "../../../src/lib/sources/host-authority.ts";
 import { groundCandidate, buildStateCostFactRow, planUpsert, naturalKey } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";
+import { makeResolveSource } from "../../lib/rate-source-by-class.mjs";
+import { r14ApplyRefusalMessage, buildR14HeldRunArtifact, runR14HeldFixtureCli } from "../../lib/r14-held-producer-cli.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs } from "../../../src/lib/entities/entity-plan.mjs";
 import { existingEntityIdSet, existingIdentifierKeySet, existingRefKeySet } from "../../entities/backfill-entities.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../../lib/run-artifact.mjs";
@@ -59,8 +59,7 @@ import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
 import { getMethod } from "../../../src/lib/propagation/methods/index.ts";
 import { isHourlyWageUnit } from "../../../src/lib/operations/automate-vs-hire.mjs";
 import { resolve as resolvePath, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // KILL SWITCH, default OFF (R14 hold). See file header point 1. Flipping this is a reviewed, dated
 // change, same discipline as bls-oews-producer.mjs's ENABLED history, it is NOT flipped by this lane.
@@ -111,34 +110,17 @@ async function resolveRegionIds(regionCodes, readAllFn) {
   return byCode;
 }
 
-/**
- * Resolve one candidate's source: tier from classTierForHost (the institution class table), THEN
- * register (real DB) or preview (dry). Never falls back to a hand-typed tier, an unclassifiable host
- * is reported as `unrated`, not guessed.
- * @returns {Promise<{ok: true, source_id: string, tier: number} | {ok: false, reason: string}>}
- */
-async function resolveSource(candidate, { mode, registerSourceFn }) {
-  const host = hostOf(candidate.source_url);
-  if (!host) return { ok: false, reason: `cannot parse a host from source_url ${JSON.stringify(candidate.source_url)}` };
-  const tier = classTierForHost(host, candidate.source_name ?? null);
-  if (tier == null) {
-    return {
-      ok: false,
-      reason: `host "${host}" is not classified by the institution class table (classTierForHost returned null), ` +
-        "needs registry review before this figure can publish with a rating (rule 18: rate it, do not guess)",
-    };
-  }
-  if (mode !== "apply") {
-    // Dry preview: no DB write. source_id is a deterministic preview string so a dry-run's plan output
-    // is stable and readable without implying a real row was created.
-    return { ok: true, source_id: `preview:${host}`, tier };
-  }
-  const reg = await registerSourceFn(
-    { url: candidate.source_url, name: candidate.source_name ?? host, base_tier: tier },
-    { cite: CITE },
-  );
-  return { ok: true, source_id: reg.source_id, tier };
-}
+// Resolve one candidate's source: tier from classTierForHost (the institution class table), THEN
+// register (real DB) or preview (dry). Never falls back to a hand-typed tier, an unclassifiable host is
+// reported as unrated, not guessed. Built by the shared makeResolveSource factory
+// (scripts/lib/rate-source-by-class.mjs, coordinator directive 2026-09-28, F45 duplicate-code follow-up):
+// this producer's own contribution is only its config (candidate field names, cite), never a
+// hand-written wrapper body.
+const resolveSource = makeResolveSource({
+  urlField: "source_url",
+  nameField: "source_name",
+  cite: CITE,
+});
 
 /**
  * Mint/link jurisdiction entities for every state_code touched by this run's WRITTEN rows (downstream
@@ -458,39 +440,26 @@ export async function runStateCostFactsProducer({ candidates, fetchCapture, mode
 // ── CLI orchestration (harness artifact + kill switch) ────────────────────────────────────────────────
 
 function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config, inputsRef, result, runError, fixturesPath }) {
-  const defectsFound = [];
-  for (const item of result?.perItem ?? []) {
-    if (item.outcome === "refused_unrated_source") {
-      defectsFound.push({
-        description: `candidate ${item.id} refused: ${item.verdict}`,
-        root_cause: "host not present in the institution class table (host-authority.ts)",
-        fix_ref: null,
-      });
-    }
-  }
-  if (runError) {
-    defectsFound.push({ description: `producer threw: ${runError.message}`, root_cause: runError.stack ?? "", fix_ref: null });
-  }
-  return {
-    harness_family: HARNESS_FAMILY,
-    harness_version: harnessVersion,
-    run_id: runId,
-    started_at: startedAt,
-    finished_at: finishedAt,
+  return buildR14HeldRunArtifact({
+    harnessFamily: HARNESS_FAMILY,
+    harnessVersion,
+    runId,
+    startedAt,
+    finishedAt,
     config,
-    inputs_ref: inputsRef,
-    per_item: result?.perItem ?? [],
+    inputsRef,
+    perItem: result?.perItem,
     // dag_edges rides inside metrics (a free-form object per the harness-run schema) rather than as a new
     // top-level key: the edges (or edge previews) this run's automate_vs_hire DAG-authorship step
     // produced, per state, so a reader can see exactly what would be authored without opening the source.
     metrics: { ...(result?.metrics ?? {}), dag_edges: result?.dagEdges ?? [] },
-    defects_found: defectsFound,
-    full_trace_refs: [fixturesPath],
-    proposer_notes:
+    runError,
+    fullTraceRefs: [fixturesPath],
+    proposerNotes:
       "state-cost-facts-producer's first run artifact (lane STATE-COST-PRODUCER, 2026-09-25). R14 holds " +
       "live rows, every run this lane exercised was --fixtures/dry mode; ENABLED stays false until a " +
       "separate reviewed change lifts it, matching bls-oews-producer.mjs's own ENABLED history.",
-  };
+  });
 }
 
 // CLI CONTRACT (R14): this entry point has EXACTLY ONE runnable path, fixture/dry, and it is the ONLY
@@ -500,66 +469,40 @@ function buildRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config
 // authoring a real `--apply` path here, neither exists today.
 async function main() {
   const args = process.argv.slice(2);
-  if (args.includes("--apply")) {
-    console.log(
-      `${PRODUCER_NAME}: --apply requested but this lane's CLI has no live-write path (R14 hold; ` +
-        `ENABLED=${ENABLED}), refusing, exit 0. Nothing was read, fetched, or written.`,
-    );
+  const applyRefusal = r14ApplyRefusalMessage(args, PRODUCER_NAME, ENABLED);
+  if (applyRefusal) {
+    console.log(applyRefusal);
     process.exit(0);
   }
 
-  const fixturesFlagIdx = args.indexOf("--fixtures");
-  const fixturesPath = resolvePath(
-    fixturesFlagIdx !== -1 && args[fixturesFlagIdx + 1] ? args[fixturesFlagIdx + 1] : resolvePath(HERE, "fixtures/state-cost-facts-fixtures.mjs"),
-  );
-  const harnessDirFlagIdx = args.indexOf("--harness-runs-dir");
-  const harnessRunsDir = resolvePath(harnessDirFlagIdx !== -1 && args[harnessDirFlagIdx + 1] ? args[harnessDirFlagIdx + 1] : DEFAULT_HARNESS_RUNS_DIR);
-
   console.log(`${PRODUCER_NAME}: fixture/dry run (kill switch ${ENABLED ? "ON" : "OFF"}, irrelevant here, it only gates a --apply path that does not exist yet)`);
-  console.log(`${PRODUCER_NAME}: loading fixtures from ${fixturesPath}`);
 
-  const fixtures = await import(pathToFileURL(fixturesPath).href);
-  const startedAt = new Date().toISOString();
-
-  // Fully offline deps: the ONLY external read a dry run needs is `regions` (to resolve region_code ->
-  // id for the row shape), answered from the fixture module's own FIXTURE_REGIONS, never the live DB.
-  // No credential of any kind is read or required by this path.
-  const deps = {
-    readAllFn: async (table) => {
-      if (table === "regions") return fixtures.FIXTURE_REGIONS;
-      if (table === "state_cost_facts") return [];
-      throw new Error(`state-cost-facts-producer fixture run: no fixture reader for table "${table}"`);
-    },
-  };
-
-  let result = null;
-  let runError = null;
-  try {
-    result = await runStateCostFactsProducer({
-      candidates: fixtures.FIXTURE_CANDIDATES,
-      fetchCapture: fixtures.fixtureFetchCapture,
-      mode: "dry",
-      deps,
-    });
-  } catch (err) {
-    runError = err;
-  }
-
-  mkdirSync(harnessRunsDir, { recursive: true });
-  const runId = claimRunId(harnessRunsDir, HARNESS_FAMILY);
-  const harnessVersion = hashHarnessVersion(GOVERNING_FILES[HARNESS_FAMILY], FSI_ROOT);
-  const artifact = buildRunArtifact({
-    runId,
-    harnessVersion,
-    startedAt,
-    finishedAt: new Date().toISOString(),
-    config: { mode: "dry", fixtures: fixturesPath },
-    inputsRef: [fixturesPath],
-    result,
-    runError,
-    fixturesPath,
+  const { result, runError, artifactPath, fixturesPath } = await runR14HeldFixtureCli({
+    args,
+    here: HERE,
+    defaultFixturesRelPath: "fixtures/state-cost-facts-fixtures.mjs",
+    defaultHarnessRunsDir: DEFAULT_HARNESS_RUNS_DIR,
+    harnessFamily: HARNESS_FAMILY,
+    fsiRoot: FSI_ROOT,
+    governingFiles: GOVERNING_FILES,
+    runFn: (fixtures) =>
+      // Fully offline deps: the ONLY external read a dry run needs is `regions` (to resolve region_code ->
+      // id for the row shape), answered from the fixture module's own FIXTURE_REGIONS, never the live DB.
+      // No credential of any kind is read or required by this path.
+      runStateCostFactsProducer({
+        candidates: fixtures.FIXTURE_CANDIDATES,
+        fetchCapture: fixtures.fixtureFetchCapture,
+        mode: "dry",
+        deps: {
+          readAllFn: async (table) => {
+            if (table === "regions") return fixtures.FIXTURE_REGIONS;
+            if (table === "state_cost_facts") return [];
+            throw new Error(`state-cost-facts-producer fixture run: no fixture reader for table "${table}"`);
+          },
+        },
+      }),
+    buildArtifactFn: (ctx) => buildRunArtifact({ ...ctx, config: { mode: "dry", fixtures: ctx.fixturesPath }, inputsRef: [ctx.fixturesPath] }),
   });
-  const artifactPath = writeRunArtifact(harnessRunsDir, artifact);
 
   console.log(`${PRODUCER_NAME}: wrote harness artifact ${artifactPath}`);
   console.log(`${PRODUCER_NAME}: metrics ${JSON.stringify(result?.metrics ?? {}, null, 2)}`);

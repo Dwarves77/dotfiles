@@ -1102,6 +1102,25 @@ export const LEGACY_ALLOWLIST = [
       'a live-data-adjacent scheduling decision this lane is not authorized to make.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
   },
+
+  // Lane ETS-PROXY (2026-09-28, decisions 1/2 of 2026-09-24/25, build-plan-2026-09-25 workstream 11).
+  // Same R14 posture as state-cost-facts-producer.mjs immediately above: this producer's own ENABLED=false
+  // kill switch and its CLI's `--apply` refusal (no live-write code path exists at all) are the R14
+  // enforcement, not a workflow-dispatch gate. Real callable proof: `node scripts/producers/market/
+  // carrier-ets-surcharge-producer.mjs --trace` runs the fixture/dry path end to end (grounds, rates via
+  // classTierForHost, plans a per-carrier-per-period market_series upsert, triggers
+  // authorMarketSeriesDeltaEdges against injected offline deps) and writes a real harness artifact
+  // (scripts/harness-runs/carrier-ets-proxy/carrier-ets-proxy-run-004.json).
+  {
+    file: 'fsi-app/scripts/producers/market/carrier-ets-surcharge-producer.mjs',
+    reason:
+      'R14 hold (operator ruling 2026-09-25, decisions 1/2): carrier-published-ETS-surcharge ' +
+      'carbon-price producer (carbon-cost-per-feu.mjs\'s own GAP.NO_CARBON_PRICE), built and proven on ' +
+      'fixtures (carrier-ets-surcharge-producer.test.mjs, 7 tests, incl. a worked ' +
+      'carbon-cost-per-feu.mjs integration proof), deliberately not wired into any workflow dispatch root ' +
+      'while the tools-before-data hold is in force.',
+    reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

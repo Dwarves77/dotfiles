@@ -1,8 +1,32 @@
 # Last proposer pass, state-cost
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `state-cost` now has **two** artifacts on this
-branch (`state-cost-run-001` from lane STATE-COST-PRODUCER/PR #811, `state-cost-run-003` from this lane);
-F28's rule (d) requires this file to name the latest verbatim: **state-cost-run-003**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `state-cost` now has artifacts through
+`state-cost-run-012` on this branch (`-001` lane STATE-COST-PRODUCER/PR #811, `-003` lane
+STATE-COST-DAG, `-004`/`-006` lane ETS-PROXY reusing this producer's shared modules, two re-stamps as the
+shared modules themselves were extended); F28's rule (d) requires this file to name the latest verbatim:
+**state-cost-run-012**.
+
+## Pass of 2026-09-28 (lane ETS-PROXY, refactor-only re-stamp)
+
+**Artifacts read:** state-cost-run-003 (prior latest, see the 2026-09-27 pass below) and
+state-cost-run-012 (this lane's own regeneration, the second of two re-stamps as
+`scripts/lib/r14-held-producer-cli.mjs` grew a second shared helper).
+
+**What changed [CONFIRMED, `diff` of the two artifacts' `metrics` blocks]:** NOTHING semantic, `state-cost-run-012`'s `metrics` (including `dag_edges`, the real computed NPV `-1696069.283949278` for
+US-CA) is byte-identical to `state-cost-run-004`'s (itself byte-identical to `-003`'s). Only
+`harness_version` moved (`sha256:...fda58763f9b19fca` → `sha256:...651c75ffcd2da14c`), because lane
+ETS-PROXY extracted this producer's `resolveSource()` (near-duplicate of the sibling
+`carrier-ets-surcharge-producer.mjs` function, F45 duplicate-code gate) into the shared
+`scripts/lib/rate-source-by-class.mjs`, and its CLI-shell boilerplate (`--apply` refusal message,
+`buildRunArtifact`'s defects-loop, the fixtures-load/harness-write plumbing in `main()`) into
+`scripts/lib/r14-held-producer-cli.mjs`, both now GOVERNING FILES for this family (added to
+`family.json`), so refactoring them moves the hash even though this producer's own observable behavior
+is unchanged (re-verified by re-running the same fixtures and diffing the metrics, above).
+
+**Hypotheses:** none warranted. This is a re-stamp pass, not a new finding; the open question the prior
+pass carried forward (migrations 332/333 review) is untouched by this lane.
+
+---
 
 ## Pass of 2026-09-27 (lane STATE-COST-DAG, first run after option A)
 
@@ -38,3 +62,7 @@ applied, per R14 and the explicit "do not apply" instruction), the producer wire
 the existing `register_derived_value` path in dry-preview mode. No further hypothesis is warranted from
 these two artifacts alone; the next genuine proposer pass belongs after the migrations are reviewed and
 (if approved) applied, so a live run can be compared against this dry preview's numbers.
+
+**Re-stamp note (same pass):** run-007 is a further re-stamp, identical metrics to run-006, after fixing house-style dash glyphs (rule 022); not a new finding.
+
+**Re-stamp note (same pass):** run-011 is a further re-stamp, identical metrics, after the coordinator-directed makeResolveSource factory follow-up (F45 to 0); not a new finding.
