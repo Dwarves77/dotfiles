@@ -1925,6 +1925,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/extract-recommended-actions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/floor-attribution.test.mjs",
       "kinds": [
         "PROOF"
@@ -3835,15 +3846,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/market/carrier-ets-surcharge-envelope.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
-    },
-    {
       "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -5310,15 +5312,6 @@
       "skills": [],
       "proofWired": true,
       "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/__tests__/carrier-ets-surcharge-composition.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
     },
     {
       "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
@@ -7128,15 +7121,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/producers/market/carrier-ets-surcharge-producer.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
-    },
-    {
       "path": "fsi-app/scripts/producers/market/ecb-fx-producer.test.mjs",
       "kinds": [
         "PROOF"
@@ -7554,6 +7538,17 @@
       "skills": [
         "environmental-policy-and-innovation",
         "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/dry-run-structured-actions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -11494,11 +11489,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1075,
-    "covered": 1030,
+    "governed_files": 1074,
+    "covered": 1032,
     "exempt": 42,
-    "gaps": 3,
-    "orphaned_proofs": 3,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

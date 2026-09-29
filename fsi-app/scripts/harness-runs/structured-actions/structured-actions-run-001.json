@@ -1,0 +1,55 @@
+{
+  "harness_family": "structured-actions",
+  "harness_version": "sha256:e673b7a49b7172cf",
+  "run_id": "structured-actions-run-001",
+  "started_at": "2026-09-29T02:11:37.604Z",
+  "config": {
+    "mode": "dry",
+    "write_status": "no destination column exists on intelligence_items for a structured action; this run extracts and reports only, it writes nothing to any customer-data table under any flag",
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "src/lib/agent/extract-recommended-actions.mjs",
+    "src/lib/agent/extract-sections.ts"
+  ],
+  "per_item": [],
+  "metrics": {
+    "method": "two-stage: (1) live read-only SQL (project kwrsbpiseruzbfwjpvsp) identified 67 candidate intelligence_items whose full_brief contains at least one line matching the concrete-verb pattern, and extracted the three named do-now section bodies per candidate via a heading-bounded regex substring (an approximation of extract-sections.ts's fence/heading-level-aware boundary logic, done in SQL to avoid transferring full brief bodies, avg 20-30KB each, into this session's context); (2) the REAL extractActionFromParagraph from src/lib/agent/extract-recommended-actions.mjs ran locally (Node, no mock) over every paragraph of those section bodies. No DB write of any kind; this worktree carries no Supabase credentials (lane-common-contract's stated posture), consistent with R14 SELECT-only.",
+    "candidate_items_scanned": 67,
+    "total_items_with_full_brief_in_corpus": 2690,
+    "items_with_at_least_one_action": 42,
+    "total_actions": 162,
+    "actions_by_verb": {
+      "Assess": 63,
+      "Verify": 35,
+      "Engage": 29,
+      "Map": 31,
+      "Commission": 4,
+      "Negotiate": 0,
+      "Reconcile": 0
+    },
+    "actions_by_item_type": {
+      "regulation": 111,
+      "framework": 22,
+      "guidance": 7,
+      "standard": 18,
+      "directive": 3,
+      "market_signal": 1
+    },
+    "note": "candidate_items_scanned (67) is NOT the full corpus scan -- it is every item whose full_brief contains the concrete-verb pattern ANYWHERE, a superset guaranteed to contain every item the do-now-section-scoped extractor could possibly match. Every one of the 2690-67=2623 non-candidate items is guaranteed to extract zero actions (no verb-line anywhere in their full_brief at all), so this method's totals equal what a full unscoped corpus run would produce."
+  },
+  "defects_found": [
+    {
+      "description": "A live false positive was found and fixed during this dry run: 'Commission is scheduled to submit a review...' (item 8c186db2-ca7c-4b92-8960-3337a4d01b09) was extracted as a Commission-verb action before the fix -- 'Commission' was the European Commission as a sentence subject, not the imperative verb.",
+      "root_cause": "The original LEGISLATIVE_CITATION_RE guard only excluded 'Commission <Act name>' citations, not 'Commission <auxiliary/finite verb>' institution-as-subject usage.",
+      "fix_ref": "src/lib/agent/extract-recommended-actions.mjs COMMISSION_AS_INSTITUTION_RE, added same lane/same commit; fixture tests added; re-run confirms 0 remaining Commission false positives across all 4 real Commission-verb hits (all 'Commission a/an ... review')."
+    }
+  ],
+  "full_trace_refs": [
+    "docs/plans/build-plan-2026-09-25.md",
+    "docs/plans/data-machine-tool-gaps-2026-09-25.md",
+    "docs/specs/07-page-walkthrough.md"
+  ],
+  "proposer_notes": "STOP-AND-ASK for the coordinator (lane STRUCTURED-ACTIONS, 2026-09-28): docs/specs/07-page-walkthrough.md:56 is the only spec defining a structured-action shape (a task with an owner and a due date), scoped to the Regulations obligation card only; specs 02/03/04 (Market/Research/Operations) name no such shape, and research_finding/regional_data have no do-now section at all in system-prompt.ts, so they structurally extract zero actions, which is a coverage gap, not a bug. Live schema has no recommended_actions/action/task column on intelligence_items (confirmed via information_schema, 2026-09-28); the only recommended_actions column in the schema is integrity_flags' unrelated internal-remediation shape (migration 048). This run proves the EXTRACTION half works against real stored briefs (162 real structured actions across 42 items); the WRITE half (which table/column receives them, and whether non-regulatory formats get an invented shape) needs a coordinator decision before any record-briefs write-site change, per that site's own one-writer/coordinator-sign-off rule.",
+  "trigger": "manual"
+}
