@@ -492,6 +492,19 @@ export const LEGACY_ALLOWLIST = [
       'a workflow or another script.',
     reviewByPhase: 'lane REVERSE-CHAINED-APPLY, 2026-09-29',
   },
+  {
+    file: 'fsi-app/scripts/turns/dry-run-structured-actions.mjs',
+    reason:
+      'Genuinely operator-invoked, out-of-workflow, read-only exploratory CLI (lane STRUCTURED-ACTIONS, ' +
+      '2026-09-28; the same "hand-run, no schedule, no workflow line" Operator-CLI shape this list ' +
+      'already recognizes above) -- reads live intelligence_items and reports counts from the pure ' +
+      'src/lib/agent/extract-recommended-actions.mjs extractor. It carries no --apply mode by design: ' +
+      'no destination column for a structured action exists anywhere in the schema, and the record-' +
+      'briefs write-site change this would eventually feed needs coordinator sign-off first (data-' +
+      'machine-tool-gaps-2026-09-25.md, "Produce" row). Wiring this into maintenance.yml as a scheduled ' +
+      'step is therefore premature; it stays a hand-dispatched CLI until that decision lands.',
+    reviewByPhase: 'lane STRUCTURED-ACTIONS, 2026-09-28',
+  },
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,

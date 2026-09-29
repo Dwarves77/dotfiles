@@ -27,6 +27,12 @@
 //                  reported after this step regardless of ground's own ok/fail - a quarantine is reported,
 //                  never hidden.
 //   4. grow - growSources(itemId) (existing).
+//   4b. structured-actions - lane STRUCTURED-ACTIONS, 2026-09-28 (coordinator ruling). Re-reads the
+//                  item's item_type + just-written full_brief and runs extractRecommendedActions
+//                  (src/lib/agent/extract-recommended-actions.mjs) over it. DRY MODE ONLY: records the
+//                  count it would write, never calls guardedUpdateByIds - intelligence_items.
+//                  recommended_actions does not exist in the live schema yet (see migration 334, DDL
+//                  sketch, authored/not applied). Flip to a real write once the coordinator applies it.
 //   5. discovery - rule 16(a), via flywheel-steps.mjs's runDiscoveryStep (the SAME shared function
 //                  apply-staged-update.ts's substantive update_item path now calls, task 3.4's own
 //                  extraction of that logic - see that module's header).
@@ -109,6 +115,7 @@ import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-extract.mjs";
 import { syncComplianceDeadlineForItem } from "../../src/lib/forward-events/compliance-deadline-sync.mjs";
 import { runDiscoveryStep, runForwardEventsStep } from "../../src/lib/intake/flywheel-steps.mjs";
+import { extractRecommendedActions } from "../../src/lib/agent/extract-recommended-actions.mjs";
 import { recordItemChange } from "../lib/changelog.mjs";
 import { revalidateTags, itemTag, PUBLIC_ITEMS_TAG } from "../lib/revalidate.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
@@ -343,6 +350,7 @@ export const APPLY_STEP_ORDER = Object.freeze([
   "section",
   "ground",
   "grow",
+  "structured-actions",
   "discovery",
   "forward-events",
   "compliance-deadline",
@@ -642,6 +650,24 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
     record("grow", r.ok ? "grown" : "grow_failed", r.ok ? null : r.detail);
   } catch (e) {
     record("grow", "grow_failed", e instanceof Error ? e.message : String(e));
+  }
+
+  // 4b. structured-actions (lane STRUCTURED-ACTIONS, 2026-09-28; coordinator ruling: the destination is
+  //    intelligence_items.recommended_actions -- named in the build-plan brief, grepped clean, no column
+  //    exists yet). DRY MODE ONLY per that ruling: this step re-reads the item's just-written full_brief +
+  //    item_type and runs the pure extractRecommendedActions (src/lib/agent/extract-recommended-actions.mjs)
+  //    over it, and RECORDS the count it would write -- it does not call guardedUpdateByIds, because the
+  //    destination column does not exist in the live schema (see the DDL sketch this lane also delivered,
+  //    supabase/migrations/ pending, authored-not-applied per the two-track policy). Flip this to a real
+  //    guardedUpdateByIds write only after the coordinator applies that migration.
+  try {
+    const { data: it, error } = await sb.from("intelligence_items").select("item_type, full_brief").eq("id", itemId).single();
+    if (error || !it) throw new Error(`intelligence_items re-read for structured-actions failed${error ? `: ${error.message}` : ""}`);
+    const actions = extractRecommendedActions(it.full_brief, it.item_type);
+    record("structured-actions", `structured-actions:${actions.length} (dry, no write -- recommended_actions column not yet applied)`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    record("structured-actions", "structured-actions_failed", msg);
   }
 
   // 5. discovery (rule 16(a), flywheel-steps.mjs - the SAME shared function apply-staged-update.ts's own

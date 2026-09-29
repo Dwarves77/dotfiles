@@ -1925,6 +1925,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/extract-recommended-actions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/floor-attribution.test.mjs",
       "kinds": [
         "PROOF"
@@ -3840,8 +3851,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
@@ -5317,8 +5328,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
@@ -6169,6 +6180,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/rate-source-by-class.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/reachability.selftest.mjs",
       "kinds": [
         "PROOF"
@@ -6542,6 +6562,18 @@
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/one-off/2026-09-29-reverse-chained-apply.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -7133,8 +7165,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/producers/market/ecb-fx-producer.test.mjs",
@@ -7203,6 +7235,15 @@
     },
     {
       "path": "fsi-app/scripts/producers/regional/state-cost-facts-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/propagation/resolve-statutory-rows-file.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7554,6 +7595,28 @@
       "skills": [
         "environmental-policy-and-innovation",
         "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/deliver-artifact-branch.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/dry-run-structured-actions.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
       ],
       "proofWired": true,
       "status": "COVERED"
@@ -11491,14 +11554,40 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/334_intelligence_items_recommended_actions.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/335_drop_placeholder_community_layer.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1075,
-    "covered": 1030,
+    "governed_files": 1083,
+    "covered": 1041,
     "exempt": 42,
-    "gaps": 3,
-    "orphaned_proofs": 3,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

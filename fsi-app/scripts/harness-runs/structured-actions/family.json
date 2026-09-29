@@ -1,0 +1,11 @@
+{
+  "family": "structured-actions",
+  "registered": "2026-09-28",
+  "registered_by": "lane STRUCTURED-ACTIONS",
+  "governing_files": [
+    "scripts/turns/dry-run-structured-actions.mjs",
+    "src/lib/agent/extract-recommended-actions.mjs",
+    "src/lib/agent/extract-sections.ts"
+  ],
+  "rationale": "structured-actions (lane STRUCTURED-ACTIONS, 2026-09-28, docs/plans/build-plan-2026-09-25.md workstream 6 merged with M4, docs/plans/data-machine-tool-gaps-2026-09-25.md 'Produce' row 'Structured-action extraction'). No harness family existed for extracting structured actions from brief 'do now' prose before this lane. scripts/turns/dry-run-structured-actions.mjs (this lane) is a READ-ONLY tool: it reads live intelligence_items rows, runs the pure extractor (src/lib/agent/extract-recommended-actions.mjs, which itself reuses src/lib/agent/extract-sections.ts for section-boundary parsing) over every row's full_brief, and reports counts. It writes NOTHING to any customer-data table under any flag, because no destination column for a structured action exists anywhere in the live schema as of this lane (verified via information_schema, 2026-09-28) -- the record-briefs write site's own change (per the build plan's M4/workstream-6 merge note) needs coordinator sign-off before any write-side code lands, and this lane's own dispatch was extraction-and-dry-run only. Governing files: the dry-run driver itself, the pure extractor, and the section-boundary parser it reuses -- an edit to any of these changes what a structured-actions run actually extracts or reports."
+}
