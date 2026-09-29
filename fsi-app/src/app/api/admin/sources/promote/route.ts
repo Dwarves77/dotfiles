@@ -27,6 +27,13 @@ import {
   PROVISIONAL_SOURCES_PROMOTED_STATUS,
   PROVISIONAL_SOURCES_REJECTED_STATUS,
 } from "@/lib/sources/promote-provisional";
+// WIRE-ITEMS (audit triage 2026-09-28, finding B `source_bias_tags.*`): the
+// Haiku recommendation cached on provisional_sources.recommended_classification
+// carries bias_tags that nothing ever wrote to source_bias_tags. The write can
+// only happen here, at approval, because source_bias_tags.source_id is a NOT
+// NULL FK to sources.id and no sources row exists before this branch inserts
+// one. See src/lib/sources/bias-tag-pipeline.mjs for the confidence-band split.
+import { writeBiasTags } from "@/lib/sources/bias-tag-pipeline.mjs";
 
 
 interface PromoteBody {
@@ -212,6 +219,24 @@ export async function POST(request: NextRequest) {
       created_by: "human",
       reviewer_id: auth.userId,
     });
+
+    // WIRE-ITEMS: write the Haiku bias-tag recommendation into source_bias_tags
+    // now that a sources row exists. Best-effort: a malformed or absent
+    // recommendation must never fail the promotion itself (the source is
+    // already inserted); log and continue, mirroring the cacheErr posture
+    // in recommend-classification/route.ts.
+    const biasTags = (prov.recommended_classification as { bias_tags?: unknown } | null)?.bias_tags;
+    if (biasTags) {
+      try {
+        await writeBiasTags(
+          { insertRows: async (rows) => await supabase.from("source_bias_tags").insert(rows) },
+          inserted.id,
+          biasTags
+        );
+      } catch (e: any) {
+        console.warn("Bias-tag write failed after source insert:", e.message);
+      }
+    }
 
     return NextResponse.json(
       {

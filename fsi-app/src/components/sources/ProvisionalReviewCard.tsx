@@ -7,6 +7,11 @@ import type { ProvisionalSource } from "@/types/source";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 import { formatLocaleDateTime } from "@/lib/format";
 
+interface BiasTagEntry {
+  tag: string;
+  confidence: number;
+}
+
 interface Recommendation {
   tier: number;
   domains: number[];
@@ -16,7 +21,25 @@ interface Recommendation {
   rationale: string;
   model?: string;
   computed_at?: string;
+  bias_tags?: {
+    funding?: BiasTagEntry[];
+    methodology?: BiasTagEntry[];
+    stakeholder?: BiasTagEntry[];
+  };
 }
+
+// WIRE-ITEMS (audit triage 2026-09-28, finding B `source_bias_tags.*`):
+// mirrors the bands in src/lib/sources/bias-tag-pipeline.mjs so the operator
+// sees, before clicking Approve, exactly which tags will auto-apply and
+// which will land pending their own confirm (assignment_source
+// 'haiku_proposed_low_confidence') on approval.
+const BIAS_HIGH_CONFIDENCE_THRESHOLD = 0.80;
+const BIAS_LOW_CONFIDENCE_THRESHOLD = 0.65;
+const BIAS_DIMENSION_LABELS: Record<string, string> = {
+  funding: "Funding",
+  methodology: "Methodology",
+  stakeholder: "Stakeholder",
+};
 
 const ALL_JURISDICTIONS = ["eu", "us", "uk", "latam", "asia", "hk", "meaf", "global"];
 const ALL_MODES = ["air", "road", "ocean", "rail"];
@@ -202,6 +225,63 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
           {recError && (
             <div className="text-xs mb-3 p-2 rounded" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
               {recError}
+            </div>
+          )}
+
+          {/* WIRE-ITEMS: bias tags the Haiku recommendation proposed. Informational
+              before Approve is clicked -- writing to source_bias_tags happens on
+              approval (see /api/admin/sources/promote), split by this same
+              confidence banding. Tags below 0.65 are never written; shown here
+              only so the operator can see what the classifier considered and
+              discarded. */}
+          {rec?.bias_tags && (
+            <div className="text-xs mb-3 p-2 rounded" style={{ backgroundColor: "var(--color-surface-raised)" }}>
+              <span className="font-semibold block mb-1" style={{ color: "var(--color-text-primary)" }}>
+                Bias tags (AI-detected)
+              </span>
+              {(["funding", "methodology", "stakeholder"] as const).map((dim) => {
+                const entries = rec.bias_tags?.[dim] || [];
+                if (entries.length === 0) return null;
+                return (
+                  <div key={dim} className="flex flex-wrap items-center gap-1 mb-1">
+                    <span className="text-[10px] uppercase tracking-wide mr-1" style={{ color: "var(--color-text-muted)" }}>
+                      {BIAS_DIMENSION_LABELS[dim]}:
+                    </span>
+                    {entries.map((e) => {
+                      const willApply = e.confidence >= BIAS_HIGH_CONFIDENCE_THRESHOLD;
+                      const pendingConfirm =
+                        !willApply && e.confidence >= BIAS_LOW_CONFIDENCE_THRESHOLD;
+                      return (
+                        <span
+                          key={`${dim}-${e.tag}`}
+                          className="px-1.5 py-0.5 rounded text-[11px]"
+                          style={{
+                            backgroundColor: willApply
+                              ? "var(--color-success)20"
+                              : pendingConfirm
+                              ? "var(--color-warning)20"
+                              : "var(--color-border)",
+                            color: willApply
+                              ? "var(--color-success)"
+                              : pendingConfirm
+                              ? "var(--color-warning)"
+                              : "var(--color-text-muted)",
+                          }}
+                          title={
+                            willApply
+                              ? "Auto-applies on approve (confidence >= 0.80)"
+                              : pendingConfirm
+                              ? "Applies on approve, pending operator confirm (confidence 0.65-0.79)"
+                              : "Discarded, not written (confidence < 0.65)"
+                          }
+                        >
+                          {e.tag} ({e.confidence.toFixed(2)})
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
 
