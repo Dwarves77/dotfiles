@@ -307,9 +307,8 @@
 | 331 | 331_harness_runs.sql | Migration 331 (lane HARNESS-LANDING, 2026-09-27). DRAFT / NOT APPLIED -- sketch approved by |
 | 332 | 332_state_cost_facts_value_numeric.sql | Migration 332 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A"). Adds |
 | 333 | 333_derivation_edges_allow_state_cost_facts.sql | Migration 333 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A", second |
-| 335 | 335_drop_placeholder_community_layer.sql | Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides |
-| 334 | 334_intelligence_items_recommended_actions.sql | Migration 334 (lane STRUCTURED-ACTIONS, coordinator ruling 2026-09-28). DDL SKETCH, AUTHORED / NOT APPLIED. Adds `intelligence_items.recommended_actions jsonb NOT NULL DEFAULT '[]'::jsonb`, the destination named in build-plan-2026-09-25.md workstream 6 for structured actions extracted from a brief's "do now" sections. B1 grep (migrations, supabase-server.ts, record-briefs types) confirmed no such field exists anywhere today; zero existing consumers. Coordinator applies via the Supabase CLI before `apply-record-briefs.mjs`'s "structured-actions" step (landed this lane in DRY mode only) is flipped to a real write. |
 | 334 | 334_intelligence_items_recommended_actions.sql | Migration 334 (Lane STRUCTURED-ACTIONS, 2026-09-28): adds intelligence_items.recommended_actions, |
+| 335 | 335_drop_placeholder_community_layer.sql | Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides |
 
 ## Maintenance trigger
 
