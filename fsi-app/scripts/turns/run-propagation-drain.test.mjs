@@ -6,8 +6,21 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parseArgs, shapeRunOutput, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
+import { parseArgs, shapeRunOutput, resolveArtifactTrigger, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
+
+// ── resolveArtifactTrigger (lane LOOP-B-FIRING, 2026-09-28, F50) ────────────────────────────────────
+
+test("resolveArtifactTrigger: null triggerContext (a plain hand dispatch) resolves workflow_dispatch", () => {
+  assert.equal(resolveArtifactTrigger(null), "workflow_dispatch");
+});
+
+test("resolveArtifactTrigger: a populated triggerContext (chained off Data producers/Downstream chain) resolves workflow_run", () => {
+  assert.equal(
+    resolveArtifactTrigger({ name: "Data producers", run_id: 123, conclusion: "success" }),
+    "workflow_run",
+  );
+});
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
 
@@ -101,7 +114,7 @@ test("shapeRunOutput dry: names the counted-not-written outcome, no per_item ent
   const { perItem, metrics } = shapeRunOutput(baseResult(), "/tmp/report.json");
   assert.equal(perItem.length, 1);
   assert.equal(perItem[0].outcome, "drained");
-  assert.match(perItem[0].verdict, /dry — nothing written/);
+  assert.match(perItem[0].verdict, /dry, nothing written/);
   assert.equal(metrics.mode, "dry");
   assert.equal(metrics.queue_depth_before, 4);
   assert.equal(metrics.invalidated, 7);

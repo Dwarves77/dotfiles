@@ -1,8 +1,62 @@
 # Last proposer pass — propagation
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `propagation` now has **eight** artifacts
-(`propagation-run-001` through `-008`); F28's rule (d) requires this file to name the latest verbatim:
-**propagation-run-008**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `propagation` now has **ten** artifacts
+(`propagation-run-001` through `-010`); F28's rule (d) requires this file to name the latest verbatim:
+**propagation-run-010**.
+
+## Proposer pass for propagation-run-010 (2026-09-28, lane LOOP-B-FIRING, local dry run)
+
+**Artifacts read:** propagation-run-001 through propagation-run-008 (this file's own prior passes,
+below), plus propagation-run-010.json and traces/propagation-run-010.report.json in full.
+
+**Why this run exists.** Lane LOOP-B-FIRING was dispatched to find why decision propagation (spec 08
+Loop B) has never fired autonomously from its upstream. Reading every `.github/workflows/*.yml`
+`on:` block plus `gh run list`/`gh api .../runs/{id}` history for all 9 propagation-drain runs on
+record [CONFIRMED]: the `workflow_run` edge from "Data producers"/"Downstream chain" into
+`propagation-drain.yml` is correctly wired (name match, master branch, live since commit b3504d1,
+2026-09-06), but every one of the 2 workflow_run-triggered firings on record traces to an
+IMMEDIATE upstream that was itself hand-dispatched (`workflow_dispatch`), never to one reached
+purely by chaining. Direct counter-evidence: downstream-chain run 34747128614 (2026-09-13),
+itself `workflow_run`-triggered off a population-turn completion, concluded `success` on `master`
+with the edge correctly in place, and zero propagation-drain runs exist in the following window.
+`[HYPOTHESIS]`: an undocumented GitHub Actions reliability gap in deep `workflow_run` chains (hop
+depth 3, population-turn to downstream-chain, fires from a chained upstream; hop depth 4,
+downstream-chain to propagation-drain, does not, in the only 2 samples on record). Not decisively
+isolated; this lane held from dispatching workflows on GitHub (CI-parity fix pending, per
+coordinator instruction), so the hypothesis is recorded, not resolved.
+
+**What this run proves.** `run-propagation-drain.mjs` previously recorded `config.trigger_context`
+but no top-level `trigger` field, so F50 (`.discipline/fitness/functions/F50-loop-wiring.mjs`) could
+never find a fired-proof artifact for this family even after a real chained firing lands. This run
+adds `trigger` (`"workflow_run"` or `"workflow_dispatch"`, derived from `--trigger-context`'s
+presence, no new CLI flag, no second source of truth) and is the first artifact to carry it:
+`trigger: "workflow_dispatch"` (correct: this was a local hand run, `--trigger-context` omitted).
+Run against the real Supabase project (SELECT/RPC-only, `--mode dry`, R14 compliant, no live-data
+write): `queue_depth_before: 776`, `events_considered: 50`, `invalidated: 0`, `recomputed: 0`,
+`errors: 0`. The drain mechanism itself runs end to end, locally, unchanged. `validateRunArtifact`
+and F28/F50 both pass clean against this artifact.
+
+**Defect found and fixed in the same motion (rule 13):** two stale `pending/` files
+(`2026-09-19-n3-migrated.md`, `2026-09-20-m3b.md`) both named "delete this file the moment
+propagation-run-010 lands", deleted with this run, per their own stated condition.
+
+**Hypotheses:** the deep-chain `workflow_run` reliability gap above is the standing open item;
+enforceFired on loop-hops 07/08 stays `false` until a REAL workflow_run-triggered firing lands on
+GitHub and its artifact is read back carrying `trigger:"workflow_run"`. This run does not, and does
+not claim to, satisfy that bar.
+
+**Proposal:** once the CI-parity hold lifts and a dispatch is authorized, hand-dispatch
+`downstream-chain.yml` (not population-turn/corpus-turn) once to produce one more
+workflow_run-chained hop-08 sample, and separately hand-dispatch `population-turn.yml` to observe
+whether ITS OWN chained completion (off a hand-dispatched ledger-consume) reaches downstream-chain
+via workflow_run as reliably as the depth-3 sample above suggests, to narrow the hypothesis before
+proposing a structural fix (e.g., an explicit API re-dispatch step as a fallback to `workflow_run`,
+if the platform gap is confirmed at hop 07/08's specific depth).
+
+**Family gates status:** `node --test scripts/turns/run-propagation-drain.test.mjs` (20/20 pass,
+including 2 new `resolveArtifactTrigger` tests), F28 and F50 clean against propagation-run-010.
+
+---
 
 ## Proposer pass for propagation-run-008 (2026-09-11, entity backfill apply)
 

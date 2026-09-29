@@ -6,5 +6,5 @@
   "family": "propagation",
   "enforceEdge": true,
   "enforceFired": false,
-  "note": "Same edge as downstream-chain-to-propagation-drain above; no artifact records its trigger yet."
+  "note": "Lane LOOP-B-FIRING, 2026-09-28. Same edge as downstream-chain-to-propagation-drain (hop 07) - see that hop's note for the full diagnosis (gh run history read back for all 9 propagation-drain runs on record). Data producers is this loop's own head (never itself workflow_run-triggered), so every propagation-drain firing off it has only ever been possible via a hand-dispatched producers run; one such firing is on record (run 33989162904, 2026-09-05, upstream producers run 33989121767 was workflow_dispatch). run-propagation-drain.mjs now stamps the shared top-level `trigger` field (F50) on every propagation-family artifact regardless of which of the two upstream names fired it - same fix as hop 07, one writer, no per-hop duplication. enforceFired stays false pending a real workflow_run-triggered firing on record."
 }
