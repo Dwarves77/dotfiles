@@ -70,3 +70,40 @@ Dual-posture: not applicable; this is an erase-fabricated-data action, not a cov
 ## STOP-AND-ASK check
 
 No real (non-placeholder) data and no live customer-facing consumer turned up. The only "consumer" found (`_workspace_active_items`'s column threading) is dead plumbing (always-empty column, no UI ever renders it) mechanically resolved within migration 335 itself, not a scope-changing discovery requiring a halt.
+
+## Coordinator review conditions (2026-09-29), both closed in the same PR
+
+### Condition 1: ACL restore after DROP+CREATE
+
+`DROP FUNCTION` followed by `CREATE FUNCTION` resets the ACL to owner-only (PUBLIC still gets the default EXECUTE grant on `CREATE`, but the explicit role grants are lost). Live ACL before this migration was drafted (`pg_proc.proacl`, `[CONFIRMED]`, 2026-09-29):
+
+```
+{=X/postgres, postgres=X/postgres, anon=X/postgres, authenticated=X/postgres, service_role=X/postgres}
+```
+
+owner `postgres`. Migration 335 now adds, immediately after the `CREATE FUNCTION`:
+
+```sql
+GRANT EXECUTE ON FUNCTION public._workspace_active_items(uuid) TO anon, authenticated, service_role;
+```
+
+and the post-check `DO` block asserts `has_function_privilege('anon'|'authenticated'|'service_role', 'public._workspace_active_items(uuid)', 'EXECUTE')` for all three roles (PUBLIC's default grant on `CREATE` covers the bare `=X/postgres` entry; the three named grants restore parity with the pre-migration ACL).
+
+### Condition 2: diff against the live function body
+
+Diffed the migration's `CREATE FUNCTION` block (normalized `CREATE` -> `CREATE OR REPLACE` for the comparison, since `pg_get_functiondef` always renders `CREATE OR REPLACE`; the migration itself correctly uses plain `CREATE` after an explicit `DROP FUNCTION`, required because the `RETURNS TABLE` column list shrinks) against `SELECT pg_get_functiondef('public._workspace_active_items(uuid)'::regprocedure)` (SELECT-only, live, 2026-09-29):
+
+```diff
+--- live (pg_get_functiondef)
++++ migration 335 CREATE
+@@ signature line @@
+- ..., linked_forum_thread_ids uuid[], linked_vendor_ids uuid[], linked_case_study_ids uuid[], linked_regulation_ids uuid[], ...
++ ..., linked_forum_thread_ids uuid[], linked_vendor_ids uuid[], linked_regulation_ids uuid[], ...
+@@ SELECT list @@
+-    ii.linked_forum_thread_ids, ii.linked_vendor_ids, ii.linked_case_study_ids,
+-    ii.linked_regulation_ids, ii.region_tags, ii.topic_tags, ii.vertical_tags,
++    ii.linked_forum_thread_ids, ii.linked_vendor_ids,
++    ii.linked_regulation_ids, ii.region_tags, ii.topic_tags, ii.vertical_tags,
+```
+
+Only the two `linked_case_study_ids` occurrences differ (one in the `RETURNS TABLE` signature, one in the `SELECT` list). Everything else, `LANGUAGE plpgsql`, `STABLE SECURITY DEFINER`, `search_path`, the `_assert_org_membership` call, every other column, the `workspace_item_overrides` join, the `provenance_status = 'verified'` gate, is byte-identical. `[CONFIRMED]`

@@ -100,6 +100,12 @@ BEGIN
 END;
 $function$;
 
+-- 5b) DROP FUNCTION resets the ACL to owner-only; restore the live grant set (verified live via
+--     pg_proc.proacl before this migration was drafted: owner postgres,
+--     {=X/postgres, postgres=X/postgres, anon=X/postgres, authenticated=X/postgres,
+--     service_role=X/postgres}). Coordinator-reviewed condition on this migration.
+GRANT EXECUTE ON FUNCTION public._workspace_active_items(uuid) TO anon, authenticated, service_role;
+
 -- 6) Now the column itself (0 non-empty rows, verified live 2026-09-29).
 ALTER TABLE public.intelligence_items DROP COLUMN IF EXISTS linked_case_study_ids;
 
@@ -114,6 +120,17 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE proname='update_case_study_validation_count' AND pronamespace='public'::regnamespace) THEN
     RAISE EXCEPTION 'migration 335 post-check failed: update_case_study_validation_count() still exists';
+  END IF;
+  -- ACL restore check (coordinator condition): the recreated _workspace_active_items must grant
+  -- EXECUTE to anon, authenticated, service_role (PUBLIC gets the default EXECUTE grant on CREATE).
+  IF NOT has_function_privilege('anon', 'public._workspace_active_items(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'migration 335 post-check failed: anon lacks EXECUTE on _workspace_active_items';
+  END IF;
+  IF NOT has_function_privilege('authenticated', 'public._workspace_active_items(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'migration 335 post-check failed: authenticated lacks EXECUTE on _workspace_active_items';
+  END IF;
+  IF NOT has_function_privilege('service_role', 'public._workspace_active_items(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'migration 335 post-check failed: service_role lacks EXECUTE on _workspace_active_items';
   END IF;
 END $$;
 
