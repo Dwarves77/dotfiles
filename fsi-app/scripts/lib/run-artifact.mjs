@@ -70,7 +70,19 @@ const STRING_FIELDS = Object.freeze([
 // "a person dispatched it" without re-deriving that from GitHub's own event log. NOT in
 // REQUIRED_TOP_LEVEL, so existing artifacts written before this field existed stay valid exactly as they
 // are (CONVENTION.md's own "existing artifacts stay as they are" rule for a schema addition).
-const TRIGGER_VALUES = Object.freeze(["workflow_run", "workflow_dispatch", "push", "manual"]);
+// "workflow_run_forced_dry" (lane CHAINED-DRY-GUARD, 2026-09-29, rule 13 follow-up): a fifth value,
+// distinct from "workflow_run" -- a run whose real GitHub event WAS workflow_run, but whose mode was
+// force-downgraded to dry by scripts/lib/chained-dry-guard.mjs because build mode
+// (system_state.scrape_cadence='off') is live (rule 16: a workflow_run firing is not an explicit
+// dispatch). Stamped automatically, for every family, at the ONE place below -- see the
+// CHAINED_FORCED_DRY override just after the existing trigger-stamp block.
+const TRIGGER_VALUES = Object.freeze([
+  "workflow_run",
+  "workflow_run_forced_dry",
+  "workflow_dispatch",
+  "push",
+  "manual",
+]);
 
 function isPlainObject(v) {
   return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -247,6 +259,17 @@ export function writeRunArtifact(dir, artifact, opts = {}) {
   if (!("trigger" in stamped)) {
     const eventName = process.env.GITHUB_EVENT_NAME;
     stamped.trigger = TRIGGER_VALUES.includes(eventName) ? eventName : "manual";
+  }
+  // CHAINED_FORCED_DRY (lane CHAINED-DRY-GUARD, 2026-09-29): the shared build-mode gate
+  // (scripts/lib/chained-dry-guard.mjs) exports this env var, true only when it forced a workflow_run-
+  // triggered run to dry because build mode is live. Overriding HERE, after the resolved-or-caller-
+  // supplied trigger above, is what threads the fact into EVERY family's harness_runs row with one
+  // change -- no runner script needs its own copy of this check. Only overrides an actual "workflow_run"
+  // value: a workflow_dispatch/push/manual run was never subject to this gate's force (the gate itself
+  // only ever sets CHAINED_FORCED_DRY=true on a genuine workflow_run event), so this is a narrowing
+  // refinement of that ONE value, never a surprise on any other trigger kind.
+  if (process.env.CHAINED_FORCED_DRY === "true" && stamped.trigger === "workflow_run") {
+    stamped.trigger = "workflow_run_forced_dry";
   }
   if (!("upstream_run_id" in stamped) && process.env.GITHUB_EVENT_WORKFLOW_RUN_ID) {
     stamped.upstream_run_id = process.env.GITHUB_EVENT_WORKFLOW_RUN_ID;

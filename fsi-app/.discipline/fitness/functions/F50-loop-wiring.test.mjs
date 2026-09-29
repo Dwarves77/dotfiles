@@ -93,6 +93,13 @@ test('familyFiredStatus: true once one artifact carries trigger workflow_run, ev
   });
 });
 
+test('familyFiredStatus: true for trigger workflow_run_forced_dry too (lane CHAINED-DRY-GUARD, 2026-09-29 -- a real workflow_run firing that build mode downgraded to dry, still proof of a fired chain)', () => {
+  withTempFamily('mint', [{ trigger: 'manual' }, { trigger: 'workflow_run_forced_dry' }], (repoRoot) => {
+    const status = familyFiredStatus(repoRoot, 'mint');
+    assert.equal(status.hasFiredArtifact, true);
+  });
+});
+
 test('familyFiredStatus: an artifact with no trigger field at all (pre-this-lane artifacts) does not count as fired', () => {
   withTempFamily('mint', [{ metrics: {} }], (repoRoot) => {
     const status = familyFiredStatus(repoRoot, 'mint');

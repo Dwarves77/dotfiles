@@ -63,7 +63,12 @@ export function familyFiredStatus(repoRoot, family) {
     if (!runRe.test(name)) continue;
     try {
       const parsed = JSON.parse(readFileSync(join(dir, name), 'utf8'));
-      if (parsed.trigger === 'workflow_run') return { dirExists: true, hasFiredArtifact: true };
+      // "workflow_run_forced_dry" (lane CHAINED-DRY-GUARD, 2026-09-29) counts too: the real GitHub
+      // event WAS workflow_run (proof the hop fired from its upstream), just mode-downgraded to dry by
+      // the build-mode gate -- see scripts/harness-runs/CONVENTION.md's own "trigger" section.
+      if (parsed.trigger === 'workflow_run' || parsed.trigger === 'workflow_run_forced_dry') {
+        return { dirExists: true, hasFiredArtifact: true };
+      }
     } catch {
       // corrupt or unparseable artifact - not this gate's business, F28 already covers artifact validity
     }
