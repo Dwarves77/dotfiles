@@ -307,6 +307,7 @@
 | 331 | 331_harness_runs.sql | Migration 331 (lane HARNESS-LANDING, 2026-09-27). DRAFT / NOT APPLIED -- sketch approved by |
 | 332 | 332_state_cost_facts_value_numeric.sql | Migration 332 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A"). Adds |
 | 333 | 333_derivation_edges_allow_state_cost_facts.sql | Migration 333 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A", second |
+| 335 | 335_drop_placeholder_community_layer.sql | Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides |
 
 ## Maintenance trigger
 
