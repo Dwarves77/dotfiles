@@ -33,6 +33,8 @@ Resume here, then [the wave plan](../../plans/wave-plan-2026-09-28.md). Earlier 
 | Audit triage | `lane/audit-triage` | read-only dispositions for 26 dead columns, 7 UI-orphan fields, duplicate candidates |
 | Loop B firing | `lane/loop-b-firing` | why decision propagation never fires from upstream; wire the chained trigger |
 
+Merge-order note: statutory-writer extracts `scripts/lib/harness-run-number.mjs` from plan-quarantine-disposition.mjs; maintenance-harness also edits run-number claiming. Land statutory-writer first, then rebase maintenance-harness onto it. Statutory writer still owes one real dispatch reading back its harness_runs row (no DB creds in its worktree).
+
 Next session: check each branch (`git -C .claude/worktrees/<lane> log origin/master..HEAD`), collect reports, and once CI-parity is proven push each ONCE.
 
 ## Failures this session and the system edits they became
