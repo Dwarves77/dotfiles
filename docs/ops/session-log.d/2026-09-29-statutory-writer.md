@@ -83,6 +83,32 @@ content. Whether that branch is actually consumed downstream (vs. the sibling `a
 step already present in at least `brief-export.yml`) was not verified this session -- a follow-up lane
 should confirm before attempting to remove those branches too.
 
-## Real dispatch (owed proof)
+## Real dispatch (owed proof), run 36538491130
 
-See addendum appended after the actual `gh workflow run` dispatch and `harness_runs` SELECT.
+`gh workflow run propagation-drain.yml --ref lane/statutory-writer -f mode=dry -f
+backfill_and_statutory=true -f statutory_rows_file=scripts/propagation/fixtures/test-statutory-rows.dry.json`,
+watched to completion: job green. `write-statutory.mjs`'s own step logged
+`record-harness-run: landed statutory-run-001 in harness_runs` directly (the row landed the FIRST time,
+from `runWriter()`'s own wiring, not from the later `deliver-artifact-branch.sh` step).
+
+**SELECT, live, `[CONFIRMED]`**: `harness_runs` carries `run_id=statutory-run-001, harness_family=statutory,
+started_at=2026-09-29 07:45:41, config={mode:dry, trigger:manual, r14_live_write_held:false,
+rows_file_row_count:1}, metrics={rows:1, refused:1, written:0, wouldWrite:0, skippedAlready:0,
+errored:0}`. `statutory_computations` count for the test ship: 0 rows (the row was refused by
+`admissibleFor()` as designed, never reached a live INSERT).
+
+**Found and fixed from this real dispatch (rule 13, same session):** the run's OWN `["Land the
+propagation harness-run artifact into harness_runs"]` step (the propagation family's own artifact,
+`propagation-run-009.json`) failed silently (best-effort) with `ENOENT: fsi-app/fsi-app/...`. Root cause,
+`[CONFIRMED]`: `git status --porcelain`'s output was assumed cwd-relative (git's documented default) but
+is REPO-ROOT-relative in this repo's actual CI runners even when running from `fsi-app/` (the same
+asymmetry the prior `deliver-artifact-branch.sh` version already worked around for `git diff` with an
+explicit `--relative` flag; apparently `git status` needs the equivalent here too, contrary to its
+documented default). A SECOND, independent bug in the same step: the plain (non-`:(glob)`) pathspec's `*`
+crossed `/`, so it also matched `propagation/traces/propagation-run-009.report.json`, a nested trace file,
+not a run artifact. Both fixed: `git rev-parse --show-prefix` computed and stripped from every discovered
+path; pathspec given `:(glob)` magic so `*` never crosses `/`. Two new regression tests reproduce both
+exact failure shapes (a nested `fsi-app/` subdirectory scratch repo; a `traces/` subdirectory file) against
+the real script, not just the assumed-correct one. `propagation-run-009`'s own row was NOT re-landed this
+session (the original run already completed; a future propagation-drain dispatch lands it for real under
+the fixed script).

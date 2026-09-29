@@ -35,10 +35,33 @@ label="${1:-artifact}"
 
 echo "deliver-artifact-branch: landing this run's harness-run artifact(s) ($label) into harness_runs, no git commit/branch/push (see this script's header)."
 
+# REPO-ROOT-RELATIVE OUTPUT, CONFIRMED LIVE (lane STATUTORY-WRITER, 2026-09-29, propagation-drain run
+# 36538491130): `git status --porcelain` output was assumed cwd-relative when this script always runs
+# from fsi-app/ (git's own documented default, "relative to the current directory unless
+# status.relativePaths is false"). That assumption was WRONG in this repo's actual CI runners: the real
+# dispatch printed "fsi-app/scripts/harness-runs/statutory/statutory-run-001.json" while running FROM
+# fsi-app/, so record-harness-run.mjs's own `--file` open failed with ENOENT (fsi-app/fsi-app/...) --
+# harmless there only because write-statutory.mjs's own runWriter() had ALREADY landed that exact row
+# directly (see that file's own harness-record wiring), but this SAME bug meant the propagation family's
+# own artifact (propagation-run-009.json) never landed at all that run -- a real miss, not a redundant
+# retry. This is the identical repo-root-vs-cwd asymmetry this script's PRIOR version already worked
+# around for `git diff --name-only` (that one needed an explicit `--relative` flag; apparently this repo's
+# git/CI environment applies the same repo-root-relative default to `git status --porcelain` too, contrary
+# to git's own documented default -- an environment quirk, not documented git behavior, so this fix
+# computes and strips the ACTUAL prefix rather than hardcoding "fsi-app/"). `git rev-parse --show-prefix`
+# always reports cwd's own path relative to the repo root (empty string when cwd IS the root), which is
+# the correct thing to strip regardless of which of the two relative conventions git's `status` output
+# happens to be using in a given environment.
+CWD_PREFIX="$(git rev-parse --show-prefix 2>/dev/null || true)"
+
 landed=0
 failed=0
-while IFS= read -r path; do
-  [ -z "$path" ] && continue
+while IFS= read -r raw_path; do
+  [ -z "$raw_path" ] && continue
+  path="$raw_path"
+  if [ -n "$CWD_PREFIX" ] && [ "${path#"$CWD_PREFIX"}" != "$path" ]; then
+    path="${path#"$CWD_PREFIX"}"
+  fi
   echo "deliver-artifact-branch: recording $path"
   # record-harness-run.mjs is best-effort BY DESIGN and always exits 0, even on a read/parse/insert
   # failure (so a DB hiccup never fails the calling workflow step -- see that file's own header). A
@@ -65,7 +88,13 @@ while IFS= read -r path; do
 # 4th character on, which is the path, for both an untracked ("??") and a modified (" M") entry alike,
 # this repo's own harness-run convention never modifies an existing artifact file in place
 # (`writeRunArtifact` refuses to overwrite one without an explicit opt-in), so every real hit here is "??".
-done < <(git status --porcelain --untracked-files=all -- 'scripts/harness-runs/*/*-run-*.json' 2>/dev/null | cut -c4-)
+# `:(glob)` pathspec magic (lane STATUTORY-WRITER, 2026-09-29, same live dispatch as the CWD_PREFIX fix
+# above): a PLAIN git pathspec's `*` matches ACROSS `/` (unlike a shell glob), so the un-magic'd pattern
+# also matched e.g. "propagation/traces/propagation-run-009.report.json" -- a nested trace file, not a
+# top-level run artifact -- and this script tried (and, correctly, failed) to land it as one. `:(glob)`
+# makes `*` behave like a normal shell glob (never crosses `/`), restricting the match to exactly one
+# directory level under scripts/harness-runs/, the shape every real run artifact actually has.
+done < <(git status --porcelain --untracked-files=all -- ':(glob)scripts/harness-runs/*/*-run-*.json' 2>/dev/null | cut -c4-)
 
 echo "deliver-artifact-branch: landed=$landed failed=$failed"
 {
