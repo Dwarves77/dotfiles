@@ -116,6 +116,11 @@ on:
         required: false
         default: false
         type: boolean
+      statutory_rows_file:
+        description: 'TEST-ONLY, hand-dispatch-only (lane STATUTORY-WRITER, 2026-09-29, coordinator ruling on PR #824): when set, the write-statutory.mjs step reads THIS path instead of the live default (scripts/propagation/fixtures/fueleu-annex-iv-rows.json is NEVER overwritten or bypassed permanently, resolve-statutory-rows-file.mjs falls back to it whenever this input is empty, proven by that module''s own tests). Setting this ALSO forces the step to --dry regardless of the mode input above, so no override run can ever reach --apply. Intended for exactly one fixture: scripts/propagation/fixtures/test-statutory-rows.dry.json (rows built to be refused by admissibleFor, see that file''s own _why_it_cannot_write field), used to prove the harness-record wiring end to end without a reviewed real rows-file. Leave empty for every normal dispatch.'
+        required: false
+        default: ''
+        type: string
   # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule — see this
   # file's own header "CHAINING" section and population-turn.yml's identical rule-16 reading. Fires once
   # per "Data producers" run, any conclusion; the first job step decides whether it earns a drain.
@@ -177,6 +182,11 @@ jobs:
             RUN_BACKFILL_ENTITIES="${{ inputs.backfill_entities }}"
             RUN_SEED_DERIVED_VALUES="${{ inputs.seed_derived_values }}"
             RUN_BACKFILL_AND_STATUTORY="${{ inputs.backfill_and_statutory }}"
+            RUN_STATUTORY_ROWS_FILE="${{ inputs.statutory_rows_file }}"
+            # Test-only override forces --dry for the write-statutory.mjs step alone, regardless of RUN_MODE
+            # (coordinator ruling, PR #824): a hand dispatch that sets this input can never reach --apply
+            # through it, whatever the run's own mode input says.
+            if [ -n "$RUN_STATUTORY_ROWS_FILE" ]; then RUN_STATUTORY_FORCE_DRY=true; else RUN_STATUTORY_FORCE_DRY=false; fi
 
           elif [ "$EVENT" = "workflow_run" ]; then
             UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
@@ -192,6 +202,8 @@ jobs:
             RUN_BACKFILL_ENTITIES="false"
             RUN_SEED_DERIVED_VALUES="false"
             RUN_BACKFILL_AND_STATUTORY="false"
+            RUN_STATUTORY_ROWS_FILE=""
+            RUN_STATUTORY_FORCE_DRY=false
             RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
             echo "trigger_context = $RUN_TRIGGER_CONTEXT"
 
@@ -208,6 +220,8 @@ jobs:
             RUN_SKIP=true
             RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
             RUN_MODE="dry"; RUN_BATCH="500"; RUN_BACKFILL_ENTITIES="false"; RUN_SEED_DERIVED_VALUES="false"; RUN_BACKFILL_AND_STATUTORY="false"
+            RUN_STATUTORY_ROWS_FILE=""
+            RUN_STATUTORY_FORCE_DRY=false
           fi
 
           {
@@ -216,6 +230,8 @@ jobs:
             echo "RUN_BACKFILL_ENTITIES=$RUN_BACKFILL_ENTITIES"
             echo "RUN_SEED_DERIVED_VALUES=$RUN_SEED_DERIVED_VALUES"
             echo "RUN_BACKFILL_AND_STATUTORY=$RUN_BACKFILL_AND_STATUTORY"
+            echo "RUN_STATUTORY_ROWS_FILE=$RUN_STATUTORY_ROWS_FILE"
+            echo "RUN_STATUTORY_FORCE_DRY=$RUN_STATUTORY_FORCE_DRY"
             echo "RUN_SKIP=$RUN_SKIP"
           } >> "$GITHUB_ENV"
           {
@@ -230,7 +246,7 @@ jobs:
           if [ "$RUN_SKIP" = "true" ]; then
             echo "::notice::propagation-drain NO-OP — $RUN_SKIP_REASON"
           else
-            echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES backfill_and_statutory=$RUN_BACKFILL_AND_STATUTORY trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
+            echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES backfill_and_statutory=$RUN_BACKFILL_AND_STATUTORY statutory_rows_file=${RUN_STATUTORY_ROWS_FILE:-(none - live default)} statutory_force_dry=$RUN_STATUTORY_FORCE_DRY trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
           fi
 
       - uses: actions/setup-node@v4
@@ -322,15 +338,22 @@ jobs:
         # markers, missing per-input `source` blocks, unrated hosts — see that script's own header) so
         # the SAME mistake cannot happen silently again. A validator failure fails this step for real
         # (not a soft no-op) — a rows-file present at this path is asserted to be real, reviewed data.
+        #
+        # ROWS_FILE is resolved by resolve-statutory-rows-file.mjs (lane STATUTORY-WRITER, 2026-09-29,
+        # coordinator ruling on PR #824): RUN_STATUTORY_ROWS_FILE is empty on every normal dispatch, so this
+        # resolves to the SAME live default path as before, unchanged, see that module's own tests. Only a
+        # hand dispatch that explicitly sets the `statutory_rows_file` input redirects it (to a test-only
+        # fixture, e.g. test-statutory-rows.dry.json), and doing so ALSO forces --dry here via
+        # RUN_STATUTORY_FORCE_DRY, regardless of RUN_MODE, so an override run can never reach --apply.
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
         run: |
-          ROWS_FILE=scripts/propagation/fixtures/fueleu-annex-iv-rows.json
+          ROWS_FILE=$(node scripts/propagation/resolve-statutory-rows-file.mjs "$RUN_STATUTORY_ROWS_FILE")
           if [ ! -f "$ROWS_FILE" ]; then
             echo "write-statutory: $ROWS_FILE not present — no reviewed ship-year rows to compute from yet (see write-statutory.mjs header and docs/runbooks/FUELEU-STATUTORY-RUNBOOK.md). Skipping, not failing."
             exit 0
           fi
           node scripts/propagation/validate-statutory-rows-file.mjs "$ROWS_FILE"
-          if [ "$RUN_MODE" = "apply" ]; then
+          if [ "$RUN_MODE" = "apply" ] && [ "$RUN_STATUTORY_FORCE_DRY" != "true" ]; then
             node scripts/propagation/write-statutory.mjs --apply --rows-file "$ROWS_FILE"
           else
             node scripts/propagation/write-statutory.mjs --rows-file "$ROWS_FILE"
