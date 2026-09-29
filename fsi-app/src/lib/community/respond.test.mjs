@@ -101,31 +101,33 @@ test("evaluateResponseSubmission: accepts a verified, in-window, in-bounds submi
 
 // ── k-anonymity refusal path (spec 05 §1), proven end to end through the SAME aggregation function the
 // respond route reuses (aggregateBenchmarkResponses, benchmark.mjs) rather than a second
-// reimplementation — dispatch item 5: "4 organisations -> not publishable; 5 balanced -> publishable". ──
+// reimplementation. ADR-035 (2026-09-25, "One aggregate anonymity floor") tightened the DISPLAY floor
+// this function enforces from the original ">=5 balanced -> publishable" to ">=10" (FLOOR.minOrgs,
+// src/lib/aggregate/anonymity-floor.mjs), the boundary below re-anchors on 9/10, not 4/5. ──
 
-test("k-anonymity boundary: 4 distinct organisations, balanced values, is NOT publishable", () => {
+test("k-anonymity boundary: 9 distinct organisations, balanced values, is NOT publishable (below the ADR-035 floor)", () => {
   const instrument = { key: "saf-premium-air-2026-q3", periodEnd: "2026-01-01" };
-  const responses = ["org-a", "org-b", "org-c", "org-d"].map((organisationKey) => ({
-    organisationKey,
+  const responses = Array.from({ length: 9 }, (_, i) => ({
+    organisationKey: `org-${i}`,
     valueNumeric: 4.0,
     submittedAt: "2025-12-01",
   }));
   const r = aggregateBenchmarkResponses(instrument, responses, new Date("2026-09-03"));
-  assert.equal(r.distinctOrganisations, 4);
+  assert.equal(r.distinctOrganisations, 9);
   assert.equal(r.publishable, false);
   assert.match(r.reason, /k-anonymity/);
   assert.equal(r.value, null, "no point estimate is ever shown while ungated");
 });
 
-test("k-anonymity boundary: 5 distinct organisations, balanced values, IS publishable", () => {
+test("k-anonymity boundary: 10 distinct organisations, balanced values, IS publishable (the ADR-035 floor)", () => {
   const instrument = { key: "saf-premium-air-2026-q3", periodEnd: "2026-01-01" };
-  const responses = ["org-a", "org-b", "org-c", "org-d", "org-e"].map((organisationKey) => ({
-    organisationKey,
+  const responses = Array.from({ length: 10 }, (_, i) => ({
+    organisationKey: `org-${i}`,
     valueNumeric: 4.0,
     submittedAt: "2025-12-01",
   }));
   const r = aggregateBenchmarkResponses(instrument, responses, new Date("2026-09-03"));
-  assert.equal(r.distinctOrganisations, 5);
+  assert.equal(r.distinctOrganisations, 10);
   assert.equal(r.publishable, true);
   assert.equal(r.value, 4.0);
   assert.equal(r.reason, null);

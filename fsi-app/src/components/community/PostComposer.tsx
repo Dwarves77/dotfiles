@@ -25,6 +25,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createCommunityPost } from "./api-client";
 import { validateEntityBinding } from "./identity-format";
 import { EntityPicker } from "./EntityPicker";
+import { FLOOR } from "@/lib/aggregate/anonymity-floor.mjs";
 import type { CommunityEntityRef, CommunityGuardAggregateRoute } from "./types";
 import { formatNumber } from "@/lib/format";
 
@@ -77,6 +78,12 @@ interface PostComposerProps {
    * list so the composer still renders (with an always-empty picker) for any caller that hasn't
    * been updated to thread candidates through yet. */
   candidateEntities?: CommunityEntityRef[];
+  /** R8.7 (spec 07 Community, 2026-09-25, migration 336): the author's own account-wide
+   * community_member_profiles.default_anonymous, fetched server-side by the page and threaded down ,
+   * initialises this post's "Post anonymously" checkbox (the reader can still override it per post).
+   * Defaults to false (identity shown), R8.7's own default, for any caller that has not been updated
+   * to thread it through yet. */
+  defaultAnonymous?: boolean;
 }
 
 const MAX_TITLE_LEN = 200;
@@ -87,6 +94,7 @@ export function PostComposer({
   onPosted,
   onError,
   candidateEntities = [],
+  defaultAnonymous = false,
 }: PostComposerProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,6 +103,7 @@ export function PostComposer({
   const [body, setBody] = useState("");
   const [entities, setEntities] = useState<CommunityEntityRef[]>([]);
   const [sensitivityField, setSensitivityField] = useState("");
+  const [anonymous, setAnonymous] = useState(defaultAnonymous);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<{
@@ -124,6 +133,7 @@ export function PostComposer({
         body: body.trim(),
         entity_ids: entities.map((ent) => ent.entity_id),
         sensitivity_field: sensitivityField.trim() || undefined,
+        anonymous,
       });
       if (!result.ok) {
         if (result.status === 403 && result.aggregateRoute) {
@@ -141,6 +151,7 @@ export function PostComposer({
       setBody("");
       setEntities([]);
       setSensitivityField("");
+      setAnonymous(defaultAnonymous);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network error";
       setError(msg);
@@ -237,6 +248,32 @@ export function PostComposer({
         onSearchSubmit={handleEntitySearchSubmit}
         disabled={busy}
       />
+
+      {/* R8.7 (spec 07 Community, 2026-09-25, migration 336): identity is shown by default; this is
+          the per-post opt-OUT. >=44px target on the shorter axis (law 2), label reachable by click
+          (law 8: the control sits beside the content it affects, right above Post). */}
+      <label
+        htmlFor="post-anonymous"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          minHeight: 44,
+          fontSize: 12,
+          color: "var(--color-text-secondary)",
+          cursor: busy ? "wait" : "pointer",
+        }}
+      >
+        <input
+          id="post-anonymous"
+          type="checkbox"
+          checked={anonymous}
+          onChange={(e) => setAnonymous(e.target.checked)}
+          disabled={busy}
+          style={{ width: 18, height: 18, cursor: busy ? "wait" : "pointer" }}
+        />
+        Post anonymously (your name and company are withheld; the verified-member mark still shows)
+      </label>
 
       <div>
         <label
@@ -359,7 +396,9 @@ export function PostComposer({
             <p style={{ margin: 0, fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
               This field is available as an aggregate-only, house-run benchmark instead
               {refusal.aggregateRoute.instrumentKey ? ` (${refusal.aggregateRoute.instrumentKey})` : ""}
-              {refusal.aggregateRoute.pending ? " — currently below the five-contributor floor, so it isn't publishable yet either." : "."}{" "}
+              {refusal.aggregateRoute.pending
+                ? `, currently below the ${FLOOR.minOrgs}-contributor floor, so it isn't publishable yet either.`
+                : "."}{" "}
               <a href="/community/benchmarks" style={{ color: "inherit", fontWeight: 700 }}>
                 View benchmarks
               </a>

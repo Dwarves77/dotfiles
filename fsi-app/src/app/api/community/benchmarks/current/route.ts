@@ -30,9 +30,18 @@
 // comes back, overrides the JS gate's own "publishable" (applyPublishAggregateGate,
 // src/lib/community/benchmark.mjs): the DB gate's durable audit log and its freeze / tracker-attack /
 // complementary-suppression defences are real protections the JS-only gate does not attempt (that
-// module's own header). An RPC error is fail-soft — the JS gate's own k_min=5/max_share_pct=25/
-// min_lag_days=90 floors (the SAME numbers migration 294 registered) still govern; a transient failure
-// to reach the extra DB-side defences degrades to that floor, never to "publish anything."
+// module's own header). An RPC error is fail-soft, the JS gate's own floor still governs; a transient
+// failure to reach the extra DB-side defences degrades to that floor, never to "publish anything."
+//
+// ADR-035 (2026-09-25, "One aggregate anonymity floor"): the JS gate's floor is now >=10 distinct
+// organisations / <=25% max share (src/lib/aggregate/anonymity-floor.mjs FLOOR), tightened from the
+// >=5/25% spec 07 originally named. Migration 294's own publish_aggregate() registration still reads
+// k_min=5/max_share_pct=25/min_lag_days=90 at the DB layer, a separate, narrower defence (durable audit
+// log, freeze, tracker-attack resistance) this route consults only for its REFUSAL, never for
+// permission (see applyPublishAggregateGate's own header): a DB "not refused" never overrides a JS "not
+// publishable", so the tighter JS floor above still governs what a reader is shown. The DB registration
+// itself is out of this lane's write set; flagged for the coordinator to align in a later migration if
+// the two should read the same number.
 
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
@@ -44,6 +53,7 @@ import {
   distinctOrganisationKeys,
   applyPublishAggregateGate,
 } from "@/lib/community/index.mjs";
+import { FLOOR } from "@/lib/aggregate/anonymity-floor.mjs";
 
 interface PublishAggregateResult {
   refused: boolean;
@@ -131,7 +141,7 @@ export async function GET(request: NextRequest) {
             instrumentKey: instrument.key,
             publishable: false,
             distinctOrganisations: 0,
-            minContributors: 5,
+            minContributors: FLOOR.minOrgs,
             maxShare: 0,
             ageDays: 0,
             value: null,

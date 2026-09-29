@@ -4,8 +4,14 @@
 // path), so the antitrust gates below are evaluated identically wherever a benchmark result is either
 // produced or served.
 //
+// ADR-035 (2026-09-25, "One aggregate anonymity floor"): the DISPLAY floor this module enforces is the
+// shared src/lib/aggregate/anonymity-floor.mjs FLOOR (>=10 distinct organisations, <=25% max share),
+// not antitrust.mjs's own defaults (minContributors=5/capRatio=0.25) which stay reserved for the
+// write-time antitrust posting guard (evaluateAntitrustGuard, a different, narrower question).
+//
 // This module builds the CANDIDATE aggregate from a pool of responses using the same three pure gates
-// antitrust.mjs exports (k-anonymity, dominance cap, three-month lag). The REAL, DB-enforced version of
+// antitrust.mjs exports (k-anonymity, dominance cap, three-month lag), called with the FLOOR's numbers.
+// The REAL, DB-enforced version of
 // this same gate — with a durable audit log and defence against the query-set-size/tracker attack this
 // module does not attempt to model — is migration 287's `publish_aggregate()` SQL function, which
 // migration 294 gives a live subject by registering `community_benchmark_responses` in
@@ -15,6 +21,7 @@
 // publish," not "which benchmarks does this reader's sector see this quarter."
 
 import { kAnonymity, dominanceCap, threeMonthLag } from "./antitrust.mjs";
+import { FLOOR } from "../aggregate/anonymity-floor.mjs";
 
 // LANE NOTICES ADDITION (complete-system build plan W4.3/publish_aggregate() wiring, 2026-09-05):
 // publish_aggregate() (migration 287) got a real, registered subject in migration 294
@@ -67,8 +74,11 @@ function dedupeByOrganisation(responses) {
  */
 export function aggregateBenchmarkResponses(instrument, responses, now = new Date()) {
   const pool = dedupeByOrganisation(responses);
-  const k = kAnonymity(pool);
-  const d = dominanceCap(pool);
+  // ADR-035: this is the DISPLAY gate (is this aggregate eligible to be shown as a number), not the
+  // antitrust write-time posting guard, so it uses the shared FLOOR (>=10 orgs, <=25% share), not
+  // antitrust.mjs's own defaults (minContributors=5/capRatio=0.25, which stay unchanged for that guard).
+  const k = kAnonymity(pool, { minContributors: FLOOR.minOrgs });
+  const d = dominanceCap(pool, { capRatio: FLOOR.maxShare });
   const asOfDate = instrument?.periodEnd ?? instrument?.closesAt ?? null;
   const lag = threeMonthLag(asOfDate, now);
   const publishable = k.satisfied && d.satisfied && lag.satisfied;
@@ -77,7 +87,13 @@ export function aggregateBenchmarkResponses(instrument, responses, now = new Dat
   const mean = numericValues.length > 0 ? numericValues.reduce((a, b) => a + b, 0) / numericValues.length : null;
 
   const failing = [];
-  if (!k.satisfied) failing.push(`k-anonymity (${k.distinctOrganisations}/${k.minContributors} organisations)`);
+  if (!k.satisfied) {
+    failing.push(
+      `k-anonymity: needs ${k.minContributors - k.distinctOrganisations} more organisation` +
+        `${k.minContributors - k.distinctOrganisations === 1 ? "" : "s"} ` +
+        `(${k.distinctOrganisations}/${k.minContributors} contributing organisations)`
+    );
+  }
   if (!d.satisfied) failing.push(`dominance cap (largest organisation holds ${(d.maxShare * 100).toFixed(0)}%)`);
   if (!lag.satisfied) failing.push(`three-month lag (${lag.ageDays} day(s) old)`);
 
