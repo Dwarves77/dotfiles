@@ -216,6 +216,50 @@ export function findDispatchRoots(
     for (const p of parseBoundaryRegistryPaths(text)) roots.add(p);
   } catch { /* registry absent is its own violation surface, not this resolver's job to hide */ }
 
+  // Source 11 (lane CI-PARITY, 2026-09-28): tracked SHELL scripts a workflow or a hook invokes. Sources 1
+  // and 6 read `.mjs` paths out of the workflow files and the four hook sources, but never followed the
+  // `.sh` scripts those callers run, so a module a CI/hook shell script runs looked unwired. Concrete
+  // instances: fsi-app/.discipline/run-test-suite.sh (CI's "Discipline engine unit tests" job AND
+  // pre-push step 3) runs `node --import ./fsi-app/.discipline/lib/no-npm-sandbox.mjs --test`, and the
+  // `node "$DISCOVERY"` it runs is test-discovery.mjs, which survived only because execution-wiring.mjs
+  // happens to import it. A `.sh` path mentioned by a workflow (whole text, Source 1's rule) or by a hook
+  // source (comment/echo-filtered, Source 6's rule) is followed; its own non-comment, non-echo lines give
+  // `.mjs` roots and further `.sh` scripts, to a fixed point.
+  const SH_PATH_RE = /((?:fsi-app\/)?(?:scripts|\.discipline)\/[\w./-]+\.sh)\b/g;
+  const invocationLines = (text) => String(text)
+    .split('\n')
+    .filter((line) => { const t = line.trim(); return t && !t.startsWith('#') && !t.startsWith('echo'); })
+    .join('\n');
+  const shQueue = new Set();
+  for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
+    let text;
+    try { text = readFileFn(wf); } catch { continue; }
+    if (!text) continue;
+    for (const m of text.matchAll(SH_PATH_RE)) shQueue.add(normalize(m[1]));
+  }
+  for (const name of HOOK_SOURCE_FILES) {
+    let text;
+    try { text = readFileFn(`fsi-app/.discipline/hooks/${name}`); } catch { continue; }
+    if (!text) continue;
+    for (const m of invocationLines(text).matchAll(SH_PATH_RE)) shQueue.add(normalize(m[1]));
+  }
+  const shSeen = new Set();
+  while (shQueue.size > 0) {
+    const [sh] = shQueue;
+    shQueue.delete(sh);
+    if (shSeen.has(sh)) continue;
+    shSeen.add(sh);
+    let text;
+    try { text = readFileFn(sh); } catch { continue; }
+    if (!text) continue;
+    const lines = invocationLines(text);
+    for (const m of lines.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+    for (const m of lines.matchAll(SH_PATH_RE)) {
+      const next = normalize(m[1]);
+      if (!shSeen.has(next)) shQueue.add(next);
+    }
+  }
+
   // Source 8 (lane W71-A, 2026-09-05): subprocess-spawn dispatch. A script already known to be a
   // dispatch root (via any source above) that computes a SIBLING script's path with this repo's own
   // `resolve(HERE, 'x.mjs')` convention (HERE = `dirname(fileURLToPath(import.meta.url))`) and passes it

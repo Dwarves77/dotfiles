@@ -32,12 +32,28 @@ export const invariant = {
     'step carries a dated, reason-bearing EXEMPT_STEPS entry (today: actionlint, which runs a downloaded ' +
     'checksum-verified binary rather than a tracked script, "We do not need to install extra software ' +
     'use GitHub"; and the rendering-guard job\'s Playwright install, a different job this checker does ' +
-    'not yet scan). An exemption entry missing either its date or its reason is itself a violation.',
+    'not yet scan). An exemption entry missing either its date or its reason is itself a violation. ' +
+    'THIRD OCCURRENCE, WIDENED (lane CI-PARITY, 2026-09-28): six "Discipline engine" runs on ' +
+    'lane/quarantine-disposition (36450339377, 36452918342, 36457254250, 36459142897, 36461566541, ' +
+    '36463279310) failed the "Discipline engine unit tests" job, a job F54 did not scan, although pre-push ' +
+    'step 3 and that job call the SAME run-test-suite.sh. [CONFIRMED by replay, each sha in an isolated ' +
+    'clone with origin/master pinned to its push-time base] the full pre-push hook passed step 3 locally ' +
+    'while CI failed it with "Cannot find package \'@supabase/supabase-js\'": locally the shared npm ' +
+    'install (RD-85) resolved a package a .test.mjs file reached, CI\'s job installs none. Same script, ' +
+    'different environment. Fix: (c) run-test-suite.sh runs node --test under ' +
+    'fsi-app/.discipline/lib/no-npm-sandbox.mjs, which refuses any package from an install the checkout ' +
+    'reaches (CJS and ESM), with scripts/lib/env-file.mjs\'s CREDENTIAL_VARS unset and FSI_NO_ENV_FILE=1, ' +
+    'matching CI\'s job exactly; (d) F54 now scans EVERY discipline.yml job that can fail the workflow ' +
+    '(a job-level continue-on-error: true job is skipped by that rule), which surfaced four more unwired ' +
+    'CI steps now run by pre-push steps 2c and 3g (runner.mjs --mode=ci, closure-gate.mjs, ' +
+    'skill-contract-map.mjs --check) and one dated exemption (orphan-modules.mjs --all, a report that ' +
+    'never fails), and asserts the no-npm suite\'s sandbox + env wiring from the files themselves.',
   anchor:
     "### Section 4 - category 46: a loop's own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)",
   enforcedBy: [
     'fitness:F54',
     'selftest:fsi-app/.discipline/fitness/functions/F54-push-gate-npm-parity.test.mjs',
+    'selftest:fsi-app/.discipline/lib/no-npm-sandbox.test.mjs',
   ],
   residual:
     'F54 is a line-based, indentation-based text scan of discipline.yml (no YAML parser is a direct ' +

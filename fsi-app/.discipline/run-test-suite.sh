@@ -69,7 +69,37 @@ echo "run-test-suite: discovered $DISCOVERED_COUNT test files"
 # brand-new test file you have not yet staged will not appear here even though it exists on disk. The
 # pre-push gate runs on committed trees, so this is correct for the gate; it just means a local
 # `bash run-test-suite.sh` run before staging a new test will not include it.
-node "$DISCOVERY" --print0 | xargs -0 node --test
+#
+# CI-PARITY SANDBOX (lane CI-PARITY, 2026-09-28, [CONFIRMED] replaying CI runs 36450339377 /
+# 36452918342 / 36457254250 / 36459142897 / 36461566541 / 36463279310 on branch
+# lane/quarantine-disposition): CI's "Discipline engine unit tests" job never runs `npm ci`, so
+# fsi-app/node_modules genuinely does not exist there. Locally, node_modules ALWAYS resolves (the main
+# checkout's own install, or a linked worktree's shared link -- worktree-node-modules.sh, RD-85), so a
+# `.test.mjs`/`.selftest.mjs` file wrongly carrying an npm import (should have been `.npmtest.mjs` --
+# see test-discovery.mjs's header) passed here every time and only reddened on GitHub. `--import
+# fsi-app/.discipline/lib/no-npm-sandbox.mjs` makes THIS invocation of `node --test` structurally unable
+# to resolve an npm package (CJS require and ESM import both blocked), regardless of what node_modules
+# happens to exist, so the two surfaces cannot silently disagree again -- see that file's header for the
+# full mechanism and the replay evidence.
+# CI-PARITY ENVIRONMENT (same lane): CI's job sets no database credential and has no fsi-app/.env.local.
+# Locally the main checkout HAS one, and a developer shell may export credentials, so a test could see
+# credentials here that it never sees in CI. Unset scripts/lib/env-file.mjs's CREDENTIAL_VARS (the ONE
+# list, read from that module, never copied here) and set its ONE switch, FSI_NO_ENV_FILE=1, for this
+# suite only. In CI both are no-ops, so this changes nothing there and removes the difference here.
+CREDENTIAL_VARS="$(node --input-type=module -e "const m = await import('./fsi-app/scripts/lib/env-file.mjs'); console.log(m.CREDENTIAL_VARS.join(' '))")"
+if [ -z "$CREDENTIAL_VARS" ]; then
+  echo "run-test-suite: could not read CREDENTIAL_VARS from fsi-app/scripts/lib/env-file.mjs" >&2
+  exit 1
+fi
+for v in $CREDENTIAL_VARS; do unset "$v"; done
+export FSI_NO_ENV_FILE=1
+
+# `./`-prefixed relative path (not "$ROOT/..."): Node's --import resolves its argument through the same
+# ESM resolver as an import statement, which treats a bare (no "./"/"/" prefix) specifier as a package
+# name, and an absolute Windows path (C:\...) as an unsupported URL scheme rather than a file path.
+# run-test-suite.sh has already `cd`ed to $ROOT above, so a `./`-relative path is unambiguous and
+# portable across POSIX and Windows (Git Bash / MSYS) alike.
+node "$DISCOVERY" --print0 | xargs -0 node --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs" --test
 
 # Standing rule 14 (docs/CLAUDE.md): every finding in docs/audits/ carries an explicit verification-status
 # token. Report-only here (the script's own designed default - a historical backlog of unlabeled findings

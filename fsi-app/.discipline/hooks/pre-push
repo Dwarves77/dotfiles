@@ -16,6 +16,8 @@
 #   2. Layer 4 consistency runner (catches C1-C10 drift).
 #   3. Discipline + fitness tests (catches rule + fitness function regressions).
 #   4. TypeScript compile (catches the F9 / Vercel build-break class).
+# (Sub-steps 2b-2c and 3b-3g each mirror one CI step; F54 fails the build when any CI step that can
+# fail the workflow has no counterpart here, and when the no-npm suite's environment differs from CI's.)
 #
 # Emergency bypass: git push --no-verify
 # (Use sparingly; the whole point of the hook is to prevent the bypass-then-fix loop.)
@@ -194,6 +196,20 @@ rm -f /tmp/discipline-prepush-mem.log
 echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
 
 # ---------------------------------------------------------------------------
+# Step 2c: the discipline rules in CI mode over the range being pushed (lane CI-PARITY, 2026-09-28)
+# ---------------------------------------------------------------------------
+# CI's "Validate commits against discipline rules" job runs runner.mjs --mode=ci over
+# origin/<base>..<head>; the commit-msg hook runs the same runner in --mode=commit-msg, a different rule
+# mode, so the CI-mode rules had never run before a push. Found when F54 was widened to every job of
+# discipline.yml. Same command, same range shape as CI's pull_request leg.
+if ! node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD >"$PRE_PUSH_LOG_DIR/rules.log" 2>&1; then
+  echo "[discipline pre-push] STEP 2c FAIL: discipline rules (CI mode) over origin/master..HEAD:" >&2
+  tail -40 "$PRE_PUSH_LOG_DIR/rules.log" >&2
+  exit 1
+fi
+echo "[discipline pre-push] step 2c (discipline rules, CI mode, CI parity): OK"
+
+# ---------------------------------------------------------------------------
 # Step 3: discipline + fitness tests — the SAME canonical suite CI runs
 # ---------------------------------------------------------------------------
 # PARITY BY CONSTRUCTION (operator ruling 2026-07-04): pre-push and the CI "Discipline engine unit tests"
@@ -202,7 +218,13 @@ echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
 # red in CI (glob-portability was in CI's list but not pre-push's).
 if ! sh fsi-app/.discipline/run-test-suite.sh >"$PRE_PUSH_LOG_DIR/t.log" 2>&1; then
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
-  tail -40 "$PRE_PUSH_LOG_DIR/t.log" >&2
+  # xargs runs the suite as SEVERAL `node --test` batches, each ending in its own summary, so a plain
+  # `tail` showed the LAST batch's summary, all green when the failure sat in an earlier batch (lane
+  # CI-PARITY, 2026-09-28, seen replaying the lane/quarantine-disposition runs). Print every batch's
+  # failing-test blocks first, then the tail.
+  awk '/failing tests:/ {on=1} on && /^(✔|ℹ) / {on=0} on && !/^[[:space:]]+at / {print}' "$PRE_PUSH_LOG_DIR/t.log" | head -80 >&2
+  grep -E '^ℹ (tests|pass|fail) ' "$PRE_PUSH_LOG_DIR/t.log" >&2
+  echo "[discipline pre-push] full log: $PRE_PUSH_LOG_DIR/t.log" >&2
   exit 1
 fi
 echo "[discipline pre-push] step 3 (discipline + fitness tests, canonical suite): OK"
@@ -297,6 +319,25 @@ if ! node fsi-app/scripts/verify/run-goldens.mjs >"$PRE_PUSH_LOG_DIR/goldens.log
 fi
 tail -5 "$PRE_PUSH_LOG_DIR/goldens.log"
 echo "[discipline pre-push] step 3f (behavioral goldens, CI parity): OK"
+
+# ---------------------------------------------------------------------------
+# Step 3g: the two blocking governance gates of CI's "Discipline engine unit tests" job that this hook
+# never ran (lane CI-PARITY, 2026-09-28, found by widening F54 to every job)
+# ---------------------------------------------------------------------------
+# Same commands as discipline.yml's "Closure gate" and "Skill-contract drift" steps. (That job's third
+# governance step, orphan-modules.mjs --all, is a report that never fails, so it owes no parity here;
+# see F54's EXEMPT_STEPS.)
+if ! node fsi-app/.discipline/governance/closure-gate.mjs >"$PRE_PUSH_LOG_DIR/closure.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3g FAIL: closure gate:" >&2
+  tail -40 "$PRE_PUSH_LOG_DIR/closure.log" >&2
+  exit 1
+fi
+if ! node fsi-app/.discipline/governance/skill-contract-map.mjs --check >"$PRE_PUSH_LOG_DIR/skillmap.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3g FAIL: skill-contract drift:" >&2
+  tail -40 "$PRE_PUSH_LOG_DIR/skillmap.log" >&2
+  exit 1
+fi
+echo "[discipline pre-push] step 3g (closure gate + skill-contract drift, CI parity): OK"
 
 # ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)
