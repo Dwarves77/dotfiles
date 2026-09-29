@@ -358,7 +358,7 @@ export function DashboardBrief({
               ) : (
                 <>
                   <RailStat label="Regulations" note="Binding law, agency rules, court decisions" value={surfaceCoverage.intelligence.regulations} href="/regulations" />
-                  <RailStat label="Market" note="Price series, corporate moves, capital" value={surfaceCoverage.intelligence.marketIntel} href="/market" />
+                  <RailStat label="Market Intel" note="Price series, corporate moves, capital" value={surfaceCoverage.intelligence.marketIntel} href="/market" />
                   <RailStat label="Research" note="Horizon-scan findings" value={surfaceCoverage.intelligence.research} href="/research" />
                   <RailStat label="Operations" note="Regional cost, feasibility, infrastructure" value={surfaceCoverage.intelligence.operations} href="/operations" />
                   <RailStat label="Community" note={countNoun(surfaceCoverage.community.regionalRooms, "regional room")} value={surfaceCoverage.community.regionalRooms} href="/community" />

@@ -18,9 +18,11 @@
  * signal that maps onto exactly one GRADE modifier, "risk of bias". `base_tier`/`effective_tier`
  * (source provenance tier) and `citationCount` also exist, but are NOT source-authority — acceptance
  * criterion 8 explicitly forbids raw `cited_by_count` as a credibility signal, and tier alone is not
- * the multi-component distribution the spec asks for. Both chips below therefore render "Not scored"
- * today, with the GRADE ledger showing biasTags-derived rows as `flagged` and every other GRADE
- * modifier as `not_assessed` — never fabricated, never silently blank.
+ * the multi-component distribution the spec asks for. Both chips below therefore render their own
+ * needs-phrase ("needs role-class data" / "needs evidence-synthesis data") today, per the absence
+ * rule (2026-09-25 close: a value that cannot exist yet names the data it needs; "not scored" never
+ * renders, see Absence.tsx NEEDS_PHRASE), with the GRADE ledger showing biasTags-derived rows as
+ * `flagged` and every other GRADE modifier as `not_assessed`, never fabricated, never silently blank.
  */
 
 import { buildGradeModifiers as buildGradeModifiersImpl } from "./credibility-grade-modifiers.mjs";

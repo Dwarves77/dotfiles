@@ -47,11 +47,17 @@ export function EudrCustodyPanelView({
   custodyChains: CustodyChainRow[];
 }) {
   if (plotClaims.length === 0 && custodyChains.length === 0) {
+    // Absence rule (2026-09-25 close): a value that cannot exist yet names the data it needs. This
+    // combined-empty shortcut used to collapse both tables into one generic "no rows yet, source:
+    // none" line, discarding the two specific per-table gap lines (EUDR_PLOT_GAP, CUSTODY_GAP)
+    // already defined above and used by the per-table branches below when only one is empty.
     return (
       <div data-guard-container="eudr-custody" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 10px" }}>
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-          <strong style={{ color: "var(--color-text-secondary)" }}>EUDR &amp; custody</strong> · No rows yet — source: none (scripts/spec09/SOURCES.md).
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+          <strong style={{ color: "var(--color-text-secondary)" }}>EUDR &amp; custody</strong>
         </p>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 4px" }}>{EUDR_PLOT_GAP}</p>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>{CUSTODY_GAP}</p>
       </div>
     );
   }

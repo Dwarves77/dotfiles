@@ -3,9 +3,11 @@
 /**
  * CredibilityChipEvidence — the "evidence × agreement" half of spec-03 §4's split credibility model
  * (Score 1, IPCC-shaped). Lane DASH, 2026-09-02. See CredibilityChipShared.tsx's header for exactly
- * which inputs have a live data path today (none — this chip renders "Not scored" until an
- * evidence-synthesis pipeline lands) and which GRADE modifier does (`risk_of_bias`, from
- * `source_bias_tags`).
+ * which inputs have a live data path today (none, so this chip renders the needs-phrase "needs
+ * evidence-synthesis data" until an evidence-synthesis pipeline lands) and which GRADE modifier does
+ * (`risk_of_bias`, from `source_bias_tags`). Absence rule, 2026-09-25 close: a value that cannot
+ * exist yet names the data it needs; the literal words "pending", "unscored" and "not scored" never
+ * render (see Absence.tsx NEEDS_PHRASE).
  *
  * Hover shows the honest reason as a native tooltip (zero-JS, always available); click toggles the
  * GRADE modifier ledger inline, same disclosure pattern ResearchLedger's own FindingRow "+ / –"
@@ -61,7 +63,7 @@ export function CredibilityChipEvidence({ evidenceLevel, agreementLevel, biasTag
         title={scored ? "Evidence × agreement (spec-03 §4 Score 1)" : NOT_SCORED_REASON}
         style={chipButtonStyle(scored)}
       >
-        Evidence × agreement: {scored ? `${cap(evidenceLevel!)} × ${cap(agreementLevel!)}` : "Not scored"}
+        Evidence × agreement: {scored ? `${cap(evidenceLevel!)} × ${cap(agreementLevel!)}` : "needs evidence-synthesis data"}
         {flaggedCount > 0 ? ` (${flaggedCount})` : ""}
       </button>
       {open && (

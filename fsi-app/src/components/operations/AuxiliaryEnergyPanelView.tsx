@@ -56,12 +56,15 @@ export function AuxiliaryEnergyPanelView({ rows }: { rows: AuxiliaryEnergyRow[] 
             <div key={row.profile_id} className="cl-card" style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-bg-surface)", padding: "12px 16px" }}>
               <div className="spec09-row-text" style={{ fontSize: 13, fontWeight: 700 }}>{row.load_type.replace(/_/g, " ")}</div>
               <div className="spec09-row-text" style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "4px 0" }}>
-                {energy.label === "M" ? "M (missing)" : `${(energy.value as number).toFixed(1)} kWh over ${row.hours_typical}h`}
+                {/* Absence rule (2026-09-25 close): a value that cannot exist yet names the data it
+                    needs. `energy.reason` (label.mjs's `missing()`) already carries that fact; the
+                    old bare-M placeholder discarded it and told the reader nothing. */}
+                {energy.label === "M" ? `needs ${energy.reason}` : `${(energy.value as number).toFixed(1)} kWh over ${row.hours_typical}h`}
               </div>
               <div className="spec09-row-text" style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
                 {row.setpoint_c != null ? `${row.setpoint_c}°C` : "no setpoint"}
                 {row.setpoint_rh_pct != null ? ` / ${row.setpoint_rh_pct}% RH` : ""} ·{" "}
-                gCO2e: {row.grid_intensity_source ? `pending (${row.grid_intensity_source})` : "M — no grid intensity source named"}
+                gCO2e: {row.grid_intensity_source ? `needs grid-intensity conversion (${row.grid_intensity_source})` : "needs a grid-intensity source"}
               </div>
             </div>
           );

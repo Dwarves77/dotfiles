@@ -55,6 +55,11 @@ export function GridQueuePanelView({ rows }: { rows: GridQueueRow[] }) {
         {rows.map((row) => {
           const gate = evaluateGridQueueGate({ queueMonthsP90: row.queue_months_p90, horizonMonths: DECISION_HORIZON_MONTHS });
           const status = gate.label === "M" ? "UNKNOWN" : (gate.value as string);
+          // Absence rule (2026-09-25 close): a value that cannot exist yet names the data it needs.
+          // evaluateGridQueueGate's own UNKNOWN/M branches always carry a `.reason`/`.note` string
+          // (grid-queue.mjs); the bare "UNKNOWN" label used to discard it and tell the reader
+          // nothing beyond the status word itself.
+          const statusDetail = status === "UNKNOWN" ? (gate as { reason?: string }).reason ?? "needs queue_months_p90 for this DSO/capacity band" : null;
           const tone =
             status === "BLOCKED" ? "#b3261e" : status === "CLEAR" ? "var(--color-text-secondary)" : "var(--color-text-muted)";
           return (
@@ -64,10 +69,13 @@ export function GridQueuePanelView({ rows }: { rows: GridQueueRow[] }) {
                 <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{row.capacity_band_mw}</div>
               </div>
               <div className="spec09-row-text" style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: tone }}>{status}</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: tone }} title={statusDetail ?? undefined}>{status}</div>
                 <div style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-                  p50 {row.queue_months_p50 ?? "M"}mo · p90 {row.queue_months_p90 ?? "M"}mo · as of {row.as_of}
+                  p50 {row.queue_months_p50 ?? "needs p50 queue months"}mo · p90 {row.queue_months_p90 ?? "needs p90 queue months"}mo · as of {row.as_of}
                 </div>
+                {statusDetail && (
+                  <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginTop: 2 }}>{statusDetail}</div>
+                )}
               </div>
             </div>
           );

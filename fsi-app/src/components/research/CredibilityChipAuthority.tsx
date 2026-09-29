@@ -14,7 +14,10 @@
  * score would violate the spec directly — acceptance criterion 8 forbids raw `cited_by_count` as a
  * credibility signal, and a bare tier number is not the multi-component DISTRIBUTION §4 asks for
  * ("3 high-authority independent, 1 medium, 2 vendor-flagged... a mean hides the one dissenting
- * national lab"). So this chip always renders "Not scored", and its expand panel shows the six
+ * national lab"). So this chip always renders the needs-phrase "needs role-class data" (absence
+ * rule, 2026-09-25 close: a value that cannot exist yet names the data it needs; the literal words
+ * "pending", "unscored" and "not scored" never render, see Absence.tsx NEEDS_PHRASE), and its
+ * expand panel shows the six
  * components §4 names, each `not assessed`, plus the two real signals as explicitly labeled RAW
  * context — never presented as the score itself.
  *
@@ -57,7 +60,7 @@ export function CredibilityChipAuthority({
   const scored = !!authorityDistribution;
   const label = scored
     ? `${authorityDistribution!.highAuthorityIndependent} high-authority · ${authorityDistribution!.medium} medium · ${authorityDistribution!.vendorFlagged} vendor-flagged`
-    : "Not scored";
+    : "needs role-class data";
 
   const tier = typeof sourceTier === "number" ? Math.max(1, Math.min(7, Math.round(sourceTier))) : null;
 

@@ -360,11 +360,28 @@ function Row({ row }: { row: ObligationRow }) {
             {bp.label}
           </span>
         ) : (
-          <span style={{ color: "var(--muted, #7A6E6C)", fontStyle: "italic" }}>Not classified</span>
+          // Absence rule (2026-09-25 close): a value that cannot exist yet names the data it needs;
+          // "Not classified" told the reader nothing about what to expect next.
+          <span style={{ color: "var(--muted, #7A6E6C)", fontStyle: "italic" }}>needs binding classification</span>
         )}
       </td>
-      <td data-label="Jurisdiction" style={tdStyle}>{(row.jurisdiction ?? []).map(isoToDisplayLabel).join(", ") || "—"}</td>
-      <td data-label="Mode" style={tdStyle}>{(row.modes ?? []).map((m) => MODE_META[m]?.label ?? m).join(", ") || "—"}</td>
+      <td data-label="Jurisdiction" style={tdStyle}>
+        {(row.jurisdiction ?? []).length > 0 ? (
+          (row.jurisdiction ?? []).map(isoToDisplayLabel).join(", ")
+        ) : (
+          // Narrow-cell dash treatment (Absence.tsx's own convention): the specific need rides
+          // aria-label/title, the glyph is the JS escape per discipline rule 022, and
+          // data-absence="dash" keeps the rendering guard's placeholder-literal scan from flagging it.
+          <span data-absence="dash" aria-label="needs jurisdiction" title="needs jurisdiction" style={{ color: "var(--muted, #7A6E6C)" }}>{"\u2014"}</span>
+        )}
+      </td>
+      <td data-label="Mode" style={tdStyle}>
+        {(row.modes ?? []).length > 0 ? (
+          (row.modes ?? []).map((m) => MODE_META[m]?.label ?? m).join(", ")
+        ) : (
+          <span data-absence="dash" aria-label="needs transport mode" title="needs transport mode" style={{ color: "var(--muted, #7A6E6C)" }}>{"\u2014"}</span>
+        )}
+      </td>
     </tr>
   );
 }
