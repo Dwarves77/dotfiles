@@ -13,7 +13,7 @@
 -- to live below this comment were REMOVED 2026-09-29 (Lane DROP-PLACEHOLDERS,
 -- operator ruling: "There has never been anyone in community so my guess is they
 -- are fake place holders. Remove them completely and ease them"). Both tables +
--- case_study_endorsements are dropped by migration 330. Re-adding this seed
+-- case_study_endorsements are dropped by migration 334. Re-adding this seed
 -- would re-seed tables that no longer exist. Prior revision in git history
 -- (docs/ops/session-log.d/2026-09-29-drop-placeholders.md records the snapshot;
 -- row data also snapshotted to fsi-app/scripts/tmp/drop-placeholders-2026-09-29/,
