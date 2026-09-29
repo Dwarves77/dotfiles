@@ -480,6 +480,18 @@ export const LEGACY_ALLOWLIST = [
       '--apply is a one-shot the operator dispatches by hand, never from a workflow or another script.',
     reviewByPhase: 'lane HARNESS-LANDING, 2026-09-27',
   },
+  {
+    file: 'fsi-app/scripts/maintenance/one-off/2026-09-29-reverse-chained-apply.mjs',
+    reason:
+      'Genuinely operator-invoked, out-of-workflow, one-time CLI (the same "hand-run, per-item, no ' +
+      'schedule, no workflow line" shape OUT-OF-REPO-BOUNDARY.md\'s Operator-CLI register already ' +
+      'recognizes for the _reground/*.mjs toolkit and import-stranded-harness-branches.mjs above) -- ' +
+      'reverses the row set GitHub Actions run 36568656803 (chained apply, cancelled mid-write) minted, ' +
+      'per operator ruling 2026-09-29. --dry and --verify are read-only and safe to re-run; --apply ' +
+      '(delete) and --archive (soft-archive) are one-shots the coordinator dispatches by hand, never from ' +
+      'a workflow or another script.',
+    reviewByPhase: 'lane REVERSE-CHAINED-APPLY, 2026-09-29',
+  },
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,
