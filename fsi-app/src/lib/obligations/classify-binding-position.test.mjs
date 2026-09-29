@@ -70,3 +70,34 @@ test("rule table has no duplicate regex objects (each row is its own literal)", 
     seen.add(key);
   }
 });
+
+// ── Class coverage (lane W2-F, WS10, 2026-09-29; rule 19 "examples are not scope") ──────────────
+// Before this test, only about 8 of the 16 spec-01 S1 instruments (CountEmissions, CBAM, FuelEU
+// Maritime, EU ETS maritime, EUDR, CSDDD, PPWR, plus the unmapped/empty cases) had ANY test exercising
+// them. Empowering Consumers Directive, SOLAS VGM, CSRD, ReFuelEU Aviation, CORSIA, EU ETS2, IMO
+// CII/EEXI, IMO Net-Zero Framework and SBTi could each silently stop matching and nothing here would
+// fail, exactly the "proof that does not execute is not a proof" gap (CLAUDE.md rule 15). This drives
+// the class ("for any instrument spec-01 S1 names, not just the ones someone happened to spot-test")
+// from BINDING_POSITION_RULES's own `label` field, so a 17th instrument added to the table is
+// automatically covered too, the test never hand-copies a second instrument-name list to go stale
+// against the first.
+test("class coverage: every RULES entry classifies its own label to its own position (no rule is untested)", () => {
+  assert.ok(BINDING_POSITION_RULES.length >= 16, "expected at least the 16 spec-01 S1 instruments");
+  for (const rule of BINDING_POSITION_RULES) {
+    assert.ok(rule.label && rule.label.length > 0, `rule for ${rule.citation} must carry a label`);
+    const r = classifyBindingPosition({ title: rule.label });
+    assert.ok(r, `label "${rule.label}" (${rule.citation}) must classify to something, not null`);
+    assert.equal(r.position, rule.position, `label "${rule.label}" must classify as ${rule.position}, got ${r.position}`);
+  }
+});
+
+// Two real, named instances per non-trivial position (rule 2: never fabricate, both instruments
+// below are real spec-01 S1 rows, not invented names), proving the mechanism covers the CLASS of
+// "carrier pass-through" instruments, not one hand-picked example.
+test("class coverage: two distinct real carrier_passthrough instruments both resolve via the same mechanism", () => {
+  const corsia = classifyBindingPosition({ title: "CORSIA offsetting requirements for 2026" });
+  const refueleu = classifyBindingPosition({ title: "ReFuelEU Aviation SAF blending mandate" });
+  assert.equal(corsia.position, "carrier_passthrough");
+  assert.equal(refueleu.position, "carrier_passthrough");
+  assert.notEqual(corsia.citation, refueleu.citation, "two distinct instruments must cite two distinct spec-01 rows");
+});
