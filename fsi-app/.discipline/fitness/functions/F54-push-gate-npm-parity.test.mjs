@@ -19,6 +19,9 @@ import {
   evaluateStepParity,
   EXEMPT_STEPS,
   fitnessFunction,
+  listJobKeys,
+  jobContinuesOnError,
+  evaluateNoNpmSuiteParity,
 } from './F54-push-gate-npm-parity.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile, _clearCache } from '../lib/file-content.mjs';
@@ -226,4 +229,104 @@ test('fitnessFunction.check() itself returns zero violations against the checked
   _clearCache();
   const result = fitnessFunction.check();
   assert.deepEqual(result, [], `F54 violations:\n${result.map((v) => v.message).join('\n')}`);
+});
+
+// ── widened scope + environment parity (lane CI-PARITY, 2026-09-28) ─────────────────────────────────
+
+const TWO_JOB_YML = [
+  'name: Discipline engine',
+  'on:',
+  '  push:',
+  '    branches: [master]',
+  'jobs:',
+  '  unit-tests:',
+  '    name: Discipline engine unit tests',
+  '    runs-on: ubuntu-latest',
+  '    steps:',
+  '      - name: Run discipline test suite',
+  '        run: bash fsi-app/.discipline/run-test-suite.sh',
+  '',
+  '      - name: Closure gate',
+  '        run: node fsi-app/.discipline/governance/closure-gate.mjs',
+  '  browser:',
+  '    name: Rendering guard',
+  '    continue-on-error: true',
+  '    steps:',
+  '      - name: Run rendering guard',
+  '        run: node .discipline/rendering/run-rendering-guard.mjs',
+  '',
+].join('\n');
+
+const GOOD_SUITE = [
+  '#!/bin/sh',
+  'CREDENTIAL_VARS="$(node -e "...env-file.mjs...")"',
+  'for v in $CREDENTIAL_VARS; do unset "$v"; done',
+  'export FSI_NO_ENV_FILE=1',
+  'node "$DISCOVERY" --print0 | xargs -0 node --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs" --test',
+].join('\n');
+
+test('listJobKeys derives every job from the file, stopping at the next top-level key', () => {
+  assert.deepEqual(listJobKeys(TWO_JOB_YML), ['unit-tests', 'browser']);
+  assert.deepEqual(listJobKeys('name: x\n'), []);
+});
+
+test('jobContinuesOnError reads the job-level flag only', () => {
+  assert.equal(jobContinuesOnError(extractJobBlock(TWO_JOB_YML, 'browser')), true);
+  assert.equal(jobContinuesOnError(extractJobBlock(TWO_JOB_YML, 'unit-tests')), false);
+});
+
+test('ATTACK (the lane/quarantine-disposition class): a CI step OUTSIDE the Fitness job that the hook lacks, MUST FAIL', () => {
+  // The old single-job scope never looked at this job, which is where all six red runs failed.
+  const hookOnlyRunsSuite = '#!/bin/sh\nsh fsi-app/.discipline/run-test-suite.sh\n';
+  const steps = extractSteps(extractJobBlock(TWO_JOB_YML, 'unit-tests'));
+  const v = evaluateStepParity(steps, hookOnlyRunsSuite, EXEMPT_STEPS);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /closure-gate\.mjs/);
+});
+
+test('the environment half PASSES for a suite run under the sandbox with the env file switched off', () => {
+  assert.deepEqual(evaluateNoNpmSuiteParity(GOOD_SUITE, TWO_JOB_YML), []);
+});
+
+test('ATTACK: removing the no-npm sandbox from the suite\'s node --test, MUST FAIL', () => {
+  const bad = GOOD_SUITE.replace(' --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"', '');
+  const v = evaluateNoNpmSuiteParity(bad, TWO_JOB_YML);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /no-npm-sandbox\.mjs/);
+});
+
+test('ATTACK: a sandbox mention only in a COMMENT does not count, MUST FAIL', () => {
+  const bad = GOOD_SUITE.replace(' --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"', '') +
+    '\n# node --import ./fsi-app/.discipline/lib/no-npm-sandbox.mjs --test';
+  assert.equal(evaluateNoNpmSuiteParity(bad, TWO_JOB_YML).length, 1);
+});
+
+test('ATTACK: dropping the env-file switch, MUST FAIL', () => {
+  const v = evaluateNoNpmSuiteParity(GOOD_SUITE.replace('export FSI_NO_ENV_FILE=1', ''), TWO_JOB_YML);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /FSI_NO_ENV_FILE/);
+});
+
+test('ATTACK: dropping the credential unset, MUST FAIL', () => {
+  const bad = GOOD_SUITE.split('\n').filter((l) => !/CREDENTIAL_VARS/.test(l)).join('\n');
+  const v = evaluateNoNpmSuiteParity(bad, TWO_JOB_YML);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /CREDENTIAL_VARS/);
+});
+
+test('ATTACK: the CI job that runs the no-npm suite gains an npm install, MUST FAIL (sandbox would be stricter than CI)', () => {
+  const yml = TWO_JOB_YML.replace(
+    "      - name: Run discipline test suite",
+    "      - name: Install\n        run: npm ci\n\n      - name: Run discipline test suite",
+  );
+  const v = evaluateNoNpmSuiteParity(GOOD_SUITE, yml);
+  assert.equal(v.length, 1);
+  assert.match(v[0], /unit-tests/);
+});
+
+test('LIVE: the real discipline.yml runs the no-npm suite in a job with no npm install', () => {
+  _clearCache();
+  const yml = readFile('.github/workflows/discipline.yml');
+  const suite = readFile('fsi-app/.discipline/run-test-suite.sh');
+  assert.deepEqual(evaluateNoNpmSuiteParity(suite, yml), []);
 });

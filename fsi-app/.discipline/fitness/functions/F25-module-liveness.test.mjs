@@ -287,6 +287,33 @@ test('findDispatchRoots: a tracked hook source (fsi-app/.discipline/hooks/*) tha
   assert.ok(roots.has('fsi-app/.discipline/governance/check-pretooluse-wired.mjs'));
 });
 
+test('findDispatchRoots Source 11: a .mjs run by a shell script a workflow invokes is a dispatch root, through a nested .sh; a comment/echo mention is not', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs:\n  t:\n    steps:\n      - run: bash fsi-app/.discipline/run-suite.sh\n',
+    'fsi-app/.discipline/run-suite.sh':
+      '#!/bin/sh\n# node fsi-app/.discipline/lib/commented.mjs\necho "try: node fsi-app/.discipline/lib/echoed.mjs"\n' +
+      'node --import ./fsi-app/.discipline/lib/sandbox.mjs --test x.test.mjs\nsh fsi-app/.discipline/lib/inner.sh\n',
+    'fsi-app/.discipline/lib/inner.sh': '#!/bin/sh\nnode fsi-app/.discipline/lib/deep.mjs\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/lib/sandbox.mjs'), 'the --import target of the suite a workflow runs');
+  assert.ok(roots.has('fsi-app/.discipline/lib/deep.mjs'), 'a .mjs run by a .sh that the first .sh runs (fixed point)');
+  assert.equal(roots.has('fsi-app/.discipline/lib/commented.mjs'), false, 'a commented-out line is not an invocation');
+  assert.equal(roots.has('fsi-app/.discipline/lib/echoed.mjs'), false, 'an echoed suggestion is not an invocation');
+});
+
+test('findDispatchRoots Source 11: a .sh named only in a hook COMMENT is not followed', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/hooks/pre-push': '#!/bin/sh\n# sh fsi-app/.discipline/lib/never.sh\n',
+    'fsi-app/.discipline/lib/never.sh': 'node fsi-app/.discipline/lib/unreached.mjs\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.equal(roots.has('fsi-app/.discipline/lib/unreached.mjs'), false);
+});
+
 test('findDispatchRoots: a hook printing a suggestion in an echo string is NOT a dispatch root (advisory text, not an invocation)', () => {
   const files = {
     '.github/workflows/example.yml': 'jobs: {}\n',

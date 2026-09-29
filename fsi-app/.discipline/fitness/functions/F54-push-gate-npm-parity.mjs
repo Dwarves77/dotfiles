@@ -31,13 +31,111 @@
 // the real repo tree at all. Production reads (the real discipline.yml + the real pre-push hook) are
 // isolated to runCheck() at the bottom.
 
+//
+// WIDENED (lane CI-PARITY, 2026-09-28). Two gaps, both [CONFIRMED], closed here:
+//
+//   1. SCOPE. This check used to read ONE job ("Fitness functions"). The seven red runs on
+//      lane/quarantine-disposition (six "Discipline engine" runs, 36450339377 through 36463279310) all
+//      failed a DIFFERENT job, "Discipline engine unit tests", which F54 never looked at. Measured with
+//      this file's own evaluateStepParity() over every job on 2026-09-28, the widening found six CI steps
+//      the push gate never ran (runner.mjs --mode=ci twice, closure-gate.mjs, skill-contract-map.mjs
+//      --check, orphan-modules.mjs --all, run-rendering-guard.mjs). check() now scans EVERY job in
+//      discipline.yml, derived from the file (listJobKeys), never a named list. A job whose own
+//      `continue-on-error: true` means it can never fail the workflow is skipped BY THAT RULE
+//      (jobContinuesOnError), not by an exemption entry: it cannot make CI red, so no push-gate parity
+//      is owed for it.
+//
+//   2. SAME SCRIPT, DIFFERENT ENVIRONMENT. Parity of the script PATH was not enough: pre-push step 3 and
+//      the CI job both called run-test-suite.sh, yet the local run could resolve npm packages (the shared
+//      node_modules install, RD-85) and could read fsi-app/.env.local, while CI's job has neither. A
+//      .test.mjs file that reached @supabase/supabase-js passed locally and failed in CI six times.
+//      evaluateNoNpmSuiteParity() checks, from the files themselves, that run-test-suite.sh's
+//      `node --test` invocation runs under the no-npm sandbox (.discipline/lib/no-npm-sandbox.mjs) with
+//      the env-file load switched off, and that the CI job running that suite installs no npm packages
+//      (if it ever did, the sandbox would be stricter than CI and the two would disagree the other way).
+
 import { violation } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
 
-const JOB_KEY = 'fitness-check';
-const JOB_NAME = 'Fitness functions (application-layer enforcement)';
 const KEYWORD_TRIGGERS = ['test', 'golden', 'lint'];
+const NO_NPM_SUITE = 'fsi-app/.discipline/run-test-suite.sh';
+const NO_NPM_SANDBOX = 'fsi-app/.discipline/lib/no-npm-sandbox.mjs';
+
+/**
+ * Every top-level job key under `jobs:` (2-space-indented `<key>:` lines after the `jobs:` line).
+ * @param {string} ymlText
+ * @returns {string[]}
+ */
+export function listJobKeys(ymlText) {
+  const lines = String(ymlText ?? '').split(/\r?\n/);
+  const start = lines.findIndex((l) => /^jobs:\s*$/.test(l));
+  if (start === -1) return [];
+  const keys = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^\S/.test(lines[i])) break; // next top-level key ends the jobs map
+    const m = lines[i].match(/^ {2}([A-Za-z0-9_-]+):\s*$/);
+    if (m) keys.push(m[1]);
+  }
+  return keys;
+}
+
+/** A job-level `continue-on-error: true` (4-space indent), meaning the job cannot fail the workflow. */
+export function jobContinuesOnError(jobBlockText) {
+  return /^ {4}continue-on-error:\s*true\s*$/m.test(String(jobBlockText ?? ''));
+}
+
+/**
+ * The environment half of parity for the no-npm suite. `suiteText` is run-test-suite.sh's text, `ymlText`
+ * discipline.yml's. Returns plain-string violation messages. PURE.
+ * @param {string} suiteText
+ * @param {string} ymlText
+ * @returns {string[]}
+ */
+export function evaluateNoNpmSuiteParity(suiteText, ymlText) {
+  const out = [];
+  const code = String(suiteText ?? '')
+    .split(/\r?\n/)
+    .filter((l) => !/^\s*#/.test(l))
+    .join('\n');
+  const testLines = code.split('\n').filter((l) => /\bnode\b[^\n]*\s--test\b/.test(l));
+  if (testLines.length === 0) {
+    out.push(`${NO_NPM_SUITE} has no \`node ... --test\` invocation to check.`);
+  }
+  for (const l of testLines) {
+    const m = l.match(/--import\s+["']?(\.\/)?([^\s"']+)["']?/);
+    if (!m || m[2] !== NO_NPM_SANDBOX) {
+      out.push(
+        `${NO_NPM_SUITE} runs \`node --test\` without \`--import ./${NO_NPM_SANDBOX}\`: locally the suite ` +
+          `could resolve npm packages CI's job cannot (the lane/quarantine-disposition class, six red runs).`,
+      );
+    }
+  }
+  if (!/^\s*(export\s+)?FSI_NO_ENV_FILE=1\b/m.test(code) && !/\bFSI_NO_ENV_FILE=1\b[^\n]*\bnode\b/.test(code)) {
+    out.push(
+      `${NO_NPM_SUITE} does not set FSI_NO_ENV_FILE=1: locally the suite could load fsi-app/.env.local ` +
+        `credentials CI's job never has (scripts/lib/env-file.mjs's one switch).`,
+    );
+  }
+  if (!/CREDENTIAL_VARS/.test(code)) {
+    out.push(
+      `${NO_NPM_SUITE} does not unset scripts/lib/env-file.mjs's CREDENTIAL_VARS: a developer shell's ` +
+        `credentials would reach tests CI runs with none set.`,
+    );
+  }
+  for (const key of listJobKeys(ymlText)) {
+    const block = extractJobBlock(ymlText, key);
+    if (!block || !block.includes(NO_NPM_SUITE.replace(/^fsi-app\//, '')) && !block.includes(NO_NPM_SUITE)) continue;
+    if (/\bnpm\s+(ci|install|i)\b/.test(block)) {
+      out.push(
+        `discipline.yml job "${key}" runs ${NO_NPM_SUITE} AND installs npm packages: the no-npm sandbox is ` +
+          `now stricter than CI, so a local failure there would be a false red. Keep that job npm-free, or ` +
+          `move the npm-dependent test to *.npmtest.mjs.`,
+      );
+    }
+  }
+  return out;
+}
 
 /**
  * Extract one top-level job's block of text (from its `  <jobKey>:` line up to, but not including, the
@@ -227,6 +325,15 @@ export const EXEMPT_STEPS = [
       'need to install extra software use GitHub", brief-g2.md item 2), runs in CI only.',
   },
   {
+    nameContains: 'Orphan-module + dead-export census',
+    decidedOn: '2026-09-28',
+    reason:
+      'orphan-modules.mjs --all is a REPORT that never fails (its own header, and the step name says ' +
+      '"reports, never fails"), so it cannot turn CI red and owes the push gate no parity; the failing ' +
+      'enforcement for its class is F25, which the pre-push fitness runner (step 3d) already runs. ' +
+      'Lane CI-PARITY, found by widening this check to every job.',
+  },
+  {
     nameContains: 'Playwright',
     decidedOn: '2026-09-21',
     reason:
@@ -241,10 +348,12 @@ export const fitnessFunction = {
   id: 'F54',
   name: 'push-gate-npm-parity',
   description:
-    'Every test-running step of discipline.yml\'s "Fitness functions" job (name contains "test", ' +
-    '"golden" or "lint", or its run: block invokes a tracked .mjs/.sh script) must have its script also ' +
-    'called by fsi-app/.discipline/hooks/pre-push, or carry a dated, reason-bearing EXEMPT_STEPS entry. ' +
-    'Closes the PR #769 class: CI failed a step the local push gate never ran at all.',
+    'Every test-running step of EVERY discipline.yml job that can fail the workflow (name contains ' +
+    '"test", "golden" or "lint", or its run: block invokes a tracked .mjs/.sh script) must have its ' +
+    'script also called by fsi-app/.discipline/hooks/pre-push, or carry a dated, reason-bearing ' +
+    'EXEMPT_STEPS entry; and the no-npm suite must run locally under the same no-npm, no-credential ' +
+    'environment CI gives it. Closes the PR #769 class (a CI step the push gate never ran) and the ' +
+    'lane/quarantine-disposition class (the same script, a different environment).',
   source: 'docs/dispatches/lane-briefs/2026-09-21/brief-g2.md ("the local push gate runs what CI\'s Fitness job runs")',
 
   enumerate() {
@@ -260,22 +369,22 @@ export const fitnessFunction = {
     if (hookText === null) {
       return [violation(1, 'fsi-app/.discipline/hooks/pre-push not found.')];
     }
-    const jobBlock = extractJobBlock(ymlText, JOB_KEY);
-    if (jobBlock === null) {
-      return [violation(1, `.github/workflows/discipline.yml has no "${JOB_KEY}:" job.`)];
+    const suiteText = readFile(NO_NPM_SUITE);
+    if (suiteText === null) {
+      return [violation(1, `${NO_NPM_SUITE} not found.`)];
     }
-    if (!new RegExp(`name:\\s*${JOB_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'm').test(jobBlock)) {
-      return [
-        violation(
-          1,
-          `.github/workflows/discipline.yml's "${JOB_KEY}:" job's name field no longer reads ` +
-            `"${JOB_NAME}", brief-g2.md scopes this checker to that job by name; update JOB_NAME in ` +
-            `F54-push-gate-npm-parity.mjs if the job was intentionally renamed.`,
-        ),
-      ];
+    const jobKeys = listJobKeys(ymlText);
+    if (jobKeys.length === 0) {
+      return [violation(1, '.github/workflows/discipline.yml: no jobs found under `jobs:` (parse failure?).')];
     }
-    const steps = extractSteps(jobBlock);
-    const messages = evaluateStepParity(steps, hookText, EXEMPT_STEPS);
-    return messages.map((m) => violation(1, `.github/workflows/discipline.yml (${JOB_NAME}): ${m}`));
+    const out = [];
+    for (const key of jobKeys) {
+      const jobBlock = extractJobBlock(ymlText, key);
+      if (jobBlock === null || jobContinuesOnError(jobBlock)) continue; // cannot fail the workflow
+      const messages = evaluateStepParity(extractSteps(jobBlock), hookText, EXEMPT_STEPS);
+      for (const m of messages) out.push(violation(1, `.github/workflows/discipline.yml (job ${key}): ${m}`));
+    }
+    for (const m of evaluateNoNpmSuiteParity(suiteText, ymlText)) out.push(violation(1, m));
+    return out;
   },
 };
