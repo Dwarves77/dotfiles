@@ -31,12 +31,12 @@ import { InlineErrorBanner } from "@/components/ui/InlineErrorBanner";
 // runtime; the CLIENT's only job is to pass the raw CSV text through, the SAME contract module on the
 // server does the one real parse — no logic is duplicated, only these display labels).
 const UPLOAD_TABLES: Array<{ key: string; label: string; requiredHeaders: string }> = [
-  { key: "surcharge_audits", label: "Surcharge audits (Market)", requiredHeaders: "corridor_id, carrier_id, invoice_line, billed_eur, statutory_eur, statutory_basis" },
+  { key: "surcharge_audits", label: "Surcharge audits (Market Intel)", requiredHeaders: "corridor_id, carrier_id, invoice_line, billed_eur, statutory_eur, statutory_basis" },
   { key: "tce_data_quality", label: "DQI / data quality (Operations)", requiredHeaders: "tce_id, reliability, completeness, temporal_correlation, geographical_correlation, technological_correlation, primary_data_share" },
   { key: "auxiliary_energy_profiles", label: "Auxiliary energy profiles (Operations)", requiredHeaders: "load_type, kw_draw, duty_cycle, hours_typical" },
   { key: "eudr_plot_claims", label: "EUDR plot claims (Regulations)", requiredHeaders: "consignment_ref, validation_state" },
   { key: "custody_chains", label: "Custody chains (Regulations)", requiredHeaders: "credit_type, scheme, certificate_ref, double_count_check" },
-  { key: "indexation_clauses", label: "Indexation clauses (Market)", requiredHeaders: "index_id, base_value, base_date, passthrough_pct, review_cadence, rounding_rule" },
+  { key: "indexation_clauses", label: "Indexation clauses (Market Intel)", requiredHeaders: "index_id, base_value, base_date, passthrough_pct, review_cadence, rounding_rule" },
 ];
 
 interface RejectedRow {
