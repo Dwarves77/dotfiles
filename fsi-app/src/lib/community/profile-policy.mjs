@@ -8,11 +8,12 @@
 // this table has no per-column RLS."
 //
 //   1. sanitizeMemberWrite(body) — the STRIP: takes a raw member-submitted PUT body and returns only the
-//      four self-service fields (org_type, role, sector, region), validated against the same closed
-//      vocabularies migration 293's own CHECK constraints enforce. verified/verified_at/
+//      five self-service fields (org_type, role, sector, region, default_anonymous), validated against
+//      the same closed vocabularies migration 293's own CHECK constraints enforce (default_anonymous is
+//      migration 336, R8.7's per-user anonymity-opt-in default). verified/verified_at/
 //      verification_method/organisation_key/user_id are REMOVED even if present on the body — this is
 //      an ALLOWLIST projection (same posture as identity.mjs's projectAuthorIdentity: "pick the named
-//      fields out", never "strip everything except these"), so a client that adds a fifth field to its
+//      fields out", never "strip everything except these"), so a client that adds a sixth field to its
 //      request body can never widen what gets written. See MEMBER_WRITE_FORBIDDEN_COLUMNS below for the
 //      same list named explicitly, for a caller/test that wants to assert the strip by name.
 //   2. projectOwnProfile(row) — the read-side shape for GET (own projection): the four self-service
@@ -52,7 +53,7 @@ function trimmedOrNull(v, maxLen) {
 /**
  * @param {unknown} body - raw parsed JSON from a member's PUT request.
  * @returns {
- *   { ok: true, data: { org_type: string, role: string|null, sector: string|null, region: string|null } }
+ *   { ok: true, data: { org_type: string, role: string|null, sector: string|null, region: string|null, default_anonymous: boolean } }
  *   | { ok: false, error: string }
  * }
  */
@@ -76,6 +77,18 @@ export function sanitizeMemberWrite(body) {
     region = regionRaw;
   }
 
+  // default_anonymous (migration 336, R8.7): the member's per-user default for a new post's
+  // community_posts.anonymous flag. Omitted/undefined defaults to false (identity shown), matching
+  // the R8.7 amendment's new default; any non-boolean value is rejected rather than silently coerced.
+  const defaultAnonymousRaw = raw.default_anonymous ?? raw.defaultAnonymous;
+  let defaultAnonymous = false;
+  if (defaultAnonymousRaw !== undefined && defaultAnonymousRaw !== null) {
+    if (typeof defaultAnonymousRaw !== "boolean") {
+      return { ok: false, error: "default_anonymous must be a boolean" };
+    }
+    defaultAnonymous = defaultAnonymousRaw;
+  }
+
   return {
     ok: true,
     data: {
@@ -83,6 +96,7 @@ export function sanitizeMemberWrite(body) {
       role: trimmedOrNull(raw.role, MAX_ROLE_LEN),
       sector: trimmedOrNull(raw.sector, MAX_SECTOR_LEN),
       region,
+      default_anonymous: defaultAnonymous,
     },
   };
 }
@@ -91,10 +105,12 @@ export function sanitizeMemberWrite(body) {
  * @param {{
  *   org_type?: string|null, role?: string|null, sector?: string|null, region?: string|null,
  *   verified?: boolean|null, verified_at?: string|null, verification_method?: string|null,
+ *   default_anonymous?: boolean|null,
  * } | null | undefined} row
  * @returns {{
  *   orgType: string|null, role: string|null, sector: string|null, region: string|null,
  *   verified: boolean, verifiedAt: string|null, verificationMethod: string|null,
+ *   defaultAnonymous: boolean,
  * }}
  */
 export function projectOwnProfile(row) {
@@ -102,6 +118,7 @@ export function projectOwnProfile(row) {
     return {
       orgType: null, role: null, sector: null, region: null,
       verified: false, verifiedAt: null, verificationMethod: null,
+      defaultAnonymous: false,
     };
   }
   return {
@@ -112,5 +129,6 @@ export function projectOwnProfile(row) {
     verified: row.verified === true,
     verifiedAt: typeof row.verified_at === "string" ? row.verified_at : null,
     verificationMethod: typeof row.verification_method === "string" ? row.verification_method : null,
+    defaultAnonymous: row.default_anonymous === true,
   };
 }

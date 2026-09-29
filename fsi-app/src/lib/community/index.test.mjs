@@ -21,9 +21,17 @@ test("interface contract: evaluateAntitrustGuard(post) -> { allowed, reason, agg
   assert.ok("allowed" in r && "reason" in r && "aggregateRoute" in r);
 });
 
-test("interface contract: projectAuthorIdentity(profile) -> { orgType, role, sector, region, verified }", () => {
+test("interface contract: projectAuthorIdentity(profile) -> { orgType, role, sector, region, verified, name, company, anonymous } (R8.7, migration 336)", () => {
   const r = community.projectAuthorIdentity({ org_type: "carrier", role: "Ops", sector: "pharma", region: "US", verified: true });
-  assert.deepEqual(Object.keys(r).sort(), ["orgType", "region", "role", "sector", "verified"]);
+  assert.deepEqual(
+    Object.keys(r).sort(),
+    ["anonymous", "company", "name", "orgType", "region", "role", "sector", "verified"]
+  );
+});
+
+test("interface contract: resolveEffectiveAnonymous({postAnonymous, profileDefaultAnonymous}) -> boolean (R8.7, migration 336)", () => {
+  assert.equal(typeof community.resolveEffectiveAnonymous, "function");
+  assert.equal(community.resolveEffectiveAnonymous({ postAnonymous: true, profileDefaultAnonymous: false }), true);
 });
 
 test("interface contract: corroborationCount(thread) -> includes { organisations, posts }", () => {

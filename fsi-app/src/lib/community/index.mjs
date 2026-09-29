@@ -21,6 +21,10 @@
 //   distinctOrganisationKeys(responses) -> string[] (the RPC's member_ids cohort)
 //   applyPublishAggregateGate(aggregate, gateResult) -> aggregate, refusal-overridden when the RPC refused
 //
+// Lane W2-B addition (R8.7 identity-by-default, migration 336, 2026-09-29):
+//   resolveEffectiveAnonymous({postAnonymous, profileDefaultAnonymous}) -> boolean (per-post overrides per-user default)
+//   projectAuthorIdentity(profile) now also projects name/company (withheld when anonymous), see identity.mjs's own header
+//
 // promotionState / buildTransition / originClassFor / PROMOTION_STATES (formerly re-exported here from
 // ./promotion.mjs, the community_promotion_transitions five-gate machine) were REMOVED, lane m9c,
 // 2026-09-18: migration 329 drops community_promotion_transitions (0 rows, 0 production importers of
@@ -28,7 +32,12 @@
 // 041, POST /api/community/posts/[id]/promote) is the one live promotion path; see docs/plans/C6-promote-spec.md.
 
 export { evaluateAntitrustGuard, kAnonymity, dominanceCap, threeMonthLag, SENSITIVE_FIELDS } from "./antitrust.mjs";
-export { projectAuthorIdentity, ORG_TYPES } from "./identity.mjs";
+export {
+  projectAuthorIdentity,
+  ORG_TYPES,
+  resolveEffectiveAnonymous,
+  buildAuthorIdentityForRender,
+} from "./identity.mjs";
 export { corroborationCount } from "./corroboration.mjs";
 export { evidenceAge } from "./decay.mjs";
 export { isAdmissibleInCalculation, isCitableAsFact, filterOperationsAdmissible, recordsNotCitableAsFact } from "./lineage-guard.mjs";
@@ -53,3 +62,5 @@ export {
   MEMBER_WRITE_FORBIDDEN_COLUMNS,
 } from "./profile-policy.mjs";
 export { validateResponseValue, evaluateResponseSubmission, FIELD_BOUNDS } from "./respond.mjs";
+export { validateMemberPrefToggle } from "./group-member-prefs.mjs";
+export { validateEntityIds, MAX_ENTITY_IDS } from "./entity-binding.mjs";

@@ -1,12 +1,15 @@
-// PATCH /api/community/groups/[id]/star { starred: boolean }
+// PATCH /api/community/groups/[id]/mute { muted: boolean }
 //
-// Toggle the per-user starred flag on community_group_members for the
-// caller. Star/unstar drives sidebar pinning; it is purely a personal
-// preference and does not affect group state for other members.
+// Toggle the per-user muted flag on community_group_members for the
+// caller. Mute/unmute is purely a personal notification preference and
+// does not affect group state for other members. Mirrors the sibling
+// /star route exactly (same table, same self-only RLS-scoped write, same
+// response shape), see that route's own header for the RLS reasoning,
+// carried here verbatim rather than re-derived.
 //
 // RLS on community_group_members.UPDATE allows a user to update their
-// own row (with role/joined_at unchanged). Updating just `starred` is
-// within that policy — we use the caller's RLS-aware client so the
+// own row (with role/joined_at unchanged). Updating just `muted` is
+// within that policy, we use the caller's RLS-aware client so the
 // row guard is enforced server-side, not just in our query.
 //
 // Auth: cookie session.
@@ -38,14 +41,14 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const validated = validateMemberPrefToggle(body, "starred");
+  const validated = validateMemberPrefToggle(body, "muted");
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
 
   const { data, error } = await auth.supabase
     .from("community_group_members")
-    .update({ starred: validated.value })
+    .update({ muted: validated.value })
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .select("group_id")
@@ -62,7 +65,7 @@ export async function PATCH(
   }
 
   return NextResponse.json(
-    { ok: true, starred: validated.value },
+    { ok: true, muted: validated.value },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

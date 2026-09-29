@@ -16,6 +16,8 @@
  * Where the contract was silent, the gap is named at the call site with [INFERRED].
  */
 
+import { validateEntityIds } from "../../lib/community/entity-binding.mjs";
+
 // ── POST /api/community/posts ────────────────────────────────────────────────────────────────
 
 export interface CreatePostInput {
@@ -27,6 +29,9 @@ export interface CreatePostInput {
   /** Named commercially-sensitive field this post asserts a value for, if any (k-anonymity /
    * dominance / lag guard target — spec 05 §1). Omitted for posts that carry no sensitive figure. */
   sensitivity_field?: string;
+  /** R8.7 (spec 07 Community, 2026-09-25, migration 336): per-post anonymity override. Omitted lets
+   * the route fall back to the author's own community_member_profiles.default_anonymous. */
+  anonymous?: boolean;
 }
 
 /** The guard's refusal payload shape (spec 05 §1, acceptance 3): "refuse, explain, offer the
@@ -65,13 +70,9 @@ export async function createCommunityPost(
   input: CreatePostInput,
   fetchImpl: typeof fetch = fetch
 ): Promise<CreatePostResult> {
-  if (!input.entity_ids || input.entity_ids.length === 0) {
-    return {
-      ok: false,
-      status: 0,
-      error:
-        "Bind this post to at least one spine entity (corridor, jurisdiction, instrument, technology, or organisation) before posting.",
-    };
+  const entityCheck = validateEntityIds(input.entity_ids);
+  if (!entityCheck.ok) {
+    return { ok: false, status: 0, error: entityCheck.error };
   }
 
   let res: Response;
@@ -133,17 +134,22 @@ export async function getThreadCorroboration(
 
 // ── GET /api/community/entities/[entityId]/threads ───────────────────────────────────────────
 
-/** Author identity projection (spec 05 §2, §5 component 1/11): org type + role + sector + region,
- * never name or company. The wave3 contract's entity-threads response shape (as written) carries
- * `author_user_id` rather than this projection — [INFERRED] this field is optional here so a caller
- * degrades gracefully (renders nothing identity-shaped) until the projection is threaded through,
- * rather than ever rendering the raw user id as a stand-in identity. See AuthorIdentityChip.tsx. */
+/** Author identity projection (spec 05 section 2, section 5 component 1/11; amended by R8.7, 2026-09-25, migration
+ * 336): org type + role + sector + region + verified, PLUS name/company shown by default and withheld
+ * only when `anonymous` is true (see identity.mjs projectAuthorIdentity's own header). The wave3
+ * contract's entity-threads response shape (as written) carries `author_user_id` rather than this
+ * projection, [INFERRED] this field is optional here so a caller degrades gracefully (renders
+ * nothing identity-shaped) until the projection is threaded through, rather than ever rendering the
+ * raw user id as a stand-in identity. See AuthorIdentityChip.tsx. */
 export interface AuthorIdentityProjection {
   orgType?: string | null;
   role?: string | null;
   sector?: string | null;
   region?: string | null;
   verified?: boolean;
+  name?: string | null;
+  company?: string | null;
+  anonymous?: boolean;
 }
 
 export interface EntityThread {
@@ -301,6 +307,9 @@ export interface CommunityProfile {
   verified: boolean;
   verifiedAt: string | null;
   verificationMethod: string | null;
+  /** R8.7 (spec 07 Community, 2026-09-25, migration 336): the member's account-wide default for a new
+   * post's anonymity, self-service via PUT (below). Defaults to false (identity shown). */
+  defaultAnonymous: boolean;
 }
 
 export interface ProfileFetchResult {
@@ -333,6 +342,10 @@ export interface UpdateProfileInput {
   role?: string | null;
   sector?: string | null;
   region?: string | null;
+  /** R8.7 (migration 336): the caller's new account-wide anonymity default. Omitted collapses to
+   * false server-side (sanitizeMemberWrite), matching the PUT route's full-replace semantics for
+   * every other self-service field. */
+  default_anonymous?: boolean;
 }
 
 export async function updateOwnProfile(
@@ -388,7 +401,7 @@ async function safeJson<T>(res: Response): Promise<T | null> {
 export const fixtures = {
   guardRefusal: {
     error:
-      "This field is commercially sensitive and has fewer than five contributors this quarter. Refused at write time.",
+      "This field is commercially sensitive and has fewer than ten contributors this quarter. Refused at write time.",
     aggregate_route: { instrumentKey: "saf-premium-eu-us-air-2026q3", pending: true },
   } satisfies { error: string; aggregate_route: GuardAggregateRoute },
 
@@ -439,9 +452,9 @@ export const fixtures = {
         publishable: false,
         value: null,
         distinct_organisations: 3,
-        min_contributors: 5,
+        min_contributors: 10,
         response_count: 4,
-        reason: "Fewer than 5 distinct contributing organisations this period.",
+        reason: "needs 7 more organisations (3/10 contributing organisations)",
       },
     },
   ] as Benchmark[],
@@ -449,12 +462,13 @@ export const fixtures = {
   // ── lane COMMUNITY-C additions (2026-09-03): profile + response fixtures ────────────────────
   ownProfileUnverified: {
     orgType: null, role: null, sector: null, region: null,
-    verified: false, verifiedAt: null, verificationMethod: null,
+    verified: false, verifiedAt: null, verificationMethod: null, defaultAnonymous: false,
   } satisfies CommunityProfile,
 
   ownProfileVerified: {
     orgType: "forwarder", role: "Trade lane manager", sector: "cold-chain", region: "EU",
     verified: true, verifiedAt: "2026-08-01T00:00:00.000Z", verificationMethod: "corporate-email",
+    defaultAnonymous: false,
   } satisfies CommunityProfile,
 
   benchmarkRespondRefusalUnverified: {

@@ -25,6 +25,8 @@ import {
   Lock,
   Globe,
   Star,
+  Bell,
+  BellOff,
   Users,
   Settings as SettingsIcon,
   UserPlus,
@@ -38,6 +40,11 @@ interface GroupHeaderProps {
     | {
         role: "admin" | "moderator" | "member";
         starred: boolean;
+        /** WIRE item (2026-09-29): community_group_members.muted, self-only, RLS already permits
+         * self UPDATE (migration 029). PATCH /api/community/groups/[id]/mute. Optional so a caller
+         * that has not been updated to thread it through yet still type-checks (mirrors `starred`
+         * before this same lane wired it in). */
+        muted?: boolean;
       }
     | null;
   /** Optional toast hook (parent owns the Toast component). */
@@ -48,6 +55,8 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
   const router = useRouter();
   const [starred, setStarred] = useState<boolean>(membership?.starred ?? false);
   const [busyStar, setBusyStar] = useState(false);
+  const [muted, setMuted] = useState<boolean>(membership?.muted ?? false);
+  const [busyMute, setBusyMute] = useState(false);
   const [activeModal, setActiveModal] = useState<
     "members" | "settings" | "invite" | null
   >(null);
@@ -105,6 +114,35 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
       onToast?.("Network error");
     } finally {
       setBusyStar(false);
+    }
+  };
+
+  // WIRE item (2026-09-29): mirrors toggleStar exactly, same optimistic-update / revert-on-failure
+  // shape (law 6: acknowledge within 400ms; law 15: errors are recoverable), targeting the sibling
+  // /mute route instead of /star.
+  const toggleMute = async () => {
+    if (!membership || busyMute) return;
+    const next = !muted;
+    setMuted(next); // optimistic
+    setBusyMute(true);
+    try {
+      const res = await fetch(`/api/community/groups/${group.id}/mute`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ muted: next }),
+      });
+      if (!res.ok) {
+        setMuted(!next); // revert
+        const j = await safeJson(res);
+        onToast?.(j?.error || `Could not ${next ? "mute" : "unmute"} group`);
+      } else {
+        onToast?.(next ? "Group muted" : "Group unmuted");
+      }
+    } catch {
+      setMuted(!next);
+      onToast?.("Network error");
+    } finally {
+      setBusyMute(false);
     }
   };
 
@@ -227,6 +265,16 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
               fill={starred ? "currentColor" : "none"}
               strokeWidth={2}
             />
+          </IconButton>
+        )}
+        {membership && (
+          <IconButton
+            label={muted ? "Unmute group" : "Mute group"}
+            onClick={toggleMute}
+            disabled={busyMute}
+            active={muted}
+          >
+            {muted ? <BellOff size={14} /> : <Bell size={14} />}
           </IconButton>
         )}
         <IconButton

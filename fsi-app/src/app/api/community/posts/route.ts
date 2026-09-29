@@ -40,14 +40,29 @@
 // escape — the cookie-bound supabase client is the auth boundary.
 //
 // The response shape includes a denormalized `author` block joined from
-// user_profiles (name + headshot_url) so the feed UI can render headshot
-// and display name without a second round-trip.
+// profiles (name + headshot_url) so the feed UI can render headshot and
+// display name without a second round-trip, PLUS (R8.7, spec 07 Community
+// 2026-09-25, migration 336) an `author_identity` block built by
+// buildAuthorIdentityForRender (src/lib/community/identity.mjs): name +
+// company + org type/role/sector/region + a verification mark, shown by
+// default and withheld only when the post (community_posts.anonymous) or the
+// author's account-wide default (community_member_profiles.default_anonymous)
+// opts into anonymity, an anonymous post still carries the verified mark
+// (identity.mjs's own header states the carve-out). POST accepts an optional
+// `anonymous` boolean; when omitted, the author's own default_anonymous
+// applies (resolveEffectiveAnonymous).
 
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { evaluateAntitrustGuard, SENSITIVE_FIELDS } from "@/lib/community/index.mjs";
-import { entityKindOf } from "@/lib/entities/entity-id.mjs";
+import {
+  evaluateAntitrustGuard,
+  SENSITIVE_FIELDS,
+  buildAuthorIdentityForRender,
+  resolveEffectiveAnonymous,
+  validateEntityIds,
+} from "@/lib/community/index.mjs";
 import { assertBound } from "@/lib/db/paginate.mjs";
 
 const UUID_RE =
@@ -57,7 +72,8 @@ const MAX_TITLE_LEN = 200;
 const MAX_BODY_LEN = 8000;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const MAX_ENTITY_IDS = 10;
+// entity_ids max count lives in src/lib/community/entity-binding.mjs (MAX_ENTITY_IDS), the shared
+// validator this route calls below, not duplicated here.
 
 interface PostRow {
   id: string;
@@ -71,6 +87,10 @@ interface PostRow {
   reply_count: number;
   attribution: string | null;
   promoted_from_post_id: string | null;
+  /** R8.7 (migration 336): resolved at write time (POST below) from either the caller's explicit
+   * `anonymous` or their community_member_profiles.default_anonymous, always a definite boolean by
+   * the time a row is read here, never re-derived on read. */
+  anonymous: boolean;
 }
 
 interface AuthorProfile {
@@ -79,10 +99,31 @@ interface AuthorProfile {
   headshot_url: string | null;
 }
 
-function shapePost(row: PostRow, profilesById: Map<string, AuthorProfile>) {
+/** R8.7 (migration 336): the caller's community_member_profiles projection, keyed by user_id, used to
+ * build the author_identity block (org type/role/sector/region/verified). */
+interface MemberIdentityRow {
+  user_id: string;
+  org_type: string | null;
+  role: string | null;
+  sector: string | null;
+  region: string | null;
+  verified: boolean | null;
+}
+
+function shapePost(
+  row: PostRow,
+  profilesById: Map<string, AuthorProfile>,
+  memberProfilesById: Map<string, MemberIdentityRow>,
+  companyById: Map<string, string>
+) {
   const profile = row.author_user_id
     ? profilesById.get(row.author_user_id) ?? null
     : null;
+  const memberProfile = row.author_user_id
+    ? memberProfilesById.get(row.author_user_id) ?? null
+    : null;
+  const company = row.author_user_id ? companyById.get(row.author_user_id) ?? null : null;
+
   return {
     id: row.id,
     group_id: row.group_id,
@@ -95,6 +136,14 @@ function shapePost(row: PostRow, profilesById: Map<string, AuthorProfile>) {
           headshot_url: profile.headshot_url ?? null,
         }
       : null,
+    // R8.7 (spec 07 Community, 2026-09-25, migration 336): shown by default. Post.tsx renders this
+    // INSTEAD OF the legacy `author` block above whenever it is present (see Post.tsx's own header).
+    author_identity: buildAuthorIdentityForRender({
+      memberProfile,
+      name: profile?.name ?? null,
+      company,
+      postAnonymous: row.anonymous,
+    }),
     title: row.title,
     body: row.body,
     created_at: row.created_at,
@@ -103,6 +152,57 @@ function shapePost(row: PostRow, profilesById: Map<string, AuthorProfile>) {
     attribution: row.attribution,
     promoted_from_post_id: row.promoted_from_post_id,
   };
+}
+
+/** Fetches the community_member_profiles + organisation-name rows for a bounded set of author ids,
+ * shared by GET and POST so both build the exact same author_identity shape the same way. Never
+ * throws: a lookup failure degrades to an empty map (the identity projection then falls back to
+ * whatever it has, same fail-soft posture the rest of this route already uses for `profiles`). */
+async function loadAuthorIdentityInputs(
+  supabase: SupabaseClient,
+  authorIds: string[]
+): Promise<{
+  memberProfilesById: Map<string, MemberIdentityRow>;
+  companyById: Map<string, string>;
+}> {
+  const memberProfilesById = new Map<string, MemberIdentityRow>();
+  const companyById = new Map<string, string>();
+  if (authorIds.length === 0) {
+    return { memberProfilesById, companyById };
+  }
+
+  const { data: memberProfiles } = await supabase
+    .from("community_member_profiles")
+    .select("user_id, org_type, role, sector, region, verified")
+    // fitness-allow: F39 (authorIds bounded by assertBound at the call site, MAX_LIMIT clamp)
+    .in("user_id", authorIds);
+  for (const p of (memberProfiles ?? []) as MemberIdentityRow[]) {
+    memberProfilesById.set(p.user_id, p);
+  }
+
+  // Company (R8.7): the author's first org_memberships -> organizations.name. No "primary org"
+  // concept exists in the schema (org_memberships is many-to-many with no ordering column), so this
+  // takes the first row PostgREST returns per user, a known simplification, flagged in this lane's
+  // report, not a hidden assumption.
+  const { data: memberships, error: membershipsErr } = await supabase
+    .from("org_memberships")
+    .select("user_id, organizations(name)")
+    // fitness-allow: F39 (authorIds bounded by assertBound at the call site, MAX_LIMIT clamp)
+    .in("user_id", authorIds);
+  if (membershipsErr) {
+    console.warn("community posts route: company lookup failed", membershipsErr.message);
+  } else {
+    for (const m of (memberships ?? []) as unknown as Array<{
+      user_id: string;
+      organizations: { name: string | null } | { name: string | null }[] | null;
+    }>) {
+      if (companyById.has(m.user_id)) continue; // first membership wins
+      const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
+      if (org?.name) companyById.set(m.user_id, org.name);
+    }
+  }
+
+  return { memberProfilesById, companyById };
 }
 
 export async function GET(request: NextRequest) {
@@ -138,7 +238,7 @@ export async function GET(request: NextRequest) {
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .eq("group_id", groupId)
     .is("parent_post_id", null)
@@ -186,7 +286,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const shaped = rows.map((r) => shapePost(r, profilesById));
+  const { memberProfilesById, companyById } = await loadAuthorIdentityInputs(auth.supabase, authorIds);
+
+  const shaped = rows.map((r) => shapePost(r, profilesById, memberProfilesById, companyById));
   const nextCursor =
     shaped.length === limit ? shaped[shaped.length - 1].created_at : null;
 
@@ -206,6 +308,7 @@ export async function POST(request: NextRequest) {
     body?: string;
     entity_ids?: unknown;
     sensitivity_field?: string | null;
+    anonymous?: unknown;
   };
   try {
     body = await request.json();
@@ -216,6 +319,10 @@ export async function POST(request: NextRequest) {
   const groupId = body?.group_id;
   const title = (body?.title ?? "").trim();
   const postBody = (body?.body ?? "").trim();
+  if (body?.anonymous !== undefined && typeof body.anonymous !== "boolean") {
+    return NextResponse.json({ error: "anonymous must be a boolean" }, { status: 400 });
+  }
+  const explicitAnonymous = typeof body?.anonymous === "boolean" ? body.anonymous : undefined;
   const sensitivityField =
     typeof body?.sensitivity_field === "string" && body.sensitivity_field.trim()
       ? body.sensitivity_field.trim()
@@ -259,36 +366,15 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Entity binding (spec 05 §5 component 2, §6 acceptance criterion 6) ──────────────────
-  // Every top-level thread binds to at least one spine entity. Validated BEFORE any write.
-  const entityIdsRaw = Array.isArray(body?.entity_ids) ? body.entity_ids : [];
-  const entityIds = entityIdsRaw.filter(
-    (id): id is string => typeof id === "string" && id.trim().length > 0
-  );
-  if (entityIds.length === 0) {
-    return NextResponse.json(
-      {
-        error:
-          "entity_ids is required — every community thread must bind to at least one spine entity " +
-          "(corridor, jurisdiction, instrument, technology, or organisation).",
-      },
-      { status: 400 }
-    );
+  // Every top-level thread binds to at least one spine entity. Validated BEFORE any write, through
+  // the SAME validator the client runs (validateEntityIds, src/lib/community/entity-binding.mjs) ,
+  // see that module's own header: this used to be duplicated (and had drifted) between here and
+  // identity-format.ts's client-side check.
+  const entityCheck = validateEntityIds(Array.isArray(body?.entity_ids) ? body.entity_ids : []);
+  if (!entityCheck.ok) {
+    return NextResponse.json({ error: entityCheck.error }, { status: 400 });
   }
-  if (entityIds.length > MAX_ENTITY_IDS) {
-    return NextResponse.json(
-      { error: `entity_ids must name ${MAX_ENTITY_IDS} or fewer entities` },
-      { status: 400 }
-    );
-  }
-  const malformedEntityIds = entityIds.filter((id) => !entityKindOf(id));
-  if (malformedEntityIds.length > 0) {
-    return NextResponse.json(
-      {
-        error: `entity_ids contains malformed id(s), expected cl:<kind>:<16 hex>: ${malformedEntityIds.join(", ")}`,
-      },
-      { status: 400 }
-    );
-  }
+  const entityIds = entityCheck.entityIds;
 
   // ── Antitrust write-time guard (spec 05 §1, §6 acceptance criterion 3) ──────────────────
   // A caller-declared sensitivity_field is ALWAYS refused here: an individual free-text post can
@@ -302,6 +388,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── Identity-by-default anonymity (R8.7, migration 336) ─────────────────────────────────
+  // Resolved once, at write time: the caller's explicit `anonymous` wins; otherwise their own
+  // community_member_profiles.default_anonymous applies (resolveEffectiveAnonymous, shared with the
+  // read path so both apply the exact same fallback rule). The RESOLVED value is what gets stored ,
+  // a post's anonymity is fixed at creation, it does not silently change later if the author edits
+  // their account-wide default afterward.
+  let effectiveAnonymous = explicitAnonymous ?? false;
+  if (explicitAnonymous === undefined) {
+    const { data: ownProfile } = await auth.supabase
+      .from("community_member_profiles")
+      .select("default_anonymous")
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    effectiveAnonymous = resolveEffectiveAnonymous({
+      postAnonymous: undefined,
+      profileDefaultAnonymous: (ownProfile as { default_anonymous?: boolean } | null)?.default_anonymous,
+    });
+  }
+
   const { data: inserted, error: insErr } = await auth.supabase
     .from("community_posts")
     .insert({
@@ -309,11 +414,12 @@ export async function POST(request: NextRequest) {
       author_user_id: auth.userId,
       title,
       body: postBody,
+      anonymous: effectiveAnonymous,
     })
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .maybeSingle();
 
@@ -367,9 +473,18 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (profile) profilesById.set(profile.user_id, profile as AuthorProfile);
   }
+  const { memberProfilesById, companyById } = await loadAuthorIdentityInputs(
+    auth.supabase,
+    row.author_user_id ? [row.author_user_id] : []
+  );
 
   return NextResponse.json(
-    { post: { ...shapePost(row, profilesById), entity_ids: entityIds } },
+    {
+      post: {
+        ...shapePost(row, profilesById, memberProfilesById, companyById),
+        entity_ids: entityIds,
+      },
+    },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
 }

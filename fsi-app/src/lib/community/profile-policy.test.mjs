@@ -12,13 +12,30 @@ import {
 test("sanitizeMemberWrite: accepts a valid minimal body (org_type only)", () => {
   const r = sanitizeMemberWrite({ org_type: "forwarder" });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.data, { org_type: "forwarder", role: null, sector: null, region: null });
+  assert.deepEqual(r.data, {
+    org_type: "forwarder", role: null, sector: null, region: null, default_anonymous: false,
+  });
 });
 
-test("sanitizeMemberWrite: accepts all four self-service fields", () => {
-  const r = sanitizeMemberWrite({ org_type: "carrier", role: "Ops Manager", sector: "cold-chain", region: "EU" });
+test("sanitizeMemberWrite: accepts all five self-service fields", () => {
+  const r = sanitizeMemberWrite({
+    org_type: "carrier", role: "Ops Manager", sector: "cold-chain", region: "EU", default_anonymous: true,
+  });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.data, { org_type: "carrier", role: "Ops Manager", sector: "cold-chain", region: "EU" });
+  assert.deepEqual(r.data, {
+    org_type: "carrier", role: "Ops Manager", sector: "cold-chain", region: "EU", default_anonymous: true,
+  });
+});
+
+test("sanitizeMemberWrite: default_anonymous omitted defaults to false (R8.7's identity-shown default)", () => {
+  const r = sanitizeMemberWrite({ org_type: "shipper" });
+  assert.equal(r.data.default_anonymous, false);
+});
+
+test("sanitizeMemberWrite: rejects a non-boolean default_anonymous", () => {
+  const r = sanitizeMemberWrite({ org_type: "shipper", default_anonymous: "yes" });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /default_anonymous/);
 });
 
 test("sanitizeMemberWrite: rejects a missing or unrecognised org_type", () => {
@@ -51,7 +68,10 @@ test("sanitizeMemberWrite: STRIPS verified/verified_at/verification_method/organ
   for (const forbidden of MEMBER_WRITE_FORBIDDEN_COLUMNS) {
     assert.ok(!keys.includes(forbidden), `${forbidden} must not appear in sanitizeMemberWrite's output`);
   }
-  assert.deepEqual(Object.keys(r.data).sort(), ["org_type", "region", "role", "sector"]);
+  assert.deepEqual(
+    Object.keys(r.data).sort(),
+    ["default_anonymous", "org_type", "region", "role", "sector"]
+  );
 });
 
 test("sanitizeMemberWrite: rejects a non-object body", () => {
@@ -76,7 +96,13 @@ test("projectOwnProfile: null/undefined row projects to the empty, unverified sh
   assert.deepEqual(projectOwnProfile(null), {
     orgType: null, role: null, sector: null, region: null,
     verified: false, verifiedAt: null, verificationMethod: null,
+    defaultAnonymous: false,
   });
+});
+
+test("projectOwnProfile: carries the caller's own default_anonymous (R8.7's per-user default)", () => {
+  const projected = projectOwnProfile({ org_type: "forwarder", default_anonymous: true });
+  assert.equal(projected.defaultAnonymous, true);
 });
 
 test("projectOwnProfile: carries the caller's OWN verification status (unlike the public projection)", () => {

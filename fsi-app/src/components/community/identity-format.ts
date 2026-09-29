@@ -9,35 +9,44 @@
  */
 
 import type { AuthorIdentityProjection } from "./api-client";
+import { validateEntityIds } from "../../lib/community/entity-binding.mjs";
 
 /**
- * Render the pseudonymity-safe identity line: org type, role, sector, region — joined, never a
- * name or company (spec 05 §2: "profiles display job title, role, industry and company size, and
- * not name or company"). Returns null when every field is absent so a caller can render nothing
+ * Render the author identity line (R8.7, spec 07 Community, 2026-09-25, supersedes spec 05 section 2 item
+ * 1's "never a name or company"): name and company come FIRST when present (identity shown by
+ * default), followed by org type / role / sector / region. An anonymous identity (name/company
+ * withheld by `projectAuthorIdentity`) falls back to the pseudonymous org-type/role/sector/region
+ * line, same as before R8.7. Returns null when every field is absent so a caller can render nothing
  * rather than an empty separator string.
  */
 export function formatAuthorIdentity(
   identity: AuthorIdentityProjection | null | undefined
 ): string | null {
   if (!identity) return null;
-  const parts = [identity.orgType, identity.role, identity.sector, identity.region]
+  const nameCompany = [identity.name, identity.company].map((p) => (p ?? "").trim()).filter(Boolean);
+  const rest = [identity.orgType, identity.role, identity.sector, identity.region]
     .map((p) => (p ?? "").trim())
     .filter(Boolean);
+  const parts = [...nameCompany, ...rest];
   if (parts.length === 0) return null;
   return parts.join(" · ");
 }
 
 /**
  * Entity-binding requirement (spec 05 §5 component 2, acceptance criterion 6: "every thread binds
- * to at least one spine entity"). Returns a user-facing refusal string, or null when the binding is
- * valid — the same rule createCommunityPost() enforces before ever calling the network, exported
- * separately so the composer can show the message live as the picker changes, not only on submit.
+ * to at least one spine entity"; R8.7's amendment states this item "stays unchanged"). Delegates to
+ * validateEntityIds (src/lib/community/entity-binding.mjs), the SAME validator POST
+ * /api/community/posts/route.ts runs server-side, so this client-side check can never again diverge
+ * from what the server actually requires (investigated as part of the "composer 400 without
+ * entity_ids" item, 2026-09-25 close note: the two sides had drifted, this client check previously
+ * only caught the empty case, not the malformed-id or MAX_ENTITY_IDS cases the server also enforces,
+ * so a composer could pass client-side validation and still 400 late, see that module's own header).
+ * Returns a user-facing refusal string, or null when the binding is valid, exported separately so
+ * the composer can show the message live as the picker changes, not only on submit.
  */
 export function validateEntityBinding(entityIds: string[] | null | undefined): string | null {
-  if (!entityIds || entityIds.length === 0) {
-    return "Bind this post to at least one spine entity (corridor, jurisdiction, instrument, technology, or organisation) before posting.";
-  }
-  return null;
+  const result = validateEntityIds(entityIds);
+  return result.ok ? null : result.error;
 }
 
 /** Promotion state machine labels (spec 05 §4). Gate 1 is the default a post is minted into; an

@@ -1,12 +1,15 @@
 /**
- * AuthorIdentityChip — the pseudonymous author-identity line (spec 05 §2, §5 components 1/11).
+ * AuthorIdentityChip, the author-identity line (spec 05 section 2, section 5 components 1/11; amended by R8.7,
+ * 2026-09-25, migration 336).
  *
- * "The platform knows exactly who you are. The room does not." Renders org type + role + sector +
- * region, plus a verification mark — and structurally CANNOT render a name or company, because its
- * prop type (CommunityAuthorIdentity) carries none. This is the deliberate replacement for a real
- * name in any surface that shows a post from the entity-bound, guard-enforced posting flow;
- * Post.tsx renders this INSTEAD OF the legacy author name when the post carries an identity
- * projection (see Post.tsx's header for the fallback rule when it does not).
+ * "A room can and should know who you are when you're talking, unless you choose to be anonymous"
+ * (operator, R8.7). Renders name + company (when present), org type, role, sector, region, and a
+ * verification mark, via formatAuthorIdentity, identity.mjs's projectAuthorIdentity is the ONE place
+ * that decides whether name/company are present at all (withheld only when the post or the author
+ * opted into anonymity; the verified mark is never withheld by anonymity). This is the replacement
+ * for the legacy raw author name in any surface that shows a post from the entity-bound,
+ * guard-enforced posting flow; Post.tsx renders this INSTEAD OF the legacy author name when the post
+ * carries an identity projection (see Post.tsx's header for the fallback rule when it does not).
  *
  * Pure presentational, no data dependency.
  */
