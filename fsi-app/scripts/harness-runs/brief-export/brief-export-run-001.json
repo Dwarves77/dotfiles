@@ -1,0 +1,483 @@
+{
+  "harness_family": "brief-export",
+  "harness_version": "sha256:159fd4622514424c",
+  "run_id": "brief-export-run-001",
+  "started_at": "2026-09-29T12:43:41.196Z",
+  "config": {
+    "mode": "auto",
+    "selection": "record",
+    "limit": 50,
+    "upstream_name": "Population turn",
+    "upstream_run_id": "36569931097",
+    "loop_run_id": null,
+    "batch_path": "scripts/_snapshots/brief-export/export-36569976887.json",
+    "branch": "brief-export/36569976887",
+    "github_run_id": "36569976887"
+  },
+  "inputs_ref": [
+    "export-corpus-for-extraction.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "01ca1bdf-a09e-4caf-afea-c90bd1040860",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "020b033f-5208-4306-8415-7edfe52aaae2",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "02470d94-abe6-4645-8f5e-6ae421f29393",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "025e6570-584f-4124-8b69-b69cc534e050",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "02cddaf9-4459-4570-92d6-ea580b2bc433",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "02e884bf-df4d-4afe-b029-7d14052f3caf",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "02eba81a-b8b6-454e-b423-afe4153bbb81",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "03f0a277-3009-47d6-a015-39b62cf6374f",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "040d30f3-f997-4fa2-8d01-e2f26222bb50",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0419eeea-9465-418e-a451-9f84b3e1bab8",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "042a9835-a30b-4f64-a654-b6cb5f273321",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "04ea10a9-0949-4855-90e8-5e7d6650db64",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "055ebb84-022c-43d8-abbf-ab82240751d1",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "056d158c-14b5-43f9-ba6a-b510a3d90b75",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "05a81d79-4536-48b9-aaeb-00b1396eff89",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "061dce37-78f4-4621-9df3-81ee36543ad6",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "063ae435-8bc1-4ff2-95fa-4bd9e2ae46cc",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "065be69d-888c-4e4a-b1c7-f2d092876bea",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "06e73a6b-3e1a-4506-b5ef-16958b8ee8dd",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "06ecdb97-25a5-4f48-a0bf-0eb139b24795",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "070e5d54-a69a-4043-b9f1-1ec187723e59",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "07132799-65f4-431a-955a-b4409321d17a",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0759232f-1f24-4ab4-8df6-8754db3ebb71",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "07957130-bb3c-4e16-8e0e-a6bcb63235fa",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "07aa3edf-272f-472d-adbb-6c50b12a297f",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "07ca180c-6bca-4c4b-ae76-2d1128436083",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "07ccf355-bbf2-4fdb-8335-edc28c28f6bb",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "08582f98-3b72-4ffc-8c59-ee0831ae4bd6",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "08f66cc8-4724-4c25-8ca4-8c70fc5a5224",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0922c6f4-ba70-4ce4-bb33-733da27dcab4",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "092498ae-343e-4069-90d6-501429a87c4a",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "095bdf8b-210d-4741-bd69-b8d1d35e7446",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "098a1e80-5ed0-47e6-b3e4-b611e6778440",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "09ad04bd-1d48-4c1e-b11a-80fcf7e7a6f8",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "09b2e557-8e0b-43ec-a3a0-2e89043cc4bf",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "09f5e6fc-324c-4726-84f4-d5650ccef2e2",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0a8d88c4-56e1-4a51-afd3-70b3aaffd541",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0a90807e-a15b-4c93-9da0-4b08ca715786",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0aa48984-d023-4a5d-a486-5c44ef3f426a",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0ae2e8cd-5a64-4509-bc71-2aef7870368f",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "0ee667cc-a403-4fe3-b5f8-4f829a4a9103",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "180b8163-6ae5-4f35-98dd-02e46c06b561",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "21423e18-528c-4baa-a5cf-f53d0523d1d4",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "21988d55-80a4-4090-9c79-c4a840c6cc60",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "21b499aa-8aea-491c-9a08-dfb3574c1db1",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "21c410ea-8300-42b5-ae0c-0643e884001b",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "2285995d-9927-49d9-a227-75cfef2ec0aa",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "22d00f53-396e-4a54-a4f1-9d046506b71f",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "22fbec12-f565-4c35-8867-9190039ec21a",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "23087bb7-476a-4b63-a14c-4643a6c6fc11",
+      "outcome": "exported",
+      "verdict": "batch skeleton scripts/_snapshots/brief-export/export-36569976887.json",
+      "evidence_refs": [
+        "scripts/_snapshots/brief-export/export-36569976887.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "ids_resolved": 50,
+    "ids_exported": 50
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/_snapshots/brief-export/export-36569976887.json"
+  ],
+  "proposer_notes": "Auto-emitted by emit-brief-export-artifact.mjs after brief-export.yml's own resolve/export steps decided this run's ids and (when non-empty) wrote a batch skeleton.",
+  "trigger": "workflow_run",
+  "upstream_run_id": "36569931097"
+}
