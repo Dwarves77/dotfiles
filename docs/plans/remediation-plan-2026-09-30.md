@@ -11,6 +11,12 @@ transcription).
 Source register: `docs/audits/audit-consolidated-2026-09-30.md` (OUTPUT 1 of this same consolidation).
 Every lane below cites the `CF-*` finding ids it closes.
 
+**Amended 2026-09-30 (same day, coordinator message):** `audit/a8d-docs` (PR #856) landed after this
+plan's first commit. Its PROGRAM-BOARD reconstruction (38 merged PRs, #800-#837, each with a proposed
+row built from `git log` commit subjects) is folded into Lane 15's Haiku batch below. Its 5 design-doc
+findings and 1 census/tech-debt finding are new Lane 19. A6b will be folded in as a second commit when it
+lands.
+
 ## Lane ordering (R14)
 
 1. Data machine and integrity (Lanes 1-6)
@@ -264,7 +270,8 @@ Every lane below cites the `CF-*` finding ids it closes.
 
 ## 15. PROGRAM-BOARD resync
 
-- **Closes:** CF-DOCS-1, CF-DOCS-3, CF-DOCS-8 (the stacked resume-pointer chain).
+- **Closes:** CF-DOCS-1, CF-DOCS-3, CF-DOCS-8 (the stacked resume-pointer chain), CF-DOCS-10 (the 38-PR
+  reconstruction gap).
 - **Write set:** `docs/PROGRAM-BOARD.md` only (coordinator-owned file per the wave2b write-set contract;
   this lane is written to be run BY the coordinator or a coordinator-delegated Haiku batch, not a
   parallel lane).
@@ -272,15 +279,20 @@ Every lane below cites the `CF-*` finding ids it closes.
   the doc's own dated-archive convention); a new dated section summarizes every thread opened/closed in
   `docs/ops/session-log.md` between 2026-09-11 and today; the "Operations matrix shows values" row is
   flipped to CLOSED using the exact replacement text A8/A8b already staged
-  (`docs/ops/session-log.d/2026-09-29-w2h.md:41-53`); the 16-row Wave-2 sub-table is reconciled against
-  this consolidation's own OUTPUT 3 build-overview table 3.
-- **Size:** M (a genuine coordinator judgment pass over ~200KB of session-log.md content, not mechanical
-  despite the individual edits being small; A8's own register recommends a dedicated pass, not a
-  mechanical patch).
-- **Model:** Sonnet, coordinator-run.
-- **Ordering:** fifteenth, first docs-class lane. Named as a Haiku batch candidate for the mechanical
-  sub-parts (row-text replacement is copy-paste once the coordinator has ruled which rows close) with
-  Sonnet judgment for which of the 16 Wave-2 sub-rows are actually closed.
+  (`docs/ops/session-log.d/2026-09-29-w2h.md:41-53`); the "Structured-action extraction" row is flipped to
+  DONE/MERGED citing #832 (A8d's corrected-existing-rows finding); the 38-row PR skeleton A8d built from
+  `git log` commit subjects (`#801` through `#837`, its own table gives the literal commit subject as a
+  starting "Proposed row" for each) is expanded into the board's usual prose-section voice and landed as
+  the body's 2026-09-25 through 2026-09-29 coverage, closing the append-only-body-stops-at-2026-09-11 gap;
+  the 16-row Wave-2 sub-table is reconciled against this consolidation's own OUTPUT 3 build-overview table
+  3.
+- **Size:** L (revised up from M: A8d's own effort estimate for the 38-row expansion is L, "matching that
+  voice and density for 40+ PRs is not a mechanical fill"; the judgment pass over session-log.md content
+  remains a real cost on top of that).
+- **Model:** Sonnet, coordinator-run, for the row-selection judgment and prose-voice expansion; the
+  skeleton table itself (PR number, commit hash, one-line proposed row) is already Haiku-batchable
+  transcription, since A8d built it from `git log` output alone.
+- **Ordering:** fifteenth, first docs-class lane.
 
 ## 16. Mechanical docs corrections batch
 
@@ -332,6 +344,30 @@ Every lane below cites the `CF-*` finding ids it closes.
 - **Model:** Sonnet (judgment on whether the evidence found closes the item).
 - **Ordering:** eighteenth, last.
 
+## 19. Design-doc drift batch
+
+- **Closes:** CF-DOCS-11 (DES-1, DES-2, DES-5 mechanical; DES-3 needs an operator ruling; DES-4 needs
+  verification first), CF-DOCS-13 (CEN-2, mechanical-or-decision), CF-DOCS-14 (TDL-1, verification only).
+- **Write set:** `docs/design/redesign/README.md` (1 line), `docs/design/handoff-2026-09-06/README.md` (2
+  lines: placeholder text, 778px figure), `docs/design/handoff-2026-09-06/HANDOFF.md` (1 line, 778px
+  figure), `docs/census/gap-census-2026-07.md` (either populate or delete the empty-table promise, see
+  below), `docs/tech-debt-log.md` (verification pass on the F52 shellcheck entry, no edit unless a closing
+  commit is found).
+- **Acceptance test:** `redesign/README.md` line 1 carries the superseded banner A8d drafted verbatim
+  ("SUPERSEDED by `../handoff-2026-09-07/README.md`..."); `handoff-2026-09-06/README.md:45`'s placeholder
+  text matches the shipped `masthead.json` string; the 778px figure is corrected to 780px in both named
+  files; `docs/tech-debt-log.md`'s F52 entry is either closed with a citation or left open with a note that
+  this pass confirmed no closing commit exists among #800-#837.
+- **Size:** S for the 4 mechanical text fixes and the tech-debt-log verification; S (delete the promise) or
+  M (populate from a live query) for CEN-2, **needs an operator or coordinator call on which disposition**.
+- **Model:** Haiku for the 4 mechanical text fixes (exact replacement text already drafted by A8d); Sonnet
+  for the CEN-2 disposition once ruled.
+- **Ordering:** nineteenth, folds into the docs-class lanes alongside Lanes 16-18.
+
+**Not included in Lane 19, needs an operator ruling first (see non-code items below):** DES-3 (the
+rule-below-S-section-title contradiction and the Search\|Ask toggle disposition) and AUD-1 (the WatchButton
+hover "Unwatch" text, a real product-behavior gap against a named operator ruling, not a docs-only fix).
+
 ---
 
 ## What will NOT be fixed, and why
@@ -366,6 +402,14 @@ Every lane below cites the `CF-*` finding ids it closes.
   file rather than a standalone lane.
 - **REFUTED findings** (section (d) of the audit register): no fix needed by definition. Listed in the
   audit for the record, not carried into this plan.
+- **CF-DOCS-11's DES-4** (`docs/design/decision-package-2026-07-06.md`'s 2026-07-06 doctrine, possibly
+  absorbed by later heal machinery): `[HYPOTHESIS]` only, A8d's own text names this as untraced through
+  git log or the DB within its session. A lane would need to trace the 52-item worklist to a closing
+  commit before a superseded-note edit is safe; not scheduled until that tracing happens, folded into
+  whichever lane next has reason to touch the rule-18 heal machinery rather than a dedicated lane.
+- **CF-DOCS-12** (`docs/sprint-1/`, `docs/sprint-2/` archival): already covered by Lane 16's historical-
+  header batch (A8's L3-1 finding); A8d's SPR-1/SPR-2 corroborate the same disposition with a different
+  method (git log dates), not a new fix.
 
 ## Non-code items requiring operator approval
 
@@ -403,6 +447,25 @@ live definition, migration-256's own pattern, if the table is meant to stay; or 
 above, commented out) if it was a one-off experiment. This lane cannot see its column definition without
 DB access, so this is not resolved here.
 
+### Design-ruling conflicts (operator call, blocks part of Lane 19)
+
+Two unresolved, dated ruling conflicts named by A8d (DES-3), neither resolved by any later doc in this
+wave's read set: (a) whether a rule sits below an S-section title (`SectionHeader.tsx:27-30` cites a
+CLOSED 2026-09-07 ruling forbidding it; `parts-brief-2026-09-18.md` section 2.3 asks for exactly that
+rule); (b) whether the CommandBar Search\|Ask toggle (a named, dated 2026-09-09 CMDSEARCH ruling) is
+removed per the 2026-09-18 parts brief's instruction, and if so what happens to the `GET /api/search`
+capability the toggle exists to reach. Record as an ADR or a parts-brief amendment once ruled; this closes
+`parts-inventory.md`'s own still-open findings in place per rule 13's corollary.
+
+### WatchButton "Unwatch" text (operator or coordinator call, not blocked, just not chosen here)
+
+A8d's AUD-1: operator ruling 3.5's second half ("a watched row must never read 'Watch'" on hover/menu) has
+zero implementation (`grep -rn "Unwatch" src/` returns nothing), confirmed by two independently-dated
+passes 4 days apart. Either build the hover/menu "Unwatch" swap in `WatchButton.tsx`'s row variant (S
+effort, Sonnet), or record an explicit deferral/ruling-amendment so the gap stops being an untracked
+silent omission. Not scheduled to a lane above because it is a small, self-contained product fix once
+chosen, not because it needs more investigation; the choice itself (fix now vs. defer) is the open item.
+
 ### `/api/admin/promotion-policy` disposition (operator call, blocks Lane 12)
 
 Wire it to the promotion engine it was built for (candidates named by A1:
@@ -428,8 +491,11 @@ pass first, Haiku transcription second, same PR.
 
 ---
 
-*Lanes proposed: 18. Every CONFIRMED finding in the audit register is mapped to a lane above or the
-"will not fix" list, with a reason in both cases. Write sets checked disjoint by file path across all 18
-lanes (no two lanes above name an overlapping file); Lane 15 (PROGRAM-BOARD) and Lane 17 (wave-status
-tables) both touch planning docs but not the same file. Approve this plan, then Lane 1's `--apply` step
-separately, before any lane starts.*
+*Lanes proposed: 19 (amended 2026-09-30 to fold in A8d, PR #856: +1 lane, Lane 19; Lane 15 revised in
+place with the 38-PR reconstruction). Every CONFIRMED finding in the audit register is mapped to a lane
+above or the "will not fix" list, with a reason in both cases. Write sets checked disjoint by file path
+across all 19 lanes (no two lanes above name an overlapping file); Lane 15 (PROGRAM-BOARD) and Lane 17
+(wave-status tables) both touch planning docs but not the same file; Lane 19 (design docs) and Lane 16
+(mechanical docs batch) both touch `docs/` but not the same files. Approve this plan, then Lane 1's
+`--apply` step separately, before any lane starts. A6b will be folded in as a second commit when it
+lands.*

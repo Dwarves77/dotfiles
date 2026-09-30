@@ -1,13 +1,21 @@
 # Consolidated audit, 2026-09-30
 
 Lane CONSOLIDATE. Read-only synthesis of the 2026-09-30 audit wave: 2 registers merged to master
-(architecture-review, mechanical-checkers) plus 16 registers on open branches (A1 through A10, split
-where the coordinator split a lane mid-session: A2/A2b, A3/A3b/A3c, A4/A4b/A4c, A5/A5b/A5c, A8/A8b/A8c).
-Every register was read in full for its substantive sections (methodology, findings tables, top-10, and
-decision-ready items); coverage appendices (per-file "clean, read in full" listings with no finding) were
-sampled rather than transcribed here, since they carry no additional fact beyond what section (e) below
-states about each lane's coverage. No code, schema, or doc outside this file and the two sibling outputs
-was changed by this lane.
+(architecture-review, mechanical-checkers) plus 17 registers on open branches (A1 through A10, split
+where the coordinator split a lane mid-session: A2/A2b, A3/A3b/A3c, A4/A4b/A4c, A5/A5b/A5c,
+A8/A8b/A8c/A8d). Every register was read in full for its substantive sections (methodology, findings
+tables, top-10, and decision-ready items); coverage appendices (per-file "clean, read in full" listings
+with no finding) were sampled rather than transcribed here, since they carry no additional fact beyond
+what section (e) below states about each lane's coverage. No code, schema, or doc outside this file and
+the two sibling outputs was changed by this lane.
+
+**Amended 2026-09-30 (same day, coordinator message):** `audit/a8d-docs` (PR #856) landed on the remote
+after this document's first commit. Its register (`docs-vs-reality-board-and-remainder-2026-09-30.md`)
+is read in full and folded in below: a new summary-table row, new findings in the docs-drift class
+(PROGRAM-BOARD's 38-row PR reconstruction, 5 design-doc findings, 2 sprint fossil findings, 2 census
+findings, 1 tech-debt-log finding), and section (e)'s coverage statement corrected to state the A8 split
+is four lanes, not three. A6b has not landed on the remote as of this amendment; it will be folded in as
+a second commit when it does, per the coordinator's instruction.
 
 **Security note, reported not actioned.** Lane A5 records that two messages purporting to be "the
 coordinator" arrived mid-session, out of band, demanding a fabricated full line-by-line read claim and a
@@ -36,12 +44,14 @@ re-adjudicating it: it is A5's own finding, carried forward, not independently r
 | A8 | docs/ vs reality | ~367 (docs/ minus ops/plans/dispatches) | partial, sampled | 1 | 2 | 4 | 0 | branch `audit/a8-docs`, open |
 | A8b | docs/ops | 167 | 167/167 (100%, 1 structural exception) | 1 | 0 | 8 | 6 | branch `audit/a8b-ops`, open |
 | A8c | docs/plans + docs/dispatches | 268 | 249/268 (93%; 19 images deliberately unread) | 0 | 1 | 5 | 1 | branch `audit/a8c-plans`, open |
+| A8d | PROGRAM-BOARD, INDEX, design, sprint-1/2, census, tech-debt-log, docs remainder | ~61 text files (40 `.md`) | full for every text file, 2 disclosed exceptions (design-tool HTML/JS mock exports, 324 binary images) | 0 | 1 (DES-3) | 3 | 2 | branch `audit/a8d-docs`, open (PR #856) |
 | A9 | mechanical checkers | n/a (tool outputs) | n/a | 0 | 0 | 1 | 0 | merged to master (#836) |
 | A10 | remainder (tests, data, root config, .claude, docs root) | ~sampled set | full for every file cited | 0 | 0 | 4 | 5 | branch `audit/a10-remainder`, open |
 
-A6b (discipline, second pass) has not landed on the remote as of this writing; not included. See section
-(e) for what "files read in full" means per lane, since several lanes disclose a partial-coverage gap in
-their own text rather than claiming completeness.
+A6b (discipline, second pass) has not landed on the remote as of this writing; not included, will be
+folded in as a second commit when it lands, per the coordinator. See section (e) for what "files read in
+full" means per lane, since several lanes disclose a partial-coverage gap in their own text rather than
+claiming completeness.
 
 ## (b) Deduplicated findings register, by class
 
@@ -165,6 +175,11 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 | CF-DOCS-7 | A8c A8c-3 | `docs/plans/finish-plan-2026-09-02.md`, `system-completion-plan-2026-09-02.md` | 2 of 4 plans a later plan's own table instructs to get a superseded banner never received one | [CONFIRMED] | P2 | none |
 | CF-DOCS-8 | A7 recommendation 4 | `docs/PROGRAM-BOARD.md` lines 17-59 | Six-deep stacked "resume from" pointer chain at the file's head, each superseding but not replacing the last | [CONFIRMED] | P2 | none |
 | CF-DOCS-9 | A10 A10-9 | `fsi-app/docs/admin-scan-audit.md` | Undated point-in-time file, against CLAUDE.md standing rule 10 | [CONFIRMED] | P3 | none |
+| CF-DOCS-10 | A8d PB-1/PB-2 | `docs/PROGRAM-BOARD.md`, whole file | Extends CF-DOCS-1 with a full reconstruction: the board's append-only body terminates at 2026-09-11 (line 2032-2036) while its own header pointers run to 2026-09-29; 38 merged PRs (#800-#837) have no board row at all. A8d built a one-row-per-PR skeleton from `git log` commit subjects (no chat, no memory), matching the board's own provenance rule | [CONFIRMED] | P0 | none (skeleton staged, not landed; see remediation Lane 15) |
+| CF-DOCS-11 | A8d DES-1, DES-2, DES-5, DES-3, DES-4, AUD-1 | `docs/design/redesign/README.md`, `handoff-2026-09-06/{README.md,HANDOFF.md,DEVIATION-LOG.md}`, `handoff-2026-09-07/README.md`, `docs/design/parts-inventory.md`, `docs/design/decision-package-2026-07-06.md`, `AUDIT-2026-09-07.md` | 6 design-doc findings: (DES-1) the oldest of 3 design-source-of-truth layers claims sole authority with no superseded notice despite INDEX.md stating it is superseded; (DES-2) a self-flagged 2026-09-09 deviation ("README stale in the same direction") never reconciled, 21 days elapsed; (DES-5) a 778px vs 780px content-column-width arithmetic correction landed in the -07 README but not in 2 other files carrying the same figure; (DES-3) two unresolved ruling conflicts (a rule-below-S-section-title contradiction, and a Search\|Ask toggle removal that silently drops the `GET /api/search` capability) with no resolving doc, 12+ days each as of the source doc's own date, unresolved 12 more days after that; (DES-4) a 2026-07-06 doctrine doc whose tranche model appears absorbed by later heal machinery, not confirmed either way; (AUD-1) operator ruling 3.5's second half (hover/menu "Unwatch" text) is unbuilt, confirmed independently by 2 dated passes 4 days apart (`grep -rn "Unwatch" src/` returns zero) | [CONFIRMED] for DES-1/2/5/3/AUD-1; [HYPOTHESIS] for DES-4 | DES-3 is P1 (actively blocks the F49 parts gate from having one unambiguous target); AUD-1 is P2; DES-1/2/5/4 are P2/P3 | none |
+| CF-DOCS-12 | A8d SPR-1/SPR-2 | `docs/sprint-1/*.md` (16 files), `docs/sprint-2/*.md` (4 files) | Every file's last-touch commit is 2026-05-17 through 2026-05-21, four-plus months stale; zero citations from post-July PROGRAM-BOARD content; not marked historical the way `fsi-app/STATUS.md` explicitly is. Independently corroborates A8's own L3-1 finding on the same directories with a different method (git log dates, not just link-breakage) | [CONFIRMED] | P3 | none |
+| CF-DOCS-13 | A8d CEN-1/CEN-2 | `docs/census/gap-census-2026-07.md` | (CEN-1) the doc's specific row counts (1,331 `census_worklist` rows) are likely stale relative to later corpus-wide mint/heal waves, not verified live; (CEN-2) every per-item detail table the doc's own "how to read" section promises (Enumerated/Held/Missing, for all 4 surfaces, plus rollup/flagged/dedup logs) is empty scaffolding, while the aggregate rollup numbers in the same file are populated; the promise stands over permanently-empty tables | [HYPOTHESIS] for CEN-1; [CONFIRMED] for CEN-2 | P2/P3 | none |
+| CF-DOCS-14 | A8d TDL-1 | `docs/tech-debt-log.md:9-30` | The F52 shellcheck entry's stated exit condition (fix 29 notes, then remove `-shellcheck=`) has no closing commit found among the 38 PRs A8d reconstructed; very likely still open, flagged for review only, not a defect in the entry itself | [HYPOTHESIS] | P3 | none |
 
 ### Process (this audit wave's own coverage gaps, carried forward per rule 14)
 
@@ -178,6 +193,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 **P0, open, needs action now:**
 
 - `[CONFIRMED]` `docs/PROGRAM-BOARD.md`, the repo's own designated resume state, has not been updated in 19 days and 150-plus commits, including the entire 2026-09-24/25 ruling set and the whole Wave-2 lane program (CF-DOCS-1). A session that resumes from it today gets a materially wrong picture of what is built.
+- `[CONFIRMED]` The gap above is now fully enumerated: 38 merged PRs (#800-#837) have zero corresponding PROGRAM-BOARD row, and a one-row-per-PR reconstruction skeleton exists, built from `git log` commit subjects, ready to land (CF-DOCS-10).
 - `[CONFIRMED]` The 2026-09-29 chained-apply incident left 33 quarantined `intelligence_items`, 33 `staged_updates`, 32 `agent_run_searches`, and 51 `integrity_flags` rows live in production under an explicit operator ruling to remove them. A tested reversal script exists and has not been run (CF-BROKEN-7).
 - `[CONFIRMED]` Two messages claiming coordinator authority arrived out of band during lane A5's session, demanding a fabricated coverage claim; not acted on, reported here per the instruction-source-boundary rule (CF-PROC-2).
 
@@ -206,6 +222,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - `[HYPOTHESIS]` Market detail's raw-dump bug is reported but not yet reproduced (CF-BROKEN-6).
 - `[HYPOTHESIS]` 3 open commitments in `docs/ops/` have no visible closure across a full 24,302-line session-log read (CF-DOCS-5).
 - `[HYPOTHESIS]` 2 HIGH findings from a 4-month-old scripts register (bare-invocation prod writes; a partial re-run interlock) were never re-checked against the current tree (CF-DOCS-6).
+- `[CONFIRMED]` Two unresolved design-ruling conflicts (a rule-below-S-section-title contradiction between code and the current parts brief, and a Search\|Ask toggle removal that silently drops a live API capability) sit with no resolving doc, actively blocking the F49 parts gate from having one unambiguous target (CF-DOCS-11, DES-3).
 - `[CONFIRMED]` This audit wave's own coverage: 4 lanes disclose they did not reach literal 100% line-by-line reading within one session (CF-PROC-1).
 
 ## (d) Refuted along the way
@@ -221,6 +238,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - **A5c H1** (same id reused by A2b for a different file; this is A5c's instance): `[REFUTED at the specific-claim level]` `sweep-to-ledger-consume` hop's `enforceFired:false` framing, refuted by live `gh run list` evidence showing the hop does fire; the manifest text itself is stale, not the wiring (folded into CF-UNWIRE-5, not separately listed as refuted).
 - **build-plan-2026-09-25 workstream 4** (Operations matrix envelope-reader gap): `[REFUTED]` originally suspected as a real data-reading bug. `fetchOperationsCoverage` selects all 11 envelope columns; `RegionDimensionMatrix.tsx` consumes them correctly. Closed by lane W2-H, 2026-09-29. This is the single most-cited example across the corpus of the rule-13 corollary (a flag dissolving under evidence) working as designed.
 - **A9 prior register, dwell-count**: `[CONFIRMED, corrected]` RW-3's deferral-dwell-clock defect, corrected 2026-08-11 from a 66-day miscount to the true 4-day figure; carried forward as already-closed, not re-litigated (A5 reconciliation table).
+- **A8d IDX-1**: `[REFUTED as broken]` `docs/INDEX.md:302`'s `%20`-encoded link to the HANDOFF file, which A8's own L3-5 had left as an open `[HYPOTHESIS]` needing a filesystem check. A8d ran that check: the target file exists and the encoding decodes correctly; the link is a false positive in a naive (non-decoding) link-resolution script, not a real break. This resolves L3-5 in place.
 
 ## (e) Coverage statement
 
@@ -228,8 +246,12 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 after a same-day completion pass superseding an initial 37% partial pass), A3c (156 of 156), A5b (166 of
 166 migrations 001-170), A5c (136 of 136 migrations 171-339), A7 (every code file it cites, ~17,290 lines,
 architecture-review-2026-09-30.md, merged to master), A8b (167 of 167 docs/ops files, with one named
-structural-verification exception on a 2,974-row mechanical manifest file), A10 (every file it makes a
-claim about).
+structural-verification exception on a 2,974-row mechanical manifest file), A8d (every text file in its
+scope, ~61 files including the full 2,036-line PROGRAM-BOARD.md, all 16 sprint-1 and 4 sprint-2 files, and
+a 4,060-line machine-generated design audit, with 2 disclosed exceptions: design-tool HTML/JS mock-render
+exports, self-described by 3 independently-read docs as never-shippable plumbing, and 324 binary
+capture/screen images, existence-verified only per rule 12's spirit), A10 (every file it makes a claim
+about).
 
 **Disclosed partial coverage, method stated per file group:** A1 (120 of 217 files fully read, 55%; the
 remaining 97 covered by exhaustive mechanical sweeps for the named defect classes, not full reads). A2b
@@ -258,11 +280,17 @@ PDF/image cost-model rule, with the narrating README read in full instead).
   self-corrections, the exact SQL of a fix).
 - A6's discipline-and-tests register has no A6b counterpart on the remote as of this document; per the
   dispatch, if A6b lands later this document is to be amended. Not yet actioned.
-- A8 is **split into A8, A8b, A8c** as specified; no A8d branch exists on the remote (only `audit/a8-docs`,
-  `audit/a8b-ops`, `audit/a8c-plans` were found via `git ls-remote`). A8's own broad-but-shallow docs/ pass
-  is superseded for `docs/ops/` by A8b's 167/167 full read, and for `docs/plans/`+`docs/dispatches/` by
-  A8c's 249/268 full read. A8's findings about `docs/decisions/`, `docs/specs/`, `docs/runbooks/`, and the
-  broken-link sweep across non-archive `docs/` remain the only coverage of those areas in this wave.
+- A8 is **split into four: A8, A8b, A8c, A8d**, corrected in place from this document's first version
+  (which found no `audit/a8d-docs` branch on the remote at the time; the coordinator confirmed it landed
+  as PR #856 after this document's first commit). A8's own broad-but-shallow docs/ pass is superseded for
+  `docs/ops/` by A8b's 167/167 full read, for `docs/plans/`+`docs/dispatches/` by A8c's 249/268 full read,
+  and for `docs/PROGRAM-BOARD.md`, `docs/INDEX.md`, `docs/design/`, `docs/sprint-1/`, `docs/sprint-2/`,
+  `docs/census/`, and `docs/tech-debt-log.md` by A8d's full read (every text file in scope, 2 disclosed
+  exceptions). A8's findings about `docs/decisions/`, `docs/specs/`, `docs/runbooks/`, and the broken-link
+  sweep across non-archive `docs/` remain the only coverage of those areas in this wave; A8d independently
+  corroborates A8's PROGRAM-BOARD-staleness finding (CF-DOCS-1) with a full-file line-count read rather
+  than a header-vs-body sample, and resolves A8's own open `[HYPOTHESIS]` (L3-5, the `%20` link) to
+  `[REFUTED as broken]`.
 
 **Named exceptions, disclosed rather than silently rounded up:** PNG/JPG screenshots (A8c, 19 files, rule
 12's image-cost-model), a 2,974-row mechanically-generated manifest file verified structurally rather than
@@ -272,7 +300,9 @@ sanctioned).
 
 ---
 
-*Findings-total: 78 consolidated rows across 8 classes plus 2 process findings. P0: 9 (3 open including
-the instruction-integrity flag, 6 historic-and-closed). P1: 15 confirmed or hypothesis, open. Remediation
-lanes for every confirmed finding are proposed in `docs/plans/remediation-plan-2026-09-30.md`; current
-build state is in `docs/plans/build-overview-2026-09-30.md`.*
+*Findings-total: 84 consolidated rows across 8 classes plus 2 process findings (amended 2026-09-30 to fold
+in A8d, PR #856: +5 rows CF-DOCS-10 through CF-DOCS-14). P0: 10 (4 open including the instruction-integrity
+flag and the PROGRAM-BOARD reconstruction skeleton, 6 historic-and-closed). P1: 16 confirmed or hypothesis,
+open. Remediation lanes for every confirmed finding are proposed in
+`docs/plans/remediation-plan-2026-09-30.md`; current build state is in
+`docs/plans/build-overview-2026-09-30.md`. A6b will be folded in as a second commit when it lands.*

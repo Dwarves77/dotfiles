@@ -2,10 +2,17 @@
 
 One-page state of the Caro's Ledge build. Sources: `docs/audits/audit-consolidated-2026-09-30.md`
 (OUTPUT 1 of this consolidation), `docs/audits/architecture-review-2026-09-30.md` (A7, merged #837),
-`docs/audits/mechanical-checkers-2026-09-30.md` (A9, merged #836), `git log --oneline --first-parent
-origin/master --since=2026-09-25`, `gh pr list --state open`, and the three plan documents named in the
-consolidation brief. Every cell below cites the proving artifact; a cell with no PR/branch citation is
-not asserted as built.
+`docs/audits/mechanical-checkers-2026-09-30.md` (A9, merged #836), `docs-vs-reality-board-and-remainder-
+2026-09-30.md` (A8d, PR #856, its PB-2 reconstruction independently corroborates Table 3 below from `git
+log` commit subjects), `git log --oneline --first-parent origin/master --since=2026-09-25`, `gh pr list
+--state open`, and the three plan documents named in the consolidation brief. Every cell below cites the
+proving artifact; a cell with no PR/branch citation is not asserted as built.
+
+**Amended 2026-09-30 (same day, coordinator message):** A8d's 38-row PR reconstruction (#800-#837) is now
+cross-checked against Table 3 below; no disagreement found. A8d additionally corroborates the WS4 and WS6
+closures cited in Table 3 by PR title alone (#833 titled "Operations matrix row closed as refuted"; #832
+titled "extract structured actions from brief do-now prose"), independent of this document's own PR-list
+read.
 
 ## Table 1: by customer surface
 
