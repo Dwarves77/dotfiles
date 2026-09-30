@@ -50,7 +50,7 @@ import { formatMonthDay, formatShortDate } from "@/components/regulations/format
 import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
-import { Absence } from "@/components/ui/Absence";
+import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
@@ -622,12 +622,39 @@ function RecordGradeSections({ r, sections, claimTiers }: { r: Resource; section
     [parsed]
   );
   return (
-    <RecordFactsBody
-      leadNote="This item was captured directly from its source document rather than synthesized into a signal brief. Every fact below is quoted verbatim."
-      dateFacts={dateFacts}
-      otherFacts={otherFacts}
-      tags={r.tags}
-    />
+    <>
+      <RecordFactsBody
+        leadNote="This item was captured directly from its source document rather than synthesized into a signal brief. Every fact below is quoted verbatim."
+        dateFacts={dateFacts}
+        otherFacts={otherFacts}
+        tags={r.tags}
+      />
+      {/* Rule 13 follow-up (lane W2-D, 2026-09-30, coordinator-directed): parseRecordSections
+          already computes `parsed.gaps` (one row per required slot the source never stated), but
+          RecordFactsBody (src/components/detail/primitives.tsx, shared with Research, outside this
+          lane's write set) takes no gaps prop, so every GAP claim rendered nowhere on this page.
+          Rendered here instead, in this file's own write set, rather than editing the shared
+          component: each GAP names its missing slot through the shared absence TREATMENT
+          (`ABSENCE_TEXT_STYLE`, `@/components/ui/Absence`, imported not edited, exported by that
+          file specifically "for a component rendering a sentence-shaped ... line the fixed
+          vocabulary cannot express", a per-slot sentence is exactly that case, `Absence`'s own
+          `reason` prop only accepts its four closed-vocabulary tokens), never as the raw
+          `[slot_key] No verbatim ...` claim line workstream 16 exists to keep off this page. */}
+      {parsed && parsed.gaps.length > 0 && (
+        <div style={{ margin: "14px 0" }}>
+          <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
+            Not stated by the source
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {parsed.gaps.map((g) => (
+              <span key={g.slotKey} style={ABSENCE_TEXT_STYLE}>
+                needs {g.slotKey.replace(/_/g, " ")} from the source
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

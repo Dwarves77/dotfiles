@@ -43,6 +43,23 @@ window.__mount = (props) => {
 };
 `;
 
+// Rule 13 flag 1 (coordinator, 2026-09-30): RegulationDetailSurface.tsx carried the identical
+// unguarded `{depth === "full" && r.fullBrief && <GfmSection .../>}` pattern this lane fixed in
+// Market. Fixed the same way (`!isRecord` guard, src/components/regulations/RegulationDetailSurface.tsx),
+// extended here so leg 5 below attacks that surface too, not just Market's.
+const REGULATION_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
+
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(RegulationDetailSurface, props));
+};
+`;
+
 function baseResource(overrides = {}) {
   return {
     id: 'dump-guard-1',
@@ -160,9 +177,10 @@ async function mountAndScan(browser, props) {
 }
 
 /** Mounts, optionally clicks the "Full brief" depth toggle (SummaryDepthSwitch,
- *  src/components/detail/DetailShell.tsx), then runs the slot-label detector. */
-async function mountAndScanSlotLabels(browser, props, { clickFullBrief = false } = {}) {
-  const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
+ *  src/components/detail/DetailShell.tsx), then runs the slot-label detector. `entry` defaults to
+ *  Market's bundle; leg 5 passes REGULATION_ENTRY to attack the same defect class on that surface. */
+async function mountAndScanSlotLabels(browser, props, { clickFullBrief = false, entry = MARKET_ENTRY } = {}) {
+  const bundleJs = await bundleEntry(entry, { alias: ALIAS });
   const page = await newSmokePage(browser);
   try {
     await mountBundle(page, bundleJs, '__mount', props);
@@ -297,14 +315,14 @@ export async function runSmoke(browser) {
     }
   }
 
-  // Leg 4: workstream 16's [CONFIRMED] fix. A record-grade item carrying the coordinator's exact live
-  // sample lines (identity's [title] FACT, record_facts' [action_now] GAP) renders zero raw
-  // slot-label text at BOTH depths. At "summary" depth (default), RecordGradeSections already routes
-  // the FACT through RecordFactCard/deriveRecordFactCardModel as a labelled field and silently omits
-  // GAP rows (parseRecordSections computes `gaps` but RecordGradeSections never passes it to
-  // RecordFactsBody, unaffected by this lane's fix, out of this workstream's scope). At "full" depth
-  // (the SummaryDepthSwitch click below), this lane's fix (`!isRecord` guard on the GfmSection(r.fullBrief)
-  // render in MarketSignalDetailSurface.tsx) is what keeps buildRecordFullBrief's raw
+  // Leg 4: workstream 16's [CONFIRMED] fix, Market surface. A record-grade item carrying the
+  // coordinator's exact live sample lines (identity's [title] FACT, record_facts' [action_now] GAP)
+  // renders zero raw slot-label text at BOTH depths. At "summary" depth (default),
+  // RecordGradeSections routes the FACT through RecordFactCard/deriveRecordFactCardModel as a
+  // labelled field, and (rule 13 flag 2, 2026-09-30) now renders the GAP through the shared absence
+  // TREATMENT ("needs action now from the source", ABSENCE_TEXT_STYLE) instead of dropping it. At
+  // "full" depth (the SummaryDepthSwitch click below), the `!isRecord` guard on
+  // GfmSection(r.fullBrief) (MarketSignalDetailSurface.tsx) keeps buildRecordFullBrief's raw
   // `- [slot_key] ...` bullets from ever reaching the page, before the fix, this exact fixture (with
   // fullBrief set to recordDumpFullBrief(), the real buildRecordFullBrief shape) rendered both sample
   // lines verbatim as GfmSection prose.
@@ -336,6 +354,94 @@ export async function runSmoke(browser) {
     if (fullDumps.length > 0) {
       failures.push(
         `market-detail-raw-dump:record-fixture-full-depth, raw slot-label text node(s) found: ${JSON.stringify(fullDumps)}`
+      );
+    }
+  }
+
+  // Leg 5: positive check for rule 13 flag 2. The [action_now] GAP claim must actually SURFACE as
+  // its labelled absence sentence at Summary depth, not merely fail to appear as raw text (leg 4
+  // proves absence of the bug; this proves presence of the fix).
+  {
+    checks += 1;
+    const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
+    const page = await newSmokePage(browser);
+    try {
+      await mountBundle(page, bundleJs, '__mount', {
+        resource: baseResource({ id: 'gap-absence-guard', itemGrade: 'record' }),
+        relatedPool: [],
+        sections: recordDumpSections(),
+        claimTiers: {},
+        convergence: null,
+        priceBoard: [],
+        carbonFactors: [],
+        groupLabel: 'Market / ICE Futures Europe',
+        deck: 'ICE Futures Europe · catalogue record',
+        initialNote: '',
+        supersessions: [],
+        connections: [],
+        relevance: null,
+        resourceLookup: {},
+      });
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      // ABSENCE_TEXT_STYLE sets `text-transform: uppercase`, and Chromium's `innerText` reflects
+      // rendered (CSS-transformed) case, not the DOM's literal text, so this check is
+      // case-insensitive (confirmed by reading the rendered text directly while writing this leg).
+      const hasAbsenceText = await page.evaluate(() =>
+        document.body.innerText.toLowerCase().includes('needs action now from the source')
+      );
+      if (!hasAbsenceText) {
+        failures.push(
+          'market-detail-raw-dump:gap-absence-missing, expected "needs action now from the source" (the labelled GAP absence line) to render at Summary depth, found none'
+        );
+      }
+    } finally {
+      await page.close();
+    }
+  }
+
+  // Leg 6: rule 13 flag 1's own attack, on RegulationDetailSurface. The identical `[CONFIRMED]`
+  // mechanism (an unguarded `{depth === "full" && r.fullBrief && <GfmSection .../>}` re-rendering
+  // record-grade claims raw) was found at RegulationDetailSurface.tsx:385 and fixed the same way
+  // (`!isRecord` guard). Same fixture shape, same two sample lines, mounted through
+  // REGULATION_ENTRY.
+  {
+    checks += 1;
+    const regulationProps = {
+      resource: baseResource({
+        id: 'reg-dump-guard',
+        itemGrade: 'record',
+        type: 'regulation',
+        fullBrief: recordDumpFullBrief(),
+        legalInstrument: 'EU carbon price signal for containerised ocean freight',
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      sections: recordDumpSections(),
+      claimTiers: {},
+      groupLabel: 'Regulations · European Union',
+      deck: 'EUR-Lex · catalogue record',
+      initialOwner: null,
+    };
+    const regSummaryDumps = await mountAndScanSlotLabels(browser, regulationProps, {
+      clickFullBrief: false,
+      entry: REGULATION_ENTRY,
+    });
+    if (regSummaryDumps.length > 0) {
+      failures.push(
+        `market-detail-raw-dump:regulation-fixture-summary-depth, raw slot-label text node(s) found: ${JSON.stringify(regSummaryDumps)}`
+      );
+    }
+    const regFullDumps = await mountAndScanSlotLabels(browser, regulationProps, {
+      clickFullBrief: true,
+      entry: REGULATION_ENTRY,
+    });
+    if (regFullDumps.length > 0) {
+      failures.push(
+        `market-detail-raw-dump:regulation-fixture-full-depth, raw slot-label text node(s) found: ${JSON.stringify(regFullDumps)}`
       );
     }
   }
