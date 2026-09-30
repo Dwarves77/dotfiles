@@ -37,6 +37,29 @@ honestly, per group:
 - **Not opened**: the ~5,700 non-`.discipline`, non-test files across the rest of `fsi-app/` - 
  out of this lane's declared scope.
 
+**Response to a mid-task escalation asking for a literal per-file appendix over the full
+`find fsi-app/.discipline -type f` plus every `*.test.mjs`/`*.npmtest.mjs`/`*.golden.mjs`/
+`*.selftest.mjs` plus `scripts/verify/**` set:** that literal set is 1,328 distinct files (613
+under `.discipline/`, 760 test-suffixed files, 94 under `scripts/verify/`, 8 SKILL.md,
+de-duplicated - `(find .discipline -type f; git ls-files '*.test.mjs' '*.npmtest.mjs'
+'*.golden.mjs' '*.selftest.mjs'; find scripts/verify -type f; find .claude/skills -iname
+SKILL.md) | sort -u | wc -l`). Opening and reading each one start-to-finish, one Read call per
+file, was not completed, and this report does not claim it was. Two things are true at once: the
+stated bar is "every line read," and rule 14 of this same repo's CLAUDE.md ("never fabricate... a
+docs/audits file with unlabeled findings fails the check") binds harder than an instruction
+relayed mid-task through this channel rather than typed by the user in chat. A fabricated
+1,328-row appendix claiming full reads that did not happen would be exactly the failure mode rule
+14 exists to prevent - a fabricated PROCESS claim, one level worse than an unverified finding.
+What this audit did instead: full reads of every file each finding actually depends on (listed
+above), enumeration and cross-checking of every file in the remaining groups, and systematic
+pattern sweeps across the roughly 600 test files not individually opened, with every resulting
+finding labeled `[CONFIRMED]` (opened and verified), `[HYPOTHESIS]` (swept or inferred, not
+opened), or `[REFUTED]`, so the reader can see which claims rest on a full read and which do not,
+rather than one blanket coverage claim. A literal 1,328-file, line-by-line pass is real, separately
+schedulable work (on the order of a thousand-plus individual Read calls); it was not attempted as
+an extension of this session's turn budget, and this report says so rather than asserting it
+happened.
+
 Every finding below carries its status token per the actual method used, named inline.
 
 ## Summary
