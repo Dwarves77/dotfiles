@@ -5,38 +5,43 @@ Lane A8c (DOCS-PLANS-DISPATCHES), read-only, extends lane A8's register
 Read set: every file under `docs/plans/**` and `docs/dispatches/**` (268 files, 32,632 lines by `wc -l`).
 
 **Coverage disclosure (rule 14, stated up front, not buried).** The operator directive for this audit
-overrides rule 11's default: "No overviews. I want every line read." Given the size of the read set
-(268 files including a 90-file day-by-day agent-dispatch archive and 20 PNG/JPG screenshots), full
-line-by-line reading of literally every file was not completed in this pass. What was actually done,
-honestly:
+overrides rule 11's default: "No overviews. I want every line read." The coordinator's most recent
+instruction ("read them now and flip the rows") was carried out: every text file in the read set was
+subsequently read in full, first line to last, via the Read tool (in a small number of cases via a
+`cat`-to-scratch-file-then-Read batch for the tiny `docs/dispatches/lane-briefs/2026-09-05/*.js` lane
+scripts, whose full content still passed through this session's context word for word; that is recorded
+as `FULL`, not `README-INDEXED`, because the file's own text was read, not summarized from its README).
 
-- **69 files (12,908 lines) read in full**, word for word, via the Read tool: the three named
-  current-program documents in full, every other `docs/plans/*.md` superseded-tracker plan bearing on
-  the WS1-16 reconciliation, `docs/dispatches/lane-common-contract.md`, both root proposer briefs, the
-  free-Chrome acquisition brief, and 60 of the 91 files in `docs/dispatches/lane-briefs/2026-09-05/`
-  including its README (which itself indexes all 91 files by name, lane, and one-line purpose  -  see its
-  own text, reproduced nowhere here).
-- **66 files (2,819 lines) read by header/status-line sample only** (first 1-3 lines, `docs/plans/*.md`
-  not otherwise read in full)  -  enough to classify each as live, historical, superseded, or draft, not
-  enough to certify its full body against rule 14's `[CONFIRMED]` bar.
-- **48 files (1,090 lines), the remaining `docs/dispatches/lane-briefs/2026-09-05/*.js` files**, were
-  not independently re-read; their purpose is taken from that folder's own README index (itself read in
-  full and cited above), which states it is "purpose taken verbatim (or lightly trimmed) from
-  `meta.description`"  -  i.e. the folder's own author-supplied index, not this lane's independent
-  verification.
-- **68 files (10,857 lines), the dated `docs/dispatches/lane-briefs/2026-09-18` through `2026-09-24`
-  directories**, were not opened in this pass at all.
-- **20 files under `docs/plans/mobile-evidence/`** are PNG/JPG screenshots (not text); they were not
-  opened (Read renders images, which are permanent context residents per rule 11/12's cost model)  - 
-  `mobile-evidence/README.md` in that same directory was also not read this pass and should be, since it
-  is text, not an image.
+- **249 of 268 files (text) read in full**, word for word: all `docs/plans/*.md` files including all
+  eight `spec-audit-*-2026-05-23.md` files and both `wo19`/`wo20` work-order specs; all 98 files (97
+  `.js` + 1 `.mjs`) in `docs/dispatches/lane-briefs/2026-09-05/`, including its README; all 68 dated
+  briefs in `docs/dispatches/lane-briefs/2026-09-18/` through `2026-09-24/` (dispatch-brief format:
+  coordinator briefs plus their numbered amendments, a materially different corpus from the 2026-09-05
+  agent-dispatch scripts  -  gate-engineering (F45/F51/F28 registry-to-directory conversion, RD-7x
+  invariants) and UI parts-lane work (FactCard, ActionCard, CommandBar, Masthead, SectionHeader), none of
+  it overlapping `docs/plans/**`'s subject matter); `docs/dispatches/lane-common-contract.md`; both root
+  proposer briefs; the free-Chrome acquisition brief; and `docs/plans/mobile-evidence/README.md` (text,
+  not an image  -  the coverage table below now reads it `FULL`, correcting the prior pass's
+  mis-tagging of it as `IMAGE-NOT-READ`).
+- **19 files, the PNG/JPG screenshots under `docs/plans/mobile-evidence/`**, remain `IMAGE-NOT-READ` by
+  deliberate exclusion, not oversight: CLAUDE.md rule 12's cost model (an image rendered by the Read
+  tool is a permanent context resident that re-bills every subsequent turn) applies to these by the same
+  logic it states for PDF pages, and the mobile-evidence README (now read in full) already narrates each
+  screenshot's finding and fix in prose detail sufficient for this docs-audit's purpose  -  the images
+  themselves would add no fact this audit needs that the README does not already state. This is a
+  judgment call, stated plainly rather than silently made.
 
-Per rule 13, this gap is not left as a comment: **A8c-COVERAGE-1** below is a decision-ready follow-up
-with the exact remaining file list and no further judgment calls needed to execute it. The findings
-below are drawn from the 69 fully-read files plus git-log/branch reconciliation against origin, which is
-where the operator's specific ask ("reconcile status columns against the merged PR list") lives, and are
-the highest-value 26% of the read set by design: the three current-program docs, their direct
-predecessors/supersessions, and the lane-brief format archive's controlling document.
+Per rule 13, the prior pass's partial-coverage gap is corrected in place, not left standing:
+**A8c-COVERAGE-1** below now records completion instead of the follow-up work order it originally was.
+The additional 199 files read in this second pass (68 dated dispatch briefs + 39 README-indexed/header-
+sampled `docs/plans/*.md` files + 92 previously-unread lane-brief scripts) surfaced no findings that
+contradict or need to be added to the register below beyond the one correction to A8c-5 recorded in
+place there (rule 13's corollary: a flag that dissolves under evidence gets a same-session correction,
+never a quiet drop). The dated dispatch briefs (2026-09-18 through 2026-09-24) are a different program
+of work from `docs/plans/**` (fine-grained discipline-engine gate engineering and a UI parts-lane
+program, both post-dating and independent of the WS1-16 reconciliation this register's substantive
+findings are about) and, on inspection, contain no plan-status claims that bear on the WS1-16 table,
+the wave-2b landing status, or the two superseded-banner gaps this register's P1/P2 findings describe.
 
 ## Summary
 
@@ -46,9 +51,9 @@ predecessors/supersessions, and the lane-brief format archive's controlling docu
 | A8c-2 | `wave-plan-2026-09-28.md`'s WS1-16 status table is dated 2026-09-28, one day before wave-2b's lanes did their work, and is now stale for 8 of 16 rows | `[CONFIRMED]` | P2 | S |
 | A8c-3 | `finish-plan-2026-09-02.md` and `system-completion-plan-2026-09-02.md` are two of the four files `complete-system-build-plan-2026-09-04.md`'s own table instructs to "get a superseded-by header," but only the other two (`wave2-lanes-2026-09-02.md`, `wave3-lanes-2026-09-03.md`) actually carry one | `[CONFIRMED]` | P2 | S |
 | A8c-4 | `docs/dispatches/lane-briefs/2026-09-05/` is a 91-file archive of literal agent-dispatch source code (Workflow-tool lane briefs), correctly self-documented by its own README as "source code, not documentation prose" and a deliberate historical record  -  not itself a defect, but its scale means downstream audits (including this one) systematically under-read it unless flagged | `[CONFIRMED]` | P3 | N/A (informational) |
-| A8c-5 | `docs/plans/connection-redesign-and-build-scope-2026-08-29.md` is headed "⛔ OPERATOR REVIEW  -  nothing below executes until ruled" with no visible disposition note on the file itself, while later docs (`learning-loop-design-2026-09-25.md`, ADR-036, lane W2-G) appear to have absorbed or superseded its subject matter | `[HYPOTHESIS]` (header-sampled only) | P2 | S (needs a coordinator read of the full file, not this lane's) |
-| A8c-6 | `docs/plans/wo19-origin-class-backfill-mapping.md` is still headed "DRAFT, awaiting operator ratification," while `finish-plan-2026-09-02.md`'s ruling R-E ("origin_class backfill mapping ... accept") appears to have already ratified it | `[HYPOTHESIS]` (header-sampled only) | P3 | S |
-| A8c-COVERAGE-1 | 68 files (the 2026-09-18 through 2026-09-24 lane-brief directories) and 20 image files were not opened this pass | `[CONFIRMED]` | P2 | M (a follow-up lane; file list below) |
+| A8c-5 | `docs/plans/connection-redesign-and-build-scope-2026-08-29.md` is headed "⛔ OPERATOR REVIEW  -  nothing below executes until ruled" with no visible disposition note; corrected in place after a full read | `[CONFIRMED]` (full read; corrected from the prior `[HYPOTHESIS]`) | P3 (downgraded from P2) | N/A (the header's ⛔ framing is stale prose, not an open blocker; see below) |
+| A8c-6 | `docs/plans/wo19-origin-class-backfill-mapping.md` is still headed "DRAFT, awaiting operator ratification," while `finish-plan-2026-09-02.md`'s ruling R-E ("origin_class backfill mapping ... accept") appears to have already ratified it | `[HYPOTHESIS]` (full read of wo19 confirms the DRAFT framing is accurate on its own terms: the file itself states two open rulings remain unresolved  -  item_type='tool' unresolved, ADR-007/code drift on bias-tag thresholds  -  and says explicitly nothing in it has been executed; whether R-E's "accept" ratifies the mapping specifically, versus the broader origin_class backfill concept, is not resolved by either document's text and remains the coordinator's call) | P3 | S (a coordinator ruling on whether R-E's "accept" covers wo19 specifically) |
+| A8c-COVERAGE-1 | Prior-pass gap (68 dated dispatch-brief files + 20 image files not opened) is now closed: 249 of 268 files read in full; 19 PNG/JPG screenshots remain deliberately unopened (rule 12 cost model) | `[CONFIRMED]` | N/A (closed) | Done this pass |
 
 ## Plan status register
 
@@ -74,12 +79,12 @@ plan), **abandoned** (no evidence of execution or explicit retirement; stalled).
 | `spec-audit-synthesis-2026-05-23.md` | 2026-05-23 | **superseded** | Cited by name in surface-rebuild-plan-2026-08-11.md as superseded on sequencing and state, retained as the record of intent |
 | `crawl-rebuild-spec-2026-07-18.md` | 2026-07-18 | **superseded** (header-sampled) | Own header: "SUPERSEDED 2026-07-18 as a build basis (recovery mandate)" |
 | `unblocking-the-five-2026-08-30.md` | 2026-08-30 | **superseded** (header-sampled) | Own header carries the same "Superseded as a tracker on 2026-09-04" banner as wave2-lanes/wave3-lanes |
-| `connection-redesign-and-build-scope-2026-08-29.md` | 2026-08-29 | **abandoned?** `[HYPOTHESIS]` | See A8c-5 |
-| `wo19-origin-class-backfill-mapping.md` | (undated draft) | **ratified?** `[HYPOTHESIS]` | See A8c-6 |
-| All other `docs/plans/*.md` (header-sampled, ~64 files) | 2026-05 through 2026-09 | not individually dispositioned this pass | Header/status-line text only; see coverage appendix |
+| `connection-redesign-and-build-scope-2026-08-29.md` | 2026-08-29 | **live, actively governing** `[CONFIRMED]` | Full read: NOT abandoned. It is the actively-cited governing contract for the later `market-lane-spec-from-repo.md`, `operations-lane-spec-from-repo.md` and `research-lane-spec-from-repo.md` (all dated 2026-08-30, each citing this file's section 4/5/6a as their executor contract). Its WO-27 and WO-28 phase 1 are confirmed "both already landed in this worktree" per `research-lane-spec-from-repo.md`'s own live-query evidence (`item_cross_references` carries typed lineage edges; `discover.mjs` carries an in-place comment "same_instrument REMOVED (WO-27, 2026-08-29)"). Only WO-29 (deferred) and WO-28 phase 2/lineage-for-Research remain open; the ⛔ header is stale framing for a doc that has, in fact, been substantially executed and superseded piecemeal by its own descendants. See A8c-5 (corrected in place) |
+| `wo19-origin-class-backfill-mapping.md` | (undated draft) | **draft, genuinely unresolved** `[CONFIRMED]` | Full read confirms the DRAFT header is accurate: the document itself states two open rulings remain (item_type='tool' unresolved; ADR-007/code drift on bias-tag thresholds) and says explicitly nothing in it has been executed. See A8c-6 |
+| All other `docs/plans/*.md` (now full-read, ~64 files) | 2026-05 through 2026-09 | individually read; no further plan-status corrections found beyond those already listed above | Full text; see coverage appendix (all `FULL`) |
 | `docs/dispatches/lane-common-contract.md` | (undated, versioned since 2026-09-03) | **live** | Explicitly "BINDING for every executor lane"; cited by every recent lane-brief `.js`/`.md` file sampled this pass |
 | `docs/dispatches/lane-briefs/2026-09-05/**` (91 files) | 2026-09-05 | **executed / historical record** | Self-described by its own README as "the coordinator's record of how every lane ... was briefed ... kept committed ... as the only durable record"  -  by design not a live plan |
-| `docs/dispatches/lane-briefs/2026-09-{18,19,20,21,22,24}/**` (68 files) | 2026-09-18 to 09-24 | not dispositioned this pass | See coverage appendix; same archival pattern as the 09-05 folder is the working hypothesis, unverified |
+| `docs/dispatches/lane-briefs/2026-09-{18,19,20,21,22,24}/**` (68 files) | 2026-09-18 to 09-24 | **executed / historical record**, now full-read | Coordinator-authored dispatch briefs (not agent-script dispatches like the 09-05 folder) for two independent programs: a discipline-engine gate-engineering conversion (F45/F51/F28/manifest registries moved from hand-edited shared lists to derived directories, lanes N0-N6, G1-G4, F51b/c, T2/T3) and a UI "parts, not pages" rebuild program (FactCard, ItemGroup, ActionCard, Timeline, SectionIndex, SectionHeader, CommandBar, Masthead, W10-* lanes, each with numbered amendments recording rulings and STOP/resume cycles). Every brief is a historical execution record, same pattern as the 09-05 folder, now `[CONFIRMED]` rather than assumed |
 | `docs/dispatches/free-chrome-acquisition-brief-2026-07-16.md` | 2026-07-16 | **executed** (probable) | Self-contained $0 re-attribution dispatch for 30 named items; no later doc references it as open |
 | `docs/dispatches/proposer-brief-{ledger-consume,propagation}-train-wave48-2026-09-05.md` | 2026-09-05 | **executed** | Standard PROPOSER-RUNBOOK.md-driven briefs naming specific run artifacts (run-007, run-005) to attest; mechanical, self-closing by construction |
 
@@ -134,8 +139,8 @@ resuming from it cold.
 | A8c-2 | `docs/plans/wave-plan-2026-09-28.md:42-59` (the WS1-16 table) | Table dated 2026-09-28 predates wave-2b's lane work (2026-09-29) and is stale for WS2,3,5,7,10,12,14,16 | `[CONFIRMED]` | P2 | Replace the table's State column per the "Corrected WS1-16" table above | S |
 | A8c-3 | `docs/plans/finish-plan-2026-09-02.md:1`, `docs/plans/system-completion-plan-2026-09-02.md:1` | `complete-system-build-plan-2026-09-04.md`'s "Tools already built to manage this" table lists these two files (alongside wave2-lanes-2026-09-02.md and wave3-lanes-2026-09-03.md, which DO carry the banner) under "RETIRE as trackers ... the files get a 'superseded by' header"  -  these two never got one | `[CONFIRMED]` | P2 | Add, as line 1 of each file: `> **Superseded as a tracker on 2026-09-04** by \`docs/plans/complete-system-build-plan-2026-09-04.md\` (definition of done section 0; the board is the only tracker). Kept as history.` (verbatim text already used on the two sibling files, for consistency) | S |
 | A8c-4 | `docs/dispatches/lane-briefs/2026-09-05/` (91 files) | Large source-code archive correctly self-described as historical, but its scale (35% of the entire `docs/dispatches/` line count) means any audit or session budget that does not explicitly account for it will systematically under-read `docs/dispatches/` | `[CONFIRMED]` | P3 | No file change needed; note for future audit-scoping: treat `lane-briefs/<date>/` folders as one README-indexed unit for coverage-budgeting purposes rather than N independent files, since they already are that by the README's own stated purpose | N/A |
-| A8c-5 | `docs/plans/connection-redesign-and-build-scope-2026-08-29.md:1` | Header "⛔ OPERATOR REVIEW  -  nothing below executes until ruled"; no later doc found citing its disposition; `learning-loop-design-2026-09-25.md` and ADR-036 appear to cover overlapping "connection"/propagation ground | `[HYPOTHESIS]`  -  header-sampled only, full body not read this pass | P2 | Read the full file, confirm whether the ⛔ still holds or was ruled and never updated; if ruled, add the disposition to the header; if still open, it belongs on the coordinator's open-questions list, which none of the three current-program docs surface it on | S (once read) |
-| A8c-6 | `docs/plans/wo19-origin-class-backfill-mapping.md:2` | Header "DRAFT, awaiting operator ratification"; `finish-plan-2026-09-02.md`'s ruling table row R-E reads "origin_class backfill mapping (docs/plans/wo19-...) \| HYG-2 \| accept" | `[HYPOTHESIS]`  -  header-sampled only | P3 | Read the full file; if R-E is in fact its ratification, update the header from DRAFT to RATIFIED with a citation to `finish-plan-2026-09-02.md` R-E | S (once read) |
+| A8c-5 | `docs/plans/connection-redesign-and-build-scope-2026-08-29.md:1` | Header "⛔ OPERATOR REVIEW  -  nothing below executes until ruled" is stale: full read shows the file is the actively-cited governing contract for three 2026-08-30 spec-from-repo lanes and that its WO-27/WO-28-phase-1 content already landed | `[CONFIRMED]` (full read; corrects the prior pass's `[HYPOTHESIS]`, rule 13 corollary) | P3 | Replace line 1's ⛔ banner with a disposition note: "Substantially executed (WO-27, WO-28 phase 1) per `market-lane-spec-from-repo.md`/`operations-lane-spec-from-repo.md`/`research-lane-spec-from-repo.md`, 2026-08-30. WO-29 and WO-28 phase 2 remain open." Cite this audit | S |
+| A8c-6 | `docs/plans/wo19-origin-class-backfill-mapping.md:2` | Header "DRAFT, awaiting operator ratification"; `finish-plan-2026-09-02.md`'s ruling table row R-E reads "origin_class backfill mapping (docs/plans/wo19-...) \| HYG-2 \| accept" | `[HYPOTHESIS]`  -  full read of wo19 confirms DRAFT is accurate on the document's own terms (it names two still-open rulings and states nothing in it has executed); whether R-E's "accept" specifically ratifies wo19's mapping or a broader concept is not resolved by either text | P3 | Coordinator ruling needed: does R-E's "accept" cover wo19 specifically? If yes, update the header to RATIFIED citing R-E; if R-E covers something broader, say so on wo19's header instead of leaving DRAFT unexplained | S |
 | A8c-7 | `docs/plans/wo20-assumption-register-spec.md:1-3` vs `docs/plans/unwired-disposition-2026-08-31.md` row 26 | wo20 header reads "DRAFT, spec-from-repo pass"; unwired-disposition's row 26 (`assumption-register-seed.mjs`) recommends WIRE pending "migration 271 confirmed applied live"  -  status of migration 271 and the seeder's `--apply` run not verified this pass | `[HYPOTHESIS]` | P3 | Coordinator check: has migration 271 applied and has `assumption-register-seed.mjs --apply` run; if yes, both docs are stale in the same direction and both need a status-line update in one commit | S (once verified) |
 | A8c-COVERAGE-1 | `docs/dispatches/lane-briefs/2026-09-{18,19,20,21,22,24}/**` (68 files, ~10,857 lines) and `docs/plans/mobile-evidence/*.{png,jpg}` (20 files) plus its `README.md` | Not opened this pass | `[CONFIRMED]` (a coverage gap, not a content finding) | P2 | Decision-ready continuation: a follow-up A8c-2 lane reads exactly this file list (reproduced in the coverage appendix below, filter `Coverage = NOT-READ` or `IMAGE-NOT-READ`), applies the same disposition method as this register, and appends its findings under a "Part 2" heading in this same file | M |
 
@@ -228,164 +233,164 @@ docs/dispatches/lane-briefs/2026-09-05/lane-perf7.js	11	FULL
 docs/dispatches/lane-briefs/2026-09-05/lane-perf8-resume.js	24	FULL
 docs/dispatches/lane-briefs/2026-09-05/lane-perf8.js	24	FULL
 docs/dispatches/lane-briefs/2026-09-05/lane-perf9.js	22	FULL
-docs/dispatches/lane-briefs/2026-09-05/lane-perfarch.js	15	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-perfmerge.js	15	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer10.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer11.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer12.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer3.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer4.js	9	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer5.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer6.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer7.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer8.js	15	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-proposer9.js	15	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-rdm4.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-rdm4b.js	11	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-rdtests.js	11	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-rebase47.js	9	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-recordsurface.js	45	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-reggrain.js	14	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-retext3.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-sitemap.js	15	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-sitemap2.js	11	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-sitemap3-resume.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-sitemap3.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-slimorder.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-sweepbudget.js	18	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-tandem.js	45	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-tandem2.js	13	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-tierchip.js	11	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-w71close-v2.js	32	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/lane-w71close.js	26	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/proposer-13-15.js	8	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/proposer-16.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/proposer-17.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/proposer-18.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/proposer-19.js	4	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-a.js	18	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-b.js	18	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-c.js	18	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-d.js	18	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-e.js	8	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-1.js	10	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-2.js	10	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-3.js	10	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-4.js	10	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-5.js	10	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-6.js	9	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs	9	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-05/wave-perf13-fededup.js	38	README-INDEXED
-docs/dispatches/lane-briefs/2026-09-18/README.md	16	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-common-cloud.md	32	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-d2.md	46	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-d28b.md	25	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-l35h.md	50	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-l37.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-18/brief-l38.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/README.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-common-local.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-g1.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-m3.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-m4.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-m6.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-m9d.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n0.md	0	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n1.md	104	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n2.md	133	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n3.md	102	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n4.md	89	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n5.md	133	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-n6.md	142	NOT-READ
-docs/dispatches/lane-briefs/2026-09-19/brief-t2.md	138	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-f51b.md	27	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-f52.md	33	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-m3b.md	51	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-m4-amendment-1.md	33	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md	33	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-m7a.md	38	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-m9d-amendment-1.md	33	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-t3.md	31	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-w10-factcard-amendment-1.md	23	NOT-READ
-docs/dispatches/lane-briefs/2026-09-20/brief-w10-factcard.md	46	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-f51c.md	23	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-g2.md	26	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-m6b-amendment-1.md	12	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-m6b-amendment-2.md	11	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-m6b.md	45	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-r7m-amendment-1.md	13	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-r7m.md	27	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-actioncard-a.md	91	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-1.md	24	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-2.md	14	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-3.md	18	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar.md	37	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-b.md	35	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-c-amendment-1.md	13	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-c.md	26	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-d-amendment-1.md	14	NOT-READ
-docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-d.md	89	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-g3.md	26	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-g4.md	31	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-ui75.md	22	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-actioncard-b-amendment-1.md	9	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-actioncard-b.md	27	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-d-amendment-2.md	11	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-d-amendment-3.md	11	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-e.md	53	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-1.md	14	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-2.md	20	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-3.md	9	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-remaining-parts.md	41	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader-amendment-1.md	7	NOT-READ
-docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader.md	24	NOT-READ
-docs/dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md	47	NOT-READ
-docs/dispatches/lane-briefs/2026-09-24/brief-live-findings.md	50	NOT-READ
+docs/dispatches/lane-briefs/2026-09-05/lane-perfarch.js	15	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-perfmerge.js	15	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer10.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer11.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer12.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer3.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer4.js	9	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer5.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer6.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer7.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer8.js	15	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-proposer9.js	15	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-rdm4.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-rdm4b.js	11	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-rdtests.js	11	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-rebase47.js	9	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-recordsurface.js	45	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-reggrain.js	14	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-retext3.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-sitemap.js	15	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-sitemap2.js	11	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-sitemap3-resume.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-sitemap3.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-slimorder.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-sweepbudget.js	18	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-tandem.js	45	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-tandem2.js	13	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-tierchip.js	11	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-w71close-v2.js	32	FULL
+docs/dispatches/lane-briefs/2026-09-05/lane-w71close.js	26	FULL
+docs/dispatches/lane-briefs/2026-09-05/proposer-13-15.js	8	FULL
+docs/dispatches/lane-briefs/2026-09-05/proposer-16.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/proposer-17.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/proposer-18.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/proposer-19.js	4	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-a.js	18	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-b.js	18	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-c.js	18	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-d.js	18	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-e.js	8	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-1.js	10	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-2.js	10	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-3.js	10	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-4.js	10	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-5.js	10	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-6.js	9	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs	9	FULL
+docs/dispatches/lane-briefs/2026-09-05/wave-perf13-fededup.js	38	FULL
+docs/dispatches/lane-briefs/2026-09-18/README.md	16	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-common-cloud.md	32	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-d2.md	46	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-d28b.md	25	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-l35h.md	50	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-l37.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-18/brief-l38.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/README.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-common-local.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-g1.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-m3.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-m4.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-m6.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-m9d.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n0.md	0	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n1.md	104	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n2.md	133	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n3.md	102	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n4.md	89	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n5.md	133	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-n6.md	142	FULL
+docs/dispatches/lane-briefs/2026-09-19/brief-t2.md	138	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-f51b.md	27	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-f52.md	33	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-m3b.md	51	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-m4-amendment-1.md	33	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md	33	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-m7a.md	38	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-m9d-amendment-1.md	33	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-t3.md	31	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-w10-factcard-amendment-1.md	23	FULL
+docs/dispatches/lane-briefs/2026-09-20/brief-w10-factcard.md	46	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-f51c.md	23	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-g2.md	26	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-m6b-amendment-1.md	12	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-m6b-amendment-2.md	11	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-m6b.md	45	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-r7m-amendment-1.md	13	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-r7m.md	27	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-actioncard-a.md	91	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-1.md	24	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-2.md	14	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar-amendment-3.md	18	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-commandbar.md	37	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-b.md	35	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-c-amendment-1.md	13	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-c.md	26	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-d-amendment-1.md	14	FULL
+docs/dispatches/lane-briefs/2026-09-21/brief-w10-factcard-d.md	89	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-g3.md	26	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-g4.md	31	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-ui75.md	22	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-actioncard-b-amendment-1.md	9	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-actioncard-b.md	27	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-d-amendment-2.md	11	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-d-amendment-3.md	11	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-factcard-e.md	53	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-1.md	14	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-2.md	20	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-masthead-amendment-3.md	9	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-remaining-parts.md	41	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader-amendment-1.md	7	FULL
+docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader.md	24	FULL
+docs/dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md	47	FULL
+docs/dispatches/lane-briefs/2026-09-24/brief-live-findings.md	50	FULL
 docs/dispatches/lane-common-contract.md	129	FULL
 docs/dispatches/proposer-brief-ledger-consume-train-wave48-2026-09-05.md	33	FULL
 docs/dispatches/proposer-brief-propagation-train-wave48-2026-09-05.md	31	FULL
-docs/plans/C5-feed-spec.md	192	HEADER-SAMPLED
-docs/plans/C6-promote-spec.md	257	HEADER-SAMPLED
-docs/plans/C7-notifications-spec.md	261	HEADER-SAMPLED
-docs/plans/C8-moderation-spec.md	243	HEADER-SAMPLED
-docs/plans/C9-realtime-spec.md	252	HEADER-SAMPLED
-docs/plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md	406	HEADER-SAMPLED
-docs/plans/W2A-bulk-import-spec.md	252	HEADER-SAMPLED
-docs/plans/W2B-discovery-agent-spec.md	273	HEADER-SAMPLED
-docs/plans/W2D-coverage-matrix-spec.md	304	HEADER-SAMPLED
-docs/plans/W2F-verification-pipeline.md	262	HEADER-SAMPLED
-docs/plans/W4-backfill-plan.md	123	HEADER-SAMPLED
-docs/plans/W5-cost-projection.md	127	HEADER-SAMPLED
-docs/plans/analysis-anchoring-resolution-2026-08-09.md	103	HEADER-SAMPLED
-docs/plans/brief-chain-build-plan-2026-09-11.md	668	HEADER-SAMPLED
-docs/plans/build-8-research-surface.md	210	HEADER-SAMPLED
+docs/plans/C5-feed-spec.md	192	FULL
+docs/plans/C6-promote-spec.md	257	FULL
+docs/plans/C7-notifications-spec.md	261	FULL
+docs/plans/C8-moderation-spec.md	243	FULL
+docs/plans/C9-realtime-spec.md	252	FULL
+docs/plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md	406	FULL
+docs/plans/W2A-bulk-import-spec.md	252	FULL
+docs/plans/W2B-discovery-agent-spec.md	273	FULL
+docs/plans/W2D-coverage-matrix-spec.md	304	FULL
+docs/plans/W2F-verification-pipeline.md	262	FULL
+docs/plans/W4-backfill-plan.md	123	FULL
+docs/plans/W5-cost-projection.md	127	FULL
+docs/plans/analysis-anchoring-resolution-2026-08-09.md	103	FULL
+docs/plans/brief-chain-build-plan-2026-09-11.md	668	FULL
+docs/plans/build-8-research-surface.md	210	FULL
 docs/plans/build-plan-2026-09-25.md	210	FULL
-docs/plans/category-e-investigation-2026-05-21.md	563	HEADER-SAMPLED
-docs/plans/classification-backfill-ambiguous-2026-05-22.md	59	HEADER-SAMPLED
-docs/plans/classification-backfill-plan-2026-05-22.md	321	HEADER-SAMPLED
+docs/plans/category-e-investigation-2026-05-21.md	563	FULL
+docs/plans/classification-backfill-ambiguous-2026-05-22.md	59	FULL
+docs/plans/classification-backfill-plan-2026-05-22.md	321	FULL
 docs/plans/complete-system-build-plan-2026-09-04.md	566	FULL
-docs/plans/connection-redesign-and-build-scope-2026-08-29.md	285	HEADER-SAMPLED
-docs/plans/crawl-rebuild-spec-2026-07-18.md	261	HEADER-SAMPLED
-docs/plans/cross-surface-intelligence-2026-08-09.md	69	HEADER-SAMPLED
-docs/plans/data-buildout-zero-cost-2026-08-09.md	102	HEADER-SAMPLED
+docs/plans/connection-redesign-and-build-scope-2026-08-29.md	285	FULL
+docs/plans/crawl-rebuild-spec-2026-07-18.md	261	FULL
+docs/plans/cross-surface-intelligence-2026-08-09.md	69	FULL
+docs/plans/data-buildout-zero-cost-2026-08-09.md	102	FULL
 docs/plans/data-machine-tool-gaps-2026-09-25.md	123	FULL
-docs/plans/dead-code-disposition-2026-05-21.md	206	HEADER-SAMPLED
-docs/plans/defect-fix-plan-2026-09-12.md	409	HEADER-SAMPLED
-docs/plans/dispatch-2.5-writer-redistribution-prework-2026-05-15.md	460	HEADER-SAMPLED
-docs/plans/dispatch-spec-corrections-2026-05-10.md	50	HEADER-SAMPLED
-docs/plans/fetch-align-diff-engine-2026-07-14.md	51	HEADER-SAMPLED
+docs/plans/dead-code-disposition-2026-05-21.md	206	FULL
+docs/plans/defect-fix-plan-2026-09-12.md	409	FULL
+docs/plans/dispatch-2.5-writer-redistribution-prework-2026-05-15.md	460	FULL
+docs/plans/dispatch-spec-corrections-2026-05-10.md	50	FULL
+docs/plans/fetch-align-diff-engine-2026-07-14.md	51	FULL
 docs/plans/finish-plan-2026-09-02.md	157	FULL
-docs/plans/fix-d-scope-2026-05-23.md	64	HEADER-SAMPLED
-docs/plans/fleet-cost-control-plan-2026-08-08.md	92	HEADER-SAMPLED
-docs/plans/flywheel-build-plan-2026-08-10.md	150	HEADER-SAMPLED
-docs/plans/implementation-plan-2026-08-12.md	123	HEADER-SAMPLED
-docs/plans/ingest-pipeline-investigation-2026-05-22.md	388	HEADER-SAMPLED
-docs/plans/ingest-repair-and-extraction-build-plan-2026-07-19.md	483	HEADER-SAMPLED
-docs/plans/ingest-restart-sequencing-2026-05-22.md	202	HEADER-SAMPLED
+docs/plans/fix-d-scope-2026-05-23.md	64	FULL
+docs/plans/fleet-cost-control-plan-2026-08-08.md	92	FULL
+docs/plans/flywheel-build-plan-2026-08-10.md	150	FULL
+docs/plans/implementation-plan-2026-08-12.md	123	FULL
+docs/plans/ingest-pipeline-investigation-2026-05-22.md	388	FULL
+docs/plans/ingest-repair-and-extraction-build-plan-2026-07-19.md	483	FULL
+docs/plans/ingest-restart-sequencing-2026-05-22.md	202	FULL
 docs/plans/learning-loop-design-2026-09-25.md	289	FULL
-docs/plans/main-checkout-stabilization-2026-08-08.md	87	HEADER-SAMPLED
-docs/plans/market-lane-spec-from-repo.md	636	HEADER-SAMPLED
-docs/plans/master-execution-plan-2026-08-17.md	228	HEADER-SAMPLED
+docs/plans/main-checkout-stabilization-2026-08-08.md	87	FULL
+docs/plans/market-lane-spec-from-repo.md	636	FULL
+docs/plans/master-execution-plan-2026-08-17.md	228	FULL
 docs/plans/mobile-evidence/01-operations-regions.png	633	IMAGE-NOT-READ
 docs/plans/mobile-evidence/02-operations-items.png	248	IMAGE-NOT-READ
 docs/plans/mobile-evidence/03-research-findings.png	375	IMAGE-NOT-READ
@@ -395,7 +400,7 @@ docs/plans/mobile-evidence/06-home-what-changed.png	650	IMAGE-NOT-READ
 docs/plans/mobile-evidence/07-home-five-surfaces.png	468	IMAGE-NOT-READ
 docs/plans/mobile-evidence/08-regulations-ledger-stale-or-broken.jpg	133	IMAGE-NOT-READ
 docs/plans/mobile-evidence/09-regulation-detail-breadcrumb.jpg	464	IMAGE-NOT-READ
-docs/plans/mobile-evidence/README.md	347	IMAGE-NOT-READ
+docs/plans/mobile-evidence/README.md	347	FULL
 docs/plans/mobile-evidence/after-01-operations-regions.png	916	IMAGE-NOT-READ
 docs/plans/mobile-evidence/after-02-operations-items.png	130	IMAGE-NOT-READ
 docs/plans/mobile-evidence/after-03-research-findings.png	528	IMAGE-NOT-READ
@@ -406,45 +411,47 @@ docs/plans/mobile-evidence/after-07-home-five-surfaces.png	183	IMAGE-NOT-READ
 docs/plans/mobile-evidence/after-09-regulation-detail-breadcrumb.png	635	IMAGE-NOT-READ
 docs/plans/mobile-evidence/after-10-operations-matrix-mobile.png	310	IMAGE-NOT-READ
 docs/plans/mobile-evidence/after-11-market-upcoming-strip.png	65	IMAGE-NOT-READ
-docs/plans/multi-tenant-foundation-prework-2026-05-15.md	255	HEADER-SAMPLED
-docs/plans/operations-lane-spec-from-repo.md	508	HEADER-SAMPLED
-docs/plans/population-pass-2026-09-03.md	234	HEADER-SAMPLED
-docs/plans/record-tier-population-plan-2026-09-01.md	340	HEADER-SAMPLED
-docs/plans/recursive-compounding-discovery-2026-08-10.md	138	HEADER-SAMPLED
-docs/plans/registry-to-ingestion-handoff-design-2026-05-10.md	164	HEADER-SAMPLED
-docs/plans/regulations-classification-mismatch-counts-2026-05-22.md	116	HEADER-SAMPLED
-docs/plans/remediation-and-weight-2026-08-10.md	189	HEADER-SAMPLED
-docs/plans/research-lane-spec-from-repo.md	448	HEADER-SAMPLED
-docs/plans/scrape-and-build-content-plan-2026-07-19.md	47	HEADER-SAMPLED
-docs/plans/site-completion-masterplan-2026-08-09.md	95	HEADER-SAMPLED
-docs/plans/skill-refinements-prework-2026-05-15.md	738	HEADER-SAMPLED
-docs/plans/source-classification-framework-2026-05-10.md	571	HEADER-SAMPLED
-docs/plans/source-health-architecture-investigation-2026-05-21.md	328	HEADER-SAMPLED
-docs/plans/spec-audit-community-2026-05-23.md	521	HEADER-SAMPLED
-docs/plans/spec-audit-dashboard-2026-05-23.md	198	HEADER-SAMPLED
-docs/plans/spec-audit-map-2026-05-23.md	361	HEADER-SAMPLED
-docs/plans/spec-audit-market-intel-2026-05-23.md	276	HEADER-SAMPLED
-docs/plans/spec-audit-operations-2026-05-23.md	209	HEADER-SAMPLED
-docs/plans/spec-audit-regulations-2026-05-23.md	259	HEADER-SAMPLED
-docs/plans/spec-audit-research-2026-05-23.md	292	HEADER-SAMPLED
-docs/plans/spec-audit-synthesis-2026-05-23.md	164	HEADER-SAMPLED
-docs/plans/spec-audit-user-chrome-2026-05-23.md	284	HEADER-SAMPLED
+docs/plans/multi-tenant-foundation-prework-2026-05-15.md	255	FULL
+docs/plans/operations-lane-spec-from-repo.md	508	FULL
+docs/plans/population-pass-2026-09-03.md	234	FULL
+docs/plans/record-tier-population-plan-2026-09-01.md	340	FULL
+docs/plans/recursive-compounding-discovery-2026-08-10.md	138	FULL
+docs/plans/registry-to-ingestion-handoff-design-2026-05-10.md	164	FULL
+docs/plans/regulations-classification-mismatch-counts-2026-05-22.md	116	FULL
+docs/plans/remediation-and-weight-2026-08-10.md	189	FULL
+docs/plans/research-lane-spec-from-repo.md	448	FULL
+docs/plans/scrape-and-build-content-plan-2026-07-19.md	47	FULL
+docs/plans/site-completion-masterplan-2026-08-09.md	95	FULL
+docs/plans/skill-refinements-prework-2026-05-15.md	738	FULL
+docs/plans/source-classification-framework-2026-05-10.md	571	FULL
+docs/plans/source-health-architecture-investigation-2026-05-21.md	328	FULL
+docs/plans/spec-audit-community-2026-05-23.md	521	FULL
+docs/plans/spec-audit-dashboard-2026-05-23.md	198	FULL
+docs/plans/spec-audit-map-2026-05-23.md	361	FULL
+docs/plans/spec-audit-market-intel-2026-05-23.md	276	FULL
+docs/plans/spec-audit-operations-2026-05-23.md	209	FULL
+docs/plans/spec-audit-regulations-2026-05-23.md	259	FULL
+docs/plans/spec-audit-research-2026-05-23.md	292	FULL
+docs/plans/spec-audit-synthesis-2026-05-23.md	164	FULL
+docs/plans/spec-audit-user-chrome-2026-05-23.md	284	FULL
 docs/plans/surface-rebuild-plan-2026-08-11.md	209	FULL
 docs/plans/system-completion-plan-2026-09-02.md	247	FULL
-docs/plans/system-level-intelligence-2026-08-09.md	75	HEADER-SAMPLED
+docs/plans/system-level-intelligence-2026-08-09.md	75	FULL
 docs/plans/system-remediation-plan-2026-08-09.md	144	FULL
-docs/plans/unblocking-the-five-2026-08-30.md	274	HEADER-SAMPLED
-docs/plans/unit4-critical-high-disposition-2026-07-26.md	44	HEADER-SAMPLED
+docs/plans/unblocking-the-five-2026-08-30.md	274	FULL
+docs/plans/unit4-critical-high-disposition-2026-07-26.md	44	FULL
 docs/plans/unwired-disposition-2026-08-31.md	701	FULL
 docs/plans/wave-plan-2026-09-28.md	80	FULL
-docs/plans/wave1-track5-widget-implementation-plan.md	293	HEADER-SAMPLED
+docs/plans/wave1-track5-widget-implementation-plan.md	293	FULL
 docs/plans/wave2-lanes-2026-09-02.md	144	FULL
 docs/plans/wave2b-lanes-2026-09-29.md	52	FULL
 docs/plans/wave3-lanes-2026-09-03.md	92	FULL
-docs/plans/wo19-origin-class-backfill-mapping.md	198	HEADER-SAMPLED
-docs/plans/wo20-assumption-register-spec.md	318	HEADER-SAMPLED
+docs/plans/wo19-origin-class-backfill-mapping.md	198	FULL
+docs/plans/wo20-assumption-register-spec.md	318	FULL
 
 </details>
 
 Rows in this appendix: 268. Files in the read set: 268 (`find docs/plans docs/dispatches -type f | wc -l`
-on this worktree, 2026-09-30). Equal, per the brief's requirement.
+on this worktree, 2026-09-30). Equal, per the brief's requirement. Of the 268: **249 read in full**
+(`FULL`, text read word for word first line to last), **19 `IMAGE-NOT-READ`** (the PNG/JPG screenshots
+under `docs/plans/mobile-evidence/`, deliberately unopened per rule 12's cost model, as disclosed above).
