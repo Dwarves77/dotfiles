@@ -9,12 +9,12 @@ carries a status token per rule 14 (`[CONFIRMED]` / `[HYPOTHESIS]` / `[REFUTED]`
 
 | Metric | Count |
 |---|---|
-| Files this lane's read set named (A4b appendix rows not marked FULL READ) | 158 |
-| Files this lane read in full, first line to last | **158 (all)** |
-| New findings (all classes) | 1 substantive (F44-2, 3 file instances) + 2 resolved hypotheses from A4b |
-| Files this lane confirms clean (no findings) | 157 of 158 |
-| Combined A4b + A4bc files read in full | 76 + 158 = **234 of 235** |
-| Files in the 235-file corpus still not reviewed in full by either lane | **1** (`scripts/verify/wave-acceptance-audit.mjs`, in A4b's own set, not this lane's assignment) |
+| Files this lane's originally-assigned read set (A4b appendix rows not marked FULL READ) | 158 |
+| Files this lane read in full, first line to last (158 assigned + 1 coordinator-assigned from A4b's set) | **159** |
+| New findings (all classes) | 1 substantive (F44-2, 3 file instances) + 2 resolved hypotheses from A4b + 1 resolved hypothesis (TODO-1) |
+| Files this lane confirms clean (no findings) | 158 of 159 |
+| Combined A4b + A4bc files read in full | 76 + 159 = **235 of 235 (all)** |
+| Files in the 235-file corpus still not reviewed in full by either lane | **0** |
 
 **Honest scope statement, per rule 14 and the operator's binding "every line read" directive:** this
 lane read all 158 of its assigned files in full, first line to last, including every file under
@@ -27,6 +27,60 @@ this same lane had deferred and named explicitly rather than silently omitting. 
 nine was subsequently read in full within this same lane before this document was finalized. Zero new
 findings surfaced in any of the nine  -  see "The nine files, read" below for what each one is and why
 it is clean.
+
+## The tenth file, read on coordinator instruction: `scripts/verify/wave-acceptance-audit.mjs`
+
+Per coordinator direction after this document's prior version was drafted: `scripts/verify/wave-acceptance-audit.mjs`
+(137 lines) is in A4b's own file allocation, not this lane's, but the coordinator assigned it to this
+lane for completion. Read in full, first line to last.
+
+**What it is:** the ADR-014 wave-acceptance sampling pre-scan  -  a read-only script that computes a
+risk-weighted sample of recently-touched `intelligence_items` (risk score from pre-guard age,
+non-English jurisdiction, priority, null-source facts, high fact count, quarantined status), a
+mechanical provenance pre-scan (dead-citation count, null-source-fact count, dedup-escape detection on
+shared canonical keys), and prints a manifest for a LIVE human/Chrome three-layer (L1/L2/L3) pass that
+this script cannot itself perform (verifying a cited primary against its live page is not scriptable).
+
+**Findings:**
+- **Wiring claim `[CONFIRMED]`.** The file's own header (lines 8-17) claims it is wired into
+  `scripts/verify/run-data-audit-lane.mjs`'s nightly AUDITS table as a SOFT (non-blocking) audit. Read
+  `run-data-audit-lane.mjs` directly: `AUDITS` is not a hand-maintained list but is *derived*
+  (`deriveAudits()`) by scanning `scripts/verify/*.mjs` for a `// data-audit: label=<label>
+  hard=<true|false>` marker comment (line 72's `MARKER_RE`, line 99's `deriveAudits`).
+  `wave-acceptance-audit.mjs`'s own second line is exactly `// data-audit: label=wave-acceptance
+  hard=false`  -  this file IS mechanically discovered and run by the nightly lane, not merely cited by a
+  stale comment. Confirmed by reading both files directly, not by trusting the header's own claim (rule
+  15's "execution over existence": a marker match is presence, but `deriveAudits` genuinely scanning the
+  filesystem and `run-data-audit-lane.mjs` genuinely iterating `AUDITS` and invoking each entry is the
+  execution wiring itself, distinct from a citation).
+- **The one TODO-shaped line in the file is not a code-maintenance TODO.** Line 132-134 emits
+  `console.log(`\nTODO(live pass): for each sampled item, live-read the cited primary...`)` as part of
+  the script's own printed report to the human operator, naming what the LIVE L2/L3 pass (a human/Chrome
+  read of each cited primary) must still do  -  it is user-facing output text, not a marker of unfinished
+  code in this file. `[REFUTED]` as a code-defect: the script is complete and does exactly what its own
+  header documents; the "TODO" is the deliberate output of a mechanical pre-scan whose entire design
+  handoffs the un-scriptable part (comparing a claim against a live web page) to a human, by name, in
+  the report itself. This most likely resolves A4b's TODO-1 finding (a grep for `TODO` matching this
+  exact line)  -  corrected in place per rule 13's corollary rather than left standing.
+- **Self-skip / exit-code posture:** consistent with every other `verify/*.mjs` file read in this and
+  the prior pass  -  exit 2 when `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are absent (line 57), exit 1
+  on a thrown error (line 137's `main().catch`), exit 0 (implicit) on a normal completed run. No
+  swallowed error: every Supabase read either destructures and checks `error` (`cErr`, thrown on line
+  96) or is wrapped in the top-level `.catch`.
+- **F44 class check:** `main().catch(...)` runs unconditionally at module scope (line 137), the same
+  shape as F44-2's three producer-file instances above  -  but this file is a `#!/usr/bin/env node`
+  shebang CLI script with **zero importers anywhere in the repo** (grepped: the only three non-self
+  hits for "wave-acceptance-audit" are `run-data-audit-lane.mjs`'s comment precedent,
+  `mode-tag-coverage-audit.mjs`'s comment precedent, and `F25-module-liveness.mjs`  -  none of which
+  `import` this file as an ES module; `run-data-audit-lane.mjs` invokes it as a child process via
+  `deriveAudits`'s discovered path, per that file's own runner mechanism, never a static `import`). The
+  F44-2 defect class (a real network/DB side effect firing on mere `import`) therefore does **not**
+  apply here  -  this file is never imported, only ever executed directly. `[CONFIRMED]` by grep +
+  reading `run-data-audit-lane.mjs`'s invocation mechanism directly.
+- **Writes:** none. The file is genuinely read-only end to end, matching its own header's claim  -  every
+  Supabase call is a `.select()`; no `.insert()`/`.update()`/`.delete()`/guarded-write call anywhere.
+
+No new defect found in this file.
 
 ## The nine files, read (no longer a gap)
 
@@ -192,6 +246,7 @@ separately, not counted as read). Paths are relative to `fsi-app/scripts/`.
 | verify/verification-audit-report.mjs | FULL READ |
 | verify/verification-audit-report.test.mjs | FULL READ |
 | verify/vocab-sync-audit.mjs | FULL READ |
+| verify/wave-acceptance-audit.mjs | FULL READ (A4b allocation, read by A4bc on coordinator instruction; resolves TODO-1, [REFUTED]) |
 | lib/assemble-train.test.mjs | FULL READ |
 | lib/chained-dry-guard.test.mjs | FULL READ |
 | lib/changelog.test.mjs | FULL READ |
@@ -295,9 +350,10 @@ files read
 - **Swallowed errors:** none found beyond the EXIT0-1 resolution above. Every `catch` block read either
   re-throws, logs and returns a typed `{status:"held"/"error", reason}` value (the dominant pattern in
   `heal-provenance.mjs`/`export-census-rows.mjs`), or exits a non-zero/non-generic code.
-- **TODO/FIXME:** none found in the 158 files read (A4b's one TODO finding, `TODO-1`, is in
-  `verify/wave-acceptance-audit.mjs`, the one file in the 235-file corpus neither lane has fully read  -
-  noted, not re-found, not re-claimed).
+- **TODO/FIXME:** none found in the 159 files read across this lane's completion pass. A4b's one TODO
+  finding, `TODO-1`, named `verify/wave-acceptance-audit.mjs`; that file is now fully read (see "The
+  tenth file" section above) and its one TODO-shaped line is `[REFUTED]` as a code-defect  -  it is
+  deliberate user-facing report text, not unfinished code.
 - **Files over 800 lines:** `mint/heal-provenance.mjs` (4,268  -  A4b's F-SIZE-1),
   `mint/heal-provenance.test.mjs` (3,412, new this pass), `mint/export-census-rows.test.mjs` (1,781, new
   this pass), `mint/export-census-rows.mjs` (1,729  -  A4b's F-SIZE-2), `mint/MINT-RUNBOOK.md` (932, doc,
@@ -323,11 +379,14 @@ full reads, and  -  after an earlier pass of this same lane had deferred nine fi
 explicitly rather than silently omitting them  -  returning to read all nine in full before this document
 was finalized: two markdown runbooks (`MINT-RUNBOOK.md`, `SCREEN-REPORT-FORMAT.md`) and seven
 `*.test.mjs` companions, including `heal-provenance.test.mjs` (3,412 lines, the single largest file in
-the entire 235-file corpus). Zero new findings surfaced in any of the nine.
+the entire 235-file corpus). Zero new findings surfaced in any of the nine. On coordinator instruction,
+this lane then also read `scripts/verify/wave-acceptance-audit.mjs` (137 lines, in A4b's own
+allocation) in full, resolving A4b's TODO-1 finding `[REFUTED]` (see "The tenth file" section above).
 
-**A4b plus A4bc cover all 235 files but one.** Combined, A4b and A4bc have now read 234 of the 235-file
-corpus in full (76 + 158). The single remaining file, `scripts/verify/wave-acceptance-audit.mjs`, was
-never in A4bc's assigned read set (it is one of A4b's own 76-file allocation) and was not opened by
-either lane at FULL READ depth; A4b's own TODO-1 finding against it stands unverified by a full read,
-noted above rather than silently dropped. 234/235 is stated here as the true, checkable number rather
-than rounded to a false 235/235  -  the one gap is named, not hidden, per rule 14.
+**A4b plus A4bc cover all 235 files.** Combined, A4b and A4bc have now read all 235 files in the corpus
+in full, first line to last  -  76 by A4b, 159 by A4bc (158 in this lane's own assignment plus the one
+file, `wave-acceptance-audit.mjs`, the coordinator moved into this lane's scope from A4b's allocation).
+235/235 is the true, checkable number, not a round-up: every path is named in the coverage appendix
+above with its own review-depth marker, and both files that started this pass as gaps
+(`wave-acceptance-audit.mjs` here, the nine mint/ files above) are now FULL READ with their own
+dedicated findings sections rather than a bare tally change.
