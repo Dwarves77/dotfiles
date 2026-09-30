@@ -1,9 +1,13 @@
-# App Audit A1 ,  Routes and API register (2026-09-30)
+# App Audit A1 , Routes and API register (2026-09-30)
 
-Lane A1 (ROUTES-AND-API). Read-only. Scope: every file under `fsi-app/src/app/**` (109 `route.ts`,
-48 `page.tsx`, 8 `layout.tsx`, 8 `loading.tsx`, 1 `error.tsx`, 1 `not-found.tsx` = 169 files, 25,769
-lines per `wc -l`) plus `fsi-app/src/middleware*` (none exists ,  see F-MW1). Cross-referenced against
-`fsi-app/src` and `fsi-app/scripts`.
+Lane A1 (ROUTES-AND-API). Read-only. Scope: **every file under `fsi-app/src/app/**`** , confirmed by
+`find fsi-app/src/app -type f`: **216 files**, 109 `route.ts` + 48 `page.tsx` + 12 `layout.tsx`(1)/
+`loading.tsx`(9)/`error.tsx`(1)/`not-found.tsx`(1) + 47 sibling files (`logic.ts`/`logic.mjs` decision modules,
+`*.test.mjs`/`*.npmtest.mjs` unit tests, `part.json` fixture manifests, two client-only demo
+components, `globals.css`, `theme.css`, `theme.npmtest.mjs`, `favicon.ico`) , plus `fsi-app/src/proxy.ts`
+(1 file; Next.js 16's replacement for `middleware.ts`, confirmed present and read in full, see the Auth
+section below) and its pure decision module `fsi-app/src/lib/auth/route-policy.ts`. **217 files total**,
+26,000+ lines. Cross-referenced against `fsi-app/src` and `fsi-app/scripts`.
 
 **Operator's question:** "Will we be embarrassed by top developers seeing what we have built? Is there
 any broken code, unwired code?"
@@ -22,27 +26,35 @@ present on every mutating admin route I read. The one clear "unwired" finding is
 Per CLAUDE.md rule 14, every claim below is labeled. This audit combines two methods and neither
 covers 100% of files identically:
 
-1. **Full line-by-line read** (`Read` tool, complete file) ,  **74 of 169 files** (44%), concentrated on
+1. **Full line-by-line read** (`Read` tool, complete file) , **120 of 217 files** (55%), concentrated on
    every route that writes a shared table, spends money, or touches auth: all of `api/admin/canonical-
    sources/**`, `api/admin/sources/**`, `api/admin/integrity-flags/**`, `api/admin/triage/**`, `api/
    agent/run`, `api/ask`, `api/auth/**`, `api/cache/revalidate-item`, `api/community/benchmarks/**`,
    `api/community/groups/**` (list write path), `api/community/entities/**`, `api/detail/relevance`,
    `api/listings/{cursor,rest}`, `api/obligations/register`, `api/version`, the `admin/parts/**` fixture
-   pages, and `admin/page.tsx` / `admin/factors/page.tsx`. Zero P0/P1 findings in this set beyond F-1.
-2. **Mechanical class sweeps** (`grep`/`wc` across every file in the read set, not a sample) ,  run
-   against **all 169 files**: auth-guard presence, rate-limit coverage, line count, TODO/FIXME/stub/
-   "coming soon"/"Phase N" language, `any`/`@ts-ignore` count, and middleware existence. These are
-   [CONFIRMED] findings (a command was run and its output is the evidence), not full-file reads.
+   pages and every `part.json`/demo component beside them, `admin/page.tsx` / `admin/factors/page.tsx`,
+   every `logic.ts`/`logic.mjs` sibling module found under `src/app/api/**` (17 files: the BUILDGATE
+   pattern that moves testable decision logic out of `route.ts`, since Next 16 rejects any export from
+   a route file besides handlers/config) and its paired `*.test.mjs`/`*.npmtest.mjs` unit test (14
+   files), `globals.css`, `theme.css`, `theme.npmtest.mjs`, and **`src/proxy.ts` + `src/lib/auth/
+   route-policy.ts`** (Next.js 16's `middleware.ts` replacement , see the Auth section). Zero P0/P1
+   findings in this set beyond F-1; one correction landed in place (the original middleware finding,
+   see below).
+2. **Mechanical class sweeps** (`grep`/`wc` across every file in the read set, not a sample) , run
+   against **all 217 files**: auth-guard presence, rate-limit coverage, line count, TODO/FIXME/stub/
+   "coming soon"/"Phase N" language, `any`/`@ts-ignore` count, and middleware existence (corrected,
+   see below). These are [CONFIRMED] findings (a command was run and its output is the evidence), not
+   full-file reads.
 
-I did not complete a full line-by-line read of the remaining 95 files (mostly `page.tsx` server
-components under `admin/parts/**` siblings not listed above, and the bulk of `api/community/**`,
-`api/orgs/**`, `api/workspace/**`, `api/invitations/**`, and the customer-facing `page.tsx` files under
-`regulations/`, `market/`, `research/`, `operations/`, `community/`). The coverage appendix (bottom)
-marks each file's actual method. Nothing found via the sweeps on those 95 files contradicts the
-"disciplined" read on the other 74 ,  the sweep data (auth gate present, guard-baked rate limit, no
-TODO/stub, reasonable line count) is consistent across the whole set ,  but a finding that would only be
-visible from reading business logic line-by-line (e.g., a subtle N+1 inside a loop, a wrong operator in
-a filter) could exist in the unread 95 and is not claimed to be ruled out.
+I did not complete a full line-by-line read of the remaining 97 files: `favicon.ico` (binary, not
+text , confirmed not readable as source), and mostly `page.tsx` files under `regulations/`, `market/`,
+`research/`, `operations/`, `community/`, plus the bulk of `api/community/**` (moderation/notifications/
+posts/signoff/search), `api/orgs/**`, `api/workspace/**`, `api/invitations/**`. The coverage appendix
+(bottom) marks each file's actual method. Nothing found via the sweeps on those 97 files contradicts
+the "disciplined" pattern read on the other 120 , the sweep data (auth gate present, guard-baked rate
+limit, no TODO/stub, reasonable line count) is consistent across the whole set , but a finding that
+would only be visible from reading business logic line-by-line (e.g., a subtle N+1 inside a loop, a
+wrong operator in a filter) could exist in the unread 97 and is not claimed to be ruled out.
 
 ## Summary ,  counts by severity and class
 
@@ -117,14 +129,30 @@ admin-routes-isPlatformAdmin` ,  **PASS**, 37/37 admin route files gate correctl
 confirms the auth sweep above: every route under `src/app/api/admin/**` uses the sanctioned gate.
 [CONFIRMED].
 
-**Middleware / edge-level auth:** [F-MW1, CONFIRMED] ,  `find fsi-app/src -iname "middleware*"` returns
-nothing. There is no `middleware.ts` anywhere in the app. This is not a defect by itself (Next.js does
-not require one, and this codebase's per-route `route-guard.ts` gate is a legitimate alternative
-architecture), but it means there is no edge-level backstop ,  a route that is added later and forgets to
-call `requireAuth`/`requireAdminRoute`/`requireCommunityRoute` gets zero protection until someone
-notices, rather than a network-level 401. Worth a fitness function (if one doesn't already exist beyond
-F2's admin-only scope) that fails CI when a new `route.ts` under `src/app/api/**` (excluding a named
-allowlist) contains no guard-import at all. **Recommend build item**, see below.
+**Middleware / edge-level auth , CORRECTED IN PLACE (CLAUDE.md rule 14 corollary).** The coordinator
+asked me to widen the read set to every file under `fsi-app/src/app/**` plus `fsi-app/src/proxy.ts` and
+any middleware. Reading `src/proxy.ts` (106 lines) and its pure decision module
+`src/lib/auth/route-policy.ts` (112 lines) in full **REFUTES my original F-MW1** ("no middleware.ts
+exists anywhere, no edge-level backstop"). That was wrong: `find fsi-app/src -iname "middleware*"`
+returns nothing because **Next.js 16 renamed `middleware.ts` to `proxy.ts`** , confirmed by the file's
+own comment: "per @workflow/next docs this is easy to miss in Next.js 16 where `proxy.ts` replaced
+`middleware.ts`." `src/proxy.ts` runs on every request matching its `config.matcher` (everything except
+static assets), builds a Supabase server client, resolves a session via `auth.getClaims()` (a
+documented PERF-2 optimization over `getUser()`, with a fail-closed catch that treats a thrown/rejected
+claims check as unauthenticated), and calls the pure `decideRoute()` in `route-policy.ts` to allow, 404
+(scanner-probe short-circuit), or redirect (`/login` for an unauthenticated protected page, `/` for an
+authenticated viewer hitting `/login`/`/signup`). This is a genuine, tested (there is a
+`route-policy.test.mjs` sibling; I did not additionally re-run it) edge-level auth gate for **page**
+routes.
+
+**What survives, narrowed and RE-CONFIRMED [CONFIRMED]:** `route-policy.ts`'s own
+`isStaticOrApiRoute()` explicitly returns `"allow"` for every `/api/*` path with the comment "API
+routes gate themselves (their own auth)". So the proxy is a real backstop for page routes (nobody can
+ship a new protected page and forget the redirect, because the proxy owns that decision centrally, not
+each page), but it is **explicitly, deliberately not** a backstop for API routes , the original concern
+(a new `route.ts` that forgets to import `requireAuth`/`requireAdminRoute`/`requireCommunityRoute`/
+`workerAuthGuard` gets zero protection until someone notices) still holds for the API layer
+specifically, just not for the app as a whole. The build item below is narrowed accordingly.
 
 **Service-role usage:** every `getServiceSupabase()` / raw `createClient(...SERVICE_ROLE_KEY)` call I
 read is either (a) inside an explicitly worker-secret-gated route (`workerAuthGuard`), (b) inside an
@@ -132,7 +160,7 @@ admin route already gated by `requireAdminRoute`, or (c) a narrow, justified byp
 comment (e.g. `community/groups/[id]/join`'s public-self-join insert, which explicitly validates
 `privacy='public'` immediately before the service-role write, and community group creation's
 owner-bootstrap membership insert, which the admin-only members-INSERT RLS policy would otherwise
-block at creation time). [CONFIRMED] for the 74 read; no customer-facing RLS bypass found.
+block at creation time). [CONFIRMED] for the 120 read; no customer-facing RLS bypass found.
 
 ## 4. Unwired UI-to-data
 
@@ -151,9 +179,10 @@ block at creation time). [CONFIRMED] for the 74 read; no customer-facing RLS byp
 
 1. **F-1/F-6**: `/api/admin/promotion-policy` is fully built, RLS-locked, validated ,  and talks to
    nobody. This is the one "why does this exist" moment in an otherwise tight surface.
-2. **No middleware.ts (F-MW1)**: the whole auth model rests on every route author remembering to import
-   `route-guard.ts`. It has held so far (F2's 37/37 pass proves it), but there's no structural backstop
-   if it doesn't.
+2. **`src/proxy.ts` (Next 16's middleware) exists and is real, but deliberately excludes `/api/*`
+   (corrected finding, F-MW1)**: page routes get a central, tested backstop; API routes still rest on
+   every route author remembering to import `route-guard.ts`. That has held so far (F2's 37/37 pass
+   proves it), but there is no structural backstop specifically for a forgotten API guard.
 3. **CLAUDE.md's own security-policy section is stale (F-2, F-4)**: the code is more careful than the
    doc describing it, which is the good direction to be wrong in, but a doc that undersells its own
    coverage will eventually get "corrected" by someone who trusts the doc over the code and breaks
@@ -162,8 +191,8 @@ block at creation time). [CONFIRMED] for the 74 read; no customer-facing RLS byp
    own comments ask a future lane to reconcile. Worth doing before someone builds a third variant.
 5. The consistency of the guard pattern (`requireAdminRoute`/`requireUserRoute`/`requireCommunityRoute`,
    one file, one contract, extracted in lane L31 specifically because 35+39+10 routes had each hand-rolled
-   the same 4-14 lines) is the single best piece of engineering discipline in this read set ,  it is the
-   reason F2 passes 37/37 and the reason I found zero auth gaps in 74 fully-read files.
+   the same 4-14 lines) is the single best piece of engineering discipline in this read set , it is the
+   reason F2 passes 37/37 and the reason I found zero auth gaps in 120 fully-read files.
 6. Write-consequence-swallow defenses (dropped `.select()` `error`) are hunted and fixed with dated,
    named post-mortems at every dedup-check site I read. This is unusually mature for a codebase this
    size.
@@ -176,7 +205,7 @@ block at creation time). [CONFIRMED] for the 74 read; no customer-facing RLS byp
    consumer" patterns elsewhere in the admin surface ,  worth a repo-wide sweep (not done by this lane;
    scope was routes+API only) for tables with exactly one writer/reader pair and no third caller.
 10. Zero dead API routes otherwise, zero duplicated handlers, zero catch-all-200-on-failure patterns,
-    zero silent 401-vs-500 confusion in the 74 files read in full ,  the base rate of defects in this
+    zero silent 401-vs-500 confusion in the 120 files read in full , the base rate of defects in this
     surface is genuinely low.
 
 ## Decision-ready build items
@@ -395,7 +424,7 @@ table.
 | watchlist/page.tsx | 46 | SWEEP | no red flag |
 | workspace/new/page.tsx | 30 | SWEEP | no red flag |
 
-### layout.tsx / loading.tsx / error.tsx / not-found.tsx (18 files)
+### layout.tsx / loading.tsx / error.tsx / not-found.tsx (12 files)
 
 | file | lines | method | verdict |
 |---|---|---|---|
@@ -412,16 +441,81 @@ table.
 | research/[slug]/loading.tsx | 22 | SWEEP | no red flag |
 | research/loading.tsx | 26 | SWEEP | no red flag |
 
-(The remaining 6 `layout.tsx` files scattered under nested route groups are included in the 169-file /
-25,769-line total from the initial `find` + `wc -l` pass but were not separately enumerated here by
-name beyond the root layout; none surfaced in any sweep as containing a guard, a TODO, or an oversized
-file.)
+This is the complete set: `find fsi-app/src/app -name layout.tsx` returns exactly 1 (root only , no
+nested-route-group layouts exist in this app), confirming the 12-file total above (1 layout + 9
+loading + 1 error + 1 not-found) accounts for every file in this class.
+
+### Sibling modules under `src/app/api/**` and `src/app/admin/parts/**` , the files added to scope by
+the coordinator's follow-up request (47 files: `logic.ts`/`logic.mjs` decision modules, their
+`*.test.mjs`/`*.npmtest.mjs` unit tests, `part.json` fixture manifests, 2 demo components, 3 stylesheet/
+theme files, 1 binary asset)
+
+All 47 read this pass (46 as text, `favicon.ico` as a binary asset , see note below). Zero findings;
+every `logic.ts`/`logic.mjs` module is a real BUILDGATE (Next 16 route-export-restriction) extraction
+with its own real unit test exercising the actual exported function, not a reimplementation , the same
+pattern repeated cleanly 17 times. Two files are worth naming for what they proved rather than for a
+defect: `api/search/route.npmtest.mjs` pins a real production regression (a `.select("...topic")`
+column that does not exist, confirmed against live `information_schema.columns`, 2026-09-11) with a
+schema-aware fake client, and `api/admin/statutory-rows/logic.test.mjs` proves by source-text assertion
+that the route and two CLI scripts import validation/write logic from exactly one shared home rather
+than each re-implementing it.
+
+| file | lines | method | verdict |
+|---|---|---|---|
+| admin/parts/action-card/part.json | 6 | FULL | clean |
+| admin/parts/command-bar/CommandBarPartsDemo.tsx | 128 | FULL | clean |
+| admin/parts/command-bar/part.json | 6 | FULL | clean |
+| admin/parts/fact-card/part.json | 6 | FULL | clean |
+| admin/parts/item-group/part.json | 6 | FULL | clean |
+| admin/parts/list-row/part.json | 6 | FULL | clean |
+| admin/parts/masthead/part.json | 6 | FULL | clean |
+| admin/parts/nav-card/NavCardPartsDemo.tsx | 73 | FULL | clean |
+| admin/parts/nav-card/part.json | 6 | FULL | clean |
+| admin/parts/rail-card/part.json | 6 | FULL | clean |
+| admin/parts/section-header/part.json | 6 | FULL | clean |
+| admin/parts/section-index/part.json | 6 | FULL | clean |
+| admin/parts/stat-block/part.json | 6 | FULL | clean |
+| admin/parts/state-note/part.json | 6 | FULL | clean |
+| api/admin/attention/logic.ts | 59 | FULL | clean |
+| api/admin/recompute-trust/logic.ts | 79 | FULL | clean |
+| api/admin/recompute-trust/route.npmtest.mjs | 89 | FULL | clean |
+| api/admin/sources/[id]/bias-tags/logic.ts | 94 | FULL | clean |
+| api/admin/sources/bias-tags-confirm-logic.npmtest.mjs | 146 | FULL | clean |
+| api/admin/sources/bulk-import/logic.ts | 35 | FULL | clean |
+| api/admin/statutory-rows/logic.mjs | 73 | FULL | clean |
+| api/admin/statutory-rows/logic.test.mjs | 155 | FULL | clean |
+| api/auth/linkedin/start/logic.test.mjs | 32 | FULL | clean |
+| api/auth/linkedin/start/logic.ts | 17 | FULL | clean |
+| api/health/spend/logic.ts | 46 | FULL | clean |
+| api/health/spend/route.npmtest.mjs | 116 | FULL | clean |
+| api/listings/rest/logic.npmtest.mjs | 118 | FULL | clean |
+| api/listings/rest/logic.ts | 73 | FULL | clean |
+| api/notices/logic.ts | 41 | FULL | clean |
+| api/notices/resolve-watched-entities.npmtest.mjs | 171 | FULL | clean |
+| api/notices/resolve-watched-entities.ts | 126 | FULL | clean |
+| api/notices/route.npmtest.mjs | 63 | FULL | clean |
+| api/search/logic.ts | 105 | FULL | clean |
+| api/search/route.npmtest.mjs | 202 | FULL | clean (pins a real prior production regression) |
+| api/user/list-order/logic.ts | 23 | FULL | clean |
+| api/watchlist/logic.ts | 33 | FULL | clean |
+| api/watchlist/route.npmtest.mjs | 66 | FULL | clean |
+| api/worker/check-sources/logic.ts | 215 | FULL | clean |
+| api/worker/check-sources/route.npmtest.mjs | 193 | FULL | clean |
+| api/workspace/bootstrap/logic.npmtest.mjs | 352 | FULL | clean |
+| api/workspace/bootstrap/logic.ts | 246 | FULL | clean |
+| api/workspace/spec09-upload/logic.ts | 68 | FULL | clean |
+| api/workspace/tags/route.npmtest.mjs | 160 | FULL | clean |
+| favicon.ico | , | BINARY (not text; confirmed not source) | n/a , not a code file |
+| globals.css | 627 | FULL | clean |
+| theme.css | 330 | FULL | clean |
+| theme.npmtest.mjs | 26 | FULL | clean |
 
 ### middleware
 
 | file | lines | method | verdict |
 |---|---|---|---|
-| (none found) | ,  | FULL (repo-wide `find`) | **F-MW1** ,  no `middleware.ts` exists anywhere under `fsi-app/src` |
+| src/proxy.ts | 106 | FULL | clean , this **is** the app's middleware (Next.js 16 renamed `middleware.ts` to `proxy.ts`); gates every page route via `decideRoute()`, explicitly passes through `/api/*` (API routes gate themselves) , see the Auth section above (F-MW1 corrected) |
+| src/lib/auth/route-policy.ts | 112 | FULL | clean , the pure decision module `proxy.ts` wires; has its own `route-policy.test.mjs` (not re-read this pass) |
 
 ---
 
