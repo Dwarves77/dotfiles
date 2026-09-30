@@ -424,7 +424,7 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/classification/scope.test.mjs | 136 | read in full this pass, clean, no defect found |
 | src/lib/classification/vocab.mjs | 112 | read in full this pass, clean, no defect found |
 | src/lib/classification/vocab.test.mjs | 119 | read in full this pass, clean, no defect found |
-| src/lib/cn.ts | 6 | clean (static/grep scan; no defect found this pass) |
+| src/lib/cn.ts | 6 | read in full this pass, clean, no defect found |
 | src/lib/community/antitrust.mjs | 222 | clean (static/grep scan; no defect found this pass) |
 | src/lib/community/antitrust.test.mjs | 208 | clean (static/grep scan; no defect found this pass) |
 | src/lib/community/benchmark.mjs | 173 | clean (static/grep scan; no defect found this pass) |
@@ -495,35 +495,35 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/connections/theme-stats.test.mjs | 45 | clean (static/grep scan; no defect found this pass) |
 | src/lib/connections/write-edges.mjs | 126 | clean (static/grep scan; no defect found this pass) |
 | src/lib/connections/write-edges.test.mjs | 151 | clean (static/grep scan; no defect found this pass) |
-| src/lib/constants-region-group.npmtest.mjs | 35 | clean (static/grep scan; no defect found this pass) |
-| src/lib/constants.ts | 547 | clean (static/grep scan; no defect found this pass) |
+| src/lib/constants-region-group.npmtest.mjs | 35 | read in full this pass, clean, no defect found |
+| src/lib/constants.ts | 547 | read in full this pass, clean, no defect found |
 | src/lib/contracts/corridor-id.mjs | 212 | F25-2 dead (allowlisted, WIRE pending future corridor-factor loader) |
-| src/lib/contracts/envelope.mjs | 349 | clean (static/grep scan; no defect found this pass) |
-| src/lib/contracts/factor-tier.mjs | 430 | clean (static/grep scan; no defect found this pass) |
-| src/lib/contracts/source-licence.mjs | 475 | clean (static/grep scan; no defect found this pass) |
-| src/lib/contracts/verbatim-grounding.mjs | 40 | clean (static/grep scan; no defect found this pass) |
-| src/lib/contracts/vocabularies.mjs | 483 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage-gaps-rollup.test.mjs | 120 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage-gaps-rollup.ts | 109 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage-gaps.ts | 139 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage/identity.mjs | 83 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage/identity.test.mjs | 75 | clean (static/grep scan; no defect found this pass) |
-| src/lib/coverage/index-data.ts | 258 | clean (static/grep scan; no defect found this pass) |
+| src/lib/contracts/envelope.mjs | 349 | read in full this pass, clean, no defect found |
+| src/lib/contracts/factor-tier.mjs | 430 | read in full this pass, clean, no defect found |
+| src/lib/contracts/source-licence.mjs | 475 | read in full this pass, clean, no defect found |
+| src/lib/contracts/verbatim-grounding.mjs | 40 | read in full this pass, clean, no defect found |
+| src/lib/contracts/vocabularies.mjs | 483 | read in full this pass, clean, no defect found |
+| src/lib/coverage-gaps-rollup.test.mjs | 120 | read in full this pass, clean, no defect found |
+| src/lib/coverage-gaps-rollup.ts | 109 | read in full this pass, clean, no defect found |
+| src/lib/coverage-gaps.ts | 139 | read in full this pass, clean, no defect found |
+| src/lib/coverage/identity.mjs | 83 | read in full this pass, clean, no defect found |
+| src/lib/coverage/identity.test.mjs | 75 | read in full this pass, clean, no defect found |
+| src/lib/coverage/index-data.ts | 258 | read in full this pass, clean, no defect found |
 | src/lib/credibility/chip-selection.mjs | 54 | F25-1 dead (allowlisted, awaiting operator wire/delete ruling) |
-| src/lib/credibility/chip-selection.test.mjs | 101 | clean (static/grep scan; no defect found this pass) |
+| src/lib/credibility/chip-selection.test.mjs | 101 | read in full this pass, clean, no defect found |
 | src/lib/d3/hooks.mjs | 92 | read in full this pass, clean, no defect found |
 | src/lib/d3/hooks.selftest.mjs | 113 | read in full this pass, clean, no defect found |
-| src/lib/dashboard/brief-rows.npmtest.mjs | 386 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/brief-rows.ts | 298 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/due-next-read.npmtest.mjs | 226 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/honest-empty.npmtest.mjs | 116 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/recent-changes-window.mjs | 19 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/recent-changes-window.test.mjs | 28 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/row-fields.npmtest.mjs | 62 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/row-fields.ts | 96 | clean (static/grep scan; no defect found this pass) |
-| src/lib/dashboard/surface-coverage.ts | 363 | clean (static/grep scan; no defect found this pass) |
-| src/lib/data-public-surface-slugs.test.mjs | 301 | clean (static/grep scan; no defect found this pass) |
-| src/lib/data.ts | 1658 | clean (static/grep scan; no defect found this pass) |
+| src/lib/dashboard/brief-rows.npmtest.mjs | 386 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/brief-rows.ts | 298 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/due-next-read.npmtest.mjs | 226 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/honest-empty.npmtest.mjs | 116 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/recent-changes-window.mjs | 19 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/recent-changes-window.test.mjs | 28 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/row-fields.npmtest.mjs | 62 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/row-fields.ts | 96 | read in full this pass, clean, no defect found |
+| src/lib/dashboard/surface-coverage.ts | 363 | read in full this pass, clean, no defect found |
+| src/lib/data-public-surface-slugs.test.mjs | 301 | read in full this pass, clean, no defect found |
+| src/lib/data.ts | 1658 | read in full this pass, clean, no defect found |
 | src/lib/db/paginate.mjs | 118 | read in full this pass, clean, no defect found |
 | src/lib/db/paginate.test.mjs | 99 | read in full this pass, clean, no defect found |
 | src/lib/detail/action-card-common-props.tsx | 57 | clean (static/grep scan; no defect found this pass) |
@@ -553,33 +553,33 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/detail/timeline-math.test.mjs | 194 | clean (static/grep scan; no defect found this pass) |
 | src/lib/detail/timeline-math.ts | 184 | clean (static/grep scan; no defect found this pass) |
 | src/lib/detail/use-section-scroll-spy.ts | 37 | clean (static/grep scan; no defect found this pass) |
-| src/lib/domains.ts | 168 | clean (static/grep scan; no defect found this pass) |
+| src/lib/domains.ts | 168 | read in full this pass, clean, no defect found |
 | src/lib/email/send-invitation-email.ts | 51 | read in full this pass, clean, no defect found |
-| src/lib/entities/canonical-entities.mjs | 44 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/corridor-scope-cache.ts | 78 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/corridor-scope.test.mjs | 218 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/corridor-scope.ts | 297 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/crosswalk.mjs | 182 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/crosswalk.test.mjs | 136 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/decisions.mjs | 75 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/entity-id.mjs | 137 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/entity-id.test.mjs | 132 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/entity-plan.mjs | 113 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/entity-resolve.mjs | 282 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/entity-resolve.test.mjs | 349 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/host-from-url.mjs | 25 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/lineage-backfill.mjs | 95 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/link-item-entities.mjs | 78 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/link-item-entities.test.mjs | 50 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/link-items.ts | 69 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/source-role.mjs | 39 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/source-role.test.mjs | 46 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/unlocode-names.mjs | 112 | clean (static/grep scan; no defect found this pass) |
-| src/lib/entities/unlocode-names.test.mjs | 103 | clean (static/grep scan; no defect found this pass) |
+| src/lib/entities/canonical-entities.mjs | 44 | read in full this pass, clean, no defect found |
+| src/lib/entities/corridor-scope-cache.ts | 78 | read in full this pass, clean, no defect found |
+| src/lib/entities/corridor-scope.test.mjs | 218 | read in full this pass, clean, no defect found |
+| src/lib/entities/corridor-scope.ts | 297 | read in full this pass, clean, no defect found |
+| src/lib/entities/crosswalk.mjs | 182 | read in full this pass, clean, no defect found |
+| src/lib/entities/crosswalk.test.mjs | 136 | read in full this pass, clean, no defect found |
+| src/lib/entities/decisions.mjs | 75 | read in full this pass, clean, no defect found |
+| src/lib/entities/entity-id.mjs | 137 | read in full this pass, clean, no defect found |
+| src/lib/entities/entity-id.test.mjs | 132 | read in full this pass, clean, no defect found |
+| src/lib/entities/entity-plan.mjs | 113 | read in full this pass, clean, no defect found |
+| src/lib/entities/entity-resolve.mjs | 282 | read in full this pass, clean, no defect found |
+| src/lib/entities/entity-resolve.test.mjs | 349 | read in full this pass, clean, no defect found |
+| src/lib/entities/host-from-url.mjs | 25 | read in full this pass, clean, no defect found |
+| src/lib/entities/lineage-backfill.mjs | 95 | read in full this pass, clean, no defect found |
+| src/lib/entities/link-item-entities.mjs | 78 | read in full this pass, clean, no defect found |
+| src/lib/entities/link-item-entities.test.mjs | 50 | read in full this pass, clean, no defect found |
+| src/lib/entities/link-items.ts | 69 | read in full this pass, clean, no defect found |
+| src/lib/entities/source-role.mjs | 39 | read in full this pass, clean, no defect found |
+| src/lib/entities/source-role.test.mjs | 46 | read in full this pass, clean, no defect found |
+| src/lib/entities/unlocode-names.mjs | 112 | read in full this pass, clean, no defect found |
+| src/lib/entities/unlocode-names.test.mjs | 103 | read in full this pass, clean, no defect found |
 | src/lib/figures/format-range.mjs | 53 | read in full this pass, clean, no defect found |
 | src/lib/figures/format-range.test.mjs | 36 | read in full this pass, clean, no defect found |
-| src/lib/format.npmtest.mjs | 57 | clean (static/grep scan; no defect found this pass) |
-| src/lib/format.ts | 107 | clean (static/grep scan; no defect found this pass) |
+| src/lib/format.npmtest.mjs | 57 | read in full this pass, clean, no defect found |
+| src/lib/format.ts | 107 | read in full this pass, clean, no defect found |
 | src/lib/forward-events/compliance-deadline-sync.mjs | 88 | clean (static/grep scan; no defect found this pass) |
 | src/lib/forward-events/compliance-deadline-sync.test.mjs | 128 | clean (static/grep scan; no defect found this pass) |
 | src/lib/forward-events/extract-forward-events.mjs | 1945 | clean (static/grep scan; no defect found this pass) |
@@ -635,13 +635,13 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/intake/source-link-invariant.test.mjs | 42 | clean (static/grep scan; no defect found this pass) |
 | src/lib/intake/write-item.test.mjs | 220 | clean (static/grep scan; no defect found this pass) |
 | src/lib/intake/write-item.ts | 378 | clean (static/grep scan; no defect found this pass) |
-| src/lib/item-links.ts | 103 | clean (static/grep scan; no defect found this pass) |
+| src/lib/item-links.ts | 103 | read in full this pass, clean, no defect found |
 | src/lib/jurisdictions/iso.ts | 285 | read in full this pass, clean, no defect found |
 | src/lib/jurisdictions/tiers.ts | 243 | read in full this pass, clean, no defect found |
-| src/lib/list-order.ts | 90 | clean (static/grep scan; no defect found this pass) |
-| src/lib/list-pagination.test.mjs | 211 | clean (static/grep scan; no defect found this pass) |
-| src/lib/list-pagination.ts | 176 | clean (static/grep scan; no defect found this pass) |
-| src/lib/list-row-fields.ts | 101 | clean (static/grep scan; no defect found this pass) |
+| src/lib/list-order.ts | 90 | read in full this pass, clean, no defect found |
+| src/lib/list-pagination.test.mjs | 211 | read in full this pass, clean, no defect found |
+| src/lib/list-pagination.ts | 176 | read in full this pass, clean, no defect found |
+| src/lib/list-row-fields.ts | 101 | read in full this pass, clean, no defect found |
 | src/lib/llm/first-fetch-classify.npmtest.mjs | 274 | clean (static/grep scan; no defect found this pass) |
 | src/lib/llm/first-fetch-classify.ts | 382 | clean (static/grep scan; no defect found this pass) |
 | src/lib/llm/haiku-classify.ts | 241 | F13-1 direct Anthropic call, spend-guard bypass (F15 SANCTIONED, tracked debt) |
