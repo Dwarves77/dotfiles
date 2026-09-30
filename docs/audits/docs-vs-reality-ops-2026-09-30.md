@@ -11,23 +11,23 @@ Every finding carries a status token per CLAUDE.md rule 14: `[CONFIRMED]` (metho
 or `[REFUTED]`. Run `node fsi-app/scripts/verify/audit-finding-status.mjs` on this file before treating
 it as closed.
 
-**Coverage, stated plainly (rule 14; see the sibling lane A8's own precedent for this disclosure
-pattern).** The operator directive for this audit sweep is "no overviews, read every line." Against
-that literal bar: **26 of 167 files were read in full, top to bottom** (every root-level `.md` directly
-under `docs/ops/`, 5,140 lines) plus this register's own mechanical link-check script, which parses
-every markdown link in all 167 files. **NOT read in full**: `docs/ops/session-log.md` (24,302 lines  - 
-covered by ~15 targeted greps for the check classes this brief specifies, not a sequential read),
-`docs/ops/session-log.d/` (92 files, ~14,700 lines  -  0 read individually; covered only by the same
-greps against aggregated content and a filename/date continuity check), the `full-system-audit-2026-07-11/`
-subdirectory (12 files, ~4,700 lines), `wave-alpha-closeout-2026-07-11/` (8 files, ~2,000 lines),
-`chrome-audit-2026-07/` and `conservation-audit-2026-07/` (2 files), `runbooks/date-chain-2026-09-11.md`
-(215 lines), `dispatch-ledger.jsonl` and `w11-correction-2026-08-11-prior.json` (174 lines, machine
-data). That is roughly 31,800 of the ~50,860 total lines not read verbatim this session. The reason is
-the same one A8's register states and CLAUDE.md rule 11 states independently: a single unbroken session
-reading 24,302 lines of chat-style log sequentially re-bills the whole growing transcript on every
-subsequent turn, and this lane would have become unreliable well before finishing. The Coverage appendix
-below states, per file, exactly what was done  -  full read, grep-only, or metadata-only  -  so nothing here
-is silently claimed as more than it is.
+**Coverage, stated plainly (rule 14; per the coordinator's explicit rejection of the prior disclosure
+approach: "read every file first line to last... the sibling lane's shortcut is not a precedent, it is
+the reason you exist").** Progress against that literal bar, this pass: **26 root `.md` files (5,140
+lines) PLUS all 92 `docs/ops/session-log.d/*.md` files (including README.md), read individually and in
+full, top to bottom = 118 of 167 files at FULL.** `docs/ops/session-log.md` (24,302 lines) has been read
+**sequentially from line 1 through line 8900 (~37%)** via ordered ~400-line windows, not grepped  -  this
+is a genuine in-progress sequential read, not a sampling. **Still not read in full**: the remainder of
+`session-log.md` (lines 8901-24302, ~63%), the `full-system-audit-2026-07-11/` subdirectory (12 files,
+~4,700 lines), `wave-alpha-closeout-2026-07-11/` (8 files, ~2,000 lines), `chrome-audit-2026-07/` and
+`conservation-audit-2026-07/` (2 files), `runbooks/date-chain-2026-09-11.md` (215 lines),
+`dispatch-ledger.jsonl` and `w11-correction-2026-08-11-prior.json` (174 lines, machine data). **This
+lane has NOT reached 167/167 and is not sending "ready to push."** Per rule 14 this status is stated
+honestly rather than rounded up: 118/167 files fully read, plus 8900/24302 lines (~37%) of the single
+largest file, sequentially, in progress. The remaining ~15,400 lines of session-log.md plus the 22
+files above (~7,100 lines) are the open remainder. Findings below marked from the session-log.d full
+read are new since the prior coverage snapshot; findings from session-log.md are current through line
+8900 only and will be extended as the read continues.
 
 ## Summary
 
@@ -41,6 +41,9 @@ is silently claimed as more than it is.
 | A8b-6 | No other broken links, no false "current" counts, and no undated point-in-time root files found in the 26 files read in full; every root `docs/ops/*.md` file carries a `-YYYY-MM-DD` date in its filename except `backup-posture.md`, `dispatch-stop-conditions-protocol.md`, `observability-posture.md`, `secrets-topology.md`, `sweep-ledger.md`, `deletion-reclassification-log.md`  -  each of those is a standing register (accumulates dated entries inside, or is explicitly versioned "R0.1"/"R0.2" in its own header) rather than a point-in-time snapshot, which is the documented exception CLAUDE.md rule 10 implies (a living register is not "a fact," it is a ledger) | `[CONFIRMED]`  -  read in full, see Check 4 |  -  |  -  |
 | A8b-7 | `docs/ops/multi-tenant-foundation-followups-2026-05-15.md` section 1's "Phase 3" (drop `user_profiles`, dual-write triggers) is written as CRITICAL and imminent ("24-48 hours of normal traffic") but this lane found no closure evidence in the 26 files read; not independently verified against the live schema or session-log (out of this lane's read-in-full budget) | `[HYPOTHESIS]` | P1 if still open (a 4-month-old CRITICAL follow-up with no visible closure) | S (verify via `fsi-app/supabase/migrations/` + a grep for `user_profiles`) |
 | A8b-8 | `docs/ops/registered-deferrals-2026-07-11.md` DEF-1 carried an explicit 30-day dwell trigger ("past dwell with no decision = surface as a HARD backlog item"), dwell date 2026-08-10  -  51 days before this audit's date (2026-09-30)  -  with no visible resolution in the 26 files read | `[HYPOTHESIS]`  -  the file itself was not updated past its original 2026-07-11 content (still reads the original table), and this lane did not grep session-log.md specifically for "DEF-1" resolution before running out of budget | P2 | S (grep + verify) |
+| A8b-9 | `docs/ops/session-log.d/2026-09-29-reverse-chained-apply.md`: a cancelled chained-apply GitHub Actions run (36568656803, "Ledger consume") left 33 `intelligence_items` (quarantined), 33 `staged_updates`, 32 `agent_run_searches`, 51 `integrity_flags` rows LIVE in the production DB. Operator ruled "get rid of them." This lane built (with tests) a `--dry`/`--apply`/`--archive`/`--verify` reversal script, but explicitly states "`--apply` and `--archive` were not run" and "the 33 items... are all still live." As of the latest related entry read (`2026-09-29-loop-b-firing.md`, same date), no later entry in this lane's read set shows the reversal executed | `[CONFIRMED]`  -  direct read of the lane's own file, which states its own non-completion in its own words; not independently re-queried against live Supabase by this audit lane (read-only, no DB access) | P0  -  an explicit operator "get rid of them" ruling with a built, tested, unexecuted remediation, live data still on quarantined rows in production | S to verify current DB state (SELECT only); the `--apply`/`--archive` decision itself is a coordinator/operator call already staged |
+| A8b-10 | `docs/ops/session-log.d/2026-09-29-w2h.md`: the WS4 "Operations matrix shows values" thread was independently re-confirmed closed by this lane (code read, `/operations` live view blocked by auth wall so no live visual check), and the lane supplied exact replacement PROGRAM-BOARD row text for the coordinator to land (PROGRAM-BOARD.md is coordinator-only per `lane-common-contract.md`; the lane's own edit was reverted on its branch) | `[HYPOTHESIS]`  -  this audit lane did not check whether `docs/PROGRAM-BOARD.md` at current HEAD actually carries the CLOSED replacement text the lane supplied, or still shows the stale OPEN row cited at "PROGRAM-BOARD:1587" | P2 | S (grep PROGRAM-BOARD.md for the row) |
+| A8b-11 | `docs/ops/session-log.d/2026-09-29-w2h.md` Task 2 (ADR-034 naming phase): 3 copy lines in `src/app/api/admin/scan/route.ts` (an LLM-prompt file, not user-visible copy) were explicitly routed to the coordinator for a scope ruling ("is an AI-instruction prompt file in scope for WS14 naming-only phase, or does it fall under the prompt-change stop") and this lane's read set shows no answer to that routing within the files read | `[HYPOTHESIS]`  -  absence-based; the answer may exist later in session-log.md (not yet reached, only read through line 8900) or in a session-log.d file dated after 2026-09-29 (none exist in the 92-file set, which ends 2026-09-29) | P3 | S (grep later session-log.md content once read, or ask coordinator directly) |
 
 ## Check 1  -  Broken links (mechanical, all 167 files)
 
@@ -125,6 +128,7 @@ already found. No new finding here beyond confirming A8-7 holds for this lane's 
 | 2026-05-15 | Multi-tenant Phase 3 (drop `user_profiles`, redistribute onboarding fields), triggered "24-48 hours" after Phase 1+2 stabilized | `multi-tenant-foundation-followups-2026-05-15.md` | Not verified either way this session (A8b-7, `[HYPOTHESIS]`) |
 | 2026-07-11 | DEF-1 redesign-remnants diff-audit, 30-day non-renewable dwell (expires 2026-08-10) | `registered-deferrals-2026-07-11.md` | File content unchanged since creation; no renewal or resolution found in the 26-file read set (A8b-8, `[HYPOTHESIS]`) |
 | 2026-07-14 | GATE-B "stale_verified proposal (45 captures)" and "reattribution-relabel post-run" listed as still owed | `gate-b-close-2026-07-14.md` | Not checked against later state this session  -  out of read-in-full budget |
+| 2026-09-29 | Operator: "get rid of them" (33 quarantined `intelligence_items` + FK rows from a cancelled chained-apply run) | `session-log.d/2026-09-29-reverse-chained-apply.md` | Reversal script built + unit-tested; `--apply`/`--archive` explicitly NOT run per the lane's own text (A8b-9, `[CONFIRMED]`) |
 
 ## Rulings without an ADR
 
@@ -162,12 +166,17 @@ could cross-reference without re-reading them itself).
 4. **A8b-8 / DEF-1 dwell**: grep `session-log.md` for "DEF-1" specifically (this lane grepped SW-1/SW-2
    and rendering-guard threads but not this one, given budget) and either close the deferral or surface
    it per its own stated escalation rule.
-5. **Full completion of this lane's own read-in-full bar**: 141 of 167 files remain at grep-only or
-   metadata-only coverage (Coverage appendix). At the reading rate this session achieved (26 files /
-   5,140 lines against a real, not estimated, tool-call budget), closing the remainder  -  principally
-   `session-log.md` and the 92 `session-log.d/` files  -  is a bounded continuation, best done as a fresh
-   session or split further by date range, per the same reasoning A8's register already gives for its
-   own 359 unread files.
+5. **Full completion of this lane's own read-in-full bar, updated.** As of this update: 118 of 167 files
+   are FULL (26 root files + all 92 `session-log.d/*.md` including README.md). 22 files remain
+   unread (the `full-system-audit-2026-07-11/`, `wave-alpha-closeout-2026-07-11/`,
+   `chrome-audit-2026-07/`, `conservation-audit-2026-07/` subdirectories, `runbooks/date-chain-2026-09-11.md`,
+   `dispatch-ledger.jsonl`, `w11-correction-2026-08-11-prior.json`). `docs/ops/session-log.md` (24,302
+   lines) is at a genuine sequential in-progress read, currently through line 8900 (~37%), not grep-only.
+   **This lane has not reached 167/167 and per the coordinator's explicit instruction is not sending
+   "ready to push" until it does.** Interim status for the coordinator: 118/167 files FULL, plus 8900/24302
+   lines of session-log.md read in order; work continues in a follow-on pass (this session is
+   context-constrained against the remaining ~15,400 lines plus 22 files at the depth already
+   demonstrated).
 
 ## Coverage appendix
 
@@ -225,105 +234,105 @@ below equal the file count.
 | `docs/ops/root-cause-why-the-queue-2026-07-08.md` | 136 | FULL | no new finding |
 | `docs/ops/runbooks/date-chain-2026-09-11.md` | 215 | NOT READ (metadata only: `wc -l`) |  -  |
 | `docs/ops/secrets-topology.md` | 66 | FULL | A8b-6 |
-| `docs/ops/session-log.d/2026-09-13-l18.md` | 37 | NOT READ (metadata only: `wc -l`; filename/date continuity checked, Check 5) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-m1.md` | 100 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-m2.md` | 173 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-m8.md` | 71 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-m9a.md` | 35 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-m9b.md` | 54 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-t1.md` | 27 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-18-w10a.md` | 116 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-d28b.md` | 40 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-g1.md` | 98 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-m3.md` | 274 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n0.md` | 45 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n1.md` | 72 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n2.md` | 19 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n3.md` | 39 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n4.md` | 135 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n5.md` | 178 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-n6.md` | 53 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-p7.md` | 50 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-19-t2.md` | 82 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-f51b.md` | 75 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-f52.md` | 125 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-m3b.md` | 69 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-m4.md` | 122 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-m7a.md` | 206 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-m9d.md` | 171 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-r22.md` | 72 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-20-t3.md` | 192 | NOT READ (metadata only; link false-positive, Check 1) | Check 1, Check 5 |
-| `docs/ops/session-log.d/2026-09-20-w10-factcard.md` | 246 | NOT READ (metadata only; link false-positives, Check 1) | Check 1, Check 5 |
-| `docs/ops/session-log.d/2026-09-21-g2.md` | 52 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-m6.md` | 66 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-m6b.md` | 59 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-r6t.md` | 43 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-r7m.md` | 49 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-w10-actioncard-a.md` | 125 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-w10-commandbar.md` | 153 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-w10-factcard-b.md` | 168 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-w10-factcard-c.md` | 102 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-21-w10-factcard-d.md` | 166 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-f51c.md` | 60 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-g3-audit.md` | 159 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-g3.md` | 59 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-g3b.md` | 79 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-g4.md` | 59 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-ui75.md` | 112 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-actioncard-b.md` | 240 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-factcard-e.md` | 137 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-listrow.md` | 132 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-masthead-amendment-1.md` | 135 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-masthead.md` | 189 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-22-w10-sectionheader.md` | 182 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-23-w10-commandbar-parts.md` | 128 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-23-w10-navcard.md` | 125 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-23-w10-railcard.md` | 136 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-23-w10-statenote-remaining.md` | 119 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-23-w10-statenote.md` | 139 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-24-auth-identity.md` | 124 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-24-masthead-auth.md` | 103 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-24-parity-parts.md` | 243 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-24-reg-redirect.md` | 10 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-adr-034.md` | 46 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-adr-035.md` | 15 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-artboards.md` | 15 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-coordinator-close.md` | 216 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-operator-ruling-r14.md` | 17 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-parity-parts-look-only.md` | 183 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-sec1-derivation-edges-rls.md` | 64 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-supabase-audit-lane.md` | 62 | NOT READ (metadata only; own link is A8b-4/L3-3) | Check 1 |
-| `docs/ops/session-log.d/2026-09-25-tool-gap-1.md` | 83 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-tool-gap-2.md` | 204 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-25-tool-gap-3.md` | 273 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-26-gate-a-rescan-fix.md` | 137 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-26-harness-landing.md` | 116 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-26-master-022.md` | 96 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-26-operator-ruling-no-actions-prs.md` | 36 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-26-state-cost-producer.md` | 131 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-27-harness-runs-db-design.md` | 263 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-27-state-cost-dag.md` | 62 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-27-worktree-node-modules.md` | 29 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-audit-triage.md` | 200 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-ci-parity.md` | 124 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-clock-test.md` | 94 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-coordinator-close.md` | 52 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-ets-proxy.md` | 134 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-loop-b-firing.md` | 112 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-quarantine-disposition.md` | 122 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-statutory-writer.md` | 137 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-28-structured-actions.md` | 127 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-chained-apply-incident.md` | 37 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-chained-dry-guard.md` | 91 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-drop-placeholders.md` | 109 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-harness-run-number.md` | 134 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-loop-b-firing.md` | 92 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-reverse-chained-apply.md` | 64 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-statutory-writer.md` | 114 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-w2a.md` | 240 | NOT READ (metadata only) | Check 5 |
-| `docs/ops/session-log.d/2026-09-29-w2h.md` | 96 | NOT READ (metadata only; cited by A8's C1-1/A8-2) | Check 5 |
+| `docs/ops/session-log.d/2026-09-13-l18.md` | 37 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-m1.md` | 100 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-m2.md` | 173 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-m8.md` | 71 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-m9a.md` | 35 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-m9b.md` | 54 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-t1.md` | 27 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-18-w10a.md` | 116 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-d28b.md` | 40 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-g1.md` | 98 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-m3.md` | 274 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n0.md` | 45 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n1.md` | 72 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n2.md` | 19 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n3.md` | 39 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n4.md` | 135 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n5.md` | 178 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-n6.md` | 53 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-p7.md` | 50 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-19-t2.md` | 82 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-f51b.md` | 75 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-f52.md` | 125 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-m3b.md` | 69 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-m4.md` | 122 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-m7a.md` | 206 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-m9d.md` | 171 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-r22.md` | 72 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-20-t3.md` | 192 | FULL | Check 1, Check 5 |
+| `docs/ops/session-log.d/2026-09-20-w10-factcard.md` | 246 | FULL | Check 1, Check 5 |
+| `docs/ops/session-log.d/2026-09-21-g2.md` | 52 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-m6.md` | 66 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-m6b.md` | 59 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-r6t.md` | 43 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-r7m.md` | 49 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-w10-actioncard-a.md` | 125 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-w10-commandbar.md` | 153 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-w10-factcard-b.md` | 168 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-w10-factcard-c.md` | 102 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-21-w10-factcard-d.md` | 166 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-f51c.md` | 60 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-g3-audit.md` | 159 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-g3.md` | 59 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-g3b.md` | 79 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-g4.md` | 59 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-ui75.md` | 112 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-actioncard-b.md` | 240 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-factcard-e.md` | 137 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-listrow.md` | 132 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-masthead-amendment-1.md` | 135 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-masthead.md` | 189 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-22-w10-sectionheader.md` | 182 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-23-w10-commandbar-parts.md` | 128 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-23-w10-navcard.md` | 125 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-23-w10-railcard.md` | 136 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-23-w10-statenote-remaining.md` | 119 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-23-w10-statenote.md` | 139 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-24-auth-identity.md` | 124 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-24-masthead-auth.md` | 103 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-24-parity-parts.md` | 243 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-24-reg-redirect.md` | 10 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-adr-034.md` | 46 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-adr-035.md` | 15 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-artboards.md` | 15 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-coordinator-close.md` | 216 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-operator-ruling-r14.md` | 17 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-parity-parts-look-only.md` | 183 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-sec1-derivation-edges-rls.md` | 64 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-supabase-audit-lane.md` | 62 | FULL | Check 1 |
+| `docs/ops/session-log.d/2026-09-25-tool-gap-1.md` | 83 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-tool-gap-2.md` | 204 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-25-tool-gap-3.md` | 273 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-26-gate-a-rescan-fix.md` | 137 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-26-harness-landing.md` | 116 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-26-master-022.md` | 96 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-26-operator-ruling-no-actions-prs.md` | 36 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-26-state-cost-producer.md` | 131 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-27-harness-runs-db-design.md` | 263 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-27-state-cost-dag.md` | 62 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-27-worktree-node-modules.md` | 29 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-audit-triage.md` | 200 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-ci-parity.md` | 124 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-clock-test.md` | 94 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-coordinator-close.md` | 52 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-ets-proxy.md` | 134 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-loop-b-firing.md` | 112 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-quarantine-disposition.md` | 122 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-statutory-writer.md` | 137 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-28-structured-actions.md` | 127 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-chained-apply-incident.md` | 37 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-chained-dry-guard.md` | 91 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-drop-placeholders.md` | 109 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-harness-run-number.md` | 134 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-loop-b-firing.md` | 92 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-reverse-chained-apply.md` | 64 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-statutory-writer.md` | 114 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-w2a.md` | 240 | FULL | Check 5 |
+| `docs/ops/session-log.d/2026-09-29-w2h.md` | 96 | FULL | Check 5 |
 | `docs/ops/session-log.d/README.md` | 37 | FULL | Check 5 |
-| `docs/ops/session-log.md` | 24302 | NOT READ IN FULL  -  ~15 targeted greps only (SW-1, SW-2, rendering-guard, "next session"/"we will"/OPEN, link patterns) | A8b-1, A8b-2, A8b-3 |
+| `docs/ops/session-log.md` | 24302 | PARTIAL  -  sequential read, lines 1-8900 (~37%), in progress via ordered windows; lines 8901-24302 not yet read | A8b-1, A8b-2, A8b-3, A8b-9 (session-log.d cross-ref) |
 | `docs/ops/site-gap-register-2026-07-09.md` | 100 | FULL | no new finding (self-labeled SKELETON, honest about its own incompleteness) |
 | `docs/ops/spend-watch-disposition-2026-07-15.md` | 54 | FULL | no new finding |
 | `docs/ops/sweep-ledger.md` | 79 | FULL | A8b-1, A8b-2, A8b-6 |
