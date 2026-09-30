@@ -54,7 +54,17 @@ echo "deliver-artifact-branch: landing this run's harness-run artifact(s) ($labe
 # happens to be using in a given environment.
 CWD_PREFIX="$(git rev-parse --show-prefix 2>/dev/null || true)"
 
+# REWRITTEN (lane HARNESS-RUN-NUMBER, 2026-09-29, coordinator finding on GitHub run 36610847827):
+# record-harness-run.mjs no longer always exits 0 (see that file's own header) -- it now exits 0 only on
+# a confirmed landed row, 2 on a missing credential (self-skip, never a failure), and 1 for any other
+# real failure (bad usage, an unreadable/unparseable artifact, or the insert itself failing for a reason
+# that isn't a missing credential -- most commonly a duplicate-key collision the OLD claim-then-write
+# path could produce silently). The exit code is now the primary, trusted signal; the "landed <id>" grep
+# stays as a belt-and-suspenders confirmation on the success path only (defense in depth against a node
+# process that somehow exits 0 without actually inserting), never as a substitute for checking the code
+# the way the pre-2026-09-29 version did.
 landed=0
+skipped=0
 failed=0
 while IFS= read -r raw_path; do
   [ -z "$raw_path" ] && continue
@@ -63,21 +73,17 @@ while IFS= read -r raw_path; do
     path="${path#"$CWD_PREFIX"}"
   fi
   echo "deliver-artifact-branch: recording $path"
-  # record-harness-run.mjs is best-effort BY DESIGN and always exits 0, even on a read/parse/insert
-  # failure (so a DB hiccup never fails the calling workflow step -- see that file's own header). A
-  # nonzero exit here means the node PROCESS itself could not run at all (missing node, syntax error),
-  # not that the row landed. The real success signal is the "record-harness-run: landed <id>" line it
-  # prints on an actual successful insert; capture stdout and grep for that marker rather than trusting
-  # the exit code (verified live, lane HARNESS-LANDING: exit 0 was reported for a run whose file could
-  # not even be opened -- the exit-code-only counter silently reported landed=1 for zero real inserts).
   out="$(node scripts/lib/record-harness-run.mjs --file "$path" 2>&1)"
   status=$?
   echo "$out"
   if [ $status -eq 0 ] && printf '%s' "$out" | grep -q '^record-harness-run: landed '; then
     landed=$((landed + 1))
+  elif [ $status -eq 2 ]; then
+    skipped=$((skipped + 1))
+    echo "::warning::deliver-artifact-branch: record-harness-run.mjs self-skipped $path (no credentials) -- not landed, not a failure"
   else
     failed=$((failed + 1))
-    echo "::warning::deliver-artifact-branch: record-harness-run.mjs did not confirm a landed row for $path (best-effort, continuing)"
+    echo "::error::deliver-artifact-branch: record-harness-run.mjs failed to land $path (exit $status) -- this run's own artifact is not recorded"
   fi
 # `git status --porcelain --untracked-files=all -- <pathspec>` runs from CWD (this script always runs
 # from fsi-app/, matching every caller workflow's working-directory) and reports paths RELATIVE TO CWD,
@@ -96,11 +102,18 @@ while IFS= read -r raw_path; do
 # directory level under scripts/harness-runs/, the shape every real run artifact actually has.
 done < <(git status --porcelain --untracked-files=all -- ':(glob)scripts/harness-runs/*/*-run-*.json' 2>/dev/null | cut -c4-)
 
-echo "deliver-artifact-branch: landed=$landed failed=$failed"
+echo "deliver-artifact-branch: landed=$landed failed=$failed skipped=$skipped"
 {
   echo "### Harness-run artifact landing"
   echo ""
-  echo "Landed $landed artifact row(s) into \`harness_runs\` (migration 331). $failed row(s) could not be recorded (best-effort, logged above)."
+  echo "Landed $landed artifact row(s) into \`harness_runs\` (migration 331). $failed row(s) FAILED to land (see errors above -- this step now fails when \$failed > 0, lane HARNESS-RUN-NUMBER 2026-09-29). $skipped row(s) self-skipped (no credentials routed to this job)."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
+# FAIL LOUD (lane HARNESS-RUN-NUMBER, 2026-09-29, CLAUDE.md rule 15/17): a landing that does not land now
+# fails this step, so a real insert failure surfaces as a red CI check instead of a silent SUCCESS. A
+# self-skip (missing credentials, counted in $skipped, never in $failed) is NOT a failure -- see this
+# script's header and record-harness-run.mjs's own exit-code contract.
+if [ "$failed" -gt 0 ]; then
+  exit 1
+fi
 exit 0
