@@ -384,7 +384,7 @@ export function MarketSignalDetailSurface({
         <DetailMasthead
           title={r.title}
           band={band}
-          surface="Market"
+          surface="Market Intel"
           jurisdiction={jurisLabel}
           dek={meta}
           placeholder="Ask about this signal, e.g. when does the largest deadline hit"
