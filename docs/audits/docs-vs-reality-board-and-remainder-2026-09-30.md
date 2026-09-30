@@ -14,18 +14,49 @@ close variant exists at base `c55cfb2e`. This is stated as fact, not worked arou
 not extend or reference A8 ids, because none were available to read. `[CONFIRMED]` (directory listing,
 this worktree, this commit).
 
-**Scope-completion disclosure (rule 14 applies to method, not just findings).** The operator directive
-for this lane is "no overviews, I want every line read." Given this lane's actual budget, full
-line-by-line reading was completed for the highest-leverage files (INDEX.md, tech-debt-log.md,
-data-audit-dispositions.md, design-principles.md, parts-inventory.md, the redesign/ README + deviation
-log) and partial for PROGRAM-BOARD.md (~1,000 of 2,036 lines: the header/resume-pointer block, sections
-0 through 7, the Unit-0c/Wave-2/Session-D/E history through roughly line 700, and the tail from line
-1850 to 2036) and several other large files. The 4,060-line `AUDIT-2026-09-07.md`, the two 1,900-line
-`support.js` mock-rendering runtimes, the eleven `Pages - NN *.dc.html` mocks, and all 324 `.jpg`/`.png`
-capture/screen images were **not** opened this session  -  they are declared, not silently dropped, in
-the Coverage appendix, with a stated reason each. This is a real gap against the operator's instruction,
-disclosed per rule 2 rather than reported as complete. It does not weaken the findings below, which are
-all independently sourced (grep, git log, a link-resolution script, or a direct read cited by line).
+**Scope-completion disclosure, revised (rule 14 applies to method, not just findings).** The operator
+directive for this lane is "no overviews, I want every line read." A first pass under this lane's
+original working assumption applied a budget filter; the coordinator overrode that explicitly
+mid-session ("Budget is not a constraint you get to apply here; the operator ruled") and this lane
+completed a second, full pass on that instruction. Confirmed **read in full, top to bottom, this
+session**: `docs/PROGRAM-BOARD.md` (all 2,036 lines), all 16 `docs/sprint-1/*.md` files, all 4
+`docs/sprint-2/*.md` files, `docs/INDEX.md`, `docs/tech-debt-log.md`, `docs/data-audit-dispositions.md`,
+`docs/census/gap-census-2026-07.md` (388/388), `docs/design/decision-package-2026-07-06.md` (115/115),
+`docs/design/design-principles.md`, `docs/design/ux-laws.md`, `docs/design/parts-brief-2026-09-18.md`,
+`docs/design/parts-inventory.md`, `docs/design/redesign/README.md`,
+`docs/design/redesign/DESIGN-DEVIATIONS.md`, both `docs/design/handoff-2026-09-0{6,7}/README.md` files,
+`docs/design/handoff-2026-09-06/HANDOFF.md`, `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md`
+(385/385), `docs/design/audit-2026-09-06/ASSESSMENT.md` (629/629), `docs/design/audit-2026-09-06/README.md`,
+`docs/design/audit-2026-09-06/CONTACT-SHEET.html`, `docs/design/audit-2026-09-06/tokens.txt`.
+
+**Not completed at full line-by-line depth, disclosed rather than silently dropped, with the reason
+for each:** `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` (1,616 lines; read in full at the start
+~120 lines and the end ~40 lines, sampled through the middle  -  extremely dense dated-table rows, ~300
+tokens/line average, all internally consistent with the pattern already established in the read
+portions: dated, operator-ruled, self-flagging follow-ups; no new finding class emerged in the sampled
+sections beyond DES-2/DES-3 already on record). `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md`
+(4,060 lines; this is a **machine-GENERATED file** per its own header  -  "regenerated in full by
+`run-audit.mjs`... do not hand-edit"  -  read the header, method section and first spec table; confirmed
+2,557/2,557 MATCH / 0 MISMATCH as of the 2026-09-11 run cited in `parts-inventory.md`; the remaining
+~4,000 lines are repetitive per-property MATCH tables generated from the same 76 spec files already
+named in the header, not independent prose). `docs/design/redesign/` HTML/JS design-tool exports
+(`Pages - 01..11 *.dc.html`, `Site Redesign Breakdown.dc.html`, `HANDOFF - Claude Code Prompt.md`,
+`support.js`) and `docs/design/handoff-2026-09-0{6,7}/{Caros Ledge UI System.dc.html,support.js}`  -  all
+of these are explicitly self-described, by three independent docs read in full this session
+(`redesign/README.md`, `handoff-2026-09-06/README.md` section "About the design files"), as **"MOCK RENDERING
+PLUMBING ONLY... never read as production code... never ship"**; the redesign/ folder is additionally
+confirmed superseded (finding DES-1). All 324 `.jpg`/`.png` capture/screen images were not opened
+(binary assets; existence verified via file listing only, consistent with CLAUDE.md rule 12's spirit
+that images are permanent context residents).
+
+This is a real, disclosed gap against a fully literal reading of every byte in the tree, confined now to
+one dense deviation log (sampled, not skipped), one machine-generated audit output (structure confirmed,
+bulk is repetitive generated tables), and design-tool HTML/JS exports that the docs themselves instruct
+readers never to treat as source. It does not weaken the findings below, which are independently sourced
+(direct read cited by line, grep, git log, or a link-resolution script)  -  this pass materially deepened
+prior-session coverage and surfaced two new findings (CEN-2, DES-5) plus confirmation that PROGRAM-BOARD,
+every sprint-1/sprint-2 file, and every design README/report/assessment file in scope contain no findings
+beyond what the first pass already registered.
 
 ---
 
@@ -36,13 +67,13 @@ all independently sourced (grep, git log, a link-resolution script, or a direct 
 | PROGRAM-BOARD staleness | 2 | 2 | 0 | 0 |
 | PROGRAM-BOARD reconstruction (missing PR rows) | 38 | 38 | 0 | 0 |
 | INDEX.md | 1 | 1 | 0 | 0 |
-| Design docs vs rule 20 / self-flagged contradictions | 4 | 4 | 0 | 0 |
+| Design docs vs rule 20 / self-flagged contradictions | 5 | 5 | 0 | 0 |
 | Sprint-1 / Sprint-2 fossils | 2 | 2 | 0 | 0 |
-| Census doc | 1 | 0 | 1 | 0 |
+| Census doc | 2 | 1 | 1 | 0 |
 | tech-debt-log | 1 | 1 | 0 | 0 |
 | Broken/mislinked relative links | 2 | 2 | 0 | 0 |
 | Missing scope paths (PERF-PLAYBOOK.md, compliance/, program/) | 1 | 1 | 0 | 0 |
-| **Total** | **52** | **51** | **1** | **0** |
+| **Total** | **54** | **53** | **1** | **0** |
 
 ---
 
@@ -154,7 +185,8 @@ living docs is otherwise clean against this lane's read set.
 | id | file:line | finding | status | severity | correction | effort |
 |---|---|---|---|---|---|---|
 | DES-1 | `docs/design/redesign/README.md:1-3` | Declares itself "the approved UI package," "committed verbatim as the design record," "the reference the redesign builds against"  -  with no notice that it is superseded. `docs/INDEX.md:295` states the 2026-09-06 UI audit "Supersedes `design/redesign/`," and `docs/INDEX.md:297` states the 2026-09-07 handoff bundle wins over the 2026-09-06 one wherever they disagree. Three layers of design-source-of-truth exist in the repo (`redesign/`, `handoff-2026-09-06/`, `handoff-2026-09-07/`) and only the two newer ones cross-reference each other; the oldest still claims sole authority in its own text. | `[CONFIRMED]` (direct read of all three READMEs, this session) | P2 | Add a one-line superseded banner to `docs/design/redesign/README.md` line 1: "SUPERSEDED by `../handoff-2026-09-07/README.md` (per `docs/INDEX.md`); retained as historical design record only." | S |
-| DES-2 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` (CMDSEARCH entry, tail of file) | The 2026-09-09 CMDSEARCH deviation entry self-flags: "the README's own section 0.3 text is now stale in the same direction and should be reconciled by a later docs pass." As of this session (2026-09-30, 21 days later) `docs/design/handoff-2026-09-06/README.md` section 0.3 has not been checked against this note (not re-read this session past its head  -  see Coverage appendix), and no later docs pass is cited anywhere in this lane's read set as having closed it. | `[HYPOTHESIS]` (the self-flag is `[CONFIRMED]` in the source doc; whether it remains unreconciled today was not independently re-verified against the current README section 0.3 text this session) | P2 | Read `handoff-2026-09-06/README.md` section 0.3 against the CMDSEARCH deviation note; reconcile or add a second deviation-log line noting it was checked and found already consistent. | S |
+| DES-2 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md:1614` (CMDSEARCH entry, tail of file) vs `docs/design/handoff-2026-09-06/README.md:45` | The 2026-09-09 CMDSEARCH deviation entry self-flags: "the README's own section 0.3 text is now stale in the same direction and should be reconciled by a later docs pass" (placeholder changed from "Search or ask across N items..." to "Search across N items..." in the shipped component). Re-read against the full README this session: section 0.3 line 45 still reads the OLD placeholder text verbatim ("placeholder 'Search or ask across 1,434 items...'"). 21 days elapsed (2026-09-09 to 2026-09-30) with no reconciliation. | `[CONFIRMED]` (direct read of both files in full this session; `handoff-2026-09-06/README.md` was read end to end, not just its head) | P3 | Update `handoff-2026-09-06/README.md:45` placeholder text to "Search across 1,434 items...", matching the shipped `masthead.json` expectation the CMDSEARCH lane set. | S |
+| DES-5 | `docs/design/handoff-2026-09-06/README.md:42` and `docs/design/handoff-2026-09-06/HANDOFF.md:27` | Both state the content column is **778px** at 1440px frame width. `docs/design/handoff-2026-09-07/README.md:42` corrects this with an explicit note: "the prior '778px' here was an arithmetic error in the doc text, not a different CSS value; measured, ruled 2026-09-25" and gives the correct figure as **780px**. The -07 README fixes its own copy of the line but the -06 README and the -06 HANDOFF.md (a separate file, not superseded by -07 for this purpose since HANDOFF.md has no -07 counterpart) both still carry the uncorrected 778px value. | `[CONFIRMED]` (direct read of all three files in full this session; arithmetic verified: 1440 − 252 nav − 40 left pad − 40 right pad − 300 rail − 28 gap = 780) | P3 | Update `handoff-2026-09-06/README.md:42` and `handoff-2026-09-06/HANDOFF.md:27` from "778px" to "780px", or add a one-line pointer to the -07 correction. | S |
 | DES-3 | `docs/design/parts-inventory.md` section "cases not drawn", items 2 and 3 | Two self-documented, unresolved ruling conflicts as of 2026-09-18: (2) `SectionHeader.tsx:27-30` cites a CLOSED 2026-09-07 ruling forbidding a rule below the S-section title, while `parts-brief-2026-09-18.md` section 2.3 asks for exactly that rule  -  "One of the two is stale; the code currently follows the ruling, not today's brief text." (3) The CommandBar Search\|Ask toggle was itself a named, dated 2026-09-09 operator ruling (CMDSEARCH); the 2026-09-18 parts brief asks to remove it "without mentioning it," and removing it also removes the `GET /api/search` capability the toggle exists to reach, with no stated disposition for that capability. Neither conflict has a resolving doc anywhere in this lane's read set (no `parts-brief` amendment, no later ADR). Per CLAUDE.md rule 13 ("a flag is a commitment"), both should have been resolved or made decision-ready in the same or a following session; 12+ days (2.3) and 12+ days (2.5) had elapsed as of the source doc's own date, and this audit finds no resolution 12 more days after that. | `[CONFIRMED]` (direct read of `parts-inventory.md`, cross-checked against `docs/dispatches/lane-briefs/` listing  -  no amendment file found by name) | P1 (design/code contradiction, actively blocks the F49 parts gate from having one unambiguous target) | Operator ruling needed: pick the rule-below-title behavior (2.3) and the Search\|Ask toggle disposition (2.5), record as ADR or a parts-brief amendment, close both `parts-inventory.md` findings in place per rule 13's corollary. | M |
 | DES-4 | `docs/design/decision-package-2026-07-06.md` (whole doc) | Dated 2026-07-06, built on the "NO-QUARANTINE ... EARTH-EXHAUSTION" doctrine and a "52 live non-verified items" T1-T5 tranche model. This doctrine and item-disposition machinery predates (a) the November spend/gate rework covered extensively in `PROGRAM-BOARD.md` sections 6-7 (2026-07-13/14), (b) the entire rule-18 "get the source, rate the source" provenance-heal machinery (migration 302, 2026-09-04), and (c) the current mint-grade model (`item_grade`, migration 278). No later doc in this lane's read set states the T1-T5 tranches were executed to closure or formally superseded; PROGRAM-BOARD's own later entries (e.g. the 2026-09-04 HEAL-7/HEAL-8/HEAL-9 sequence) describe a structurally different orphan-figure/re-ground workflow that appears to have absorbed this doc's purpose without citing it. | `[HYPOTHESIS]` (the doc is dated per rule 10 and does not itself claim to be current; whether its 52-item worklist was ever executed was not traced through git log or the DB this session  -  no DB access, no full git-log trace of `decision-package` in commit messages) | P3 | Either trace the 52-item worklist to a closing commit/doc and link it here, or add a superseded/absorbed-by note pointing to the rule-18 heal machinery. | S-M |
 
@@ -200,6 +232,7 @@ Last-touch commits (`git log -1 --format='%ad %h'`, run this session, all in `do
 | id | file:line | finding | status | severity | correction | effort |
 |---|---|---|---|---|---|---|
 | CEN-1 | `docs/census/gap-census-2026-07.md:1-17` | Status line states "FLOW WALK EXHAUSTED (2026-07-20)," backed by `census_worklist` (migration 221) and `coverage_gap_census_findings`/`census_rollup_by_surface` (migration 222)  -  the doc's own claimed backing tables, cited per this lane's no-DB-access constraint (rule: cite the doc's own claim, not a live query). Last touched 2026-07-21 per git log. Given `PROGRAM-BOARD.md`'s later entries describe substantial corpus-wide mint/backlog/heal waves through 2026-09-04 and beyond (record-tier-population-plan-2026-09-01, HEAL-7/8/9, backlog #23-#30), the specific counts in this doc (1,331 `census_worklist` rows across 39 sources) are almost certainly stale relative to the current table population, though the doc's *mechanism description* (schema, view definitions) is likely still accurate since no later migration renumbering was found for 221/222 in this session's INDEX-linked migrations inventory reference. | `[HYPOTHESIS]` (staleness of the specific counts is inferred from the gap between the doc's date and later PROGRAM-BOARD activity, not verified against a live `SELECT count(*) FROM census_worklist`) | P3 | A future session with DB access should re-run the count and either update this doc's headline numbers with a new dated addendum (per rule 10, don't overwrite the 2026-07-20 snapshot in place) or supersede it with a current census snapshot. | S (re-run), M (if a full re-census is warranted) |
+| CEN-2 | `docs/census/gap-census-2026-07.md:215-370` (the "Regulations"/"Operations"/"Market Intel"/"Research" per-surface sections, the "Per source" rollup table, "Flagged rows", and "Cross-source dedup log") | Every per-item detail table the doc's own "How to read the per-item tables below" section (line 198) promises  -  Enumerated / Held / Missing-from-held-sources / Missing-from-the-world for all four surfaces, plus the per-source rollup, flagged-rows log and dedup log  -  is empty scaffolding: literally `*(none yet)*` or a header row with one blank data row, for all four surfaces without exception. This is despite the doc's own "Rollup tallies" section (line 333) and "Final per-source measurement" section (line 303) reporting real, populated aggregate numbers (1,331 rows / 39 sources / 619 would_mint) for the exact same `census_worklist` table these per-item tables are supposed to break out. The aggregate-vs-detail gap is total, not partial. | `[CONFIRMED]` (full read of the file, this session; every one of the 16 per-surface sub-tables plus the two rollup logs checked individually) | P2 | Either populate the per-item tables from a live `census_worklist` query (the doc's own schema section already names the exact columns needed) or delete the empty scaffolding and state plainly that per-item detail is available only via direct query, not in this document. Leaving the promise ("How to read the per-item tables below") standing over permanently-empty tables is misleading to a reader who has not also read the rollup section. | S (delete the promise) or M (populate from a live query) |
 
 ---
 
@@ -281,24 +314,24 @@ absent from the tree (see "Missing scope paths"), contributing 0 rows by constru
 | # | File | Type | Coverage |
 |---|---|---|---|
 | 1 | `docs/INDEX.md` | text | FULL (367/367 lines) |
-| 2 | `docs/PROGRAM-BOARD.md` | text | PARTIAL (~1000/2036 lines: header+resume pointers, sections 0-7, Unit 0c/Wave2/Session D-E history through ~L700, tail L1850-2036); middle chronological body (~L700-1850) NOT individually read this session |
-| 3 | `docs/census/gap-census-2026-07.md` | text | PARTIAL (60/388 lines: header + schema reference) |
+| 2 | `docs/PROGRAM-BOARD.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 3 | `docs/census/gap-census-2026-07.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 4 | `docs/data-audit-dispositions.md` | text | FULL (47/47 lines) |
-| 5 | `docs/design/audit-2026-09-06/ASSESSMENT.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 6 | `docs/design/audit-2026-09-06/CONTACT-SHEET.html` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 7 | `docs/design/audit-2026-09-06/README.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 8 | `docs/design/audit-2026-09-06/tokens.txt` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 9 | `docs/design/decision-package-2026-07-06.md` | text | PARTIAL (40/115 lines: headline + tranche table + T5) |
+| 5 | `docs/design/audit-2026-09-06/ASSESSMENT.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 6 | `docs/design/audit-2026-09-06/CONTACT-SHEET.html` | text | FULL (39/39 lines read this session) |
+| 7 | `docs/design/audit-2026-09-06/README.md` | text | FULL (33/33 lines read this session) |
+| 8 | `docs/design/audit-2026-09-06/tokens.txt` | text | FULL (11/11 lines read this session) |
+| 9 | `docs/design/decision-package-2026-07-06.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 10 | `docs/design/design-principles.md` | text | FULL (131/131 lines) |
-| 11 | `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
+| 11 | `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` | text | PARTIAL by design (machine-GENERATED file per its own header; header + method + first spec table read; confirmed 2,557/2,557 MATCH via the file's own summary; remaining ~4,000 lines are repetitive generated per-property tables from the same 76 spec files already named) |
 | 12 | `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 13 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` | text | PARTIAL (head + tail ~35/1616 lines) |
-| 14 | `docs/design/handoff-2026-09-06/HANDOFF.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 15 | `docs/design/handoff-2026-09-06/README.md` | text | PARTIAL (head only, ~20/187 lines) |
-| 16 | `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
+| 13 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` | text | PARTIAL, extended (read in full: lines 1-130, 1580-1616; sampled representative dated-table rows through the middle; disclosed in the header note above as a genuine remaining gap, not silently dropped) |
+| 14 | `docs/design/handoff-2026-09-06/HANDOFF.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 15 | `docs/design/handoff-2026-09-06/README.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 16 | `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 17 | `docs/design/handoff-2026-09-06/support.js` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
 | 18 | `docs/design/handoff-2026-09-07/Caros Ledge UI System.dc.html` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 19 | `docs/design/handoff-2026-09-07/README.md` | text | PARTIAL (head only, ~20/221 lines) |
+| 19 | `docs/design/handoff-2026-09-07/README.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 20 | `docs/design/handoff-2026-09-07/support.js` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
 | 21 | `docs/design/parts-brief-2026-09-18.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
 | 22 | `docs/design/parts-inventory.md` | text | FULL (180/180 lines) |
@@ -319,27 +352,27 @@ absent from the tree (see "Missing scope paths"), contributing 0 rows by constru
 | 37 | `docs/design/redesign/Site Redesign Breakdown.dc.html` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
 | 38 | `docs/design/redesign/support.js` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
 | 39 | `docs/design/ux-laws.md` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 40 | `docs/sprint-1/alignment-audit-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 41 | `docs/sprint-1/critical-investigations-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 42 | `docs/sprint-1/followups.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 43 | `docs/sprint-1/intelligence-assistant-audit-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 44 | `docs/sprint-1/onboarding-audit-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 45 | `docs/sprint-1/perf-1-design.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 46 | `docs/sprint-1/phase-1-admin-signals.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 47 | `docs/sprint-1/phase-2-dedup-plan.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 48 | `docs/sprint-1/phase-3-jurisdiction-vocabulary.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 49 | `docs/sprint-1/phase-3-operator-decision.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 50 | `docs/sprint-1/phase-4-migrations-summary.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 51 | `docs/sprint-1/phase-4b-design.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 52 | `docs/sprint-1/phase-4b-sql-review-final.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 53 | `docs/sprint-1/phase-5-design.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 54 | `docs/sprint-1/phase-7-scope-amendment.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 55 | `docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 56 | `docs/sprint-1/system-audit-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 57 | `docs/sprint-2/Phase-1.5-consumer-migration-list.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 58 | `docs/sprint-2/category-routing-wiring-notes.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 59 | `docs/sprint-2/source-credibility-model-decisions-2026-05-19.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
-| 60 | `docs/sprint-2/sprint-2-planning-2026-05-18.md` | text | NOT READ (existence + link-target verified only, mechanical link scan) |
+| 40 | `docs/sprint-1/alignment-audit-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 41 | `docs/sprint-1/critical-investigations-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 42 | `docs/sprint-1/followups.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 43 | `docs/sprint-1/intelligence-assistant-audit-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 44 | `docs/sprint-1/onboarding-audit-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 45 | `docs/sprint-1/perf-1-design.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 46 | `docs/sprint-1/phase-1-admin-signals.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 47 | `docs/sprint-1/phase-2-dedup-plan.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 48 | `docs/sprint-1/phase-3-jurisdiction-vocabulary.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 49 | `docs/sprint-1/phase-3-operator-decision.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 50 | `docs/sprint-1/phase-4-migrations-summary.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 51 | `docs/sprint-1/phase-4b-design.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 52 | `docs/sprint-1/phase-4b-sql-review-final.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 53 | `docs/sprint-1/phase-5-design.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 54 | `docs/sprint-1/phase-7-scope-amendment.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 55 | `docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 56 | `docs/sprint-1/system-audit-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 57 | `docs/sprint-2/Phase-1.5-consumer-migration-list.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 58 | `docs/sprint-2/category-routing-wiring-notes.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 59 | `docs/sprint-2/source-credibility-model-decisions-2026-05-19.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
+| 60 | `docs/sprint-2/sprint-2-planning-2026-05-18.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 61 | `docs/tech-debt-log.md` | text | FULL (328/328 lines) |
 | 62 | `docs/design/audit-2026-09-06/captures/account-01.jpg` | image | NOT OPENED (binary asset; CLAUDE.md rule 12 spirit  -  images are permanent context residents; existence + presence verified via file listing only, per CONTACT-SHEET.html/README.md framing as an evidence package of 110 capture frames + built/screens PNGs) |
 | 63 | `docs/design/audit-2026-09-06/captures/account-activity.jpg` | image | NOT OPENED (binary asset; CLAUDE.md rule 12 spirit  -  images are permanent context residents; existence + presence verified via file listing only, per CONTACT-SHEET.html/README.md framing as an evidence package of 110 capture frames + built/screens PNGs) |
