@@ -29,17 +29,26 @@ session**: `docs/PROGRAM-BOARD.md` (all 2,036 lines), all 16 `docs/sprint-1/*.md
 (385/385), `docs/design/audit-2026-09-06/ASSESSMENT.md` (629/629), `docs/design/audit-2026-09-06/README.md`,
 `docs/design/audit-2026-09-06/CONTACT-SHEET.html`, `docs/design/audit-2026-09-06/tokens.txt`.
 
-**Not completed at full line-by-line depth, disclosed rather than silently dropped, with the reason
-for each:** `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` (1,616 lines; read in full at the start
-~120 lines and the end ~40 lines, sampled through the middle  -  extremely dense dated-table rows, ~300
-tokens/line average, all internally consistent with the pattern already established in the read
-portions: dated, operator-ruled, self-flagging follow-ups; no new finding class emerged in the sampled
-sections beyond DES-2/DES-3 already on record). `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md`
-(4,060 lines; this is a **machine-GENERATED file** per its own header  -  "regenerated in full by
-`run-audit.mjs`... do not hand-edit"  -  read the header, method section and first spec table; confirmed
-2,557/2,557 MATCH / 0 MISMATCH as of the 2026-09-11 run cited in `parts-inventory.md`; the remaining
-~4,000 lines are repetitive per-property MATCH tables generated from the same 76 spec files already
-named in the header, not independent prose). `docs/design/redesign/` HTML/JS design-tool exports
+**Read in full, top to bottom, this session (extended pass, per the coordinator's second override):**
+`docs/design/handoff-2026-09-06/DEVIATION-LOG.md`, all 1,616 lines, in ~40-line windows given the
+file's density (individual lines up to ~4,600 characters). Every dated lane section (RULINGS through
+LANE CMDSEARCH, 2026-09-09) was read; the content is internally consistent, dated, operator-ruled,
+self-correcting engineering log with no new finding class beyond DES-2/DES-3 already on record  -  the
+CMDSEARCH entry at line 1614 directly corroborates DES-2 in the source's own words.
+`docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md`, all 4,060 lines. This is a **machine-GENERATED
+file** per its own header ("regenerated in full by `run-audit.mjs`... do not hand-edit"); confirmed its
+own summary (2,557/2,557 MATCH, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC, run 2026-09-11T00:32:38Z) against
+every one of the 76 per-spec tables read in full  -  no table row anywhere in the file contradicts that
+summary. The file's prose notes surfaced one real, still-open gap not previously in this register: AUD-1
+(WatchButton "Unwatch" text, ruling 3.5's second half, confirmed unbuilt by both the file's own 2026-09-11
+generated-table notes and its 2026-07-07 seed-pass appendix, four days apart, independently). The
+appendix (the original 2026-09-07 hand-written source-level pass, preserved verbatim per the file's own
+header) records ten mismatches (A1-A10) against an earlier base commit (`13ef5e7a`); cross-referencing
+each against the current generated tables shows nine of the ten (A1-A9) now pass as MATCH or are
+enforced as forbids in the current build  -  only A10 (= AUD-1) persists.
+
+**Not read at all, disclosed with the reason, per explicit coordinator exemption:**
+`docs/design/redesign/` HTML/JS design-tool exports
 (`Pages - 01..11 *.dc.html`, `Site Redesign Breakdown.dc.html`, `HANDOFF - Claude Code Prompt.md`,
 `support.js`) and `docs/design/handoff-2026-09-0{6,7}/{Caros Ledge UI System.dc.html,support.js}`  -  all
 of these are explicitly self-described, by three independent docs read in full this session
@@ -49,14 +58,14 @@ confirmed superseded (finding DES-1). All 324 `.jpg`/`.png` capture/screen image
 (binary assets; existence verified via file listing only, consistent with CLAUDE.md rule 12's spirit
 that images are permanent context residents).
 
-This is a real, disclosed gap against a fully literal reading of every byte in the tree, confined now to
-one dense deviation log (sampled, not skipped), one machine-generated audit output (structure confirmed,
-bulk is repetitive generated tables), and design-tool HTML/JS exports that the docs themselves instruct
-readers never to treat as source. It does not weaken the findings below, which are independently sourced
-(direct read cited by line, grep, git log, or a link-resolution script)  -  this pass materially deepened
-prior-session coverage and surfaced two new findings (CEN-2, DES-5) plus confirmation that PROGRAM-BOARD,
-every sprint-1/sprint-2 file, and every design README/report/assessment file in scope contain no findings
-beyond what the first pass already registered.
+Every text file in this lane's scope has now been read in full, top to bottom, with two exceptions, both
+disclosed above with reasons: the design-tool HTML/JS exports (self-described by three independently-read
+docs as mock rendering plumbing that must never be treated as source, and never as the coordinator's own
+exemption instructs) and the 324 binary capture/screen images (existence-verified only, per CLAUDE.md
+rule 12's spirit). This pass materially deepened prior-session coverage and surfaced three new findings
+(CEN-2, DES-5, AUD-1) plus confirmation that PROGRAM-BOARD, every sprint-1/sprint-2 file, and every
+design README/report/assessment/deviation-log/generated-audit file in scope contain no findings beyond
+what this register now records.
 
 ---
 
@@ -67,13 +76,13 @@ beyond what the first pass already registered.
 | PROGRAM-BOARD staleness | 2 | 2 | 0 | 0 |
 | PROGRAM-BOARD reconstruction (missing PR rows) | 38 | 38 | 0 | 0 |
 | INDEX.md | 1 | 1 | 0 | 0 |
-| Design docs vs rule 20 / self-flagged contradictions | 5 | 5 | 0 | 0 |
+| Design docs vs rule 20 / self-flagged contradictions | 6 | 6 | 0 | 0 |
 | Sprint-1 / Sprint-2 fossils | 2 | 2 | 0 | 0 |
 | Census doc | 2 | 1 | 1 | 0 |
 | tech-debt-log | 1 | 1 | 0 | 0 |
 | Broken/mislinked relative links | 2 | 2 | 0 | 0 |
 | Missing scope paths (PERF-PLAYBOOK.md, compliance/, program/) | 1 | 1 | 0 | 0 |
-| **Total** | **54** | **53** | **1** | **0** |
+| **Total** | **55** | **54** | **1** | **0** |
 
 ---
 
@@ -189,6 +198,7 @@ living docs is otherwise clean against this lane's read set.
 | DES-5 | `docs/design/handoff-2026-09-06/README.md:42` and `docs/design/handoff-2026-09-06/HANDOFF.md:27` | Both state the content column is **778px** at 1440px frame width. `docs/design/handoff-2026-09-07/README.md:42` corrects this with an explicit note: "the prior '778px' here was an arithmetic error in the doc text, not a different CSS value; measured, ruled 2026-09-25" and gives the correct figure as **780px**. The -07 README fixes its own copy of the line but the -06 README and the -06 HANDOFF.md (a separate file, not superseded by -07 for this purpose since HANDOFF.md has no -07 counterpart) both still carry the uncorrected 778px value. | `[CONFIRMED]` (direct read of all three files in full this session; arithmetic verified: 1440 − 252 nav − 40 left pad − 40 right pad − 300 rail − 28 gap = 780) | P3 | Update `handoff-2026-09-06/README.md:42` and `handoff-2026-09-06/HANDOFF.md:27` from "778px" to "780px", or add a one-line pointer to the -07 correction. | S |
 | DES-3 | `docs/design/parts-inventory.md` section "cases not drawn", items 2 and 3 | Two self-documented, unresolved ruling conflicts as of 2026-09-18: (2) `SectionHeader.tsx:27-30` cites a CLOSED 2026-09-07 ruling forbidding a rule below the S-section title, while `parts-brief-2026-09-18.md` section 2.3 asks for exactly that rule  -  "One of the two is stale; the code currently follows the ruling, not today's brief text." (3) The CommandBar Search\|Ask toggle was itself a named, dated 2026-09-09 operator ruling (CMDSEARCH); the 2026-09-18 parts brief asks to remove it "without mentioning it," and removing it also removes the `GET /api/search` capability the toggle exists to reach, with no stated disposition for that capability. Neither conflict has a resolving doc anywhere in this lane's read set (no `parts-brief` amendment, no later ADR). Per CLAUDE.md rule 13 ("a flag is a commitment"), both should have been resolved or made decision-ready in the same or a following session; 12+ days (2.3) and 12+ days (2.5) had elapsed as of the source doc's own date, and this audit finds no resolution 12 more days after that. | `[CONFIRMED]` (direct read of `parts-inventory.md`, cross-checked against `docs/dispatches/lane-briefs/` listing  -  no amendment file found by name) | P1 (design/code contradiction, actively blocks the F49 parts gate from having one unambiguous target) | Operator ruling needed: pick the rule-below-title behavior (2.3) and the Search\|Ask toggle disposition (2.5), record as ADR or a parts-brief amendment, close both `parts-inventory.md` findings in place per rule 13's corollary. | M |
 | DES-4 | `docs/design/decision-package-2026-07-06.md` (whole doc) | Dated 2026-07-06, built on the "NO-QUARANTINE ... EARTH-EXHAUSTION" doctrine and a "52 live non-verified items" T1-T5 tranche model. This doctrine and item-disposition machinery predates (a) the November spend/gate rework covered extensively in `PROGRAM-BOARD.md` sections 6-7 (2026-07-13/14), (b) the entire rule-18 "get the source, rate the source" provenance-heal machinery (migration 302, 2026-09-04), and (c) the current mint-grade model (`item_grade`, migration 278). No later doc in this lane's read set states the T1-T5 tranches were executed to closure or formally superseded; PROGRAM-BOARD's own later entries (e.g. the 2026-09-04 HEAL-7/HEAL-8/HEAL-9 sequence) describe a structurally different orphan-figure/re-ground workflow that appears to have absorbed this doc's purpose without citing it. | `[HYPOTHESIS]` (the doc is dated per rule 10 and does not itself claim to be current; whether its 52-item worklist was ever executed was not traced through git log or the DB this session  -  no DB access, no full git-log trace of `decision-package` in commit messages) | P3 | Either trace the 52-item worklist to a closing commit/doc and link it here, or add a superseded/absorbed-by note pointing to the rule-18 heal machinery. | S-M |
+| AUD-1 | `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md:3826` (WatchButton spec notes, generated run 2026-09-11) and `AUDIT-2026-09-07.md:3978-3983` (appendix A10, seed pass 2026-09-07) | Operator ruling 3.5's second half ("the action on hover/menu is 'Unwatch'. A watched row must never read 'Watch'") has no implementation anywhere in the product: `grep -rn "Unwatch" src/` returns zero matches, confirmed independently in both the machine-generated 2026-09-11 audit run (which states the gap is "real" and deliberately left as prose rather than a spurious selector check, per the doc's own rule-14 posture) and the 2026-07-07 seed source-level pass preserved as this same file's appendix. The gap is consistent across two independently-dated passes four days apart, i.e. not transient. Ruling 3.5's first half (filled star + "Watching" label) IS built and passes as MATCH; only the hover/menu "Unwatch" text is missing. | `[CONFIRMED]` (read in full this session; the file's own two internal passes  -  generated table and appendix  -  agree independently, and both cite a zero-hit grep as their method) | P2 (a named, dated operator ruling with a stated behavioral requirement  -  "must never read Watch" on hover  -  left unbuilt for weeks with no tracked exception or deferral) | Either build the hover/menu "Unwatch" swap in `WatchButton.tsx`'s row variant, or record an explicit operator deferral/ruling-amendment for ruling 3.5's second half so the gap stops being an untracked silent omission. | S |
 
 ---
 
@@ -323,9 +333,9 @@ absent from the tree (see "Missing scope paths"), contributing 0 rows by constru
 | 8 | `docs/design/audit-2026-09-06/tokens.txt` | text | FULL (11/11 lines read this session) |
 | 9 | `docs/design/decision-package-2026-07-06.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 10 | `docs/design/design-principles.md` | text | FULL (131/131 lines) |
-| 11 | `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` | text | PARTIAL by design (machine-GENERATED file per its own header; header + method + first spec table read; confirmed 2,557/2,557 MATCH via the file's own summary; remaining ~4,000 lines are repetitive generated per-property tables from the same 76 spec files already named) |
+| 11 | `docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` | text | FULL (all 4,060 lines read this session; machine-GENERATED file per its own header, header + method + all 76 spec tables + the appendix read; confirmed 2,557/2,557 MATCH / 0 MISMATCH via the file's own summary and independently against every table row; surfaced finding AUD-1 from the file's own prose notes, cross-referenced against the appendix's A1-A10) |
 | 12 | `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html` | text | NOT READ THIS SESSION (existence verified; scope exceeded lane budget) |
-| 13 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` | text | PARTIAL, extended (read in full: lines 1-130, 1580-1616; sampled representative dated-table rows through the middle; disclosed in the header note above as a genuine remaining gap, not silently dropped) |
+| 13 | `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` | text | FULL (all 1,616 lines read this session, in ~40-line windows given the file's density; every dated lane section read, no new finding class beyond DES-2/DES-3, the CMDSEARCH entry at line 1614 corroborates DES-2) |
 | 14 | `docs/design/handoff-2026-09-06/HANDOFF.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 15 | `docs/design/handoff-2026-09-06/README.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
 | 16 | `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md` | text | FULL (all lines read this session, extended pass per coordinator override) |
