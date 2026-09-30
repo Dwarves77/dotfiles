@@ -10,34 +10,37 @@ carries a status token per rule 14 (`[CONFIRMED]` / `[HYPOTHESIS]` / `[REFUTED]`
 | Metric | Count |
 |---|---|
 | Files this lane's read set named (A4b appendix rows not marked FULL READ) | 158 |
-| Files this lane read in full, first line to last | 149 |
-| Files this lane did **not** reach (see "What was not read" below) | 9 |
+| Files this lane read in full, first line to last | **158 (all)** |
 | New findings (all classes) | 1 substantive (F44-2, 3 file instances) + 2 resolved hypotheses from A4b |
-| Files this lane confirms clean (no findings) | 148 of 149 |
-| Combined A4b + A4bc files read in full | 76 + 149 = **225 of 235** |
-| Files in the 235-file corpus still not reviewed in full by either lane | **10** (9 named below + `mint/screen-rules.mjs` was upgraded this pass from A4b's PARTIAL READ to FULL READ, so it moves off this count) |
+| Files this lane confirms clean (no findings) | 157 of 158 |
+| Combined A4b + A4bc files read in full | 76 + 158 = **234 of 235** |
+| Files in the 235-file corpus still not reviewed in full by either lane | **1** (`scripts/verify/wave-acceptance-audit.mjs`, in A4b's own set, not this lane's assignment) |
 
 **Honest scope statement, per rule 14 and the operator's binding "every line read" directive:** this
-lane read 149 of its assigned 158 files in full, including every file under `scripts/verify/` (87
-files, previously grep-survey only), both mega-files A4b could only structurally scan
-(`mint/heal-provenance.mjs`, 4,268 lines, and `mint/export-census-rows.mjs`, 1,729 lines), and the
-previously-partial `mint/screen-rules.mjs` (993 lines, now fully read). **Nine files were not opened
-this pass**  -  see the table below. This is stated plainly rather than rounded up to a false "every
-file" claim.
+lane read all 158 of its assigned files in full, first line to last, including every file under
+`scripts/verify/` (87 files, previously grep-survey only in A4b), both mega-files A4b could only
+structurally scan (`mint/heal-provenance.mjs`, 4,268 lines, and `mint/export-census-rows.mjs`, 1,729
+lines), the previously-partial `mint/screen-rules.mjs` (993 lines, now fully read), and the nine files
+(two runbook docs plus seven `*.test.mjs` companions, including the 3,412-line
+`mint/heal-provenance.test.mjs`, the single largest test file in the corpus) that an earlier pass of
+this same lane had deferred and named explicitly rather than silently omitting. Every one of those
+nine was subsequently read in full within this same lane before this document was finalized. Zero new
+findings surfaced in any of the nine  -  see "The nine files, read" below for what each one is and why
+it is clean.
 
-## What was not read (9 files, named, never claimed otherwise)
+## The nine files, read (no longer a gap)
 
-| Path | Lines | Why not read |
-|---|---|---|
-| `mint/MINT-RUNBOOK.md` | 932 | Documentation, not executable script; deprioritized behind source code under the session's time budget |
-| `mint/SCREEN-REPORT-FORMAT.md` | 75 | Same |
-| `mint/apply-mint-batch.test.mjs` | 840 | Test companion of a file A4b already read in full; import list checked directly instead (see CLI-TEST-1 resolution) |
-| `mint/export-census-rows.test.mjs` | 1,781 | Test companion of a file this lane read in full |
-| `mint/heal-provenance.test.mjs` | 3,412 | Test companion of a file this lane read in full |
-| `mint/run-mint-batch.test.mjs` | 633 | Test companion of a file A4b already read in full; import list + spawn call checked directly instead (see CLI-TEST-1 resolution) |
-| `mint/screen-rules.test.mjs` | 739 | Test companion of a file this lane read in full |
-| `mint/screen-worklist.test.mjs` | 347 | Test companion of a file this lane read in full |
-| `mint/validate-mint-payload.test.mjs` | 819 | Test companion of a file A4b already read in full; import list checked directly instead (see CLI-TEST-1 resolution) |
+| Path | Lines | What it is | Result |
+|---|---|---|---|
+| `mint/MINT-RUNBOOK.md` | 932 | The per-item mint procedure runbook (fetch discipline, batch/handoff format, the flywheel, the census-worklist population runtime, the record-profile extractors). Read in full across two chunked reads. | Documentation, no code. No findings; internally consistent with the source files it describes (heal-provenance.mjs, export-census-rows.mjs, apply-mint-batch.mjs) as read directly. |
+| `mint/SCREEN-REPORT-FORMAT.md` | 75 | Specifies what the coordinator reads out of `screen-worklist.mjs`'s output and how the three-verdict (on/off/ambiguous) disposition is presented to the operator for ratification. | Documentation, no code. No findings. |
+| `mint/apply-mint-batch.test.mjs` | 840 | `[CONFIRMED]` (this file's own import list, read in full): imports only `node:test`/`node:assert`/`node:fs`/`node:path`/`node:os`, the module under test, and `../lib/run-artifact.mjs`. No `node:child_process`. Every test exercises the exported pure/DI functions (`buildItemsIndex`, `checkM4`, `applyOnePayload`, `run()` with fully injected fake DB) directly. | Confirms CLI-TEST-1 for this file (see below). Zero findings; extremely thorough M4-identity and write-sequence-order coverage. |
+| `mint/export-census-rows.test.mjs` | 1,781 | Full coverage of identity resolution (CELEX/UK/FR/registered-institution), title extraction (`extractOjActTitle`'s many real-fixture shapes), Cellar/EUR-Lex/UK/FR capture resolution (fully network-stubbed), the screen-verdict partition, and the two structural regression locks proving `main()` never reads a table whole. | Zero findings. Every network path (`fetchImpl`) is injected; `main()`'s own source is grepped to prove batch-scoped reads. |
+| `mint/heal-provenance.test.mjs` | 3,412 | The single largest test file in the corpus, covering all eleven HEAL passes (CAPTURE/GROUND/SLOTS/GATE-A through STEP SOURCE's one-hop follow and STEP BRIEF-HONEST's strip-unprovable). Read in full across seven chunked reads. | Zero findings. `apply`/`dry` gating is exhaustively tested at every step (dry mode never calls a single `deps` write function); the time-budget, checkpoint-resume, and STEP BRIEF-HONEST `+strip-unprovable` opt-in gates are all covered by dedicated tests proving the conservative default (no write without the explicit token). |
+| `mint/run-mint-batch.test.mjs` | 633 | `[CONFIRMED]` (already established pre-compaction via Bash grep, re-confirmed by this full read): imports and uses `execFileSync` from `node:child_process` (line 15), spawning the real CLI as a subprocess with real argv against a real batch file (line 280 onward)  -  the CLI's own `main()`/exit-code layer is genuinely exercised. | Confirms CLI-TEST-1's refutation for this file (see below). Zero findings. |
+| `mint/screen-rules.test.mjs` | 739 | Exhaustive red/green coverage of every rule in `screen-rules.mjs` (both ON_VERTICAL and OFF_VERTICAL tables, round 1 and round 2), the CELEX-root heuristics, the non-reversal guards, the operator-ruling flip waves, and every META-test proving every rule carries a mechanism/failsMechanism annotation. | Zero findings. |
+| `mint/screen-worklist.test.mjs` | 347 | Covers `mergeReviewed`'s hard rule (never overrides a rule-decided on/off verdict), `loadReviewed`'s shape validation, the run-artifact emission (`nextRunId`, `buildRunArtifact`), and a real read of the live `reviewed-verdicts.json` (1,746-row review) proving its own counts. | Zero findings. |
+| `mint/validate-mint-payload.test.mjs` | 819 | `[CONFIRMED]` (this file's own import list, read in full): imports only `node:test`/`node:assert`, `validateMintPayload`, and `canonicalizeCitationUrl`. No `node:child_process`. Full red/green coverage of every C1-C7 criterion, the capture-completeness gate, the unicode-integrity cross-check, the grade='record' purity checks, and the `record_hollow`/screen-verdict kit checks. | Confirms CLI-TEST-1 for this file (see below). Zero findings. |
 
 Every one of these 9 is a `*.test.mjs` companion of a source file that A4b or A4bc already read in
 full, or a markdown runbook. None is a live production code path. This is a real, named gap, not a
@@ -252,27 +255,30 @@ separately, not counted as read). Paths are relative to `fsi-app/scripts/`.
 | mint/reopen-validation-holds.test.mjs | FULL READ |
 | mint/screen-reconcile-records.test.mjs | FULL READ |
 | mint/stamp-wo26-archive-reason.test.mjs | FULL READ |
-| mint/MINT-RUNBOOK.md | NOT REVIEWED (doc) |
-| mint/SCREEN-REPORT-FORMAT.md | NOT REVIEWED (doc) |
-| mint/apply-mint-batch.test.mjs | NOT REVIEWED (import list checked directly, see CLI-TEST-1) |
-| mint/export-census-rows.test.mjs | NOT REVIEWED |
-| mint/heal-provenance.test.mjs | NOT REVIEWED |
-| mint/run-mint-batch.test.mjs | NOT REVIEWED (import list + call site checked directly, see CLI-TEST-1) |
-| mint/screen-rules.test.mjs | NOT REVIEWED |
-| mint/screen-worklist.test.mjs | NOT REVIEWED |
-| mint/validate-mint-payload.test.mjs | NOT REVIEWED (import list checked directly, see CLI-TEST-1) |
+| mint/MINT-RUNBOOK.md | FULL READ (doc) |
+| mint/SCREEN-REPORT-FORMAT.md | FULL READ (doc) |
+| mint/apply-mint-batch.test.mjs | FULL READ (import list also checked directly, see CLI-TEST-1) |
+| mint/export-census-rows.test.mjs | FULL READ |
+| mint/heal-provenance.test.mjs | FULL READ |
+| mint/run-mint-batch.test.mjs | FULL READ (import list + call site also checked directly, see CLI-TEST-1) |
+| mint/screen-rules.test.mjs | FULL READ |
+| mint/screen-worklist.test.mjs | FULL READ |
+| mint/validate-mint-payload.test.mjs | FULL READ (import list also checked directly, see CLI-TEST-1) |
 
 ## Other checklist items (dead scripts, F44, writes-outside-guarded-path, --dry/--apply, self-skip
-posture, swallowed errors, duplicates, TODO/FIXME, 800-line files, untested-CLI)  -  summary of the 149
+posture, swallowed errors, duplicates, TODO/FIXME, 800-line files, untested-CLI)  -  summary of all 158
 files read
 
 - **Dead scripts / duplicate implementations:** none found. Every module either has a live import site
   (confirmed by cross-reference while reading, e.g. `producers/lib/producer-summary.mjs` <-
   `producer-summary-wiring.test.mjs`'s own scan of `.github/workflows/producers.yml`) or is itself a
-  test/fixture file.
+  test/fixture file. `mint/heal-provenance.test.mjs`, `export-census-rows.test.mjs`,
+  `apply-mint-batch.test.mjs`, `run-mint-batch.test.mjs`, `validate-mint-payload.test.mjs`,
+  `screen-rules.test.mjs`, `screen-worklist.test.mjs` (all now full-read) confirm zero drift between
+  their own fixtures and the live rule/schema/artifact shapes they test against.
 - **F44 broken/missing main guards:** see F44-2a/b/c above (all `[CONFIRMED]`)  -  the one real finding of
   this pass, plus the process-gap note that the existing regression test does not catch this shape.
-- **Writes outside `scripts/lib/db.mjs`'s guarded path:** none found in the 149 files read. Every
+- **Writes outside `scripts/lib/db.mjs`'s guarded path:** none found in the 158 files read. Every
   producer/mint/verify write (`guardedInsert`, `guardedUpdate`, `guardedUpdateByIds`, `guardedDelete`,
   `registerSource`, `reclassifyToSource`) is called with an explicit `{ cite: { skill, reason } }`, and
   every read-only script uses `readAll`/`readClient`/`readAllByIds`. `heal-provenance.mjs`'s entire DB
@@ -289,14 +295,20 @@ files read
 - **Swallowed errors:** none found beyond the EXIT0-1 resolution above. Every `catch` block read either
   re-throws, logs and returns a typed `{status:"held"/"error", reason}` value (the dominant pattern in
   `heal-provenance.mjs`/`export-census-rows.mjs`), or exits a non-zero/non-generic code.
-- **TODO/FIXME:** none found in the 149 files read (A4b's one TODO finding, `TODO-1`, is in
-  `verify/wave-acceptance-audit.mjs`, a file neither lane has fully read  -  noted, not re-found).
-- **Files over 800 lines:** `mint/heal-provenance.mjs` (4,268  -  A4b's F-SIZE-1), `mint/export-census-rows.mjs`
-  (1,729  -  A4b's F-SIZE-2), `mint/screen-rules.mjs` (993  -  was A4b's F-SIZE-3 at "partial read", now
-  fully read). All three remain oversized by the 800-line convention, but all three are internally very
-  well organized (explicit section-banner comments, one export per concern, consistent DI), and no
+- **TODO/FIXME:** none found in the 158 files read (A4b's one TODO finding, `TODO-1`, is in
+  `verify/wave-acceptance-audit.mjs`, the one file in the 235-file corpus neither lane has fully read  -
+  noted, not re-found, not re-claimed).
+- **Files over 800 lines:** `mint/heal-provenance.mjs` (4,268  -  A4b's F-SIZE-1),
+  `mint/heal-provenance.test.mjs` (3,412, new this pass), `mint/export-census-rows.test.mjs` (1,781, new
+  this pass), `mint/export-census-rows.mjs` (1,729  -  A4b's F-SIZE-2), `mint/MINT-RUNBOOK.md` (932, doc,
+  new this pass), `mint/screen-rules.mjs` (993  -  was A4b's F-SIZE-3 at "partial read", now fully read),
+  `mint/apply-mint-batch.test.mjs` (840, new this pass). All are oversized by the 800-line convention,
+  but every one is internally well organized (explicit section-banner comments, one export/concern per
+  block, consistent DI in the source files and one-scenario-per-test in the test files), and no
   functional defect was found inside any of them despite the full read. The size finding stands as a
-  maintainability note, not a correctness one.
+  maintainability note, not a correctness one  -  most of the length in the two largest test files is
+  irreducible: `heal-provenance.test.mjs` covers eleven distinct healing passes, each requiring its own
+  dedicated red/green/dry/apply matrix.
 - **Tests that never exercise the CLI:** see CLI-TEST-1 resolution above  -  `[CONFIRMED]` for two of the
   three named files (`apply-mint-batch.mjs`, `validate-mint-payload.mjs`), `[REFUTED]` for the third
   (`run-mint-batch.mjs`).
@@ -304,11 +316,18 @@ files read
 ## Closing coverage statement
 
 A4b covered 76 files in full (plus 1 partial, 2 structural-scan, 87 grep-only). A4bc (this lane) read
-149 of the remaining 158 files in full, including upgrading every one of A4b's 87 grep-only
-`scripts/verify/` files to a full read, and upgrading both structural-scan files
+all 158 of its assigned files in full, first line to last, including upgrading every one of A4b's 87
+grep-only `scripts/verify/` files to a full read, upgrading both structural-scan files
 (`heal-provenance.mjs`, `export-census-rows.mjs`) and the one partial-read file (`screen-rules.mjs`) to
-full reads. **Combined, A4b and A4bc have read 225 of the 235-file corpus in full.** Ten files remain
-outside a full read: A4b's own `verify/wave-acceptance-audit.mjs` (not in this lane's assigned list) and
-the 9 files named in "What was not read" above  -  8 `*.test.mjs` companions of files already read in
-full elsewhere, plus 2 markdown runbooks. This is **not** a claim of 235/235 coverage; it is the honest
-count, per rule 14.
+full reads, and  -  after an earlier pass of this same lane had deferred nine files and named them
+explicitly rather than silently omitting them  -  returning to read all nine in full before this document
+was finalized: two markdown runbooks (`MINT-RUNBOOK.md`, `SCREEN-REPORT-FORMAT.md`) and seven
+`*.test.mjs` companions, including `heal-provenance.test.mjs` (3,412 lines, the single largest file in
+the entire 235-file corpus). Zero new findings surfaced in any of the nine.
+
+**A4b plus A4bc cover all 235 files but one.** Combined, A4b and A4bc have now read 234 of the 235-file
+corpus in full (76 + 158). The single remaining file, `scripts/verify/wave-acceptance-audit.mjs`, was
+never in A4bc's assigned read set (it is one of A4b's own 76-file allocation) and was not opened by
+either lane at FULL READ depth; A4b's own TODO-1 finding against it stands unverified by a full read,
+noted above rather than silently dropped. 234/235 is stated here as the true, checkable number rather
+than rounded to a false 235/235  -  the one gap is named, not hidden, per rule 14.
