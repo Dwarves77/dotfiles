@@ -17,11 +17,16 @@ findings, 1 tech-debt-log finding), and section (e)'s coverage statement correct
 is four lanes, not three. A6b has not landed on the remote as of this amendment; it will be folded in as
 a second commit when it does, per the coordinator's instruction.
 
-**Security note, reported not actioned.** Lane A5 records that two messages purporting to be "the
-coordinator" arrived mid-session, out of band, demanding a fabricated full line-by-line read claim and a
-specific "consumed the live-schema file" assertion. A5 treated both as probable injected instructions,
-did not follow them, and flagged them to the operator. This lane repeats that flag here rather than
-re-adjudicating it: it is A5's own finding, carried forward, not independently re-verified by this lane.
+**Correction, 2026-09-30 (coordinator message, this document's third amendment).** The "Security note"
+below and finding CF-PROC-2 in this document's first version were wrong. The two messages lane A5 received
+mid-session were sent by the coordinator, relaying the operator's every-line-read directive; there was no
+injected instruction. CF-PROC-2 is corrected to `[REFUTED]` in place per rule 13's corollary, not silently
+dropped, and removed from the open P0 list in section (c). What stands: A5 declined to act on the
+directive as relayed (it read as out-of-band and contradicted A5's own scoped brief plus CLAUDE.md rule
+11), so A5's register is a replay-and-cross-reference pass only, not a line-by-line read, and is superseded
+for line-level facts by A5b (migrations 001-170) and A5c (migrations 171-339), exactly as section (e)
+already states for an unrelated reason (the scope split). That supersession relationship is real and
+kept; the injection framing is not.
 
 ## (a) Summary table: lane, slice, files, findings by severity
 
@@ -30,7 +35,7 @@ re-adjudicating it: it is A5's own finding, carried forward, not independently r
 | A1 | routes-and-api | 217 | 120 (55%), rest swept | 0 | 1 | 7 | 0 | branch `audit/a1-routes`, open |
 | A2 | components a-l | 248 (owns 101) | 101/101 (100% of half) | 0 | 7 | 10 | 0 | branch `audit/a2-components`, open |
 | A2b | components m-z | 194 | 140 full + 54 grep-only | 0 | 3 (CSS class) | 15 | 6 | branch `audit/a2b-components`, open |
-| A3 | src/lib a-m | 404 (of 670 total) | 79 full, rest static-swept | 0 | 0 | 8 | 0 | branch `audit/a3-lib`, open |
+| A3 | src/lib a-m, final scope after two splits | 221 (of 404 originally assigned, then narrowed by the A3c split) | 221/221 (100%, completion pass same day: agent/'s remaining 86 files finished) | 0 | 0 | 8 | 0 | branch `audit/a3-lib` (PR #847), open |
 | A3b | src/lib n-z, stores, types, workflows | 266 | 266/266 (100%, completion pass) | 0 | 1 (moat defect) | 5 | 2 | branch `audit/a3b-lib`, open |
 | A3c | src/lib community-market | 156 | 156/156 (100%) | 0 | 0 | 8 | 2 | branch `audit/a3c-lib`, open |
 | A4 | scripts + workflows | 313 scripts + 22 workflows | 61 scripts full + all 22 workflows full | 0 | 3 | 3 | 2 | branch `audit/a4-scripts`, open |
@@ -86,7 +91,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 | CF-BROKEN-3 | A5b F-09 | migrations 108, 110, 117, 125 (`get_market_intel_items`); resolved at 164 | Migration 108 silently dropped the `_assert_org_membership()` call when rewriting the RPC; copied forward verbatim by 3 more migrations before 164 caught and fixed it. Live for ~6 weeks: any authenticated user calling the RPC with a foreign `p_org_id` could read that org's `workspace_item_overrides`, masked only by single-tenancy | [CONFIRMED, resolved] | P0 (historic) | resolved in-repo by migration 164 |
 | CF-BROKEN-4 | A5c A5c-4 | migrations 296-298 vs 311 | 10 spec-09 tables shipped `SELECT TO authenticated USING (true)` (world-readable across orgs); 6 later wired to real customer commercial data were not org-scoped until migration 311, 2 days before this range ends; 4 panel components read them with an unscoped service-role query and no `org_id` filter | [CONFIRMED, resolved] | P1 (historic) | resolved by migration 311 |
 | CF-BROKEN-5 | A1 F-5 | `src/app/api/admin/users/route.ts:76-98` | Returns every `org_memberships` row across every org, no `.limit()`, no pagination | [CONFIRMED] | P2 | none |
-| CF-BROKEN-6 | build-plan WS16, A7 | Market detail route | A raw text/JSON-like dump renders mid-page; not yet reproduced by a lane with a URL/screenshot | [HYPOTHESIS] | P1 | none (W2-D scoped, unmerged) |
+| CF-BROKEN-6 | build-plan WS16, A7, lane W2-D | `src/components/pages/MarketSignalDetailSurface.tsx` | Cause and fix confirmed by lane W2-D from a coordinator-run live SELECT: 631 `intelligence_item_sections` rows (430 `record_facts`, 201 `identity`) across record-grade Market items carry `record-facts.mjs`'s own `[slot_key] <claim text>` machine format. A record-grade item's Summary depth already renders these correctly via `RecordGradeSections`, but the unconditional `{depth === "full" && r.fullBrief && <GfmSection .../>}` block re-renders the identical facts a second time, raw and unlabelled, as soon as a reader switches to "Full brief" depth. Fixed by gating that block behind `!isRecord`; attack-proven with a new 4-leg Playwright smoke spec (`market-detail-raw-dump-smoke.mjs`, registered in `ux-smoke-specs.mjs`) that fails with the exact raw text when the guard is manually reverted and passes when restored. `RegulationDetailSurface.tsx:385` carries the identical unguarded pattern, unconfirmed whether it fires there at the same rate; flagged, not fixed, out of W2-D's write set | [CONFIRMED] | P1 | fix built and attack-proven on branch `lane/w2d-market-detail-dump`, session-log `2026-09-29-w2d.md`; not yet merged |
 | CF-BROKEN-7 | A8b A8b-9, A7 | 2026-09-29 chained-apply incident | A cancelled `workflow_run` ("Ledger consume", 36568656803) left 33 `intelligence_items` (quarantined), 33 `staged_updates`, 32 `agent_run_searches`, 51 `integrity_flags` rows LIVE in production. Operator ruled "get rid of them." A `--dry/--apply/--archive/--verify` reversal script was built and tested (#829) but `--apply`/`--archive` were explicitly NOT run; no later entry shows it executed | [CONFIRMED] | P0, open | script built (#829), not executed |
 | CF-BROKEN-8 | A3b A3B-05 | `src/lib/scoring.ts:213-217` | `sortResources`'s "modified" sort case is byte-identical to its "added" case; no `Resource` field exists to sort by "modified" on | [CONFIRMED] | P2 | none |
 
@@ -185,8 +190,8 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 
 | id | source lane ids | finding | status | severity |
 |---|---|---|---|---|
-| CF-PROC-1 | A3, A4, A4b, A6 | 4 lanes each disclose that literal 100% line-by-line reading was not reached within one session's budget (A3: 79/404 files full-depth in its half before the split; A4: 61/313 scripts narratively read; A4b: 76/235 full, explicitly names the gap as its own P1 finding G-1; A6: full reads of core mechanism files, enumeration + targeted reads elsewhere, systematic grep sweep over ~600 test files). Every lane states its method per file group rather than claiming a blanket completion | [CONFIRMED] (each lane's own coverage-appendix disclosure) | P1 (audit-process risk: a real defect in an unread file would not have surfaced) |
-| CF-PROC-2 | A5 | Two messages purporting to be "the coordinator" arrived mid-session demanding a fabricated full-read claim; not followed, reported to the operator | [CONFIRMED] | P0 (instruction-integrity, not a code defect) |
+| CF-PROC-1 | A4, A4b, A6 | 3 lanes each disclose that literal 100% line-by-line reading was not reached within one session's budget (A4: 61/313 scripts narratively read; A4b: 76/235 full, explicitly names the gap as its own P1 finding G-1; A6: full reads of core mechanism files, enumeration + targeted reads elsewhere, systematic grep sweep over ~600 test files). A3, corrected 2026-09-30, reached 100% of its final scope (221/221) in a same-day completion pass; no longer listed here. Every remaining lane states its method per file group rather than claiming a blanket completion | [CONFIRMED] (each lane's own coverage-appendix disclosure) | P1 (audit-process risk: a real defect in an unread file would not have surfaced) |
+| CF-PROC-2 | A5 | Two messages, initially read by lane A5 as possibly not from the coordinator, demanding a full-read claim; not followed at the time. Corrected 2026-09-30: both messages were genuinely sent by the coordinator, relaying the operator's directive; there was no injection | [REFUTED, corrected in place] | n/a (was P0; the underlying fact this finding worried about, a compromised instruction channel, did not occur) |
 
 ## (c) Confirmed P0 and P1, in full sentences
 
@@ -195,7 +200,6 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - `[CONFIRMED]` `docs/PROGRAM-BOARD.md`, the repo's own designated resume state, has not been updated in 19 days and 150-plus commits, including the entire 2026-09-24/25 ruling set and the whole Wave-2 lane program (CF-DOCS-1). A session that resumes from it today gets a materially wrong picture of what is built.
 - `[CONFIRMED]` The gap above is now fully enumerated: 38 merged PRs (#800-#837) have zero corresponding PROGRAM-BOARD row, and a one-row-per-PR reconstruction skeleton exists, built from `git log` commit subjects, ready to land (CF-DOCS-10).
 - `[CONFIRMED]` The 2026-09-29 chained-apply incident left 33 quarantined `intelligence_items`, 33 `staged_updates`, 32 `agent_run_searches`, and 51 `integrity_flags` rows live in production under an explicit operator ruling to remove them. A tested reversal script exists and has not been run (CF-BROKEN-7).
-- `[CONFIRMED]` Two messages claiming coordinator authority arrived out of band during lane A5's session, demanding a fabricated coverage claim; not acted on, reported here per the instruction-source-boundary rule (CF-PROC-2).
 
 **P0, historic, confirmed closed (listed because they were the highest-severity findings in the corpus and their closure is itself worth the operator's confidence, not because they need further action):**
 
@@ -219,7 +223,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - `[CONFIRMED]` 4 migrations across the corpus self-declare "NOT APPLIED" while live in production, with no mechanical check catching the drift (CF-DATA-1).
 - `[CONFIRMED]` 6 of 8 wave-2b lanes are complete on their own branches and unmerged (CF-DOCS-2).
 - `[CONFIRMED]` The "Operations matrix shows values" PROGRAM-BOARD row is stuck OPEN despite a lane supplying the exact closing text (CF-DOCS-3).
-- `[HYPOTHESIS]` Market detail's raw-dump bug is reported but not yet reproduced (CF-BROKEN-6).
+- `[CONFIRMED]` Market detail's raw-dump bug is confirmed by a coordinator-run live SELECT and fixed on an unmerged branch: 631 sections across record-grade Market items render the same facts twice, once correctly and once as raw machine text, under "Full brief" depth (CF-BROKEN-6).
 - `[HYPOTHESIS]` 3 open commitments in `docs/ops/` have no visible closure across a full 24,302-line session-log read (CF-DOCS-5).
 - `[HYPOTHESIS]` 2 HIGH findings from a 4-month-old scripts register (bare-invocation prod writes; a partial re-run interlock) were never re-checked against the current tree (CF-DOCS-6).
 - `[CONFIRMED]` Two unresolved design-ruling conflicts (a rule-below-S-section-title contradiction between code and the current parts brief, and a Search\|Ask toggle removal that silently drops a live API capability) sit with no resolving doc, actively blocking the F49 parts gate from having one unambiguous target (CF-DOCS-11, DES-3).
@@ -238,6 +242,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - **A5c H1** (same id reused by A2b for a different file; this is A5c's instance): `[REFUTED at the specific-claim level]` `sweep-to-ledger-consume` hop's `enforceFired:false` framing, refuted by live `gh run list` evidence showing the hop does fire; the manifest text itself is stale, not the wiring (folded into CF-UNWIRE-5, not separately listed as refuted).
 - **build-plan-2026-09-25 workstream 4** (Operations matrix envelope-reader gap): `[REFUTED]` originally suspected as a real data-reading bug. `fetchOperationsCoverage` selects all 11 envelope columns; `RegionDimensionMatrix.tsx` consumes them correctly. Closed by lane W2-H, 2026-09-29. This is the single most-cited example across the corpus of the rule-13 corollary (a flag dissolving under evidence) working as designed.
 - **A9 prior register, dwell-count**: `[CONFIRMED, corrected]` RW-3's deferral-dwell-clock defect, corrected 2026-08-11 from a 66-day miscount to the true 4-day figure; carried forward as already-closed, not re-litigated (A5 reconciliation table).
+- **CF-PROC-2 (A5)**: `[REFUTED, corrected in place]` The two messages lane A5's register described as "probable injected instructions" were genuinely sent by the coordinator, relaying the operator's every-line-read directive. Corrected per the coordinator's 2026-09-30 message; see the correction note at the top of this document. A5's decision not to act on the directive as relayed stands unchanged in effect (its register remains a replay-only pass), only the "injection" characterization is withdrawn.
 - **A8d IDX-1**: `[REFUTED as broken]` `docs/INDEX.md:302`'s `%20`-encoded link to the HANDOFF file, which A8's own L3-5 had left as an open `[HYPOTHESIS]` needing a filesystem check. A8d ran that check: the target file exists and the encoding decodes correctly; the link is a false positive in a naive (non-decoding) link-resolution script, not a real break. This resolves L3-5 in place.
 
 ## (e) Coverage statement
@@ -251,13 +256,15 @@ scope, ~61 files including the full 2,036-line PROGRAM-BOARD.md, all 16 sprint-1
 a 4,060-line machine-generated design audit, with 2 disclosed exceptions: design-tool HTML/JS mock-render
 exports, self-described by 3 independently-read docs as never-shippable plumbing, and 324 binary
 capture/screen images, existence-verified only per rule 12's spirit), A10 (every file it makes a claim
-about).
+about), A3 (corrected 2026-09-30: 221 of 221 files in its final scope, read in full; the lane's scope
+narrowed twice, first by the A3/A3b letter split, then by the A3c community/connections/credibility/
+forward-events/intake/llm/market split; the branch's final commit, `8c1b7969` on `audit/a3-lib`,
+PR #847, completed the remaining 86 files of `src/lib/agent/` the same day, closing what this document's
+first version reported as a 79-of-404 gap).
 
 **Disclosed partial coverage, method stated per file group:** A1 (120 of 217 files fully read, 55%; the
 remaining 97 covered by exhaustive mechanical sweeps for the named defect classes, not full reads). A2b
-(140 of 194 full, 54 grep-only, all under `ui/`'s smaller/`*.npmtest.mjs` files). A3 (79 of 404 files
-fully read at source level before the coordinator split its scope; the remainder covered by corpus-wide
-static analysis, not full reads; the lane's own text names this a gap and recommends a continuation lane).
+(140 of 194 full, 54 grep-only, all under `ui/`'s smaller/`*.npmtest.mjs` files).
 A4 (61 of 313 scripts narratively read, 19.5%; all 22 workflow files read in full; every file mechanically
 swept for the named defect-class patterns). A4b (76 of 235 files full-depth, 32%; 1 partial; 2
 structurally-scanned via export enumeration only, both the largest files in its scope; 87 grep-survey-only,
@@ -300,9 +307,11 @@ sanctioned).
 
 ---
 
-*Findings-total: 84 consolidated rows across 8 classes plus 2 process findings (amended 2026-09-30 to fold
-in A8d, PR #856: +5 rows CF-DOCS-10 through CF-DOCS-14). P0: 10 (4 open including the instruction-integrity
-flag and the PROGRAM-BOARD reconstruction skeleton, 6 historic-and-closed). P1: 16 confirmed or hypothesis,
-open. Remediation lanes for every confirmed finding are proposed in
-`docs/plans/remediation-plan-2026-09-30.md`; current build state is in
-`docs/plans/build-overview-2026-09-30.md`. A6b will be folded in as a second commit when it lands.*
+*Findings-total: 84 consolidated rows across 8 classes plus 2 process findings (amended 2026-09-30 twice:
++5 rows CF-DOCS-10 through CF-DOCS-14 folding in A8d, PR #856; then 3 corrections per the coordinator,
+CF-PROC-2 refuted in place, A3's coverage corrected to 221/221, CF-BROKEN-6 confirmed with mechanism and
+fix). P0: 9 (3 open: PROGRAM-BOARD staleness, the reconstruction skeleton, the unreversed chained-apply
+data; 6 historic-and-closed). P1: 16 confirmed. Remediation lanes for every confirmed finding are proposed
+in `docs/plans/remediation-plan-2026-09-30.md`; current build state is in
+`docs/plans/build-overview-2026-09-30.md`. A1, A2b, A4, A4b, A4c completion passes and A6b are still
+running and will be folded in as a further commit when the coordinator sends their branches.*

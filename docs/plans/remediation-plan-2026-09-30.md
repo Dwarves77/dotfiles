@@ -17,6 +17,14 @@ row built from `git log` commit subjects) is folded into Lane 15's Haiku batch b
 findings and 1 census/tech-debt finding are new Lane 19. A6b will be folded in as a second commit when it
 lands.
 
+**Amended 2026-09-30 (second correction, coordinator message):** CF-PROC-2 (the instruction-integrity
+finding) is refuted; the two messages lane A5 received were genuinely from the coordinator, no injection
+occurred. This plan never carried a lane for CF-PROC-2 (it was process, not a code/doc fix), so no lane
+above is withdrawn. CF-BROKEN-6 (Market detail raw-dump) is now `[CONFIRMED]` with a built, attack-proven
+fix on branch `lane/w2d-market-detail-dump`, not a `[HYPOTHESIS]` awaiting reproduction; no lane in this
+plan proposed fixing it (it was already scoped to W2-D as a build-plan workstream, outside this
+consolidation's remediation lanes), so this plan is otherwise unchanged by that correction.
+
 ## Lane ordering (R14)
 
 1. Data machine and integrity (Lanes 1-6)

@@ -14,12 +14,17 @@ closures cited in Table 3 by PR title alone (#833 titled "Operations matrix row 
 titled "extract structured actions from brief do-now prose"), independent of this document's own PR-list
 read.
 
+**Amended 2026-09-30 (second correction, coordinator message):** Table 1's Market Intel row and the
+closing paragraph are corrected: the raw-dump bug is `[CONFIRMED]` with cause and fix (lane W2-D, from a
+coordinator-run live SELECT), not an unreproduced `[HYPOTHESIS]`. Table 3/WS16/W2-D were already correct
+(BUILT, NOT MERGED) and are unchanged.
+
 ## Table 1: by customer surface
 
 | Surface | State | Proving artifact |
 |---|---|---|
 | Regulations | Built and proven | A7 section 4: live populated pages, shares `ListSurfaceShell`/`useListSurfaceFilter`/`liveFacetCounts` with the other 3 intelligence surfaces (`RegulationsLedger.tsx`, 350 lines, read in full); structured-action extraction (WS6) merged #832, closing the "what must I do" gap; not confirmed rendering on the detail page this pass (`[HYPOTHESIS]`, A7) |
-| Market Intel | Partial | 3 live producers write real rows to `published_price_statistics` (A7 section 1); nav label still wrong ("Market" not "Market Intel" at `Sidebar.tsx:76`, `DashboardBrief.tsx:361`, W2-C scoped, not merged); raw-dump bug reported, not yet reproduced (CF-BROKEN-6, `[HYPOTHESIS]`, W2-D scoped, not merged) |
+| Market Intel | Partial | 3 live producers write real rows to `published_price_statistics` (A7 section 1); nav label still wrong ("Market" not "Market Intel" at `Sidebar.tsx:76`, `DashboardBrief.tsx:361`, W2-C scoped, not merged); raw-dump bug confirmed and fixed (631 sections across record-grade items double-rendered under Full-brief depth, CF-BROKEN-6, `[CONFIRMED]`, fix built and attack-proven on `lane/w2d-market-detail-dump`, not yet merged) |
 | Research | Built-unproven for format, missing for assessment | Horizon-scan format built (spec 03); the distance/maturity/credibility assessment model is correctly still DESIGN ONLY, gated behind the four-question rebuild (build-plan WS13, wave 3) |
 | Operations | Built and proven | Region×dimension matrix envelope-reader gap investigated and REFUTED (`fetchOperationsCoverage` selects all 11 columns, `supabase-server.ts:3376-3396`; closed by lane W2-H, merged #833); generalization beyond the one automate-vs-hire example is W2-F, partial, not merged |
 | Community | Partial | Identity-by-default ruled (R8.7) but the anonymity opt-in columns (migration 336) and the composer 400 fix are W2-B's scope, branch `lane/w2b-community-identity`, not merged as of `c55cfb2e` |
@@ -128,8 +133,9 @@ a genuinely shared architecture (one list shell, one filter model, one facet-cou
 four intelligence surfaces), get a structured "what must I do" action list on Regulations items shipped
 2 days before this document, and use the Assistant in production. Community shows the platform's identity
 model in principle but not yet the anonymity controls the design already specifies, and its composer has a
-known error. Market Intel has real data flowing from 3 live producers but ships a wrong nav label and an
-unreproduced visual bug that would read as a credibility failure to anyone who hits it. Research shows the
+known error. Market Intel has real data flowing from 3 live producers but ships a wrong nav label and, until W2-D lands,
+a confirmed bug where a record-grade item's facts render twice, once correctly and once as raw machine
+text, under "Full brief" depth, a credibility failure for anyone who hits it. Research shows the
 horizon-scan format but not yet the underlying assessment model that would let a customer judge how far
 out or how credible a signal is, by design, that is sequenced to land after the four-question rebuild
 finishes everywhere else. Nothing a customer sees today depends on the autonomous data-machine loop
