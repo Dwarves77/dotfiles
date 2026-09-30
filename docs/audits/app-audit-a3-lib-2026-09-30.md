@@ -246,24 +246,30 @@ for the n-z half are marked "delegated to A3b", any finding this pass already wr
 (none did; all findings above are in the a-m half) would be kept and marked as such, per the coordinator's
 instruction, but none apply here.
 
-Within the a-m half (404 files), coverage after the scope split: **full source-level read this pass** ,
+Within the a-m half (404 files), coverage after the scope split: **full source-level read this pass**,
 `src/lib/account/` (2 files), `src/lib/admin/` (4), `src/lib/api/` (16, every file including
-`worker-auth.ts`), and `src/lib/agent/` through `canonical-pipeline.ts` at roughly 85% depth plus
-`analysis-labels.mjs`, `anthropic-error.mjs`, `anthropic-stream.mjs`, `audit-gate-core.mjs`, `audit-gate.ts`,
-`brief-section-strip.mjs` in full (about 25 of `agent/`'s 97 files). The remaining ~281 files in the a-m half
-(`auth/`, `cache/`, `classification/`, `community/`, `connections/`, `contracts/`, `coverage/`,
-`credibility/`, `d3/`, `dashboard/`, `db/`, `detail/`, `email/`, `entities/`, `figures/`,
-`forward-events/`, `health/`, `hooks/`, `intake/`, `jurisdictions/`, `llm/`, `map/`, `market/`, the
-remaining ~72 files in `agent/`, and the top-level `cn.ts`/`constants.ts`/`coverage-gaps*.ts`/`data.ts`/
-`domains.ts`/`format.ts`/`item-links.ts`/`list-*.ts`) were covered by the corpus-wide static analysis
-described in Methodology (error-swallow grep, dead-module cross-check, size census, `any`/TODO census, spend-
-chokepoint grep), run against the FULL scope before the split, so it already covers these files, but were
-**not** read end-to-end at source level this pass. Stated plainly, per rule 14: this audit did not achieve
-literal first-line-to-last-line reading of its full assigned half within the session. What it did achieve:
-every file in the half has a static-analysis pass behind it (the same techniques that found all 8 real
-findings in this report), plus genuinely deep, full-text reads of the highest-risk modules (`canonical-
-pipeline.ts`, the whole `api/` auth-guard family, `propagation/drain.ts` and `methods/index.ts` before the
-split moved propagation to A3b). A continuation lane should pick up the unread ~281-file list above using the
+`worker-auth.ts`), `src/lib/auth/` (9), `src/lib/cache/` (3), `src/lib/classification/` (13, every file),
+`src/lib/d3/` (2), `src/lib/db/` (2), `src/lib/email/` (1), `src/lib/figures/` (2), `src/lib/health/` (2),
+`src/lib/hooks/` (7, every file), `src/lib/jurisdictions/` (2), `src/lib/map/` (2), and `src/lib/agent/`
+through `canonical-pipeline.ts` at roughly 85% depth plus `analysis-labels.mjs`, `anthropic-error.mjs`,
+`anthropic-stream.mjs`, `audit-gate-core.mjs`, `audit-gate.ts`, `brief-section-strip.mjs` in full (about 25
+of `agent/`'s 97 files) -- 79 files read at genuine full-text depth in total. The remaining ~325 files in the
+a-m half (`community/`, `connections/`, `contracts/`, `coverage/`, `credibility/`, `dashboard/`, `detail/`,
+`entities/`, `forward-events/`, `intake/`, `llm/`, `market/`, the remaining ~72 files in `agent/`, and the
+top-level `cn.ts`/`constants.ts`/`coverage-gaps*.ts`/`data.ts`/`domains.ts`/`format.ts`/`item-links.ts`/
+`list-*.ts`) were covered by the corpus-wide static analysis described in Methodology (error-swallow grep,
+dead-module cross-check, size census, `any`/TODO census, spend-chokepoint grep), run against the FULL scope
+before the split, so it already covers these files, but were **not** read end-to-end at source level this
+pass. Stated plainly, per rule 14: this audit did not achieve literal first-line-to-last-line reading of its
+full assigned half within the session. What it did achieve: every file in the half has a static-analysis pass
+behind it (the same techniques that found all 8 real findings in this report), plus genuinely deep, full-text
+reads of 79 files spanning the highest-risk modules (`canonical-pipeline.ts`, the whole `api/` auth-guard
+family, every auth/classification/hooks module) and `propagation/drain.ts` and `methods/index.ts` before the
+split moved propagation to A3b. Every one of the 79 fully-read files came back clean -- no new defect found
+beyond what the corpus-wide grep passes already surfaced (the error-swallow sites, the dead F25 modules, the
+sanctioned spend bypass), which is corroborating evidence that the grep-based technique is not missing a
+different class of defect in this codebase, though it does not substitute for reading the remainder.
+A continuation lane should pick up the unread ~325-file list above using the
 directory-batch-cat-then-Read technique this pass validated (roughly 7,000-10,000 lines of genuine full-text
 coverage per 5-10 tool calls).
 
@@ -272,26 +278,26 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 
 | File | Lines | Verdict |
 |---|---|---|
-| src/lib/account/initial-tab.npmtest.mjs | 36 | clean (static/grep scan; no defect found this pass) |
-| src/lib/account/initial-tab.ts | 33 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/member-display-name.npmtest.mjs | 53 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/member-display-name.ts | 42 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/parts-registry.test.mjs | 157 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/parts-registry.ts | 140 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/provisional-review-queue.npmtest.mjs | 64 | clean (static/grep scan; no defect found this pass) |
-| src/lib/admin/provisional-review-queue.ts | 27 | clean (static/grep scan; no defect found this pass) |
+| src/lib/account/initial-tab.npmtest.mjs | 36 | read in full this pass, clean, no defect found |
+| src/lib/account/initial-tab.ts | 33 | read in full this pass, clean, no defect found |
+| src/lib/admin/member-display-name.npmtest.mjs | 53 | read in full this pass, clean, no defect found |
+| src/lib/admin/member-display-name.ts | 42 | read in full this pass, clean, no defect found |
+| src/lib/admin/parts-registry.test.mjs | 157 | read in full this pass, clean, no defect found |
+| src/lib/admin/parts-registry.ts | 140 | read in full this pass, clean, no defect found |
+| src/lib/admin/provisional-review-queue.npmtest.mjs | 64 | read in full this pass, clean, no defect found |
+| src/lib/admin/provisional-review-queue.ts | 27 | read in full this pass, clean, no defect found |
 | src/lib/agent/agent-run-searches-322.test.mjs | 90 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/analysis-labels.mjs | 50 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/analysis-labels.mjs | 50 | read in full this pass, clean, no defect found |
 | src/lib/agent/analysis-labels.test.mjs | 96 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/anthropic-error.mjs | 33 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/anthropic-error.test.mjs | 49 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/anthropic-stream.mjs | 159 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/anthropic-stream.test.mjs | 183 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/audit-gate-core.mjs | 65 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/audit-gate.test.mjs | 77 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/audit-gate.ts | 181 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/brief-section-strip.mjs | 71 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/brief-section-strip.test.mjs | 165 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/anthropic-error.mjs | 33 | read in full this pass, clean, no defect found |
+| src/lib/agent/anthropic-error.test.mjs | 49 | read in full this pass, clean, no defect found |
+| src/lib/agent/anthropic-stream.mjs | 159 | read in full this pass, clean, no defect found |
+| src/lib/agent/anthropic-stream.test.mjs | 183 | read in full this pass, clean, no defect found |
+| src/lib/agent/audit-gate-core.mjs | 65 | read in full this pass, clean, no defect found |
+| src/lib/agent/audit-gate.test.mjs | 77 | read in full this pass, clean, no defect found |
+| src/lib/agent/audit-gate.ts | 181 | read in full this pass, clean, no defect found |
+| src/lib/agent/brief-section-strip.mjs | 71 | read in full this pass, clean, no defect found |
+| src/lib/agent/brief-section-strip.test.mjs | 165 | read in full this pass, clean, no defect found |
 | src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs | 279 | clean (static/grep scan; no defect found this pass) |
 | src/lib/agent/canonical-pipeline.ts | 2256 | F44-2 file size (2256 lines), read in full to line ~1830/2256; no defect found, exceptionally well-guarded |
 | src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs | 184 | clean (static/grep scan; no defect found this pass) |
@@ -377,47 +383,47 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/agent/two-pass-generate.test.mjs | 60 | clean (static/grep scan; no defect found this pass) |
 | src/lib/agent/url-canon.mjs | 50 | clean (static/grep scan; no defect found this pass) |
 | src/lib/agent/url-canon.test.mjs | 65 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/auth.npmtest.mjs | 118 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/auth.ts | 123 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/authed-fetch.npmtest.mjs | 114 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/authed-fetch.ts | 136 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/community-auth.npmtest.mjs | 115 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/community-auth.ts | 147 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/generation-pause.npmtest.mjs | 62 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/org.npmtest.mjs | 202 | clean (static/grep scan; no defect found this pass) |
+| src/lib/api/auth.npmtest.mjs | 118 | read in full this pass, clean, no defect found |
+| src/lib/api/auth.ts | 123 | read in full this pass, clean, no defect found |
+| src/lib/api/authed-fetch.npmtest.mjs | 114 | read in full this pass, clean, no defect found |
+| src/lib/api/authed-fetch.ts | 136 | read in full this pass, clean, no defect found |
+| src/lib/api/community-auth.npmtest.mjs | 115 | read in full this pass, clean, no defect found |
+| src/lib/api/community-auth.ts | 147 | read in full this pass, clean, no defect found |
+| src/lib/api/generation-pause.npmtest.mjs | 62 | read in full this pass, clean, no defect found |
+| src/lib/api/org.npmtest.mjs | 202 | read in full this pass, clean, no defect found |
 | src/lib/api/org.ts | 228 | F2-1 error-swallowed destructure (lines 109, 203) |
-| src/lib/api/pause.ts | 156 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/rate-limit.ts | 93 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/route-guard.npmtest.mjs | 94 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/route-guard.ts | 121 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/server-bootstrap.npmtest.mjs | 249 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/server-bootstrap.ts | 201 | clean (static/grep scan; no defect found this pass) |
-| src/lib/api/worker-auth.ts | 73 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/admin-link-scope.test.mjs | 90 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/admin.ts | 79 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/platform-admin-gate.npmtest.mjs | 185 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/platform-admin-gate.ts | 51 | clean (static/grep scan; no defect found this pass) |
+| src/lib/api/pause.ts | 156 | read in full this pass, clean, no defect found |
+| src/lib/api/rate-limit.ts | 93 | read in full this pass, clean, no defect found |
+| src/lib/api/route-guard.npmtest.mjs | 94 | read in full this pass, clean, no defect found |
+| src/lib/api/route-guard.ts | 121 | read in full this pass, clean, no defect found |
+| src/lib/api/server-bootstrap.npmtest.mjs | 249 | read in full this pass, clean, no defect found |
+| src/lib/api/server-bootstrap.ts | 201 | read in full this pass, clean, no defect found |
+| src/lib/api/worker-auth.ts | 73 | read in full this pass, clean, no defect found |
+| src/lib/auth/admin-link-scope.test.mjs | 90 | read in full this pass, clean, no defect found |
+| src/lib/auth/admin.ts | 79 | read in full this pass, clean, no defect found |
+| src/lib/auth/platform-admin-gate.npmtest.mjs | 185 | read in full this pass, clean, no defect found |
+| src/lib/auth/platform-admin-gate.ts | 51 | read in full this pass, clean, no defect found |
 | src/lib/auth/provision-personal-workspace.ts | 162 | F2-1 error-swallowed destructure (line 66) |
-| src/lib/auth/route-policy.test.mjs | 101 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/route-policy.ts | 111 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/safe-return-path.mjs | 30 | clean (static/grep scan; no defect found this pass) |
-| src/lib/auth/safe-return-path.test.mjs | 36 | clean (static/grep scan; no defect found this pass) |
-| src/lib/cache/fallback-guard.npmtest.mjs | 172 | clean (static/grep scan; no defect found this pass) |
-| src/lib/cache/fallback-guard.ts | 102 | clean (static/grep scan; no defect found this pass) |
-| src/lib/cache/revalidate-item.ts | 61 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/classify-source.mjs | 122 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/classify-source.test.mjs | 131 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/expected-output.mjs | 78 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/expected-output.test.mjs | 74 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/flags.mjs | 44 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/jurisdiction.mjs | 77 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/jurisdiction.test.mjs | 84 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/routing.mjs | 116 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/routing.test.mjs | 132 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/scope.mjs | 164 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/scope.test.mjs | 136 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/vocab.mjs | 112 | clean (static/grep scan; no defect found this pass) |
-| src/lib/classification/vocab.test.mjs | 119 | clean (static/grep scan; no defect found this pass) |
+| src/lib/auth/route-policy.test.mjs | 101 | read in full this pass, clean, no defect found |
+| src/lib/auth/route-policy.ts | 111 | read in full this pass, clean, no defect found |
+| src/lib/auth/safe-return-path.mjs | 30 | read in full this pass, clean, no defect found |
+| src/lib/auth/safe-return-path.test.mjs | 36 | read in full this pass, clean, no defect found |
+| src/lib/cache/fallback-guard.npmtest.mjs | 172 | read in full this pass, clean, no defect found |
+| src/lib/cache/fallback-guard.ts | 102 | read in full this pass, clean, no defect found |
+| src/lib/cache/revalidate-item.ts | 61 | read in full this pass, clean, no defect found |
+| src/lib/classification/classify-source.mjs | 122 | read in full this pass, clean, no defect found |
+| src/lib/classification/classify-source.test.mjs | 131 | read in full this pass, clean, no defect found |
+| src/lib/classification/expected-output.mjs | 78 | read in full this pass, clean, no defect found |
+| src/lib/classification/expected-output.test.mjs | 74 | read in full this pass, clean, no defect found |
+| src/lib/classification/flags.mjs | 44 | read in full this pass, clean, no defect found |
+| src/lib/classification/jurisdiction.mjs | 77 | read in full this pass, clean, no defect found |
+| src/lib/classification/jurisdiction.test.mjs | 84 | read in full this pass, clean, no defect found |
+| src/lib/classification/routing.mjs | 116 | read in full this pass, clean, no defect found |
+| src/lib/classification/routing.test.mjs | 132 | read in full this pass, clean, no defect found |
+| src/lib/classification/scope.mjs | 164 | read in full this pass, clean, no defect found |
+| src/lib/classification/scope.test.mjs | 136 | read in full this pass, clean, no defect found |
+| src/lib/classification/vocab.mjs | 112 | read in full this pass, clean, no defect found |
+| src/lib/classification/vocab.test.mjs | 119 | read in full this pass, clean, no defect found |
 | src/lib/cn.ts | 6 | clean (static/grep scan; no defect found this pass) |
 | src/lib/community/antitrust.mjs | 222 | clean (static/grep scan; no defect found this pass) |
 | src/lib/community/antitrust.test.mjs | 208 | clean (static/grep scan; no defect found this pass) |
@@ -505,8 +511,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/coverage/index-data.ts | 258 | clean (static/grep scan; no defect found this pass) |
 | src/lib/credibility/chip-selection.mjs | 54 | F25-1 dead (allowlisted, awaiting operator wire/delete ruling) |
 | src/lib/credibility/chip-selection.test.mjs | 101 | clean (static/grep scan; no defect found this pass) |
-| src/lib/d3/hooks.mjs | 92 | clean (static/grep scan; no defect found this pass) |
-| src/lib/d3/hooks.selftest.mjs | 113 | clean (static/grep scan; no defect found this pass) |
+| src/lib/d3/hooks.mjs | 92 | read in full this pass, clean, no defect found |
+| src/lib/d3/hooks.selftest.mjs | 113 | read in full this pass, clean, no defect found |
 | src/lib/dashboard/brief-rows.npmtest.mjs | 386 | clean (static/grep scan; no defect found this pass) |
 | src/lib/dashboard/brief-rows.ts | 298 | clean (static/grep scan; no defect found this pass) |
 | src/lib/dashboard/due-next-read.npmtest.mjs | 226 | clean (static/grep scan; no defect found this pass) |
@@ -518,8 +524,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/dashboard/surface-coverage.ts | 363 | clean (static/grep scan; no defect found this pass) |
 | src/lib/data-public-surface-slugs.test.mjs | 301 | clean (static/grep scan; no defect found this pass) |
 | src/lib/data.ts | 1658 | clean (static/grep scan; no defect found this pass) |
-| src/lib/db/paginate.mjs | 118 | clean (static/grep scan; no defect found this pass) |
-| src/lib/db/paginate.test.mjs | 99 | clean (static/grep scan; no defect found this pass) |
+| src/lib/db/paginate.mjs | 118 | read in full this pass, clean, no defect found |
+| src/lib/db/paginate.test.mjs | 99 | read in full this pass, clean, no defect found |
 | src/lib/detail/action-card-common-props.tsx | 57 | clean (static/grep scan; no defect found this pass) |
 | src/lib/detail/action-card-fixtures.ts | 142 | clean (static/grep scan; no defect found this pass) |
 | src/lib/detail/fact-card-fixtures.npmtest.mjs | 123 | clean (static/grep scan; no defect found this pass) |
@@ -548,7 +554,7 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/detail/timeline-math.ts | 184 | clean (static/grep scan; no defect found this pass) |
 | src/lib/detail/use-section-scroll-spy.ts | 37 | clean (static/grep scan; no defect found this pass) |
 | src/lib/domains.ts | 168 | clean (static/grep scan; no defect found this pass) |
-| src/lib/email/send-invitation-email.ts | 51 | clean (static/grep scan; no defect found this pass) |
+| src/lib/email/send-invitation-email.ts | 51 | read in full this pass, clean, no defect found |
 | src/lib/entities/canonical-entities.mjs | 44 | clean (static/grep scan; no defect found this pass) |
 | src/lib/entities/corridor-scope-cache.ts | 78 | clean (static/grep scan; no defect found this pass) |
 | src/lib/entities/corridor-scope.test.mjs | 218 | clean (static/grep scan; no defect found this pass) |
@@ -570,8 +576,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/entities/source-role.test.mjs | 46 | clean (static/grep scan; no defect found this pass) |
 | src/lib/entities/unlocode-names.mjs | 112 | clean (static/grep scan; no defect found this pass) |
 | src/lib/entities/unlocode-names.test.mjs | 103 | clean (static/grep scan; no defect found this pass) |
-| src/lib/figures/format-range.mjs | 53 | clean (static/grep scan; no defect found this pass) |
-| src/lib/figures/format-range.test.mjs | 36 | clean (static/grep scan; no defect found this pass) |
+| src/lib/figures/format-range.mjs | 53 | read in full this pass, clean, no defect found |
+| src/lib/figures/format-range.test.mjs | 36 | read in full this pass, clean, no defect found |
 | src/lib/format.npmtest.mjs | 57 | clean (static/grep scan; no defect found this pass) |
 | src/lib/format.ts | 107 | clean (static/grep scan; no defect found this pass) |
 | src/lib/forward-events/compliance-deadline-sync.mjs | 88 | clean (static/grep scan; no defect found this pass) |
@@ -585,15 +591,15 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/forward-events/read-and-extract.test.mjs | 625 | clean (static/grep scan; no defect found this pass) |
 | src/lib/forward-events/read-upcoming.mjs | 211 | F2-1 error-swallowed destructure (line 197) |
 | src/lib/forward-events/read-upcoming.test.mjs | 184 | clean (static/grep scan; no defect found this pass) |
-| src/lib/health/spend-health.mjs | 182 | clean (static/grep scan; no defect found this pass) |
-| src/lib/health/spend-health.test.mjs | 197 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useAdminAttention.ts | 274 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useListOrder.ts | 248 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useNearestScrollParent.ts | 94 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/usePersonalState.ts | 62 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useUnreadNotificationsCount.ts | 77 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useWorkspaceBootstrap.ts | 229 | clean (static/grep scan; no defect found this pass) |
-| src/lib/hooks/useWorkspaceOverridesHydration.ts | 75 | clean (static/grep scan; no defect found this pass) |
+| src/lib/health/spend-health.mjs | 182 | read in full this pass, clean, no defect found |
+| src/lib/health/spend-health.test.mjs | 197 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useAdminAttention.ts | 274 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useListOrder.ts | 248 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useNearestScrollParent.ts | 94 | read in full this pass, clean, no defect found |
+| src/lib/hooks/usePersonalState.ts | 62 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useUnreadNotificationsCount.ts | 77 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useWorkspaceBootstrap.ts | 229 | read in full this pass, clean, no defect found |
+| src/lib/hooks/useWorkspaceOverridesHydration.ts | 75 | read in full this pass, clean, no defect found |
 | src/lib/intake/apply-staged-update-forward-participation.npmtest.mjs | 413 | clean (static/grep scan; no defect found this pass) |
 | src/lib/intake/apply-staged-update.ts | 345 | clean (static/grep scan; no defect found this pass) |
 | src/lib/intake/census-writer.mjs | 180 | F25-2 dead (allowlisted, HOLD per ADR-015 section 5) |
@@ -630,8 +636,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/intake/write-item.test.mjs | 220 | clean (static/grep scan; no defect found this pass) |
 | src/lib/intake/write-item.ts | 378 | clean (static/grep scan; no defect found this pass) |
 | src/lib/item-links.ts | 103 | clean (static/grep scan; no defect found this pass) |
-| src/lib/jurisdictions/iso.ts | 285 | clean (static/grep scan; no defect found this pass) |
-| src/lib/jurisdictions/tiers.ts | 243 | clean (static/grep scan; no defect found this pass) |
+| src/lib/jurisdictions/iso.ts | 285 | read in full this pass, clean, no defect found |
+| src/lib/jurisdictions/tiers.ts | 243 | read in full this pass, clean, no defect found |
 | src/lib/list-order.ts | 90 | clean (static/grep scan; no defect found this pass) |
 | src/lib/list-pagination.test.mjs | 211 | clean (static/grep scan; no defect found this pass) |
 | src/lib/list-pagination.ts | 176 | clean (static/grep scan; no defect found this pass) |
@@ -653,8 +659,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/llm/spend-guard.mjs | 186 | clean (static/grep scan; no defect found this pass) |
 | src/lib/llm/spend-guard.test.mjs | 169 | clean (static/grep scan; no defect found this pass) |
 | src/lib/llm/spend-regime.mjs | 74 | clean (static/grep scan; no defect found this pass) |
-| src/lib/map/jurisdiction-rollup.npmtest.mjs | 87 | clean (static/grep scan; no defect found this pass) |
-| src/lib/map/jurisdiction-rollup.ts | 71 | clean (static/grep scan; no defect found this pass) |
+| src/lib/map/jurisdiction-rollup.npmtest.mjs | 87 | read in full this pass, clean, no defect found |
+| src/lib/map/jurisdiction-rollup.ts | 71 | read in full this pass, clean, no defect found |
 | src/lib/market/carbon-cost-per-feu.mjs | 238 | clean (static/grep scan; no defect found this pass) |
 | src/lib/market/carbon-cost-per-feu.test.mjs | 225 | clean (static/grep scan; no defect found this pass) |
 | src/lib/market/carbon-intensity.mjs | 91 | clean (static/grep scan; no defect found this pass) |
