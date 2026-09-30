@@ -286,9 +286,9 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/admin/parts-registry.ts | 140 | read in full this pass, clean, no defect found |
 | src/lib/admin/provisional-review-queue.npmtest.mjs | 64 | read in full this pass, clean, no defect found |
 | src/lib/admin/provisional-review-queue.ts | 27 | read in full this pass, clean, no defect found |
-| src/lib/agent/agent-run-searches-322.test.mjs | 90 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/agent-run-searches-322.test.mjs | 90 | read in full this pass, clean, no defect found |
 | src/lib/agent/analysis-labels.mjs | 50 | read in full this pass, clean, no defect found |
-| src/lib/agent/analysis-labels.test.mjs | 96 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/analysis-labels.test.mjs | 96 | read in full this pass, clean, no defect found |
 | src/lib/agent/anthropic-error.mjs | 33 | read in full this pass, clean, no defect found |
 | src/lib/agent/anthropic-error.test.mjs | 49 | read in full this pass, clean, no defect found |
 | src/lib/agent/anthropic-stream.mjs | 159 | read in full this pass, clean, no defect found |
@@ -298,91 +298,91 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/agent/audit-gate.ts | 181 | read in full this pass, clean, no defect found |
 | src/lib/agent/brief-section-strip.mjs | 71 | read in full this pass, clean, no defect found |
 | src/lib/agent/brief-section-strip.test.mjs | 165 | read in full this pass, clean, no defect found |
-| src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs | 279 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/canonical-pipeline.injected-synthesis.npmtest.mjs | 279 | read in full this pass, clean, no defect found |
 | src/lib/agent/canonical-pipeline.ts | 2256 | F44-2 file size (2256 lines), read in full to line ~1830/2256; no defect found, exceptionally well-guarded |
-| src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs | 184 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/claim-versions-321.test.mjs | 58 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/contract-version.mjs | 39 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/contract-version.test.mjs | 31 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/defect-signatures.mjs | 90 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/derived-consistency.mjs | 53 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/derived-consistency.test.mjs | 122 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/deterministic-lever.mjs | 95 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/deterministic-lever.test.mjs | 69 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/extract-recommended-actions.mjs | 209 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/extract-recommended-actions.test.mjs | 192 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/extract-registry.ts | 29 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/extract-regulation-sections.ts | 530 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/extract-sections.ts | 324 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/floor-attribution.mjs | 61 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/floor-attribution.test.mjs | 75 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/format-spec.ts | 54 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/market.ts | 32 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/operations-matrix.ts | 309 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/operations.ts | 32 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/prose-extractor.ts | 54 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/regulation.ts | 40 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/research.ts | 38 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/technology.ts | 30 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/timeline-section.mjs | 130 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/formats/timeline-section.test.mjs | 82 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-derived.mjs | 53 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-derived.test.mjs | 82 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-match.mjs | 46 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-match.test.mjs | 52 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-scan-harvest-skips.test.mjs | 216 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-scan.mjs | 316 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/gate-a-scan.test.mjs | 61 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/generation-config.ts | 110 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ground-failure-class.mjs | 33 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ground-failure-class.test.mjs | 29 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/holdings-keying.npmtest.mjs | 66 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ledger-apply.mjs | 237 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ledger-apply.test.mjs | 193 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ledger-dominance.mjs | 88 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/ledger-dominance.test.mjs | 91 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/metadata-vocab.ts | 135 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/mint-gates.mjs | 50 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/null-tier-flag.mjs | 88 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/null-tier-flag.test.mjs | 91 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/operations-ask-context.mjs | 187 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/operations-ask-context.test.mjs | 221 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/parse-output-blocklist.npmtest.mjs | 40 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/parse-output.test.mjs | 157 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/parse-output.ts | 994 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/parse-record-sections.test.mjs | 295 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/parse-record-sections.ts | 263 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/prompt-cache.mjs | 65 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/prompt-cache.test.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/section-grounding.mjs | 24 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/section-grounding.test.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/severity-ui-bucket.test.mjs | 124 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/skill-prompt-parity.test.mjs | 186 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/slot-forcing.mjs | 125 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/slot-forcing.test.mjs | 134 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/slot-prompt.mjs | 77 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/slot-prompt.test.mjs | 91 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-blocks.mjs | 108 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-blocks.test.mjs | 115 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-entry-filter.mjs | 60 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-entry-filter.test.mjs | 45 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-list-multitable.npmtest.mjs | 45 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/source-pool-hash.mjs | 64 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/span-check.npmtest.mjs | 33 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/span-check.ts | 50 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/system-prompt.ts | 567 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/theme-vocab.test.mjs | 73 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-backfill-derive.mjs | 535 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-backfill-derive.test.mjs | 432 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-harvest-unlock.npmtest.mjs | 183 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-harvest.mjs | 164 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-harvest.test.mjs | 85 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-parse.mjs | 141 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/timeline-parse.test.mjs | 111 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/two-pass-generate.mjs | 54 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/two-pass-generate.test.mjs | 60 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/url-canon.mjs | 50 | clean (static/grep scan; no defect found this pass) |
-| src/lib/agent/url-canon.test.mjs | 65 | clean (static/grep scan; no defect found this pass) |
+| src/lib/agent/canonical-pipeline.write-fields.npmtest.mjs | 184 | read in full this pass, clean, no defect found |
+| src/lib/agent/claim-versions-321.test.mjs | 58 | read in full this pass, clean, no defect found |
+| src/lib/agent/contract-version.mjs | 39 | read in full this pass, clean, no defect found |
+| src/lib/agent/contract-version.test.mjs | 31 | read in full this pass, clean, no defect found |
+| src/lib/agent/defect-signatures.mjs | 90 | read in full this pass, clean, no defect found |
+| src/lib/agent/derived-consistency.mjs | 53 | read in full this pass, clean, no defect found |
+| src/lib/agent/derived-consistency.test.mjs | 122 | read in full this pass, clean, no defect found |
+| src/lib/agent/deterministic-lever.mjs | 95 | read in full this pass, clean, no defect found |
+| src/lib/agent/deterministic-lever.test.mjs | 69 | read in full this pass, clean, no defect found |
+| src/lib/agent/extract-recommended-actions.mjs | 209 | read in full this pass, clean, no defect found |
+| src/lib/agent/extract-recommended-actions.test.mjs | 192 | read in full this pass, clean, no defect found |
+| src/lib/agent/extract-registry.ts | 29 | read in full this pass, clean, no defect found |
+| src/lib/agent/extract-regulation-sections.ts | 530 | read in full this pass, clean, no defect found |
+| src/lib/agent/extract-sections.ts | 324 | read in full this pass, clean, no defect found |
+| src/lib/agent/floor-attribution.mjs | 61 | read in full this pass, clean, no defect found |
+| src/lib/agent/floor-attribution.test.mjs | 75 | read in full this pass, clean, no defect found |
+| src/lib/agent/format-spec.ts | 54 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/market.ts | 32 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/operations-matrix.ts | 309 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/operations.ts | 32 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/prose-extractor.ts | 54 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/regulation.ts | 40 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/research.ts | 38 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/technology.ts | 30 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/timeline-section.mjs | 130 | read in full this pass, clean, no defect found |
+| src/lib/agent/formats/timeline-section.test.mjs | 82 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-derived.mjs | 53 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-derived.test.mjs | 82 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-match.mjs | 46 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-match.test.mjs | 52 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-scan-harvest-skips.test.mjs | 216 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-scan.mjs | 316 | read in full this pass, clean, no defect found |
+| src/lib/agent/gate-a-scan.test.mjs | 61 | read in full this pass, clean, no defect found |
+| src/lib/agent/generation-config.ts | 110 | read in full this pass, clean, no defect found |
+| src/lib/agent/ground-failure-class.mjs | 33 | read in full this pass, clean, no defect found |
+| src/lib/agent/ground-failure-class.test.mjs | 29 | read in full this pass, clean, no defect found |
+| src/lib/agent/holdings-keying.npmtest.mjs | 66 | read in full this pass, clean, no defect found |
+| src/lib/agent/ledger-apply.mjs | 237 | read in full this pass, clean, no defect found |
+| src/lib/agent/ledger-apply.test.mjs | 193 | read in full this pass, clean, no defect found |
+| src/lib/agent/ledger-dominance.mjs | 88 | read in full this pass, clean, no defect found |
+| src/lib/agent/ledger-dominance.test.mjs | 91 | read in full this pass, clean, no defect found |
+| src/lib/agent/metadata-vocab.ts | 135 | read in full this pass, clean, no defect found |
+| src/lib/agent/mint-gates.mjs | 50 | read in full this pass, clean, no defect found |
+| src/lib/agent/null-tier-flag.mjs | 88 | read in full this pass, clean, no defect found |
+| src/lib/agent/null-tier-flag.test.mjs | 91 | read in full this pass, clean, no defect found |
+| src/lib/agent/operations-ask-context.mjs | 187 | read in full this pass, clean, no defect found |
+| src/lib/agent/operations-ask-context.test.mjs | 221 | read in full this pass, clean, no defect found |
+| src/lib/agent/parse-output-blocklist.npmtest.mjs | 40 | read in full this pass, clean, no defect found |
+| src/lib/agent/parse-output.test.mjs | 157 | read in full this pass, clean, no defect found |
+| src/lib/agent/parse-output.ts | 994 | read in full this pass, clean, no defect found |
+| src/lib/agent/parse-record-sections.test.mjs | 295 | read in full this pass, clean, no defect found |
+| src/lib/agent/parse-record-sections.ts | 263 | read in full this pass, clean, no defect found |
+| src/lib/agent/prompt-cache.mjs | 65 | read in full this pass, clean, no defect found |
+| src/lib/agent/prompt-cache.test.mjs | 48 | read in full this pass, clean, no defect found |
+| src/lib/agent/section-grounding.mjs | 24 | read in full this pass, clean, no defect found |
+| src/lib/agent/section-grounding.test.mjs | 48 | read in full this pass, clean, no defect found |
+| src/lib/agent/severity-ui-bucket.test.mjs | 124 | read in full this pass, clean, no defect found |
+| src/lib/agent/skill-prompt-parity.test.mjs | 186 | read in full this pass, clean, no defect found |
+| src/lib/agent/slot-forcing.mjs | 125 | read in full this pass, clean, no defect found |
+| src/lib/agent/slot-forcing.test.mjs | 134 | read in full this pass, clean, no defect found |
+| src/lib/agent/slot-prompt.mjs | 77 | read in full this pass, clean, no defect found |
+| src/lib/agent/slot-prompt.test.mjs | 91 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-blocks.mjs | 108 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-blocks.test.mjs | 115 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-entry-filter.mjs | 60 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-entry-filter.test.mjs | 45 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-list-multitable.npmtest.mjs | 45 | read in full this pass, clean, no defect found |
+| src/lib/agent/source-pool-hash.mjs | 64 | read in full this pass, clean, no defect found |
+| src/lib/agent/span-check.npmtest.mjs | 33 | read in full this pass, clean, no defect found |
+| src/lib/agent/span-check.ts | 50 | read in full this pass, clean, no defect found |
+| src/lib/agent/system-prompt.ts | 567 | read in full this pass, clean, no defect found |
+| src/lib/agent/theme-vocab.test.mjs | 73 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-backfill-derive.mjs | 535 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-backfill-derive.test.mjs | 432 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-harvest-unlock.npmtest.mjs | 183 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-harvest.mjs | 164 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-harvest.test.mjs | 85 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-parse.mjs | 141 | read in full this pass, clean, no defect found |
+| src/lib/agent/timeline-parse.test.mjs | 111 | read in full this pass, clean, no defect found |
+| src/lib/agent/two-pass-generate.mjs | 54 | read in full this pass, clean, no defect found |
+| src/lib/agent/two-pass-generate.test.mjs | 60 | read in full this pass, clean, no defect found |
+| src/lib/agent/url-canon.mjs | 50 | read in full this pass, clean, no defect found |
+| src/lib/agent/url-canon.test.mjs | 65 | read in full this pass, clean, no defect found |
 | src/lib/api/auth.npmtest.mjs | 118 | read in full this pass, clean, no defect found |
 | src/lib/api/auth.ts | 123 | read in full this pass, clean, no defect found |
 | src/lib/api/authed-fetch.npmtest.mjs | 114 | read in full this pass, clean, no defect found |
@@ -425,76 +425,76 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/classification/vocab.mjs | 112 | read in full this pass, clean, no defect found |
 | src/lib/classification/vocab.test.mjs | 119 | read in full this pass, clean, no defect found |
 | src/lib/cn.ts | 6 | read in full this pass, clean, no defect found |
-| src/lib/community/antitrust.mjs | 222 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/antitrust.test.mjs | 208 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/benchmark.mjs | 173 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/benchmark.test.mjs | 159 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/corroboration.mjs | 39 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/corroboration.test.mjs | 99 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/decay.mjs | 55 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/decay.test.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/identity.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/identity.test.mjs | 59 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/index.mjs | 55 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/index.test.mjs | 37 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/lineage-guard.mjs | 46 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/lineage-guard.test.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/no-dm-guard.test.mjs | 35 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/organisation-key.mjs | 130 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/organisation-key.test.mjs | 107 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/organisation-salt.test.mjs | 39 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/organisation-salt.ts | 41 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/profile-policy.mjs | 116 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/profile-policy.test.mjs | 103 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/respond.mjs | 92 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/respond.test.mjs | 132 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/rooms.test.mjs | 41 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/rooms.ts | 158 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/shell-context.npmtest.mjs | 66 | clean (static/grep scan; no defect found this pass) |
-| src/lib/community/shell-context.ts | 164 | F2-1 error-swallowed destructure (lines 136, 141) |
-| src/lib/connections/anticipate.mjs | 163 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/anticipate.test.mjs | 118 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/brief-candidates.mjs | 235 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/brief-candidates.test.mjs | 248 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/brief-staleness.mjs | 43 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/brief-staleness.test.mjs | 62 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/cluster.mjs | 226 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/cluster.test.mjs | 135 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/connection-view-model.mjs | 149 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/connection-view-model.test.mjs | 114 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/coverage-reflection.mjs | 61 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/coverage-reflection.test.mjs | 58 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/decision-note.mjs | 56 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/decision-note.test.mjs | 48 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/derive-tags.mjs | 599 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/derive-tags.test.mjs | 283 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/discover.mjs | 174 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/discover.test.mjs | 143 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/flag-namespaces.mjs | 89 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/flag-namespaces.test.mjs | 64 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/forward-event-format.mjs | 59 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/forward-event-format.test.mjs | 71 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/gaps.mjs | 167 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/gaps.test.mjs | 133 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/pair-view.mjs | 127 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/pair-view.npmtest.mjs | 76 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/resource-lookup.ts | 95 | F2-1 error-swallowed destructure (lines 34, 45) |
-| src/lib/connections/run-discovery.mjs | 71 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/signal-candidates.mjs | 141 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/signal-candidates.test.mjs | 104 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/signal-confidence.mjs | 321 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/signal-confidence.test.mjs | 251 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/tag-aliases.mjs | 211 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/tag-aliases.test.mjs | 136 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/tag-input.mjs | 177 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/tag-input.test.mjs | 133 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/tag-yield.fixture.test.mjs | 281 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/theme-delta.mjs | 170 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/theme-delta.test.mjs | 124 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/theme-stats.mjs | 58 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/theme-stats.test.mjs | 45 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/write-edges.mjs | 126 | clean (static/grep scan; no defect found this pass) |
-| src/lib/connections/write-edges.test.mjs | 151 | clean (static/grep scan; no defect found this pass) |
+| src/lib/community/antitrust.mjs | 222 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/antitrust.test.mjs | 208 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/benchmark.mjs | 173 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/benchmark.test.mjs | 159 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/corroboration.mjs | 39 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/corroboration.test.mjs | 99 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/decay.mjs | 55 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/decay.test.mjs | 48 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/identity.mjs | 48 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/identity.test.mjs | 59 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/index.mjs | 55 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/index.test.mjs | 37 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/lineage-guard.mjs | 46 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/lineage-guard.test.mjs | 48 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/no-dm-guard.test.mjs | 35 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/organisation-key.mjs | 130 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/organisation-key.test.mjs | 107 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/organisation-salt.test.mjs | 39 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/organisation-salt.ts | 41 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/profile-policy.mjs | 116 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/profile-policy.test.mjs | 103 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/respond.mjs | 92 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/respond.test.mjs | 132 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/rooms.test.mjs | 41 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/rooms.ts | 158 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/shell-context.npmtest.mjs | 66 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/community/shell-context.ts | 164 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/anticipate.mjs | 163 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/anticipate.test.mjs | 118 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/brief-candidates.mjs | 235 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/brief-candidates.test.mjs | 248 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/brief-staleness.mjs | 43 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/brief-staleness.test.mjs | 62 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/cluster.mjs | 226 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/cluster.test.mjs | 135 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/connection-view-model.mjs | 149 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/connection-view-model.test.mjs | 114 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/coverage-reflection.mjs | 61 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/coverage-reflection.test.mjs | 58 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/decision-note.mjs | 56 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/decision-note.test.mjs | 48 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/derive-tags.mjs | 599 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/derive-tags.test.mjs | 283 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/discover.mjs | 174 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/discover.test.mjs | 143 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/flag-namespaces.mjs | 89 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/flag-namespaces.test.mjs | 64 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/forward-event-format.mjs | 59 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/forward-event-format.test.mjs | 71 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/gaps.mjs | 167 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/gaps.test.mjs | 133 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/pair-view.mjs | 127 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/pair-view.npmtest.mjs | 76 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/resource-lookup.ts | 95 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/run-discovery.mjs | 71 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/signal-candidates.mjs | 141 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/signal-candidates.test.mjs | 104 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/signal-confidence.mjs | 321 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/signal-confidence.test.mjs | 251 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/tag-aliases.mjs | 211 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/tag-aliases.test.mjs | 136 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/tag-input.mjs | 177 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/tag-input.test.mjs | 133 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/tag-yield.fixture.test.mjs | 281 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/theme-delta.mjs | 170 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/theme-delta.test.mjs | 124 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/theme-stats.mjs | 58 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/theme-stats.test.mjs | 45 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/write-edges.mjs | 126 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/connections/write-edges.test.mjs | 151 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/constants-region-group.npmtest.mjs | 35 | read in full this pass, clean, no defect found |
 | src/lib/constants.ts | 547 | read in full this pass, clean, no defect found |
 | src/lib/contracts/corridor-id.mjs | 212 | F25-2 dead (allowlisted, WIRE pending future corridor-factor loader) |
@@ -509,8 +509,8 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/coverage/identity.mjs | 83 | read in full this pass, clean, no defect found |
 | src/lib/coverage/identity.test.mjs | 75 | read in full this pass, clean, no defect found |
 | src/lib/coverage/index-data.ts | 258 | read in full this pass, clean, no defect found |
-| src/lib/credibility/chip-selection.mjs | 54 | F25-1 dead (allowlisted, awaiting operator wire/delete ruling) |
-| src/lib/credibility/chip-selection.test.mjs | 101 | read in full this pass, clean, no defect found |
+| src/lib/credibility/chip-selection.mjs | 54 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/credibility/chip-selection.test.mjs | 101 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/d3/hooks.mjs | 92 | read in full this pass, clean, no defect found |
 | src/lib/d3/hooks.selftest.mjs | 113 | read in full this pass, clean, no defect found |
 | src/lib/dashboard/brief-rows.npmtest.mjs | 386 | read in full this pass, clean, no defect found |
@@ -526,33 +526,33 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/data.ts | 1658 | read in full this pass, clean, no defect found |
 | src/lib/db/paginate.mjs | 118 | read in full this pass, clean, no defect found |
 | src/lib/db/paginate.test.mjs | 99 | read in full this pass, clean, no defect found |
-| src/lib/detail/action-card-common-props.tsx | 57 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/action-card-fixtures.ts | 142 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-fixtures.npmtest.mjs | 123 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-fixtures.ts | 303 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-model.test.mjs | 379 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-model.ts | 501 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-panel21c-fixture.npmtest.mjs | 40 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-card-panel21c-fixture.ts | 55 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-paragraphs.npmtest.mjs | 89 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-paragraphs.test.mjs | 95 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/fact-paragraphs.ts | 178 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/id-redirect.test.mjs | 216 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/id-redirect.ts | 174 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/load-detail-core.test.mjs | 407 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/load-detail-core.ts | 320 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/load-detail.ts | 187 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/meta-line.npmtest.mjs | 66 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/meta-line.ts | 70 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/requirement-trajectory-classify.test.mjs | 91 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/requirement-trajectory-classify.ts | 87 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/section-index-data.test.mjs | 36 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/section-index-data.ts | 44 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/section-index-fixtures.ts | 24 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/state-note-fixtures.tsx | 172 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/timeline-math.test.mjs | 194 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/timeline-math.ts | 184 | clean (static/grep scan; no defect found this pass) |
-| src/lib/detail/use-section-scroll-spy.ts | 37 | clean (static/grep scan; no defect found this pass) |
+| src/lib/detail/action-card-common-props.tsx | 57 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/action-card-fixtures.ts | 142 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-fixtures.npmtest.mjs | 123 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-fixtures.ts | 303 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-model.test.mjs | 379 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-model.ts | 501 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-panel21c-fixture.npmtest.mjs | 40 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-card-panel21c-fixture.ts | 55 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-paragraphs.npmtest.mjs | 89 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-paragraphs.test.mjs | 95 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/fact-paragraphs.ts | 178 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/id-redirect.test.mjs | 216 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/id-redirect.ts | 174 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/load-detail-core.test.mjs | 407 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/load-detail-core.ts | 320 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/load-detail.ts | 187 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/meta-line.npmtest.mjs | 66 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/meta-line.ts | 70 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/requirement-trajectory-classify.test.mjs | 91 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/requirement-trajectory-classify.ts | 87 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/section-index-data.test.mjs | 36 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/section-index-data.ts | 44 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/section-index-fixtures.ts | 24 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/state-note-fixtures.tsx | 172 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/timeline-math.test.mjs | 194 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/timeline-math.ts | 184 | delegated to A3c (unfinished directory reassigned in the second split) |
+| src/lib/detail/use-section-scroll-spy.ts | 37 | delegated to A3c (unfinished directory reassigned in the second split) |
 | src/lib/domains.ts | 168 | read in full this pass, clean, no defect found |
 | src/lib/email/send-invitation-email.ts | 51 | read in full this pass, clean, no defect found |
 | src/lib/entities/canonical-entities.mjs | 44 | read in full this pass, clean, no defect found |
@@ -580,17 +580,17 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/figures/format-range.test.mjs | 36 | read in full this pass, clean, no defect found |
 | src/lib/format.npmtest.mjs | 57 | read in full this pass, clean, no defect found |
 | src/lib/format.ts | 107 | read in full this pass, clean, no defect found |
-| src/lib/forward-events/compliance-deadline-sync.mjs | 88 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/compliance-deadline-sync.test.mjs | 128 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/extract-forward-events.mjs | 1945 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/extract-forward-events.test.mjs | 1778 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/kind-labels.mjs | 15 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/obligation-rail-select.mjs | 73 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/obligation-rail-select.npmtest.mjs | 70 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/read-and-extract.mjs | 399 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/read-and-extract.test.mjs | 625 | clean (static/grep scan; no defect found this pass) |
-| src/lib/forward-events/read-upcoming.mjs | 211 | F2-1 error-swallowed destructure (line 197) |
-| src/lib/forward-events/read-upcoming.test.mjs | 184 | clean (static/grep scan; no defect found this pass) |
+| src/lib/forward-events/compliance-deadline-sync.mjs | 88 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/compliance-deadline-sync.test.mjs | 128 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/extract-forward-events.mjs | 1945 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/extract-forward-events.test.mjs | 1778 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/kind-labels.mjs | 15 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/obligation-rail-select.mjs | 73 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/obligation-rail-select.npmtest.mjs | 70 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/read-and-extract.mjs | 399 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/read-and-extract.test.mjs | 625 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/read-upcoming.mjs | 211 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/forward-events/read-upcoming.test.mjs | 184 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/health/spend-health.mjs | 182 | read in full this pass, clean, no defect found |
 | src/lib/health/spend-health.test.mjs | 197 | read in full this pass, clean, no defect found |
 | src/lib/hooks/useAdminAttention.ts | 274 | read in full this pass, clean, no defect found |
@@ -600,41 +600,41 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/hooks/useUnreadNotificationsCount.ts | 77 | read in full this pass, clean, no defect found |
 | src/lib/hooks/useWorkspaceBootstrap.ts | 229 | read in full this pass, clean, no defect found |
 | src/lib/hooks/useWorkspaceOverridesHydration.ts | 75 | read in full this pass, clean, no defect found |
-| src/lib/intake/apply-staged-update-forward-participation.npmtest.mjs | 413 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/apply-staged-update.ts | 345 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/census-writer.mjs | 180 | F25-2 dead (allowlisted, HOLD per ADR-015 section 5) |
-| src/lib/intake/census-writer.npmtest.mjs | 174 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/flywheel-defect.ts | 80 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/flywheel-steps.mjs | 135 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/intake-gates-golden.test.mjs | 54 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/intake-url-corpus.mjs | 62 | F25-2 dead (allowlisted, data-only fixture, no call site expected) |
-| src/lib/intake/mint-connections.npmtest.mjs | 142 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-domain-guard.npmtest.mjs | 44 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-dryrun-equivalence.npmtest.mjs | 96 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-enrichment.ts | 92 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-failclosed.npmtest.mjs | 58 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-forward-participation.npmtest.mjs | 237 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-idempotency.npmtest.mjs | 57 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-item-entities.npmtest.mjs | 190 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-item-grade.npmtest.mjs | 217 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-item.ts | 448 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-source-link.npmtest.mjs | 78 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/mint-timeline-hook.npmtest.mjs | 207 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/pool-row-contract.mjs | 38 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/portal-harvest.npmtest.mjs | 533 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/portal-harvest.ts | 564 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/promote-cap.mjs | 42 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/record-facts-research.mjs | 350 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/record-facts-research.test.mjs | 221 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/record-facts.mjs | 1090 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/record-facts.npmtest.mjs | 933 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/run-intake-cycle-record-only.npmtest.mjs | 235 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/run-intake-cycle.npmtest.mjs | 397 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/run-intake-cycle.ts | 503 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/source-link-invariant.mjs | 28 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/source-link-invariant.test.mjs | 42 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/write-item.test.mjs | 220 | clean (static/grep scan; no defect found this pass) |
-| src/lib/intake/write-item.ts | 378 | clean (static/grep scan; no defect found this pass) |
+| src/lib/intake/apply-staged-update-forward-participation.npmtest.mjs | 413 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/apply-staged-update.ts | 345 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/census-writer.mjs | 180 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/census-writer.npmtest.mjs | 174 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/flywheel-defect.ts | 80 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/flywheel-steps.mjs | 135 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/intake-gates-golden.test.mjs | 54 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/intake-url-corpus.mjs | 62 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-connections.npmtest.mjs | 142 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-domain-guard.npmtest.mjs | 44 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-dryrun-equivalence.npmtest.mjs | 96 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-enrichment.ts | 92 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-failclosed.npmtest.mjs | 58 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-forward-participation.npmtest.mjs | 237 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-idempotency.npmtest.mjs | 57 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-item-entities.npmtest.mjs | 190 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-item-grade.npmtest.mjs | 217 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-item.ts | 448 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-source-link.npmtest.mjs | 78 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/mint-timeline-hook.npmtest.mjs | 207 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/pool-row-contract.mjs | 38 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/portal-harvest.npmtest.mjs | 533 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/portal-harvest.ts | 564 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/promote-cap.mjs | 42 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/record-facts-research.mjs | 350 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/record-facts-research.test.mjs | 221 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/record-facts.mjs | 1090 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/record-facts.npmtest.mjs | 933 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/run-intake-cycle-record-only.npmtest.mjs | 235 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/run-intake-cycle.npmtest.mjs | 397 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/run-intake-cycle.ts | 503 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/source-link-invariant.mjs | 28 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/source-link-invariant.test.mjs | 42 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/write-item.test.mjs | 220 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/intake/write-item.ts | 378 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/item-links.ts | 103 | read in full this pass, clean, no defect found |
 | src/lib/jurisdictions/iso.ts | 285 | read in full this pass, clean, no defect found |
 | src/lib/jurisdictions/tiers.ts | 243 | read in full this pass, clean, no defect found |
@@ -642,46 +642,46 @@ that file. A row citing a finding ID means the file appears in the findings tabl
 | src/lib/list-pagination.test.mjs | 211 | read in full this pass, clean, no defect found |
 | src/lib/list-pagination.ts | 176 | read in full this pass, clean, no defect found |
 | src/lib/list-row-fields.ts | 101 | read in full this pass, clean, no defect found |
-| src/lib/llm/first-fetch-classify.npmtest.mjs | 274 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/first-fetch-classify.ts | 382 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/haiku-classify.ts | 241 | F13-1 direct Anthropic call, spend-guard bypass (F15 SANCTIONED, tracked debt) |
-| src/lib/llm/metered-gate.mjs | 108 | F25-2 dead (allowlisted, KEEP as standing doctrine) |
-| src/lib/llm/metered-gate.test.mjs | 86 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/priced-line.mjs | 77 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/priced-line.test.mjs | 66 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/program-total.mjs | 92 | F25-2 dead (allowlisted, WIRE pending) |
-| src/lib/llm/program-total.test.mjs | 73 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/skill-loader.ts | 271 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-client.npmtest.mjs | 125 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-client.ts | 218 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-gauge.mjs | 113 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-gauge.test.mjs | 66 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-guard.mjs | 186 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-guard.test.mjs | 169 | clean (static/grep scan; no defect found this pass) |
-| src/lib/llm/spend-regime.mjs | 74 | clean (static/grep scan; no defect found this pass) |
+| src/lib/llm/first-fetch-classify.npmtest.mjs | 274 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/first-fetch-classify.ts | 382 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/haiku-classify.ts | 241 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/metered-gate.mjs | 108 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/metered-gate.test.mjs | 86 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/priced-line.mjs | 77 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/priced-line.test.mjs | 66 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/program-total.mjs | 92 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/program-total.test.mjs | 73 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/skill-loader.ts | 271 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-client.npmtest.mjs | 125 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-client.ts | 218 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-gauge.mjs | 113 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-gauge.test.mjs | 66 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-guard.mjs | 186 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-guard.test.mjs | 169 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/llm/spend-regime.mjs | 74 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/map/jurisdiction-rollup.npmtest.mjs | 87 | read in full this pass, clean, no defect found |
 | src/lib/map/jurisdiction-rollup.ts | 71 | read in full this pass, clean, no defect found |
-| src/lib/market/carbon-cost-per-feu.mjs | 238 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/carbon-cost-per-feu.test.mjs | 225 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/carbon-intensity.mjs | 91 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/carbon-overlay-view.mjs | 117 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/carrier-ets-surcharge-envelope.mjs | 146 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/carrier-ets-surcharge-envelope.test.mjs | 132 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/headline-series-select.mjs | 197 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/market-rail-select.mjs | 113 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/market-rail-select.npmtest.mjs | 147 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/oil-bulletin-workbook.mjs | 586 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/parsers/eu-weekly-oil-bulletin.mjs | 139 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/refresh-published-price-statistics.mjs | 187 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/select-modal-factor.mjs | 174 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-board-view-model.mjs | 240 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-deltas.mjs | 184 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-family.mjs | 222 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-freshness.mjs | 107 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-item-map.mjs | 99 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/series-registry.mjs | 247 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/signal-promotion.mjs | 113 | clean (static/grep scan; no defect found this pass) |
-| src/lib/market/write-market-series.mjs | 68 | clean (static/grep scan; no defect found this pass) |
+| src/lib/market/carbon-cost-per-feu.mjs | 238 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/carbon-cost-per-feu.test.mjs | 225 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/carbon-intensity.mjs | 91 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/carbon-overlay-view.mjs | 117 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/carrier-ets-surcharge-envelope.mjs | 146 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/carrier-ets-surcharge-envelope.test.mjs | 132 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/headline-series-select.mjs | 197 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/market-rail-select.mjs | 113 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/market-rail-select.npmtest.mjs | 147 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/oil-bulletin-workbook.mjs | 586 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/parsers/eu-weekly-oil-bulletin.mjs | 139 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/refresh-published-price-statistics.mjs | 187 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/select-modal-factor.mjs | 174 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-board-view-model.mjs | 240 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-deltas.mjs | 184 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-family.mjs | 222 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-freshness.mjs | 107 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-item-map.mjs | 99 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/series-registry.mjs | 247 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/signal-promotion.mjs | 113 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
+| src/lib/market/write-market-series.mjs | 68 | delegated to A3c (community/connections/credibility/forward-events/intake/llm/market split) |
 | src/lib/nav/nav-counts.ts | 60 | delegated to A3b (n-z scope split) |
 | src/lib/notifications/dispatch.ts | 69 | delegated to A3b (n-z scope split) |
 | src/lib/notifications/seed-fallback-flag.ts | 167 | delegated to A3b (n-z scope split) |
