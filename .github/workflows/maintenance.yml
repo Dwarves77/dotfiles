@@ -46,14 +46,14 @@ concurrency:
   group: maintenance
   cancel-in-progress: false
 
-# Lane M9b (2026-09-18, stage-audit-2026-09-18 s6-gates-harness.md): this run now commits its own
-# harness-run artifact (scripts/harness-runs/maintenance/) and dispatch-ledger row via the SAME
-# branch-plus-PR mechanism source-sweep.yml / corpus-turn.yml already use
-# (scripts/turns/deliver-artifact-branch.sh) -- needs the same three permissions those workflows declare.
+# Lane M9b (2026-09-18, stage-audit-2026-09-18 s6-gates-harness.md) originally landed this run's own
+# harness-run artifact via a branch-plus-PR mechanism, needing write permissions for contents/pull-
+# requests/issues. Lane MAINTENANCE-HARNESS (2026-09-29, rebased onto #824's class fix) removed that
+# path: deliver-artifact-branch.sh now lands straight into harness_runs via a DB write, no git commit/
+# branch/push/PR anywhere in this workflow, matching propagation-drain.yml/source-sweep.yml's own
+# post-#824 permissions.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+  contents: read
 
 env:
   RUN_MODE: ${{ inputs.mode }}
@@ -116,20 +116,14 @@ jobs:
       APP_URL: ${{ secrets.APP_URL }}
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
-      # fetch-depth: 0 (lane QUARANTINE-DISPOSITION, 2026-09-28, found by a real dry dispatch on branch
-      # lane/quarantine-disposition, run 36446625925, root-caused against the identical GATE-A-RESCAN-FIX
-      # 2026-09-26 precedent in .github/workflows/gate-a-rescan.yml). actions/checkout@v4 defaults to a
-      # depth-1 shallow clone of the DISPATCHED ref. The "Commit the maintenance harness-run artifact and
-      # dispatch-ledger row, and open a PR" step later does `git fetch --depth=50 origin master; git
-      # rebase --autostash origin/master` -- when the dispatched ref IS master (the common case), that
-      # rebase is a trivial no-op since the shallow tip and the freshly fetched master share the same
-      # commit. When workflow_dispatch names a DIFFERENT ref (any lane branch -- exactly what a
-      # before-merge dry-dispatch proof needs), the depth-1 checkout truncates that branch's own history
-      # to a single rootless commit with no known parent, so the later rebase finds no common ancestor
-      # with origin/master and every touched file conflicts as CONFLICT (add/add) -- confirmed live: runs
-      # 36446625925 and 36450334869 both failed exactly this way, on every file this branch had touched,
-      # while the `plan-quarantine-disposition` step itself (and its harness_runs write) succeeded both
-      # times. Full history removes the ambiguity regardless of which ref is dispatched.
+      # fetch-depth: 0 (lane QUARANTINE-DISPOSITION, 2026-09-28, found by a real dry dispatch, run
+      # 36446625925; root-caused against the identical GATE-A-RESCAN-FIX 2026-09-26 precedent). The step
+      # this originally protected (a commit-then-rebase-onto-origin/master before opening a PR) is REMOVED
+      # (lane MAINTENANCE-HARNESS, 2026-09-29, rebased onto #824's class fix: deliver-artifact-branch.sh
+      # no longer needs any git history at all), so this is no longer strictly required for artifact
+      # landing -- kept anyway as the repo-wide baseline every harness-family workflow now carries
+      # (propagation-drain.yml/source-sweep.yml's own post-#824 comment, same reasoning), so a future git
+      # operation in this job never rediscovers the same shallow-checkout class.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
