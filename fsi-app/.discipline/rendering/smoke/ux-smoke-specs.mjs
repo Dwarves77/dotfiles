@@ -25,6 +25,7 @@ import { runSmoke as runSectionIndexSmoke } from './section-index-smoke.mjs';
 import { runSmoke as runRecordGradeSmoke } from './record-grade-smoke.mjs';
 import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smoke.mjs';
 import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
+import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dump-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -82,4 +83,8 @@ export const UX_SMOKE_SPECS = [
   // than left as a manual-only harness run. Reuses detail-surfaces-smoke.mjs's own regulation
   // fixture (rule 13, no duplicated fixture).
   { name: "parity-checks", run: runParityChecksSmoke },
+  // lane W2-D, 2026-09-29, workstream 16: mounts the real MarketSignalDetailSurface twice (a clean
+  // FACT-paragraph fixture and a deliberately corrupt JSON content_md fixture, red-then-green) and
+  // flags any JSON-shaped text node on the page. See market-detail-raw-dump-smoke.mjs's own header.
+  { name: "market-detail-raw-dump", run: runMarketDetailRawDumpSmoke },
 ];

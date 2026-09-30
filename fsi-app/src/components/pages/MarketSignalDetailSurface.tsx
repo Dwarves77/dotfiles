@@ -440,7 +440,23 @@ export function MarketSignalDetailSurface({
                 )}
               </>
             )}
-            {depth === "full" && r.fullBrief && (
+            {/* Workstream 16 fix (lane W2-D, 2026-09-29): a record-grade item's `r.fullBrief` is
+                buildRecordFullBrief's (src/lib/intake/record-facts.mjs) own re-serialization of the
+                SAME claim rows RecordGradeSections already renders above, one bare `- [slot_key] ...`
+                bullet per FACT/GAP under "## Verbatim facts" / "## Not stated in the captured source"
+                headings, never intended as end-reader prose (its own header: boilerplate kept
+                digit-free so Gate A's token-coverage scan passes "by construction", not a display
+                contract). Unconditionally routing it through GfmSection here rendered `[title] The
+                captured source's own text carries this item's title verbatim: «...»` and `[action_now]
+                No verbatim action now statement was located in the captured source text for this
+                record-grade item...` as raw prose bullets, duplicating (and outside the slot renderer,
+                contradicting) what RecordGradeSections already shows as labelled fields with absence
+                wording. [CONFIRMED] live, 631 intelligence_item_sections rows across 430 record_facts +
+                201 identity market items start with "[" (coordinator SELECT, 2026-09-30). Record-grade
+                items therefore never open this raw path; RecordGradeSections is their complete Full
+                brief view already (nothing is lost, parseRecordSections reads the identical sections
+                rows). See docs/ops/session-log.d/2026-09-29-w2d.md. */}
+            {depth === "full" && !isRecord && r.fullBrief && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                 <GfmSection markdown={r.fullBrief} />
               </div>

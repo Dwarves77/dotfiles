@@ -14,10 +14,8 @@
 // `content_md` fixture (simulating a bad agent write into intelligence_item_sections) DOES trip the
 // detector, so the guard is not vacuous; the normal fixtures render clean.
 //
-// NOT registered in ux-smoke-specs.mjs by this lane (that file is outside this lane's write set,
-// lane-common-contract.md's UX contract point (c): "the coordinator adds it"). Verified locally with
-// a temporary registration, reverted before commit, see the session-log entry's "UX smoke specs:"
-// line.
+// Registered in ux-smoke-specs.mjs (coordinator ruling, 2026-09-29: write set extended to that one
+// file for this registration line, rule 15, an unregistered spec is run by nothing).
 
 import { fileURLToPath } from 'node:url';
 import { bundleEntry, newSmokePage, mountBundle } from './harness.mjs';
@@ -126,6 +124,29 @@ async function findRawDumpNodes(page) {
   });
 }
 
+/** [CONFIRMED] (coordinator SELECT, 2026-09-30): the actual live dump is not JSON. Across
+ *  intelligence_item_sections joined to market_signal/initiative items, 631 rows start with "[" or
+ *  "{", 430 `record_facts`, 201 `identity`, record-facts.mjs's own `[slot_key] ...` claim_text
+ *  format (src/lib/intake/record-facts.mjs's extractSlotFact/extractIdentityFact), never JSON. Walks
+ *  every text node and flags one >=20 chars starting with a bare `[slot_key]` prefix, the exact shape
+ *  a slot claim line carries before the slot renderer (RecordFactCard/RecordFactsBody) turns it into
+ *  a labelled field. */
+async function findSlotLabelDumpNodes(page) {
+  return page.evaluate(() => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const results = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      const t = (node.nodeValue || '').trim();
+      if (t.length < 20) continue;
+      if (/^\[[a-zA-Z][a-zA-Z0-9_]*\]\s/.test(t)) {
+        results.push(t.slice(0, 200));
+      }
+    }
+    return results;
+  });
+}
+
 async function mountAndScan(browser, props) {
   const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
   const page = await newSmokePage(browser);
@@ -136,6 +157,59 @@ async function mountAndScan(browser, props) {
   } finally {
     await page.close();
   }
+}
+
+/** Mounts, optionally clicks the "Full brief" depth toggle (SummaryDepthSwitch,
+ *  src/components/detail/DetailShell.tsx), then runs the slot-label detector. */
+async function mountAndScanSlotLabels(browser, props, { clickFullBrief = false } = {}) {
+  const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
+  const page = await newSmokePage(browser);
+  try {
+    await mountBundle(page, bundleJs, '__mount', props);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+    if (clickFullBrief) {
+      await page.click('button:has-text("Full brief")');
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+    }
+    return await findSlotLabelDumpNodes(page);
+  } finally {
+    await page.close();
+  }
+}
+
+/** The exact two sample lines the coordinator's live SELECT returned (2026-09-30), reconstructed in
+ *  full from the templates that wrote them (record-facts.mjs's extractIdentityFact/extractSlotFact) , 
+ *  the coordinator's own message truncated both at ~100 chars for the chat transcript. */
+const SAMPLE_IDENTITY_FACT_LINE =
+  "[title] The captured source's own text carries this item's title verbatim: «13.2.2020 EN Official Journal of the European Union»";
+const SAMPLE_RECORD_FACTS_GAP_LINE =
+  '[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.';
+
+/** A record-grade item's two section rows, using the exact live-shaped sample lines above. */
+function recordDumpSections() {
+  return [
+    { section_key: 'identity', section_order: 0, content_md: SAMPLE_IDENTITY_FACT_LINE, is_conditional: false, source_ids: [] },
+    { section_key: 'record_facts', section_order: 1, content_md: SAMPLE_RECORD_FACTS_GAP_LINE, is_conditional: false, source_ids: [] },
+  ];
+}
+
+/** buildRecordFullBrief's own shape (src/lib/intake/record-facts.mjs), reproduced here rather than
+ *  imported (that module lives outside this lane's write set, src/lib/intake/**), a bare `- ` bullet
+ *  per claim under digit-free headings, byte-identical claim_text to the sections above. */
+function recordDumpFullBrief() {
+  return [
+    '*Catalogue record: extracted facts only, full brief pending.*',
+    '',
+    '## Verbatim facts',
+    '',
+    `- ${SAMPLE_IDENTITY_FACT_LINE}`,
+    '',
+    '## Not stated in the captured source',
+    '',
+    `- ${SAMPLE_RECORD_FACTS_GAP_LINE}`,
+    '',
+    'Source: https://example.com/source',
+  ].join('\n');
 }
 
 export async function runSmoke(browser) {
@@ -189,6 +263,79 @@ export async function runSmoke(browser) {
     if (dumps.length === 0) {
       failures.push(
         'market-detail-raw-dump:corrupt-fixture, expected the detector to flag the deliberately JSON-shaped content_md, found none (guard is vacuous)'
+      );
+    }
+  }
+
+  // Leg 3: red-then-green proof for the slot-label detector itself. A NON-record item whose ordinary
+  // signal-brief section (sectionMap["1"], routed through FactBlocks/GfmSection) was mistakenly
+  // written with a bare slot-claim line (the shape this workstream's live SELECT actually found) DOES
+  // trip the detector, confirming leg 4 below's clean result is a real signal.
+  {
+    checks += 1;
+    const slotDumps = await mountAndScanSlotLabels(browser, {
+      resource: baseResource({ id: 'slot-dump-guard-corrupt' }),
+      relatedPool: [],
+      sections: [
+        { section_key: '1', section_order: 0, content_md: SAMPLE_RECORD_FACTS_GAP_LINE, is_conditional: false, source_ids: [] },
+      ],
+      convergence: null,
+      priceBoard: [],
+      carbonFactors: [],
+      groupLabel: 'Market / ICE Futures Europe',
+      deck: 'ICE Futures Europe · published Aug 1, 2026',
+      initialNote: '',
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+    });
+    if (slotDumps.length === 0) {
+      failures.push(
+        'market-detail-raw-dump:slot-label-detector-selftest, expected the detector to flag a bare [slot_key] line routed through FactBlocks/GfmSection, found none (guard is vacuous)'
+      );
+    }
+  }
+
+  // Leg 4: workstream 16's [CONFIRMED] fix. A record-grade item carrying the coordinator's exact live
+  // sample lines (identity's [title] FACT, record_facts' [action_now] GAP) renders zero raw
+  // slot-label text at BOTH depths. At "summary" depth (default), RecordGradeSections already routes
+  // the FACT through RecordFactCard/deriveRecordFactCardModel as a labelled field and silently omits
+  // GAP rows (parseRecordSections computes `gaps` but RecordGradeSections never passes it to
+  // RecordFactsBody, unaffected by this lane's fix, out of this workstream's scope). At "full" depth
+  // (the SummaryDepthSwitch click below), this lane's fix (`!isRecord` guard on the GfmSection(r.fullBrief)
+  // render in MarketSignalDetailSurface.tsx) is what keeps buildRecordFullBrief's raw
+  // `- [slot_key] ...` bullets from ever reaching the page, before the fix, this exact fixture (with
+  // fullBrief set to recordDumpFullBrief(), the real buildRecordFullBrief shape) rendered both sample
+  // lines verbatim as GfmSection prose.
+  {
+    checks += 1;
+    const recordProps = {
+      resource: baseResource({ id: 'record-dump-guard', itemGrade: 'record', fullBrief: recordDumpFullBrief() }),
+      relatedPool: [],
+      sections: recordDumpSections(),
+      claimTiers: {},
+      convergence: null,
+      priceBoard: [],
+      carbonFactors: [],
+      groupLabel: 'Market / ICE Futures Europe',
+      deck: 'ICE Futures Europe · catalogue record',
+      initialNote: '',
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+    };
+    const summaryDumps = await mountAndScanSlotLabels(browser, recordProps, { clickFullBrief: false });
+    if (summaryDumps.length > 0) {
+      failures.push(
+        `market-detail-raw-dump:record-fixture-summary-depth, raw slot-label text node(s) found: ${JSON.stringify(summaryDumps)}`
+      );
+    }
+    const fullDumps = await mountAndScanSlotLabels(browser, recordProps, { clickFullBrief: true });
+    if (fullDumps.length > 0) {
+      failures.push(
+        `market-detail-raw-dump:record-fixture-full-depth, raw slot-label text node(s) found: ${JSON.stringify(fullDumps)}`
       );
     }
   }
