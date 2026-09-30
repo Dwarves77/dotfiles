@@ -28,19 +28,33 @@ for line-level facts by A5b (migrations 001-170) and A5c (migrations 171-339), e
 already states for an unrelated reason (the scope split). That supersession relationship is real and
 kept; the injection framing is not.
 
+**Amended 2026-09-30 (fourth amendment, coordinator message).** Five completion registers landed on the
+remote and are folded in below: `audit/a1c-routes` (PR #859, closes A1's 94-file sweep gap),
+`audit/a2bc-components` (PR #860, closes A2b's 64-file grep-only gap), `audit/a4d-scripts` (PR #858,
+closes A4's 3-file gap in `scripts/turns/**`), `audit/a4bc-scripts` (PR #862, closes A4b's 159-file gap
+including all of `scripts/verify/**` and both mega-files), `audit/a4cc-scripts` (PR #861, closes A4c's
+67-file `full (spot)` gap). New findings: a PostgREST `.or()` filter-injection pattern across 3 files
+(CF-SEC-15); the invalid-CSS token-concatenation class (CF-BROKEN-2) now confirmed live on customer-facing
+surfaces, not only the admin Sources panel; three producer scripts with `main()`/an orchestration call
+running unconditionally at module scope, no guard at all (CF-BROKEN-9), one of them (`emission-factors-
+desnz.mjs`) actively triggering a live Supabase read merely by being imported for its own test. CF-GATE-3
+(EXIT0-1) is now REFUTED: all 87 `scripts/verify/**` files are read in full, zero swallowed-error exits
+found. CF-GATE-4 (CLI-TEST-1) is resolved per file. Section (e)'s coverage statement and CF-PROC-1 (now
+names only A6, pending A6b) are corrected accordingly. A6b is still in progress.
+
 ## (a) Summary table: lane, slice, files, findings by severity
 
 | Lane | Slice | Files in slice | Files read in full | P0 | P1 | P2 | P3 | Status |
 |---|---|---|---|---|---|---|---|---|
-| A1 | routes-and-api | 217 | 120 (55%), rest swept | 0 | 1 | 7 | 0 | branch `audit/a1-routes`, open |
+| A1 + A1c | routes-and-api | 217 | 217/217 (100%, A1c completion pass closes the 94-file sweep gap) | 0 | 1 | 9 | 0 | branches `audit/a1-routes`, `audit/a1c-routes` (PR #859), open |
 | A2 | components a-l | 248 (owns 101) | 101/101 (100% of half) | 0 | 7 | 10 | 0 | branch `audit/a2-components`, open |
-| A2b | components m-z | 194 | 140 full + 54 grep-only | 0 | 3 (CSS class) | 15 | 6 | branch `audit/a2b-components`, open |
+| A2b + A2bc | components m-z | 194 | 194/194 (100%, A2bc completion pass reads all 64 grep-only files) | 0 | 4 (CSS class) | 20 | 9 | branches `audit/a2b-components`, `audit/a2bc-components` (PR #860), open |
 | A3 | src/lib a-m, final scope after two splits | 221 (of 404 originally assigned, then narrowed by the A3c split) | 221/221 (100%, completion pass same day: agent/'s remaining 86 files finished) | 0 | 0 | 8 | 0 | branch `audit/a3-lib` (PR #847), open |
 | A3b | src/lib n-z, stores, types, workflows | 266 | 266/266 (100%, completion pass) | 0 | 1 (moat defect) | 5 | 2 | branch `audit/a3b-lib`, open |
 | A3c | src/lib community-market | 156 | 156/156 (100%) | 0 | 0 | 8 | 2 | branch `audit/a3c-lib`, open |
-| A4 | scripts + workflows | 313 scripts + 22 workflows | 61 scripts full + all 22 workflows full | 0 | 3 | 3 | 2 | branch `audit/a4-scripts`, open |
-| A4b | scripts/mint,lib,verify,producers,connections | 235 | 76 full, 1 partial, 2 structural-scan, 87 grep, 69 not reviewed | 0 | 4 | 9 | 0 | branch `audit/a4b-scripts`, open |
-| A4c | scripts remainder | 157 | ~90 full, rest structural | 0 | 0 | 5 | 4 | branch `audit/a4c-scripts`, open |
+| A4 + A4d | scripts + workflows (turns/maintenance) | 313 scripts + 22 workflows | all 22 workflows full; turns+maintenance 80/80 code files full (A4d closes the 3-file gap); rest of `scripts/**` per A4b/A4c below | 0 | 3 | 3 | 2 | branches `audit/a4-scripts`, `audit/a4d-scripts` (PR #858), open |
+| A4b + A4bc | scripts/mint,lib,verify,producers,connections | 235 | 235/235 (100%, A4bc completion pass reads all 159 remaining files including both mega-files and all 87 `verify/`) | 0 | 6 | 9 | 0 | branches `audit/a4b-scripts`, `audit/a4bc-scripts` (PR #862), open |
+| A4c + A4cc | scripts remainder | 157 | 157/157 (100%, A4cc completion pass reads all 67 `full (spot)` files) | 0 | 2 | 6 | 4 | branches `audit/a4c-scripts`, `audit/a4cc-scripts` (PR #861), open |
 | A5 | database vs code (replay) | 118 tables, 302 migrations (replay) | n/a (replay + live-schema JSON, no line reads) | 0 | 1 | 8 | 0 | branch `audit/a5-db`, open |
 | A5b | migrations 001-170 | 166 | 166/166 (100%) | 0 (2 historic, now closed) | 1 open + 3 historic-closed | 8 | 2 | branch `audit/a5b-migrations`, open |
 | A5c | migrations 171-339 | 136 | 136/136 (100%) | 0 (2 historic, now closed) | 1 open + 2 historic-closed | 6 | 0 | branch `audit/a5c-migrations`, open |
@@ -87,13 +101,14 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 | id | source lane ids | file:line | finding | status | severity | closed by PR |
 |---|---|---|---|---|---|---|
 | CF-BROKEN-1 | A3b A3B-07 | `src/lib/sources/officialness.mjs`, `splitBlocks()` | Ends in `.split("")`, splitting on individual characters, not HTML blocks. STEP 2's link/text-density drop (the anti-fabrication moat's second line of defense against nav/menu chrome) can never fire on any input. Verified by direct `node -e` repro and a simplified `cleanBodyOf()` reproduction showing chrome leaking into the clean body as literal character-spaced text. No shipped test exercises the un-wrapped case this breaks | [CONFIRMED, by repro] | P1 | none |
-| CF-BROKEN-2 | A2b A1-A5 | `sources/CanonicalSourceReview.tsx`, `ProvisionalReviewCard.tsx`, `IntersectionDetectionView.tsx`, `ThemesView.tsx`, `resource/IntelligenceMetadataStrip.tsx` (24 occurrences, 5 files) | `backgroundColor: "var(--color-error)15"` string-concatenation is not valid CSS; every tinted background/badge across the entire admin Sources surface silently fails to render | [CONFIRMED] | P1 | none |
+| CF-BROKEN-2 | A2b A1-A5, A2bc A6 | `sources/CanonicalSourceReview.tsx`, `ProvisionalReviewCard.tsx`, `IntersectionDetectionView.tsx`, `ThemesView.tsx`, `resource/IntelligenceMetadataStrip.tsx` (24 occurrences, 5 admin-only files); extended by `ui/timeline-dot-styles.ts:23` (`nextDotStyle`, a `box-shadow` ring instead of a background, same `${var}NN`-suffix defect) | `backgroundColor`/`boxShadow: "var(--color-X)NN"` string-concatenation is not valid CSS; every tinted background/badge across the admin Sources surface silently fails to render, AND (A2bc's extension) the "next milestone" ring never renders on every `MilestoneTimeline` row-strip (`ListRow.tsx`) and every `Timeline` detail-page card that has a next milestone, live on customer-facing Regulations/Market/Research/Operations surfaces, not only an admin panel | [CONFIRMED] | P1 | none |
 | CF-BROKEN-3 | A5b F-09 | migrations 108, 110, 117, 125 (`get_market_intel_items`); resolved at 164 | Migration 108 silently dropped the `_assert_org_membership()` call when rewriting the RPC; copied forward verbatim by 3 more migrations before 164 caught and fixed it. Live for ~6 weeks: any authenticated user calling the RPC with a foreign `p_org_id` could read that org's `workspace_item_overrides`, masked only by single-tenancy | [CONFIRMED, resolved] | P0 (historic) | resolved in-repo by migration 164 |
 | CF-BROKEN-4 | A5c A5c-4 | migrations 296-298 vs 311 | 10 spec-09 tables shipped `SELECT TO authenticated USING (true)` (world-readable across orgs); 6 later wired to real customer commercial data were not org-scoped until migration 311, 2 days before this range ends; 4 panel components read them with an unscoped service-role query and no `org_id` filter | [CONFIRMED, resolved] | P1 (historic) | resolved by migration 311 |
 | CF-BROKEN-5 | A1 F-5 | `src/app/api/admin/users/route.ts:76-98` | Returns every `org_memberships` row across every org, no `.limit()`, no pagination | [CONFIRMED] | P2 | none |
 | CF-BROKEN-6 | build-plan WS16, A7, lane W2-D | `src/components/pages/MarketSignalDetailSurface.tsx` | Cause and fix confirmed by lane W2-D from a coordinator-run live SELECT: 631 `intelligence_item_sections` rows (430 `record_facts`, 201 `identity`) across record-grade Market items carry `record-facts.mjs`'s own `[slot_key] <claim text>` machine format. A record-grade item's Summary depth already renders these correctly via `RecordGradeSections`, but the unconditional `{depth === "full" && r.fullBrief && <GfmSection .../>}` block re-renders the identical facts a second time, raw and unlabelled, as soon as a reader switches to "Full brief" depth. Fixed by gating that block behind `!isRecord`; attack-proven with a new 4-leg Playwright smoke spec (`market-detail-raw-dump-smoke.mjs`, registered in `ux-smoke-specs.mjs`) that fails with the exact raw text when the guard is manually reverted and passes when restored. `RegulationDetailSurface.tsx:385` carries the identical unguarded pattern, unconfirmed whether it fires there at the same rate; flagged, not fixed, out of W2-D's write set | [CONFIRMED] | P1 | fix built and attack-proven on branch `lane/w2d-market-detail-dump`, session-log `2026-09-29-w2d.md`; not yet merged |
 | CF-BROKEN-7 | A8b A8b-9, A7 | 2026-09-29 chained-apply incident | A cancelled `workflow_run` ("Ledger consume", 36568656803) left 33 `intelligence_items` (quarantined), 33 `staged_updates`, 32 `agent_run_searches`, 51 `integrity_flags` rows LIVE in production. Operator ruled "get rid of them." A `--dry/--apply/--archive/--verify` reversal script was built and tested (#829) but `--apply`/`--archive` were explicitly NOT run; no later entry shows it executed | [CONFIRMED] | P0, open | script built (#829), not executed |
 | CF-BROKEN-8 | A3b A3B-05 | `src/lib/scoring.ts:213-217` | `sortResources`'s "modified" sort case is byte-identical to its "added" case; no `Resource` field exists to sort by "modified" on | [CONFIRMED] | P2 | none |
+| CF-BROKEN-9 | A4bc F44-2a/b/c, A4cc F-10/F-11 | `scripts/producers/market/eu-weekly-oil-bulletin.mjs:168-171`, `scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs`, `scripts/producers/regional/bls-oews-producer.mjs`, `scripts/gen/emission-factors-desnz.mjs:63`, `scripts/gen/emission-factors-epa.mjs:42` | 5 producer scripts run `main()` (or an equivalent top-level orchestration call, e.g. `runEnvelopeProducer(...)`) unconditionally at module scope with no `isMainModule`/`process.argv[1]` guard of any kind, not merely the wrong-shaped guard F44's own regression test checks for. One instance (`eurostat-nrg-pc-205-producer.mjs`) was already self-documented as a known, deferred defect in a sibling file's own header comment. One instance (`emission-factors-desnz.mjs`) is not merely latent: its own test file imports the module directly for one named export, so every `node --test` run of that test file also runs `main()`, performing a real, unintended live Supabase read against `emission_factors` as a side effect of running the test suite (a dev machine with `.env.local` creds present is affected; `--apply` is not set by the test run, so no live write occurs, only a read) | [CONFIRMED] | P1 | none |
 
 ### Unwired (producer without consumer, or the reverse)
 
@@ -123,6 +138,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 | CF-SEC-11 | A6 A1 | test paths containing `[id]`/`[param]` segments | Node's `--test` silently reports "tests 0" for a colocated `*.npmtest.mjs` under a literal `[id]/` path segment; reproduced by lane W2-A (relocating a file changed the npmtest count by +15 with zero errors either way, a false-green not a crash). 5 sibling `[id]/*` route dirs have zero colocated test coverage today, indistinguishable from "chose not to test" vs "silently dropped" | [CONFIRMED] | P1 | none |
 | CF-SEC-12 | A6 D1 | branch protection / `.github/workflows/discipline.yml` | The "Consistency layer (C3/C4/C5 reality, always-on backstop)" job, built specifically to close a gap where rule 014 only conditionally fired, is not itself a required merge check | [CONFIRMED] | P1 | none |
 | CF-SEC-13 | A10 A10-10 | `.claude/settings.local.json`, `fsi-app/.claude/settings.local.json` | Both tracked in git (convention says `settings.local.json` is per-developer/untracked); the `fsi-app` copy grants `Read(//c/Users/jason/**)`, the entire user home directory, plus a stale one-off `gh pr create` allow-string | [CONFIRMED] | P2 | none |
+| CF-SEC-15 | A1c F-9 | `src/app/api/community/search/route.ts:90,98`, `src/app/operations/[slug]/page.tsx:169,173`, `src/app/research/[slug]/page.tsx:172,176` | 5 call sites across 3 files build a Supabase PostgREST `.or()` filter string by directly interpolating caller-controlled text (`community/search`'s `escapeLike` escapes only `%`/`_`/`\`; the two `[slug]` pages splice the URL's `id` segment in with no escaping at all). A raw comma or parenthesis in the input is filter syntax, not a search term, so a crafted `q` or URL slug can splice in an unintended condition. Impact is bounded: `community/search` still filters by the caller's own RLS visibility; the `[slug]` pages' injected query carries no `provenance_status='verified'` filter, so a crafted slug could surface a specific, guessed unverified/quarantined item's id/theme/jurisdictions/source_id, a narrow metadata leak, not a bulk read. The codebase already documents the correct fix in a sibling file's own comment (`api/workspace/archive-impact/route.ts:41-43`), and `regulations/[slug]/page.tsx` (read for comparison) does not carry the pattern, confirming the safe path already exists | [CONFIRMED] | P2 | none |
 | CF-SEC-14 | A5, A5b F-01/F-06 | 11 tables (`agent_run_searches`, `gate_a_health_cache`, `institutions`, `intelligence_item_citations`, `intelligence_summaries`, `item_type_required_slots`, `section_claim_provenance`, `sector_contexts`, `source_bias_tags`, `system_state`, `system_state_flag_audit`) | Live RLS-enabled with zero policies (deny-all, confirmed safe) but the enabling migration is not identifiable anywhere in the 302-file corpus for any of the 11 | [CONFIRMED, REFUTED as a live exposure] | P2 (traceability gap only) | none |
 
 ### Data integrity, migration hygiene
@@ -160,8 +176,8 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 |---|---|---|---|---|---|---|
 | CF-GATE-1 | A6 A2, A9 | `scripts/verify/audit-finding-status.mjs`, `run-test-suite.sh` | 609 of 643 finding-shaped lines across 123 audit docs carry no `[CONFIRMED]`/`[HYPOTHESIS]`/`[REFUTED]` token; the checker's own exit code is discarded (`\|\| true`), by disclosed design pending a bulk relabel | [CONFIRMED] (independently re-confirmed by A9's own tool run) | P2 | none |
 | CF-GATE-2 | A6 C3 | `*.test.mjs`/`*.npmtest.mjs` with `new Date()`/`Date.now()` | The one documented clock-fragility defect class (PR #816) was closed by a one-time manual grep, not a standing fitness function; the at-risk file count has grown from 24 to 37 since | [CONFIRMED history, HYPOTHESIS current safety] | P2 | none |
-| CF-GATE-3 | A4b EXIT0-1 | `scripts/verify/*.mjs`, 30+ files | `process.exit(0)` sites sanity-checked only by grep context (1-3 surrounding lines), not full reads; no swallowed-error shape found in the sampled context but 87 of the 235-file A4b scope (all of `verify/`) was never opened | [HYPOTHESIS] | P2 | none |
-| CF-GATE-4 | A4b CLI-TEST-1 | `mint/apply-mint-batch.mjs`, `run-mint-batch.mjs`, `validate-mint-payload.mjs` | Unresolved whether the mint chokepoint's CLI argv/exit-code layer, not only its pure core, is exercised by a real subprocess test | [HYPOTHESIS] | P2 | none |
+| CF-GATE-3 | A4b EXIT0-1, A4bc resolution | `scripts/verify/*.mjs`, all 87 files | A4bc read all 87 `scripts/verify/` files in full (not grep context) and confirms every `process.exit(0)` site is a genuine "0 findings, invariant holds" success exit, always preceded by an explicit success-message log; no swallowed-error shape found anywhere. Every audit script's own `catch` block exits 1 (a real finding) or 2 (self-skip, no DB creds), never a silent 0 | [REFUTED as a live concern] | n/a | resolved by A4bc's full read, no fix needed |
+| CF-GATE-4 | A4b CLI-TEST-1, A4bc resolution | `mint/apply-mint-batch.mjs`, `mint/run-mint-batch.mjs`, `mint/validate-mint-payload.mjs` | A4bc read each companion test file's own import list directly. `apply-mint-batch.test.mjs` and `validate-mint-payload.test.mjs` import no `node:child_process`; every test exercises the exported pure/injected-dependency functions only, the CLI's own `main()`/argv-parsing/exit-code layer is never spawned or otherwise exercised by either. `run-mint-batch.test.mjs` does import `execFileSync` and spawns the real CLI against real argv at line 280, genuine subprocess-level coverage | [CONFIRMED] for `apply-mint-batch.mjs`/`validate-mint-payload.mjs` (real gap, untested CLI layer); [REFUTED] for `run-mint-batch.mjs` (has real coverage) | P2 for the 2 files still gapped | none |
 | CF-GATE-5 | A6 B1 | `.discipline/fitness/manifest.mjs` | Fitness-function id gaps (F29, F53, F55, F56) have no recorded reason, unlike the well-documented F1/F3/F4/F5/F7 deletions | [HYPOTHESIS] | P3 | none |
 | CF-GATE-6 | A2/A3 F-RUNNER | `.discipline/fitness/runner.mjs` | Appeared to hang with no output in more than one worktree on first attempt; A3 re-ran it to completion (52 functions, 0 violations, several minutes wall-clock, not hung) and corrected its own earlier "hung" claim in place | [REFUTED as a hang; CONFIRMED slow] | n/a | none needed |
 | CF-GATE-7 | A6 C4/C5 | `scripts/verify/**`, `.discipline/**` | 41 `process.exit(2)` self-skips and 16 DB/network-dependent test files are consistent with the documented self-skip convention but were not individually re-verified to fail loud rather than silently pass | [HYPOTHESIS] | P2 | none |
@@ -190,7 +206,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 
 | id | source lane ids | finding | status | severity |
 |---|---|---|---|---|
-| CF-PROC-1 | A4, A4b, A6 | 3 lanes each disclose that literal 100% line-by-line reading was not reached within one session's budget (A4: 61/313 scripts narratively read; A4b: 76/235 full, explicitly names the gap as its own P1 finding G-1; A6: full reads of core mechanism files, enumeration + targeted reads elsewhere, systematic grep sweep over ~600 test files). A3, corrected 2026-09-30, reached 100% of its final scope (221/221) in a same-day completion pass; no longer listed here. Every remaining lane states its method per file group rather than claiming a blanket completion | [CONFIRMED] (each lane's own coverage-appendix disclosure) | P1 (audit-process risk: a real defect in an unread file would not have surfaced) |
+| CF-PROC-1 | A6 | Of the original 4 lanes this finding named, A3 (corrected: 221/221 final scope), A4 (closed by A4d: turns+maintenance 80/80), A4b (closed by A4bc: 235/235) have each since reached 100% coverage of their assigned scope via a same-day completion pass, and are no longer listed here. Only A6 remains: full reads of core mechanism files, enumeration and targeted reads elsewhere, a systematic grep sweep over ~600 test files rather than individually opening each one. A6's own methodology section states this plainly against a mid-task directive that asked for more; A6b (a second discipline pass) is in progress and is expected to close this gap when it lands | [CONFIRMED] (A6's own coverage-appendix disclosure; the other 3 lanes' gaps independently confirmed closed by their completion registers' own file-count reconciliation) | P1 (audit-process risk: a real defect in an unread file would not have surfaced), pending A6b |
 | CF-PROC-2 | A5 | Two messages, initially read by lane A5 as possibly not from the coordinator, demanding a full-read claim; not followed at the time. Corrected 2026-09-30: both messages were genuinely sent by the coordinator, relaying the operator's directive; there was no injection | [REFUTED, corrected in place] | n/a (was P0; the underlying fact this finding worried about, a compromised instruction channel, did not occur) |
 
 ## (c) Confirmed P0 and P1, in full sentences
@@ -214,7 +230,8 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 
 - `[CONFIRMED]` `/api/admin/promotion-policy` is a fully built, unwired admin control with no engine to gate (CF-DEAD-1).
 - `[CONFIRMED]` `home/DashboardTopPriority.tsx` is 513 lines of finished, unmounted dashboard code (CF-DEAD-2).
-- `[CONFIRMED]` Every tinted background/badge across the admin Sources surface (5 files, 24 sites) is silently dropped by invalid CSS string concatenation (CF-BROKEN-2).
+- `[CONFIRMED]` Every tinted background/badge across the admin Sources surface (5 files, 24 sites) is silently dropped by invalid CSS string concatenation, and the same defect class silently drops the "next milestone" ring on every list row's and every detail page's Timeline component, live on all four customer-facing intelligence surfaces (CF-BROKEN-2).
+- `[CONFIRMED]` 5 producer scripts run their orchestration entry point unconditionally at module scope with no guard at all, one of them triggering a real live Supabase read merely by being imported for its own test (CF-BROKEN-9).
 - `[CONFIRMED, by repro]` `lib/sources/officialness.mjs`'s STEP 2 anti-fabrication check is a structural no-op, verified by direct reproduction; it is the module's own second line of defense against nav/menu chrome being mistaken for FACT text (CF-BROKEN-1).
 - `[CONFIRMED]` ESLint is configured and scripted but invoked nowhere in CI or pre-push (CF-SEC-10).
 - `[CONFIRMED]` Node's `--test` silently drops colocated tests under any `[param]/` route directory; 5 sibling route directories have zero colocated coverage today with no way to tell whether that is a choice or the same defect (CF-SEC-11).
@@ -227,7 +244,7 @@ still open on `origin/master` as of this document's HEAD (`c55cfb2e`).
 - `[HYPOTHESIS]` 3 open commitments in `docs/ops/` have no visible closure across a full 24,302-line session-log read (CF-DOCS-5).
 - `[HYPOTHESIS]` 2 HIGH findings from a 4-month-old scripts register (bare-invocation prod writes; a partial re-run interlock) were never re-checked against the current tree (CF-DOCS-6).
 - `[CONFIRMED]` Two unresolved design-ruling conflicts (a rule-below-S-section-title contradiction between code and the current parts brief, and a Search\|Ask toggle removal that silently drops a live API capability) sit with no resolving doc, actively blocking the F49 parts gate from having one unambiguous target (CF-DOCS-11, DES-3).
-- `[CONFIRMED]` This audit wave's own coverage: 4 lanes disclose they did not reach literal 100% line-by-line reading within one session (CF-PROC-1).
+- `[CONFIRMED]` This audit wave's own coverage: A6 alone (of the original 4 lanes CF-PROC-1 named) has not yet reached literal 100% line-by-line reading within one session; A3, A4, A4b closed their gaps via same-day completion passes. A6b is in progress and expected to close A6's (CF-PROC-1).
 
 ## (d) Refuted along the way
 
@@ -260,23 +277,33 @@ about), A3 (corrected 2026-09-30: 221 of 221 files in its final scope, read in f
 narrowed twice, first by the A3/A3b letter split, then by the A3c community/connections/credibility/
 forward-events/intake/llm/market split; the branch's final commit, `8c1b7969` on `audit/a3-lib`,
 PR #847, completed the remaining 86 files of `src/lib/agent/` the same day, closing what this document's
-first version reported as a 79-of-404 gap).
+first version reported as a 79-of-404 gap), A1 (corrected 2026-09-30: 217 of 217 files across
+`fsi-app/src/app/**` plus `src/proxy.ts`/`route-policy.ts`, read in full; A1 read 120 files plus the 2
+middleware files, A1c, PR #859, read the remaining 94 `SWEEP`-tagged files, `favicon.ico` is the sole
+non-text exception), A2b (corrected 2026-09-30: 194 of 194 files across `src/components`'s m-z half, read
+in full; A2b read 140, A2bc, PR #860, read the remaining 64 `ui/`- and `sources/`-test files A2b's own
+appendix marked `Grep`), A4's `scripts/turns/**`+`scripts/maintenance/**` slice (corrected 2026-09-30: 80
+of 80 code files, read in full; A4 read 58 maintenance files plus 19 of 22 turns files, A4d, PR #858, read
+the remaining 3 turns files), A4b (corrected 2026-09-30: 235 of 235 files across
+`scripts/{mint,lib,verify,producers,connections}/**`, read in full; A4b read 76, A4bc, PR #862, read the
+remaining 159, including all 87 `scripts/verify/**` files and both mega-files A4b could previously only
+structurally scan), A4c (corrected 2026-09-30: 157 of 157 files across the scripts remainder scope, read
+in full; A4c read 90 at full depth, A4cc, PR #861, read the remaining 67 files its own appendix marked
+`full (spot)`).
 
-**Disclosed partial coverage, method stated per file group:** A1 (120 of 217 files fully read, 55%; the
-remaining 97 covered by exhaustive mechanical sweeps for the named defect classes, not full reads). A2b
-(140 of 194 full, 54 grep-only, all under `ui/`'s smaller/`*.npmtest.mjs` files).
-A4 (61 of 313 scripts narratively read, 19.5%; all 22 workflow files read in full; every file mechanically
-swept for the named defect-class patterns). A4b (76 of 235 files full-depth, 32%; 1 partial; 2
-structurally-scanned via export enumeration only, both the largest files in its scope; 87 grep-survey-only,
-all of `scripts/verify/`; 69 not reviewed this pass; the lane records this gap as its own top finding,
-G-1). A4c (roughly 90 of 157 full, rest structural-spot). A6 (core execution-mechanism files read in full;
-every fitness function, rule file, golden, and selftest enumerated and cross-checked; the remaining ~600
-test files covered by a systematic pattern sweep, not individually opened; the lane's own methodology
-section states this plainly against a mid-task directive that asked for more). A8 (~180 of 367 INDEX.md
-lines spot-checked; the audit itself samples rather than claims full coverage of `docs/` broadly, since A8b
-and A8c took the dedicated depth passes on `docs/ops/` and `docs/plans/`+`docs/dispatches/`
-respectively). A8c (249 of 268 files read in full, 93%; 19 image screenshots deliberately unread per the
-PDF/image cost-model rule, with the narrating README read in full instead).
+**Disclosed partial coverage, method stated per file group:** A4's `scripts/**` slice outside
+`turns/`+`maintenance/` (61 of 313 scripts narratively read, 19.5%; all 22 workflow files read in full;
+every file mechanically swept for the named defect-class patterns; not addressed by any completion lane
+in this wave). A6 (core execution-mechanism files read in full; every fitness function, rule file, golden,
+and selftest enumerated and cross-checked; the remaining ~600 test files covered by a systematic pattern
+sweep, not individually opened; the lane's own methodology section states this plainly against a mid-task
+directive that asked for more; A6b, a second discipline-lane pass, is in progress and expected to close
+this gap when it lands). A8 (~180 of 367 INDEX.md lines spot-checked; the audit itself samples rather than
+claims full coverage of `docs/` broadly, since A8b, A8c, and A8d took the dedicated depth passes on
+`docs/ops/`, `docs/plans/`+`docs/dispatches/`, and `docs/PROGRAM-BOARD.md`+`docs/INDEX.md`+`docs/design/`+
+`docs/sprint-1/`+`docs/sprint-2/`+`docs/census/`+`docs/tech-debt-log.md` respectively). A8c (249 of 268
+files read in full, 93%; 19 image screenshots deliberately unread per the PDF/image cost-model rule, with
+the narrating README read in full instead).
 
 **Superseded-by-full-read relationships, as specified by the dispatch:**
 
@@ -287,6 +314,13 @@ PDF/image cost-model rule, with the narrating README read in full instead).
   self-corrections, the exact SQL of a fix).
 - A6's discipline-and-tests register has no A6b counterpart on the remote as of this document; per the
   dispatch, if A6b lands later this document is to be amended. Not yet actioned.
+- **A1 is extended by A1c, A2b by A2bc, A4's turns/maintenance slice by A4d, A4b by A4bc, A4c by A4cc**,
+  each a same-day completion pass reading exactly the files the base lane's own coverage appendix marked
+  as not individually read (SWEEP, Grep, full (spot), or a named remaining-file list). None of the five
+  completion registers found a defect the base lane's own base-rate characterization contradicts; A1c's
+  new finding (CF-SEC-15) and A2bc's extension of CF-BROKEN-2 to a customer-facing surface are both
+  consistent with, not a reversal of, the base lanes' "disciplined surface" framing. A4bc additionally
+  resolved 2 of A4b's own open HYPOTHESIS findings (EXIT0-1 to REFUTED, CLI-TEST-1 to CONFIRMED-per-file).
 - A8 is **split into four: A8, A8b, A8c, A8d**, corrected in place from this document's first version
   (which found no `audit/a8d-docs` branch on the remote at the time; the coordinator confirmed it landed
   as PR #856 after this document's first commit). A8's own broad-but-shallow docs/ pass is superseded for
@@ -307,11 +341,13 @@ sanctioned).
 
 ---
 
-*Findings-total: 84 consolidated rows across 8 classes plus 2 process findings (amended 2026-09-30 twice:
-+5 rows CF-DOCS-10 through CF-DOCS-14 folding in A8d, PR #856; then 3 corrections per the coordinator,
+*Findings-total: 86 consolidated rows across 8 classes plus 2 process findings (amended 2026-09-30 three
+times: +5 rows CF-DOCS-10 through CF-DOCS-14 folding in A8d, PR #856; 3 corrections per the coordinator,
 CF-PROC-2 refuted in place, A3's coverage corrected to 221/221, CF-BROKEN-6 confirmed with mechanism and
-fix). P0: 9 (3 open: PROGRAM-BOARD staleness, the reconstruction skeleton, the unreversed chained-apply
-data; 6 historic-and-closed). P1: 16 confirmed. Remediation lanes for every confirmed finding are proposed
-in `docs/plans/remediation-plan-2026-09-30.md`; current build state is in
-`docs/plans/build-overview-2026-09-30.md`. A1, A2b, A4, A4b, A4c completion passes and A6b are still
-running and will be folded in as a further commit when the coordinator sends their branches.*
+fix; +2 rows CF-BROKEN-9 and CF-SEC-15 folding in A1c/A2bc/A4d/A4bc/A4cc, PRs #858-#862, plus CF-BROKEN-2
+extended, CF-GATE-3 refuted, CF-GATE-4 resolved per file, CF-PROC-1 narrowed to A6 only). P0: 9 (3 open:
+PROGRAM-BOARD staleness, the reconstruction skeleton, the unreversed chained-apply data; 6
+historic-and-closed). P1: 17 confirmed. Remediation lanes for every confirmed finding are proposed in
+`docs/plans/remediation-plan-2026-09-30.md`; current build state is in
+`docs/plans/build-overview-2026-09-30.md`. A6b is still running and will be folded in as a further commit
+when the coordinator sends its branch.*

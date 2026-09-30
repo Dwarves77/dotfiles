@@ -25,6 +25,15 @@ fix on branch `lane/w2d-market-detail-dump`, not a `[HYPOTHESIS]` awaiting repro
 plan proposed fixing it (it was already scoped to W2-D as a build-plan workstream, outside this
 consolidation's remediation lanes), so this plan is otherwise unchanged by that correction.
 
+**Amended 2026-09-30 (fourth amendment, coordinator message):** Five completion registers (A1c PR #859,
+A2bc PR #860, A4d PR #858, A4bc PR #862, A4cc PR #861) folded into the audit register add 2 new confirmed
+findings this plan now carries: new Lane 20 (5 unguarded producer scripts, CF-BROKEN-9) and new Lane 21
+(PostgREST `.or()` injection, CF-SEC-15). Lane 13 is extended to also fix the timeline-dot ring instance
+of CF-BROKEN-2 (A2bc's finding, live on customer-facing surfaces). Lane 11 is revised: CF-GATE-3
+(EXIT0-1) is dropped, A4bc's completion pass found zero swallowed-error exits across all 87
+`scripts/verify/**` files, no fix needed; CF-GATE-4 (CLI-TEST-1) is narrowed to the 2 files A4bc confirmed
+still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
+
 ## Lane ordering (R14)
 
 1. Data machine and integrity (Lanes 1-6)
@@ -203,26 +212,29 @@ consolidation's remediation lanes), so this plan is otherwise unchanged by that 
 - **Ordering:** tenth. Real work, not urgent relative to the data-integrity lanes above, but a
   prerequisite for treating any future audit's un-labeled line as a gate failure rather than a courtesy.
 
-## 11. Clock-fragility and exit(0) standing checks
+## 11. Clock-fragility standing check, and CLI-test coverage for the mint chokepoint
 
-- **Closes:** CF-GATE-2 (A6 C3, one-time manual grep not a standing gate), CF-GATE-3 (A4b EXIT0-1, 30+
-  `process.exit(0)` sites sanity-checked only by grep context), CF-GATE-4 (A4b CLI-TEST-1, mint chokepoint
-  CLI layer untested), CF-GATE-7 (A6 C4/C5, 41 self-skips and 16 DB-dependent tests not individually
-  re-verified to fail loud).
-- **Write set:** new fitness function plus a targeted read-through of `scripts/verify/**` (87 files, the
-  coverage gap A4b names as its own top finding, G-1).
+- **Closes:** CF-GATE-2 (A6 C3, one-time manual grep not a standing gate), CF-GATE-4 (A4b CLI-TEST-1,
+  resolved per file by A4bc: `apply-mint-batch.mjs`/`validate-mint-payload.mjs` genuinely have no
+  subprocess-level CLI test; `run-mint-batch.mjs` already does and needs no work), CF-GATE-7 (A6 C4/C5, 41
+  self-skips and 16 DB-dependent tests not individually re-verified to fail loud). **Revised 2026-09-30**:
+  CF-GATE-3 (EXIT0-1) is dropped from this lane's scope, A4bc's completion pass read all 87
+  `scripts/verify/**` files in full and confirmed zero swallowed-error exits anywhere; no fix needed, no
+  further reading required.
+- **Write set:** new fitness function; 2 new subprocess-level test cases.
 - **Files:** new `.discipline/fitness/functions/F-clock-fragility.mjs` (flags a test combining a live
-  `new Date()`/`Date.now()` read with a string-equality date assertion); a follow-on read-through of the 5
-  highest-consequence `verify/*.mjs` files first (the ones with a live DB write inside their success path,
-  e.g. `verify/remediate-orphan-sources.mjs`, `verify/run-data-audit-lane.mjs`) to confirm no
-  `process.exit(0)` sits inside an unlogged `catch`; grep the mint-chokepoint `*.test.mjs` files for
-  `execFileSync`/`spawn` and add a subprocess-level test if none exists.
+  `new Date()`/`Date.now()` read with a string-equality date assertion); one new subprocess test each for
+  `mint/apply-mint-batch.test.mjs` and `mint/validate-mint-payload.test.mjs`, following
+  `mint/run-mint-batch.test.mjs`'s own `execFileSync` pattern (line 280) as the template, exercising a
+  bad-argv or `--help` path.
 - **Acceptance test:** the fitness function has a real (not over-fit) heuristic verified against
   `relative-time.npmtest.mjs` and `render-clock.npmtest.mjs` as known-good non-matches (A6's own sampled
-  cases); the 5 highest-consequence `verify/*.mjs` files are confirmed to log before any exit(0); at least
-  one CLI-argv-parsing path is exercised as a real subprocess for the mint chokepoint.
-- **Size:** M.
-- **Model:** Sonnet (heuristic design, judgment-heavy).
+  cases); both new subprocess tests exercise the CLI's own argv-parsing/exit-code layer, not only the
+  exported pure functions.
+- **Size:** M for the fitness function; S for the two subprocess tests (template already exists in the
+  same directory).
+- **Model:** Sonnet (heuristic design, judgment-heavy) for the fitness function; Haiku for the two
+  subprocess tests (mechanical, template already proven).
 - **Ordering:** eleventh, closes the gate-class lanes.
 
 ## 12. Delete or wire `/api/admin/promotion-policy`
@@ -238,23 +250,30 @@ consolidation's remediation lanes), so this plan is otherwise unchanged by that 
 - **Ordering:** twelfth, first surface-class lane (this is an admin control, adjacent to data-machine
   authorization, not a customer surface, but sequenced here since it is instance-scale, not class-scale).
 
-## 13. Delete or mount `DashboardTopPriority.tsx`; fix the invalid-CSS tint class
+## 13. Delete or mount `DashboardTopPriority.tsx`; fix the invalid-CSS tint/ring class
 
-- **Closes:** CF-DEAD-2, CF-BROKEN-2.
+- **Closes:** CF-DEAD-2, CF-BROKEN-2 (both the original 5-file admin-only instance and A2bc's
+  customer-facing extension).
 - **Write set:** `src/components/home/DashboardTopPriority.tsx` (+ its 2 comment-only referrers) for the
   first; `src/components/sources/CanonicalSourceReview.tsx`, `ProvisionalReviewCard.tsx`,
-  `IntersectionDetectionView.tsx`, `ThemesView.tsx`, `resource/IntelligenceMetadataStrip.tsx` plus a new
-  shared tint token/helper for the second.
+  `IntersectionDetectionView.tsx`, `ThemesView.tsx`, `resource/IntelligenceMetadataStrip.tsx`,
+  `src/components/ui/timeline-dot-styles.ts`, plus a new shared tint token/helper for the second.
 - **Acceptance test:** `DashboardTopPriority` either renders on a route or is deleted with its dead
   comment references cleaned up. The tint fix: `color-mix(in srgb, var(--color-X) N%, transparent)` (or 4
   fixed `--color-*-tint` tokens matching the existing `--action-tint`/`--immediate-tint` pattern) replaces
-  all 24 cited sites; a visual check on the admin Sources surface's 5 sub-tabs shows the tinted
-  backgrounds now render.
-- **Size:** S (delete) / M (wire) for DashboardTopPriority; S for the tint fix (one shared helper, 24
-  mechanical call-site edits).
+  all 24 cited `sources/`-tree sites; a visual check on the admin Sources surface's 5 sub-tabs shows the
+  tinted backgrounds now render. **Extended by A2bc's finding**: `timeline-dot-styles.ts`'s `nextDotStyle`
+  gets a raw-hex (or `color-mix`-ready) field on `UrgencyBand` instead of string-appending an alpha suffix
+  onto a CSS-var reference; both call sites (`Timeline.tsx:178`, `MilestoneTimeline.tsx:86` via
+  `ListRow.tsx:685`) re-point to it; a visual check on any list row and any detail page's Timeline block
+  with a "next" milestone shows the ring now renders.
+- **Size:** S (delete) / M (wire) for DashboardTopPriority; S for the `sources/`-tree tint fix (one shared
+  helper, 24 mechanical call-site edits); S for the timeline-dot ring fix (one shared function, 2 call
+  sites).
 - **Model:** Sonnet for the DashboardTopPriority decision (needs an operator ruling first, see below);
-  Haiku for the tint-token mechanical replacement once the token/helper shape is chosen.
-- **Ordering:** thirteenth.
+  Haiku for both tint/ring mechanical replacements once the token/helper shape is chosen.
+- **Ordering:** thirteenth. The timeline-dot half is higher-reach than the original 5-file instance (every
+  customer-facing surface, not only an admin panel) and should land first within this lane if split.
 
 ## 14. Duplication class fixes
 
@@ -374,7 +393,49 @@ consolidation's remediation lanes), so this plan is otherwise unchanged by that 
 
 **Not included in Lane 19, needs an operator ruling first (see non-code items below):** DES-3 (the
 rule-below-S-section-title contradiction and the Search\|Ask toggle disposition) and AUD-1 (the WatchButton
-hover "Unwatch" text, a real product-behavior gap against a named operator ruling, not a docs-only fix).
+hover "Unwatch" text, a real product-behavior gap against a named operator ruling, not a docs-now fix).
+
+## 20. Guard the 5 unguarded producer scripts
+
+- **Closes:** CF-BROKEN-9. Appended here for numbering continuity (this document's second amendment);
+  by R14 this is a data-machine-class fix and belongs immediately after Lane 3 (guarded-write fixes), not
+  at the end of the docs lanes.
+- **Write set:** `scripts/producers/market/eu-weekly-oil-bulletin.mjs`,
+  `scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs`,
+  `scripts/producers/regional/bls-oews-producer.mjs`, `scripts/gen/emission-factors-desnz.mjs`,
+  `scripts/gen/emission-factors-epa.mjs`.
+- **Acceptance test:** each file wraps its `main()`/`runEnvelopeProducer(...)` call in the same
+  `isMainModule(import.meta.url)` guard from `scripts/lib/is-main.mjs` that ~40 other scripts in the
+  codebase already use (the sibling `fetch-oil-bulletin.mjs` already documents fixing this exact class in
+  its own header, 2026-09-02, as the copy-from template). `node --test
+  scripts/gen/emission-factors-desnz.test.mjs` no longer performs a live Supabase read as a side effect of
+  running the test (verify by running with valid `.env.local` creds present and confirming no network call
+  fires before the first assertion). Extend `scripts/lib/is-main.test.mjs`'s own regression sweep (or a
+  new fitness function) to catch the "no guard at all" shape specifically, not only the "wrong guard"
+  shape it currently checks for, per A4bc's own process-gap note, so a sixth instance cannot land unnoticed.
+- **Size:** S for the 5 mechanical guard additions; M for the new/extended fitness function.
+- **Model:** Haiku for the 5 guard additions (mechanical, template already proven in the same directory
+  tree); Sonnet for the fitness-function extension.
+- **Ordering:** logically third-and-a-half (immediately after Lane 3); numbered 20 in this document for
+  continuity with the already-approved numbering.
+
+## 21. Fix the PostgREST `.or()` filter-injection pattern
+
+- **Closes:** CF-SEC-15. Appended here for numbering continuity; by R14 this is a surface-class fix and
+  belongs with Lanes 12-14.
+- **Write set:** `src/app/api/community/search/route.ts`, `src/app/operations/[slug]/page.tsx`,
+  `src/app/research/[slug]/page.tsx`.
+- **Acceptance test:** `community/search` extends `escapeLike` to also escape `,` and `(`/`)` (PostgREST's
+  documented workaround), or replaces the two `.or()` calls with two separate `.ilike()` reads unioned in
+  JS. `operations/[slug]` and `research/[slug]` replace the `orExpr`/`.or()` branch with the same shape
+  `api/workspace/archive-impact/route.ts` and `regulations/[slug]/page.tsx` already use (branch on
+  `isUuid`, call `.eq("id", id)` or `.eq("legacy_id", id)` directly, never a composed string), which also
+  closes the missing `provenance_status='verified'` gap on both pages as a one-line addition. A crafted
+  input containing `,`/`(`/`)` no longer changes the query's filter structure at any of the 5 sites.
+- **Size:** S (3 files, the safe pattern already exists twice in the same codebase to copy from).
+- **Model:** Sonnet (security-adjacent, small but needs care).
+- **Ordering:** logically thirteenth-and-a-half (alongside Lanes 12-14); numbered 21 in this document for
+  continuity with the already-approved numbering.
 
 ---
 
@@ -499,11 +560,14 @@ pass first, Haiku transcription second, same PR.
 
 ---
 
-*Lanes proposed: 19 (amended 2026-09-30 to fold in A8d, PR #856: +1 lane, Lane 19; Lane 15 revised in
-place with the 38-PR reconstruction). Every CONFIRMED finding in the audit register is mapped to a lane
-above or the "will not fix" list, with a reason in both cases. Write sets checked disjoint by file path
-across all 19 lanes (no two lanes above name an overlapping file); Lane 15 (PROGRAM-BOARD) and Lane 17
-(wave-status tables) both touch planning docs but not the same file; Lane 19 (design docs) and Lane 16
-(mechanical docs batch) both touch `docs/` but not the same files. Approve this plan, then Lane 1's
-`--apply` step separately, before any lane starts. A6b will be folded in as a second commit when it
-lands.*
+*Lanes proposed: 21 (amended 2026-09-30 three times: fold in A8d, PR #856, +1 lane, Lane 19, Lane 15
+revised with the 38-PR reconstruction; the CF-PROC-2/A3/CF-BROKEN-6 corrections touched no lane count;
+fold in A1c/A2bc/A4d/A4bc/A4cc, PRs #858-#862, +2 lanes, Lanes 20-21, Lane 11 revised (CF-GATE-3 dropped,
+resolved with no fix needed; CF-GATE-4 narrowed to 2 files), Lane 13 extended with the timeline-dot ring
+fix). Every CONFIRMED finding in the audit register is mapped to a lane above or the "will not fix" list,
+with a reason in both cases. Write sets checked disjoint by file path across all 21 lanes (no two lanes
+above name an overlapping file); Lane 15 (PROGRAM-BOARD) and Lane 17 (wave-status tables) both touch
+planning docs but not the same file; Lane 19 (design docs) and Lane 16 (mechanical docs batch) both touch
+`docs/` but not the same files. Lanes 20 and 21 are numbered at the end for continuity but belong earlier
+in R14 order (noted in each lane's own Ordering field). Approve this plan, then Lane 1's `--apply` step
+separately, before any lane starts. A6b will be folded in as a second commit when it lands.*

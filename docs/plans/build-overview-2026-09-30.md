@@ -19,6 +19,12 @@ closing paragraph are corrected: the raw-dump bug is `[CONFIRMED]` with cause an
 coordinator-run live SELECT), not an unreproduced `[HYPOTHESIS]`. Table 3/WS16/W2-D were already correct
 (BUILT, NOT MERGED) and are unchanged.
 
+**Amended 2026-09-30 (fourth amendment, coordinator message):** Five completion registers (PRs #858-#862)
+folded into the audit register add one new confirmed finding to Table 2's Produce row: 5 producer scripts
+with no module-scope guard, one actively read-side-effecting on test import. No table's BUILT/PARTIAL/
+MISSING state changes as a result; this is a code-quality finding on an already-Built stage, not a change
+to what is built.
+
 ## Table 1: by customer surface
 
 | Surface | State | Proving artifact |
@@ -40,7 +46,7 @@ coordinator-run live SELECT), not an unreproduced `[HYPOTHESIS]`. Table 3/WS16/W
 | Consume (ledger-consume, corpus-turn) | Built and wired, proven fired | A4 CHECK 3: `sweep-to-ledger-consume` is the one hop with live `gh run list` evidence of a real `workflow_run`-triggered firing (36611354387, 2026-09-29); the same evidence includes the cancelled chained-apply incident on the same hop (36568656803), see CF-BROKEN-7 |
 | Mint (canonical-pipeline.ts, mint-item.ts) | Built and proven, one moat defect | A7: `canonical-pipeline.ts` (2,256 lines) read in full, judged sound with load-bearing coupling in its grounding stage; A3b: `officialness.mjs`'s STEP 2 anti-fabrication check is a structural no-op (CF-BROKEN-1, P1, unfixed as of this document) |
 | Analyse and connect (propagation, entity spine, connections) | Built; autonomous firing proven once, under an incident | Entity spine sound (`entities=2880` live, A7 section 3); `propagation/drain.ts` (306 lines) read in full, sound; Loop B (decision propagation) populated only by hand-dispatch through 2026-09-28; first genuine autonomous chained fire attempt on 2026-09-29 was caught mid-flight by the operator, not by an automated gate (CF-BROKEN-7); the class fix (chained-dry-guard) landed same day, merged #831 |
-| Produce (brief-export/apply, structured actions) | Built | Structured-action extraction shipped 2026-09-29, merged #832; mint chokepoint's single write site (`writeSynthesizedBrief`) read in full by A7, sound |
+| Produce (brief-export/apply, structured actions) | Built, one process gap | Structured-action extraction shipped 2026-09-29, merged #832; mint chokepoint's single write site (`writeSynthesizedBrief`) read in full by A7, sound. 5 producer scripts (3 market/regional data producers, 2 emission-factor seeders) run their entry point unconditionally at module scope with no guard, CF-BROKEN-9, `[CONFIRMED]`, one actively triggers a live Supabase read as a side effect of its own test running; not yet fixed |
 | Publish (surface rendering) | Built for 3 of 5 surfaces (see Table 1) | See Table 1 rows Regulations/Operations (built) vs Market Intel/Community (partial) vs Research (design only) |
 | Harness record | Built and proven | `harness_runs` (migration 331, header-corrected to APPLIED per Lane 4 of the remediation plan) is the sole run-of-record after the 2026-09-26 "no Actions PRs" ruling, merged #813; F50 loop-wiring gate green (0 violations, A9) |
 
