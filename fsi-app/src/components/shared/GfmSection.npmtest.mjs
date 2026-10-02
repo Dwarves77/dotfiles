@@ -93,14 +93,21 @@ function sourceOf(relPath) {
 
 test("RegulationDetailSurface's Full-brief insertion point routes through GfmSection, not a raw print", () => {
   const src = sourceOf("../regulations/RegulationDetailSurface.tsx");
-  assert.match(src, /depth === "full" && r\.fullBrief && \(/);
+  // Workstream 16 (lane W2-D, 2026-09-30): a record-grade item's `r.fullBrief` re-serializes the
+  // SAME claim rows RecordGradeSections already renders as labelled fields (raw `- [slot_key] ...`
+  // bullets), so this insertion point now skips record-grade items (`!isRecord`) rather than
+  // duplicating them raw; see docs/ops/session-log.d/2026-09-29-w2d.md. The GfmSection routing this
+  // test guards is unchanged for every non-record item.
+  assert.match(src, /depth === "full" && !isRecord && r\.fullBrief && \(/);
   assert.match(src, /<GfmSection markdown=\{r\.fullBrief\} \/>/);
   assert.doesNotMatch(src, /<p>\{r\.fullBrief\}<\/p>/, "never a raw <p> print of the whole brief");
 });
 
 test("MarketSignalDetailSurface's Full-brief insertion point routes through GfmSection, not a raw print", () => {
   const src = sourceOf("../pages/MarketSignalDetailSurface.tsx");
-  assert.match(src, /depth === "full" && r\.fullBrief && \(/);
+  // Workstream 16 (lane W2-D, 2026-09-29): same `!isRecord` guard, fixed here first (the live
+  // [CONFIRMED] dump), see docs/ops/session-log.d/2026-09-29-w2d.md.
+  assert.match(src, /depth === "full" && !isRecord && r\.fullBrief && \(/);
   assert.match(src, /<GfmSection markdown=\{r\.fullBrief\} \/>/);
   assert.doesNotMatch(src, /<p>\{r\.fullBrief\}<\/p>/, "never a raw <p> print of the whole brief");
 });
