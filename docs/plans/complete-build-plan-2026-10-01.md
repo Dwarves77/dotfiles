@@ -234,7 +234,7 @@ requested: 348. Dependencies: L1, L5 (needs assessments to attach signposts to),
 (08S2, already built).
 
 **Research research-feedstock: standing dispatch for the research walker.** Spec refs: 03S8,
-platform-intent SRESEARCH "no live ingest pipeline producing Research Summary briefs from analytical-press
+platform-intent's RESEARCH section: "no live ingest pipeline producing Research Summary briefs from analytical-press
 sources." Build-mode rule 16 forbids arming any new standing schedule during build; **this lane builds the
 dispatch-callable runtime only, armed later by explicit operator action**, same pattern as the propagation
 drain (spec 08 S2.4).
