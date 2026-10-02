@@ -156,7 +156,17 @@ import {
   METHOD_ID as MARKET_SERIES_DELTA_METHOD_ID,
   METHOD_VERSION as MARKET_SERIES_DELTA_METHOD_VERSION,
 } from "./market-series-delta.ts";
+// Lane L6, 2026-10-02: the research-signpost watcher (docs/specs/08-flywheel-design.md section 1.2,
+// amended by the coordinator's schema ruling). See signpost-watch.ts's own header for why this registered
+// MethodFn is paired with a separate, sb-driven `fireSignpost` export rather than being reachable through
+// drain.ts's existing Pass 2 dispatch (which is hard-coded to derived_values/inference_records only).
+import {
+  computeSignpostWatch,
+  METHOD_ID as SIGNPOST_WATCH_METHOD_ID,
+  METHOD_VERSION as SIGNPOST_WATCH_METHOD_VERSION,
+} from "./signpost-watch.ts";
 
 registerMethod(AUTOMATE_VS_HIRE_METHOD_ID, AUTOMATE_VS_HIRE_METHOD_VERSION, computeAutomateVsHire);
 registerMethod(CARBON_INTENSITY_METHOD_ID, CARBON_INTENSITY_METHOD_VERSION, computeCarbonIntensity);
 registerMethod(MARKET_SERIES_DELTA_METHOD_ID, MARKET_SERIES_DELTA_METHOD_VERSION, computeMarketSeriesDelta);
+registerMethod(SIGNPOST_WATCH_METHOD_ID, SIGNPOST_WATCH_METHOD_VERSION, computeSignpostWatch);
