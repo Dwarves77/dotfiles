@@ -385,6 +385,9 @@ jobs:
         working-directory: fsi-app
         run: bash scripts/turns/deliver-artifact-branch.sh "Downstream chain (mode=${{ env.RUN_MODE }}, run ${{ github.run_id }})"
 
+      # R22 (2026-10-01, Actions-storage remediation): retention 7 days, down from 90 (the path was
+      # already scoped to this run's own temp output root, not the whole _snapshots tree). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload this run's step artifact(s)
         if: ${{ always() && env.RUN_SKIP != 'true' }}
         uses: actions/upload-artifact@v4
@@ -392,7 +395,7 @@ jobs:
           name: downstream-chain-${{ github.run_id }}
           path: ${{ runner.temp }}/downstream-chain-${{ github.run_id }}/
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 7
 
       # EXPLICIT DISPATCH (lane LOOP-B-FIRING, 2026-09-28, F60): the workflow_run depth-limit workaround.
       # This job's own workflow_run chain depth is 3 when a `workflow_run` event fired it (see the

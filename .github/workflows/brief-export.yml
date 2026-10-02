@@ -391,14 +391,18 @@ jobs:
           } > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Brief export: run ${{ github.run_id }}" /tmp/pr-body.md
 
-      - name: Upload exported part(s) and run log as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): the exported part file is already durable (pushed
+      # to the brief-export/<run_id> branch by the step above); this workflow artifact is now the run's
+      # own harness artifact plus logs, not a second copy of scripts/_snapshots/brief-export/, at a
+      # 7-day retention (down from 90). See docs/runbooks/fleet-budget-control.md.
+      - name: Upload run artifact and run log as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: brief-export-${{ github.run_id }}
           path: |
-            fsi-app/scripts/_snapshots/brief-export/
+            fsi-app/scripts/harness-runs/brief-export/
             /tmp/brief-export.log
             /tmp/select.log
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7

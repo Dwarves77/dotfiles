@@ -231,14 +231,19 @@ jobs:
       # mutating (db.mjs's own guarded-write discipline), uploaded here so an apply run stays reversible
       # past the runner, the same shape date-chain.yml / downstream-chain.yml / population-turn.yml already
       # use for their own guarded-write steps.
-      - name: Upload snapshots, run artifact, and run logs
+      # R22 (2026-10-01, Actions-storage remediation): the bulk fsi-app/scripts/_snapshots/ upload was
+      # removed here. Guarded-write snapshots are regenerable machine evidence (CLAUDE.md rule 5) and
+      # were the dominant contributor to the 6.2 GB/311-artifact Actions storage measured 2026-10-01
+      # (docs/runbooks/fleet-budget-control.md). The run's own harness artifact and logs are kept, at a
+      # 7-day retention (down from 90) -- plenty for a human to inspect a recent run; the durable record
+      # is harness_runs (migration 331), not this artifact.
+      - name: Upload run artifact and run logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: brief-apply-${{ github.run_id }}
           path: |
-            fsi-app/scripts/_snapshots/
             fsi-app/scripts/harness-runs/brief-apply/
             /tmp/*.log
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 7

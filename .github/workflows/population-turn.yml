@@ -758,11 +758,20 @@ jobs:
           fi
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${RUN_MODE})" /tmp/pr-body.md
 
-      - name: Upload scripts/_snapshots as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
+      # tree (guarded-write snapshots, regenerable per CLAUDE.md rule 5) to this run's own harness
+      # artifacts across the three families this dispatch can touch (mint, forward-events,
+      # ledger-consume). The export/apply-ready/report files and the mint-run artifact are already
+      # durable via the git branch/PR committed above. Retention 7 days, down from 90. See
+      # docs/runbooks/fleet-budget-control.md.
+      - name: Upload this run's harness artifacts as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: population-turn-snapshots-${{ github.run_id }}
-          path: fsi-app/scripts/_snapshots/
+          name: population-turn-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/harness-runs/mint/
+            fsi-app/scripts/harness-runs/forward-events/
+            fsi-app/scripts/harness-runs/ledger-consume/
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7

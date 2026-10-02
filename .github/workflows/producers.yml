@@ -337,6 +337,9 @@ jobs:
             node scripts/gen/fetch-desnz-factors.mjs --report /tmp/desnz-fetch-report.txt
           fi
 
+      # R22 (2026-10-01, Actions-storage remediation): explicit retention-days: 7 added (this step had no
+      # explicit value, so it defaulted to the repository's 90-day setting). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload DESNZ fetch-desnz diff report
         if: env.RUN_PRODUCER == 'desnz-emission-factors' && always()
         uses: actions/upload-artifact@v4
@@ -344,6 +347,7 @@ jobs:
           name: desnz-fetch-report
           path: /tmp/desnz-fetch-report.txt
           if-no-files-found: warn
+          retention-days: 7
 
       - name: DESNZ modal defaults -> emission_factors
         # Seeds four GB freight modal_default rows from the fixture (eleven-plus once fetch-desnz above
@@ -422,6 +426,9 @@ jobs:
           mkdir -p /tmp/oil-bulletin-rows
           node scripts/producers/market/build-oil-bulletin-rows.mjs --out /tmp/oil-bulletin-rows/census-rows.json
 
+      # R22 (2026-10-01, Actions-storage remediation): explicit retention-days: 7 added (this step had no
+      # explicit value, so it defaulted to the repository's 90-day setting). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload build-oil-bulletin-rows census-rows.json
         if: env.RUN_PRODUCER == 'build-oil-bulletin-rows' && always()
         uses: actions/upload-artifact@v4
@@ -429,6 +436,7 @@ jobs:
           name: oil-bulletin-census-rows
           path: /tmp/oil-bulletin-rows/census-rows.json
           if-no-files-found: warn
+          retention-days: 7
 
       - name: ratify-series-items (R-D ratification -- mint-run outcome -> series-item-map.mjs)
         # Lane W71-WIRE (2026-09-05, plan §W7.1): ruling R-D's ratification half (see the script's own

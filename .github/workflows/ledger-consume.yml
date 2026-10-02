@@ -535,11 +535,15 @@ jobs:
       # The candidates file lands under scripts/_snapshots/ledger-candidates/, inside the glob below — so
       # an export dispatch is ALSO reachable as a workflow artifact download, on top of the artifact-branch
       # delivery above (both mechanisms, per this file's header).
-      - name: Upload scripts/_snapshots as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
+      # tree to this run's own harness artifact. The export candidates file (when produced) is already
+      # durable via the git branch/PR committed above, so it does not also need to ride the Actions
+      # artifact. Retention 7 days, down from 90. See docs/runbooks/fleet-budget-control.md.
+      - name: Upload this run's harness artifact as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ledger-consume-snapshots-${{ github.run_id }}
-          path: fsi-app/scripts/_snapshots/
+          name: ledger-consume-${{ github.run_id }}
+          path: fsi-app/scripts/harness-runs/ledger-consume/
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7

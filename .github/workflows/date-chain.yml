@@ -181,13 +181,15 @@ jobs:
       # downstream-chain.yml's own "Upload this run's step artifact(s)" step already uses. Runs always()
       # so a snapshot from a failed or partial run is still retrievable, and covers this run's /tmp/*.log
       # files too so the un-truncated script output survives alongside the snapshots.
-      - name: Upload snapshots and run logs
+      # R22 (2026-10-01, Actions-storage remediation): this family emits no harness-run artifact (no
+      # scripts/harness-runs/ dir of its own), so the run's own logs ARE its summary; the bulk
+      # fsi-app/scripts/_snapshots/ upload (guarded-write snapshots, regenerable per CLAUDE.md rule 5) is
+      # dropped. Retention 7 days, down from 90. See docs/runbooks/fleet-budget-control.md.
+      - name: Upload run logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: date-chain-${{ github.run_id }}
-          path: |
-            fsi-app/scripts/_snapshots/
-            /tmp/*.log
+          path: /tmp/*.log
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 7

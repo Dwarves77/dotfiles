@@ -260,6 +260,9 @@ jobs:
         if: always()
         run: bash scripts/turns/deliver-artifact-branch.sh "Gate A rescan (mode=$GAR_MODE, run ${{ github.run_id }})"
 
+      # R22 (2026-10-01, Actions-storage remediation): retention 7 days, down from 90 (the path was
+      # already scoped to this run's own temp output root, not the whole _snapshots tree). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload this run's step artifacts and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -270,4 +273,4 @@ jobs:
             /tmp/gate-a-rescan.log
             /tmp/attach-found-sources.log
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7

@@ -263,11 +263,14 @@ jobs:
         if: always()
         run: bash scripts/turns/deliver-artifact-branch.sh "Source sweep (walker=${{ inputs.walker }}, mode=${{ inputs.mode }}, run ${{ github.run_id }})"
 
-      - name: Upload scripts/_snapshots as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
+      # tree (guarded-write snapshots, regenerable per CLAUDE.md rule 5) to this run's own harness
+      # artifact. Retention 7 days, down from 90. See docs/runbooks/fleet-budget-control.md.
+      - name: Upload this run's harness artifact as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: source-sweep-snapshots-${{ github.run_id }}
-          path: fsi-app/scripts/_snapshots/
+          name: source-sweep-${{ github.run_id }}
+          path: fsi-app/scripts/harness-runs/source-sweep/
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7
