@@ -1,0 +1,108 @@
+name: Research assessment
+
+# Lane W2-R (RESEARCH-ASSESSMENT-MODEL, 2026-10-01). Operator ruling, verbatim: "Why is research have a
+# design but not a build? Fix this." One explicit dispatch workflow, no schedule (rule 16: build mode
+# holds every runtime to explicit dispatch; system_state.scrape_cadence='off').
+#
+# WHAT THIS RUNS. scripts/producers/research/research-assessment-producer.mjs: the pure assess.mjs ladder
+# (no LLM, $0) narrowed from live intelligence_items + sources + item_forward_events, writing migration
+# 336's research_assessments table through the guarded path. Default dispatch runs against the committed
+# fixtures (no DB read at all); --live switches to the real candidate population. Mirrors producers.yml's
+# own two-gate shape (ADR-023 section 4): the producer's own ENABLED const is the reviewed-code-change gate, this
+# workflow's `mode` input is "is THIS run allowed to write."
+#
+# CHAINED DRY-RUN GUARD (rule 16, same as corpus-turn.yml / downstream-chain.yml / brief-export.yml):
+# this workflow carries no workflow_run trigger today (research_assessments has no upstream hop yet in
+# the loop manifest), so the guard step is included for parity with every other producer workflow and so
+# a future workflow_run edge can be added without a second pass through this file's gates.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read (or fixtures), compute, print the plan, write nothing. apply = write through the guarded path.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      live:
+        description: 'Read the real research-surface candidate population instead of the committed fixtures. Requires migration 336 to already be applied.'
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: research-assessment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_LIVE: ${{ inputs.live }}
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_ASSESSMENT_PRODUCER_ENABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Chained dry-run guard (rule 16). This workflow is workflow_dispatch-only today (no workflow_run
+      # trigger wired yet), so github.event_name is always "workflow_dispatch" here and the guard is a
+      # no-op in practice; it is included anyway so a future upstream hop inherits the gate for free,
+      # the same posture corpus-turn.yml documents for its own copy of this step.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode }}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = $RUN_MODE (forced dry if CHAINED_FORCED_DRY=true: ${CHAINED_FORCED_DRY:-false})"
+          echo "live    = $RUN_LIVE"
+          echo "A producer whose own ENABLED flag is false no-ops regardless of mode."
+
+      - name: research-assessment-producer.mjs
+        run: |
+          resolved_mode="$RUN_MODE"
+          if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then resolved_mode="dry"; fi
+          args=""
+          if [ "$RUN_LIVE" = "true" ]; then args="$args --live"; fi
+          if [ "$resolved_mode" = "apply" ]; then args="$args --apply"; fi
+          node scripts/producers/research/research-assessment-producer.mjs $args
+
+      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md; best-effort, same
+      # posture as every other producer -- a missing credential self-skips rather than failing the job).
+      - name: Land the research-assessment harness-run artifact into harness_runs
+        if: always()
+        run: |
+          latest=$(ls -1 scripts/harness-runs/research-assessment/research-assessment-run-*.json 2>/dev/null | sort | tail -1)
+          if [ -n "$latest" ]; then
+            node scripts/lib/record-harness-run.mjs --file "$latest" || echo "record-harness-run: best-effort, no-ops cleanly with no SUPABASE_* creds set."
+          else
+            echo "no research-assessment run artifact found to land."
+          fi

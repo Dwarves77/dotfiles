@@ -1,5 +1,5 @@
 /**
- * Research index (`/research`) — server component.
+ * Research index (`/research`) - server component.
  *
  * UI system handoff 2026-09-06, artboard 06 "Research list". Composes
  * <ResearchLedger> (masthead + band tiles + theme cards + Window row +
@@ -12,7 +12,7 @@
  * REWRITTEN this lane (UILISTS, 2026-09-06): ResearchLedger now consumes
  * `getPublicResearchItems()`'s full `Resource[]` directly (band/impact/
  * timeline/tier all present) instead of the separate `getPublicResearchPipeline()`
- * shape intersected against a category-routed id allow-list — see
+ * shape intersected against a category-routed id allow-list - see
  * ResearchLedger.tsx's own header for why. `getPublicResearchPipeline()` is
  * no longer read by this page (nothing else in this lane's write set
  * consumed it); getResearchSourceCoverage() is unchanged.
@@ -25,13 +25,15 @@ import { ThemeStrip } from "@/components/research/ThemeStrip";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import { getPublicResearchItems, getResearchSourceCoverage, getPublicSurfaceCounts } from "@/lib/data";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { selectAssessmentViewsByItemId } from "@/lib/research/read-assessments.mjs";
 
 /**
  * COUNTS-61 (2026-09-08). This route was the ONE list surface still statically prerendered; its
  * three siblings (/regulations, /market, /operations) already render per request. Once the ledger
  * reads its facet state from the URL, a statically prerendered page cannot server-render it: Next
  * defers the whole `useSearchParams` Suspense boundary to the client, and the build's own output
- * proves it — the prerendered research.html carried the frame and none of the rows [CONFIRMED,
+ * proves it - the prerendered research.html carried the frame and none of the rows [CONFIRMED,
  * this lane, by reading .next/server/app/research.html]. That is a first-paint regression, not a
  * trade this lane gets to make silently, so the route joins its siblings and renders per request.
  *
@@ -41,6 +43,41 @@ import { getPublicResearchItems, getResearchSourceCoverage, getPublicSurfaceCoun
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Lane W2-R (2026-10-01): batched read of migration 336's `research_assessments_current` view for every
+ * item this page is about to render, so the ledger's rows can carry a horizon band without an N+1 query
+ * per row. Mirrors ThemeStrip.tsx's own soft-fail posture exactly (service-role client, try/catch to an
+ * empty Map on any error - a missing/not-yet-applied migration must never break the Research list).
+ */
+async function readAssessmentsByItemId(itemIds: string[]) {
+  if (itemIds.length === 0) return new Map();
+  let supabase;
+  try {
+    supabase = getServiceSupabase();
+  } catch {
+    return new Map();
+  }
+  try {
+    const rows: unknown[] = [];
+    for (let i = 0; i < itemIds.length; i += 200) {
+      const { data } = await supabase
+        .from("research_assessments_current")
+        .select(
+          "item_id, technical_maturity_low, technical_maturity_high, technical_maturity_method, " +
+            "commercial_maturity_low, commercial_maturity_high, commercial_maturity_method, " +
+            "horizon_kind, horizon_band, horizon_rule, horizon_confidence, horizon_trigger_note, " +
+            "refusal_reason, credibility_evidence_score, credibility_authority_score, status_token, computed_at",
+        )
+        // fitness-allow: F39 (chunked above in 200-id slices, same pattern ThemeStrip.tsx already uses)
+        .in("item_id", itemIds.slice(i, i + 200));
+      rows.push(...(data ?? []));
+    }
+    return selectAssessmentViewsByItemId(rows as Parameters<typeof selectAssessmentViewsByItemId>[0]);
+  } catch {
+    return new Map();
+  }
+}
+
 export default async function Research() {
   const t0 = Date.now();
   const [research, aggregates, sourceCoverage] = await Promise.all([
@@ -48,7 +85,8 @@ export default async function Research() {
     getPublicSurfaceCounts("research"),
     getResearchSourceCoverage(),
   ]);
-  console.log(`[perf] /research data ${Date.now() - t0}ms (category-routed=${research.total}, coverage_cells=${sourceCoverage.length})`);
+  const assessmentsByItemId = await readAssessmentsByItemId(research.resources.map((r) => r.id));
+  console.log(`[perf] /research data ${Date.now() - t0}ms (category-routed=${research.total}, coverage_cells=${sourceCoverage.length}, assessed=${assessmentsByItemId.size})`);
 
   // COUNTS-61: useSearchParams() inside the ledger (the facet URL contract) needs a Suspense
   // boundary, Next's own rule, so the surface streams rather than opting the whole route into
@@ -59,6 +97,7 @@ export default async function Research() {
         resources={research.resources}
         aggregates={aggregates}
         sourceCoverage={sourceCoverage}
+        assessmentsByItemId={assessmentsByItemId}
         nowIso={renderNowIso()}
         belowRows={
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

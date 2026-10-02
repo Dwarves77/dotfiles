@@ -55,8 +55,11 @@ test("a null-severity item (fixture: severity: null) shows the coordinator's exa
   assert.ok(nullCheckIndex > -1 && deriveCallIndex > -1 && nullCheckIndex < deriveCallIndex);
 });
 
-test("the theme sits in the row's meta text, in the artboard's own order (type · theme · kind)", () => {
-  assert.match(SOURCE, /const metaText = \[r\.type, themeLabel, r\.sub \|\| \(r\.modes \?\? \[\]\)\.join\(", "\)\]\.filter\(Boolean\)\.join\(" · "\);/);
+test("the theme sits in the row's meta text, in the artboard's own order (type · theme · kind), with the horizon band (lane W2-R) appended last and omitted when unassessed", () => {
+  assert.match(
+    SOURCE,
+    /const metaText = \[r\.type, themeLabel, r\.sub \|\| \(r\.modes \?\? \[\]\)\.join\(", "\), horizonLabel\]\.filter\(Boolean\)\.join\(" · "\);/,
+  );
 });
 
 test("the theme facet is the theme CARD row (aboveRows), never also a rail facet group, one control per facet", () => {
