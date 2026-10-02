@@ -134,17 +134,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/admin/promotion-policy/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/admin/recompute-trust/route.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -869,18 +858,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/user/list-order/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/watchlist/route.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -925,6 +902,29 @@
         "caros-ledge-platform-intent"
       ],
       "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/workspace/assumptions/logic.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/workspace/assumptions/logic.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
       "status": "COVERED"
     },
     {
@@ -1337,6 +1337,33 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/components/operations/AuxiliaryEnergyPanelView.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/operations/GridQueuePanelView.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/operations/OperationsItemsView.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/operations/OperationsLedger.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1400,6 +1427,15 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/components/regulations/EudrCustodyPanelView.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/regulations/format-fixed-date.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1418,7 +1454,25 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/regulations/ObligationRegisterFilterBar.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/research/credibility-grade-modifiers.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/research/CredibilityChip.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1445,12 +1499,30 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/settings/AssumptionRegisterSection.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/components/settings/BriefingScheduleSection.tsx",
       "kinds": [
         "WRITES"
       ],
       "skills": [],
       "proofWired": null,
+      "status": "EXEMPT"
+    },
+    {
+      "path": "fsi-app/src/components/settings/Spec09CsvUpload.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
       "status": "EXEMPT"
     },
     {
@@ -1727,6 +1799,15 @@
     },
     {
       "path": "fsi-app/src/components/ui/tagPopoverKeyboard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/timeline-dot-styles.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2415,6 +2496,24 @@
     },
     {
       "path": "fsi-app/src/lib/api/server-bootstrap.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/assumptions/contract.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/assumptions/row.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5227,6 +5326,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/tint.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/trust-evaluators.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -6132,8 +6240,8 @@
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/lib/fetch-now-decision.selftest.mjs",
@@ -7342,15 +7450,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/propagation/seed-derived-values.mjs",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [],
-      "proofWired": null,
-      "status": "EXEMPT"
-    },
-    {
       "path": "fsi-app/scripts/propagation/seed-derived-values.test.mjs",
       "kinds": [
         "PROOF"
@@ -7674,8 +7773,8 @@
       "skills": [
         "environmental-policy-and-innovation"
       ],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/turns/commit-brief-apply-artifact.test.mjs",
@@ -7830,8 +7929,8 @@
       "skills": [
         "environmental-policy-and-innovation"
       ],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/turns/record-briefs/record-briefs.test.mjs",
@@ -11717,14 +11816,69 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/340_drop_sources_reliability_score.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/341_drop_promotion_policy.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/342_canonical_source_candidates_admin_gate.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/343_drop_user_list_order.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/345_planning_assumption_register.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1096,
-    "covered": 1049,
-    "exempt": 44,
-    "gaps": 3,
-    "orphaned_proofs": 3,
+    "governed_files": 1112,
+    "covered": 1067,
+    "exempt": 45,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0
