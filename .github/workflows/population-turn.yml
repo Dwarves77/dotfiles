@@ -710,7 +710,8 @@ jobs:
       # lane's session-log addendum.
       - name: Land this run's harness-run artifact(s) into harness_runs
         if: always()
-        run: bash scripts/turns/deliver-artifact-branch.sh "Population turn: run ${{ github.run_id }} (mode=${RUN_MODE})"
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Population turn: run ${{ github.run_id }} (mode=${RUN_MODE})"
 
       # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
       # tree (guarded-write snapshots, regenerable per CLAUDE.md rule 5) to this run's own harness

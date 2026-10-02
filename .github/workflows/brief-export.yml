@@ -368,7 +368,8 @@ jobs:
       # (change-detection.yml, corpus-turn.yml, fetch-drain.yml, gate-a-rescan.yml, source-sweep.yml).
       - name: Land this run's harness-run artifact into harness_runs
         if: always()
-        run: bash scripts/turns/deliver-artifact-branch.sh "Brief export: run ${{ github.run_id }}"
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Brief export: run ${{ github.run_id }}"
 
       # R22 (2026-10-01, Actions-storage remediation): this run's own harness artifact plus logs, not the
       # whole fsi-app/scripts/_snapshots/brief-export/ tree, at a 7-day retention (down from 90). The

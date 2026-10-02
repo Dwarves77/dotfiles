@@ -482,7 +482,8 @@ jobs:
       # every other caller in this repo now uses.
       - name: Land this run's ledger-consume artifact(s) into harness_runs
         if: always()
-        run: bash scripts/turns/deliver-artifact-branch.sh "Ledger consume: run ${{ github.run_id }} (${{ github.event_name }})"
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Ledger consume: run ${{ github.run_id }} (${{ github.event_name }})"
 
       # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
       # tree to this run's own harness artifact, at a 7-day retention (down from 90). The export
