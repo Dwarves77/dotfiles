@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { AccountCard, Chip, FieldLabel } from "@/components/account/AccountPrimitives";
+import { Chip, FieldLabel } from "@/components/account/AccountPrimitives";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   ORG_ROLES,
   ORG_SIZE_DIMENSIONS,
@@ -40,6 +42,17 @@ interface OrgProfile {
 // Plain-language labels (ADR-034 point 4: "outputs must be readable without
 // a specialist"): role and size labels are the same phrasing a non-lawyer
 // operator would use, not a regulatory term of art.
+//
+// RENDERING GUARD FIX (2026-10-02, PR #883 red run, job 37018932976): wraps the card in
+// `SectionCard` + `SectionHeading`, not `AccountCard`. `AccountCard`'s title renders an inline
+// `<span style={{fontFamily:"var(--font-display)"}}>` with no `data-guard-display` attribute,
+// which is pre-existing, baseline-excused L7 (Anton-allowlist) debt on every OTHER settings card
+// (layout-guard/baseline.json), and the layout guard forbids adding a NEW card to that baseline.
+// `SectionHeading`'s own `<h2 data-guard-display="card-title">` is the ALREADY-SANCTIONED way to
+// render an Anton card title (ANTON_ALLOWLIST, layout-guard/allowlists.mjs) ,  same precedent this
+// file's sibling "Assumption register" card already used (SettingsPage.tsx) ,  so this card gets
+// the house look with zero new L7 debt and no edit to AccountPrimitives (shared, out of this
+// lane's write set).
 // ───────────────────────────────────────────────────────────────────────────
 
 const SIZE_DIMENSION_ORDER: Array<keyof typeof ORG_SIZE_DIMENSIONS> = ["headcount", "revenue", "shipment_volume"];
@@ -153,69 +166,72 @@ export function OrganisationProfileSection() {
   const canSave = dirty && canEdit && !!orgId && !saving;
 
   return (
-    <AccountCard
-      title="Organisation profile"
-      meta="Which roles you hold and your organisation's size, used to show whether a regulation applies to you"
-      bodyPadding="14px 16px 16px"
-    >
-      {loading ? (
-        <p style={{ fontSize: "11.5px", color: "var(--color-text-muted)", margin: 0 }}>Loading…</p>
-      ) : !orgId ? (
-        <p style={{ fontSize: "11.5px", color: "var(--color-text-muted)", margin: 0 }}>
-          Join or create a workspace to set an organisation profile.
-        </p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <FieldLabel>What does your organisation do? Select every role that applies</FieldLabel>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {ORG_ROLES.map((role) => (
-                <Chip
-                  key={role.id}
-                  label={role.label}
-                  on={profile.orgRoles.includes(role.id)}
-                  onClick={() => canEdit && toggleRole(role.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {SIZE_DIMENSION_ORDER.map((dimKey) => {
-            const dim = ORG_SIZE_DIMENSIONS[dimKey];
-            const bandKey = `${dimKey}_band` as keyof OrgProfile["orgSize"];
-            return (
-              <div key={dimKey}>
-                <FieldLabel>{dim.label}</FieldLabel>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {dim.bands.map((band) => (
-                    <Chip
-                      key={band.id}
-                      label={band.label}
-                      on={profile.orgSize[bandKey] === band.id}
-                      onClick={() =>
-                        canEdit &&
-                        setSizeBand(dimKey, profile.orgSize[bandKey] === band.id ? null : band.id)
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {error && (
-            <p style={{ fontSize: "11.5px", color: "var(--color-error)", margin: 0 }}>{error}</p>
-          )}
-
-          <SaveControl saving={saving} canSave={canSave} onSave={save} showConfirmation={saved && !dirty} orgName={orgName} />
-
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5 }}>
-            A regulation that only applies to a role or size you have not set will show what
-            information it still needs from you, rather than guessing.
+    <SectionCard dataAudit="settings-organisation-profile">
+      <SectionHeading title="Organisation profile" aside="Role & size" />
+      <div style={{ padding: "0 16px 16px" }}>
+        {loading ? (
+          <p style={{ fontSize: "11.5px", color: "var(--color-text-muted)", margin: 0 }}>Loading…</p>
+        ) : !orgId ? (
+          <p style={{ fontSize: "11.5px", color: "var(--color-text-muted)", margin: 0 }}>
+            Join or create a workspace to set an organisation profile.
           </p>
-        </div>
-      )}
-    </AccountCard>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: 0, lineHeight: 1.5 }}>
+              Which roles you hold and your organisation's size, used to show whether a regulation
+              applies to you.
+            </p>
+            <div>
+              <FieldLabel>What does your organisation do? Select every role that applies</FieldLabel>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {ORG_ROLES.map((role) => (
+                  <Chip
+                    key={role.id}
+                    label={role.label}
+                    on={profile.orgRoles.includes(role.id)}
+                    onClick={() => canEdit && toggleRole(role.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {SIZE_DIMENSION_ORDER.map((dimKey) => {
+              const dim = ORG_SIZE_DIMENSIONS[dimKey];
+              const bandKey = `${dimKey}_band` as keyof OrgProfile["orgSize"];
+              return (
+                <div key={dimKey}>
+                  <FieldLabel>{dim.label}</FieldLabel>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {dim.bands.map((band) => (
+                      <Chip
+                        key={band.id}
+                        label={band.label}
+                        on={profile.orgSize[bandKey] === band.id}
+                        onClick={() =>
+                          canEdit &&
+                          setSizeBand(dimKey, profile.orgSize[bandKey] === band.id ? null : band.id)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {error && (
+              <p style={{ fontSize: "11.5px", color: "var(--color-error)", margin: 0 }}>{error}</p>
+            )}
+
+            <SaveControl saving={saving} canSave={canSave} onSave={save} showConfirmation={saved && !dirty} orgName={orgName} />
+
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5 }}>
+              A regulation that only applies to a role or size you have not set will show what
+              information it still needs from you, rather than guessing.
+            </p>
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
 
