@@ -235,6 +235,10 @@ test('every ADMIN_GATE_PREEXISTING_ALLOWLIST entry carries a decidedOn date and 
   }
 });
 
+test('ADMIN_GATE_PREEXISTING_ALLOWLIST is empty: migration 342 fixed the one finding it held, not allowlisted it (operator ruling 2026-10-01, "fixed, not worked around")', () => {
+  assert.deepEqual(ADMIN_GATE_PREEXISTING_ALLOWLIST, {});
+});
+
 // ── LIVE: the real corpus, with both allowlists, is clean ──────────────────────────────────────────
 
 test('LIVE: the real migration corpus passes F64 clean under the two dated allowlists', () => {
@@ -250,6 +254,32 @@ test('LIVE: the real migration corpus passes F64 clean under the two dated allow
     if (v.length) problems.push(`${f.path}: ${v.map((x) => `${x.line}: ${x.message}`).join(' | ')}`);
   }
   assert.deepEqual(problems, []);
+});
+
+test('LIVE: migration 342 exists, repoints canonical_source_candidates_admin_read/_write to profiles.is_platform_admin with no org_memberships reference, and is the CURRENT definition (outnumbers migration 043)', () => {
+  const path342 = resolve(REPO_ROOT, 'fsi-app/supabase/migrations/342_canonical_source_candidates_admin_gate.sql');
+  const text342 = readFileSync(path342, 'utf8');
+  const policies342 = findCreatePolicies(text342).filter((p) =>
+    p.name === 'canonical_source_candidates_admin_read' || p.name === 'canonical_source_candidates_admin_write');
+  assert.equal(policies342.length, 2);
+  for (const p of policies342) {
+    assert.match(p.stmt, /is_platform_admin/);
+    assert.doesNotMatch(p.stmt, /org_memberships/);
+  }
+  // And, via the real checkAdminGateClass with the full live corpus, migration 043's OWN (superseded)
+  // definition produces no violation, because 342 is now the current one.
+  const migrationsDir = resolve(REPO_ROOT, 'fsi-app/supabase/migrations');
+  const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).map((f) => `fsi-app/supabase/migrations/${f}`);
+  const allFiles = files.map((f) => ({ path: f, text: readFileSync(resolve(REPO_ROOT, f), 'utf8') }));
+  const text043 = readFileSync(resolve(REPO_ROOT, 'fsi-app/supabase/migrations/043_security_advisor_fixes.sql'), 'utf8');
+  assert.deepEqual(
+    checkAdminGateClass({ filepath: 'fsi-app/supabase/migrations/043_security_advisor_fixes.sql', content: text043, allFiles, allowlist: {} }),
+    [],
+  );
+  assert.deepEqual(
+    checkAdminGateClass({ filepath: 'fsi-app/supabase/migrations/342_canonical_source_candidates_admin_gate.sql', content: text342, allFiles, allowlist: {} }),
+    [],
+  );
 });
 
 test('enumerate() returns the real migration file list', () => {

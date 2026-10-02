@@ -49,14 +49,23 @@
 //   `canonical_source_candidates_admin_write`, whose header comment literally reads "RLS-gated to
 //   platform admins (org_memberships role IN owner/admin)" -- the identical bug 048 shipped, never
 //   redefined by a later migration the way 048's was by 249. [CONFIRMED, NEW FINDING, lane R6-8,
-//   2026-10-01.] Fixing it needs a new migration applying migration 249's own pattern
-//   (profiles.is_platform_admin) to canonical_source_candidates, run live via the Supabase CLI/MCP
-//   (standing rule 3) -- outside this lane's write set, and this worktree carries no DB credentials to
-//   apply it regardless (rule 15's "missing access blocks execution" escape, not a silent drop per
-//   rule 13's corollary). Recorded in ADMIN_GATE_PREEXISTING_ALLOWLIST below, named and dated,
-//   deliberately NOT asserting the finding is safe (contrast with RLS_ENABLE_ALLOWLIST, which only
-//   holds confirmed-safe traceability gaps) -- flagged to the coordinator in this lane's report rather
-//   than silently suppressed.
+//   2026-10-01.]
+//
+//   FIXED, NOT WORKED AROUND (operator ruling 2026-10-01, verbatim). Migration 342
+//   (`342_canonical_source_candidates_admin_gate.sql`) DROPs and redefines both policy names,
+//   repointing them to `profiles.is_platform_admin`, matching migration 249's own pattern exactly,
+//   with precondition and post-check DO blocks. AUTHOR-ONLY / NOT YET APPLIED to the live database --
+//   the coordinator applies it via the Supabase CLI/MCP (standing rule 3), since this worktree carries
+//   no DB credentials -- same posture migration 335's own "AUTHOR-ONLY, NOT APPLIED" header documents
+//   for a DDL change awaiting the coordinator's apply. The `ADMIN_GATE_PREEXISTING_ALLOWLIST` entry
+//   that previously held this finding open is REMOVED (this same commit), not replaced: check 2's
+//   existing "current (highest-numbered) definition wins" resolution (the same rule that already
+//   clears migration 048's superseded policies once 249 redefines them) now resolves this pair on its
+//   own the moment migration 342's text exists in the corpus -- 342 outnumbers 043, so its clean
+//   is_platform_admin definition is what "current" means for these two policy names, with no allowlist
+//   entry needed. (This is a FILE-level check, same as every other check in this function: it reads
+//   what migration 342 says, not whether the coordinator has run it yet against the live database --
+//   the same posture every other AUTHOR-ONLY migration in this corpus is checked under.)
 //
 // node: builtins plus the repo's own fitness lib helpers only (loaded by the no-npm discipline test
 // glob via run-test-suite.sh's existing `fitness/functions/*.test.mjs` line).
@@ -221,30 +230,16 @@ export function looksLikeOrgMembershipsAdminCheck(stmt) {
   return true;
 }
 
-// migration 043's canonical_source_candidates policies: a genuine, previously-unrecorded instance of
-// CF-DATA-8's exact pattern this lane's check 2 discovered (disclosed in this file's header). NOT a
-// confirmed-safe entry like RLS_ENABLE_ALLOWLIST -- flagged to the coordinator in this lane's report
-// as decision-ready (the fix is migration 249's own pattern, repointed at canonical_source_candidates),
-// blocked only by write-set scope and the absence of DB credentials in this worktree, never silently
-// dropped.
-export const ADMIN_GATE_PREEXISTING_ALLOWLIST = {
-  canonical_source_candidates_admin_read: {
-    decidedOn: '2026-10-01',
-    reason:
-      'lane R6-8 own finding, NOT CF-DATA-8-cited: migration 043 never redefined (unlike 048, fixed ' +
-      'by 249). Needs a new migration applying 249\'s profiles.is_platform_admin pattern; outside ' +
-      'this lane\'s write set and no DB credentials in this worktree to apply it. Flagged to the ' +
-      'coordinator, not asserted safe.',
-  },
-  canonical_source_candidates_admin_write: {
-    decidedOn: '2026-10-01',
-    reason:
-      'lane R6-8 own finding, NOT CF-DATA-8-cited: migration 043 never redefined (unlike 048, fixed ' +
-      'by 249). Needs a new migration applying 249\'s profiles.is_platform_admin pattern; outside ' +
-      'this lane\'s write set and no DB credentials in this worktree to apply it. Flagged to the ' +
-      'coordinator, not asserted safe.',
-  },
-};
+// EMPTY as of 2026-10-01 (lane R6-8). Previously held two dated entries for migration 043's
+// canonical_source_candidates_admin_read/_write (a genuine, previously-uncited instance of CF-DATA-8's
+// pattern this lane's check 2 discovered, flagged to the coordinator rather than silently dropped per
+// rule 13). Operator ruling 2026-10-01, verbatim, "fixed, not worked around": migration 342 redefines
+// both policy names on profiles.is_platform_admin, and check 2's existing "current (highest-numbered)
+// definition wins" resolution clears the pair on its own once 342's text exists in the corpus -- no
+// allowlist entry is needed, so none is kept. Left as an empty, still-exported const (not deleted) so
+// a future genuine finding of this same shape has a named home to land in, dated and reasoned, exactly
+// like this one was, rather than a silent new allowlist being invented from scratch.
+export const ADMIN_GATE_PREEXISTING_ALLOWLIST = {};
 
 /** Pure core of check 2. `filepath` is the file under test (its numeric id decides whether its
  *  definition of a matched policy name is the CURRENT one); `allFiles` is the whole corpus. */
@@ -311,7 +306,7 @@ export const fitnessFunction = {
     'migration corpus (allowlisted, dated, for the eleven CF-SEC-14 tables plus one draft-table ' +
     'exception this lane found); and a CREATE POLICY must never gate an admin check on org_memberships ' +
     'role-membership with no org_id tie-back instead of profiles.is_platform_admin (CF-DATA-8 class; ' +
-    "migration 043's canonical_source_candidates is a disclosed, dated, not-yet-fixed exception).",
+    "migration 043's canonical_source_candidates instance was fixed, not allowlisted, by migration 342).",
   source: 'fsi-app/.discipline/fitness/functions/F64-rls-admin-gate-class.mjs',
 
   enumerate() {
