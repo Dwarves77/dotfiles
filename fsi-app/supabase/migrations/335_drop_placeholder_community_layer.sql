@@ -1,5 +1,5 @@
--- subject: Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides
--- coordinator/operator DDL approval. RULING (verbatim, 2026-09-29): "There has never been anyone in
+-- subject: Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). APPLIED (confirmed, tables absent from
+-- live schema, 2026-09-30), rode coordinator/operator DDL approval. RULING (verbatim, 2026-09-29): "There has never been anyone in
 -- community so my guess is they are fake place holders. Remove them completely and ease them" [erase].
 --
 -- Scope: case_studies (6 rows, all seeded 2026-04-05 by supabase/seed/seed-community.sql, see
