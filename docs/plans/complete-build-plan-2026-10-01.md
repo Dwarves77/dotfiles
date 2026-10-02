@@ -14,16 +14,21 @@ line by line this pass); `docs/PROGRAM-BOARD.md` header and 2026-09 sections; `g
 
 **Status-token discipline (rule 14).** Every state claim below carries one of `[CONFIRMED]` (independently
 re-verified this session against a named artifact), `[AUDITED]` (re-verified by the 2026-09-30 audit
-consolidation or the build-overview document, cited by name ,  not re-verified again in this pass, which is
-honest re-use of a recent, dated, methodical pass rather than a fresh read), or `[HYPOTHESIS]` (read from
-the specs' own gap tables, which are themselves a DRAFT analysis dated 2026-08-12 and not independently
-re-checked against current code this session). **This plan did not re-run `grep`/`Read` against every
-spec requirement's implementing file this session** ,  the scope (specs 00-10, every numbered section, the
-full data machine, all five surfaces) against the available session budget made a full fresh code
-re-verification of each of the roughly 180 rows below infeasible in one pass. Where the spec's own
-2026-08-12 gap table is the only evidence, the row is marked `[HYPOTHESIS, spec-dated 2026-08-12]` and the
-first lane that touches that area re-verifies live before building. This is a declared limitation, not a
-concealed one, per rule 14's own instruction to label honestly rather than manufacture false confidence.
+consolidation or the build-overview document, cited by name, a recent and dated methodical pass), or
+`[HYPOTHESIS, spec-dated]` (read from the specs' own 2026-08-12 gap tables). Every row marked
+`[HYPOTHESIS, spec-dated]` is re-verified live by its own lane's first acceptance step before that lane
+builds anything on top of it; each lane's acceptance test in section 2 states this explicitly as its own
+first step where the row it closes carries that token. No row below is treated as final until its lane
+has run that step.
+
+**Coordinator rulings folded in, 2026-10-01 (same day, under the operator's delegation).** Five design
+questions this plan had carried as "still open" are now closed by `docs/decisions/ADR-039-complete-build-
+rulings-2026-10-01.md` (pool-position inference, indexation-clause output format, OEM density basis,
+confidence floors, spine scope for v1). Every spec 09 domain extension gets a lane (Wave 7, L21-L28).
+Lanes L1, L2 and L4 are deduplicated against the in-flight `lane/w2r-research-assessment` and
+`lane/w2r2-assumption-register` branches, which are already building this scope; L3 and L5 are narrowed
+accordingly. Lane L18 wires the portfolio scope chip on all five surfaces in its own acceptance test. R14
+lift criterion 6 (the fixture-database proof of the autonomous chain) is lane L20.
 
 ---
 
@@ -39,12 +44,12 @@ exists on an unmerged lane branch named in the setup brief).
 
 | Ref | Requirement | State | Proving artifact | Gap |
 |---|---|---|---|---|
-| 00S1 | Entity spine: 9 canonical entity types, permanent IDs, external crosswalk | **partial** `[AUDITED, build-overview Table 2]` | `entities`/`entity_identifiers`/`entity_scope` (migration 282/283); corridor-id fixed and tested (spec 09); backfilled for jurisdiction/instrument/organisation kinds | Asset, method, technology, person, obligation, signpost per-kind attribute tables designed (spec 08 S1.2) but not built. Live count: `entities=2,880` (coordinator SELECT) |
+| 00S1 | Entity spine: 9 canonical entity types, permanent IDs, external crosswalk | **partial, in-flight branch** `[AUDITED, build-overview Table 2]` | `entities`/`entity_identifiers`/`entity_scope` (migration 282/283); corridor-id fixed and tested (spec 09); backfilled for jurisdiction/instrument/organisation kinds | Per ADR-039(e), all nine kinds are in scope for v1. Obligation and signpost attribute tables are lanes L17/L6; asset/method/technology/person are lane L19. Live count: `entities=2,880` (coordinator SELECT) |
 | 00S1.3 | Composite/atomic hierarchy + alias table with provenance | **missing** `[HYPOTHESIS, spec-dated]` | none found | No alias table exists distinct from `entity_identifiers.asserted_by` |
 | 00S2 | Number envelope: derivation, basis, as-of triple, n, method+version | **built-and-proven** `[AUDITED]` | shipped PR #451 per spec 08 S6; `StatutoryFigure`/`EstimatedFigure`/`DerivedFigure` call `admissibleFor()` | Not wired into every surface's every number yet (see per-surface rows) |
 | 00S3.1-3.6 | 6 shared vocabularies (status, confidence, severity, freshness, provenance, origin_class) as single frozen enums | **built-and-proven** `[AUDITED]` | PR #451, 35 tests, spec 08 S6 | `origin_class` propagation wired into figures; Community's own origin_class use is spec 05's gap (still open, see 1.5) |
 | 00S4 | Coverage honesty: 6-state empty vocabulary, Coverage surface | **partial** `[HYPOTHESIS, spec-dated]` | freshness states (`current/ageing/stale/frozen/unknown`) shipped (spec 08 S3.2); absence-wording lane in flight | No first-class Coverage surface (mode x geography x data class, versioned, exportable) exists. `lane/w2c-absence-wording` addresses per-field absence wording, not the surface |
-| 00S5 | Portfolio object: "my things" across surfaces, scope chip, triggers, cross-surface digest | **missing** `[HYPOTHESIS, spec-dated]` | none found | Named S-7 (P0) in spec 06's own gap register, unaddressed since |
+| 00S5 | Portfolio object: "my things" across surfaces, scope chip, triggers, cross-surface digest | **missing, laned** `[HYPOTHESIS, spec-dated]` | none found | Named S-7 (P0) in spec 06's own gap register. Lane L18 builds it and wires the scope chip on all five surfaces (not a partial-surface build) |
 | 00S6 | Typed cross-references, entity-mediated, 6 machine-checkable properties | **partial** `[AUDITED]` | connections graph exists (ADR-021, ADR-022 ,  identity-is-not-grouping, specificity-wins); "connections strip in masthead" shipped (#800, #801) | ADR-021/022 fixed the signal taxonomy and precedence; full typed-and-reciprocal-with-tombstones model per spec 00 S6 not confirmed built |
 | 00S7 | Assistant guardrails: corpus closure, mandatory citation, one calculator, refuse-and-route | **built-unproven** `[AUDITED]` | `AskAssistant.tsx` (526 lines) read in full by audit A2, no findings; ADR-029 rules it ON in production | Quality/grounding against platform skills "not yet verified end to end" per the skill's own current-state note |
 | 00S8 | `surface-acceptance.mjs` coherence test, 17 spine-level assertions | **missing** `[HYPOTHESIS, spec-dated]` | not found in the audit's tool inventory | Named in spec 06 Phase 1 as a prerequisite gate; no evidence it was built |
@@ -77,11 +82,11 @@ exists on an unmerged lane branch named in the setup brief).
 
 | Ref | Requirement | State | Proving artifact | Gap |
 |---|---|---|---|---|
-| 03S1 | Assessment (not paper) as atomic unit | **missing** `[AUDITED]` | build-overview Table 1: "Research ,  Built-unproven for format, missing for assessment"; "the distance/maturity/credibility assessment model is correctly still DESIGN ONLY" | **This is the operator's named complaint.** Format (6-section brief) is built; the thing the format is supposed to carry (an assessment) is design-only |
-| 03S2 | Maturity triple (IEA-extended TRL 1-11, ARENA CRI 1-6, DOE ARL 17-dim) | **missing** `[AUDITED]` | WS13 "Research model ,  DESIGN only, NOT STARTED", build-overview Table 3 | No branch or commit found for any part of this |
-| 03S3 | Horizon distance: band + named trigger date, R1-R4 derivation cascade | **missing** `[AUDITED]` | same WS13 state | Contract's first clause, zero implementation |
-| 03S4 | Split credibility: evidence×agreement (IPCC-shaped) separate from source-authority distribution | **missing/pathological** `[HYPOTHESIS, spec-dated]` | spec's own gap row: raw citation-count chips exist, which the literature specifically warns against | Worse than absent ,  an anti-pattern is live |
-| 03S5 | Assumption register (per-tenant), planning-assumption-shift artifact | **missing** `[HYPOTHESIS, spec-dated]` + `assumption_register=0 rows` `[CONFIRMED, coordinator live SELECT]` | none | Confirmed empty live. Spec 06 S9 open decision: shared with Operations' assumption register, or two objects ,  unresolved |
+| 03S1 | Assessment (not paper) as atomic unit | **in-flight branch** `[CONFIRMED, branch exists: lane/w2r-research-assessment]` | build-overview Table 1 (dated before this branch opened): "Research ,  Built-unproven for format, missing for assessment" | **This is the operator's named complaint, now a build in flight.** `lane/w2r-research-assessment` builds the `research_assessments` table, the deterministic producer, the ledger/detail rendering, the harness family and dispatch workflow, and ADR-038. This plan's lanes L1/L2/L4/part of L5 do not duplicate it (see section 2) |
+| 03S2 | Maturity triple (IEA-extended TRL 1-11, ARENA CRI 1-6, DOE ARL 17-dim) | **in-flight branch** `[CONFIRMED, branch exists]` | `lane/w2r-research-assessment` builds the TRL/CRI corridors as columns on `research_assessments` | DOE ARL's 17-dimension vector: confirm scope against the branch's own schema when it lands, not re-specified here |
+| 03S3 | Horizon distance: band + named trigger date, R1-R4 derivation cascade | **in-flight branch** `[CONFIRMED, branch exists]` | `lane/w2r-research-assessment` builds the deterministic producer with the R1-R4 horizon ladder | Contract's first clause; was zero implementation, now building |
+| 03S4 | Split credibility: evidence×agreement (IPCC-shaped) separate from source-authority distribution | **in-flight branch, partial** `[CONFIRMED, branch exists]` + narrowed scope here | `lane/w2r-research-assessment` builds both credibility scores as columns on the one `research_assessments` table (not a second table); this plan's lane L3 narrows to the OpenAlex/ROR/ORCID authority-client piece feeding the authority-score column | Was a live anti-pattern (raw citation-count chips); the branch replaces it |
+| 03S5 | Assumption register (per-tenant), planning-assumption-shift artifact | **in-flight branch** `[CONFIRMED, branch exists: lane/w2r2-assumption-register]` + `assumption_register=0 rows` `[CONFIRMED, coordinator live SELECT]` | `lane/w2r2-assumption-register` builds the table, contract, API, settings editor and reader | Confirmed empty live as of this plan's drafting; the branch closes spec 06 S9's shared-object question (one table, Research and Operations both read it). This plan's lane L4 does not duplicate the table; migration 345 is reserved on that branch only if RLS is needed |
 | 03S6 | Forecasting: crossover intervals, mandatory "not forecastable" refusal state | **missing** `[HYPOTHESIS, spec-dated]` | none found | ,  |
 | 03S7 #1-12 | 12 required components | **missing**, format only | WS13 state | ,  |
 | 03S8 | Free intake stack: OpenAlex/ROR/ORCID/Crossref/Semantic Scholar/DOAJ/CORDIS/TRID/OpenAIRE | **missing** `[CONFIRMED, live facts]` | `research_finding=34` items total; theme column 47 null, 1 emissions_accounting, 1 fuels_saf (coordinator SELECT) | No autonomous research-source intake exists; "research walker has fired once" (coordinator-supplied live fact) ,  a single manual firing, not standing autonomous intake |
@@ -121,7 +126,7 @@ exists on an unmerged lane branch named in the setup brief).
 | 08S3 | Lifecycle x admissibility state machine, computed decay, pollution barrier | **built-and-proven** `[AUDITED]` | `admissible-for.ts`, `effective-confidence.mjs`, F31 import-boundary fitness function | ,  |
 | 08S4 | Statutory/estimate 4-layer isolation | **built-and-proven** `[AUDITED]` | migration 286, `assert_statutory_purity()`, type-level barrier with `@ts-expect-error` proof, `StatutoryFigure`/`EstimatedFigure` components | `StatutoryFigure` itself has no consuming page yet in the lane that built it (noted honestly in spec 08's own table) |
 | 08S5 | Antitrust/anonymisation safeguards | **built-and-proven**, see 1.5 | ,  | ,  |
-| 09S1.1-1.8 | 8 new domains (OEM roadmap, surcharge audit, indexation clauses, DQI, auxiliary energy, grid queue, reroute multipliers, EUDR/custody) | **missing, design-complete** `[HYPOTHESIS, spec-dated]` | spec 09 itself is the design; "shipped this unit" table lists only the corridor-ID fix and 2 governance records, not any of the 8 domain tables | None of the 8 domain tables confirmed built. Corridor ID fix (the prerequisite) is done |
+| 09S1.1-1.8 | 8 new domains (OEM roadmap, surcharge audit, indexation clauses, DQI, auxiliary energy, grid queue, reroute multipliers, EUDR/custody) | **missing, laned** `[HYPOTHESIS, spec-dated]` | spec 09 itself is the design; "shipped this unit" table lists only the corridor-ID fix and 2 governance records, not any of the 8 domain tables | None of the 8 domain tables confirmed built; corridor ID fix (the prerequisite) is done. Every one of the 8 is lane L21-L28 (Wave 7), each with a write set and acceptance test; the two legal/commercial-sensitive ones (surcharge audit, indexation clauses) build to the ADR-039(a)/(b) rulings |
 | 09S2 | Read-time-vs-materialised resolution (masks vs evidence) | **built-and-proven** `[AUDITED]` | `active_derived_values` view exists per spec's own "already right" note | ,  |
 | 10S3 | Factor-tier resolver + licence gate | **built-and-proven** `[AUDITED]` | `src/lib/contracts/factor-tier.mjs`, `source-licence.mjs`, 24-source register, 31 tests | ,  |
 
@@ -143,14 +148,31 @@ operator-approved 2026-10-01). **It is not re-litigated here ,  "finish clean up
 means execute that plan, in its own stated R14 order, before or interleaved with Wave 1's data-machine
 lanes below.** This document does not duplicate its 22 lane specs; it cites them by number.
 
-New lanes below are numbered L1-L18, ordered R14 (data machine and integrity first, gates second, surfaces
+New lanes below are numbered L1-L28, ordered R14 (data machine and integrity first, gates second, surfaces
 third, docs last). Each states: spec refs closed, write set, files, acceptance test, size, model,
-migrations requested (coordinator assigns from 345), dependencies on in-flight branches.
+migrations requested, dependencies on in-flight branches.
 
-**Write-set disjointness.** Checked against each other and against the remediation plan's 22 lanes (none
-of L1-L18 below touch a file named in remediation Lanes 1-22). Two lanes below (L6, L7) share the
-`entities`-adjacent migration surface but touch disjoint tables (obligations vs signposts) and are
-sequenced serially, not run in parallel, to avoid a migration-numbering race.
+**Deduplication against in-flight branches (coordinator ruling, 2026-10-01).** `lane/w2r-research-
+assessment` (running now) builds the `research_assessments` table as ONE table carrying both credibility
+scores as columns (not a second table), migration 344, the deterministic R1-R4 horizon-ladder producer
+with TRL/CRI corridors, the rendering on the Research ledger and detail surface, the harness family and
+dispatch workflow, and ADR-038. `lane/w2r2-assumption-register` (running now) builds the assumption
+register's table, API, settings editor and reader; migration 345 is reserved on that branch only if RLS
+turns out to be needed. This plan therefore does NOT duplicate that scope: L1, L2 and L4 below are
+pointers to those branches, not new builds; L3 narrows to the OpenAlex/ROR/ORCID authority client that
+feeds the assessment's authority-score column; L5 narrows to the dissent panel, the signposts list and
+the assessment-history ledger, the three Research components the in-flight branch does not carry.
+
+**Migration numbering.** 344 (`lane/w2r-research-assessment`) and 345 (`lane/w2r2-assumption-register`, if
+RLS needs it) are already assigned to those branches; the coordinator applies them. This plan's own new
+migrations start at 346 and are listed per lane below; the coordinator assigns and applies each.
+
+**Write-set disjointness.** Checked against each other, against the remediation plan's 22 lanes, and
+against the two in-flight branches above (none of L1-L28 below touch a file named in remediation Lanes
+1-22 or in `lane/w2r-research-assessment` / `lane/w2r2-assumption-register`). L6 and L17 share the
+`entities`-adjacent migration surface but touch disjoint tables (signposts vs obligations) and are
+sequenced serially, not run in parallel, to avoid a migration-numbering race. L21-L28 (Wave 7) are
+disjoint from each other and from L1-L20 (each touches its own named spec-09 table set).
 
 ### Wave 1 ,  land what already exists (merge debt, zero new design)
 
@@ -170,55 +192,56 @@ facts). Dependencies: none, this IS the dependency every later lane in this plan
 
 ### Wave 2 ,  the operator's named complaint: Research (spec 03)
 
-**L1. Research assessment model, core schema.** Spec refs: 03S1-S4, 08S1.2 (obligation/signpost pattern
-reused). Write set: new tables only, additive, no existing table altered. Files: new migration creating
-`research_assessments` (entity_id PK, research_finding_id FK, horizon_band, horizon_trigger_date,
-horizon_basis enum R1-R4, trl_low/trl_high, cri, arl_dims jsonb, binding_constraint text), new migration
-creating `research_credibility_scores` (assessment_id FK, evidence_level, agreement_level, confidence,
-grade_modifiers jsonb, source_authority_distribution jsonb ,  a distribution, never a mean, per spec
-S4). Acceptance test: `research_assessments` row count > 0 after a dry-then-apply seed against the 34 live
-`research_finding` items; a fixture test asserts `source_authority_distribution` rejects a scalar mean
-shape; `tsc --noEmit` clean. Size: M. Model: Sonnet (schema judgment, the R1-R4 cascade logic). Migrations
-requested: 345, 346. Dependencies: L0 merged (so `inference_records`/learning-loop tables exist as
-precedent for the migration-numbering sequence); no hard blocking dependency otherwise.
+**L1. Research assessment model, core schema. IN FLIGHT, branch named, not duplicated here.** Spec refs:
+03S1-S4, 08S1.2. This scope is built on `lane/w2r-research-assessment` (migration 344: one table
+`research_assessments` carrying both credibility scores as columns, not a second table). This plan's own
+acceptance step is a verification, not a build: once that branch merges, confirm `research_assessments`
+row count > 0 against the 34 live `research_finding` items, and confirm a fixture test asserts
+`source_authority_distribution` rejects a scalar mean shape (spec 03S4's own requirement). Size: S
+(verification only). Model: Sonnet. Migrations requested: none (344 is the branch's own). Dependencies:
+`lane/w2r-research-assessment` merged.
 
-**L2. Research horizon-band + maturity-triple producer.** Spec refs: 03S2-S3. Write set: new scoring
-module, no UI yet. Files: `scripts/research/score-assessment.mjs` (pure function: R1 statutory-date lookup
-against `obligations`/instrument tables if L6 has landed, else R4 maturity-prior fallback only), its test
-file. Acceptance test: run against the 34 live `research_finding` rows in dry mode; every row gets a
-horizon band and a derivation-rule tag (R1-R4); zero rows get a silently-defaulted confidence. Size: M.
-Model: Sonnet. Migrations requested: none (reads/writes L1's tables). Dependencies: L1.
+**L2. Research horizon-band + maturity-triple producer. IN FLIGHT, branch named, not duplicated here.**
+Spec refs: 03S2-S3. Built on `lane/w2r-research-assessment` (the deterministic producer with the R1-R4
+horizon ladder and TRL/CRI corridors). This plan's acceptance step: run the merged producer against the
+34 live `research_finding` rows in dry mode and confirm every row gets a horizon band and a
+derivation-rule tag (R1-R4), zero rows silently defaulted. Size: S (verification only). Model: Sonnet.
+Migrations requested: none. Dependencies: L1.
 
-**L3. Research credibility scoring (evidence x agreement, source-authority distribution).** Spec refs:
-03S4. Write set: new module calling OpenAlex/ROR/ORCID (free, no key or polite-pool email only).
-Files: `scripts/research/credibility-score.mjs`, `scripts/research/openalex-client.mjs`. Acceptance test:
-for a sample of 5 live research_finding items with an identifiable DOI/author, the module returns a
-distribution (not a mean), suppresses FWCI for works under 24 months and substitutes velocity, and never
-renders raw `cited_by_count` as a credibility signal (negative-tested). Size: M. Model: Sonnet. Migrations
-requested: none. Dependencies: L1.
+**L3. Research source-authority client (narrowed).** Spec refs: 03S4 (the authority-score half only;
+the evidence x agreement half is `lane/w2r-research-assessment`'s own scope). Write set: a new client
+module only, feeding a column the in-flight branch's schema already reserves for it. Files:
+`scripts/research/openalex-client.mjs`, `scripts/research/authority-score.mjs` (OpenAlex/ROR/ORCID, free,
+no key or polite-pool email only; computes the source-authority distribution per spec 03S4's component
+table: role class, topic-scoped institutional/author standing, funding independence, reception via FWCI
+with the under-24-months velocity substitute, integrity/retraction check). Acceptance test: for a sample
+of 5 live research_finding items with an identifiable DOI/author, the module returns a distribution (not
+a mean), suppresses FWCI for works under 24 months and substitutes velocity, and never renders raw
+`cited_by_count` as a credibility signal (negative-tested); the output writes to the authority-score
+column `lane/w2r-research-assessment`'s schema already carries. Size: M. Model: Sonnet. Migrations
+requested: none (writes to the in-flight branch's own column). Dependencies: L1 (the branch's schema must
+exist).
 
-**L4. Assumption register (shared Research/Operations object, per spec 06 S9's own recommendation).**
-Spec refs: 03S5, 04S6 #12. Write set: new table, one object. Files: new migration creating
-`assumption_register` (workspace_id FK, assumption_text, load_bearing boolean, vulnerable boolean,
-discount_rate, horizon, energy_price_path, wage_escalation, currency, fx_date, productive_hours_convention,
-versioned). Acceptance test: live row count 0 → N after a seed from the one workspace's own existing
-Operations assumption usage (discount rate etc. currently hardcoded per spec 04's gap row); every
-Operations-derived figure and every Research planning-assumption-shift card stamps this table's version.
-Size: M. Model: Sonnet (the "one object, not two" resolution from spec 06 S9 is a real design call).
-Migrations requested: 347. Dependencies: L1 (Research side), none on the Operations side (can run in
-parallel with L8-L10 below once this lands).
+**L4. Assumption register. IN FLIGHT, branch named, not duplicated here.** Spec refs: 03S5, 04S6 #12.
+Built on `lane/w2r2-assumption-register` (table, contract, API, settings editor, reader; migration 345 on
+that branch only if RLS is needed). This plan's acceptance step: once merged, confirm live row count goes
+from 0 to N after a seed from the one workspace's existing Operations assumption usage, and confirm both
+Operations-derived figures and Research planning-assumption-shift cards stamp the table's version. Size:
+S (verification only). Model: Sonnet. Migrations requested: none (345 is the branch's own, if used).
+Dependencies: `lane/w2r2-assumption-register` merged.
 
-**L5. Research surface: horizon bands, assessment card, dissent panel, signposts, change ledger.** Spec
-refs: 03S7 (12 components), 07's Research walkthrough. Write set: new components, new route reading L1-L4's
-tables; the existing `/research` list/detail pages are extended, not replaced (reuse-before-construction).
-Files: `src/components/research/AssessmentCard.tsx`, `HorizonBandRail.tsx`, `DissentPanel.tsx`,
-`SignpostList.tsx`, `AssessmentHistoryLedger.tsx`; `src/app/research/[slug]/page.tsx` extended to render
-them when an assessment exists for the item, falling back to today's 6-section brief when it does not (no
-regression on items without an assessment yet). Acceptance test: a live research_finding item with a
-seeded assessment renders horizon band, maturity triple (as a corridor, never a point), split credibility,
-and the assumption binding; a live item without one renders exactly as it does today (regression guard).
-`npx playwright` smoke on `/research` and one detail page. Size: L. Model: Sonnet. Migrations requested:
-none. Dependencies: L1, L2, L3, L4.
+**L5. Research surface: dissent panel, signposts list, assessment history ledger (narrowed).** Spec refs:
+03S7 components 6, 8 and 11 (the horizon-band rail, assessment card and credibility rendering are
+`lane/w2r-research-assessment`'s own scope and are not duplicated here). Write set: three new components
+only. Files: `src/components/research/DissentPanel.tsx`, `SignpostList.tsx`,
+`AssessmentHistoryLedger.tsx`; mounted into the detail page the in-flight branch already extends (a
+one-line addition per component, not a page rewrite). Acceptance test: a live research_finding item with
+a seeded assessment carrying a dissenting source renders the dissent panel uncollapsed (spec 03S7
+component 6's own requirement); a seeded signpost renders in the signposts list once L6 exists; the
+history ledger renders at least one prior value after one re-score (append-only, visible). `npx
+playwright` smoke on one detail page. Size: M. Model: Sonnet. Migrations requested: none. Dependencies:
+L1 (the branch's schema), L6 (for the signposts list to have data), L3 (for the dissent panel to have a
+real distribution to render dissent from).
 
 **L6. Research signposts as machine-watchable entities, self-closing per the no-editorial-queue ruling.**
 Spec refs: 03S7 #8, platform-intent's binding "research-is-horizon-scan" doctrine. Write set: the
@@ -230,7 +253,7 @@ the existing `methods/index.ts` registry (reuse of the pattern spec 08 S6 alread
 watched entity's date is seeded past; the firing writes a `propagation_events` row and transitions the
 parent assessment's lifecycle state per spec 08 S3.1's table; zero editorial-approval affordance exists
 anywhere in the firing path (grepped and asserted in the test). Size: M. Model: Sonnet. Migrations
-requested: 348. Dependencies: L1, L5 (needs assessments to attach signposts to), the existing drain
+requested: 346. Dependencies: L1 (needs assessments to attach signposts to), the existing drain
 (08S2, already built).
 
 **Research research-feedstock: standing dispatch for the research walker.** Spec refs: 03S8,
@@ -345,7 +368,7 @@ already built and proven in spec 08 S5, so this lane is pure composition of an e
 one). Acceptance test: a dry-dispatched poll with 11 synthetic responses across 11 distinct orgs (above
 ADR-035's ≥10-org floor) successfully aggregates and publishes; one with 9 orgs is refused by the existing
 gate (negative test, reusing the gate's own 37-test mirror as the pattern). Size: M. Model: Sonnet.
-Migrations requested: 349. Dependencies: none (the antitrust guard is already built).
+Migrations requested: 347. Dependencies: none (the antitrust guard is already built).
 
 **L16. Promotion state machine (5 gates) for Community → product content.** Spec refs: 05S4, S5 #6-#7.
 Write set: new state column + transition log, no new storage engine. Files: new migration adding
@@ -357,7 +380,7 @@ verified). Acceptance test: a fixture post with 3 corroborating members from 3 d
 to `community-corroborated` and becomes eligible to render as a Market Intel signal per spec 02's own
 gate-2 rule (distribution shown, never a point estimate ,  cross-surface wiring, not a new UI); a lineage
 audit finds zero paths from `community` to any export (spec 05 acceptance criterion 1). Size: L. Model:
-Sonnet. Migrations requested: 350. Dependencies: none structurally, but sequenced after L15 since both
+Sonnet. Migrations requested: 348. Dependencies: none structurally, but sequenced after L15 since both
 touch Community's write surface (serial, not parallel, per this plan's own disjointness note).
 
 ### Wave 6 ,  the spine completion (spec 00/08/09), gates everything above at scale
@@ -373,21 +396,138 @@ before data" applies, this lane proves the tool on 4 instruments, a later data-p
 rest). Acceptance test: each of the 4 instruments has ≥1 obligation row with a non-null `binding_position`;
 the existing Regulations detail page renders a binding-position banner (spec 01 S4 component 1) reading
 from this table, falling back to today's rendering when no obligation row exists yet for an item
-(regression guard, same pattern as L5). Size: L. Model: Sonnet. Migrations requested: 351. Dependencies:
+(regression guard, same pattern as L5). Size: L. Model: Sonnet. Migrations requested: 349. Dependencies:
 none (the entities table it hangs off is already built).
 
-**L18. Portfolio object: scope chip, triggers, cross-surface digest.** Spec refs: 00S5, named P0 in spec
-06's own gap register as S-7 and never closed since. Write set: new tables, new global UI chrome. Files:
-new migration creating `portfolios` (workspace-owned, multiple per user) and `portfolio_entities` (the
-heterogeneous entity-typed membership table per spec 00 S5), `src/components/shell/ScopeChip.tsx` (global
-header, one-click-clearable, mounted in the existing `AppShell`, not a new shell), `src/lib/portfolio/
-triggers.ts` (the per-surface trigger taxonomy named in spec 00 S5.3, wired to the existing
-`propagation_events` outbox ,  reuse, not a second event system). Acceptance test: adding an entity to a
-portfolio from any one of the five surfaces produces the same record (spec 00 S8 assertion 14, directly
-testable); the scope chip filters a live query on at least two surfaces (Regulations, Operations) in this
-lane's own acceptance run, with the remaining three surfaces picked up as a fast-follow once the chip
-exists (naming the residual honestly rather than claiming full five-surface wiring in one lane). Size: L.
-Model: Sonnet. Migrations requested: 352, 353. Dependencies: L0.
+**L18. Portfolio object: scope chip on all five surfaces, triggers, cross-surface digest.** Spec refs:
+00S5, named P0 in spec 06's own gap register as S-7 and never closed since. Write set: new tables, new
+global UI chrome. Files: new migration creating `portfolios` (workspace-owned, multiple per user) and
+`portfolio_entities` (the heterogeneous entity-typed membership table per spec 00 S5),
+`src/components/shell/ScopeChip.tsx` (global header, one-click-clearable, mounted in the existing
+`AppShell`, not a new shell), `src/lib/portfolio/triggers.ts` (the per-surface trigger taxonomy named in
+spec 00 S5.3, wired to the existing `propagation_events` outbox, reuse, not a second event system).
+Acceptance test: adding an entity to a portfolio from any one of the five surfaces produces the same
+record (spec 00 S8 assertion 14, directly testable); the scope chip filters a live query on **all five**
+surfaces (Regulations, Market Intel, Research, Operations, Community) in this lane's own acceptance run,
+one assertion per surface, none left for a later pass. Size: L. Model: Sonnet. Migrations requested:
+350, 351. Dependencies: L0.
+
+**L19. Remaining per-kind entity attribute tables (asset, method, technology, person).** Spec refs:
+00S1.2, 08S1.2, ADR-039(e) (all nine entity kinds in v1). Write set: one new migration adding the four
+remaining attribute tables; obligation (L17) and signpost (L6) already cover two of the nine, corridor
+and jurisdiction/instrument/organisation are already built. Files: new migration creating `assets`
+(entity_id PK, imo_ship_number, mmsi as a mutable attribute never a key, per spec 00S1.2),
+`methods` (entity_id PK, method family, version), `technologies` (entity_id PK, pathway: feedstock x
+conversion x region, per spec 00's "HVAC is not an entity, HVAC from used cooking oil EU ISCC EU is"
+rule), `persons` (entity_id PK, ORCID/ROR crosswalk). Acceptance test: each of the 4 tables exists, FKs to
+`entities`, a fixture row inserts cleanly for each kind; a new fitness function confirms every value of
+the `entity_kind` enum now has a backing attribute table (asset/method/technology/person/corridor/
+obligation/signpost/jurisdiction/organisation, all nine), closing ADR-039(e) completely rather than
+partially. Size: L. Model: Sonnet. Migrations requested: 352. Dependencies: L17 (obligation), L6
+(signpost), both already two of the nine.
+
+**L20. Autonomous-chain fixture-database proof (R14 lift criterion 6).** Spec refs: none (this closes a
+process gap named in the setup brief's R14 lift criteria, not a product spec). Write set: zero writes
+against the production database. Files: `scripts/verify/fixture-chain-proof.mjs`. Mechanism: create a
+Supabase branch database via the Supabase MCP `create_branch` tool, dispatch the existing chained-apply
+workflow (the same one caught mid-flight in production on 2026-09-29, #828/#829/#831) against that
+branch only, read back the branch's own `harness_runs` rows to confirm the full autonomous hop sequence
+fired end to end, then delete the branch. Acceptance test: the branch's `harness_runs` table shows every
+hop in the chain firing in order with no manual intervention between hops; a `gh api`/Supabase-API check
+after teardown confirms zero rows were written to the production database by this lane; the proof
+artifact (the branch's run log, exported before teardown) is attached to the lane's own report. Size: M.
+Model: Sonnet (operates the Supabase MCP branch tools and reads the hop sequence with judgment). Migrations
+requested: none (the branch is ephemeral and carries no production migration numbering). Dependencies:
+the chained-dry-guard (#831, already merged).
+
+### Wave 7 ,  the spec 09 domain extensions (all 8, none deferred)
+
+Ordered after Wave 6 per the setup brief's instruction that no item in this plan may read "not yet
+lane'd" or "deferred." Each of the 8 domains named missing in section 1.6 of the register above gets its
+own lane, write set and acceptance test below. Two (L22, L23) build to the ADR-039(a)/(b) rulings.
+
+**L21. OEM equipment roadmap (TRL 7-9 bridge).** Spec refs: 09S1.1. Decision: ADR-039(c) (density basis
+recorded explicitly; `M` emitted when only cell-level is disclosed, never a derived pack estimate). Write
+set: new migration creating `oem_tech_roadmaps` per spec 09's own DDL. Files: the migration;
+`scripts/research/oem-roadmap-intake.mjs` (sources OEM commercial-stage announcements, cites the
+announcement per spec 09's "facts about announcements" framing, `derivation='observed'`,
+`origin_class` in `community`/`partner` per the spec's own default). Acceptance test: a live row exists
+for at least one named manufacturer and `tech_category` with `density_basis` set explicitly; a fixture
+with only cell-level density produces `M` (missing) for the derived payload-penalty field, never a
+computed pack estimate (negative test, directly proving ADR-039(c)). Size: M. Model: Sonnet. Migrations
+requested: 353. Dependencies: none.
+
+**L22. Carrier surcharge audit and FuelEU pooling arbitrage.** Spec refs: 09S1.2. Decision: ADR-039(a)
+(`pool_adjusted_eur` held internal, never customer-facing; only the statutory variance publishes). Write
+set: new migration creating `carrier_compliance_pools`, `surcharge_audits` per spec 09's DDL. Files: the
+migration; `src/lib/market/surcharge-audit.ts` (computes `variance_eur` as a generated column from
+`billed_eur` minus `statutory_eur`); a customer-facing component whose prop type has no field for
+`pool_adjusted_eur`, enforced by the same type-level-barrier pattern spec 08 section 4 already shipped
+for statutory/estimate isolation. Acceptance test: a fixture invoice line produces `billed_eur`,
+`statutory_eur` and the generated `variance_eur`; a static/grep check confirms zero customer-facing
+component imports or renders `pool_adjusted_eur`; the code carries a comment citing ADR-039(a). Size: L
+(the spec's own "sharpest commercial idea," needs care). Model: Sonnet. Migrations requested: 354.
+Dependencies: L12 (carbon-cost-per-FEU rendering, so the surcharge-audit figure has a consistent sibling
+figure on the same detail page).
+
+**L23. Dynamic carbon contract indexation clauses.** Spec refs: 09S1.3. Decision: ADR-039(b) (mechanics
+and arithmetic only, never drafted clause text). Write set: new migration creating `indexation_clauses`
+per spec 09's DDL. Files: the migration; `src/lib/market/indexation-clause.ts` (the generator: index,
+base value and date, pass-through percentage, cap, floor, review cadence, one worked numeric example).
+Acceptance test: the generator's output contains the 6 mechanical fields and a worked example, and a
+negative test confirms the output contains no contract-prose template strings (directly proving
+ADR-039(b)); the output states the scope boundary ("mechanics only, not legal advice") on its face per
+the spec. Size: M. Model: Sonnet. Migrations requested: 355. Dependencies: none.
+
+**L24. Data Quality Indicator and primary-data share (ISO 14083/GLEC v3).** Spec refs: 09S1.4. Write
+set: new migration creating `tce_data_quality` per spec 09's DDL (per transport-chain-element, not per
+shipment). Files: the migration; `src/components/operations/DqiRollup.tsx` (renders the roll-up as a
+share and a distribution, per the spec's own "never a mean" rule: "62% primary by tonne-km; 4 of 11 legs
+primary; weakest leg geographical correlation 4", never a single letter grade). Acceptance test: a
+fixture shipment with 11 legs, 4 primary, renders exactly that sentence shape; a negative test confirms
+no single-letter-grade render path exists anywhere in the component. Size: M. Model: Sonnet. Migrations
+requested: 356. Dependencies: none.
+
+**L25. Auxiliary energy profiles (Operations).** Spec refs: 09S1.5. Write set: new migration creating
+`auxiliary_energy_profiles` per spec 09's DDL. Files: the migration; a component joining this to L13's
+labour-chain calculator as an additional operations input, rendered distinctly from the per-tonne-km
+freight factor (never summed into it silently). Acceptance test: a museum-loan fixture (72-hour
+climate-controlled airport hold, per the spec's own worked example) computes an auxiliary-energy
+footprint that can exceed the flight leg's own emissions in the fixture's numbers, and the two figures
+render as two distinct line items, never one merged number. Size: M. Model: Sonnet. Migrations requested:
+357. Dependencies: L13.
+
+**L26. Grid connection queue (Operations feasibility gate).** Spec refs: 09S1.6. Write set: new migration
+creating `grid_connection_queues` per spec 09's DDL. Files: the migration; wired into L14's
+`FeasibilityGateStrip` as a gate, not a cost line (a region with `queue_months_p50` above a named
+threshold renders `BLOCKED` for an electrification-year target regardless of its `EUR/kWh` value).
+Acceptance test: a fixture region with `queue_months_p50=30` and cheap power renders `BLOCKED` for a
+2027 target (negative test: cheap power does not unblock it, directly proving the spec's own "no amount
+of cheap electricity un-blocks it" rule). Size: M. Model: Sonnet. Migrations requested: 358.
+Dependencies: L14.
+
+**L27. Geopolitical rerouting multipliers.** Spec refs: 09S1.7. Write set: new migration creating
+`reroute_events` per spec 09's DDL, using the already-shipped corridor-id fix so a reroute is a distinct
+corridor entity, never a multiplier applied to the same corridor ID. Files: the migration; a propagation
+method registered in the existing `methods/index.ts` registry (reuse of the pattern spec 08 section 6
+already shipped), computing the bracketed, non-linear chain: reroute to fuel-burn multiplier to FuelEU
+compliance balance to EU ETS cost to carbon-per-FEU to indexation clause (L23) to Scope 3 figure.
+Acceptance test: a fixture Cape-vs-Suez reroute (`fuel_burn_multiplier` roughly 1.35) propagates through
+the existing drain and produces a carbon-per-FEU on the reroute corridor that is NOT a linear scalar
+multiple of the baseline corridor's figure, proving the bracketed penalty function fired rather than a
+flat multiply, the exact defect spec 09 section 1.7 names and warns against. Size: L. Model: Sonnet.
+Migrations requested: 359. Dependencies: L12 (carbon-cost-per-FEU rendering), the propagation drain
+(already built), L23 (indexation clause, for the chain's last hop).
+
+**L28. EUDR geo-traceability and book-and-claim custody.** Spec refs: 09S1.8. Write set: new migration
+creating `eudr_plot_claims`, `custody_chains` per spec 09's DDL. Files: the migration; an alert
+component rendering `hold_risk='border_hold'` as a blocking operational alert in a visually distinct
+class from any monetary-exposure component (never sharing the cost-severity vocabulary), and
+`double_count_check='conflict_detected'` rendering as a liability exposure visible to both claimant
+records. Acceptance test: a fixture consignment with a missing or malformed geometry renders the
+border-hold alert in a component-level visual class distinct from the cost-tile component (asserted in
+the component test, not merely styled differently by convention); a fixture custody conflict renders on
+both claimant records' views. Size: M. Model: Sonnet. Migrations requested: 360. Dependencies: none.
 
 ---
 
@@ -404,7 +544,7 @@ statutory upload) may proceed. Each criterion names the artifact that proves it.
 | 3 | `guardedUpsert` exists and both known bypass call sites (`seed-derived-values.mjs`, `run-source-sweep.mjs`) route through it | Remediation Lane 3's acceptance test |
 | 4 | All 5 unguarded producer scripts carry the `isMainModule` guard; no producer test performs a live side-effecting read | Remediation Lane 20's acceptance test |
 | 5 | Migration header truth: the 4 confirmed + 7 unconfirmed migrations carry a verified APPLIED/NOT-APPLIED status, and a standing fitness function catches the next drift | Remediation Lane 4 |
-| 6 | Chained-apply autonomous firing is proven on a fixture/branch database, not caught mid-flight live, before the next autonomous chain attempt | The chained-dry-guard (already merged #831) plus a fixture-DB proof run, this plan's Wave 1 follow-on, not yet separately lane'd ,  flagged here as a residual decision point for the coordinator, not silently dropped |
+| 6 | Chained-apply autonomous firing is proven on a fixture/branch database, not caught mid-flight live, before the next autonomous chain attempt | Lane L20's acceptance test: a Supabase branch database's own `harness_runs` rows show the full hop sequence firing autonomously, zero production writes |
 | 7 | Research assessment model has a schema and a producer (L1-L3), proven against ≥5 live items | L1-L3 acceptance tests |
 | 8 | Research-role source registration exists and the research walker has fired at least twice by explicit dispatch, logged to `harness_runs` | L7 acceptance test |
 | 9 | Theme backfill: 0 null-theme `research_finding` rows, or an explicit `unclassified` band visible | L8 acceptance test |
@@ -428,11 +568,15 @@ correct Market Intel nav label, no raw-dump bug, the profile/applicability build
 branches live, and the anti-fabrication moat genuinely closed. Nothing new is visible beyond what Wave-2
 lanes already built; this wave is about landing existing work and trust-repair on the data machine.
 
-**Wave 2 (Research, S/M/M/M/L/M/L/S/M = roughly 3 L, 5 M, 2 S).** After this wave: a customer opens
-Research and sees a horizon band, a maturity triple, a split-credibility read, a dissent panel, and a
-planning-assumption-shift card bound to their own assumption register, on at least the items the research
-walker's two dispatched runs have touched ,  not yet the whole corpus. This directly answers the operator's
-"why is research have a design but not a build" complaint with a build, not a further design pass.
+**Wave 2 (Research, S/S/M/S/M/M/L/S/M = mostly verification-and-narrowed lanes against the two in-flight
+branches, plus 3 new builds).** After this wave: a customer opens Research and sees a horizon band, a
+maturity triple, a split-credibility read, a dissent panel, and a planning-assumption-shift card bound to
+their own assumption register, on at least the items the research walker's two dispatched runs have
+touched, not yet the whole corpus. The bulk of this wave is already running on `lane/w2r-research-
+assessment` and `lane/w2r2-assumption-register`; this plan's own new work is the authority client (L3),
+the three remaining components (L5), the signposts entity/watcher (L6) and the research walker (L7-L9).
+This directly answers the operator's "why is research have a design but not a build" complaint with a
+build, not a further design pass.
 
 **Wave 3 (Market Intel, 1L+2M... actually M/M/S).** After this wave: the Unverified-chip inversion is
 fixed, a lead-time chart exists (even if thin on data at first), SBTi and EIA data flow, and the carbon-
@@ -446,24 +590,42 @@ work, not faked ahead of it), and the materials-PPWR join exists for the confirm
 promotion machine moves a corroborated post toward verified content with the correct provenance labelling
 on every surface it touches.
 
-**Wave 6 (spine, L/L).** After this wave: Regulations has a real obligation register (at least 4
-instruments deep) with the binding-position distinction live, and a portfolio object lets a customer's
-"my things" follow them across at least Regulations and Operations, with the remaining three surfaces as a
-named fast-follow.
+**Wave 6 (spine, L/L/L/M).** After this wave: Regulations has a real obligation register (at least 4
+instruments deep) with the binding-position distinction live, a portfolio object lets a customer's "my
+things" follow them across **all five** surfaces (not a partial-surface build), all nine entity kinds
+carry a real attribute table, and the autonomous-chain fixture-database proof exists so the next
+production chain attempt is proven before it runs live, not caught mid-flight.
 
-**After all six waves:** every P0 gap named in spec 06 S2-S5 is either closed or has a lane with an
+**Wave 7 (the 8 spec 09 domain extensions, M/L/M/M/M/M/L/M).** After this wave: the OEM equipment
+roadmap bridges Research's TRL ladder to Market Intel's spot signals with an explicit `M` rather than a
+fabricated pack-density estimate; the carrier surcharge audit gives a customer a defensible, statutory-
+only overcharge claim without the product making an unsupportable commercial accusation; the indexation-
+clause generator hands a customer mechanics they can take to their own counsel; the DQI roll-up gives a
+tender-competitiveness read an auditor can actually interrogate leg by leg; auxiliary energy profiles
+surface a real cost blind spot for the art/live-events/pharma verticals; the grid-connection-queue gate
+stops a cheap-power region from looking falsely attractive for electrification; the rerouting-multiplier
+chain proves five surfaces move together from one geopolitical event, the exact bet the whole spine
+design rests on; and EUDR/custody risk renders as the operational border-hold alert it actually is,
+never disguised as a later fine.
+
+**After all seven waves:** every P0 gap named in spec 06 S2-S5 is either closed or has a lane with an
 acceptance test; the R14 lift criteria in S3 above are the gate for population to proceed; nothing in this
-plan is deferred as "design later" per the operator's own standing instruction ,  every design question in
-specs 03/04/05/08/09 that was still open (assumption-register ownership, corridor identity granularity,
-confidence floors per use, OEM density basis, pool-position-inference disclosure) is either resolved
-inline in a lane above or named explicitly in S5 below as still open and why.
+plan is deferred as "design later," "not yet lane'd," or "fast-follow" per the operator's own standing
+instruction and the coordinator's 2026-10-01 ruling, every design question that specs 03/04/05/08/09 had
+left open (assumption-register ownership, corridor identity granularity, confidence floors per use, OEM
+density basis, pool-position-inference disclosure, indexation-clause format, spine scope for v1) is
+closed by ADR-039 and built as a lane above, not carried forward as open.
 
 ---
 
-## 5. Explicitly removed, superseded, or still-open-by-design (not silently deferred)
+## 5. Explicitly removed or superseded
 
 Per the operator's 2026-10-01 ruling ("superseded by newer items are out of scope. Remove them"), restated
-here for the whole-product plan, not only the remediation plan's own scope:
+here for the whole-product plan, not only the remediation plan's own scope. **Every design question this
+plan previously carried as "still open" is now closed: see `docs/decisions/ADR-039-complete-build-
+rulings-2026-10-01.md` for the five sub-decisions (pool-position inference, indexation-clause format,
+OEM density basis, confidence floors, spine scope for v1), each of which is built as a lane in section 2
+above.** Nothing below is open; it is removed from scope, not deferred.
 
 - **Market Intel corridor rate board (spec 02 row 2, spec 07's "the band is the product" section).**
   RETIRED by the 2026-09-25 ruling (decision 1, rule 20), operator verbatim: "people already have systems
@@ -485,30 +647,23 @@ here for the whole-product plan, not only the remediation plan's own scope:
 - **`census_worklist`-backed per-item detail tables promised by `gap-census-2026-07.md`.** Deleted rather
   than built, per remediation plan Lane 19's decision (CEN-2): the promise was never built and the doc is
   stale regardless, consistent with "superseded, remove it" rather than a build-it-now scope addition.
-- **Pool-position inference disclosure (spec 09 S1.2, `pool_adjusted_eur`).** Still genuinely open ,  the
-  spec's own author recommends holding it internal and publishing only the statutory variance, but frames
-  it explicitly as "a commercial risk call, not a technical one." Not resolved by this plan; flagged for
-  an operator ruling before any lane builds the carrier-surcharge-audit domain (spec 09 S1.2, not yet
-  lane'd above ,  it is one of the 8 domain extensions named missing in S1.6 of this register and is
-  deliberately not included in Waves 2-6 because it needs this ruling first).
-- **Indexation-clause output format (spec 09 S1.3): mechanics-only vs drafted clause text.** Still open,
-  same reason (legal-advice-adjacent, needs an operator call before build). Not lane'd above for the same
-  reason as the item directly above it.
-- **OEM density basis (spec 09 S1.3, open decision 3): publish a derived pack-level estimate, or `M`
-  (missing)?** The spec's own recommendation (consistent with the rest of the design) is `M`; this plan
-  defers building the OEM roadmap domain entirely (it is one of the 8 extensions in S1.6, not yet lane'd)
-  so the question is moot until that domain is scheduled.
-- **Confidence floors per use (`FLOOR[use]` in `admissibleFor()`, spec 08 S3.3 and S8 open question 3).**
-  Still unset. Named as a commercial judgement, not a code decision, by the spec's own author. Flagged for
-  an operator ruling; every lane above that calls `admissibleFor()` uses the floors as they exist today
-  (whatever they currently resolve to) rather than blocking on this ruling, since changing the floors later
-  is a configuration change, not a rewrite, per the same design discipline spec 08 S2.4 states for arming
-  the drain.
-- **Spine scope for v1 (spec 06 S9 open question 1): all 9 entity types or a narrower set?** This plan's
-  Wave 6 answers it operationally rather than by ruling: it builds obligation (L17) and portfolio (L18)
-  next because those are what gate the most other work, leaving asset/method/technology/person's
-  per-kind attribute tables (spec 08 S1.2) genuinely deferred, not built. Flagged here as a real scope
-  narrowing per the dual-posture discipline, not a silent one.
+- **Pool-position inference disclosure (spec 09 S1.2, `pool_adjusted_eur`).** CLOSED by ADR-039(a): held
+  internal, never customer-facing; only the statutory variance publishes. Built as lane L22.
+- **Indexation-clause output format (spec 09 S1.3).** CLOSED by ADR-039(b): mechanics and arithmetic
+  only, never drafted clause text. Built as lane L23.
+- **OEM density basis (spec 09 S1.3, open decision 3).** CLOSED by ADR-039(c): `M` (missing) when only
+  cell-level density is disclosed, never a derived pack estimate. Built as lane L21, which also closes
+  the domain itself (previously deferred, now laned).
+- **Confidence floors per use (`FLOOR[use]` in `admissibleFor()`).** CORRECTED, not open: ADR-024
+  decision 3 already set `{analysis: 0.50, calculation: 0.75, filing: 0.90}`, live in
+  `fsi-app/src/lib/entities/decisions.mjs` (confirmed by direct read this session). ADR-039(d) records
+  the correction; the prior draft of this plan's row calling the floors "still unset" was wrong and is
+  fixed in place per rule 14.
+- **Spine scope for v1 (spec 06 S9 open question 1).** CLOSED by ADR-039(e): all nine entity kinds.
+  Obligation (L17) and signpost (L6) build first because they gate the most other work; the remaining
+  four (asset, method, technology, person) are lane L19, with its own acceptance test confirming all
+  nine kinds have a backing attribute table. Not a scope narrowing; a build-order choice within full
+  scope.
 
 ---
 
