@@ -107,7 +107,7 @@ export function CommunityPickupsQueueView() {
         )
       );
 
-      let profileMap = new Map<string, { id: string; full_name: string | null }>();
+      const profileMap = new Map<string, { id: string; full_name: string | null }>();
       if (authorIds.length > 0) {
         const { data: profileRows } = await supabase
           .from("profiles")
@@ -119,7 +119,7 @@ export function CommunityPickupsQueueView() {
         }
       }
 
-      const rows = rawRows.map((r: any) => {
+      const rows = rawRows.map((r) => {
         const profile = r.author_user_id ? profileMap.get(r.author_user_id) ?? null : null;
         return {
           ...r,
@@ -129,8 +129,8 @@ export function CommunityPickupsQueueView() {
       });
       setItems(rows as QueuePost[]);
       setCurrentUserId(userRes.data.user?.id ?? null);
-    } catch (e: any) {
-      setError(e.message || "Failed to load community pickups");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load community pickups");
     } finally {
       setLoading(false);
     }

@@ -59,6 +59,57 @@ import { FlagsRejectionsQueue } from "@/components/admin/redesign/FlagsRejection
 import { CorpusTurnPanel } from "@/components/admin/CorpusTurnPanel";
 import { StatutoryRowsUpload } from "@/components/admin/StatutoryRowsUpload";
 
+/** Shared shape for the org and member rows passed to OrganizationsTable /
+ *  MembersPanel (both declare their own structurally-equivalent local
+ *  OrgRow/MemberRow types; this is the superset AdminDashboard's state uses). */
+interface AdminOrgRow {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  plan: string | null;
+  created_at: string | null;
+}
+
+export interface AdminMemberRow {
+  id: string;
+  org_id: string;
+  user_id: string | null;
+  role: string | null;
+  created_at: string | null;
+  /** org_memberships.user_id -> profiles.id is a to-one FK, so the `user:profiles!user_id(...)`
+   *  embed below returns a single object at runtime (matching OrganizationsTable's and
+   *  MembersPanel's own local MemberRow types, which both declare it singular). Supabase's
+   *  untyped query-builder inference widens embeds to arrays regardless of cardinality, which is
+   *  why the fetch sites below assert back to this shape rather than that generic inference. */
+  user?: {
+    name?: string | null;
+    headshot_url?: string | null;
+    full_name?: string | null;
+    display_name?: string | null;
+    email?: string | null;
+    avatar_url?: string | null;
+  } | null;
+}
+
+/** staged_updates row rendered by renderStaged(): the fields the admin
+ *  visibility-only staged queue reads (ADR-012 / RD-20: no human approve/reject). */
+interface AdminStagedUpdateRow {
+  id: string;
+  update_type: string;
+  created_at: string;
+  reason?: string | null;
+  proposed_changes?: { title?: string; summary?: string } & Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface AdminScanResult {
+  error?: string;
+  discovered?: number;
+  new_items?: number;
+  staged?: number;
+  new_sources_discovered?: number;
+}
+
 interface AdminDashboardProps {
   userId: string;
   userEmail: string;
@@ -68,9 +119,9 @@ interface AdminDashboardProps {
   dateLabel: string;
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
-  initialOrgs?: any[];
-  initialMembers?: any[];
-  initialStagedUpdates?: any[];
+  initialOrgs?: AdminOrgRow[];
+  initialMembers?: AdminMemberRow[];
+  initialStagedUpdates?: AdminStagedUpdateRow[];
   initialMtdSpendUsd?: number;
   initialMtdRuns?: number;
   initialErrorGroups?: ErrorGroupRow[];
@@ -150,7 +201,6 @@ const SECTIONS: SectionDef[] = [
 ];
 
 export function AdminDashboard({
-  userEmail: _userEmail,
   dateLabel,
   initialSources = [],
   initialProvisionalSources = [],
@@ -204,9 +254,9 @@ export function AdminDashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, sub]);
 
-  const [members, setMembers] = useState<any[]>(initialMembers);
-  const [orgs, setOrgs] = useState<any[]>(initialOrgs);
-  const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
+  const [members, setMembers] = useState<AdminMemberRow[]>(initialMembers);
+  const [orgs, setOrgs] = useState<AdminOrgRow[]>(initialOrgs);
+  const [stagedUpdates, setStagedUpdates] = useState<AdminStagedUpdateRow[]>(initialStagedUpdates);
   const [toast, setToast] = useState("");
 
   const supabase = createSupabaseBrowserClient();
@@ -249,7 +299,10 @@ export function AdminDashboard({
           .limit(100),
       ]);
       setOrgs(orgRes.data || []);
-      setMembers(memberRes.data || []);
+      // user_id -> profiles.id is to-one; Supabase's untyped builder infers the embed as an
+      // array regardless, so this asserts back to the single-object shape the two consumers
+      // (OrganizationsTable, MembersPanel) and memberDisplayName() actually read (see AdminMemberRow).
+      setMembers((memberRes.data as unknown as AdminMemberRow[]) || []);
       setStagedUpdates(updateRes.data || []);
     } catch {
       // RLS may block some queries — still show the UI.
@@ -274,7 +327,7 @@ export function AdminDashboard({
   const [scanTopic, setScanTopic] = useState("");
   const [scanJurisdiction, setScanJurisdiction] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<AdminScanResult | null>(null);
 
   const handleScan = async () => {
     setScanning(true);
@@ -290,8 +343,8 @@ export function AdminDashboard({
       const data = await resp.json();
       setScanResult(data);
       if (data.staged > 0) loadData();
-    } catch (e: any) {
-      setScanResult({ error: e.message });
+    } catch (e) {
+      setScanResult({ error: e instanceof Error ? e.message : String(e) });
     }
     setScanning(false);
   };
@@ -823,7 +876,7 @@ export function AdminDashboard({
                 <p style={{ fontSize: 13, color: "var(--text)", margin: 0 }}>
                   Scan complete: {scanResult.discovered} found, {scanResult.new_items} new,{" "}
                   {scanResult.staged} staged for review
-                  {scanResult.new_sources_discovered > 0
+                  {(scanResult.new_sources_discovered ?? 0) > 0
                     ? ` · ${scanResult.new_sources_discovered} new sources discovered`
                     : ""}
                   . Review them in Staged updates.

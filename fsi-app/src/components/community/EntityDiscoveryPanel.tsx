@@ -112,8 +112,8 @@ export function EntityDiscoveryPanel({ candidateEntities }: EntityDiscoveryPanel
           onChange={setWatched}
         />
         <p style={{ margin: "8px 0 0", fontSize: 10.5, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
-          Follows are saved on this device only. Each followed entity's most recent threads —
-          across every group that discusses it — appear below.
+          Follows are saved on this device only. Each followed entity&apos;s most recent threads,
+          across every group that discusses it, appear below.
         </p>
       </div>
 

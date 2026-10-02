@@ -29,7 +29,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { ModerationActions } from "./ModerationActions";
-import type { ModerationAction } from "./ModerationActions";
 
 interface ModerationReportRow {
   id: string;
@@ -129,10 +128,7 @@ export function ModerationQueue({
     return reports.filter((r) => r.reason === reasonFilter);
   }, [reports, reasonFilter]);
 
-  const onResolved = (reportId: string) => (
-    _action: ModerationAction,
-    _phaseD: boolean
-  ) => {
+  const onResolved = (reportId: string) => () => {
     // Optimistic: drop the row from the open queue. If the user is
     // viewing "all" or "resolved", the resolution is reflected on
     // next reload.

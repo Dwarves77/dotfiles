@@ -102,7 +102,6 @@ export function FlagsRejectionsQueue() {
               type="button"
               role="tab"
               aria-selected={on}
-              aria-pressed={on}
               onClick={() => setKind(k.key)}
               style={{
                 fontFamily: "inherit",

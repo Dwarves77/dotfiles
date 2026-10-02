@@ -241,7 +241,7 @@ export function EntityPicker({
             lineHeight: 1.4,
           }}
         >
-          Every post binds to at least one spine entity — that's what makes it reachable from
+          Every post binds to at least one spine entity. That&apos;s what makes it reachable from
           Regulations, Market Intel, Research, and Operations, not just this forum.
         </p>
       )}

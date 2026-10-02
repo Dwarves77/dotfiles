@@ -153,7 +153,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   // ── One nav-item renderer, two size variants (mobile spec DRAWER:
   //    "min-height 44px, padding 0 10px, radius 6px, 14px text" vs the
   //    desktop card's own smaller row) — additive, not a second component. ──
-  const renderNavItem = (variant: "card" | "drawer") => ({ href, label, countKey }: NavItem) => {
+  const renderNavItem = (variant: "card" | "drawer") => function NavItemRenderer({ href, label, countKey }: NavItem) {
     const active = isActive(href);
     const count = countKey && counts ? counts[countKey] : undefined;
     const drawer = variant === "drawer";

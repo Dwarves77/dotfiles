@@ -97,9 +97,17 @@ function shortId(id: string): string {
   return id.length > 8 ? id.slice(0, 8) : id;
 }
 
+/** Minimal shape extractFailures reads off a staged_updates row; the failures array can live at
+ *  the top level or nested under either JSONB envelope column, depending on which writer stamped it. */
+interface StagedUpdateFailuresSource {
+  provenance_failures?: unknown;
+  proposed_data?: { provenance_failures?: unknown } | null;
+  proposed_changes?: { provenance_failures?: unknown } | null;
+}
+
 /** Pull the failures array from a staged_updates row, tolerant of where it lives. */
 export function extractFailures(update: unknown): ProvenanceFailure[] {
-  const u = update as Record<string, any> | null;
+  const u = update as StagedUpdateFailuresSource | null;
   if (!u) return [];
   const raw =
     u.provenance_failures ??

@@ -76,8 +76,8 @@ export function IngestRejectionsView() {
       } else {
         setData(payload as RejectionsResponse);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -122,8 +122,8 @@ export function IngestRejectionsView() {
             : prev
         );
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
     }

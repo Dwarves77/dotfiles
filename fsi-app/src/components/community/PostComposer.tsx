@@ -21,6 +21,7 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createCommunityPost } from "./api-client";
 import { validateEntityBinding } from "./identity-format";
@@ -399,9 +400,9 @@ export function PostComposer({
               {refusal.aggregateRoute.pending
                 ? `, currently below the ${FLOOR.minOrgs}-contributor floor, so it isn't publishable yet either.`
                 : "."}{" "}
-              <a href="/community/benchmarks" style={{ color: "inherit", fontWeight: 700 }}>
+              <Link href="/community/benchmarks" style={{ color: "inherit", fontWeight: 700 }}>
                 View benchmarks
-              </a>
+              </Link>
             </p>
           )}
         </div>

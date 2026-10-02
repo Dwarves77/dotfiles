@@ -240,11 +240,6 @@ export function CommunityRooms({
 
   const selected = roomState.find((r) => r.key === selectedKey) ?? roomState[0];
 
-  // P1 fix (2026-09-06): count actual membership only — `youHere` is a
-  // jurisdiction hint, not a membership claim. See isRoomMember in rooms.ts.
-  const yourRoomCount = roomState.filter(isRoomMember).length;
-  const totalItems = roomState.reduce((s, r) => s + r.itemCount, 0);
-
   function patchRoom(key: RoomKey, patch: Partial<RoomVM>) {
     setRoomState((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }

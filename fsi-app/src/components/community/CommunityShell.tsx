@@ -187,7 +187,6 @@ export function CommunityShell({
         configured in this app) — the rule is small and global by design.
       */}
       <style
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{
           __html: `
             body[data-side="community"] aside.h-screen.sticky {
@@ -311,8 +310,8 @@ function InvitationRow({ invitation }: { invitation: CommunityInvitation }) {
         );
       }
       setBusy("done");
-    } catch (e: any) {
-      setError(e?.message ?? "Failed");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
       setBusy("idle");
     }
   };

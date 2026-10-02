@@ -81,8 +81,8 @@ export function PendingJurisdictionReviewView() {
       } else {
         setData(payload as PjrResponse);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -128,8 +128,8 @@ export function PendingJurisdictionReviewView() {
             : prev
         );
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
     }

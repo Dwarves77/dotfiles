@@ -411,7 +411,7 @@ function RegionPill({ region }: { region: string }) {
 // Util
 // ════════════════════════════════════════════════════════════════
 
-async function safeJson(res: Response): Promise<any> {
+async function safeJson(res: Response): Promise<{ error?: string } | null> {
   try {
     return await res.json();
   } catch {

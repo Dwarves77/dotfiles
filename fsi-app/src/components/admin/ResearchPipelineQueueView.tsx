@@ -84,13 +84,13 @@ export function ResearchPipelineQueueView() {
       if (queryErr) throw new Error(queryErr.message);
       // Supabase types the embedded source as an array OR single depending
       // on FK shape; normalize to single object.
-      const rows = (data ?? []).map((r: any) => ({
+      const rows = (data ?? []).map((r) => ({
         ...r,
         source: Array.isArray(r.source) ? (r.source[0] ?? null) : (r.source ?? null),
       }));
       setItems(rows as DraftItem[]);
-    } catch (e: any) {
-      setError(e.message || "Failed to load draft queue");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load draft queue");
     } finally {
       setLoading(false);
     }
