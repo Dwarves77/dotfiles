@@ -72,7 +72,6 @@ test("runFixtureImport: runs all six tables from injected fixture text, totals m
 
 test("runOneTable: a table with no accepted rows never calls insertMany (no empty-batch write)", async () => {
   let called = false;
-  const badCsv = "surcharge_audits header row not matching contract\nrow\n";
   const res = await runOneTable({
     table: "surcharge_audits",
     csvText: "corridor_id,carrier_id\nfoo,bar\n", // missing required headers -> ok:false

@@ -165,7 +165,6 @@ test("planReflect: a fresh classification finding with no matching existing open
 
 test("planReflect: a drift flag and a classification flag on the SAME source do not collide (different created_by -> different dedup key)", () => {
   const source = { id: "src-8", name: "x" };
-  const classifyRow = buildClassificationFlagRow(source, { proposals: [{ field: "scope_topics", value: ["fuel"], confidence: "medium", basis: "x", applicable: true }] });
   const driftRow = buildDriftFlagRow(source, { deltas: { regulations: 40, research: 0, market: 0, operations: 0, out_of_scope: 0 } });
   const existing = [{ id: "flag-classify", subject_ref: buildSubjectRef("src-8"), created_by: createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE) }];
   // This run only recomputes the DRIFT finding for src-8 (mirrors a --drift-only invocation, which

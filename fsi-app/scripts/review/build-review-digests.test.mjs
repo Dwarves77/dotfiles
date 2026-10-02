@@ -28,7 +28,7 @@ test("buildQueueDigest: markdown + ruling for a single queue, deterministic give
 });
 
 function fakeReadAll(rowsByTable) {
-  return async (table, cols, opts) => rowsByTable[table] ?? [];
+  return async (table, _cols, _opts) => rowsByTable[table] ?? [];
 }
 
 test("main: writes one .digest.md and one .ruling.json per queue into --out, filtered by --queue", async () => {

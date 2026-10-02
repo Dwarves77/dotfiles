@@ -109,7 +109,7 @@ test("ATTACK: findApplyInvokedProducerScripts + scriptImportsProducerSummary cat
   `;
   assert.equal(scriptImportsProducerSummary(fixtureScriptText), false);
 
-  const missing = scripts.filter((rel) => !scriptImportsProducerSummary(fixtureScriptText));
+  const missing = scripts.filter((_rel) => !scriptImportsProducerSummary(fixtureScriptText));
   assert.deepEqual(missing, ["scripts/producers/market/future-thing-producer.mjs"], "the attack fixture must be caught, not silently pass");
 });
 

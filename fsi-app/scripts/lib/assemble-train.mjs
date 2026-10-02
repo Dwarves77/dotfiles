@@ -451,7 +451,7 @@ export function findTrainLandingDates(repoRoot, ref, limit = 5) {
  * This is the mechanical check behind the plan's W1.6 done-condition, "no artifact branch older than one
  * train on origin".
  */
-export function findStaleUnfoldedBranches(repoRoot, liveBranches, referenceBranch, remote = "origin") {
+export function findStaleUnfoldedBranches(repoRoot, liveBranches, referenceBranch, _remote = "origin") {
   const trainDates = findTrainLandingDates(repoRoot, referenceBranch, 1);
   const cutoff = trainDates[0] ?? null;
   if (!cutoff) return [];

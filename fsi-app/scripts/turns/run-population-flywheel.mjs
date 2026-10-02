@@ -420,11 +420,6 @@ const MINTED_OUTCOME_VALUES = Object.freeze([
   "minted", "minted_validator_pass", "minted_hardened_validator_pass",
 ]);
 
-// Recognized fields used to resolve item_id when not present directly (pre-item_id artifacts).
-// Priority order: canonical_instrument_key (CELEX id), then instrument_identifier, then
-// source_url + title exact match. An entry that resolves to zero or >1 item is reported unresolved.
-const RESOLVER_KEY_PRIORITY = Object.freeze(["canonical_instrument_key", "instrument_identifier", "source_url_plus_title"]);
-
 /**
  * Every item this batch actually minted — i.e. apply-mint-batch.mjs's own per_item outcomes
  * "minted_verified" / "minted_unverified" (both carry a real intelligence_items.id; every other

@@ -85,7 +85,7 @@ test("a modal-default row carrying an operator_key is REJECTED (proves the scope
 
 test("a modal-default row missing a required scope dimension (vehicle_class) is REJECTED", () => {
   const [good] = loadFixtureRows(DESNZ_FIXTURE);
-  const { vehicle_class, ...malformed } = good;
+  const { vehicle_class: _vehicle_class, ...malformed } = good;
   const errors = validateFactor(malformed);
   assert.ok(
     errors.some((e) => /scope_kind "modal" requires vehicle_class/.test(e)),

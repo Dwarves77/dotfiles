@@ -280,7 +280,7 @@ export async function runPlanner({ mode = "dry", out = null, dispatchApplyDeferr
   if (mode === "apply" && out) {
     mkdirSync(out, { recursive: true });
     outPlanPath = resolve(out, "plan.json");
-    writeFileSync(outPlanPath, JSON.stringify(deferralCandidates.map(({ reason_class, ...row }) => row), null, 2) + "\n");
+    writeFileSync(outPlanPath, JSON.stringify(deferralCandidates.map(({ reason_class: _reason_class, ...row }) => row), null, 2) + "\n");
     log(`wrote ${outPlanPath} (${deferralCandidates.length} deferral candidate row(s) for apply-deferrals.mjs)`);
   }
 

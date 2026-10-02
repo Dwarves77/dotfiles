@@ -122,7 +122,7 @@ function deps({ flag, existing = null, insertResult } = {}) {
   return {
     readFlag: async () => ({ data: flag ?? null, error: null }),
     findExisting: async () => ({ data: existing, error: null }),
-    insertRow: async (row) => insertResult ?? { inserted: { id: "new-census-row" }, snapshot: "/tmp/snap.jsonl" },
+    insertRow: async (_row) => insertResult ?? { inserted: { id: "new-census-row" }, snapshot: "/tmp/snap.jsonl" },
   };
 }
 

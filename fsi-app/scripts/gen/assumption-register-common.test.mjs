@@ -44,7 +44,7 @@ test("every fixture row's as_at_date is 2026-08-30 (re-verified this session, sp
 
 test("a row missing a required field (label) is REJECTED", () => {
   const [good] = loadFixtureRows(FIXTURE);
-  const { label, ...malformed } = good;
+  const { label: _label, ...malformed } = good;
   const errors = validateAssumptionRow(malformed);
   assert.ok(errors.some((e) => /missing\/empty required field "label"/.test(e)), JSON.stringify(errors));
 });

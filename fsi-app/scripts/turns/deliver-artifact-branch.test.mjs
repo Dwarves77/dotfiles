@@ -186,7 +186,7 @@ test("REGRESSION: deliver-artifact-branch.sh lands correctly when run from a nes
   assert.match(out, /landed scripts\/harness-runs\/statutory\/statutory-run-001\.json/);
 });
 
-test("REGRESSION: a nested trace file (scripts/harness-runs/<family>/traces/*.json) is NOT matched by the pathspec (glob magic stops at /)", (t) => {
+test("REGRESSION: a nested trace file (scripts/harness-runs/<family>/traces/*.json) is NOT matched by the pathspec (glob magic stops at /)", (_t) => {
   const root = mkdtempSync(join(tmpdir(), "deliver-artifact-glob-test-"));
   try {
     git(root, "init", "-q", "-b", "master");

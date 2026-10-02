@@ -304,7 +304,7 @@ test("resolveMintedItemIds: pre-item_id path via per_item.id as canonical_instru
   // we return both matches
   let calledWithKeys = [];
   const db = {
-    readAll: async (table, columns, options) => {
+    readAll: async (table, columns, _options) => {
       if (table !== "intelligence_items") throw new Error("unexpected table");
       // The resolver batches all CELEX keys and calls readAll with .in()
       // We can't easily inspect the match function, so we just return all our test data
@@ -331,7 +331,7 @@ test("resolveMintedItemIds: ambiguous resolution (2+ items match) — reported u
   };
 
   const db = {
-    readAll: async (table, columns, options) => {
+    readAll: async (table, _columns, _options) => {
       if (table === "intelligence_items") {
         // The .in("canonical_instrument_key", ["ambig-key"]) returns 2 matches
         return [
@@ -358,7 +358,7 @@ test("resolveMintedItemIds: zero resolution (no items match) — reported unreso
   };
 
   const db = {
-    readAll: async (table, columns, options) => {
+    readAll: async (table, _columns, _options) => {
       if (table === "intelligence_items") {
         // The .in("canonical_instrument_key", ["nomatch"]) returns 0 matches
         return [];
@@ -1028,7 +1028,7 @@ test("resolveMintedItemIds: mint-run-005 shape — 'CELEX:'-prefixed keys resolv
   };
   const queries = [];
   const db = {
-    readAll: async (table, columns, options) => {
+    readAll: async (table, columns, _options) => {
       queries.push(columns);
       return [
         { id: "u-0788", canonical_instrument_key: "32014R0788", is_archived: false, created_at: "2026-06-02T10:05:00Z", provenance_status: "verified" },

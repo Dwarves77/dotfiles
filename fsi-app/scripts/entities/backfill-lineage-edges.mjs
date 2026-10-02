@@ -73,7 +73,6 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
 import { readAll, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { planLinkWrites } from "../../src/lib/entities/entity-resolve.mjs";
 import { partitionLineageWrites } from "../../src/lib/entities/lineage-backfill.mjs";

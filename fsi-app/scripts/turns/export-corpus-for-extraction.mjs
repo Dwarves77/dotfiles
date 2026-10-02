@@ -613,7 +613,7 @@ async function main() {
     const oversizeCount = parts.filter((p) => p.oversize).length;
     for (const p of parts) {
       const partPath = join(dir, `${name}-part${p.part}${ext || ".json"}`);
-      const partItems = p.items.map(({ size, ...rest }) => rest); // strip the internal size field
+      const partItems = p.items.map(({ size: _size, ...rest }) => rest); // strip the internal size field
       // D1 fix (defect-fix-plan-2026-09-12.md): not_exported is a property of the WHOLE run, not one
       // part, so it is carried on every part's own body rather than only the first, in case a lane
       // fetches a single part.

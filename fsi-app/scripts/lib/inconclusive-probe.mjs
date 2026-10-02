@@ -29,7 +29,7 @@
 // for semantic review, not verdicts. Wire into CI as a standing check; treat new CANDIDATE_*
 // as a review gate, not an auto-fail, until the lexicon is hardened against false positives.
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { SURFACE_CLASSES, discoverSurfaces, emptyCoverage, validateCoverage } from "./surface-registry.mjs";
 import { findFetchNegativeMappings } from "./fetch-negative-probe.mjs";

@@ -112,7 +112,7 @@ test("toInsertRow: a non-UUID item_id (run-extraction.mjs's corpus-index-N fallb
 });
 
 test("toInsertRow: a missing required string field is refused", () => {
-  const { event_kind, ...rest } = VALID_EVENT;
+  const { event_kind: _event_kind, ...rest } = VALID_EVENT;
   const r = toInsertRow(rest);
   assert.equal(r.ok, false);
   assert.match(r.reason, /event_kind/);

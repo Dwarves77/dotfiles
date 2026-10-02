@@ -196,7 +196,7 @@ const noThrottle = async () => {};
 
 test("triageOneSource: a healthy primary -> recovered, no alternative search needed", async () => {
   const source = { id: "s1", url: "https://reg.example/page", name: "Example Regulator", base_tier: 3 };
-  const fetchImpl = async (u, init) => fakeResponse({ status: 200, text: EN(3000), url: u, redirected: false });
+  const fetchImpl = async (u, _init) => fakeResponse({ status: 200, text: EN(3000), url: u, redirected: false });
   const d = await triageOneSource(source, { fetchImpl, throttle: noThrottle, perFetchMs: 5000 });
   assert.equal(d.outcome, "recovered");
   assert.equal(d.source_id, "s1");
@@ -207,7 +207,7 @@ test("triageOneSource: a healthy primary -> recovered, no alternative search nee
 
 test("triageOneSource: primary roadblocked, UK jurisdiction -> the ladder's own search surface finds a qualifying alternative", async () => {
   const source = { id: "s2", url: "https://dead.example/portal", name: "UK Freight Rules Register", jurisdictions: ["UK"], base_tier: 2 };
-  const fetchImpl = async (u, init) => {
+  const fetchImpl = async (u, _init) => {
     if (u.includes("dead.example")) return fakeResponse({ status: 200, text: "", url: u }); // empty stub — roadblock
     if (u.includes("legislation.gov.uk")) return fakeResponse({ status: 200, text: EN(5000), url: u });
     return fakeResponse({ status: 404, url: u });
@@ -346,7 +346,7 @@ test("main: --apply writes sources.fetch_status through the guarded path", async
     { apply: true, concurrency: 1, hostIntervalMs: 0, timeBudgetMs: 5 * 60000 },
     {
       readAll: fakeReadAll(sources),
-      guardedUpdateByIds: async (table, ids, patch, opts) => { dbCalls.push({ table, ids, patch }); return { updated: ids.length }; },
+      guardedUpdateByIds: async (table, ids, patch, _opts) => { dbCalls.push({ table, ids, patch }); return { updated: ids.length }; },
       fetchImpl,
       writeDossierFile: () => {},
       writeSummaryFile: () => {},

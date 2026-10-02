@@ -72,7 +72,7 @@ test("registerCitedSource: gov.uk host classifies (tier 2) and registers via inj
 });
 
 test("registerCitedSource: eur-lex host classifies tier 1 (legal primary)", async () => {
-  const deps = { registerSource: async (s) => ({ source_id: "src-2", created: false }) };
+  const deps = { registerSource: async (_s) => ({ source_id: "src-2", created: false }) };
   const res = await registerCitedSource({ url: "https://eur-lex.europa.eu/legal-content", title: "EUR-Lex" }, deps);
   assert.equal(res.tier, 1);
 });

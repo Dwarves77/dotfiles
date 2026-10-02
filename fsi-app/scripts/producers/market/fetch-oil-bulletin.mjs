@@ -95,7 +95,7 @@
 // verified, OR --since was not a well-formed YYYY-MM-DD date — the report names the specific problem) ·
 // 3 network failure (page or workbook download failed).
 
-import { writeFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
