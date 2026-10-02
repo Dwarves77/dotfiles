@@ -6,6 +6,44 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-10-01 (lane R12-13): `useListOrder.ts` wire-or-delete flag RESOLVED same day (coordinator ruling)
+
+Correction in place, same session, per rule 13's corollary (a flag that dissolves under evidence
+gets a same-session correction, never a quiet drop): the entry this heading replaced flagged
+`useListOrder.ts` as a decision pending a wire-or-delete ruling and allowlisted it in F25 meanwhile.
+Coordinator ruling, same day, operator standard "fixed, not worked around": the hook's only
+consumer was the deleted `DashboardTopPriority.tsx`, confirmed by grep; it is deleted, not
+allowlisted, along with its whole supporting stack (`src/app/api/user/list-order/{route,logic}.ts`,
+`src/lib/list-order.ts`, `src/lib/watchlist-order.ts`, and the `listOrders` field in
+`workspace/bootstrap/logic.ts` + `useWorkspaceBootstrap.ts`) and its backing table
+(`user_list_order`, migration 343: `fsi-app/supabase/migrations/343_drop_user_list_order.sql`,
+APPLIED-PENDING). The flag's own premise, that the table might back a ledger surface not yet built,
+is refuted: the table carried 0 live rows per the live-schema snapshot, and the only OTHER
+consumer (`fetchWatchlist`'s read of the watchlist list_key, which degraded to natural order on
+every call since no drag UI was ever built for any list_key) is also removed, with no observable
+behaviour change. The F25 `LEGACY_ALLOWLIST` entry is removed in the same commit as this note.
+
+## 2026-10-01 (lane R12-13): `/api/admin/promotion-policy` deleted, CF-DEAD-1 CLOSED
+
+Closed, not deferred. `src/app/api/admin/promotion-policy/route.ts` (GET/POST for the P2 promotion
+policy engine) is removed. Operator ruling 2026-10-01, remediation plan Lane 12 decision 3: superseded
+by the operator-priced spend model (RD-31/RD-32); the promotion-engine-gating mechanism this route was
+built to authorize is out of scope under the operator's "superseded by newer items" clause, not a
+consumer to go build.
+
+`grep -rn "promotion_policy" fsi-app/src fsi-app/scripts` returns zero hits outside migration history
+(`supabase/migrations/231_promotion_policy.sql`, kept as migration history) and the generated,
+DB-sourced snapshots (`docs/inventories/db-check-constraints.json`,
+`.discipline/governance/db-catalog.json`, `scripts/verify/lib/fixtures/duplicate-table-schema-snapshot.json`)
+which still show the live `promotion_policy` table because it has not been dropped yet. One comment-only
+mention in `src/app/api/coverage/entries/route.ts` (an analogous-gating citation) was updated to stop
+naming the deleted route. `.discipline/governance/coverage-report.json` regenerated (filesystem-only,
+no DB access) to drop the dead path entry.
+
+The `promotion_policy` table drop itself (migration 341) is lane R4-5's write set, not this lane's; the
+DROP SQL is staged in `docs/plans/remediation-plan-2026-09-30.md`'s DROP statements section, to run only
+after this route deletion has landed.
+
 ## 2026-09-20 (lane F52): 29 shellcheck notes in workflow run scripts
 
 **Debt (pre-existing shell style, not a workflow-validity defect).** CI run 35538991257 on PR #762

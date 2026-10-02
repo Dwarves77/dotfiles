@@ -41,6 +41,10 @@ export const ALLOWLIST = {
       reason: 'Append-only audit trail of pause-flag writes (trigger guard_pause_flag_writer, migration 201); read by the operator through SQL when a pause is investigated, never by the app. Terminal sink by design.',
       decidedOn: '2026-09-17',
     },
+    promotion_policy: {
+      reason: 'CF-DEAD-1, operator ruling 2026-10-01 (remediation plan Lane 12): DELETE, superseded by the operator-priced spend model (RD-31/RD-32). Lane R12-13 deleted the only reader (src/app/api/admin/promotion-policy/route.ts) in this commit; the DROP TABLE migration itself is lane R4-5\'s write set (migration 341), staged in docs/plans/remediation-plan-2026-09-30.md, to land after this deletion. Temporary allowlist entry, removed the same commit that adds the DROP migration.',
+      decidedOn: '2026-10-01',
+    },
   },
   functions: {
     gate_a_health_refresh: {

@@ -682,7 +682,10 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
             changes; it is the operator's own item and is verified by a spec row rather than
             rebuilt. dc.html p1's unscored row draws an em dash in this column instead — the
             operator's later item wins, and the divergence is logged in DEVIATION-LOG.md. */}
-        <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
+        {/* bandHex wants the raw hex (band.hex), not the var() reference (band.cssVar):
+            nextDotStyle appends an alpha suffix onto this string for the "next" dot's ring, which
+            only produces a valid color when the base is a hex literal (CF-BROKEN-2 / A2bc). */}
+        <MilestoneTimeline entries={timeline} bandHex={band.hex} />
       </span>
       <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", minWidth: 0, fontSize: "var(--fs-11)" }}>
         {/* B4: "Tier cell shows an em dash when there is no tier." Before this the cell drew the

@@ -1,6 +1,6 @@
 // SM smoke spec: Personal archive. Lane GATES-1, 2026-09-02, finish plan Wave 1. Mounts the REAL
 // `ArchiveViewer` (src/components/settings/ArchiveViewer.tsx) via harness.mjs. Unlike WatchlistSurface
-// / DashboardTopPriority, ArchiveViewer takes no props — it reads `useResourceStore()` directly (a
+// (a prop-driven spec), ArchiveViewer takes no props: it reads `useResourceStore()` directly (a
 // real zustand store, `src/stores/resourceStore.ts`), so the "fixture" for each state is STORE STATE
 // injected via the store's own real `setState`, not a props object. This is still the REAL component
 // against REAL app state, exactly the same posture as the prop-driven specs — just seeded one layer

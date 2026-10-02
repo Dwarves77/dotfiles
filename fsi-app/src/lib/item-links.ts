@@ -8,7 +8,9 @@
  *  bundle.
  *
  *  WHY THIS IS ITS OWN MODULE (misroute contract, 2026-08-08). The dashboard
- *  cards (DashboardTopPriority, DashboardByOwner, WhatChanged) each
+ *  cards (DashboardTopPriority, DashboardByOwner, WhatChanged, all three now
+ *  deleted; DashboardByOwner/WhatChanged by the 2026-09-06 UIFIX lane,
+ *  DashboardTopPriority by lane R12-13, 2026-10-01, CF-DEAD-2) each
  *  hand-typed `/regulations/${id}` for every row, but the dashboard payload
  *  (migration 064 RPC) is the LIMIT-50 priority slice of the WHOLE corpus —
  *  no item_type filter — so a critical market_signal or research_finding

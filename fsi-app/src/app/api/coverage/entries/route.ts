@@ -3,7 +3,7 @@
 // The full Coverage Index entry set for the /admin Coverage tab. ADMIN-ONLY (operator ruling 2026-07-29:
 // the catalogue and all coverage/census tooling are admin-only; customer surfaces carry verified briefs
 // exclusively — no customer-reachable endpoint serves census data). Server-side gated: requireAuth (401
-// unauthenticated) + isPlatformAdmin (403 non-admin), same as /api/admin/promotion-policy. Read-only.
+// unauthenticated) + isPlatformAdmin (403 non-admin), same as every other /api/admin/** route. Read-only.
 import { NextRequest, NextResponse } from "next/server";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { getServiceSupabase } from "@/lib/supabase-service";

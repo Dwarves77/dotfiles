@@ -175,7 +175,10 @@ function TimelineDot({ classified, band, segments }: { classified: ClassifiedMil
     state === "passed" ? (
       <span aria-hidden="true" style={passedDotStyle(8)} />
     ) : state === "next" ? (
-      <span aria-hidden="true" style={nextDotStyle(band.cssVar, 12, 3)} />
+      // nextDotStyle wants the raw hex (band.hex), not the var() reference (band.cssVar); it
+      // appends an alpha suffix onto this string for the ring, which is only a valid color when
+      // the base is a hex literal (CF-BROKEN-2 / A2bc).
+      <span aria-hidden="true" style={nextDotStyle(band.hex, 12, 3)} />
     ) : (
       <span aria-hidden="true" style={aheadDotStyle(8)} />
     );

@@ -7,9 +7,14 @@
 // (src/components/home/HomeSurface.tsx), which no route has rendered since this lane's dashboard
 // rebuild landed page.tsx on DashboardBrief. HomeSurface and its now-unreferenced dependents
 // (DashboardAskBar/ByOwner/CoverageGaps/Hero/SurfaceCoverage/Supersessions/WhatChanged) were deleted
-// rather than kept alive only by this smoke wiring (CLAUDE.md rule 13). DashboardTopPriority.tsx is
-// NOT in that deleted set — list-order-smoke.mjs mounts it directly for its own reason (the drag-order
-// persistence invariant), independent of HomeSurface.
+// rather than kept alive only by this smoke wiring (CLAUDE.md rule 13). DashboardTopPriority.tsx was
+// NOT in that deleted set at the time (list-order-smoke.mjs mounted it directly for its own reason,
+// the drag-order persistence invariant, independent of HomeSurface) but has since been deleted itself
+// (lane R12-13, 2026-10-01, CF-DEAD-2): it had no import site anywhere in src/ and was dead code built
+// for a dashboard redesign superseded by the operator's 2026-05-24 "stays as-is" ruling. list-order-
+// smoke.mjs is deleted with it; the "regulations" list_key drag-order mechanism it exercised had no
+// other live mount anywhere in the app (confirmed: DashboardTopPriority.tsx was the only `dnd-kit`
+// consumer in src/), so no replacement coverage is owed.
 //
 // Both SectionHeading titles ("Due next", "What changed") carry `data-guard-title` (F35 coverage).
 //

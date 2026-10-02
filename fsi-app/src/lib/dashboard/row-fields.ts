@@ -1,13 +1,12 @@
 // Shared per-row field derivations for the UI system dashboard
 // (src/components/dashboard/DashboardBrief.tsx). Extracted so the same
-// jurisdiction-code / due-date logic isn't hand-copied — DashboardTopPriority.tsx
-// (src/components/home/DashboardTopPriority.tsx) carries its own near-identical
-// `jurTag`/`deadlineLabel` pair; that component is pre-existing "This week" UI
-// this lane does not touch (out of scope: it belongs to the old HomeSurface body,
-// superseded by DashboardBrief on the dashboard route but still mounted by
-// /regulations' own glance-list use elsewhere). Consolidating the two onto this
-// module is flagged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md as
-// follow-up for the lane that retires DashboardTopPriority.
+// jurisdiction-code / due-date logic isn't hand-copied. (2026-10-01, lane
+// R12-13: DashboardTopPriority.tsx, the only other module that carried a
+// near-identical `jurTag`/`deadlineLabel` pair, has been deleted: it had no
+// import site anywhere in src/ and was dead code built for a dashboard
+// redesign superseded by the operator's 2026-05-24 "stays as-is" ruling. The
+// consolidation follow-up this comment used to flag is closed by that
+// deletion, not by a merge.)
 
 import type { Resource } from "@/types/resource";
 
@@ -31,8 +30,9 @@ export interface DueInfo {
   daysNum: number;
 }
 
-/** Nearest future deadline (UTC day math — SSR/hydration-stable, see
- *  DashboardTopPriority's own comment for why UTC). Returns null when the
+/** Nearest future deadline (UTC day math, SSR/hydration-stable: a local-midnight
+ *  computation would let the server and the client hydration disagree on the day
+ *  count depending on the viewer's timezone). Returns null when the
  *  item carries no future dated deadline. */
 export function dueInfo(r: Resource, now: Date = new Date()): DueInfo | null {
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());

@@ -6,8 +6,8 @@
       "name": "Dashboard (home)",
       "route": "fsi-app/src/app/page.tsx",
       "data_path": "fsi-app/src/lib/data.ts",
-      "rendering_spec": "fsi-app/.discipline/rendering/smoke/list-order-smoke.mjs",
-      "note": "rendering_spec is the list-order smoke spec (DashboardTopPriority is the dashboard's drag-order surface, spec-00 §5's 'my things' portfolio object)."
+      "rendering_spec": "fsi-app/.discipline/rendering/smoke/dashboard-brief-smoke.mjs",
+      "note": "rendering_spec repointed 2026-10-01 (lane R12-13, CF-DEAD-2) from list-order-smoke.mjs to dashboard-brief-smoke.mjs: list-order-smoke.mjs mounted DashboardTopPriority.tsx, now deleted (dead code, zero import sites, superseded by the operator's 2026-05-24 dashboard 'stays as-is' ruling). dashboard-brief-smoke.mjs mounts DashboardBrief, the component page.tsx actually renders on this route."
     },
     {
       "id": "regulations",

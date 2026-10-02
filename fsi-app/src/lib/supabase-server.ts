@@ -6,8 +6,6 @@ import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/type
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import { scoreResource } from "@/lib/scoring";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
-import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
-import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
@@ -4310,40 +4308,12 @@ async function readPersonalWatchRows(
   }));
 }
 
-/**
- * The caller's stored drag order for the watchlist rail, as a rank map.
- *
- * RANKS, NOT POSITIONS. `position` is numeric and postgrest-js hands it back
- * as a string to preserve exactness; parsing it into a JS number in order to
- * sort would round a deeply split midpoint through an IEEE-754 double, which
- * is precisely the defect migration 238 moved the arithmetic into the database
- * to avoid. Postgres has already ordered the rows, so the array index IS the
- * order and no arithmetic happens on this side at all.
- */
-async function readListOrderRanks(
-  supabase: WatchlistSupabase,
-  userId: string
-): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("user_list_order")
-    .select("item_id")
-    .eq("user_id", userId)
-    .eq("list_key", WATCHLIST_LIST_KEY)
-    .order("position", { ascending: true });
-  // Degrade to the natural order rather than losing the rail. A personal
-  // ordering that fails to load costs the user their arrangement; a thrown
-  // read would cost them the whole watchlist. The error is logged rather than
-  // dropped (see the agent/run error-swallow post-mortem in CLAUDE.md).
-  if (error) {
-    console.warn("readListOrderRanks failed, using natural order:", describeSupabaseError(error));
-    return new Map();
-  }
-  const ranks = new Map<string, number>();
-  (data as Array<{ item_id: string }> | null)?.forEach((r, i) => {
-    ranks.set(r.item_id, i);
-  });
-  return ranks;
-}
+// readListOrderRanks (the caller's stored drag order for the watchlist rail) and its backing
+// table, user_list_order, are REMOVED (lane R12-13, 2026-10-01, operator ruling). The table's own
+// migration 237 named its consumers as "not yet built": the @dnd-kit sortable rail in
+// DashboardWatchlist was never built for any list_key, including watchlist, so the table carried 0
+// live rows and this read always degraded to the natural order below, with no observable behaviour
+// change from removing it.
 
 async function readTeamWatchRows(
   supabase: WatchlistSupabase,
@@ -4401,41 +4371,28 @@ export async function fetchWatchlist(
   try {
     const supabase = getServiceSupabase();
 
-    const [personalRows, teamRows, orderRanks] = await Promise.all([
+    const [personalRows, teamRows] = await Promise.all([
       readPersonalWatchRows(supabase, userId, limit),
       orgId
         ? readTeamWatchRows(supabase, orgId, limit)
         : Promise.resolve([] as WatchRow[]),
-      // Third read, not a follow-up: the order is independent of the rows, so
-      // serialising it would add a round trip to every dashboard render.
-      readListOrderRanks(supabase, userId),
     ]);
 
     // One rail, both scopes, newest first. An item watched personally AND by
     // the team appears once: the personal row wins, because that row is this
     // user's own act and removing it is the action the button offers them.
+    // The dedupe key is a composite (type:id): the watchlist rail is the one
+    // surface that merges item TYPES (reg/research/operations/source/signal
+    // all land on the same rail) and item_id is only unique within a type.
     const seen = new Set<string>();
     const rows = [...personalRows, ...teamRows]
       .filter((r) => {
-        const key = watchlistOrderKey(r.item_type, r.item_id);
+        const key = `${r.item_type}:${r.item_id}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
-
-    // The caller's own arrangement outranks recency for every row they have
-    // actually placed. The unplaced-first rule and the reason for it live in
-    // compareRanks, shared with the browser hook so the SSR order and an
-    // optimistic client order can never disagree.
-    if (orderRanks.size > 0) {
-      rows.sort((a, b) =>
-        compareRanks(
-          orderRanks.get(watchlistOrderKey(a.item_type, a.item_id)),
-          orderRanks.get(watchlistOrderKey(b.item_type, b.item_id))
-        )
-      );
-    }
 
     if (rows.length === 0) return [];
 

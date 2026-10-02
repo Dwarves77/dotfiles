@@ -4,18 +4,20 @@
 //
 // Module-level singleton (mirrors useAdminAttention.ts's dedup pattern, 2026-05-08)
 // fetching /api/workspace/bootstrap ONCE per session and sharing the result across
-// every mounted consumer. Before this, a single navigation could fire THREE
-// independent per-user round trips fanning out from three different hooks/
-// components: usePersonalStateHydration (personal-state), useListOrder (one call
-// per list surface), and OwnerTeamCard (members) — each with its own auth-session
-// read and its own fetch. Now all three read from the ONE shared response.
+// every mounted consumer. Before this, a single navigation could fire independent
+// per-user round trips fanning out from different hooks/components:
+// usePersonalStateHydration (personal-state) and OwnerTeamCard (members), each with
+// its own auth-session read and its own fetch (a third, useListOrder, one call per
+// list surface, was folded in here too and then deleted, lane R12-13, 2026-10-01:
+// the whole personal drag-order feature was never-shipped dead infrastructure).
+// Now both read from the ONE shared response.
 //
 // CACHEABLE FOR THE SESSION, not polled: unlike admin-attention (which changes
-// server-side from OTHER users' actions and needs a 60s heartbeat), personal-state,
-// list-order, and members only change from THIS user's own mutations, which already
-// apply optimistically in their own local state (resourceStore / useListOrder's
-// orderedIds) and are never read back from this singleton after the initial seed.
-// So one fetch per page-load session is correct — no polling loop needed here.
+// server-side from OTHER users' actions and needs a 60s heartbeat), personal-state
+// and members only change from THIS user's own mutations, which already apply
+// optimistically in their own local state (resourceStore) and are never read back
+// from this singleton after the initial seed. So one fetch per page-load session
+// is correct, no polling loop needed here.
 //
 // Non-blocking: nothing awaits this before first paint. The shell renders
 // immediately; consumers apply bootstrap data when (if) it arrives, same fail-soft
@@ -32,11 +34,6 @@ export interface BootstrapPersonalStateItem {
   isArchived: boolean;
   archiveNote: string | null;
   archivedAt: string | null;
-}
-
-export interface BootstrapListOrderEntry {
-  itemId: string;
-  position: string;
 }
 
 export interface BootstrapMember {
@@ -80,7 +77,6 @@ export interface BootstrapOverrideRow {
 
 export interface WorkspaceBootstrapData {
   personalState: BootstrapPersonalStateItem[];
-  listOrders: Record<string, BootstrapListOrderEntry[]>;
   members: BootstrapMember[] | null;
   adminAttention: BootstrapAdminAttention | null;
   // Absent/undefined on responses from before this field existed — callers

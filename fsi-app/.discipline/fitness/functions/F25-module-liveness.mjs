@@ -505,6 +505,15 @@ export const LEGACY_ALLOWLIST = [
       'step is therefore premature; it stays a hand-dispatched CLI until that decision lands.',
     reviewByPhase: 'lane STRUCTURED-ACTIONS, 2026-09-28',
   },
+  // useListOrder.ts's allowlist entry (lane R12-13, 2026-10-01) is REMOVED here (same lane,
+  // coordinator correction, same day): operator ruling "fixed, not worked around" supersedes the
+  // allowlist-and-flag disposition above. The hook, its whole supporting stack (the
+  // /api/user/list-order route, list-order.ts, watchlist-order.ts, workspace/bootstrap's
+  // listOrders field), and its backing table (user_list_order, migration 343) are all DELETED, not
+  // allowlisted. The entry's own reasoning ("whether to wire it... is a feature-scope call outside
+  // this lane's write set") is refuted by the coordinator's ruling, not left to drift: the table
+  // carried 0 live rows, confirmed against the live-schema snapshot, so no ledger ever actually
+  // used it either.
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,

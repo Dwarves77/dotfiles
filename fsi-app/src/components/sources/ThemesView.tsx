@@ -18,6 +18,7 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, Network } from "lucide-react";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { formatLocaleDateTime } from "@/lib/format";
+import { tint } from "@/lib/tint";
 
 interface ThemeBrief {
   title: string;
@@ -117,7 +118,7 @@ export function ThemesView() {
   }
   if (error) {
     return (
-      <div className="p-3 rounded text-sm" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
+      <div className="p-3 rounded text-sm" style={{ backgroundColor: tint("var(--color-error)", 15), color: "var(--color-error)" }}>
         {error}
       </div>
     );
@@ -217,7 +218,7 @@ function ThemeCard({ theme }: { theme: Theme }) {
               {theme.member_ids.length} members
             </span>
             {theme.surfaces.map((s) => (
-              <span key={s} className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: "var(--color-primary)", backgroundColor: "var(--color-primary)15" }}>
+              <span key={s} className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: "var(--color-primary)", backgroundColor: tint("var(--color-primary)", 15) }}>
                 {s}
               </span>
             ))}
@@ -230,7 +231,7 @@ function ThemeCard({ theme }: { theme: Theme }) {
           {theme.dominant_signals.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
               {theme.dominant_signals.slice(0, 3).map((s) => (
-                <span key={s.signal} className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--color-warning)15", color: "var(--color-warning)" }}>
+                <span key={s.signal} className="px-1.5 py-0.5 rounded" style={{ backgroundColor: tint("var(--color-warning)", 15), color: "var(--color-warning)" }}>
                   {s.signal} ({s.weight.toFixed(2)})
                 </span>
               ))}
@@ -256,7 +257,7 @@ function ThemeCard({ theme }: { theme: Theme }) {
             {brief.stale && (
               <span
                 className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                style={{ color: "var(--color-warning)", backgroundColor: "var(--color-warning)15" }}
+                style={{ color: "var(--color-warning)", backgroundColor: tint("var(--color-warning)", 15) }}
               >
                 STALE
               </span>
@@ -277,7 +278,7 @@ function ThemeCard({ theme }: { theme: Theme }) {
               {brief.stale && (
                 <div
                   className="text-[11px] font-medium px-2 py-1 rounded"
-                  style={{ color: "var(--color-warning)", backgroundColor: "var(--color-warning)15" }}
+                  style={{ color: "var(--color-warning)", backgroundColor: tint("var(--color-warning)", 15) }}
                 >
                   STALE — membership changed since generation
                 </div>
