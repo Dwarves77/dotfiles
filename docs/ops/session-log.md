@@ -24300,3 +24300,69 @@ Fresh session order: (1) live regulation page check; (2) README to 780; (3) rest
   2. `/login` "SIGN IN" breaks one letter per line, a regression from #786. New lane MASTHEAD-AUTH: a guard rule for titles narrower than their longest word, plus a precondition that the declared fonts actually loaded (operator reminder: the build used the wrong font).
   3. The ruling-6 regulation page redirects to a slug that renders "This page doesn't exist".
 - Fresh session order: AUTH-IDENTITY, then MASTHEAD-AUTH, then the live regulation check, then the rest of the close entry's list.
+
+## 2026-10-02, coordinator (COORD-DOCS lane, docs-only, coordinator authority): audit cleanup queue landed PRs 869 to 884; gate-timing finding; R16b fixture correction; new read-before-build rule
+
+**Audit cleanup queue landed (merged per `gh pr list --state merged`, verified 2026-10-02):**
+- PR 869 Lane R11 (clock-fragility F66 + CLI subprocess tests), PR 870 Lane R16-19 (docs batch, archive, followup closures, fixtures moved), PR 871 Audit A6b (discipline engine full-read register), PR 872 Audit consolidation final corrections (CF-BROKEN-1 refuted, injection claim refuted, lint claim refuted, A6b folded into new Lane 23), PR 873 Lane R20 (guard 38 CLI `main()` invocations, F67), PR 874 Lane R12-13 (dead route/component deletion, CSS var-concat fix), PR 875 Lane R6-8 (RLS admin-gate lint F64, bracket-path test guard F65), PR 876 Lane R4-5 (migration header truth pass, F63 standing check, catalog refresh, two drops: migrations 340/341), PR 877 Lane W2-R2 (per-tenant planning-assumption register), PR 878 Lane W2-C (absence wording everywhere, Market Intel label). Full numbering and per-lane disposition against the remediation plan's 22(23) lanes recorded in the "Remediation lanes" thread table in `docs/PROGRAM-BOARD.md`, updated in this same pass. Lanes 7, 10 and 21 remain OPEN (no PR in the 863-884 range touches them); Lanes 22 and 23 are ready to push, held for a landing slot (no PR exists for either as of this check); lane W2-R (the Research dissent-panel/signposts/history-ledger surface) is also not yet pushed.
+
+**Gate timing finding `[CONFIRMED]`:** the full local pre-push discipline gate (consistency, memory gate, discipline rules, fitness, invariant-coverage meta-gate, npm-dependent suites, behavioral goldens, closure gate, `tsc`) measured at 30 to 45 minutes per lane across the merged PRs above, duplicating the same suite CI already runs on push. Operator ruling pending on moving the full suite to CI-only and narrowing the local pre-push gate; not decided by this session.
+
+**R16b fixture correction (PR 884, open, not yet merged):** `extract-forward-events.test.mjs` carried four `t.skip()` branches that self-skipped whenever their gitignored `scripts/_snapshots/*.json` evidence was absent (rule 15: a proof that does not execute is not a proof). All three fixture-backed describe blocks were repointed at committed, tracked fixtures: `fixtures/retext32.json` (3 rows, unchanged, already a genuine excerpt); `fixtures/fwdtext3-synthetic-residue.json`, converted to an explicitly-labeled SYNTHETIC fixture (4 hand-authored rows, since the live residue defect class it locks measured 0/1336 in the corpus and a real re-export was impossible); and the placeholder 118-row capture replaced by `fixtures/feslot2-live-124-2026-10-02.json`, a DB executor's read-only export of 124 real rows (corpus growth), with the four locked regression counts hardcoded against it (baseline 61->65, with-context 90->95, rescued 29->30). `node --test` on the file: 129 pass, 0 fail, 0 skipped.
+
+**New rule: read before you build.** `docs/dispatches/lane-common-contract.md` gains a binding "Read before you build" section (operator ruling 2026-10-02, verbatim: "look at all existing code before you build anything"): every build lane reads, before writing anything, its own write set in full, everything that imports or is imported by it (grep, not assumption), the migrations and generated inventories its change moves, and the governing ADRs/docs; the lane report must carry a "read and reused" line naming what it read and reused, or the report is not accepted.
+
+**Files changed this pass:** `docs/INDEX.md` (no change ,  verified no new living doc is owed by the 2026-10-01/02 addenda; `docs/runbooks/layout-guard-baseline-renewal.md` named in the dispatch does not exist yet, so no line was added for it), `docs/dispatches/lane-common-contract.md` (new section), `docs/PROGRAM-BOARD.md` (remediation thread table resync against `gh pr list`, resume pointer updated), `docs/ops/session-log.md` (this entry).
+
+## 2026-10-02, coordinator (COORD-DOCS lane, follow-up resync): R22/R23 merged, Wave-2 lanes all landed, W2-R pushed CI-red
+
+Rebased `coord/docs-2026-10-02` onto `origin/master` on coordinator instruction. Per coordinator-supplied
+PR numbers and a fresh `gh pr list --state merged --limit 40`:
+
+- **Lane 22** merged as PR 885 ("R22: Actions artifact storage budget, docs-only push fast path, DB-shape
+  the brief-export queue and dispatch ledger"); landed scope is broader than decision 8's 7-day/13-workflow
+  description, flagged for re-read at next audit rather than re-stated here from the PR title alone.
+- **Lane 23** merged as PR 886 ("Lane R23: route commit-validation ranges through resolveRange's
+  merge-base"). Verified `docs/runbooks/layout-guard-baseline-renewal.md` exists on master before adding
+  its `docs/INDEX.md` line (runbooks section, alphabetical before `live-source-anti-fabrication-audit`).
+- **All 8 Wave-2 lanes now merged**: W2-B PR 879, W2-C PR 878, W2-D PR 882, W2-E PR 883, W2-F PR 880, W2-G
+  PR 863 (W2-A/H were already merged 2026-09-29). Wave-2 sub-table in `docs/PROGRAM-BOARD.md` updated row
+  by row against the merged PR titles/bodies.
+- **W2-R** (not W2-R2, which is PR 877's per-tenant assumption register, already merged) is pushed as PR
+  887; coordinator reports CI red on the rendering guard, fix pending. Row added/kept as "pushed, PR 887,
+  CI red", explicitly not marked DONE and no INDEX line added for its doc(s) ,  held for the coordinator's
+  separate merge message per instruction.
+- PROGRAM-BOARD resume pointer updated: Lanes 7, 10, 21 still OPEN; everything else in the remediation
+  queue and both in-flight Wave batches are now on master.
+
+Files changed this pass: `docs/INDEX.md` (new runbooks line for `layout-guard-baseline-renewal`),
+`docs/PROGRAM-BOARD.md` (Lane 22/23 rows, Wave-2 sub-table, W2-R row, resume pointer).
+
+## 2026-10-02, coordinator (COORD-DOCS lane, follow-up resync): W2-R merged PR 887, Research briefs PR 888, correction to W2-R's own prior board entry
+
+Rebased `coord/docs-2026-10-02` onto `origin/master` on coordinator instruction (W2-R merged as PR 887).
+
+**New INDEX lines** (both verified present on master before adding): `docs/decisions/ADR-038-research-
+built-now.md` (decisions section) and `docs/dispatches/lane-briefs/2026-10-02/README.md` (dispatches
+section). PR 887's other changed files (session-log.d addendum, migrations.md, spec-03, harness-run
+artifacts, workflow yml) are either not living docs by convention or are edits to already-indexed docs,
+so carried no further INDEX line.
+
+**Correction, in place (rule 14):** this lane's own 2026-10-01 resync (the "R23 and W2-R merged" pass)
+had mis-described the W2-R row as "Research surface dissent panel / signposts list / assessment history
+ledger" ,  that description is complete-build-plan's L5, a distinct and still-unbuilt lane with no short
+name assigned. Reading PR 887 directly (title: "Lane W2-R: Research assessment data machine (ADR-038)")
+shows W2-R is in fact the `research_assessments` schema + deterministic TRL/CRI/R1-R4 producer + Research
+surface rail card (complete-build-plan L1/L2). Corrected in `docs/PROGRAM-BOARD.md`'s W2-R row rather than
+silently replaced, per rule 13's corollary (a flag/finding that dissolves under evidence gets a
+same-session correction, never a quiet drop).
+
+**New row:** Lane BRIEFS-RESEARCH (PR 888, merged) ,  the L3/L5-L9 dispatch briefs under `docs/dispatches/
+lane-briefs/2026-10-02/`, gated on PR 887 merging first (satisfied).
+
+**Lane 7 + two unnamed lint lanes** marked IN PROGRESS per coordinator report; no PR or branch exists yet
+to verify independently via `gh pr list`, recorded as coordinator-reported, not `[CONFIRMED]`.
+
+Resume pointer updated accordingly. Files changed this pass: `docs/INDEX.md` (2 new lines), `docs/
+PROGRAM-BOARD.md` (W2-R row corrected, BRIEFS-RESEARCH row added, Lane 7 + two lint lanes marked IN
+PROGRESS, resume pointer).

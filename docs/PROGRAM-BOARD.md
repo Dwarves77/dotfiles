@@ -14,16 +14,26 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-10-01):** [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
+> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 888 landed the bulk of the
+> 23-lane remediation plan's own backlog, all 8 Wave-2 lanes (W2-B through W2-G, PRs 863/878/879/880/882/
+> 883), W2-R (PR 887, the research-assessment data machine, ADR-038), and the L3/L5-L9 dispatch briefs
+> (PR 888) (see "Remediation lanes" thread table and the Wave-2 sub-table above for the per-lane state
+> against `gh pr list`). Lane 7 and two unnamed lint lanes are coordinator-reported IN PROGRESS (not yet
+> independently verifiable, no PR exists); Lanes 10 and 21 are still OPEN with no activity reported. Next,
+> the Research build lanes (L3, L5 to L9 of
+> [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md)) from migration
+> 346 (the `signposts` table, L6), once the remediation queue's remaining OPEN lanes are dispositioned or
+> explicitly deferred. Prior pointer (2026-10-01): [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
 > (one-page state of the build, by customer surface and by data-machine stage, every cell cited to a
 > proving artifact) and the consolidated audit, [docs/audits/audit-consolidated-2026-09-30.md](./audits/audit-consolidated-2026-09-30.md)
 > (22-register sweep, every finding `[CONFIRMED]`/`[HYPOTHESIS]`/`[REFUTED]`), together with
 > [docs/plans/remediation-plan-2026-09-30.md](./plans/remediation-plan-2026-09-30.md) (22 lanes, operator
 > approval 2026-10-01 recorded at its head, the "Decisions 2026-10-01" section resolving every open
-> disposition). These three live on branch `audit/consolidation` pending merge; read them there
-> (`git show origin/audit/consolidation:<path>`) until that branch lands on master. Six superseded
-> resume pointers (2026-09-05 through 2026-09-29) are kept for history in "Pointer history" at the end of
-> this file rather than repeated here.
+> disposition) and [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md)
+> (ADR-039, 18 new lanes L1-L18 plus L19-L28 in Wave 6/7). These now live on master (merged via PRs 864 to
+> 876 and PR 866 respectively). Six earlier superseded resume pointers (2026-09-05 through 2026-09-29) are
+> kept for history in "Pointer history" at the end of this file rather than repeated here; the 2026-10-01
+> pointer above is itself now superseded by this one.
 
 **Standing constraints (2026-07-13):** `$0` default  -  the answer to "should I spend" is **no**;
 `GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_TOTAL_DISPLAY_USD` (spend-client.ts; informational display only, never a limit  -  the actual per-call cap is `SPEND_CEILING_USD`, generation-config.ts, default $85) **$130, code-only, frozen** (operator ruling
@@ -2141,17 +2151,18 @@ dispatch must name every downstream's mode, read from the workflow files, before
 | Wave-2 lane | Scope (build-overview WS#) | State | Evidence |
 |---|---|---|---|
 | W2-A | Audit-triage WIRE items | DONE | #834 "`source_bias_tags` pipeline wired at candidate approval", merged 2026-09-29. |
-| W2-B | Community identity-by-default (WS2) | BUILT, NOT MERGED | `lane/w2b-community-identity`, 5 commits ahead of master; migration 336 (anonymity opt-in columns) and the composer-400 fix live on that branch only. |
-| W2-C | Absence wording + Market Intel label (WS3, WS5) | BUILT, NOT MERGED | `lane/w2c-absence-wording`, 3 commits ahead; nav label still wrong at `Sidebar.tsx:76` / `DashboardBrief.tsx:361` on master. |
-| W2-D | Market detail raw-dump bug (WS16) | BUILT, NOT MERGED | `lane/w2d-market-detail-dump`, 4 commits (repro, rendering-guard record, fix, 2 rule-13 flag closures); bug `[CONFIRMED]` (coordinator-run live SELECT, not `[HYPOTHESIS]`): 631 sections double-render under Full-brief depth, CF-BROKEN-6. |
-| W2-E | Profile + applicability (WS7) | BUILT, NOT MERGED | `lane/w2e-profile-applicability`, 3 commits ahead. |
-| W2-F | Generalise the five hard-coded examples (WS10, rule 19) | PARTIAL, NOT MERGED | `lane/w2f-generalise-examples`, 4 commits; only 2 of 5 example classes have a coverage-gate commit per audit A8c. |
-| W2-G | Learning loop S->M->L (WS12, ADR-036) | PARTIAL, NOT MERGED | `lane/w2g-learning-loop`, 3 commits; S+M tiers built (`trigger_question`, `inference_records` via migration 338, `InferenceReview` mounted); L tier (`source_reliability_ledger`) not started, matching ADR-036's own sequencing. `inference_records` disposition: KEEP per 2026-10-01 ruling item 2 (DROP SQL withdrawn). |
+| W2-B | Community identity-by-default (WS2) | DONE, merged PR 879 | migration 336 (anonymity opt-in columns), composer-400 fix, ADR-035 benchmark floor, mute WIRE; merged 2026-10-02. |
+| W2-C | Absence wording + Market Intel label (WS3, WS5) | DONE, merged PR 878 | nav label fixed at `Sidebar.tsx`/`DashboardBrief.tsx`/`Spec09CsvUpload.tsx` with a client/server drift-guard test; absence wording converted across 5 components; NULL-severity sites fixed; merged 2026-10-02. |
+| W2-D | Market detail raw-dump bug (WS16) | DONE, merged PR 882 | merged 2026-10-02 as "Lane W2-D: market detail dump". |
+| W2-E | Profile + applicability (WS7) | DONE, merged PR 883 | "Lane W2-E: profile role/size dimensions + applicability gate (WS7)", merged 2026-10-02. |
+| W2-F | Generalise the five hard-coded examples (WS10, rule 19) | DONE, merged PR 880 | "generalise-examples coverage gates (WS10, classes 1-2)", merged 2026-10-02; verify at next audit whether both named classes closed the full 5-class scope rule 19 requires (examples-are-not-scope), or whether classes 3-5 remain a follow-on. |
+| W2-G | Learning loop S->M->L (WS12, ADR-036) | DONE, merged PR 863 | "learning loop S and M (trigger questions, inference_records, drain dispatch, admin inferences)", merged 2026-10-02; L tier (`source_reliability_ledger`) still not started per ADR-036's own sequencing, not claimed by this PR. `inference_records` disposition: KEEP per 2026-10-01 ruling item 2 (DROP SQL withdrawn). |
 | W2-H | ADR-034 naming phase + Operations matrix (WS14, WS4) | DONE | #833, merged 2026-09-29. |
 
-**Net:** of the 8 Wave-2 lanes, only W2-A and W2-H have landed on master; W2-B through W2-G are
-finished-or-partial commits sitting on unmerged branches, all scoped as "Wave A, land what already exists"
-in `docs/plans/remediation-plan-2026-09-30.md` - a merge/landing backlog, not unfinished work.
+**Net:** all 8 Wave-2 lanes are now merged to master (W2-A/H since 2026-09-29; W2-B through W2-G landed
+2026-10-02 via PRs 878-880/882/883/863). The separate W2-R (Research surface components) and W2-R2
+(per-tenant planning-assumption register, PR 877, merged) lanes are tracked in the "Remediation lanes"
+table's W2-R row below, not here ,  W2-R is not one of the original 8 Wave-2 lanes.
 
 ---
 
@@ -2240,28 +2251,32 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | Thread | State | Evidence / next |
 |---|---|---|
 | Lane 1: chained-apply reversal (guarded delete) | DONE 2026-10-01 | see "2026-09-29" section above; #829 built, 2026-10-01 ruling authorized, `[CONFIRMED]` by live SELECT this session. |
-| Lane 2: `officialness.mjs` anti-fabrication moat no-op | OPEN | remediation-plan-2026-09-30.md Lane 2; P1, confirmed defect sitting on the no-fabrication promise. |
-| Lane 3: `guardedUpsert` + migrate 2 known bypass sites | OPEN | remediation-plan-2026-09-30.md Lane 3. |
-| Lane 4: migration header truth pass (4 confirmed, 7 to verify) + standing check | OPEN | remediation-plan-2026-09-30.md Lane 4. |
+| Lane 2: `officialness.mjs` anti-fabrication moat no-op | DONE, pushed PR 865 | merged 2026-10-02; CF-BROKEN-1 refuted (real delimiter is a non-printing `\u0001`, not the originally-named defect). |
+| Lane 3: `guardedUpsert` + migrate 2 known bypass sites | DONE, pushed PR 868 | merged 2026-10-02; `guardedUpsert` added to `db.mjs`, two rule-015 bypass sites migrated. |
+| Lane 4: migration header truth pass (4 confirmed, 7 to verify) + standing check | DONE, pushed PR 876 | merged 2026-10-02 ("Lane R4-5"); 12 migration headers corrected, migration 149 retired NEVER APPLIED, new standing check F63. |
 | Lane 5: `inference_records` disposition | DONE 2026-10-01 | KEEP per decision 2 above; DROP SQL withdrawn. |
-| Lane 6: `sources.reliability_score` drop | OPEN | remediation-plan-2026-09-30.md Lane 6. |
-| Lane 7: wire ESLint into CI/pre-push | OPEN | remediation-plan-2026-09-30.md Lane 7. |
-| Lane 8: bracket-path test guard | OPEN | remediation-plan-2026-09-30.md Lane 8. |
-| Lane 9: RLS/admin-gate class lint | OPEN | remediation-plan-2026-09-30.md Lane 9. |
-| Lane 10: consistency-backstop required-check promotion | OPEN | remediation-plan-2026-09-30.md Lane 10. |
-| Lane 11: rule-14 backlog relabel + hard-gate flip | DONE 2026-10-01 | commit `24b48b3d` above; 626 findings labeled, gate now `--strict`. |
-| Lane 12: `/api/admin/promotion-policy` removal | DONE 2026-10-01 | DELETE per decision 3 above. |
-| Lane 13: `DashboardTopPriority.tsx` disposition | DONE 2026-10-01 | DELETE per decision 4 above. |
-| Lane 14: clock-fragility + `exit(0)` standing checks | OPEN | remediation-plan-2026-09-30.md Lane 14. |
-| Lane 15: PROGRAM-BOARD resync | THIS LANE | docs/dispatches (R15, 2026-10-01); see this file's header and the sections above. |
-| Lane 16: superseded docs archive (sprint-1/2) | DONE 2026-10-01 | archived to `docs/archive` with header, per decision 7 above. |
-| Lane 17: wave-status tables correction | DONE (folded into Lane 15) | Wave 2 sub-table above reconciles build-overview Table 3. |
-| Lane 18: `docs/design/redesign` archive | DONE 2026-10-01 | archived per decision 7 above. |
-| Lane 19: design conflicts (DES-3) + WatchButton text (AUD-1) | DONE 2026-10-01 | ADR-037 + BUILD, per decisions 5 and 6 above. |
-| Lane 20: (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 20. |
-| Lane 21: (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 21. |
-| Lane 22: GitHub Actions artifact retention | OPEN | decision 8 above; 7-day retention, 13 workflows, 6.2 GB measured 2026-10-01. |
-| A6b (discipline/tests follow-on) | OPEN, to be folded | "will be folded in as a further commit when it lands" per the plan's footer. |
+| Lane 6: `sources.reliability_score` drop | DONE, pushed PR 876 | merged 2026-10-02; migration 340 drops the column (CF-DATA-4), coordinator-applied 2026-10-01. |
+| Lane 7: wire ESLint into CI/pre-push | IN PROGRESS | remediation-plan-2026-09-30.md Lane 7; not covered by PR 875 (F64/F65 only) or any other merged PR through 888. Coordinator-reported 2026-10-02 as in progress; no branch/PR exists yet to verify independently (`gh pr list` 2026-10-02, open and merged). |
+| Two lint lanes (unnamed, coordinator-reported 2026-10-02) | IN PROGRESS | Coordinator-reported alongside Lane 7 above; no PR or branch named yet, not independently verifiable via `gh pr list` as of this check. Scope not yet stated to this lane ,  recorded as a placeholder thread so the board does not silently drop it; the coordinator's next report should name scope/branch for each. |
+| Lane 8: bracket-path test guard | DONE, pushed PR 875 | merged 2026-10-02 ("Lane R6-8"); F65 (`no-bracket-path-tests`) + `run-explicit-tests.mjs` root-cause fix, proved 1545->1546->1545 with a staged `[param]/` fixture. |
+| Lane 9: RLS/admin-gate class lint | DONE, pushed PR 875 | merged 2026-10-02; F64 (`rls-admin-gate-class`), plus migration 342 fixing the genuine CF-DATA-8 instance it surfaced live (migration 043's admin policies). |
+| Lane 10: consistency-backstop required-check promotion | OPEN | remediation-plan-2026-09-30.md Lane 10; not covered by PR 863-884. |
+| Lane 11: rule-14 backlog relabel + hard-gate flip | DONE 2026-10-01, pushed PR 864 | commit `24b48b3d` above landed as PR 864 ("Lane R10"), merged 2026-10-02; 626 findings labeled, gate now `--strict`. |
+| Lane 12: `/api/admin/promotion-policy` removal | DONE, pushed PR 874 + PR 876 | route/table deleted PR 874 ("Lane R12-13"); migration 341 drops `promotion_policy` PR 876, coordinator-applied 2026-10-01. |
+| Lane 13: `DashboardTopPriority.tsx` disposition | DONE, pushed PR 874 | merged 2026-10-02; component + its list-order feature stack deleted, migration 343 (`drop_user_list_order`) staged APPLIED-PENDING; also fixes CF-BROKEN-2 (24 invalid CSS var-concat sites) via `src/lib/tint.ts`. |
+| Lane 14: clock-fragility + `exit(0)` standing checks | DONE, pushed PR 869 | merged 2026-10-02 ("Lane R11"); F66 (`clock-fragility`) + CLI subprocess tests for `apply-mint-batch`/`validate-mint-payload`. |
+| Lane 15: PROGRAM-BOARD resync | DONE, pushed PR 867; this lane (COORD-DOCS) resyncs further | PR 867 ("Coordinator 2026-10-01") merged 2026-10-02; this dispatch (2026-10-02) updates the table again for PRs 863-884. |
+| Lane 16: superseded docs archive (sprint-1/2) | DONE, pushed PR 870 | merged 2026-10-02 ("Lane R16-19"); archived to `docs/archive` with header, per decision 7 above. |
+| Lane 17: wave-status tables correction | DONE, pushed PR 870 | folded into Lane 15/16's PR; Wave 2 sub-table above reconciles build-overview Table 3. |
+| Lane 18: `docs/design/redesign` archive | DONE, pushed PR 870 | merged 2026-10-02; archived per decision 7 above. |
+| Lane 19: design conflicts (DES-3) + WatchButton text (AUD-1) | DONE 2026-10-01 | ADR-037 + BUILD, per decisions 5 and 6 above; not in the PR 863-884 range. |
+| Lane 20: guard 5 unguarded producer scripts (from A1c/A2bc/A4d/A4bc/A4cc fold) | DONE, pushed PR 873 | merged 2026-10-02 ("R20"); 38 files wrapped in `isMainModule()` across 3 widening rounds, new fitness function F67. |
+| Lane 21: fix PostgREST `.or()` filter-injection pattern (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 21; not covered by PR 863-884. |
+| Lane 22: GitHub Actions artifact retention | DONE, merged PR 885 | merged 2026-10-02 ("R22: Actions artifact storage budget, docs-only push fast path, DB-shape the brief-export queue and dispatch ledger"); scope landed is broader than decision 8's 7-day/13-workflow description above ,  re-read PR 885 against decision 8 at next audit to confirm full closure, not re-stated here from the PR title alone. |
+| Lane 23: pre-push range (log-path fix, C5 test, layout-guard baseline expiry) | DONE, merged PR 886 | merged 2026-10-02 ("Lane R23: route commit-validation ranges through resolveRange's merge-base"); `docs/runbooks/layout-guard-baseline-renewal.md` confirmed to exist on master (verified 2026-10-02), INDEX line added same pass. |
+| A6b (discipline/tests follow-on) | DONE, folded into Lane 23 | PR 871 (register) + PR 872 (consolidation's ninth amendment) merged 2026-10-02: all 3 A6b findings (CF-BROKEN-10, CF-GATE-10, CF-GATE-11) reassigned to Lane 23's write set. |
+| W2-R: Research assessment data machine (complete-build-plan L1/L2, ADR-038) | DONE, merged PR 887 | **Correction to this row's own prior entry** (rule 14: corrected in place, not silently dropped): the 2026-10-02 entry above mis-described W2-R as "dissent panel / signposts list / assessment history ledger" (that is complete-build-plan L5, a distinct, still-unbuilt, unnamed lane). Verified against PR 887's actual title ("Lane W2-R: Research assessment data machine (ADR-038)") and body: builds `src/lib/research/assess.mjs` (deterministic TRL/CRI/R1-R4 ladder), migration 344 (`research_assessments`), the dry-by-default producer with two fixture harness runs, and the "Horizon assessment" rail card on `/research` and `/research/[slug]`. Merged 2026-10-02. `docs/decisions/ADR-038-research-built-now.md` INDEX line added same pass (verified present on master first). |
+| Lane BRIEFS-RESEARCH: dispatch briefs for L3, L5 to L9 (complete-build-plan Wave 2) | DONE, merged PR 888 | merged 2026-10-02; `docs/dispatches/lane-briefs/2026-10-02/` (verified present on master: README + briefs L3/L5/L6/L7/L8/L9), gated on PR 887 merging first (satisfied above). INDEX line added to the `## dispatches` section same pass. |
 
 ---
 

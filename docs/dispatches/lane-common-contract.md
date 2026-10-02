@@ -60,6 +60,22 @@ ode_modules ...``): `git worktree remove` empties the shared install through a j
    review FAIL (the census exporter carried the EUR-Lex-through-Cellar route from 2026-09-02; the capture
    step and a later lane each rebuilt it). Fitness function F45 (duplicate-code) reds the build on a new copy.
 
+## Read before you build (added 2026-10-02, binding)
+
+Operator ruling, 2026-10-02, verbatim: "look at all existing code before you build anything." Before
+writing anything, a lane reads, in order:
+
+1. Every file in its own write set, in full.
+2. Everything that imports or is imported by those files, found by grep (`git grep -n -i <identifier>`
+   across `fsi-app/src` and `fsi-app/scripts`), not by assumption.
+3. The migrations and generated inventories its change moves, for example `docs/inventories/migrations.md`
+   regenerated with its own generator, never hand-edited.
+4. The ADRs and docs governing the area it touches.
+
+The lane report carries a "read and reused" line naming the existing code it read and reused; a report
+without that line is not accepted. This section does not replace "Read before you write" above, it binds
+the reading to actual reuse, named in the report, not merely performed.
+
 ## Write set
 Your brief names an exact write set. Files outside it: do not touch. If the work cannot be completed without a file outside the set, stop that sub-task and put "NEEDS WRITE-SET EXPANSION: <file> because <reason>" in the report. Never write `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md`, or `docs/INDEX.md` (coordinator only). New docs only where the brief allows.
 - A lane never edits a file under `docs/audits/`. It records a finding's closure in its own session-log file instead, and the coordinator's close lane folds the recorded statuses into the audit (enforced by lane N6).
