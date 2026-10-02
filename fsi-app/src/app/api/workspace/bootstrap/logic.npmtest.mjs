@@ -15,7 +15,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, emptyListOrderByKey } =
+const { loadPersonalState, loadMembers, loadAdminAttention } =
   await jiti.import("./logic.ts");
 
 // ── loadPersonalState ──
@@ -116,99 +116,6 @@ test("loadPersonalState: thrown exception → [] (fail-soft, never throws)", asy
   const supabase = { from() { throw new Error("boom"); } };
   const items = await loadPersonalState(supabase, "user-1");
   assert.deepEqual(items, []);
-});
-
-// ── loadListOrders ──
-
-test("emptyListOrderByKey: has every LIST_KEYS entry, each an empty array", () => {
-  const out = emptyListOrderByKey();
-  assert.equal(out.watchlist.length, 0);
-  assert.equal(out.regulations.length, 0);
-  assert.equal(out.market.length, 0);
-  assert.equal(out.research.length, 0);
-  assert.equal(out.operations.length, 0);
-});
-
-test("loadListOrders: ONE query across all list_keys, grouped by key preserving position order", async () => {
-  let sawIn = null;
-  const supabase = {
-    from(table) {
-      assert.equal(table, "user_list_order");
-      return {
-        select: () => ({
-          eq: (col, val) => {
-            assert.equal(col, "user_id");
-            assert.equal(val, "user-1");
-            return {
-              in: (col2, keys) => {
-                assert.equal(col2, "list_key");
-                sawIn = keys;
-                return {
-                  order: async () => ({
-                    data: [
-                      { list_key: "regulations", item_id: "r-a", position: "1000" },
-                      { list_key: "market", item_id: "m-a", position: "1500" },
-                      { list_key: "regulations", item_id: "r-b", position: "2000" },
-                    ],
-                    error: null,
-                  }),
-                };
-              },
-            };
-          },
-        }),
-      };
-    },
-  };
-  const out = await loadListOrders(supabase, "user-1");
-  assert.ok(Array.isArray(sawIn) && sawIn.includes("regulations") && sawIn.includes("market"));
-  assert.deepEqual(out.regulations, [
-    { itemId: "r-a", position: "1000" },
-    { itemId: "r-b", position: "2000" },
-  ]);
-  assert.deepEqual(out.market, [{ itemId: "m-a", position: "1500" }]);
-  assert.deepEqual(out.watchlist, []);
-});
-
-test("loadListOrders: an unrecognized list_key row (drift) is silently skipped, not thrown on", async () => {
-  const supabase = {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          in: () => ({
-            order: async () => ({
-              data: [{ list_key: "some-future-key", item_id: "x", position: "1" }],
-              error: null,
-            }),
-          }),
-        }),
-      }),
-    }),
-  };
-  const out = await loadListOrders(supabase, "user-1");
-  assert.deepEqual(out, emptyListOrderByKey());
-});
-
-test("loadListOrders: DB error → empty-by-key (fail-soft, never throws)", async () => {
-  const supabase = {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          in: () => ({
-            order: async () => ({ data: null, error: { message: "timeout" } }),
-          }),
-        }),
-      }),
-    }),
-  };
-  const out = await loadListOrders(supabase, "user-1");
-  assert.deepEqual(out, emptyListOrderByKey());
-});
-
-test("loadListOrders: thrown exception → empty-by-key (fail-soft, never throws)", async () => {
-  const supabase = { from() { throw new Error("boom"); } };
-  const out = await loadListOrders(supabase, "user-1");
-  assert.deepEqual(out, emptyListOrderByKey());
 });
 
 // ── loadMembers ──

@@ -858,18 +858,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/user/list-order/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/watchlist/route.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1716,6 +1704,15 @@
     },
     {
       "path": "fsi-app/src/components/ui/tagPopoverKeyboard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/timeline-dot-styles.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11630,11 +11627,22 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/343_drop_user_list_order.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1088,
-    "covered": 1046,
+    "governed_files": 1089,
+    "covered": 1047,
     "exempt": 42,
     "gaps": 0,
     "orphaned_proofs": 0,

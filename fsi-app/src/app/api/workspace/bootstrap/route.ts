@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides, loadNavCounts } from "./logic";
+import { loadPersonalState, loadMembers, loadAdminAttention, loadOverrides, loadNavCounts } from "./logic";
 // PERF-ARCH (2026-09-04, docs/decisions/ADR-027-*.md): Server-Timing instrumentation, wired here
 // as this lane's one concrete example of the "add the timing wrapper" write-set item. A Route
 // Handler is the ONE response type this app can attach a genuine HTTP Server-Timing header to —
@@ -17,9 +17,12 @@ import { timePhase, recordSerializedBytes, withServerTiming, PERF_PHASES } from 
 // GET /api/workspace/bootstrap — PERF-9 (2026-09-04, item 5,
 // docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md §4).
 //
-// Consolidates the four PER-USER reads the shell was previously issuing as four
-// separate post-render requests (personal-state, list-order — one call per list
-// key — members, admin/attention) into ONE authenticated round trip. Design
+// Consolidates the PER-USER reads the shell was previously issuing as separate
+// post-render requests (personal-state, members, admin/attention) into ONE
+// authenticated round trip. (list-order, one call per list key, was folded in
+// here too and then removed again, lane R12-13, 2026-10-01: the whole personal
+// drag-order feature was never-shipped dead infrastructure, zero live rows.)
+// Design
 // mirrors the item 3 split: PUBLIC intelligence content stays server-cached
 // (unstable_cache + revalidateTag); PER-USER state is fetched client-side, after
 // first paint, in this single batched call (useWorkspaceBootstrap.ts), so the
@@ -42,13 +45,14 @@ async function handleGET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // Five independent per-user reads, in ONE Promise.all (the shape server-timing.ts's own header
+  // Four independent per-user reads, in ONE Promise.all (the shape server-timing.ts's own header
   // cites PERF-9/ADR-026 §3 for — PERF-10's `loadOverrides` joins the batch rather than adding a
-  // second round trip). Each phase name below is this route's own vocabulary
-  // (personal_state/list_orders/members/admin_attention/overrides), not the shared PERF_PHASES
+  // second round trip; `list_orders` was a fifth phase here and is removed, lane R12-13,
+  // 2026-10-01). Each phase name below is this route's own vocabulary
+  // (personal_state/members/admin_attention/overrides), not the shared PERF_PHASES
   // constants, which name the regulations/detail-page vocabulary this route doesn't share. Timing
   // each individually (rather than the whole Promise.all as one span) is what makes the eventual
-  // Server-Timing header useful for "which of the five is slow today", not just "the batch was slow".
+  // Server-Timing header useful for "which phase is slow today", not just "the batch was slow".
   //
   // RECONCILE (2026-09-04, item 1): PERF-12's sixth loader, `loadOrgId`, is REMOVED. It existed only
   // to expose an org id for the client to forward as `X-Org-Id` on `/api/listings/cursor` requests,
@@ -56,9 +60,8 @@ async function handleGET(request: NextRequest) {
   // route pages the org-independent public RPC (no per-viewer/per-org data in that response at all,
   // see that route's own header). No reader of `orgId` on this payload survives, so the field is
   // deleted rather than kept as unused surface (CLAUDE.md's no-dead-code rule).
-  const [personalState, listOrders, members, adminAttention, overrides, navCounts] = await Promise.all([
+  const [personalState, members, adminAttention, overrides, navCounts] = await Promise.all([
     timePhase("personal_state", () => loadPersonalState(supabase, auth.userId)),
-    timePhase("list_orders", () => loadListOrders(supabase, auth.userId)),
     timePhase("members", () => loadMembers(supabase, auth.userId)),
     timePhase("admin_attention", () => loadAdminAttention(supabase, auth.userId)),
     // PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): the caller's org-scoped
@@ -78,7 +81,7 @@ async function handleGET(request: NextRequest) {
   // string comparison as the ask route's own gate — never widened, never a second flag.
   const assistantEnabled = process.env.ASSISTANT_ENABLED === "true";
 
-  const payload = { personalState, listOrders, members, adminAttention, overrides, navCounts, assistantEnabled };
+  const payload = { personalState, members, adminAttention, overrides, navCounts, assistantEnabled };
   recordSerializedBytes(payload, PERF_PHASES.SERIALIZE_BYTES);
 
   return withServerTiming(

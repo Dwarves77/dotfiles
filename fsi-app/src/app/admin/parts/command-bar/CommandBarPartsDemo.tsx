@@ -47,7 +47,6 @@ const SEARCH_URL_MARKER = "/api/search";
 function mockBootstrapBody() {
   return {
     personalState: [],
-    listOrders: {},
     members: null,
     adminAttention: null,
     overrides: [],

@@ -7,7 +7,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { isPlatformAdmin } from "@/lib/auth/admin";
-import { LIST_KEYS, type ListKey } from "@/app/api/user/list-order/logic";
 import { fetchAttentionCounts, EMPTY_COUNTS, type AttentionCounts } from "@/app/api/admin/attention/logic";
 import {
   fetchWorkspaceOverrideRowsRaw,
@@ -24,24 +23,11 @@ export interface PersonalStateItem {
   archivedAt: string | null;
 }
 
-export interface ListOrderEntry {
-  itemId: string;
-  position: string;
-}
-
 export interface MemberRow {
   user_id: string;
   role: string;
   display_name: string;
   avatar_url: string | null;
-}
-
-export type ListOrderByKey = Record<ListKey, ListOrderEntry[]>;
-
-export function emptyListOrderByKey(): ListOrderByKey {
-  const out = {} as ListOrderByKey;
-  for (const key of LIST_KEYS) out[key] = [];
-  return out;
 }
 
 type PersonalStateRow = {
@@ -86,32 +72,6 @@ export async function loadPersonalState(
     });
   } catch {
     return [];
-  }
-}
-
-export async function loadListOrders(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<ListOrderByKey> {
-  const out = emptyListOrderByKey();
-  try {
-    const { data, error } = await supabase
-      .from("user_list_order")
-      .select("list_key, item_id, position")
-      .eq("user_id", userId)
-      .in("list_key", LIST_KEYS)
-      .order("position", { ascending: true });
-
-    if (error || !data) return out;
-
-    for (const row of data as Array<{ list_key: string; item_id: string; position: unknown }>) {
-      const key = row.list_key as ListKey;
-      if (!(key in out)) continue;
-      out[key].push({ itemId: row.item_id, position: String(row.position) });
-    }
-    return out;
-  } catch {
-    return out;
   }
 }
 

@@ -505,22 +505,15 @@ export const LEGACY_ALLOWLIST = [
       'step is therefore premature; it stays a hand-dispatched CLI until that decision lands.',
     reviewByPhase: 'lane STRUCTURED-ACTIONS, 2026-09-28',
   },
-  {
-    file: 'fsi-app/src/lib/hooks/useListOrder.ts',
-    reason:
-      'Newly unwired as a direct, verified consequence of lane R12-13 (2026-10-01, CF-DEAD-2) ' +
-      'deleting DashboardTopPriority.tsx, this hook\'s only production importer. Unlike ' +
-      'DashboardTopPriority (dead code for a SUPERSEDED dashboard redesign), useListOrder.ts is ' +
-      'general personal-drag-order infrastructure for ledger surfaces that have not been built yet: ' +
-      'its own ListOrderKey type already names "regulations"/"market"/"research"/"operations" ' +
-      'alongside "watchlist" (the one key with a live consumer today, via the separate ' +
-      'watchlist-order.ts, which does not use this hook), mirroring LIST_KEYS in /api/user/list-' +
-      'order/logic.ts. Whether to wire it into one of those ledgers or delete it is a feature-scope ' +
-      'call outside this lane\'s write set (DEAD-ROUTE-DEAD-COMPONENT-CSS-TINT), not a mechanical ' +
-      'wire-or-delete the lane itself can make unilaterally. Flagged for the next lane or operator ' +
-      'ruling, not left silent.',
-    reviewByPhase: 'lane R12-13, 2026-10-01 (flagged, not resolved, see docs/tech-debt-log.md)',
-  },
+  // useListOrder.ts's allowlist entry (lane R12-13, 2026-10-01) is REMOVED here (same lane,
+  // coordinator correction, same day): operator ruling "fixed, not worked around" supersedes the
+  // allowlist-and-flag disposition above. The hook, its whole supporting stack (the
+  // /api/user/list-order route, list-order.ts, watchlist-order.ts, workspace/bootstrap's
+  // listOrders field), and its backing table (user_list_order, migration 343) are all DELETED, not
+  // allowlisted. The entry's own reasoning ("whether to wire it... is a feature-scope call outside
+  // this lane's write set") is refuted by the coordinator's ruling, not left to drift: the table
+  // carried 0 live rows, confirmed against the live-schema snapshot, so no ledger ever actually
+  // used it either.
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,

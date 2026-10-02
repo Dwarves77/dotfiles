@@ -6,26 +6,22 @@ Format: newest entries at the top.
 
 ---
 
-## 2026-10-01 (lane R12-13): `useListOrder.ts` newly orphaned by the DashboardTopPriority deletion, needs a wire-or-delete ruling
+## 2026-10-01 (lane R12-13): `useListOrder.ts` wire-or-delete flag RESOLVED same day (coordinator ruling)
 
-`src/lib/hooks/useListOrder.ts` lost its only production importer when lane R12-13 deleted
-`DashboardTopPriority.tsx` (CF-DEAD-2, operator ruling 2026-10-01). Unlike DashboardTopPriority
-itself (dead code for a superseded dashboard redesign), this hook is general personal-drag-order
-infrastructure: its `ListOrderKey` type already names `"regulations"`/`"market"`/`"research"`/
-`"operations"` alongside `"watchlist"` (the one key with a live consumer today, via the separate
-`watchlist-order.ts`, which talks to `/api/user/list-order` directly and does not use this hook),
-mirroring `LIST_KEYS` in `src/app/api/user/list-order/logic.ts`.
-
-Whether to wire `useListOrder` into one of the four ledger ("regulations"/"market"/"research"/
-"operations") surfaces, or delete it, is a feature-scope decision outside lane R12-13's write set
-(DEAD-ROUTE-DEAD-COMPONENT-CSS-TINT), the lane fixed what it was dispatched to fix and is flagging
-this one, decision-ready, rather than silently dropping it (rule 13). `.discipline/fitness/functions/
-F25-module-liveness.mjs`'s `LEGACY_ALLOWLIST` carries a dated, reason-bearing entry for it so CI
-stays green while the ruling is pending; the entry is removed the same commit that wires or deletes
-the hook.
-
-Safety net: the hook has zero runtime callers right now, so it cannot regress anything live; CI (F25)
-is the tripwire that will re-flag it if a future lane wires it back in without updating this entry.
+Correction in place, same session, per rule 13's corollary (a flag that dissolves under evidence
+gets a same-session correction, never a quiet drop): the entry this heading replaced flagged
+`useListOrder.ts` as a decision pending a wire-or-delete ruling and allowlisted it in F25 meanwhile.
+Coordinator ruling, same day, operator standard "fixed, not worked around": the hook's only
+consumer was the deleted `DashboardTopPriority.tsx`, confirmed by grep; it is deleted, not
+allowlisted, along with its whole supporting stack (`src/app/api/user/list-order/{route,logic}.ts`,
+`src/lib/list-order.ts`, `src/lib/watchlist-order.ts`, and the `listOrders` field in
+`workspace/bootstrap/logic.ts` + `useWorkspaceBootstrap.ts`) and its backing table
+(`user_list_order`, migration 343: `fsi-app/supabase/migrations/343_drop_user_list_order.sql`,
+APPLIED-PENDING). The flag's own premise, that the table might back a ledger surface not yet built,
+is refuted: the table carried 0 live rows per the live-schema snapshot, and the only OTHER
+consumer (`fetchWatchlist`'s read of the watchlist list_key, which degraded to natural order on
+every call since no drag UI was ever built for any list_key) is also removed, with no observable
+behaviour change. The F25 `LEGACY_ALLOWLIST` entry is removed in the same commit as this note.
 
 ## 2026-10-01 (lane R12-13): `/api/admin/promotion-policy` deleted, CF-DEAD-1 CLOSED
 
