@@ -1,12 +1,12 @@
 {
  "_comment": "COMMITTED SNAPSHOT of the live Postgres catalog (public schema). Facts only: what EXISTS, which DB-internal references are broken, which functions can make outbound HTTP calls, and what is scheduled inside the database. It records NO judgement about whether an object is wired \u2014 that is computed by F24 against the repo, so the snapshot and the rule cannot drift into disagreeing. Regenerate with db-catalog-refresh.sql (read-only, pg_catalog + pg_get_*def only; no data read, no write, no cost) and commit the diff.",
  "capturedAt": "2026-10-01",
- "capturedAfter": "migration 341 (tables/views/functions replayed statement-by-statement from the committed migration corpus, fsi-app/.discipline/governance/db-object-reference.mjs replaySchema, re-run after lane/w2g-learning-loop merged (migrations 338/339 now real, inference_records + register_inference_record land from replay with no manual addition needed - the Lane 5 KEEP decision's own prediction, 'F24-db-object-migration-home resolves on its own once that lane merges', confirmed: F24 passes clean). Cross-checked against the coordinators live-schema export fsi-app/scripts/tmp/live-schema-2026-09-30.json: the replay now differs from that export by exactly one table, promotion_policy, which the export still lists (0 rows, dated 2026-09-30) but which this lane's own migration 341 drops (applied live 2026-10-01, after the export's snapshot date) - the replay is the MORE current answer here, not a mismatch to chase. views/rpcFunctions/triggerFunctions below are the full replay result, not carried forward from the 2026-08-11 capture - trigger/policy/index counts in counts below are NOT re-verified this pass (no live pg_catalog introspection available to this lane, read-only migration-tree replay only) and are flagged stale pending the coordinators next db-catalog-refresh.sql run.",
+ "capturedAfter": "migration 343 (tables/views/functions replayed statement-by-statement from the committed migration corpus, fsi-app/.discipline/governance/db-object-reference.mjs replaySchema, re-run after two upstream merges landed on master during this lane's own push window: lane/w2g-learning-loop (migrations 338/339 now real, inference_records + register_inference_record land from replay with no manual addition needed - the Lane 5 KEEP decision's own prediction, 'F24-db-object-migration-home resolves on its own once that lane merges', confirmed: F24 passes clean) and lane R12-13 (migration 343 drops user_list_order, the dead-code route/component deletion this lane's own 341 named as R12-13's job for /api/admin/promotion-policy). Cross-checked against the coordinators live-schema export fsi-app/scripts/tmp/live-schema-2026-09-30.json: the replay now differs from that export by exactly two tables, promotion_policy and user_list_order, both of which the export still lists (dated 2026-09-30) but which migrations 341 and 343 respectively drop (applied live 2026-10-01/02, after the export's snapshot date) - the replay is the MORE current answer here, not a mismatch to chase. views/rpcFunctions/triggerFunctions below are the full replay result, not carried forward from the 2026-08-11 capture - trigger/policy/index counts in counts below are NOT re-verified this pass (no live pg_catalog introspection available to this lane, read-only migration-tree replay only) and are flagged stale pending the coordinators next db-catalog-refresh.sql run.",
  "project": "kwrsbpiseruzbfwjpvsp",
  "schema": "public",
  "method": "fsi-app/.discipline/governance/db-catalog-refresh.sql (tables/views/functions this pass: migration-corpus replay, fsi-app/.discipline/governance/db-object-reference.mjs replaySchema, cross-checked against live-schema row-count export)",
  "counts": {
-  "tables": 116,
+  "tables": 115,
   "views": 6,
   "rpcFunctions": 69,
   "triggerFunctions": 26,
@@ -140,7 +140,6 @@
   "tce_data_quality",
   "theme_briefs",
   "user_item_state",
-  "user_list_order",
   "user_watchlist",
   "workspace_item_overrides",
   "workspace_settings",
