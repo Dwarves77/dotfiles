@@ -11,7 +11,7 @@ const ROWS = [
   { id: "s3", name: "US EPA", url: "https://epa.gov", source_role: "publisher", category: "gov", status: "active" }, // already correct-ish, no mismatch below
 ];
 
-function fakeQuery(rows, classify) {
+function fakeQuery(rows, _classify) {
   const state = new Map(rows.map((r) => [r.id, { ...r }]));
   const calls = [];
   const query = async (sql, params) => {

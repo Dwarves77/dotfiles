@@ -18,7 +18,7 @@
 // files to disk); `mode=dry` only checks presence and reports what apply would do, matching every
 // other MAINT step's dry/apply shape even though nothing here writes a live table. `read_back` stays
 // empty by design (documented in the summary, not silently omitted) — this step changes no table.
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";

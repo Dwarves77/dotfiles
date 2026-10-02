@@ -115,7 +115,7 @@ export function buildDeferralFlagRow({ item_id, payload }) {
  * @param {object} deps -- `readDeferralsFile(path) -> Promise<array>` (injected so this stays DB/fs-free
  *   under `node --test`), and, apply mode only, `insertDeferralFlag(row) -> Promise<{id}>`.
  */
-export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
+export async function main({ mode = "dry", arg = "", out: _out = null } = {}, deps) {
   const path = String(arg ?? "").trim();
   if (!path) {
     return {

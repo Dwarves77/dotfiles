@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
 import {
-  main, CITE, RESTORE_CITE, ARCHIVE_REASON, SWEEP_MARKER, TITLE_FACT_PREFIX, RESTORE_ARG_PREFIX,
+  main, CITE, RESTORE_CITE, ARCHIVE_REASON, SWEEP_MARKER, RESTORE_ARG_PREFIX,
   isTitleOnlyFacts, planSelection, groupCounts, chunkList,
   buildArchivePatch, buildSweepNote, appendNote, planCensusReturn,
   pickLatestPriorStates, buildRestorePatchFromPrior, buildRestoreSql,

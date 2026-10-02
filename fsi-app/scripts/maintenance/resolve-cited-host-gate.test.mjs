@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractCitedUrls, planHostDecision, buildNullTierHostWrite, buildResolutionNote,
+  extractCitedUrls, buildResolutionNote,
   planFlag, main, CITE, RESOLVED_BY, NULL_TIER_CREATED_BY,
 } from "./resolve-cited-host-gate.mjs";
 import { trimUrlPunctuation } from "./lib/flag-url-extract.mjs";

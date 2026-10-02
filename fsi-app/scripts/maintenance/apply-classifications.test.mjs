@@ -58,17 +58,17 @@ function baseDeps(overrides = {}) {
   const calls = [];
   return {
     calls,
-    readAll: async (table, cols, opts) => {
+    readAll: async (table, cols, _opts) => {
       calls.push(["readAll", table, cols]);
       if (table === "sources") return [UNCLASSIFIED_SOURCE, CLASSIFIED_SOURCE];
       if (table === "intelligence_items") return [VERIFIED_ITEM];
       return [];
     },
-    insertMany: async (table, rows, opts) => {
+    insertMany: async (table, rows, _opts) => {
       calls.push(["insertMany", table, rows.length]);
       return { inserted: rows.length, snapshot: "snap-ins" };
     },
-    updateStale: async (table, ids, patch) => {
+    updateStale: async (table, ids, _patch) => {
       calls.push(["updateStale", table, ids.length]);
       return { updated: ids.length, snapshot: "snap-upd" };
     },
@@ -92,11 +92,11 @@ function baseDeps(overrides = {}) {
       calls.push(["readSource", id]);
       return { data: null, error: null };
     },
-    updateSource: async (id, patch) => {
+    updateSource: async (id, _patch) => {
       calls.push(["updateSource", id]);
       return { updated: 0, snapshot: null };
     },
-    resolveFlag: async (id, note) => {
+    resolveFlag: async (id, _note) => {
       calls.push(["resolveFlag", id]);
       return { updated: 0, snapshot: null };
     },

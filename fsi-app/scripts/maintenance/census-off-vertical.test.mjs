@@ -89,7 +89,7 @@ test("apply arg=park: no-op, applies nothing, exits 0", async () => {
 test("apply arg=archive: RUNNABLE (migration 308) — archives off_vertical rows via guardedUpdateByIds + archivePatch, cited, read back via readAllByIds", async () => {
   const d = deps({
     // readAll: the dry-count read only
-    readAllByIdsImpl: async (table, cols, ids) =>
+    readAllByIdsImpl: async (_table, _cols, _ids) =>
       // post-apply read-back: whichever rows were archived read back is_archived=true
       [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }],
   });

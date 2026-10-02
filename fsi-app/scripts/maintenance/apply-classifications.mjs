@@ -32,22 +32,22 @@
 // sources.jurisdiction_iso only, through the same guarded APPLICABLE_FIELDS/AUTO_ADOPT_FIELDS gate as
 // every other axis (D9, lane L14, 2026-09-13; migration 033).
 
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  evaluateAutoAdoption, autoAdoptClassification, AUTO_ADOPT_FIELDS,
+  evaluateAutoAdoption, autoAdoptClassification,
   autoResolveDriftFlag, retireAnomalyFlag, buildNoDerivableClassificationNote,
   isZeroProposalClassificationFlag, DRIFT_CREATED_BY, ANOMALY_CREATED_BY,
 } from "../classification/apply-classifications.mjs";
 import {
-  proposeSourceAxisClassification, APPLICABLE_FIELDS,
+  proposeSourceAxisClassification,
 } from "../../src/lib/classification/classify-source.mjs";
 import { isValidDistribution } from "../../src/lib/classification/expected-output.mjs";
 import {
   detectDrift, observedDistributionFromItems,
 } from "../../src/lib/classification/routing.mjs";
 import {
-  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE,
+  AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE,
   SOURCE_CLASSIFICATION_NO_DERIVABLE_SUBTYPE,
 } from "../../src/lib/classification/flags.mjs";
 import { createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";

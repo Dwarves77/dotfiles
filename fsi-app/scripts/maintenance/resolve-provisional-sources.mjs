@@ -132,7 +132,7 @@ import {
   PROVISIONAL_SOURCES_PROMOTED_STATUS,
   PROVISIONAL_SOURCES_REJECTED_STATUS,
 } from "../../src/lib/sources/promote-provisional.ts";
-import { planHostDecision, buildNullTierHostWrite } from "../../src/lib/sources/null-tier-host-worklist.mjs";
+import { buildNullTierHostWrite } from "../../src/lib/sources/null-tier-host-worklist.mjs";
 import { existingTierForHost } from "./canonical-autoverify.mjs";
 // groupUnresolvedHosts (F1 fix, review-l9b.md, fix round 1 for L9b): the SAME per-host name-grouping
 // enumerate-unclassified-hosts.mjs already uses, reused here (never a second copy) so this step's class

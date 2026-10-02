@@ -153,7 +153,7 @@ export function countGroundedViaWorklist(perItem) {
  *   gate-a-rescan.yml step's own item-id scope and CHAINED_LIMIT bound. Absent on every existing caller
  *   (provenance-heal's own dispatch, every prior test), so behaviour there is unchanged.
  */
-export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
+export async function main({ mode = "dry", arg = "", out: _out = null } = {}, deps) {
   const path = String(arg ?? "").trim();
   if (!path) {
     return {
