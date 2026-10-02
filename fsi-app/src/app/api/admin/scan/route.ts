@@ -119,8 +119,10 @@ export async function POST(request: NextRequest) {
     }
 
     const existingTitles = new Set([
-      ...(existing || []).map((e: any) => e.title.toLowerCase()),
-      ...(staged || []).map((s: any) => (s.proposed_changes?.title || "").toLowerCase()).filter(Boolean),
+      ...(existing || []).map((e: { title: string }) => e.title.toLowerCase()),
+      ...(staged || [])
+        .map((s: { proposed_changes: { title?: string } | null }) => (s.proposed_changes?.title || "").toLowerCase())
+        .filter(Boolean),
     ]);
 
     // Call Claude with web_search THROUGH the spend chokepoint (F15 closure — this was the last
@@ -221,9 +223,38 @@ Return ONLY the JSON object, no other text.`;
       return NextResponse.json({ error: `AI search failed: ${(e as Error).message.slice(0, 200)}` }, { status: 502 });
     }
 
-    // Parse the JSON response — expects { regulations: [...], new_sources: [...] }
-    let regulations: any[] = [];
-    let newSources: any[] = [];
+    // Parse the JSON response, expects { regulations: [...], new_sources: [...] }. The model's
+    // output is untrusted free-form JSON (not a DB row), so every field is optional/unknown and
+    // narrowed with typeof/Array.isArray at each use site below.
+    interface ScanRegulation {
+      title?: string;
+      item_type?: string;
+      what_is_it?: string;
+      why_matters?: string;
+      key_data?: unknown;
+      note?: string;
+      summary?: string;
+      authority_level?: string;
+      jurisdiction?: string;
+      jurisdiction_iso?: unknown;
+      transport_modes?: string[];
+      priority?: string;
+      status?: string;
+      source_url?: string;
+      source_name?: string;
+      effective_date?: string;
+      penalty_range?: string;
+      cost_mechanism?: string;
+    }
+    interface ScanSource {
+      name?: string;
+      url?: string;
+      jurisdiction?: string;
+      jurisdiction_iso?: unknown;
+      publishes?: string;
+    }
+    let regulations: ScanRegulation[] = [];
+    let newSources: ScanSource[] = [];
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -244,7 +275,7 @@ Return ONLY the JSON object, no other text.`;
 
     // Filter out duplicate regulations
     const newItems = regulations.filter(
-      (d: any) => d.title && !existingTitles.has(d.title.toLowerCase())
+      (d) => d.title && !existingTitles.has(d.title.toLowerCase())
     );
 
     // INGESTION-CLASSIFY-SOURCE-VS-REGULATION (Sprint 3, 2026-05-27):
@@ -273,9 +304,9 @@ Return ONLY the JSON object, no other text.`;
     }
 
     const portalRejects: string[] = [];
-    const regulationsAfterHeuristic = newItems.filter((d: any) => {
-      if (isPortalTitle(d.title)) {
-        portalRejects.push(d.title);
+    const regulationsAfterHeuristic = newItems.filter((d) => {
+      if (isPortalTitle(d.title || "")) {
+        portalRejects.push(d.title || "");
         // Re-route to newSources for provisional review instead of
         // dropping the data entirely. The class fix preserves the
         // discovery work even when the model mis-classifies it.
@@ -369,7 +400,7 @@ Return ONLY the JSON object, no other text.`;
       // failure and should not silently bias the staged queue.
       const itemType = normalizeItemType((item as { item_type?: unknown }).item_type);
       if (!itemType) {
-        skippedUnknownType.push(item.title);
+        skippedUnknownType.push(item.title || "(untitled)");
         continue;
       }
       const domain: Domain | null = domainForItemType(itemType, null);
@@ -454,7 +485,7 @@ Return ONLY the JSON object, no other text.`;
       skipped_unrecognized_item_type: skippedUnknownType.length,
       skipped_titles: skippedUnknownType.slice(0, 10),
     }, { headers: rateLimitHeaders(auth.userId) });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }

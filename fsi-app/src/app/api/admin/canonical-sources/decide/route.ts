@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
   // Apply edited fields to the candidate row before any other action.
   if (body.editedFields && Object.keys(body.editedFields).length > 0) {
-    const editPayload: Record<string, any> = {};
+    const editPayload: Record<string, string> = {};
     for (const k of ["candidate_url", "candidate_title", "candidate_publisher"] as const) {
       if (body.editedFields[k] !== undefined) {
         // Q10: canonicalize the edited URL so the candidate row stores the

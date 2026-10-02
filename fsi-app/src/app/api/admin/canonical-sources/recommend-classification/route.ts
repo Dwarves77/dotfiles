@@ -204,7 +204,7 @@ PARENT INTELLIGENCE ITEM (grounding context):
 Output the JSON object only.`;
 
   const client = new Anthropic({ apiKey });
-  let recommendation: any;
+  let recommendation: Record<string, unknown>;
   try {
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -218,17 +218,17 @@ Output the JSON object only.`;
       messages: [{ role: "user", content: userMessage }],
     });
     const text = resp.content
-      .filter((b: any) => b.type === "text")
-      .map((b: any) => b.text)
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
       .join("");
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("No JSON object found in model output");
-    recommendation = JSON.parse(m[0]);
+    recommendation = JSON.parse(m[0]) as Record<string, unknown>;
     recommendation.model = "claude-haiku-4-5-20251001";
     recommendation.computed_at = new Date().toISOString();
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { error: `Model call failed: ${e.message}` },
+      { error: `Model call failed: ${e instanceof Error ? e.message : String(e)}` },
       { status: 502 }
     );
   }

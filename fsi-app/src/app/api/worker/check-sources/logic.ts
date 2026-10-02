@@ -15,9 +15,27 @@ import { contentFingerprint, isContentChange } from "@/lib/sources/content-chang
 import { extractPortalLinks } from "@/lib/sources/portal-links.mjs";
 import { persistPortalCandidates } from "@/lib/intake/portal-harvest";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
+import type { ServiceSupabase } from "@/lib/api/route-guard";
 
 type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string; html?: string }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
+
+// Row shape selected by the route's due-sources query (route.ts): every field
+// assessAndUpdateSource below reads or writes back through.
+export interface CheckSourceRow {
+  id: string;
+  name: string;
+  url: string;
+  base_tier: number;
+  last_checked: string | null;
+  access_method: string | null;
+  auto_run_enabled: boolean;
+  status: string;
+  consecutive_accessible: number | null;
+  successful_checks: number | null;
+  total_checks: number | null;
+  last_content_hash: string | null;
+}
 
 // LIMIT PARAMETER (lane CD, check-sources route defect fix, 2026-09-02). Found while building the
 // change-detection runtime: this route's due-source batch was a HARDCODED `.limit(10)` — no caller could
@@ -67,8 +85,8 @@ export function validateCheckLimit(raw: unknown): { ok: true; limit: number } | 
 // SELECTed consecutive_accessible/status (undefined === 0 is false); this fix also loads those
 // fields so eviction/reactivation actually work, now on the corrected non-answer principle.
 export async function assessAndUpdateSource(
-  supabase: any,
-  source: any,
+  supabase: ServiceSupabase,
+  source: CheckSourceRow,
   opts?: { render?: RenderFn; classify?: ClassifyFn }
 ): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number }> {
   const render = opts?.render ?? (browserlessRender as unknown as RenderFn);
@@ -91,7 +109,10 @@ export async function assessAndUpdateSource(
   // Decision delegated to a pure, fixture-tested fn (check-sources-decision.mjs): a non-answer
   // is INCONCLUSIVE (not accessible, NOT evict-eligible); only a definitive DEAD with a 0 streak
   // may consult the eviction guard.
-  const decision = decideSourceAssessment({ outcome, source });
+  const decision = decideSourceAssessment({
+    outcome,
+    source: { status: source.status, consecutive_accessible: source.consecutive_accessible ?? undefined },
+  });
   const isAccessible = decision.isAccessible;
 
   // CHANGE DETECTION (P2-6 / S1-10): fingerprint the SAME render the accessibility check paid

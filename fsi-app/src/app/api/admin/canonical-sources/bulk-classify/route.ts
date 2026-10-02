@@ -71,11 +71,41 @@ interface Body {
   candidateIds: string[];
 }
 
+interface CandidateForClassify {
+  id: string;
+  candidate_url: string;
+  candidate_title: string | null;
+  candidate_publisher: string | null;
+  rationale: string | null;
+  intelligence_item_id: string;
+  recommended_classification: unknown;
+}
+
+interface ParentItemForClassify {
+  id: string;
+  title: string | null;
+  item_type: string | null;
+  domain: string | null;
+  jurisdictions: string[] | null;
+  topic_tags: string[] | null;
+}
+
+interface ClassificationResult {
+  tier: number;
+  domains: number[];
+  jurisdictions: string[];
+  transport_modes: string[];
+  topic_tags: string[];
+  rationale: string;
+  model: string;
+  computed_at: string;
+}
+
 async function classifyOne(
   client: Anthropic,
-  cand: any,
-  parentItem: any
-): Promise<any> {
+  cand: CandidateForClassify,
+  parentItem: ParentItemForClassify | undefined
+): Promise<ClassificationResult> {
   const userMessage = `Classify this canonical source candidate.
 
 CANDIDATE:
@@ -100,14 +130,12 @@ Output the JSON object only.`;
     messages: [{ role: "user", content: userMessage }],
   });
   const text = resp.content
-    .filter((b: any) => b.type === "text")
-    .map((b: any) => b.text)
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
     .join("");
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) throw new Error("No JSON object in model output");
-  const rec = JSON.parse(m[0]);
-  rec.model = "claude-haiku-4-5-20251001";
-  rec.computed_at = new Date().toISOString();
+  const rec = JSON.parse(m[0]) as Record<string, unknown>;
   if (
     typeof rec.tier !== "number" ||
     rec.tier < 1 || rec.tier > 7 ||
@@ -119,7 +147,16 @@ Output the JSON object only.`;
   ) {
     throw new Error("Malformed classification shape");
   }
-  return rec;
+  return {
+    tier: rec.tier,
+    domains: rec.domains as number[],
+    jurisdictions: rec.jurisdictions as string[],
+    transport_modes: rec.transport_modes as string[],
+    topic_tags: rec.topic_tags as string[],
+    rationale: rec.rationale,
+    model: "claude-haiku-4-5-20251001",
+    computed_at: new Date().toISOString(),
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -164,7 +201,7 @@ export async function POST(request: NextRequest) {
     .select("url")
     // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("url", urls);
-  const existingUrlSet = new Set((existingSources || []).map((s: any) => canonicalizeUrl(s.url)));
+  const existingUrlSet = new Set((existingSources || []).map((s: { url: string }) => canonicalizeUrl(s.url)));
 
   // Pre-load parent items for grounding context (one batched query)
   const parentIds = [...new Set(cands.map((c) => c.intelligence_item_id))];
@@ -173,7 +210,9 @@ export async function POST(request: NextRequest) {
     .select("id, title, item_type, domain, jurisdictions, topic_tags")
     // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("id", parentIds);
-  const parentById = new Map((parents || []).map((p: any) => [p.id, p]));
+  const parentById = new Map(
+    (parents || []).map((p: ParentItemForClassify) => [p.id, p])
+  );
 
   const client = new Anthropic({ apiKey });
 
@@ -210,8 +249,9 @@ export async function POST(request: NextRequest) {
           continue;
         }
         classified++;
-      } catch (e: any) {
-        failed.push({ candidateId: c.id, error: e.message?.slice(0, 200) || String(e).slice(0, 200) });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        failed.push({ candidateId: c.id, error: msg.slice(0, 200) });
       }
     }
   }

@@ -97,9 +97,9 @@ export async function GET(request: NextRequest) {
   let supabase: ReturnType<typeof getServiceSupabase>;
   try {
     supabase = getServiceSupabase();
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "service client unavailable" },
+      { ok: false, error: e instanceof Error ? e.message : "service client unavailable" },
       { status: 500 }
     );
   }
@@ -126,9 +126,9 @@ export async function GET(request: NextRequest) {
         .order("id", { ascending: true }) // UNIQUE order key — non-unique (created_at) makes offset paging lossy
         .range(from, to)
     )) as typeof rows;
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "spend aggregate threw" },
+      { ok: false, error: e instanceof Error ? e.message : "spend aggregate threw" },
       { status: 503 }
     );
   }
@@ -149,8 +149,8 @@ export async function GET(request: NextRequest) {
   let spendGauge: Awaited<ReturnType<typeof readSpendGauge>> | null = null;
   try {
     spendGauge = await readSpendGauge(supabase);
-  } catch (e: any) {
-    console.warn(`[health/spend] spend-gauge read failed: ${e?.message ?? String(e)}`);
+  } catch (e) {
+    console.warn(`[health/spend] spend-gauge read failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   return NextResponse.json(

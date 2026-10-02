@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
         rawLimit = (parsedBody as Record<string, unknown>).limit;
       }
     }
-  } catch (e: any) {
-    return NextResponse.json({ error: `invalid JSON body: ${e.message}` }, { status: 400 });
+  } catch (e) {
+    return NextResponse.json({ error: `invalid JSON body: ${e instanceof Error ? e.message : String(e)}` }, { status: 400 });
   }
   const limitResult = validateCheckLimit(rawLimit);
   if (!limitResult.ok) {
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
         // SSOT classifier) so a NON-ANSWER does not evict and the consumer outcome is testable.
         const assessed = await assessAndUpdateSource(supabase, source);
         results.push(buildResultEntry(source.name, assessed));
-      } catch (e: any) {
-        results.push(buildErrorEntry(source.name, e.message));
+      } catch (e) {
+        results.push(buildErrorEntry(source.name, e instanceof Error ? e.message : String(e)));
       }
     }
 
@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
     let reconcile: Awaited<ReturnType<typeof runReconcilePass>> | { error: string };
     try {
       reconcile = await runReconcilePass(supabase);
-    } catch (e: any) {
-      reconcile = { error: e?.message ?? String(e) };
+    } catch (e) {
+      reconcile = { error: e instanceof Error ? e.message : String(e) };
     }
 
     return NextResponse.json({
@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
       results,
       reconcile,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
 

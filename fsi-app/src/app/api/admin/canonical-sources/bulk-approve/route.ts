@@ -34,6 +34,24 @@ interface BulkBody {
   reviewerNotes?: string;
 }
 
+interface BulkResult {
+  candidateId: string;
+  itemId?: string;
+  skipped?: boolean;
+  reason?: string;
+  error?: string;
+  sourceId?: string | null;
+  createdSource?: boolean;
+  success?: boolean;
+}
+
+interface ReviewItem {
+  candidateId: string;
+  itemId: string;
+  candidateUrl: string;
+  reason: string;
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
@@ -90,10 +108,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-  const existingSources = new Map<string, string>((srcRows || []).map((s: any) => [canonicalizeUrl(s.url), s.id]));
+  const existingSources = new Map<string, string>(
+    (srcRows || []).map((s: { id: string; url: string }) => [canonicalizeUrl(s.url), s.id])
+  );
 
-  const results: any[] = [];
-  const requiresReview: any[] = [];
+  const results: BulkResult[] = [];
+  const requiresReview: ReviewItem[] = [];
   let approvedCount = 0;
   let createdSourceCount = 0;
   let failedCount = 0;

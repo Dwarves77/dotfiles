@@ -22,29 +22,75 @@ const ISSUE_RANK: Record<string, number> = {
 };
 const CONFIDENCE_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
+// Row shape of public.canonical_source_candidates (migration 021).
+interface CandidateRow {
+  id: string;
+  intelligence_item_id: string;
+  current_source_id: string | null;
+  current_source_url: string | null;
+  issue_classification: "stale_url" | "missing_link" | "missing_source" | "thin_match";
+  candidate_url: string;
+  candidate_title: string | null;
+  candidate_publisher: string | null;
+  confidence: "high" | "medium" | "low";
+  rationale: string | null;
+  verified: boolean;
+  verified_status_code: number | null;
+  verified_content_excerpt: string | null;
+  reviewed: boolean;
+  decision: "pending" | "approved" | "rejected" | "deferred";
+  reviewer_id: string | null;
+  reviewed_at: string | null;
+  reviewer_notes: string | null;
+  promoted_to_source_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Minimal parent-item projection selected below.
+interface ParentItemRow {
+  id: string;
+  legacy_id: string | null;
+  title: string | null;
+  item_type: string | null;
+  domain: string | null;
+  jurisdictions: string[] | null;
+  topic_tags: string[] | null;
+  source_id: string | null;
+  source_url: string | null;
+}
+
+interface CandidateGroup {
+  item_id: string;
+  item: ParentItemRow | null;
+  issue_classification: CandidateRow["issue_classification"];
+  candidates: Array<CandidateRow & { existing_source_id: string | null }>;
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
   const { supabase } = auth;
 
-  const { data: candidates, error } = await supabase
+  const { data: candidatesRaw, error } = await supabase
     .from("canonical_source_candidates")
     .select("*")
     .eq("decision", "pending");
+  const candidates = candidatesRaw as CandidateRow[] | null;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   const itemIds = [...new Set((candidates || []).map((c) => c.intelligence_item_id))];
-  let items: any[] = [];
+  let items: ParentItemRow[] = [];
   if (itemIds.length > 0) {
     const { data: itemRows } = await supabase
       .from("intelligence_items")
       .select("id, legacy_id, title, item_type, domain, jurisdictions, topic_tags, source_id, source_url")
       // fitness-allow: F39 (itemIds/candidateUrls derive from one page of the pending-candidates queue, not the full corpus)
       .in("id", itemIds);
-    items = itemRows || [];
+    items = (itemRows as ParentItemRow[] | null) || [];
   }
 
   // Look up which candidate URLs are already in the sources registry — saves
@@ -66,7 +112,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Group candidates by item
-  const grouped: Record<string, any> = {};
+  const grouped: Record<string, CandidateGroup> = {};
   for (const c of candidates || []) {
     const groupKey = c.intelligence_item_id;
     if (!grouped[groupKey]) {
@@ -75,7 +121,7 @@ export async function GET(request: NextRequest) {
         item_id: groupKey,
         item: item || null,
         issue_classification: c.issue_classification,
-        candidates: [] as any[],
+        candidates: [],
       };
     }
     grouped[groupKey].candidates.push({
@@ -86,7 +132,7 @@ export async function GET(request: NextRequest) {
 
   // Sort candidates within each group by confidence then verified
   for (const g of Object.values(grouped)) {
-    (g as any).candidates.sort((a: any, b: any) => {
+    g.candidates.sort((a, b) => {
       const cmp = (CONFIDENCE_RANK[a.confidence] ?? 9) - (CONFIDENCE_RANK[b.confidence] ?? 9);
       if (cmp !== 0) return cmp;
       // Verified first within same confidence
@@ -95,7 +141,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Sort groups by issue severity, then by parent item title
-  const groups = Object.values(grouped).sort((a: any, b: any) => {
+  const groups = Object.values(grouped).sort((a, b) => {
     const cmp = (ISSUE_RANK[a.issue_classification] ?? 9) - (ISSUE_RANK[b.issue_classification] ?? 9);
     if (cmp !== 0) return cmp;
     return (a.item?.title || "").localeCompare(b.item?.title || "");

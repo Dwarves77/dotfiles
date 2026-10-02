@@ -87,7 +87,13 @@ export async function POST(
   let content: string | undefined;
   let method: "api" | "browserless" =
     source.access_method === "api" && source.api_endpoint ? "api" : "browserless";
-  let fetchError: any;
+  // Shape decideFetchOutcome (fetch-now-decision.mjs) actually reads off a thrown fetch error:
+  // an optional HTTP status plus a message it regexes a trailing status code out of.
+  interface FetchLikeError {
+    status?: number;
+    message?: string;
+  }
+  let fetchError: FetchLikeError | undefined;
 
   try {
     if (method === "api" && source.api_endpoint) {
@@ -98,8 +104,8 @@ export async function POST(
       content = await fetchViaBrowserless(source.url);
       method = "browserless";
     }
-  } catch (e: any) {
-    fetchError = e;
+  } catch (e) {
+    fetchError = e as FetchLikeError;
   }
 
   // FORM 1 + FORM 3, delegated to a pure, fixture-tested decision: a non-answer (429/5xx/timeout)
