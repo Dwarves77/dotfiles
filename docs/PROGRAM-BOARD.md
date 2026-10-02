@@ -14,12 +14,13 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 886 landed the bulk of the
-> 23-lane remediation plan's own backlog, plus all 8 Wave-2 lanes (W2-B through W2-G, PRs 863/878/879/
-> 880/882/883) now merged (see "Remediation lanes" thread table and the Wave-2 sub-table above for the
-> per-lane state against `gh pr list`); Lanes 7, 10 and 21 are still OPEN; Lane 22 (PR 885) and Lane 23
-> (PR 886) are now merged. W2-R (not W2-R2) is pushed as PR 887, CI red on the rendering guard, fix
-> pending from that lane. Next, the Research build lanes (L3, L5 to L9 of
+> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 888 landed the bulk of the
+> 23-lane remediation plan's own backlog, all 8 Wave-2 lanes (W2-B through W2-G, PRs 863/878/879/880/882/
+> 883), W2-R (PR 887, the research-assessment data machine, ADR-038), and the L3/L5-L9 dispatch briefs
+> (PR 888) (see "Remediation lanes" thread table and the Wave-2 sub-table above for the per-lane state
+> against `gh pr list`). Lane 7 and two unnamed lint lanes are coordinator-reported IN PROGRESS (not yet
+> independently verifiable, no PR exists); Lanes 10 and 21 are still OPEN with no activity reported. Next,
+> the Research build lanes (L3, L5 to L9 of
 > [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md)) from migration
 > 346 (the `signposts` table, L6), once the remediation queue's remaining OPEN lanes are dispositioned or
 > explicitly deferred. Prior pointer (2026-10-01): [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
@@ -2255,7 +2256,8 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | Lane 4: migration header truth pass (4 confirmed, 7 to verify) + standing check | DONE, pushed PR 876 | merged 2026-10-02 ("Lane R4-5"); 12 migration headers corrected, migration 149 retired NEVER APPLIED, new standing check F63. |
 | Lane 5: `inference_records` disposition | DONE 2026-10-01 | KEEP per decision 2 above; DROP SQL withdrawn. |
 | Lane 6: `sources.reliability_score` drop | DONE, pushed PR 876 | merged 2026-10-02; migration 340 drops the column (CF-DATA-4), coordinator-applied 2026-10-01. |
-| Lane 7: wire ESLint into CI/pre-push | OPEN | remediation-plan-2026-09-30.md Lane 7; not covered by PR 875 (F64/F65 only) or any other PR 863-884. |
+| Lane 7: wire ESLint into CI/pre-push | IN PROGRESS | remediation-plan-2026-09-30.md Lane 7; not covered by PR 875 (F64/F65 only) or any other merged PR through 888. Coordinator-reported 2026-10-02 as in progress; no branch/PR exists yet to verify independently (`gh pr list` 2026-10-02, open and merged). |
+| Two lint lanes (unnamed, coordinator-reported 2026-10-02) | IN PROGRESS | Coordinator-reported alongside Lane 7 above; no PR or branch named yet, not independently verifiable via `gh pr list` as of this check. Scope not yet stated to this lane ,  recorded as a placeholder thread so the board does not silently drop it; the coordinator's next report should name scope/branch for each. |
 | Lane 8: bracket-path test guard | DONE, pushed PR 875 | merged 2026-10-02 ("Lane R6-8"); F65 (`no-bracket-path-tests`) + `run-explicit-tests.mjs` root-cause fix, proved 1545->1546->1545 with a staged `[param]/` fixture. |
 | Lane 9: RLS/admin-gate class lint | DONE, pushed PR 875 | merged 2026-10-02; F64 (`rls-admin-gate-class`), plus migration 342 fixing the genuine CF-DATA-8 instance it surfaced live (migration 043's admin policies). |
 | Lane 10: consistency-backstop required-check promotion | OPEN | remediation-plan-2026-09-30.md Lane 10; not covered by PR 863-884. |
@@ -2273,7 +2275,8 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | Lane 22: GitHub Actions artifact retention | DONE, merged PR 885 | merged 2026-10-02 ("R22: Actions artifact storage budget, docs-only push fast path, DB-shape the brief-export queue and dispatch ledger"); scope landed is broader than decision 8's 7-day/13-workflow description above ,  re-read PR 885 against decision 8 at next audit to confirm full closure, not re-stated here from the PR title alone. |
 | Lane 23: pre-push range (log-path fix, C5 test, layout-guard baseline expiry) | DONE, merged PR 886 | merged 2026-10-02 ("Lane R23: route commit-validation ranges through resolveRange's merge-base"); `docs/runbooks/layout-guard-baseline-renewal.md` confirmed to exist on master (verified 2026-10-02), INDEX line added same pass. |
 | A6b (discipline/tests follow-on) | DONE, folded into Lane 23 | PR 871 (register) + PR 872 (consolidation's ninth amendment) merged 2026-10-02: all 3 A6b findings (CF-BROKEN-10, CF-GATE-10, CF-GATE-11) reassigned to Lane 23's write set. |
-| W2-R: Research surface dissent panel / signposts list / assessment history ledger (complete-build-plan L5) | pushed, PR 887, CI red on the rendering guard | coordinator-reported 2026-10-02: PR 887 is open, CI is red on the rendering guard, fix coming from the lane. Not merged ,  do not add the INDEX line for its doc(s) or mark this row DONE until the coordinator reports the merge. |
+| W2-R: Research assessment data machine (complete-build-plan L1/L2, ADR-038) | DONE, merged PR 887 | **Correction to this row's own prior entry** (rule 14: corrected in place, not silently dropped): the 2026-10-02 entry above mis-described W2-R as "dissent panel / signposts list / assessment history ledger" (that is complete-build-plan L5, a distinct, still-unbuilt, unnamed lane). Verified against PR 887's actual title ("Lane W2-R: Research assessment data machine (ADR-038)") and body: builds `src/lib/research/assess.mjs` (deterministic TRL/CRI/R1-R4 ladder), migration 344 (`research_assessments`), the dry-by-default producer with two fixture harness runs, and the "Horizon assessment" rail card on `/research` and `/research/[slug]`. Merged 2026-10-02. `docs/decisions/ADR-038-research-built-now.md` INDEX line added same pass (verified present on master first). |
+| Lane BRIEFS-RESEARCH: dispatch briefs for L3, L5 to L9 (complete-build-plan Wave 2) | DONE, merged PR 888 | merged 2026-10-02; `docs/dispatches/lane-briefs/2026-10-02/` (verified present on master: README + briefs L3/L5/L6/L7/L8/L9), gated on PR 887 merging first (satisfied above). INDEX line added to the `## dispatches` section same pass. |
 
 ---
 

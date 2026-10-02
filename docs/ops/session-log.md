@@ -24337,3 +24337,32 @@ PR numbers and a fresh `gh pr list --state merged --limit 40`:
 
 Files changed this pass: `docs/INDEX.md` (new runbooks line for `layout-guard-baseline-renewal`),
 `docs/PROGRAM-BOARD.md` (Lane 22/23 rows, Wave-2 sub-table, W2-R row, resume pointer).
+
+## 2026-10-02, coordinator (COORD-DOCS lane, follow-up resync): W2-R merged PR 887, Research briefs PR 888, correction to W2-R's own prior board entry
+
+Rebased `coord/docs-2026-10-02` onto `origin/master` on coordinator instruction (W2-R merged as PR 887).
+
+**New INDEX lines** (both verified present on master before adding): `docs/decisions/ADR-038-research-
+built-now.md` (decisions section) and `docs/dispatches/lane-briefs/2026-10-02/README.md` (dispatches
+section). PR 887's other changed files (session-log.d addendum, migrations.md, spec-03, harness-run
+artifacts, workflow yml) are either not living docs by convention or are edits to already-indexed docs,
+so carried no further INDEX line.
+
+**Correction, in place (rule 14):** this lane's own 2026-10-01 resync (the "R23 and W2-R merged" pass)
+had mis-described the W2-R row as "Research surface dissent panel / signposts list / assessment history
+ledger" ,  that description is complete-build-plan's L5, a distinct and still-unbuilt lane with no short
+name assigned. Reading PR 887 directly (title: "Lane W2-R: Research assessment data machine (ADR-038)")
+shows W2-R is in fact the `research_assessments` schema + deterministic TRL/CRI/R1-R4 producer + Research
+surface rail card (complete-build-plan L1/L2). Corrected in `docs/PROGRAM-BOARD.md`'s W2-R row rather than
+silently replaced, per rule 13's corollary (a flag/finding that dissolves under evidence gets a
+same-session correction, never a quiet drop).
+
+**New row:** Lane BRIEFS-RESEARCH (PR 888, merged) ,  the L3/L5-L9 dispatch briefs under `docs/dispatches/
+lane-briefs/2026-10-02/`, gated on PR 887 merging first (satisfied).
+
+**Lane 7 + two unnamed lint lanes** marked IN PROGRESS per coordinator report; no PR or branch exists yet
+to verify independently via `gh pr list`, recorded as coordinator-reported, not `[CONFIRMED]`.
+
+Resume pointer updated accordingly. Files changed this pass: `docs/INDEX.md` (2 new lines), `docs/
+PROGRAM-BOARD.md` (W2-R row corrected, BRIEFS-RESEARCH row added, Lane 7 + two lint lanes marked IN
+PROGRESS, resume pointer).
