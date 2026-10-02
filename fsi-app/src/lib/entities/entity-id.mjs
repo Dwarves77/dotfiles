@@ -19,17 +19,11 @@
 import { createHash } from "node:crypto";
 import { normaliseMode } from "../contracts/vocabularies.mjs";
 import { hostFromUrl } from "./host-from-url.mjs";
+import { KINDS, assertEntityId, entityKindOf } from "./entity-id-shape.mjs";
 
-// The full entity_kind enum, byte-identical to migration 282's `CREATE TYPE entity_kind AS ENUM (...)`
-// (spec §1.1). Frozen so a caller cannot silently widen the vocabulary — widening it means a migration.
-export const KINDS = Object.freeze([
-  "corridor", "node", "jurisdiction", "organisation", "asset",
-  "instrument", "obligation", "method", "technology", "signpost", "person",
-]);
 const KIND_SET = new Set(KINDS);
 
 const HEX_LEN = 16; // first 16 hex chars of the sha256 digest — see file header.
-const ID_RE = /^cl:([a-z_]+):([0-9a-f]{16})$/;
 
 function sha256Hex16(payload) {
   return createHash("sha256").update(payload, "utf8").digest("hex").slice(0, HEX_LEN);
@@ -41,10 +35,11 @@ function assertKind(kind) {
   }
 }
 
-// hostFromUrl lives in ./host-from-url.mjs (one definition, re-exported here so every existing
-// importer of this module is unchanged): this file imports node:crypto at module top, which a browser
-// bundle cannot resolve, and a client component needs the host normalizer without the id builder.
-export { hostFromUrl };
+// hostFromUrl lives in ./host-from-url.mjs; KINDS/assertEntityId/entityKindOf live in
+// ./entity-id-shape.mjs (one definition each, re-exported here so every existing importer of THIS
+// module is unchanged): this file imports node:crypto at module top, which a browser bundle cannot
+// resolve, and a client component needs the shape check / host normalizer without the id builder.
+export { hostFromUrl, KINDS, assertEntityId, entityKindOf };
 
 /**
  * Normalize a seed for one entity kind. Exported so a caller can preview the normalized seed (e.g. for
@@ -107,31 +102,5 @@ export function entityId(kind, seed) {
   return `cl:${kind}:${sha256Hex16(normalized)}`;
 }
 
-/**
- * Validate an entity id's shape: `cl:<kind>:<16 lowercase hex>` with kind in KINDS. When `expectedKind`
- * is given, also asserts the id's kind segment matches it. Throws with a descriptive message on any
- * failure (fail loud, matching db.mjs's requireCite()/scripts/lib conventions) rather than returning a
- * boolean a caller might forget to check.
- */
-export function assertEntityId(id, expectedKind) {
-  const s = String(id || "");
-  const m = s.match(ID_RE);
-  if (!m) {
-    throw new Error(`entity-id: "${s}" is not a well-formed entity id (expected cl:<kind>:<16 lowercase hex>)`);
-  }
-  const [, kind] = m;
-  if (!KIND_SET.has(kind)) {
-    throw new Error(`entity-id: "${s}" names kind "${kind}", which is not in KINDS (${KINDS.join(", ")})`);
-  }
-  if (expectedKind && kind !== expectedKind) {
-    throw new Error(`entity-id: "${s}" is a "${kind}" entity id, expected "${expectedKind}"`);
-  }
-  return true;
-}
-
-/** Extract the kind segment from a well-formed entity id, or null if malformed. Non-throwing sibling of
- *  assertEntityId(), for a caller that wants to branch on kind rather than fail. */
-export function entityKindOf(id) {
-  const m = String(id || "").match(ID_RE);
-  return m ? m[1] : null;
-}
+// assertEntityId / entityKindOf now live in ./entity-id-shape.mjs (imported above, re-exported in
+// this file's header block), removed from here, not duplicated.

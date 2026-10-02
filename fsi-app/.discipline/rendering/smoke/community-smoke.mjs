@@ -126,11 +126,17 @@ function extremePosts(n) {
   });
 }
 
+// Well-formed cl:<kind>:<16 lowercase hex> ids (entity-id-shape.mjs's own ID_RE), fixed 2026-10-02,
+// lane W2-B, after PR #879's rendering-guard CI caught that the OLD short-form ids below
+// ("cl:corridor:1", "cl:jurisdiction:eu") fail the shared validateEntityIds() malformed-id check
+// (entity-binding.mjs) that identity-format.ts's validateEntityBinding now runs client-side, which
+// permanently disabled PostComposer's Post button in this fixture (the composer never saw a
+// well-formed id to accept) and timed out refusalAndDraftPreservationProof's click.
 const CANDIDATE_ENTITIES = [
-  { entity_id: "cl:corridor:1", kind: "corridor", canonical_name: "Shanghai to Rotterdam, ocean" },
-  { entity_id: "cl:jurisdiction:eu", kind: "jurisdiction", canonical_name: "European Union" },
+  { entity_id: "cl:corridor:0123456789abcdef", kind: "corridor", canonical_name: "Shanghai to Rotterdam, ocean" },
+  { entity_id: "cl:jurisdiction:fedcba9876543210", kind: "jurisdiction", canonical_name: "European Union" },
   {
-    entity_id: "cl:corridor:2",
+    entity_id: "cl:corridor:1122334455667788",
     kind: "corridor",
     canonical_name: `${LONG_UNBROKEN} to Rotterdam via Suez, ocean`,
   },

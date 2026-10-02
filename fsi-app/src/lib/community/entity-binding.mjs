@@ -17,7 +17,12 @@
 // BEFORE submission). This module is the fix for THAT class: one validator, imported by both sides, so
 // they can never again diverge on what "valid entity_ids" means.
 
-import { entityKindOf } from "../entities/entity-id.mjs";
+// Imports entityKindOf from entity-id-SHAPE.mjs, never entity-id.mjs directly: the latter pulls in
+// node:crypto at module top (it mints ids), which a browser bundle cannot resolve, and this module is
+// imported by client code (PostComposer.tsx via identity-format.ts/api-client.ts). Caught live by the
+// rendering-guard's community-surface UX smoke spec (PR #879, CI run 37010362702): "Could not resolve
+// node:crypto", see entity-id-shape.mjs's own header for the full story.
+import { entityKindOf } from "../entities/entity-id-shape.mjs";
 
 /** Schema-identical to POST /api/community/posts/route.ts's own MAX_ENTITY_IDS. */
 export const MAX_ENTITY_IDS = 10;
