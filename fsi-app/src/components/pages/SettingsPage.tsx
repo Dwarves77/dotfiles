@@ -51,6 +51,7 @@ const SupersessionHistory = dynamic(() => import("@/components/settings/Superses
 const ArchiveViewer = dynamic(() => import("@/components/settings/ArchiveViewer").then((m) => ({ default: m.ArchiveViewer })), { ssr: false });
 const SavedSearchesSection = dynamic(() => import("@/components/settings/SavedSearchesSection").then((m) => ({ default: m.SavedSearchesSection })), { ssr: false });
 const Spec09CsvUpload = dynamic(() => import("@/components/settings/Spec09CsvUpload").then((m) => ({ default: m.Spec09CsvUpload })), { ssr: false });
+const AssumptionRegisterSection = dynamic(() => import("@/components/settings/AssumptionRegisterSection").then((m) => ({ default: m.AssumptionRegisterSection })), { ssr: false });
 
 interface Props {
   initialResources: Resource[];
@@ -73,6 +74,7 @@ const SETTINGS_SECTIONS: SectionIndexEntry[] = [
   { id: "general", shortName: "General" },
   { id: "notifications", shortName: "Notifications" },
   { id: "saved", shortName: "Saved searches" },
+  { id: "assumptions", shortName: "Assumptions" },
   { id: "data", shortName: "Data" },
   { id: "archive", shortName: "Archive" },
   { id: "help", shortName: "Help" },
@@ -257,6 +259,16 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
         <div id="saved" style={{ scrollMarginTop: 56 }}>
           <AccountCard title="Saved searches" meta="Named filter combinations · stored locally" bodyPadding="14px 16px 16px">
             <SavedSearchesSection />
+          </AccountCard>
+        </div>
+
+        <div id="assumptions" style={{ scrollMarginTop: 56 }}>
+          <AccountCard
+            title="Assumption register"
+            meta="Load-bearing planning assumptions · research so-whats bind to these"
+            bodyPadding="14px 16px 16px"
+          >
+            <AssumptionRegisterSection />
           </AccountCard>
         </div>
 
