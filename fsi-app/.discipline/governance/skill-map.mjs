@@ -61,6 +61,12 @@ export const GOVERNED = [
       // Community surface shell context (lane L33, 2026-09-17): the one loader behind every /community/* page's
       // CommunityShell props; it reads the same rows the pages read, so it is governed as the pages are.
       'fsi-app/src/lib/community/shell-context.ts',
+      // WIRE item: group-member preference toggle (lane W2-B, 2026-09-29/2026-10-02): the shared PATCH
+      // handler body for the self-only starred/muted columns GroupHeader.tsx renders, pulled out of the
+      // star/mute route.ts files to close an F45 duplicate-code regression. It writes the same
+      // community_group_members row the /community/[slug] page and GroupHeader already surface, so it
+      // is governed as the pages are, same precedent as shell-context.ts above.
+      'fsi-app/src/lib/community/member-pref-route.mjs',
       'fsi-app/src/components/Sidebar.tsx', // nav entry = surface exposure
     ],
     ops: [],
