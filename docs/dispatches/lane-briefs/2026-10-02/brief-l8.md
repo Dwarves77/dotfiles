@@ -5,11 +5,16 @@ UX contract section (you add a visible band, even though the bulk of the work is
 `docs/plans/complete-build-plan-2026-10-01.md` section 1.3 (its own-note row on theme rendering) and its
 L8 entry in section 2; `docs/specs/03-research.md` section 10's "Theme rendering" gap row.
 
-Lane id: `l8`. Branch: cut from `origin/master` directly (independent of `lane/w2r-research-assessment`
-- confirm by reading `taxonomy.mjs`'s current state on master before you start; if the branch has
-already changed the theme column's shape in a way that affects you, STOP and report). Branch name:
-`lane/l8-research-theme-backfill-2026-10-02`. Model: Haiku for the batch classification calls, Sonnet
-for the `Unclassified` band UI, per the plan's own model split for this lane.
+**Precondition (coordinator ruling, 2026-10-02): this lane dispatches only after `lane/w2r-research-
+assessment` (PR #887) has merged to `origin/master`.** This is a dispatch-sequencing rule for the whole
+six-lane set, not evidence that L8 itself needs #887's schema - it does not (the theme column and
+`ResearchThemeCards.tsx` are untouched by #887). Confirm by reading `taxonomy.mjs`'s current state on
+master before you start; if master has changed the theme column's shape in a way that affects you, STOP
+and report.
+
+Lane id: `l8`. Branch: cut from `origin/master`. Branch name: `lane/l8-research-theme-backfill-2026-10-
+02`. Model: Haiku for the batch classification calls, Sonnet for the `Unclassified` band UI, per the
+plan's own model split for this lane.
 
 ## Objective and requirement IDs
 
@@ -25,13 +30,18 @@ finding` rows, or an explicit `unclassified` band visible.
   ambiguous item gets `unclassified`, not a forced pick.
 - **CLAUDE.md rule 14** (finding is a hypothesis until verified): the plan's own count ("47 of 36
   research_finding rows... have null theme", an internally inconsistent count the plan itself carries
-  verbatim) is `[HYPOTHESIS, spec-dated]` per the plan's own status-token discipline. **Your first step
-  is re-running the live count** (`SELECT count(*) FROM intelligence_items WHERE item_type =
-  'research_finding' AND theme IS NULL` via the coordinator, since you have no DB credential - ask the
-  coordinator for this one read before building the backfill, or build against the fixture count and
-  flag the live number as unverified in your report). Do not repeat "47 of 36" as a fact; it is
-  arithmetically impossible as written (47 cannot be a subset of 36) and is itself evidence the plan's
-  own number needs re-verification, not propagation.
+  verbatim) is `[HYPOTHESIS, spec-dated]` per the plan's own status-token discipline. **Mandatory first
+  step, before any code is written (coordinator ruling, 2026-10-02): a read-only count through the DB
+  executor.** You hold no DB credential, so this is a read the coordinator runs on your behalf through
+  its Supabase MCP tool - request exactly this query, verbatim, before touching any file in your write
+  set: `SELECT count(*) FROM intelligence_items WHERE item_type = 'research_finding' AND theme IS NULL`
+  (and, for context, `SELECT count(*) FROM intelligence_items WHERE item_type = 'research_finding'` for
+  the denominator). Record the coordinator's returned numbers verbatim in your report's opening section,
+  labelled `[CONFIRMED - DB executor read, <date>]`. This is not optional and not satisfiable by building
+  against a fixture count instead - the fixture tests still use fixtures, but the acceptance numbers in
+  your report are the real, re-verified counts. Do not repeat "47 of 36" as a fact anywhere in your
+  report; it is arithmetically impossible as written (47 cannot be a subset of 36) and is itself evidence
+  the plan's own number needed re-verification, not propagation.
 - **Spec's own design intent**: the `Unclassified` band is a permanent safety net, not a one-time cleanup
   artifact - a classification miss after this lane ships must still be visible, never silently absorbed
   back into invisibility. Build the band to render whenever the null-theme count is nonzero at render
@@ -81,10 +91,10 @@ Report "read and reused" naming each file above.
 
 ## Migration number
 
-None requested; none needed - the theme column already exists. The coordinator's dispatch assignment
-names **350** for this lane; the complete-build-plan's own table assigns 350 to **L18** (portfolio, Wave
-6), a different lane. **Do not apply for migration 350 under any circumstance** - this lane's acceptance
-test does not involve schema at all.
+The complete-build-plan's own table states "Migrations requested: none" for L8 - the theme column
+already exists. Per the coordinator's 2026-10-02 ruling (README table), this dispatch reserves **364**
+for this lane - RESERVED, not to be consumed; this lane's acceptance test does not involve schema at
+all.
 
 ## Harness and flywheel wiring (rule 17)
 
@@ -112,10 +122,10 @@ dispatch to the coordinator as a follow-on action, consistent with "tools before
   surface renders an `Unclassified` band when the count is nonzero rather than silently hiding those
   rows - regression-tested against the EXACT defect named in the spec (counted in tiles, rendered in
   zero bands).
-- "Test what you build": run the backfill once, dry, against the live table's actual null-theme rows (a
-  SELECT-only read via the coordinator, since you hold no credential) or against a fixture set sized to
-  match the re-verified live count, and paste the dry-run's proposed theme assignments for a sample of 5
-  rows in your report.
+- "Test what you build": run the backfill once, dry, against a fixture set SIZED to match the re-verified
+  live count from the mandatory first step above, and paste the dry-run's proposed theme assignments for
+  a sample of 5 rows in your report. (The dry run itself uses fixtures per the lane common contract's no-
+  DB-credential rule; only the COUNT that sizes and motivates the fixture set comes from the live read.)
 
 ## UX compliance (required section in your report)
 
@@ -132,12 +142,14 @@ None. Independent of L3, L5, L6, L7, L9 - may run in parallel with any of them.
 
 ## Report format
 
-Per the lane common contract, plus the UX compliance section above. State the re-verified live null-
-theme count (or the fixture-based substitute and why) prominently, since the plan's own carried number
-is internally inconsistent and this lane's first job is correcting that in place per rule 14.
+Per the lane common contract, plus the UX compliance section above. Your report's FIRST section is the
+mandatory DB-executor read's result (both counts, `[CONFIRMED - DB executor read, <date>]`), since the
+plan's own carried number is internally inconsistent and this lane's first job is correcting that in
+place per rule 14.
 
 ## Standing prohibitions
 
 No nested agents. No `--no-verify`. No edit to `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md`, or
-`docs/INDEX.md`. No migration applied (none needed; 350 is explicitly forbidden to this lane). No DB
-credential, no live write without separate operator authorization stated plainly.
+`docs/INDEX.md`. No migration applied (none needed; 364 is reserved, not to be consumed by default). No
+code written before the mandatory DB-executor read in your report's first section. No DB credential, no
+live write without separate operator authorization stated plainly.

@@ -6,11 +6,15 @@ research.md` section 8 (free intake and credibility stack) in full; the `caros-l
 skill's RESEARCH section; then `fsi-app/src/lib/agent/canonical-pipeline.ts`'s mint chokepoint (read
 enough to find and name the single write site, not the whole file unless your work touches more of it).
 
-Lane id: `l7`. Branch: cut from `origin/master` directly (this lane does not depend on `lane/w2r-
-research-assessment`'s schema - it writes `intelligence_items` rows through the existing mint
-chokepoint, not `research_assessments` - confirm this independence by reading the chokepoint before you
-start; if you find a real dependency this brief missed, STOP and report it rather than assuming). Branch
-name: `lane/l7-research-walker-2026-10-02`. Model: Sonnet.
+**Precondition (coordinator ruling, 2026-10-02): this lane dispatches only after `lane/w2r-research-
+assessment` (PR #887) has merged to `origin/master`.** This is a dispatch-sequencing rule for the whole
+six-lane set, not evidence that L7 itself needs #887's schema - it does not (it writes `intelligence_
+items` rows through the existing mint chokepoint, not `research_assessments`). Confirm this independence
+by reading the chokepoint before you start; if you find a real schema dependency this brief missed, STOP
+and report it rather than assuming.
+
+Lane id: `l7`. Branch: cut from `origin/master`. Branch name: `lane/l7-research-walker-2026-10-02`.
+Model: Sonnet.
 
 ## Objective and requirement IDs
 
@@ -51,10 +55,10 @@ by explicit dispatch, logged to `harness_runs`).
 - `fsi-app/scripts/research/research-walker.test.mjs` (new) - dry-run fixture tests, zero network, zero
   DB credential.
 - `.github/workflows/research-walker.yml` (new, if the coordinator wants a workflow entry point at all;
-  otherwise a CLI-only dispatch is sufficient - read `.github/workflows/research-assessment.yml` on the
-  `lane/w2r-research-assessment` branch first, as the exact "explicit-dispatch, no schedule, chained-
-  dry-guard step included" pattern to copy, and state in your report whether you added the workflow file
-  or judged the CLI flag alone sufficient).
+  otherwise a CLI-only dispatch is sufficient - read `.github/workflows/research-assessment.yml` on
+  `origin/master` (post-#887) first, as the exact "explicit-dispatch, no schedule, chained-dry-guard step
+  included" pattern to copy, and state in your report whether you added the workflow file or judged the
+  CLI flag alone sufficient).
 - `fsi-app/scripts/harness-runs/research-walker/family.json` (new) - registers the new harness family
   per the `family-registry.mjs` convention (read `CONVENTION.md`'s "Registering a family" section first
   - a lane after 2026-09-19 adds ONLY this one descriptor file, nothing else).
@@ -72,9 +76,8 @@ by explicit dispatch, logged to `harness_runs`).
    registry.mjs` - the exact descriptor shape your new `research-walker/family.json` must match (lane N2
    already converted every family to this descriptor shape; do not add a hand-written entry to any of
    the old shared files it replaced).
-4. On `lane/w2r-research-assessment` (branch): `.github/workflows/research-assessment.yml` - the
-   explicit-dispatch-only workflow pattern, including its chained-dry-guard step, to copy if you build a
-   workflow file.
+4. On `origin/master` (post-#887): `.github/workflows/research-assessment.yml` - the explicit-dispatch-
+   only workflow pattern, including its chained-dry-guard step, to copy if you build a workflow file.
 5. `grep -rln "research_finding"` across `fsi-app/src/lib/agent` and `fsi-app/scripts` - every place
    that reads or writes this item_type, so your new candidate rows are shaped compatibly with every
    existing consumer (theme column, severity mapping in `taxonomy.mjs`, the format dispatch in `system-
@@ -90,11 +93,11 @@ Report "read and reused" naming each file above.
 ## Migration number
 
 The complete-build-plan's own table states "Migrations requested: none (reuses `sources`,
-`intelligence_items`, `harness_runs`)". The coordinator's separate dispatch assignment names **349** for
-this lane - the same number the complete-build-plan assigns to **L17** (obligations, Wave 6, a different
-lane entirely). **Do not apply for migration 349.** If your reading of the existing `sources` table
-proves it genuinely cannot hold a research-role registration without a schema change, STOP and report
-the exact gap to the coordinator before requesting any number, rather than defaulting to 349.
+`intelligence_items`, `harness_runs`)" for L7. Per the coordinator's 2026-10-02 ruling (README table),
+this dispatch reserves **363** for this lane - RESERVED, not to be consumed. If your reading of the
+existing `sources` table proves it genuinely cannot hold a research-role registration without a schema
+change, STOP and report the exact gap to the coordinator before requesting any number, rather than
+defaulting to 363.
 
 ## Harness and flywheel wiring (rule 17)
 
@@ -110,8 +113,8 @@ TWO dry runs with two distinct run artifacts, not one.
 ## R14 compliance
 
 Tools before data, three-gate shape: a reviewed-code `ENABLED` const, a runtime kill switch (env var),
-and the `--apply`/`--dispatch` CLI flag, same shape as `research-assessment-producer.mjs` on the branch
-(read it as the pattern). Dry by default. No live site-data write without the gate open; your two
+and the `--apply`/`--dispatch` CLI flag, same shape as `research-assessment-producer.mjs` on `origin/
+master` post-#887 (read it as the pattern). Dry by default. No live site-data write without the gate open; your two
 required dry runs produce candidate items as fixture/dry output, never a live `intelligence_items`
 insert, unless the coordinator has separately authorized a live dispatch (state plainly in your report
 whether you ran live or dry - do not conflate the two).
@@ -142,6 +145,6 @@ checked and its result (fired / did not fire / not yet wired) for your fixture c
 
 No nested agents. No `--no-verify`. No cron, no schedule, no GitHub Actions `schedule:` trigger anywhere
 in your write set (rule 16, absolute for this lane in particular). No edit to `docs/ops/session-log.md`,
-`docs/PROGRAM-BOARD.md`, or `docs/INDEX.md`. No migration applied without the coordinator naming a
-number distinct from 349. No DB credential, no live write without separate operator authorization
-stated plainly.
+`docs/PROGRAM-BOARD.md`, or `docs/INDEX.md`. No migration applied (none needed; 363 is reserved, not to
+be consumed by default). No DB credential, no live write without separate operator authorization stated
+plainly.

@@ -5,12 +5,15 @@ warning (section "Write set") about governing-file changes and the harness conve
 pending run" step, since `system-prompt.ts` is almost certainly a governing file of the mint/record
 harness family (confirm, do not assume); `docs/plans/complete-build-plan-2026-10-01.md` section 1.3 and
 its L9 entry in section 2; `docs/specs/03-research.md` section 1 in full ("the atomic unit is the
-assessment, not the paper") and the platform-intent skill's 6-section Research Summary format; then, on
-your branch, `docs/decisions/ADR-038-research-built-now.md`.
+assessment, not the paper") and the platform-intent skill's 6-section Research Summary format; then
+`docs/decisions/ADR-038-research-built-now.md`.
 
-Lane id: `l9`. Branch: cut from `origin/lane/w2r-research-assessment` (PR #887; confirm merge state
-first - see L3's brief for the same note). Branch name: `lane/l9-research-summary-wiring-2026-10-02`.
-Model: Sonnet (touches the canonical pipeline's system prompt - read `SKILL.md` for whichever skill
+**Precondition (coordinator ruling, 2026-10-02): this lane dispatches only after `lane/w2r-research-
+assessment` (PR #887) has merged to `origin/master`.** See L3's brief for the full statement; it applies
+identically here.
+
+Lane id: `l9`. Branch: cut from `origin/master`. Branch name: `lane/l9-research-summary-wiring-2026-10-
+02`. Model: Sonnet (touches the canonical pipeline's system prompt - read `SKILL.md` for whichever skill
 governs `system-prompt.ts` FIRST, per the doctrine's own warning cited in the plan).
 
 ## Objective and requirement IDs
@@ -24,8 +27,8 @@ convention.
 ## Operator rulings that bind you
 
 - **ADR-038**: Research is built now, data machine first; the surface renders what the data machine
-  produces, never the reverse. This lane is downstream of the data machine (L1/L3, in-flight) and the
-  assumption register (L4, merged), not a redesign of either.
+  produces, never the reverse. This lane is downstream of the data machine (L1, merged per #887; L3,
+  this dispatch) and the assumption register (L4, merged per PR #877), not a redesign of either.
 - **Spec 03S1's own non-negotiable rule**, restated: a card that cannot populate `planning_assumption_
   shifted` does not ship. This lane enforces that as a real constraint (a non-null check in the test, as
   the plan's own acceptance test states), not a style guideline in a prompt a model can ignore.
@@ -60,13 +63,13 @@ output.
 ## READ FIRST
 
 1. `fsi-app/src/lib/agent/system-prompt.ts` - the existing `research_summary` section (lines ~296, ~305,
-   ~329, ~351-356 per this brief's own prior grep; re-confirm exact line numbers on your branch, they
-   will have shifted) - read the surrounding ~100 lines so your addition matches the file's existing
-   voice and constraint style (null-when-not-applicable, locked vocabulary call-outs, etc.).
+   ~329, ~351-356 per this brief's own prior grep; re-confirm exact line numbers on `origin/master`,
+   they will have shifted) - read the surrounding ~100 lines so your addition matches the file's
+   existing voice and constraint style (null-when-not-applicable, locked vocabulary call-outs, etc.).
 2. `fsi-app/src/lib/agent/metadata-vocab.ts` - the `theme` vocabulary's "single home" comment and the
    existing `research_summary`-scoped fields, as the pattern your new fields follow exactly.
-3. `fsi-app/src/lib/research/read-assessments.mjs` (on the branch, IN FULL) - the view-model shape your
-   prompt addition will cite; confirm the exact field names (do not invent column names that do not
+3. `fsi-app/src/lib/research/read-assessments.mjs` (on `origin/master`, IN FULL) - the view-model shape
+   your prompt addition will cite; confirm the exact field names (do not invent column names that do not
    exist in migration 344).
 4. `fsi-app/src/lib/assumptions/read.ts`, `contract.mjs`, `row.mjs` (on master, already merged via PR
    #877) - `readAtRiskAssumptions`/`readWorkspaceAssumptions` and the `load_bearing`/`vulnerable`/
@@ -84,10 +87,9 @@ Report "read and reused" naming each file above.
 
 ## Migration number
 
-None requested; none needed. The coordinator's dispatch assignment names **351** for this lane; the
-complete-build-plan's own table assigns 351 to **L18** (portfolio, Wave 6), a different lane. **Do not
-apply for migration 351 under any circumstance** - this lane edits a prompt and a vocabulary file only,
-no schema.
+The complete-build-plan's own table states "Migrations requested: none" for L9. Per the coordinator's
+2026-10-02 ruling (README table), this dispatch reserves **365** for this lane - RESERVED, not to be
+consumed; this lane edits a prompt and a vocabulary file only, no schema.
 
 ## Harness and flywheel wiring (rule 17)
 
@@ -128,19 +130,20 @@ in generated brief CONTENT, which is reviewed via the regeneration test above, n
 
 ## Dependencies
 
-L1 (the branch's schema - `research_assessments`), L4 (the assumption register, already merged per PR
-#877). L3 is NOT a hard dependency: if L3 has not landed, your `credibility_authority_score` mapping
-cites `assess.mjs`'s placeholder distribution shape and you state this plainly rather than blocking.
+`lane/w2r-research-assessment` (PR #887) merged to `origin/master` - hard precondition, stated above
+(gives you `research_assessments`). L4 (the assumption register, already merged per PR #877). L3 is NOT
+a hard dependency: if L3 has not landed, your `credibility_authority_score` mapping cites `assess.mjs`'s
+placeholder distribution shape and you state this plainly rather than blocking.
 
 ## Report format
 
-Per the lane common contract. State explicitly which of L1/L3/L4's data your prompt addition actually
-reaches as of this run, and whether the live-regeneration acceptance test ran for real or was reduced to
-a prompt-assembly-only check per the R14 note above.
+Per the lane common contract. State explicitly which of #887's schema, L3 and L4's data your prompt
+addition actually reaches as of this run, and whether the live-regeneration acceptance test ran for real
+or was reduced to a prompt-assembly-only check per the R14 note above.
 
 ## Standing prohibitions
 
 No nested agents. No `--no-verify`. No edit to `docs/ops/session-log.md`, `docs/PROGRAM-BOARD.md`, or
-`docs/INDEX.md`. No migration applied (none needed; 351 is explicitly forbidden to this lane). No live
-LLM regeneration against a real item without separate coordinator authorization stated plainly. No DB
-credential, no live write.
+`docs/INDEX.md`. No migration applied (none needed; 365 is reserved, not to be consumed by default). No
+live LLM regeneration against a real item without separate coordinator authorization stated plainly. No
+DB credential, no live write.

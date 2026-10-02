@@ -4,19 +4,21 @@ Read first, in this order: this file; `docs/dispatches/lane-common-contract.md` 
 UX contract section (you touch `.tsx`); `docs/design/ux-laws.md` and `docs/design/design-principles.md`
 DP-2 IN FULL before writing any component; `docs/plans/complete-build-plan-2026-10-01.md` section 1.3
 and its L5 entry in section 2; `docs/specs/03-research.md` section 7 ("Required components") items 6, 8,
-11 in full; then, on your branch, `docs/decisions/ADR-038-research-built-now.md`.
+11 in full; then `docs/decisions/ADR-038-research-built-now.md`.
 
-Lane id: `l5`. Branch: cut from `origin/lane/w2r-research-assessment` (PR #887; confirm merge state
-first - see L3's brief for the same note, not repeated here). Branch name: `lane/l5-research-detail-
+**Precondition (coordinator ruling, 2026-10-02): this lane dispatches only after `lane/w2r-research-
+assessment` (PR #887) has merged to `origin/master`.** See L3's brief for the full statement of this
+precondition; it applies identically here.
+
+Lane id: `l5`. Branch: cut from `origin/master`. Branch name: `lane/l5-research-detail-
 panels-2026-10-02`. Model: Sonnet. You execute exactly this brief; a wrong statement here is a STOP, not
 something to quietly correct and continue past.
 
 ## Objective and requirement IDs
 
 Spec 03S7 components 6 (dissent panel), 8 (machine-watchable signposts list), 11 (assessment history
-ledger). The maturity triple / horizon rail / credibility rendering (components 2-5) are `lane/w2r-
-research-assessment`'s own scope and are explicitly NOT rebuilt here - mount beside that rail card, never
-replace or restyle it.
+ledger). The maturity triple / horizon rail / credibility rendering (components 2-5) are PR #887's own
+scope and are explicitly NOT rebuilt here - mount beside that rail card, never replace or restyle it.
 
 ## Operator rulings that bind you
 
@@ -51,21 +53,21 @@ replace or restyle it.
 
 ## READ FIRST (write-set files, importers/imports, migrations, generated inventories)
 
-1. `fsi-app/src/components/research/ResearchFindingDetailSurface.tsx`, IN FULL, on your branch (it is
-   already extended there by `lane/w2r-research-assessment` with the new rail card) - this is the file
-   you mount into; read what the branch already added before adding your own three lines.
+1. `fsi-app/src/components/research/ResearchFindingDetailSurface.tsx`, IN FULL, on `origin/master`
+   (already extended there by PR #887 with the new rail card) - this is the file you mount into; read
+   what #887 already added before adding your own three lines.
 2. `grep -n "ResearchFindingDetailSurface" fsi-app/src/app/research/[slug]/page.tsx` - confirm the
    page-level import path is unaffected by your change (you are not touching the page).
 3. `fsi-app/src/components/research/ResearchLedger.tsx` and its `.npmtest.mjs` - the house pattern for a
    row/panel component in this surface; reuse its data-fetch and absence-state conventions rather than
    inventing new ones (lane common contract's "Prior art" rule).
-4. `fsi-app/src/lib/research/read-assessments.mjs` (read on the branch, IN FULL) - the view-model and
+4. `fsi-app/src/lib/research/read-assessments.mjs` (on `origin/master`, IN FULL) - the view-model and
    absence/refusal wording your three panels consume; confirm the exact shape of `credibility_authority_
    score`, the `supersedes`-chain history shape, and whether a signposts reader exists yet (it does not -
    L6 builds it; your `SignpostList` renders an honest "no signposts watched yet" absence state until L6
    lands, never a fabricated list).
-5. `fsi-app/supabase/migrations/344_research_assessments.sql` (on the branch, IN FULL) - the `supersedes`
-   self-FK and `is_current` flip mechanism your history ledger renders.
+5. `fsi-app/supabase/migrations/344_research_assessments.sql` (on `origin/master`, IN FULL) - the
+   `supersedes` self-FK and `is_current` flip mechanism your history ledger renders.
 6. `docs/design/ux-laws.md`, `docs/design/design-principles.md` DP-2, IN FULL, before writing any `.tsx`
    (lane common contract UX section, binding).
 7. `fsi-app/.discipline/rendering/ux-smoke-specs.mjs` and one existing smoke spec under `fsi-app/
@@ -80,7 +82,9 @@ Report "read and reused" naming each file above.
 
 ## Migration number
 
-None requested; none needed. This lane writes no schema.
+The complete-build-plan's own table states "Migrations requested: none" for L5. Per the coordinator's
+2026-10-02 ruling (README table), this dispatch reserves **362** for this lane - RESERVED, not to be
+consumed; this lane writes no schema.
 
 ## Harness and flywheel wiring (rule 17)
 
@@ -114,10 +118,10 @@ or a loading spinner that never resolves.
 
 ## Dependencies
 
-`lane/w2r-research-assessment` merged (rail card to mount beside). L3 (a real authority distribution for
-the dissent panel to render dissent from - until L3 lands, render the panel against `assess.mjs`'s
-placeholder distribution and say so in the report, do not block on L3). L6 (signposts data - until L6
-lands, `SignpostList` renders the absence state, as stated above).
+`lane/w2r-research-assessment` (PR #887) merged to `origin/master` - hard precondition, stated above.
+L3 (a real authority distribution for the dissent panel to render dissent from - until L3 lands, render
+the panel against `assess.mjs`'s placeholder distribution and say so in the report, do not block on L3).
+L6 (signposts data - until L6 lands, `SignpostList` renders the absence state, as stated above).
 
 ## Report format
 
