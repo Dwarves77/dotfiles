@@ -1,0 +1,10 @@
+{
+  "family": "research-assessment",
+  "registered": "2026-10-01",
+  "registered_by": "lane W2-R",
+  "governing_files": [
+    "src/lib/research/assess.mjs",
+    "scripts/producers/research/research-assessment-producer.mjs"
+  ],
+  "rationale": "research-assessment (registered by lane W2-R, operator ruling 2026-10-01 'Why is research have a design but not a build? Fix this.'): a single-pass computation harness, one run is one scoring pass over a defined candidate set (the fixtures/no-creds dry CLI run, or the live research-surface candidate population under --live). Shares the single-pass-over-a-corpus-slice shape with forward-events (also a pure extraction/scoring harness with no DB-write side effect inside the pure module itself); governing files are assess.mjs (the pure ladder: maturity, horizon, credibility) and the producer script (the I/O narrowing + guarded write + CLI)."
+}
